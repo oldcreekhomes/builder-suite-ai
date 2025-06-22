@@ -1,4 +1,3 @@
-
 import { 
   Building2, 
   Calendar, 
@@ -10,7 +9,8 @@ import {
   LogOut,
   File,
   Image,
-  ChevronDown
+  ChevronDown,
+  User
 } from "lucide-react";
 
 import {
@@ -42,6 +42,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
+import { ProfileDialog } from "./ProfileDialog";
 
 const navigationItems = [
   {
@@ -98,6 +99,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { toast } = useToast();
   const [documentsOpen, setDocumentsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -133,103 +135,117 @@ export function AppSidebar() {
   const projectId = getProjectId();
 
   return (
-    <Sidebar className="border-r border-gray-200">
-      <SidebarHeader className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
-          <Building2 className="h-8 w-8 text-black" />
-          <div>
-            <h1 className="text-xl font-bold text-black">BuildCore</h1>
-            <p className="text-sm text-gray-600">Construction Management</p>
+    <>
+      <Sidebar className="border-r border-gray-200">
+        <SidebarHeader className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <Building2 className="h-8 w-8 text-black" />
+            <div>
+              <h1 className="text-xl font-bold text-black">BuildCore</h1>
+              <p className="text-sm text-gray-600">Construction Management</p>
+            </div>
           </div>
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-700 font-medium mb-2">
-            Main Menu
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {item.submenu ? (
-                    <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="w-full justify-between hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
-                          <div className="flex items-center space-x-3">
-                            <item.icon className="h-5 w-5" />
-                            <span className="font-medium">{item.title}</span>
-                          </div>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.submenu.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild>
-                                <a 
-                                  href={projectId ? `/project/${projectId}${subItem.url}` : subItem.url}
-                                  className="flex items-center space-x-3 p-2 rounded-lg"
-                                >
-                                  <subItem.icon className="h-4 w-4" />
-                                  <span>{subItem.title}</span>
-                                </a>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : (
-                    <SidebarMenuButton 
-                      asChild 
-                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                    >
-                      <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
-                        <item.icon className="h-5 w-5" />
-                        <span className="font-medium">{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      
-      <SidebarFooter className="p-4 border-t border-gray-200">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start p-2 h-auto">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" alt="User avatar" />
-                  <AvatarFallback className="bg-gray-100 text-gray-700 text-sm">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col items-start text-left">
-                  <span className="text-sm font-medium text-gray-900">Account</span>
-                  <span className="text-xs text-gray-500 truncate max-w-32">
-                    {user?.email}
-                  </span>
+        </SidebarHeader>
+        <SidebarContent className="px-3 py-4">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-gray-700 font-medium mb-2">
+              Main Menu
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navigationItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    {item.submenu ? (
+                      <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton className="w-full justify-between hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <item.icon className="h-5 w-5" />
+                              <span className="font-medium">{item.title}</span>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.submenu.map((subItem) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton asChild>
+                                  <a 
+                                    href={projectId ? `/project/${projectId}${subItem.url}` : subItem.url}
+                                    className="flex items-center space-x-3 p-2 rounded-lg"
+                                  >
+                                    <subItem.icon className="h-4 w-4" />
+                                    <span>{subItem.title}</span>
+                                  </a>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    ) : (
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                      >
+                        <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
+                          <item.icon className="h-5 w-5" />
+                          <span className="font-medium">{item.title}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        
+        <SidebarFooter className="p-4 border-t border-gray-200">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start p-2 h-auto">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" alt="User avatar" />
+                    <AvatarFallback className="bg-gray-100 text-gray-700 text-sm">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-sm font-medium text-gray-900">Account</span>
+                    <span className="text-xs text-gray-500 truncate max-w-32">
+                      {user?.email}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 bg-white" align="end" forceMount>
-            <DropdownMenuItem 
-              className="cursor-pointer hover:bg-gray-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarFooter>
-    </Sidebar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-white" align="end" forceMount>
+              <DropdownMenuItem 
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => setProfileOpen(true)}
+              >
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarFooter>
+      </Sidebar>
+      
+      <ProfileDialog 
+        open={profileOpen} 
+        onOpenChange={setProfileOpen} 
+      />
+    </>
   );
 }
