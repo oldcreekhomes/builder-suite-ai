@@ -19,7 +19,7 @@ interface ConfirmationEmailRequest {
   companyName?: string;
   homeBuilderId?: string;
   homeBuilderEmail?: string;
-  confirmationUrl?: string;
+  userId: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -28,9 +28,28 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { userEmail, userType, companyName, homeBuilderId, homeBuilderEmail, confirmationUrl }: ConfirmationEmailRequest = await req.json();
+    const { userEmail, userType, companyName, homeBuilderId, homeBuilderEmail, userId }: ConfirmationEmailRequest = await req.json();
 
-    console.log("Sending confirmation emails for:", { userEmail, userType, companyName, homeBuilderId, confirmationUrl });
+    console.log("Sending confirmation emails for:", { userEmail, userType, companyName, homeBuilderId, userId });
+
+    // Create Supabase client with service role key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Generate email confirmation link using Supabase's built-in method
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: 'signup',
+      email: userEmail,
+      options: {
+        redirectTo: `${req.headers.get('origin') || 'http://localhost:3000'}/auth`
+      }
+    });
+
+    if (error) {
+      console.error("Error generating confirmation link:", error);
+      throw error;
+    }
+
+    const confirmationUrl = data.properties?.action_link;
 
     // Send confirmation email to the new user with confirmation link
     const userEmailHtml = `

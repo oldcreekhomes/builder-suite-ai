@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,9 +52,6 @@ const SignupForm = () => {
           variant: "destructive",
         });
       } else if (data.user && !data.user.email_confirmed_at) {
-        // Generate confirmation URL manually
-        const { data: sessionData } = await supabase.auth.getSession();
-        
         // Send our custom confirmation emails
         try {
           let homeBuilderEmail = "";
@@ -71,9 +67,6 @@ const SignupForm = () => {
             homeBuilderEmail = homeBuilderData?.email || "";
           }
 
-          // Create the confirmation URL that points to our auth page
-          const confirmationUrl = `${window.location.origin}/auth#confirmation`;
-
           await supabase.functions.invoke('send-confirmation-email', {
             body: {
               userEmail: email,
@@ -81,7 +74,7 @@ const SignupForm = () => {
               companyName: userType === "home_builder" ? homeBuildingCompany : undefined,
               homeBuilderId: userType === "employee" ? selectedHomeBuilderId : undefined,
               homeBuilderEmail: homeBuilderEmail || undefined,
-              confirmationUrl: confirmationUrl,
+              userId: data.user.id,
             },
           });
         } catch (emailError) {
