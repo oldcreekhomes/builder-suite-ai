@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -36,7 +35,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
     lastName: "",
     email: "",
     phoneNumber: "",
-    role: "employee",
+    role: "accountant",
   });
 
   useEffect(() => {
@@ -46,7 +45,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
         lastName: employee.last_name || "",
         email: employee.email || "",
         phoneNumber: employee.phone_number || "",
-        role: employee.role || "employee",
+        role: employee.role || "accountant",
       });
     }
   }, [employee]);
@@ -160,10 +159,9 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="contractor">Contractor</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="construction_manager">Construction Manager</SelectItem>
+                <SelectItem value="project_manager">Project Manager</SelectItem>
               </SelectContent>
             </Select>
           </div>

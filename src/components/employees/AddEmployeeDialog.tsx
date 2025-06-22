@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,7 +24,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     lastName: "",
     email: "",
     phoneNumber: "",
-    role: "employee",
+    role: "accountant",
   });
 
   const inviteEmployeeMutation = useMutation({
@@ -95,7 +94,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         lastName: "",
         email: "",
         phoneNumber: "",
-        role: "employee",
+        role: "accountant",
       });
       onOpenChange(false);
     },
@@ -181,10 +180,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">Employee</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="contractor">Contractor</SelectItem>
+                <SelectItem value="accountant">Accountant</SelectItem>
+                <SelectItem value="construction_manager">Construction Manager</SelectItem>
+                <SelectItem value="project_manager">Project Manager</SelectItem>
               </SelectContent>
             </Select>
           </div>
