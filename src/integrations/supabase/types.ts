@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      employee_invitations: {
+        Row: {
+          accepted_at: string | null
+          email: string
+          first_name: string
+          home_builder_id: string | null
+          id: string
+          invited_at: string
+          invited_by: string
+          last_name: string
+          phone_number: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          email: string
+          first_name: string
+          home_builder_id?: string | null
+          id?: string
+          invited_at?: string
+          invited_by: string
+          last_name: string
+          phone_number?: string | null
+          role?: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string
+          first_name?: string
+          home_builder_id?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          last_name?: string
+          phone_number?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_invitations_home_builder_id_fkey"
+            columns: ["home_builder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_by_home_builder: boolean
@@ -20,6 +70,8 @@ export type Database = {
           home_builder_id: string | null
           id: string
           last_name: string | null
+          phone_number: string | null
+          role: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
@@ -33,6 +85,8 @@ export type Database = {
           home_builder_id?: string | null
           id: string
           last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
           updated_at?: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
@@ -46,6 +100,8 @@ export type Database = {
           home_builder_id?: string | null
           id?: string
           last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
@@ -270,6 +326,16 @@ export type Database = {
           company_name: string
           created_at: string
         }[]
+      }
+      invite_employee: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_phone_number?: string
+          p_role?: string
+        }
+        Returns: string
       }
     }
     Enums: {

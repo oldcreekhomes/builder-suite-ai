@@ -1,3 +1,4 @@
+
 import { 
   Building2, 
   Calendar, 
@@ -10,7 +11,8 @@ import {
   File,
   Image,
   ChevronDown,
-  User
+  User,
+  UserPlus
 } from "lucide-react";
 
 import {
@@ -91,6 +93,11 @@ const navigationItems = [
     title: "Companies",
     url: "/companies",
     icon: Users,
+  },
+  {
+    title: "Employees",
+    url: "/employees",
+    icon: UserPlus,
   },
 ];
 
