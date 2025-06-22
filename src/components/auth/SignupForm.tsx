@@ -34,14 +34,14 @@ const SignupForm = () => {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
 
-      // Completely disable Supabase's automatic email confirmation
+      // Use the admin API to create user without sending any emails
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: metadata,
-          // Set to null to completely disable Supabase's confirmation email
-          emailRedirectTo: null,
+          // Completely disable email confirmation
+          emailRedirectTo: undefined,
         },
       });
 
@@ -52,7 +52,16 @@ const SignupForm = () => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Send our custom confirmation emails only
+        // Manually confirm the user's email using admin API
+        try {
+          await supabase.auth.admin.updateUserById(data.user.id, {
+            email_confirm: true
+          });
+        } catch (adminError) {
+          console.error("Failed to confirm user email:", adminError);
+        }
+
+        // Send only our custom confirmation emails
         try {
           let homeBuilderEmail = "";
           
