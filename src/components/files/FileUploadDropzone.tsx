@@ -67,6 +67,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('Files dropped:', acceptedFiles);
     const newUploads = acceptedFiles.map(file => ({
       file,
       progress: 0,
@@ -128,9 +129,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+    console.log('Folder files selected:', files);
     if (files.length > 0) {
       onDrop(files);
     }
+    // Reset the input value to allow selecting the same folder again
+    event.target.value = '';
   };
 
   const removeUpload = (file: File) => {
