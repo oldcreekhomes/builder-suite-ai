@@ -9,16 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          home_builder_id: string | null
+          id: string
+          updated_at: string | null
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          home_builder_id?: string | null
+          id: string
+          updated_at?: string | null
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          home_builder_id?: string | null
+          id?: string
+          updated_at?: string | null
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_home_builder_id_fkey"
+            columns: ["home_builder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_home_builders: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          company_name: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_type: "home_builder" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +176,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_type: ["home_builder", "employee"],
+    },
   },
 } as const
