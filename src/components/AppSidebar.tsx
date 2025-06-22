@@ -94,11 +94,6 @@ const navigationItems = [
     url: "/companies",
     icon: Users,
   },
-  {
-    title: "Employees",
-    url: "/employees",
-    icon: UserPlus,
-  },
 ];
 
 export function AppSidebar() {
@@ -225,6 +220,17 @@ export function AppSidebar() {
         </SidebarContent>
         
         <SidebarFooter className="p-4 border-t border-gray-200">
+          {/* Employees menu item */}
+          <SidebarMenuButton 
+            asChild 
+            className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors mb-2"
+          >
+            <a href="/employees" className="flex items-center space-x-3 p-3 rounded-lg">
+              <UserPlus className="h-5 w-5" />
+              <span className="font-medium">Employees</span>
+            </a>
+          </SidebarMenuButton>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start p-2 h-auto">
