@@ -1,4 +1,3 @@
-
 import { 
   Building2, 
   Calendar, 
@@ -175,7 +174,7 @@ export function AppSidebar() {
                     {item.submenu ? (
                       <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton className="w-full justify-between hover:bg-gray-100 text-gray-700 hover:text-black transition-colors p-3">
+                          <SidebarMenuButton className="w-full justify-between hover:bg-gray-100 text-gray-700 hover:text-black transition-colors p-3 pl-3">
                             <div className="flex items-center space-x-3">
                               <item.icon className="h-5 w-5" />
                               <span className="font-medium">{item.title}</span>
