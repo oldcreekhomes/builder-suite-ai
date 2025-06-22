@@ -34,6 +34,8 @@ const SignupForm = () => {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
 
+      console.log("Attempting signup with metadata:", metadata);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -44,12 +46,14 @@ const SignupForm = () => {
       });
 
       if (error) {
+        console.error("Signup error:", error);
         toast({
           title: "Error",
           description: error.message,
           variant: "destructive",
         });
       } else if (data.user) {
+        console.log("Signup successful:", data.user);
         toast({
           title: "Account Created Successfully",
           description: userType === "employee" 
@@ -59,6 +63,7 @@ const SignupForm = () => {
         navigate("/");
       }
     } catch (error) {
+      console.error("Unexpected error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",

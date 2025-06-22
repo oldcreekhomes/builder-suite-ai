@@ -11,17 +11,20 @@ export const useUserProfile = () => {
     queryFn: async () => {
       if (!user?.id) return null;
       
+      console.log("Fetching profile for user:", user.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
         throw error;
       }
 
+      console.log("Profile data:", data);
       return data;
     },
     enabled: !!user?.id,
