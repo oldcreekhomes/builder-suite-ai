@@ -103,13 +103,13 @@ export function SidebarNavigation() {
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <SidebarMenuSub className="ml-6 mt-2">
+                      <SidebarMenuSub className="ml-8 mt-3">
                         {item.submenu.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
                               <a 
                                 href={projectId ? `/project/${projectId}${subItem.url}` : subItem.url}
-                                className="flex items-center space-x-3 p-3 rounded-lg"
+                                className="flex items-center space-x-3 p-4 rounded-lg"
                               >
                                 <subItem.icon className="h-4 w-4" />
                                 <span>{subItem.title}</span>
