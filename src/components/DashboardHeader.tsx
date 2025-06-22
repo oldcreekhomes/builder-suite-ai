@@ -1,52 +1,13 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, Search, LogOut } from "lucide-react";
+import { Plus, Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 
 export function DashboardHeader() {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      });
-    } else {
-      navigate("/auth");
-      toast({
-        title: "Success",
-        description: "You have been signed out successfully.",
-      });
-    }
-  };
-
-  // Get user initials for fallback
-  const getUserInitials = () => {
-    if (user?.email) {
-      return user.email.substring(0, 2).toUpperCase();
-    }
-    return "U";
-  };
 
   return (
     <>
@@ -78,28 +39,6 @@ export function DashboardHeader() {
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src="" alt="User avatar" />
-                    <AvatarFallback className="bg-gray-100 text-gray-700">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-white" align="end" forceMount>
-                <DropdownMenuItem 
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </header>

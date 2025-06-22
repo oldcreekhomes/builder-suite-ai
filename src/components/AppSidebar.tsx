@@ -6,8 +6,8 @@ import {
   DollarSign, 
   FileText, 
   Home, 
-  Settings,
-  Users
+  Users,
+  LogOut
 } from "lucide-react";
 
 import {
@@ -20,7 +20,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const navigationItems = [
   {
@@ -60,15 +73,36 @@ const navigationItems = [
   },
 ];
 
-const settingsItems = [
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-];
-
 export function AppSidebar() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      navigate("/auth");
+      toast({
+        title: "Success",
+        description: "You have been signed out successfully.",
+      });
+    }
+  };
+
+  // Get user initials for fallback
+  const getUserInitials = () => {
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <Sidebar className="border-r border-gray-200">
       <SidebarHeader className="p-6 border-b border-gray-200">
@@ -103,27 +137,39 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
-        <SidebarGroup className="mt-8">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                  >
-                    <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
+      
+      <SidebarFooter className="p-4 border-t border-gray-200">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start p-2 h-auto">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="" alt="User avatar" />
+                  <AvatarFallback className="bg-gray-100 text-gray-700 text-sm">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-sm font-medium text-gray-900">Account</span>
+                  <span className="text-xs text-gray-500 truncate max-w-32">
+                    {user?.email}
+                  </span>
+                </div>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 bg-white" align="end" forceMount>
+            <DropdownMenuItem 
+              className="cursor-pointer hover:bg-gray-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
