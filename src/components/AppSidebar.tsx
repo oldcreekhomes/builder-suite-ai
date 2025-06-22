@@ -1,4 +1,3 @@
-
 import { 
   Building2, 
   Calendar, 
@@ -169,9 +168,6 @@ export function AppSidebar() {
         </SidebarHeader>
         <SidebarContent className="px-3 py-4">
           <SidebarGroup>
-            <SidebarGroupLabel className="text-gray-700 font-medium mb-2">
-              Main Menu
-            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigationItems.map((item) => (

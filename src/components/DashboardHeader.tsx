@@ -1,3 +1,4 @@
+
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Plus, Bell, Search } from "lucide-react";
@@ -6,6 +7,7 @@ import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useProjects } from "@/hooks/useProjects";
 import { useNavigate } from "react-router-dom";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import {
   Command,
   CommandEmpty,
@@ -25,6 +27,7 @@ export function DashboardHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const { data: projects = [] } = useProjects();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
 
   const filteredProjects = projects.filter(project =>
@@ -56,13 +59,16 @@ export function DashboardHeader() {
     }, 200);
   };
 
+  // Get company name from profile, fallback to "Company"
+  const companyName = profile?.company_name || "Company";
+
   return (
     <>
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div>
-              <h1 className="text-2xl font-bold text-black">Company Dashboard</h1>
+              <h1 className="text-2xl font-bold text-black">{companyName} Dashboard</h1>
             </div>
           </div>
           
