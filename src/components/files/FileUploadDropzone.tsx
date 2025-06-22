@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -27,8 +26,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    // Preserve folder structure in the filename
-    const fileName = `${user.id}/${projectId}/${fileId}_${file.webkitRelativePath || file.name}`;
+    // Preserve full folder structure including the root folder name
+    const fullPath = file.webkitRelativePath || file.name;
+    const fileName = `${user.id}/${projectId}/${fileId}_${fullPath}`;
     
     try {
       // Upload to Supabase Storage
@@ -38,13 +38,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
       if (uploadError) throw uploadError;
 
-      // Save file metadata to database
+      // Save file metadata to database with preserved folder structure
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: file.webkitRelativePath || file.name,
+          original_filename: fullPath, // This preserves the folder structure
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -59,7 +59,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
       console.error('Upload error:', error);
       toast({
         title: "Upload Error",
-        description: `Failed to upload ${file.name}`,
+        description: `Failed to upload ${fullPath}`,
         variant: "destructive",
       });
       return false;

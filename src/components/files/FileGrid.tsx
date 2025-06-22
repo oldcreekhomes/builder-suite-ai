@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Eye, Trash2, Image } from "lucide-react";
+import { FileText, Download, Eye, Trash2, Image, Folder } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,11 +27,35 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileIcon = (fileType: string) => {
+  const getFileIcon = (fileType: string, filename: string) => {
+    // Check if this is in a folder (has '/' in the path)
+    if (filename.includes('/')) {
+      return <Folder className="h-8 w-8 text-yellow-500" />;
+    }
+    
     if (['jpg', 'jpeg', 'png', 'gif'].includes(fileType)) {
       return <Image className="h-8 w-8 text-purple-500" />;
     }
     return <FileText className="h-8 w-8 text-blue-500" />;
+  };
+
+  const getDisplayName = (filename: string) => {
+    // If it's a file in a folder, show the folder structure
+    if (filename.includes('/')) {
+      const parts = filename.split('/');
+      const folderName = parts[0];
+      const fileName = parts[parts.length - 1];
+      return {
+        displayName: fileName,
+        folderPath: parts.slice(0, -1).join('/'),
+        isInFolder: true
+      };
+    }
+    return {
+      displayName: filename,
+      folderPath: '',
+      isInFolder: false
+    };
   };
 
   const getFileTypeColor = (fileType: string) => {
@@ -202,68 +225,79 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {files.map((file) => (
-          <Card key={file.id} className="p-4 hover:shadow-md transition-shadow relative">
-            <div className="absolute top-2 left-2 z-10">
-              <Checkbox
-                checked={selectedFiles.has(file.id)}
-                onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
-                className="bg-white border-2"
-              />
-            </div>
-            
-            <div className="flex flex-col h-full cursor-pointer" onClick={() => onFileSelect(file)}>
-              <div className="flex items-center justify-between mb-3 mt-6">
-                {getFileIcon(file.file_type)}
-                <Badge className={getFileTypeColor(file.file_type)}>
-                  {file.file_type.toUpperCase()}
-                </Badge>
+        {files.map((file) => {
+          const displayInfo = getDisplayName(file.original_filename);
+          
+          return (
+            <Card key={file.id} className="p-4 hover:shadow-md transition-shadow relative">
+              <div className="absolute top-2 left-2 z-10">
+                <Checkbox
+                  checked={selectedFiles.has(file.id)}
+                  onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
+                  className="bg-white border-2"
+                />
               </div>
               
-              <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={file.original_filename}>
-                {file.original_filename}
-              </h3>
-              
-              {file.description && (
-                <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                  {file.description}
-                </p>
-              )}
-              
-              <div className="flex-1" />
-              
-              <div className="space-y-2 text-xs text-gray-500">
-                <div>{formatFileSize(file.file_size)}</div>
-                <div>By {file.uploaded_by_profile?.email || 'Unknown'}</div>
-                <div>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</div>
+              <div className="flex flex-col h-full cursor-pointer" onClick={() => onFileSelect(file)}>
+                <div className="flex items-center justify-between mb-3 mt-6">
+                  {getFileIcon(file.file_type, file.original_filename)}
+                  <Badge className={getFileTypeColor(file.file_type)}>
+                    {file.file_type.toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={file.original_filename}>
+                  {displayInfo.displayName}
+                </h3>
+                
+                {displayInfo.isInFolder && (
+                  <p className="text-xs text-blue-600 mb-2 flex items-center">
+                    <Folder className="h-3 w-3 mr-1" />
+                    {displayInfo.folderPath}
+                  </p>
+                )}
+                
+                {file.description && (
+                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                    {file.description}
+                  </p>
+                )}
+                
+                <div className="flex-1" />
+                
+                <div className="space-y-2 text-xs text-gray-500">
+                  <div>{formatFileSize(file.file_size)}</div>
+                  <div>By {file.uploaded_by_profile?.email || 'Unknown'}</div>
+                  <div>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onFileSelect(file)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(file)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(file)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              
-              <div className="flex items-center justify-between mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onFileSelect(file)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDownload(file)}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(file)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
