@@ -50,6 +50,130 @@ export type Database = {
           },
         ]
       }
+      project_photos: {
+        Row: {
+          description: string | null
+          id: string
+          project_id: string
+          uploaded_at: string
+          uploaded_by: string
+          url: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          project_id: string
+          uploaded_at?: string
+          uploaded_by: string
+          url: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          project_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_photos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_schedule: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          end_date: string
+          id: string
+          project_id: string
+          start_date: string
+          status: string
+          task_name: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          project_id: string
+          start_date: string
+          status?: string
+          task_name: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          project_id?: string
+          start_date?: string
+          status?: string
+          task_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_schedule_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          manager: string
+          name: string
+          owner_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          id?: string
+          manager: string
+          name: string
+          owner_id: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          manager?: string
+          name?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
