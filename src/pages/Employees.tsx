@@ -16,16 +16,13 @@ export default function Employees() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Employee Management" 
-            subtitle="Manage your team members and invite new employees"
-          />
+          <DashboardHeader />
           
           <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Employees</h2>
-                <p className="text-gray-600">Manage your team and send invitations</p>
+                <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
+                <p className="text-gray-600">Manage your team members and invite new employees</p>
               </div>
               <Button onClick={() => setAddEmployeeOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
