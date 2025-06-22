@@ -15,9 +15,43 @@ const SignupForm = () => {
   const [userType, setUserType] = useState<"home_builder" | "employee">("home_builder");
   const [companyName, setCompanyName] = useState("");
   const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
+  const [selectedHomeBuilderData, setSelectedHomeBuilderData] = useState<{id: string, company_name: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string}) => {
+    try {
+      // Get home builder email
+      const { data: homeBuilderProfile, error } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', homeBuilderData.id)
+        .single();
+
+      if (error || !homeBuilderProfile) {
+        console.error("Error fetching home builder profile:", error);
+        return;
+      }
+
+      const response = await supabase.functions.invoke('send-employee-approval-email', {
+        body: {
+          employeeId,
+          employeeEmail: email,
+          homeBuilderEmail: homeBuilderProfile.email,
+          companyName: homeBuilderData.company_name,
+        }
+      });
+
+      if (response.error) {
+        console.error("Error sending approval emails:", response.error);
+      } else {
+        console.log("Approval emails sent successfully");
+      }
+    } catch (error) {
+      console.error("Error in sendEmployeeApprovalEmails:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,15 +93,19 @@ const SignupForm = () => {
         if (userType === "home_builder") {
           toast({
             title: "Account Created Successfully",
-            description: "You can now sign in to your account.",
+            description: "Please check your email to confirm your account.",
           });
-          navigate("/");
-        } else {
+        } else if (userType === "employee" && selectedHomeBuilderData) {
+          // Send approval emails for employee
+          await sendEmployeeApprovalEmails(data.user.id, selectedHomeBuilderData);
+          
           toast({
             title: "Registration Submitted",
             description: "Please check your email to confirm your account. Your company will also need to approve your access.",
           });
         }
+        
+        // Don't navigate immediately, let them check email
       }
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -143,7 +181,10 @@ const SignupForm = () => {
       {userType === "employee" && (
         <HomeBuilderSelect
           value={selectedHomeBuilderId}
-          onChange={setSelectedHomeBuilderId}
+          onChange={(value, homeBuilderData) => {
+            setSelectedHomeBuilderId(value);
+            setSelectedHomeBuilderData(homeBuilderData);
+          }}
         />
       )}
       
