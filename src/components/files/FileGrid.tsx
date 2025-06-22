@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
   };
 
   const getFileIcon = (fileType: string, filename: string) => {
-    // Check if this is in a folder (has '/' in the path)
+    // Check if this file is in a folder (has '/' in the original_filename)
     if (filename.includes('/')) {
       return <Folder className="h-8 w-8 text-yellow-500" />;
     }
@@ -40,21 +41,23 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
   };
 
   const getDisplayName = (filename: string) => {
-    // If it's a file in a folder, show the folder structure
+    // Parse the original filename to extract folder structure
     if (filename.includes('/')) {
       const parts = filename.split('/');
-      const folderName = parts[0];
-      const fileName = parts[parts.length - 1];
+      const fileName = parts[parts.length - 1]; // Last part is the actual file name
+      const folderPath = parts.slice(0, -1).join('/'); // Everything before the file name
       return {
         displayName: fileName,
-        folderPath: parts.slice(0, -1).join('/'),
-        isInFolder: true
+        folderPath: folderPath,
+        isInFolder: true,
+        fullPath: filename
       };
     }
     return {
       displayName: filename,
       folderPath: '',
-      isInFolder: false
+      isInFolder: false,
+      fullPath: filename
     };
   };
 
@@ -246,7 +249,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
                   </Badge>
                 </div>
                 
-                <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={file.original_filename}>
+                <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={displayInfo.fullPath}>
                   {displayInfo.displayName}
                 </h3>
                 

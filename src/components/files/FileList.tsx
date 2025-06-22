@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
   };
 
   const getFileIcon = (fileType: string, filename: string) => {
-    // Check if this is in a folder (has '/' in the path)
+    // Check if this file is in a folder (has '/' in the original_filename)
     if (filename.includes('/')) {
       return <Folder className="h-5 w-5 text-yellow-500 mr-2" />;
     }
@@ -37,21 +38,23 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
   };
 
   const getDisplayName = (filename: string) => {
-    // If it's a file in a folder, show the folder structure
+    // Parse the original filename to extract folder structure
     if (filename.includes('/')) {
       const parts = filename.split('/');
-      const folderName = parts[0];
-      const fileName = parts[parts.length - 1];
+      const fileName = parts[parts.length - 1]; // Last part is the actual file name
+      const folderPath = parts.slice(0, -1).join('/'); // Everything before the file name
       return {
         displayName: fileName,
-        folderPath: parts.slice(0, -1).join('/'),
-        isInFolder: true
+        folderPath: folderPath,
+        isInFolder: true,
+        fullPath: filename
       };
     }
     return {
       displayName: filename,
       folderPath: '',
-      isInFolder: false
+      isInFolder: false,
+      fullPath: filename
     };
   };
 
@@ -246,7 +249,9 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
                     <div className="flex items-center space-x-3">
                       {getFileIcon(file.file_type, file.original_filename)}
                       <div>
-                        <div className="font-medium">{displayInfo.displayName}</div>
+                        <div className="font-medium" title={displayInfo.fullPath}>
+                          {displayInfo.displayName}
+                        </div>
                         {file.description && (
                           <div className="text-sm text-gray-500">{file.description}</div>
                         )}

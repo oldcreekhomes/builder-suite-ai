@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -26,8 +27,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    // Preserve full folder structure including the root folder name
+    // Get the full path including folder structure
     const fullPath = file.webkitRelativePath || file.name;
+    
+    console.log('Uploading file with path:', fullPath);
+    console.log('File webkitRelativePath:', file.webkitRelativePath);
+    console.log('File name:', file.name);
+    
+    // Create storage path that preserves the folder structure
     const fileName = `${user.id}/${projectId}/${fileId}_${fullPath}`;
     
     try {
@@ -44,7 +51,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: fullPath, // This preserves the folder structure
+          original_filename: fullPath, // This preserves the complete folder structure
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -54,6 +61,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
       if (dbError) throw dbError;
 
+      console.log('Successfully uploaded file:', fullPath);
       return true;
     } catch (error) {
       console.error('Upload error:', error);
@@ -67,7 +75,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('Files dropped:', acceptedFiles);
+    console.log('Files dropped:', acceptedFiles.map(f => ({ 
+      name: f.name, 
+      path: f.webkitRelativePath,
+      hasPath: !!f.webkitRelativePath 
+    })));
+    
     const newUploads = acceptedFiles.map(file => ({
       file,
       progress: 0,
@@ -129,7 +142,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Folder files selected:', files);
+    console.log('Folder files selected:', files.map(f => ({ 
+      name: f.name, 
+      path: f.webkitRelativePath,
+      hasPath: !!f.webkitRelativePath 
+    })));
+    
     if (files.length > 0) {
       onDrop(files);
     }
