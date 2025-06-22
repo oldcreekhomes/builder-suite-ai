@@ -41,9 +41,12 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
       const fileName = parts[parts.length - 1];
       // Only get the top-level folder (first part)
       const topLevelFolder = parts[0];
+      // Get the relative path from the top-level folder
+      const relativePath = parts.slice(1).join('/');
       return {
         displayName: fileName,
         topLevelFolder: topLevelFolder,
+        relativePath: relativePath, // This preserves subfolder structure
         isInFolder: true,
         fullPath: filename
       };
@@ -51,6 +54,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     return {
       displayName: filename,
       topLevelFolder: '',
+      relativePath: '',
       isInFolder: false,
       fullPath: filename
     };
@@ -305,7 +309,8 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
                         </div>
                         
                         <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={displayInfo.fullPath}>
-                          {displayInfo.displayName}
+                          {/* Show the relative path if it exists, otherwise just the filename */}
+                          {displayInfo.relativePath ? displayInfo.relativePath : displayInfo.displayName}
                         </h3>
                         
                         {file.description && (

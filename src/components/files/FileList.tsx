@@ -35,9 +35,12 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
       const fileName = parts[parts.length - 1];
       // Only get the top-level folder (first part)
       const topLevelFolder = parts[0];
+      // Get the relative path from the top-level folder
+      const relativePath = parts.slice(1).join('/');
       return {
         displayName: fileName,
         topLevelFolder: topLevelFolder,
+        relativePath: relativePath, // This preserves subfolder structure
         isInFolder: true,
         fullPath: filename
       };
@@ -45,6 +48,7 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
     return {
       displayName: filename,
       topLevelFolder: '',
+      relativePath: '',
       isInFolder: false,
       fullPath: filename
     };
@@ -300,7 +304,8 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
                             <FileText className="h-5 w-5 text-blue-500" />
                             <div>
                               <div className="font-medium" title={displayInfo.fullPath}>
-                                {displayInfo.displayName}
+                                {/* Show the relative path if it exists, otherwise just the filename */}
+                                {displayInfo.relativePath ? displayInfo.relativePath : displayInfo.displayName}
                               </div>
                               {file.description && (
                                 <div className="text-sm text-gray-500">{file.description}</div>
