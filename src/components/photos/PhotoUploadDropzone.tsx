@@ -115,13 +115,13 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     onDrop,
     multiple: true,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg']
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.heic', '.HEIC']
     }
   });
 
   const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []).filter(file => 
-      file.type.startsWith('image/')
+      file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic')
     );
     console.log('Photo folder files selected:', files);
     if (files.length > 0) {
@@ -152,7 +152,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
             Drag and drop photos or folders here, or click to select
           </p>
           <p className="text-sm text-gray-500 mb-4">
-            Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG
+            Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
           </p>
           <div className="flex items-center justify-center space-x-4">
             <Button className="mt-4">
@@ -169,7 +169,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
                 type="file"
                 {...({ webkitdirectory: "" } as any)}
                 multiple
-                accept="image/*"
+                accept="image/*,.heic,.HEIC"
                 onChange={handleFolderUpload}
                 className="hidden"
               />
