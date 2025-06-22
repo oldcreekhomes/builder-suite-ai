@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface AddEmployeeDialogProps {
 export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -28,7 +30,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
 
   const inviteEmployeeMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('invite_employee', {
+      // Create the invitation
+      const { data: invitationId, error } = await supabase.rpc('invite_employee', {
         p_email: formData.email,
         p_first_name: formData.firstName,
         p_last_name: formData.lastName,
@@ -37,13 +40,55 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
 
       if (error) throw error;
-      return data;
+
+      // Get the invitation details including token
+      const { data: invitation, error: invitationError } = await supabase
+        .from('employee_invitations')
+        .select('*, home_builder_id')
+        .eq('id', invitationId)
+        .single();
+
+      if (invitationError) throw invitationError;
+
+      // Get company name for the email
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('id', invitation.home_builder_id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Send invitation email
+      const { error: emailError } = await supabase.functions.invoke('send-employee-invitation', {
+        body: {
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          companyName: profile.company_name,
+          invitationToken: invitation.invitation_token,
+        }
+      });
+
+      if (emailError) {
+        console.error('Email sending error:', emailError);
+        // Don't throw here - invitation was created successfully, just email failed
+        toast({
+          title: "Invitation Created",
+          description: "Invitation was created but email failed to send. Please contact the employee directly.",
+          variant: "destructive",
+        });
+      }
+
+      return { invitationId, emailSent: !emailError };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['employee-invitations'] });
       toast({
         title: "Success",
-        description: "Employee invitation sent successfully",
+        description: result.emailSent 
+          ? "Employee invitation sent successfully via email"
+          : "Employee invitation created (email delivery failed)",
       });
       setFormData({
         firstName: "",
@@ -80,7 +125,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
+          <DialogTitle>Invite New Employee</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,7 +201,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
               type="submit"
               disabled={inviteEmployeeMutation.isPending}
             >
-              {inviteEmployeeMutation.isPending ? "Sending..." : "Send Invitation"}
+              {inviteEmployeeMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
             </Button>
           </div>
         </form>

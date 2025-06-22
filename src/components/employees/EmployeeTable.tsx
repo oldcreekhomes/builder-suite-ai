@@ -38,6 +38,8 @@ interface EmployeeInvitation {
   role: string;
   status: string;
   invited_at: string;
+  confirmed_at?: string;
+  expires_at: string;
 }
 
 export function EmployeeTable() {
@@ -130,13 +132,32 @@ export function EmployeeTable() {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getInvitationStatusColor = (invitation: EmployeeInvitation) => {
+    const now = new Date();
+    const expiresAt = new Date(invitation.expires_at);
+    
+    if (invitation.status === 'confirmed') {
+      return 'bg-green-100 text-green-800';
+    } else if (invitation.status === 'pending' && expiresAt < now) {
+      return 'bg-red-100 text-red-800';
+    } else if (invitation.status === 'pending') {
+      return 'bg-yellow-100 text-yellow-800';
     }
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  const getInvitationStatusText = (invitation: EmployeeInvitation) => {
+    const now = new Date();
+    const expiresAt = new Date(invitation.expires_at);
+    
+    if (invitation.status === 'confirmed') {
+      return 'Confirmed';
+    } else if (invitation.status === 'pending' && expiresAt < now) {
+      return 'Expired';
+    } else if (invitation.status === 'pending') {
+      return 'Pending';
+    }
+    return invitation.status;
   };
 
   if (employeesLoading || invitationsLoading) {
@@ -199,7 +220,7 @@ export function EmployeeTable() {
               </TableRow>
             ))}
 
-            {/* Pending Invitations */}
+            {/* Pending/Confirmed Invitations */}
             {invitations.map((invitation) => (
               <TableRow key={invitation.id}>
                 <TableCell className="flex items-center space-x-3">
@@ -210,15 +231,20 @@ export function EmployeeTable() {
                   </Avatar>
                   <div>
                     <div className="font-medium">{invitation.first_name} {invitation.last_name}</div>
-                    <div className="text-sm text-gray-500">Invited {new Date(invitation.invited_at).toLocaleDateString()}</div>
+                    <div className="text-sm text-gray-500">
+                      Invited {new Date(invitation.invited_at).toLocaleDateString()}
+                      {invitation.confirmed_at && (
+                        <span> • Confirmed {new Date(invitation.confirmed_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>{invitation.email}</TableCell>
                 <TableCell>{invitation.phone_number || '-'}</TableCell>
                 <TableCell>{invitation.role}</TableCell>
                 <TableCell>
-                  <Badge className={getStatusColor(invitation.status)}>
-                    {invitation.status}
+                  <Badge className={getInvitationStatusColor(invitation)}>
+                    {getInvitationStatusText(invitation)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">

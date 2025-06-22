@@ -12,10 +12,13 @@ export type Database = {
       employee_invitations: {
         Row: {
           accepted_at: string | null
+          confirmed_at: string | null
           email: string
+          expires_at: string | null
           first_name: string
           home_builder_id: string | null
           id: string
+          invitation_token: string | null
           invited_at: string
           invited_by: string
           last_name: string
@@ -25,10 +28,13 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          confirmed_at?: string | null
           email: string
+          expires_at?: string | null
           first_name: string
           home_builder_id?: string | null
           id?: string
+          invitation_token?: string | null
           invited_at?: string
           invited_by: string
           last_name: string
@@ -38,10 +44,13 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          confirmed_at?: string | null
           email?: string
+          expires_at?: string | null
           first_name?: string
           home_builder_id?: string | null
           id?: string
+          invitation_token?: string | null
           invited_at?: string
           invited_by?: string
           last_name?: string
@@ -310,6 +319,10 @@ export type Database = {
       approve_employee: {
         Args: { employee_id: string }
         Returns: undefined
+      }
+      confirm_invitation: {
+        Args: { token: string }
+        Returns: string
       }
       get_home_builders: {
         Args: Record<PropertyKey, never>
