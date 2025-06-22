@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Eye, Trash2, Folder } from "lucide-react";
+import { FileText, Download, Eye, Trash2, Folder, ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +19,7 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
   const { toast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -29,20 +29,11 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileIcon = (fileType: string, filename: string) => {
-    // Check if this file is in a folder (has '/' in the original_filename)
-    if (filename.includes('/')) {
-      return <Folder className="h-5 w-5 text-yellow-500 mr-2" />;
-    }
-    return <FileText className="h-5 w-5 text-blue-500" />;
-  };
-
   const getDisplayName = (filename: string) => {
-    // Parse the original filename to extract folder structure
     if (filename.includes('/')) {
       const parts = filename.split('/');
-      const fileName = parts[parts.length - 1]; // Last part is the actual file name
-      const folderPath = parts.slice(0, -1).join('/'); // Everything before the file name
+      const fileName = parts[parts.length - 1];
+      const folderPath = parts.slice(0, -1).join('/');
       return {
         displayName: fileName,
         folderPath: folderPath,
@@ -74,6 +65,35 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
       gif: "bg-purple-100 text-purple-800",
     };
     return colors[fileType] || "bg-gray-100 text-gray-800";
+  };
+
+  // Group files by folder
+  const groupedFiles = files.reduce((acc, file) => {
+    const displayInfo = getDisplayName(file.original_filename);
+    const folderKey = displayInfo.isInFolder ? displayInfo.folderPath : 'Root';
+    
+    if (!acc[folderKey]) {
+      acc[folderKey] = [];
+    }
+    acc[folderKey].push(file);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Sort folders - Root first, then alphabetically
+  const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
+    if (a === 'Root') return -1;
+    if (b === 'Root') return 1;
+    return a.localeCompare(b);
+  });
+
+  const toggleFolder = (folderPath: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderPath)) {
+      newExpanded.delete(folderPath);
+    } else {
+      newExpanded.add(folderPath);
+    }
+    setExpandedFolders(newExpanded);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -225,7 +245,6 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
                 />
               </TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Folder</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Uploaded By</TableHead>
@@ -234,74 +253,97 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {files.map((file) => {
-              const displayInfo = getDisplayName(file.original_filename);
+            {sortedFolders.map((folderPath) => {
+              const folderFiles = groupedFiles[folderPath];
+              const isExpanded = expandedFolders.has(folderPath);
               
               return (
-                <TableRow key={file.id} className="cursor-pointer hover:bg-gray-50">
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedFiles.has(file.id)}
-                      onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      {getFileIcon(file.file_type, file.original_filename)}
-                      <div>
-                        <div className="font-medium" title={displayInfo.fullPath}>
-                          {displayInfo.displayName}
-                        </div>
-                        {file.description && (
-                          <div className="text-sm text-gray-500">{file.description}</div>
+                <React.Fragment key={folderPath}>
+                  {/* Folder Header Row */}
+                  <TableRow className="bg-gray-50 hover:bg-gray-100 border-b-2">
+                    <TableCell colSpan={7}>
+                      <div 
+                        className="flex items-center space-x-2 cursor-pointer py-1"
+                        onClick={() => toggleFolder(folderPath)}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-500" />
                         )}
+                        <Folder className="h-5 w-5 text-yellow-500" />
+                        <span className="font-semibold text-gray-700">
+                          {folderPath === 'Root' ? 'Root Files' : folderPath}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          ({folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''})
+                        </span>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {displayInfo.isInFolder ? (
-                      <div className="flex items-center text-blue-600">
-                        <Folder className="h-4 w-4 mr-1" />
-                        {displayInfo.folderPath}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">Root</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getFileTypeColor(file.file_type)}>
-                      {file.file_type.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatFileSize(file.file_size)}</TableCell>
-                  <TableCell>{file.uploaded_by_profile?.email || 'Unknown'}</TableCell>
-                  <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onFileSelect(file)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(file)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(file)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Files in Folder */}
+                  {isExpanded && folderFiles.map((file) => {
+                    const displayInfo = getDisplayName(file.original_filename);
+                    
+                    return (
+                      <TableRow key={file.id} className="cursor-pointer hover:bg-gray-50">
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedFiles.has(file.id)}
+                            onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-3 pl-8">
+                            <FileText className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <div className="font-medium" title={displayInfo.fullPath}>
+                                {displayInfo.displayName}
+                              </div>
+                              {file.description && (
+                                <div className="text-sm text-gray-500">{file.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getFileTypeColor(file.file_type)}>
+                            {file.file_type.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                        <TableCell>{file.uploaded_by_profile?.email || 'Unknown'}</TableCell>
+                        <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onFileSelect(file)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(file)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(file)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </React.Fragment>
               );
             })}
           </TableBody>

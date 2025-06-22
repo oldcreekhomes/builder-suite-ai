@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Eye, Trash2, Image, Folder } from "lucide-react";
+import { FileText, Download, Eye, Trash2, Image, Folder, ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +18,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
   const { toast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -28,12 +28,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileIcon = (fileType: string, filename: string) => {
-    // Check if this file is in a folder (has '/' in the original_filename)
-    if (filename.includes('/')) {
-      return <Folder className="h-8 w-8 text-yellow-500" />;
-    }
-    
+  const getFileIcon = (fileType: string) => {
     if (['jpg', 'jpeg', 'png', 'gif'].includes(fileType)) {
       return <Image className="h-8 w-8 text-purple-500" />;
     }
@@ -41,11 +36,10 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
   };
 
   const getDisplayName = (filename: string) => {
-    // Parse the original filename to extract folder structure
     if (filename.includes('/')) {
       const parts = filename.split('/');
-      const fileName = parts[parts.length - 1]; // Last part is the actual file name
-      const folderPath = parts.slice(0, -1).join('/'); // Everything before the file name
+      const fileName = parts[parts.length - 1];
+      const folderPath = parts.slice(0, -1).join('/');
       return {
         displayName: fileName,
         folderPath: folderPath,
@@ -77,6 +71,35 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
       gif: "bg-purple-100 text-purple-800",
     };
     return colors[fileType] || "bg-gray-100 text-gray-800";
+  };
+
+  // Group files by folder
+  const groupedFiles = files.reduce((acc, file) => {
+    const displayInfo = getDisplayName(file.original_filename);
+    const folderKey = displayInfo.isInFolder ? displayInfo.folderPath : 'Root';
+    
+    if (!acc[folderKey]) {
+      acc[folderKey] = [];
+    }
+    acc[folderKey].push(file);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Sort folders - Root first, then alphabetically
+  const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
+    if (a === 'Root') return -1;
+    if (b === 'Root') return 1;
+    return a.localeCompare(b);
+  });
+
+  const toggleFolder = (folderPath: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderPath)) {
+      newExpanded.delete(folderPath);
+    } else {
+      newExpanded.add(folderPath);
+    }
+    setExpandedFolders(newExpanded);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -191,7 +214,7 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Checkbox
@@ -227,81 +250,109 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {files.map((file) => {
-          const displayInfo = getDisplayName(file.original_filename);
-          
-          return (
-            <Card key={file.id} className="p-4 hover:shadow-md transition-shadow relative">
-              <div className="absolute top-2 left-2 z-10">
-                <Checkbox
-                  checked={selectedFiles.has(file.id)}
-                  onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
-                  className="bg-white border-2"
-                />
-              </div>
-              
-              <div className="flex flex-col h-full cursor-pointer" onClick={() => onFileSelect(file)}>
-                <div className="flex items-center justify-between mb-3 mt-6">
-                  {getFileIcon(file.file_type, file.original_filename)}
-                  <Badge className={getFileTypeColor(file.file_type)}>
-                    {file.file_type.toUpperCase()}
-                  </Badge>
-                </div>
-                
-                <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={displayInfo.fullPath}>
-                  {displayInfo.displayName}
-                </h3>
-                
-                {displayInfo.isInFolder && (
-                  <p className="text-xs text-blue-600 mb-2 flex items-center">
-                    <Folder className="h-3 w-3 mr-1" />
-                    {displayInfo.folderPath}
-                  </p>
+      {sortedFolders.map((folderPath) => {
+        const folderFiles = groupedFiles[folderPath];
+        const isExpanded = expandedFolders.has(folderPath);
+        
+        return (
+          <div key={folderPath} className="space-y-3">
+            {/* Folder Header */}
+            <Card className="p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+              <div 
+                className="flex items-center space-x-3 cursor-pointer"
+                onClick={() => toggleFolder(folderPath)}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-500" />
                 )}
-                
-                {file.description && (
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                    {file.description}
+                <Folder className="h-6 w-6 text-yellow-500" />
+                <div>
+                  <h3 className="font-semibold text-gray-700">
+                    {folderPath === 'Root' ? 'Root Files' : folderPath}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''}
                   </p>
-                )}
-                
-                <div className="flex-1" />
-                
-                <div className="space-y-2 text-xs text-gray-500">
-                  <div>{formatFileSize(file.file_size)}</div>
-                  <div>By {file.uploaded_by_profile?.email || 'Unknown'}</div>
-                  <div>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</div>
-                </div>
-                
-                <div className="flex items-center justify-between mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onFileSelect(file)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDownload(file)}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(file)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </Card>
-          );
-        })}
-      </div>
+
+            {/* Files Grid */}
+            {isExpanded && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ml-8">
+                {folderFiles.map((file) => {
+                  const displayInfo = getDisplayName(file.original_filename);
+                  
+                  return (
+                    <Card key={file.id} className="p-4 hover:shadow-md transition-shadow relative">
+                      <div className="absolute top-2 left-2 z-10">
+                        <Checkbox
+                          checked={selectedFiles.has(file.id)}
+                          onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
+                          className="bg-white border-2"
+                        />
+                      </div>
+                      
+                      <div className="flex flex-col h-full cursor-pointer" onClick={() => onFileSelect(file)}>
+                        <div className="flex items-center justify-between mb-3 mt-6">
+                          {getFileIcon(file.file_type)}
+                          <Badge className={getFileTypeColor(file.file_type)}>
+                            {file.file_type.toUpperCase()}
+                          </Badge>
+                        </div>
+                        
+                        <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={displayInfo.fullPath}>
+                          {displayInfo.displayName}
+                        </h3>
+                        
+                        {file.description && (
+                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                            {file.description}
+                          </p>
+                        )}
+                        
+                        <div className="flex-1" />
+                        
+                        <div className="space-y-2 text-xs text-gray-500">
+                          <div>{formatFileSize(file.file_size)}</div>
+                          <div>By {file.uploaded_by_profile?.email || 'Unknown'}</div>
+                          <div>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onFileSelect(file)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownload(file)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(file)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
