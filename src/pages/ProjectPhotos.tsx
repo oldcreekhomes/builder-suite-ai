@@ -40,6 +40,10 @@ export default function ProjectPhotos() {
     });
   };
 
+  const handlePhotoDeleted = () => {
+    refetch();
+  };
+
   if (!projectId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -112,6 +116,7 @@ export default function ProjectPhotos() {
             currentPhoto={selectedPhoto}
             isOpen={showViewer}
             onClose={() => setShowViewer(false)}
+            onPhotoDeleted={handlePhotoDeleted}
           />
         )}
       </div>

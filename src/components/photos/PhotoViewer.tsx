@@ -22,9 +22,10 @@ interface PhotoViewerProps {
   currentPhoto: ProjectPhoto;
   isOpen: boolean;
   onClose: () => void;
+  onPhotoDeleted?: () => void; // Add callback for when photo is deleted
 }
 
-export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoViewerProps) {
+export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDeleted }: PhotoViewerProps) {
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -88,17 +89,32 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
   const handleDelete = async (photo: ProjectPhoto) => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
+      console.log('PhotoViewer: Deleting photo:', photo.id);
+      console.log('PhotoViewer: Current user:', await supabase.auth.getUser());
+      
+      const { error, data } = await supabase
         .from('project_photos')
         .delete()
-        .eq('id', photo.id);
+        .eq('id', photo.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('PhotoViewer: Delete error:', error);
+        throw new Error(`Delete failed: ${error.message}`);
+      }
+
+      console.log('PhotoViewer: Delete result:', data);
+      console.log('PhotoViewer: Photo deleted successfully');
 
       toast({
         title: "Success",
         description: "Photo deleted successfully",
       });
+      
+      // Notify parent component to refresh the photo list
+      if (onPhotoDeleted) {
+        onPhotoDeleted();
+      }
       
       // Close viewer if it was the last photo or navigate to next photo
       if (photos.length === 1) {
@@ -109,10 +125,10 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
         goToNext();
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('PhotoViewer: Delete error:', error);
       toast({
         title: "Delete Error",
-        description: "Failed to delete photo",
+        description: error instanceof Error ? error.message : "Failed to delete photo",
         variant: "destructive",
       });
     } finally {
