@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +96,7 @@ const navigationItems = [
 
 export function AppSidebar() {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -120,10 +122,23 @@ export function AppSidebar() {
 
   // Get user initials for fallback
   const getUserInitials = () => {
+    if (profile?.first_name || profile?.last_name) {
+      const first = profile.first_name?.charAt(0) || "";
+      const last = profile.last_name?.charAt(0) || "";
+      return (first + last).toUpperCase();
+    }
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
     return "U";
+  };
+
+  // Get display name
+  const getDisplayName = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    return "Account";
   };
 
   // Get current project ID from URL
@@ -208,13 +223,13 @@ export function AppSidebar() {
               <Button variant="ghost" className="w-full justify-start p-2 h-auto">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="" alt="User avatar" />
+                    <AvatarImage src={profile?.avatar_url || ""} alt="User avatar" />
                     <AvatarFallback className="bg-gray-100 text-gray-700 text-sm">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium text-gray-900">Account</span>
+                    <span className="text-sm font-medium text-gray-900">{getDisplayName()}</span>
                     <span className="text-xs text-gray-500 truncate max-w-32">
                       {user?.email}
                     </span>

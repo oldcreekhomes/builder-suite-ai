@@ -12,31 +12,40 @@ export type Database = {
       profiles: {
         Row: {
           approved_by_home_builder: boolean
+          avatar_url: string | null
           company_name: string | null
           created_at: string
           email: string
+          first_name: string | null
           home_builder_id: string | null
           id: string
+          last_name: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
           approved_by_home_builder?: boolean
+          avatar_url?: string | null
           company_name?: string | null
           created_at?: string
           email: string
+          first_name?: string | null
           home_builder_id?: string | null
           id: string
+          last_name?: string | null
           updated_at?: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Update: {
           approved_by_home_builder?: boolean
+          avatar_url?: string | null
           company_name?: string | null
           created_at?: string
           email?: string
+          first_name?: string | null
           home_builder_id?: string | null
           id?: string
+          last_name?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
