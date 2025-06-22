@@ -1,4 +1,3 @@
-
 import { 
   Building2, 
   Calendar, 
@@ -220,17 +219,6 @@ export function AppSidebar() {
         </SidebarContent>
         
         <SidebarFooter className="p-4 border-t border-gray-200">
-          {/* Employees menu item */}
-          <SidebarMenuButton 
-            asChild 
-            className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors mb-2"
-          >
-            <a href="/employees" className="flex items-center space-x-3 p-3 rounded-lg">
-              <UserPlus className="h-5 w-5" />
-              <span className="font-medium">Employees</span>
-            </a>
-          </SidebarMenuButton>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start p-2 h-auto">
@@ -257,6 +245,13 @@ export function AppSidebar() {
               >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => navigate('/employees')}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span>Employees</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="cursor-pointer hover:bg-gray-50"
