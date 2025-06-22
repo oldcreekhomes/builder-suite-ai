@@ -62,7 +62,7 @@ export function DashboardHeader() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <SidebarTrigger className="text-gray-600 hover:text-black" />
+            <SidebarTrigger className="text-gray-600 hover:text-black hover:bg-gray-100 transition-colors" />
             <div>
               <h1 className="text-2xl font-bold text-black">Company Dashboard</h1>
             </div>
