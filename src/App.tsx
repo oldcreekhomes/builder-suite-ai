@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import ProjectDashboard from "./pages/ProjectDashboard";
+import ProjectFiles from "./pages/ProjectFiles";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -29,6 +30,11 @@ const App = () => (
             <Route path="/project/:projectId" element={
               <ProtectedRoute>
                 <ProjectDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/project/:projectId/files" element={
+              <ProtectedRoute>
+                <ProjectFiles />
               </ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />

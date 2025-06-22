@@ -50,6 +50,69 @@ export type Database = {
           },
         ]
       }
+      project_files: {
+        Row: {
+          description: string | null
+          file_size: number
+          file_type: string
+          filename: string
+          id: string
+          is_deleted: boolean
+          mime_type: string
+          original_filename: string
+          project_id: string
+          storage_path: string
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          description?: string | null
+          file_size: number
+          file_type: string
+          filename: string
+          id?: string
+          is_deleted?: boolean
+          mime_type: string
+          original_filename: string
+          project_id: string
+          storage_path: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          description?: string | null
+          file_size?: number
+          file_type?: string
+          filename?: string
+          id?: string
+          is_deleted?: boolean
+          mime_type?: string
+          original_filename?: string
+          project_id?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_photos: {
         Row: {
           description: string | null
