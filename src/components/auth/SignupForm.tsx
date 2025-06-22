@@ -51,6 +51,35 @@ const SignupForm = () => {
           variant: "destructive",
         });
       } else {
+        // Send confirmation emails
+        try {
+          let homeBuilderEmail = "";
+          
+          // If employee, get home builder's email
+          if (userType === "employee" && selectedHomeBuilderId) {
+            const { data: homeBuilderData } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', selectedHomeBuilderId)
+              .single();
+            
+            homeBuilderEmail = homeBuilderData?.email || "";
+          }
+
+          await supabase.functions.invoke('send-confirmation-email', {
+            body: {
+              userEmail: email,
+              userType: userType,
+              companyName: userType === "home_builder" ? homeBuildingCompany : undefined,
+              homeBuilderId: userType === "employee" ? selectedHomeBuilderId : undefined,
+              homeBuilderEmail: homeBuilderEmail || undefined,
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send confirmation emails:", emailError);
+          // Don't fail the signup if email fails
+        }
+
         toast({
           title: "Success",
           description: "Please check your email to confirm your account!",
