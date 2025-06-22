@@ -27,15 +27,18 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    // Get the full path including folder structure
-    const fullPath = file.webkitRelativePath || file.name;
+    // Use webkitRelativePath if available (folder upload), otherwise use file.name (single file)
+    const relativePath = file.webkitRelativePath || file.name;
     
-    console.log('Uploading file with path:', fullPath);
-    console.log('File webkitRelativePath:', file.webkitRelativePath);
-    console.log('File name:', file.name);
+    console.log('Uploading file:', {
+      name: file.name,
+      webkitRelativePath: file.webkitRelativePath,
+      relativePath: relativePath,
+      hasRelativePath: !!file.webkitRelativePath
+    });
     
     // Create storage path that preserves the folder structure
-    const fileName = `${user.id}/${projectId}/${fileId}_${fullPath}`;
+    const fileName = `${user.id}/${projectId}/${fileId}_${relativePath}`;
     
     try {
       // Upload to Supabase Storage
@@ -51,7 +54,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: fullPath, // This preserves the complete folder structure
+          original_filename: relativePath, // This preserves the complete folder structure
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -61,13 +64,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
       if (dbError) throw dbError;
 
-      console.log('Successfully uploaded file:', fullPath);
+      console.log('Successfully uploaded file with path:', relativePath);
       return true;
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload Error",
-        description: `Failed to upload ${fullPath}`,
+        description: `Failed to upload ${relativePath}`,
         variant: "destructive",
       });
       return false;
@@ -77,8 +80,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('Files dropped:', acceptedFiles.map(f => ({ 
       name: f.name, 
-      path: f.webkitRelativePath,
-      hasPath: !!f.webkitRelativePath 
+      webkitRelativePath: f.webkitRelativePath,
+      hasRelativePath: !!f.webkitRelativePath 
     })));
     
     const newUploads = acceptedFiles.map(file => ({
@@ -142,10 +145,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Folder files selected:', files.map(f => ({ 
+    console.log('Folder files selected via input:', files.map(f => ({ 
       name: f.name, 
-      path: f.webkitRelativePath,
-      hasPath: !!f.webkitRelativePath 
+      webkitRelativePath: f.webkitRelativePath,
+      hasRelativePath: !!f.webkitRelativePath 
     })));
     
     if (files.length > 0) {
@@ -157,6 +160,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const removeUpload = (file: File) => {
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
+  };
+
+  const getDisplayPath = (file: File) => {
+    return file.webkitRelativePath || file.name;
   };
 
   return (
@@ -212,7 +219,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">
-                      {upload.file.webkitRelativePath || upload.file.name}
+                      {getDisplayPath(upload.file)}
                     </span>
                     <Button
                       variant="ghost"
