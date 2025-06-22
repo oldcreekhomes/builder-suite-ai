@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,13 +61,19 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   const handleDelete = async (photo: ProjectPhoto) => {
     setDeletingPhoto(photo.id);
     try {
+      console.log('Deleting photo:', photo.id);
+      
       const { error } = await supabase
         .from('project_photos')
         .delete()
         .eq('id', photo.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
+      console.log('Photo deleted successfully');
       toast({
         title: "Success",
         description: "Photo deleted successfully",
@@ -107,13 +114,19 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
 
     setIsDeleting(true);
     try {
+      console.log('Bulk deleting photos:', Array.from(selectedPhotos));
+      
       const { error } = await supabase
         .from('project_photos')
         .delete()
         .in('id', Array.from(selectedPhotos));
 
-      if (error) throw error;
+      if (error) {
+        console.error('Bulk delete error:', error);
+        throw error;
+      }
 
+      console.log('Bulk delete successful');
       toast({
         title: "Success",
         description: `${selectedPhotos.size} photo(s) deleted successfully`,
@@ -170,7 +183,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
             disabled={isDeleting}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete Selected ({selectedPhotos.size})
+            {isDeleting ? 'Deleting...' : `Delete Selected (${selectedPhotos.size})`}
           </Button>
         )}
       </div>
@@ -213,7 +226,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
                       className="text-red-600"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
+                      {deletingPhoto === photo.id ? 'Deleting...' : 'Delete'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
