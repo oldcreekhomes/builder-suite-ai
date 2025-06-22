@@ -39,7 +39,7 @@ const SignupForm = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
           data: metadata,
         },
       });
@@ -81,10 +81,12 @@ const SignupForm = () => {
         }
 
         toast({
-          title: "Success",
-          description: "Please check your email to confirm your account!",
+          title: "Account Created Successfully",
+          description: "Please check your email and click the confirmation link before signing in.",
         });
-        navigate("/");
+        
+        // Don't navigate to dashboard, stay on auth page
+        // User needs to confirm email first
       }
     } catch (error) {
       toast({
