@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectFiles from "./pages/ProjectFiles";
+import ProjectPhotos from "./pages/ProjectPhotos";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -45,6 +45,11 @@ const App = () => {
               <Route path="/project/:projectId/files" element={
                 <ProtectedRoute>
                   <ProjectFiles />
+                </ProtectedRoute>
+              } />
+              <Route path="/project/:projectId/photos" element={
+                <ProtectedRoute>
+                  <ProjectPhotos />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<Navigate to="/" replace />} />
