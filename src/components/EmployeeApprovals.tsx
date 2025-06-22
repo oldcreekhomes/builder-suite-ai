@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 interface PendingEmployee {
   id: string;
   email: string;
+  company_name: string;
   created_at: string;
 }
 
@@ -28,9 +29,7 @@ export function EmployeeApprovals() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.rpc('get_pending_employee_approvals', {
-        home_builder_user_id: user.id
-      });
+      const { data, error } = await supabase.rpc('get_pending_employee_approvals');
 
       if (error) {
         console.error('Error fetching pending employees:', error);
@@ -53,9 +52,8 @@ export function EmployeeApprovals() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.rpc('approve_employee', {
-        employee_id: employeeId,
-        approver_id: user.id
+      const { error } = await supabase.rpc('approve_employee', {
+        employee_id: employeeId
       });
 
       if (error) {
@@ -65,19 +63,13 @@ export function EmployeeApprovals() {
           description: "Failed to approve employee",
           variant: "destructive",
         });
-      } else if (data) {
+      } else {
         toast({
           title: "Success",
           description: "Employee has been approved successfully",
         });
         // Refresh the list
         fetchPendingEmployees();
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to approve employee - insufficient permissions",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error('Error:', error);

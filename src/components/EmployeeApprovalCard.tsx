@@ -24,24 +24,11 @@ const EmployeeApprovalCard = ({ employee, companyName, onApproval }: EmployeeApp
   const handleApprove = async () => {
     setIsApproving(true);
     try {
-      // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to approve employees",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Call the approve_employee function
-      const { data, error } = await supabase.rpc('approve_employee', {
-        employee_id: employee.id,
-        approver_id: user.id
+      const { error } = await supabase.rpc('approve_employee', {
+        employee_id: employee.id
       });
 
-      if (error || !data) {
+      if (error) {
         toast({
           title: "Error",
           description: "Failed to approve employee",

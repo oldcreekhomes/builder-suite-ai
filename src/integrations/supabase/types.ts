@@ -179,11 +179,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_employee: {
+        Args: { employee_id: string }
+        Returns: undefined
+      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
           company_name: string
+        }[]
+      }
+      get_pending_employee_approvals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+          company_name: string
+          created_at: string
         }[]
       }
     }
