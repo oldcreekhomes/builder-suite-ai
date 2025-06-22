@@ -29,7 +29,7 @@ interface NewProjectDialogProps {
 }
 
 const managers = ["Erica", "Jole", "Matt", "Steven"];
-const statuses = ["In Design", "Under Construction", "Completed", "Templates"];
+const statuses = ["In Design", "Permitting", "Under Construction", "Completed", "Template"];
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
