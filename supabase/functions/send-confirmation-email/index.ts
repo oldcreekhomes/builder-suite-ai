@@ -19,6 +19,7 @@ interface ConfirmationEmailRequest {
   companyName?: string;
   homeBuilderId?: string;
   homeBuilderEmail?: string;
+  confirmationUrl?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -27,25 +28,35 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { userEmail, userType, companyName, homeBuilderId, homeBuilderEmail }: ConfirmationEmailRequest = await req.json();
+    const { userEmail, userType, companyName, homeBuilderId, homeBuilderEmail, confirmationUrl }: ConfirmationEmailRequest = await req.json();
 
-    console.log("Sending confirmation emails for:", { userEmail, userType, companyName, homeBuilderId });
+    console.log("Sending confirmation emails for:", { userEmail, userType, companyName, homeBuilderId, confirmationUrl });
 
-    // Send confirmation email to the new user
+    // Send confirmation email to the new user with confirmation link
+    const userEmailHtml = `
+      <h1>Welcome to BuildCore!</h1>
+      <p>Thank you for creating your account. Please confirm your email address to complete your registration.</p>
+      ${confirmationUrl ? `
+        <div style="margin: 20px 0;">
+          <a href="${confirmationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Confirm Email Address
+          </a>
+        </div>
+        <p>Or copy and paste this link in your browser:</p>
+        <p style="word-break: break-all; color: #2563eb;">${confirmationUrl}</p>
+      ` : ''}
+      ${userType === "home_builder" 
+        ? `<p>You are registered as a Home Builder for: <strong>${companyName}</strong></p>`
+        : `<p>You have requested to join a home building company as an employee. The company owner will review your request after you confirm your email.</p>`
+      }
+      <p>Best regards,<br>The BuildCore Team</p>
+    `;
+
     const userEmailResponse = await resend.emails.send({
       from: "BuildCore <onboarding@resend.dev>",
       to: [userEmail],
-      subject: "Welcome to BuildCore - Account Created",
-      html: `
-        <h1>Welcome to BuildCore!</h1>
-        <p>Your account has been successfully created.</p>
-        ${userType === "home_builder" 
-          ? `<p>You are registered as a Home Builder for: <strong>${companyName}</strong></p>`
-          : `<p>You have requested to join a home building company as an employee. The company owner will review your request.</p>`
-        }
-        <p>You can now log in to your account.</p>
-        <p>Best regards,<br>The BuildCore Team</p>
-      `,
+      subject: "Welcome to BuildCore - Please Confirm Your Email",
+      html: userEmailHtml,
     });
 
     console.log("User email sent:", userEmailResponse);
@@ -63,7 +74,8 @@ const handler = async (req: Request): Promise<Response> => {
             <li><strong>Email:</strong> ${userEmail}</li>
             <li><strong>Company:</strong> Your company</li>
           </ul>
-          <p>Please review this request and approve or deny access to your company.</p>
+          <p><strong>Note:</strong> The employee must first confirm their email address before you can approve their access.</p>
+          <p>You will be able to approve this request from your BuildCore dashboard once they have confirmed their email.</p>
           <p>Best regards,<br>The BuildCore Team</p>
         `,
       });

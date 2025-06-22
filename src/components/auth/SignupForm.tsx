@@ -35,12 +35,14 @@ const SignupForm = () => {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
 
-      const { error } = await supabase.auth.signUp({
+      // Disable Supabase's automatic email by setting emailRedirectTo to null
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
           data: metadata,
+          // This disables Supabase's automatic confirmation email
+          emailRedirectTo: undefined,
         },
       });
 
@@ -50,8 +52,11 @@ const SignupForm = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        // Send confirmation emails
+      } else if (data.user && !data.user.email_confirmed_at) {
+        // Generate confirmation URL manually
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        // Send our custom confirmation emails
         try {
           let homeBuilderEmail = "";
           
@@ -66,6 +71,9 @@ const SignupForm = () => {
             homeBuilderEmail = homeBuilderData?.email || "";
           }
 
+          // Create the confirmation URL that points to our auth page
+          const confirmationUrl = `${window.location.origin}/auth#confirmation`;
+
           await supabase.functions.invoke('send-confirmation-email', {
             body: {
               userEmail: email,
@@ -73,6 +81,7 @@ const SignupForm = () => {
               companyName: userType === "home_builder" ? homeBuildingCompany : undefined,
               homeBuilderId: userType === "employee" ? selectedHomeBuilderId : undefined,
               homeBuilderEmail: homeBuilderEmail || undefined,
+              confirmationUrl: confirmationUrl,
             },
           });
         } catch (emailError) {
