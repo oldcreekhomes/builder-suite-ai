@@ -4,7 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileText } from "lucide-react";
+import { Upload, X, FileText, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/${fileId}_${file.name}`;
+    // Preserve folder structure in the filename
+    const fileName = `${user.id}/${projectId}/${fileId}_${file.webkitRelativePath || file.name}`;
     
     try {
       // Upload to Supabase Storage
@@ -43,7 +44,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: file.name,
+          original_filename: file.webkitRelativePath || file.name,
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -125,6 +126,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   });
 
+  const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      onDrop(files);
+    }
+  };
+
   const removeUpload = (file: File) => {
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
@@ -141,17 +149,34 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           <input {...getInputProps()} />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragActive ? 'Drop files here' : 'Upload files'}
+            {isDragActive ? 'Drop files here' : 'Upload files or folders'}
           </h3>
           <p className="text-gray-600 mb-4">
-            Drag and drop files here, or click to select files
+            Drag and drop files or folders here, or click to select
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 mb-4">
             Supports: PDF, Word, Excel, PowerPoint, Text, and Images
           </p>
-          <Button className="mt-4">
-            Choose Files
-          </Button>
+          <div className="flex items-center justify-center space-x-4">
+            <Button className="mt-4">
+              <FileText className="h-4 w-4 mr-2" />
+              Choose Files
+            </Button>
+            <label htmlFor="folder-upload" className="cursor-pointer">
+              <Button type="button" variant="outline" className="mt-4">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Choose Folder
+              </Button>
+              <input
+                id="folder-upload"
+                type="file"
+                webkitdirectory=""
+                multiple
+                onChange={handleFolderUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
       </Card>
 
@@ -164,7 +189,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
                 <FileText className="h-5 w-5 text-gray-500" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">{upload.file.name}</span>
+                    <span className="text-sm font-medium">
+                      {upload.file.webkitRelativePath || upload.file.name}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
