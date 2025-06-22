@@ -5,8 +5,12 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { QuickStats } from "@/components/QuickStats";
 import { RecentActivity } from "@/components/RecentActivity";
+import { EmployeeApprovals } from "@/components/EmployeeApprovals";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Index = () => {
+  const { profile } = useUserProfile();
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
@@ -15,6 +19,12 @@ const Index = () => {
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">
             <QuickStats />
+            
+            {/* Show employee approvals section for home builders */}
+            {profile?.user_type === 'home_builder' && (
+              <EmployeeApprovals />
+            )}
+            
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <ProjectsOverview />

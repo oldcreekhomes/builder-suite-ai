@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          approved_by_home_builder: boolean | null
           company_name: string | null
           created_at: string | null
           email: string
@@ -20,6 +21,7 @@ export type Database = {
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
+          approved_by_home_builder?: boolean | null
           company_name?: string | null
           created_at?: string | null
           email: string
@@ -29,6 +31,7 @@ export type Database = {
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Update: {
+          approved_by_home_builder?: boolean | null
           company_name?: string | null
           created_at?: string | null
           email?: string
@@ -52,11 +55,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_employee: {
+        Args: { employee_id: string; approver_id: string }
+        Returns: boolean
+      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
           company_name: string
+        }[]
+      }
+      get_pending_employee_approvals: {
+        Args: { home_builder_user_id: string }
+        Returns: {
+          id: string
+          email: string
+          created_at: string
         }[]
       }
     }
