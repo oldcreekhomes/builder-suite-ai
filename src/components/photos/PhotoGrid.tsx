@@ -62,18 +62,36 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setDeletingPhoto(photo.id);
     try {
       console.log('Deleting photo:', photo.id);
+      console.log('Current user:', await supabase.auth.getUser());
       
-      const { error } = await supabase
+      // Check if the photo exists and user has permission to delete it
+      const { data: photoCheck, error: checkError } = await supabase
+        .from('project_photos')
+        .select('*')
+        .eq('id', photo.id)
+        .single();
+      
+      if (checkError) {
+        console.error('Error checking photo:', checkError);
+        throw new Error(`Cannot access photo: ${checkError.message}`);
+      }
+      
+      console.log('Photo found:', photoCheck);
+      
+      const { error, data } = await supabase
         .from('project_photos')
         .delete()
-        .eq('id', photo.id);
+        .eq('id', photo.id)
+        .select(); // Add select to see what was actually deleted
 
       if (error) {
         console.error('Delete error:', error);
-        throw error;
+        throw new Error(`Delete failed: ${error.message}`);
       }
 
+      console.log('Delete result:', data);
       console.log('Photo deleted successfully');
+      
       toast({
         title: "Success",
         description: "Photo deleted successfully",
@@ -83,7 +101,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
       console.error('Delete error:', error);
       toast({
         title: "Delete Error",
-        description: "Failed to delete photo",
+        description: error instanceof Error ? error.message : "Failed to delete photo",
         variant: "destructive",
       });
     } finally {
@@ -115,18 +133,35 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setIsDeleting(true);
     try {
       console.log('Bulk deleting photos:', Array.from(selectedPhotos));
+      console.log('Current user:', await supabase.auth.getUser());
       
-      const { error } = await supabase
+      // First check if photos exist and user has permission
+      const { data: photosCheck, error: checkError } = await supabase
+        .from('project_photos')
+        .select('*')
+        .in('id', Array.from(selectedPhotos));
+      
+      if (checkError) {
+        console.error('Error checking photos:', checkError);
+        throw new Error(`Cannot access photos: ${checkError.message}`);
+      }
+      
+      console.log('Photos found for deletion:', photosCheck);
+      
+      const { error, data } = await supabase
         .from('project_photos')
         .delete()
-        .in('id', Array.from(selectedPhotos));
+        .in('id', Array.from(selectedPhotos))
+        .select(); // Add select to see what was actually deleted
 
       if (error) {
         console.error('Bulk delete error:', error);
-        throw error;
+        throw new Error(`Bulk delete failed: ${error.message}`);
       }
 
+      console.log('Bulk delete result:', data);
       console.log('Bulk delete successful');
+      
       toast({
         title: "Success",
         description: `${selectedPhotos.size} photo(s) deleted successfully`,
@@ -137,7 +172,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
       console.error('Bulk delete error:', error);
       toast({
         title: "Delete Error",
-        description: "Failed to delete selected photos",
+        description: error instanceof Error ? error.message : "Failed to delete selected photos",
         variant: "destructive",
       });
     } finally {
