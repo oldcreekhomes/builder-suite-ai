@@ -11,33 +11,33 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
-          approved_by_home_builder: boolean | null
+          approved_by_home_builder: boolean
           company_name: string | null
-          created_at: string | null
+          created_at: string
           email: string
           home_builder_id: string | null
           id: string
-          updated_at: string | null
+          updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
-          approved_by_home_builder?: boolean | null
+          approved_by_home_builder?: boolean
           company_name?: string | null
-          created_at?: string | null
+          created_at?: string
           email: string
           home_builder_id?: string | null
           id: string
-          updated_at?: string | null
+          updated_at?: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Update: {
-          approved_by_home_builder?: boolean | null
+          approved_by_home_builder?: boolean
           company_name?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string
           home_builder_id?: string | null
           id?: string
-          updated_at?: string | null
+          updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
         Relationships: [
@@ -55,23 +55,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      approve_employee: {
-        Args: { employee_id: string; approver_id: string }
-        Returns: boolean
-      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
           company_name: string
-        }[]
-      }
-      get_pending_employee_approvals: {
-        Args: { home_builder_user_id: string }
-        Returns: {
-          id: string
-          email: string
-          created_at: string
         }[]
       }
     }
