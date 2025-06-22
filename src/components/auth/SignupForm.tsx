@@ -13,7 +13,7 @@ const SignupForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState<"home_builder" | "employee" | "">("");
-  const [companyName, setCompanyName] = useState("");
+  const [homeBuildingCompany, setHomeBuildingCompany] = useState("");
   const [homeBuilderName, setHomeBuilderName] = useState("");
   const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +30,7 @@ const SignupForm = () => {
       };
 
       if (userType === "home_builder") {
-        metadata.company_name = companyName;
+        metadata.company_name = homeBuildingCompany;
       } else if (userType === "employee") {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
@@ -97,14 +97,14 @@ const SignupForm = () => {
 
       {userType === "home_builder" && (
         <div className="space-y-2">
-          <Label htmlFor="company-name">Company Name</Label>
+          <Label htmlFor="home-building-company">Home building company</Label>
           <Input
-            id="company-name"
+            id="home-building-company"
             type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
+            value={homeBuildingCompany}
+            onChange={(e) => setHomeBuildingCompany(e.target.value)}
             required
-            placeholder="Enter your company name"
+            placeholder="Enter your home building company name"
           />
         </div>
       )}
