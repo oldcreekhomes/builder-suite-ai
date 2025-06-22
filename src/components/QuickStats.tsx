@@ -1,39 +1,71 @@
 
 import { Card } from "@/components/ui/card";
 import { Building2, Clock, DollarSign, TrendingUp } from "lucide-react";
-
-const stats = [
-  {
-    title: "Active Projects",
-    value: "12",
-    change: "+2 this month",
-    icon: Building2,
-    trend: "up"
-  },
-  {
-    title: "Total Revenue",
-    value: "$2.4M",
-    change: "+15% from last month",
-    icon: DollarSign,
-    trend: "up"
-  },
-  {
-    title: "On Schedule",
-    value: "9/12",
-    change: "75% completion rate",
-    icon: Clock,
-    trend: "neutral"
-  },
-  {
-    title: "Avg. Margin",
-    value: "18.5%",
-    change: "+2.1% vs target",
-    icon: TrendingUp,
-    trend: "up"
-  }
-];
+import { useProjects } from "@/hooks/useProjects";
+import { useMemo } from "react";
 
 export function QuickStats() {
+  const { data: projects = [], isLoading } = useProjects();
+
+  const stats = useMemo(() => {
+    const activeProjects = projects.filter(p => p.status !== 'Completed').length;
+    const completedProjects = projects.filter(p => p.status === 'Completed').length;
+    const inProgressProjects = projects.filter(p => p.status === 'In Progress' || p.status === 'Under Construction').length;
+    const onScheduleRate = inProgressProjects > 0 ? Math.round((inProgressProjects / activeProjects) * 100) : 0;
+
+    return [
+      {
+        title: "Active Projects",
+        value: activeProjects.toString(),
+        change: projects.length > 0 ? `${projects.length} total projects` : "No projects yet",
+        icon: Building2,
+        trend: "neutral"
+      },
+      {
+        title: "Total Projects",
+        value: projects.length.toString(),
+        change: completedProjects > 0 ? `${completedProjects} completed` : "Get started!",
+        icon: DollarSign,
+        trend: completedProjects > 0 ? "up" : "neutral"
+      },
+      {
+        title: "In Progress",
+        value: `${inProgressProjects}/${activeProjects}`,
+        change: activeProjects > 0 ? `${onScheduleRate}% of active` : "Ready to start",
+        icon: Clock,
+        trend: inProgressProjects > 0 ? "up" : "neutral"
+      },
+      {
+        title: "Completion Rate",
+        value: projects.length > 0 ? `${Math.round((completedProjects / projects.length) * 100)}%` : "0%",
+        change: projects.length > 0 ? "Overall progress" : "Create your first project",
+        icon: TrendingUp,
+        trend: completedProjects > 0 ? "up" : "neutral"
+      }
+    ];
+  }, [projects]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="p-6 bg-white border border-gray-200 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded"></div>
+              </div>
+              <div className="bg-gray-200 p-3 rounded-lg">
+                <div className="h-6 w-6 bg-gray-300 rounded"></div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, index) => (
