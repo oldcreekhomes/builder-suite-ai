@@ -34,14 +34,14 @@ const SignupForm = () => {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
 
-      // Disable Supabase's automatic email by setting emailRedirectTo to null
+      // Completely disable Supabase's automatic email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: metadata,
-          // This disables Supabase's automatic confirmation email
-          emailRedirectTo: undefined,
+          // Set to null to completely disable Supabase's confirmation email
+          emailRedirectTo: null,
         },
       });
 
@@ -51,8 +51,8 @@ const SignupForm = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else if (data.user && !data.user.email_confirmed_at) {
-        // Send our custom confirmation emails
+      } else if (data.user) {
+        // Send our custom confirmation emails only
         try {
           let homeBuilderEmail = "";
           
