@@ -39,17 +39,18 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     if (filename.includes('/')) {
       const parts = filename.split('/');
       const fileName = parts[parts.length - 1];
-      const folderPath = parts.slice(0, -1).join('/');
+      // Only get the top-level folder (first part)
+      const topLevelFolder = parts[0];
       return {
         displayName: fileName,
-        folderPath: folderPath,
+        topLevelFolder: topLevelFolder,
         isInFolder: true,
         fullPath: filename
       };
     }
     return {
       displayName: filename,
-      folderPath: '',
+      topLevelFolder: '',
       isInFolder: false,
       fullPath: filename
     };
@@ -73,10 +74,10 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     return colors[fileType] || "bg-gray-100 text-gray-800";
   };
 
-  // Group files by folder
+  // Group files by top-level folder only
   const groupedFiles = files.reduce((acc, file) => {
     const displayInfo = getDisplayName(file.original_filename);
-    const folderKey = displayInfo.isInFolder ? displayInfo.folderPath : 'Root';
+    const folderKey = displayInfo.isInFolder ? displayInfo.topLevelFolder : 'Root';
     
     if (!acc[folderKey]) {
       acc[folderKey] = [];
