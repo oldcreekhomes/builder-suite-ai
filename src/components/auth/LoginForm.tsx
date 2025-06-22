@@ -30,14 +30,6 @@ const LoginForm = () => {
           description: error.message,
           variant: "destructive",
         });
-      } else if (data.user && !data.user.email_confirmed_at) {
-        // Sign out the user immediately if email is not confirmed
-        await supabase.auth.signOut();
-        toast({
-          title: "Email Confirmation Required",
-          description: "Please check your email and click the confirmation link before signing in.",
-          variant: "destructive",
-        });
       } else {
         toast({
           title: "Success",

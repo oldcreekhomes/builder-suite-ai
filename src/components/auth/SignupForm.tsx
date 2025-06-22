@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ const SignupForm = () => {
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState<"home_builder" | "employee" | "">("");
   const [homeBuildingCompany, setHomeBuildingCompany] = useState("");
-  const [homeBuilderName, setHomeBuilderName] = useState("");
   const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -34,14 +34,11 @@ const SignupForm = () => {
         metadata.home_builder_id = selectedHomeBuilderId;
       }
 
-      // Use the admin API to create user without sending any emails
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: metadata,
-          // Completely disable email confirmation
-          emailRedirectTo: undefined,
         },
       });
 
@@ -52,52 +49,11 @@ const SignupForm = () => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Manually confirm the user's email using admin API
-        try {
-          await supabase.auth.admin.updateUserById(data.user.id, {
-            email_confirm: true
-          });
-        } catch (adminError) {
-          console.error("Failed to confirm user email:", adminError);
-        }
-
-        // Send only our custom confirmation emails
-        try {
-          let homeBuilderEmail = "";
-          
-          // If employee, get home builder's email
-          if (userType === "employee" && selectedHomeBuilderId) {
-            const { data: homeBuilderData } = await supabase
-              .from('profiles')
-              .select('email')
-              .eq('id', selectedHomeBuilderId)
-              .single();
-            
-            homeBuilderEmail = homeBuilderData?.email || "";
-          }
-
-          await supabase.functions.invoke('send-confirmation-email', {
-            body: {
-              userEmail: email,
-              userType: userType,
-              companyName: userType === "home_builder" ? homeBuildingCompany : undefined,
-              homeBuilderId: userType === "employee" ? selectedHomeBuilderId : undefined,
-              homeBuilderEmail: homeBuilderEmail || undefined,
-              userId: data.user.id,
-            },
-          });
-        } catch (emailError) {
-          console.error("Failed to send confirmation emails:", emailError);
-          // Don't fail the signup if email fails
-        }
-
         toast({
           title: "Account Created Successfully",
-          description: "Please check your email and click the confirmation link before signing in.",
+          description: "You can now sign in to your account.",
         });
-        
-        // Don't navigate to dashboard, stay on auth page
-        // User needs to confirm email first
+        navigate("/");
       }
     } catch (error) {
       toast({
@@ -155,7 +111,6 @@ const SignupForm = () => {
         <HomeBuilderSelect 
           onSelect={(id, name) => {
             setSelectedHomeBuilderId(id);
-            setHomeBuilderName(name);
           }}
         />
       )}
