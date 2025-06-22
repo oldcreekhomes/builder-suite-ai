@@ -7,7 +7,10 @@ import {
   FileText, 
   Home, 
   Users,
-  LogOut
+  LogOut,
+  File,
+  Image,
+  ChevronDown
 } from "lucide-react";
 
 import {
@@ -21,6 +24,9 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -32,8 +38,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 
 const navigationItems = [
   {
@@ -43,8 +51,19 @@ const navigationItems = [
   },
   {
     title: "Documents",
-    url: "/documents",
     icon: FileText,
+    submenu: [
+      {
+        title: "Files",
+        url: "/files",
+        icon: File,
+      },
+      {
+        title: "Photos",
+        url: "/photos", 
+        icon: Image,
+      }
+    ]
   },
   {
     title: "Budget",
@@ -76,7 +95,9 @@ const navigationItems = [
 export function AppSidebar() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -103,6 +124,14 @@ export function AppSidebar() {
     return "U";
   };
 
+  // Get current project ID from URL
+  const getProjectId = () => {
+    const pathParts = location.pathname.split('/');
+    return pathParts[2]; // /project/{id}
+  };
+
+  const projectId = getProjectId();
+
   return (
     <Sidebar className="border-r border-gray-200">
       <SidebarHeader className="p-6 border-b border-gray-200">
@@ -123,15 +152,46 @@ export function AppSidebar() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                  >
-                    <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
+                  {item.submenu ? (
+                    <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className="w-full justify-between hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <item.icon className="h-5 w-5" />
+                            <span className="font-medium">{item.title}</span>
+                          </div>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.submenu.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild>
+                                <a 
+                                  href={projectId ? `/project/${projectId}${subItem.url}` : subItem.url}
+                                  className="flex items-center space-x-3 p-2 rounded-lg"
+                                >
+                                  <subItem.icon className="h-4 w-4" />
+                                  <span>{subItem.title}</span>
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild 
+                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                    >
+                      <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
