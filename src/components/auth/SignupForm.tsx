@@ -6,15 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import HomeBuilderSelect from "./HomeBuilderSelect";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState<"home_builder" | "employee">("home_builder");
-  const [companyName, setCompanyName] = useState("");
-  const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -24,23 +19,12 @@ const SignupForm = () => {
     setIsLoading(true);
 
     try {
-      const metadata: any = {
-        user_type: userType,
-      };
-
-      if (userType === "home_builder") {
-        metadata.company_name = companyName;
-      } else {
-        metadata.home_builder_id = selectedHomeBuilderId;
-      }
-
-      console.log("Attempting signup with metadata:", metadata);
+      console.log("Attempting basic signup for:", email);
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: metadata,
           emailRedirectTo: `${window.location.origin}/`
         }
       });
@@ -56,9 +40,7 @@ const SignupForm = () => {
         console.log("Signup successful:", data.user);
         toast({
           title: "Account Created Successfully",
-          description: userType === "employee" 
-            ? "Your account has been created and is pending approval from your home builder."
-            : "You can now sign in to your account.",
+          description: "You can now sign in to your account.",
         });
         navigate("/");
       }
@@ -87,45 +69,6 @@ const SignupForm = () => {
           placeholder="Enter your email"
         />
       </div>
-
-      <div className="space-y-3">
-        <Label>User Type</Label>
-        <RadioGroup 
-          value={userType} 
-          onValueChange={(value: "home_builder" | "employee") => setUserType(value)}
-          className="flex flex-col space-y-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="home_builder" id="home_builder" />
-            <Label htmlFor="home_builder">Home Builder</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="employee" id="employee" />
-            <Label htmlFor="employee">Employee</Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      {userType === "home_builder" && (
-        <div className="space-y-2">
-          <Label htmlFor="company-name">Company Name</Label>
-          <Input
-            id="company-name"
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            required
-            placeholder="Enter your company name"
-          />
-        </div>
-      )}
-
-      {userType === "employee" && (
-        <HomeBuilderSelect
-          value={selectedHomeBuilderId}
-          onChange={setSelectedHomeBuilderId}
-        />
-      )}
       
       <div className="space-y-2">
         <Label htmlFor="signup-password">Password</Label>
