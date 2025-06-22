@@ -22,7 +22,6 @@ export default function Employees() {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
-                <p className="text-gray-600">Manage your team members and invite new employees</p>
               </div>
               <Button onClick={() => setAddEmployeeOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
