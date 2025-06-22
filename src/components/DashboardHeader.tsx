@@ -68,7 +68,7 @@ export function DashboardHeader() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div>
-              <h1 className="text-2xl font-bold text-black">{companyName} Dashboard</h1>
+              <h1 className="text-2xl font-bold text-black">{companyName}</h1>
             </div>
           </div>
           
