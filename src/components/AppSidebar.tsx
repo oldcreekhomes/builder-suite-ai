@@ -1,3 +1,4 @@
+
 import { 
   Building2, 
   Calendar, 
@@ -28,6 +29,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -154,12 +156,15 @@ export function AppSidebar() {
     <>
       <Sidebar className="border-r border-gray-200">
         <SidebarHeader className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-black" />
-            <div>
-              <h1 className="text-xl font-bold text-black">BuildCore</h1>
-              <p className="text-sm text-gray-600">Construction Management</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Building2 className="h-8 w-8 text-black" />
+              <div>
+                <h1 className="text-xl font-bold text-black">BuildCore</h1>
+                <p className="text-sm text-gray-600">Construction Management</p>
+              </div>
             </div>
+            <SidebarTrigger className="text-gray-600 hover:text-black hover:bg-gray-100 transition-colors h-8 w-8" />
           </div>
         </SidebarHeader>
         <SidebarContent className="px-3 py-4">
