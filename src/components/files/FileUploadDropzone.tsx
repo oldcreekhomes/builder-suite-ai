@@ -83,7 +83,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     const items = Array.from(dataTransfer.items);
     
-    for (const item of items) {
+    // Process all items concurrently to handle multiple folders
+    const promises = items.map(async (item) => {
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
@@ -96,9 +97,11 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           }
         }
       }
-    }
+    });
     
-    console.log('Files with preserved paths:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
+    await Promise.all(promises);
+    
+    console.log('Files with preserved paths from multiple folders:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
     
     return files;
   };
@@ -114,12 +117,27 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         });
       } else if (item.isDirectory) {
         const dirReader = item.createReader();
-        dirReader.readEntries((entries: any[]) => {
-          const promises = entries.map(entry => 
-            traverseFileTree(entry, path + item.name + '/', files)
-          );
-          Promise.all(promises).then(() => resolve());
-        });
+        
+        // Read all entries in the directory
+        const readEntries = () => {
+          dirReader.readEntries((entries: any[]) => {
+            if (entries.length === 0) {
+              // No more entries, we're done with this directory
+              resolve();
+            } else {
+              // Process all entries in this batch
+              const promises = entries.map(entry => 
+                traverseFileTree(entry, path + item.name + '/', files)
+              );
+              Promise.all(promises).then(() => {
+                // Continue reading in case there are more entries
+                readEntries();
+              });
+            }
+          });
+        };
+        
+        readEntries();
       } else {
         resolve();
       }
@@ -148,6 +166,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     if (filesWithPaths.length === 0) return;
 
+    console.log(`Processing ${filesWithPaths.length} files from multiple folders`);
+
     const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
       file,
       relativePath,
@@ -157,8 +177,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
-    for (const { file, relativePath } of filesWithPaths) {
-      // Simulate progress
+    // Upload all files concurrently with progress tracking
+    const uploadPromises = filesWithPaths.map(async ({ file, relativePath }) => {
+      // Simulate progress for each file
       const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
           prev.map((upload) => 
@@ -184,9 +205,22 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
       if (success) {
         setTimeout(() => {
           setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
-          onUploadSuccess();
         }, 1000);
       }
+
+      return success;
+    });
+
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+    const successCount = results.filter(Boolean).length;
+    
+    if (successCount > 0) {
+      toast({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${successCount} file(s) from multiple folders`,
+      });
+      onUploadSuccess();
     }
   };
 
@@ -253,16 +287,31 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   });
 
-  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultipleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Folder input files:', files.length);
+    console.log('Multiple folder input files:', files.length);
     
-    const filesWithPaths = files.map(file => ({
-      file,
-      relativePath: file.webkitRelativePath || file.name
-    }));
+    // Group files by their top-level folder
+    const folderGroups = new Map<string, Array<{ file: File; relativePath: string }>>();
     
-    if (filesWithPaths.length > 0) {
+    files.forEach(file => {
+      const relativePath = file.webkitRelativePath || file.name;
+      const topLevelFolder = relativePath.split('/')[0];
+      
+      if (!folderGroups.has(topLevelFolder)) {
+        folderGroups.set(topLevelFolder, []);
+      }
+      folderGroups.get(topLevelFolder)!.push({ file, relativePath });
+    });
+    
+    console.log(`Processing ${folderGroups.size} folders with ${files.length} total files`);
+    
+    if (files.length > 0) {
+      const filesWithPaths = files.map(file => ({
+        file,
+        relativePath: file.webkitRelativePath || file.name
+      }));
+
       const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
         file,
         relativePath,
@@ -272,7 +321,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
       setUploadingFiles(prev => [...prev, ...newUploads]);
 
-      for (const { file, relativePath } of filesWithPaths) {
+      // Upload all files concurrently
+      const uploadPromises = filesWithPaths.map(async ({ file, relativePath }) => {
         // Simulate progress
         const progressInterval = setInterval(() => {
           setUploadingFiles(prev => 
@@ -299,13 +349,25 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         if (success) {
           setTimeout(() => {
             setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
-            onUploadSuccess();
           }, 1000);
         }
+
+        return success;
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successCount = results.filter(Boolean).length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Upload Complete", 
+          description: `Successfully uploaded ${successCount} file(s) from ${folderGroups.size} folder(s)`,
+        });
+        onUploadSuccess();
       }
     }
     
-    // Reset the input value to allow selecting the same folder again
+    // Reset the input value to allow selecting the same folders again
     event.target.value = '';
   };
 
@@ -337,10 +399,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           <input {...getInputProps()} />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragOver ? 'Drop files or folders here' : 'Upload files or folders'}
+            {isDragOver ? 'Drop files or folders here' : 'Upload files or multiple folders'}
           </h3>
           <p className="text-gray-600 mb-4">
-            Drag and drop files or folders here, or click to select
+            Drag and drop multiple files or folders here, or click to select
           </p>
           <p className="text-sm text-gray-500 mb-4">
             Supports: PDF, Word, Excel, PowerPoint, Text, and Images
@@ -362,14 +424,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
             <label htmlFor="folder-upload" className="cursor-pointer">
               <Button type="button" variant="outline" className="mt-4">
                 <FolderOpen className="h-4 w-4 mr-2" />
-                Choose Folder
+                Choose Multiple Folders
               </Button>
               <input
                 id="folder-upload"
                 type="file"
                 {...({ webkitdirectory: "" } as any)}
                 multiple
-                onChange={handleFolderUpload}
+                onChange={handleMultipleFolderUpload}
                 className="hidden"
               />
             </label>
@@ -379,14 +441,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
       {uploadingFiles.length > 0 && (
         <Card className="p-4">
-          <h4 className="font-semibold mb-3">Uploading Files</h4>
-          <div className="space-y-3">
+          <h4 className="font-semibold mb-3">Uploading Files ({uploadingFiles.length})</h4>
+          <div className="space-y-3 max-h-60 overflow-y-auto">
             {uploadingFiles.map((upload, index) => (
               <div key={index} className="flex items-center space-x-3">
                 <FileText className="h-5 w-5 text-gray-500" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium truncate">
                       {upload.relativePath}
                     </span>
                     <Button
