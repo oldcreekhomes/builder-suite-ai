@@ -171,7 +171,12 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
           <Checkbox
             checked={allSelected}
             ref={(el) => {
-              if (el) el.indeterminate = someSelected;
+              if (el) {
+                const checkbox = el.querySelector('input[type="checkbox"]') as HTMLInputElement;
+                if (checkbox) {
+                  checkbox.indeterminate = someSelected;
+                }
+              }
             }}
             onCheckedChange={handleSelectAll}
           />
