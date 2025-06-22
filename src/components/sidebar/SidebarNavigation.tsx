@@ -96,10 +96,10 @@ export function SidebarNavigation() {
                 {item.submenu ? (
                   <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton className="w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
+                      <SidebarMenuButton className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors p-3">
                         <item.icon className="h-5 w-5" />
-                        <span className="font-medium">{item.title}</span>
-                        <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
+                        <span className="font-medium flex-1 text-left">{item.title}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
