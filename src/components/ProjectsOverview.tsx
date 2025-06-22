@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, MapPin, Calendar, Plus } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
 const getStatusColor = (status: string) => {
@@ -33,6 +34,11 @@ const getProgressValue = (status: string) => {
 
 export function ProjectsOverview() {
   const { data: projects = [], isLoading } = useProjects();
+  const navigate = useNavigate();
+
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/project/${projectId}`);
+  };
 
   if (isLoading) {
     return (
@@ -108,7 +114,11 @@ export function ProjectsOverview() {
           const progress = getProgressValue(project.status);
           
           return (
-            <div key={project.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+            <div 
+              key={project.id} 
+              className="p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
+              onClick={() => handleProjectClick(project.id)}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="font-semibold text-black text-lg">{project.name}</h3>
@@ -127,7 +137,14 @@ export function ProjectsOverview() {
                   <Badge className={getStatusColor(project.status)}>
                     {project.status}
                   </Badge>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Add more actions menu here if needed
+                    }}
+                  >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </div>
