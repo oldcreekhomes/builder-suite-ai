@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Mail } from "lucide-react";
+import { Pencil, Trash2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
@@ -205,13 +205,15 @@ export function EmployeeTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setEditingEmployee(employee)}
+                      className="hover:bg-gray-100"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteEmployeeMutation.mutate(employee.id)}
+                      className="hover:bg-red-100"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -253,6 +255,7 @@ export function EmployeeTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteInvitationMutation.mutate(invitation.id)}
+                      className="hover:bg-red-100"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
