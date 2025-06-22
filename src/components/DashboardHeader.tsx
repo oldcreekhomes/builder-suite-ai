@@ -46,8 +46,7 @@ export function DashboardHeader() {
           <div className="flex items-center space-x-4">
             <SidebarTrigger className="text-gray-600 hover:text-black" />
             <div>
-              <h1 className="text-2xl font-bold text-black">Dashboard</h1>
-              <p className="text-gray-600">Welcome back! Here's your project overview.</p>
+              <h1 className="text-2xl font-bold text-black">Company Dashboard</h1>
             </div>
           </div>
           
