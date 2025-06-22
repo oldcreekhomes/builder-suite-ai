@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,33 +17,25 @@ interface FileUploadDropzoneProps {
 export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDropzoneProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Array<{
     file: File;
     progress: number;
     uploading: boolean;
+    relativePath: string;
   }>>([]);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, relativePath: string) => {
     if (!user) return;
 
     const fileId = crypto.randomUUID();
     
-    // Debug: Let's see ALL properties of the file
-    console.log('=== FILE DEBUG INFO ===');
-    console.log('File object:', file);
-    console.log('File.name:', file.name);
-    console.log('File.webkitRelativePath:', file.webkitRelativePath);
-    console.log('File properties:', Object.getOwnPropertyNames(file));
-    console.log('Has webkitRelativePath property:', 'webkitRelativePath' in file);
-    console.log('webkitRelativePath length:', file.webkitRelativePath?.length);
-    console.log('=== END DEBUG ===');
-    
-    // Use webkitRelativePath if it exists and has content, otherwise use file.name
-    const relativePath = (file.webkitRelativePath && file.webkitRelativePath.length > 0) 
-      ? file.webkitRelativePath 
-      : file.name;
-    
-    console.log('Final relativePath used:', relativePath);
+    console.log('Uploading file with preserved path:', {
+      name: file.name,
+      relativePath: relativePath,
+      size: file.size
+    });
     
     // Create storage path that preserves the folder structure
     const fileName = `${user.id}/${projectId}/${fileId}_${relativePath}`;
@@ -85,36 +77,91 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('=== DROP EVENT DEBUG ===');
-    console.log('Total files dropped:', acceptedFiles.length);
-    acceptedFiles.forEach((file, index) => {
-      console.log(`File ${index + 1}:`, {
-        name: file.name,
-        webkitRelativePath: file.webkitRelativePath,
-        hasWebkitRelativePath: !!file.webkitRelativePath,
-        webkitRelativePathLength: file.webkitRelativePath?.length || 0,
-        type: file.type,
-        size: file.size
-      });
-    });
-    console.log('=== END DROP DEBUG ===');
+  // Process files from native drag and drop (preserves folder structure)
+  const processFilesFromDataTransfer = async (dataTransfer: DataTransfer) => {
+    const files: Array<{ file: File; relativePath: string }> = [];
     
-    const newUploads = acceptedFiles.map(file => ({
+    const items = Array.from(dataTransfer.items);
+    
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry?.();
+        if (entry) {
+          await traverseFileTree(entry, '', files);
+        } else {
+          // Fallback for browsers that don't support webkitGetAsEntry
+          const file = item.getAsFile();
+          if (file) {
+            files.push({ file, relativePath: file.name });
+          }
+        }
+      }
+    }
+    
+    console.log('Files with preserved paths:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
+    
+    return files;
+  };
+
+  // Recursively traverse directory structure
+  const traverseFileTree = (item: any, path: string, files: Array<{ file: File; relativePath: string }>) => {
+    return new Promise<void>((resolve) => {
+      if (item.isFile) {
+        item.file((file: File) => {
+          const fullPath = path + file.name;
+          files.push({ file, relativePath: fullPath });
+          resolve();
+        });
+      } else if (item.isDirectory) {
+        const dirReader = item.createReader();
+        dirReader.readEntries((entries: any[]) => {
+          const promises = entries.map(entry => 
+            traverseFileTree(entry, path + item.name + '/', files)
+          );
+          Promise.all(promises).then(() => resolve());
+        });
+      } else {
+        resolve();
+      }
+    });
+  };
+
+  // Handle native drag and drop events
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const filesWithPaths = await processFilesFromDataTransfer(e.dataTransfer);
+    
+    if (filesWithPaths.length === 0) return;
+
+    const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
       file,
+      relativePath,
       progress: 0,
       uploading: true,
     }));
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i];
-      
+    for (const { file, relativePath } of filesWithPaths) {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
-          prev.map((upload, index) => 
+          prev.map((upload) => 
             upload.file === file 
               ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
               : upload
@@ -122,7 +169,53 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         );
       }, 200);
 
-      const success = await uploadFile(file);
+      const success = await uploadFile(file, relativePath);
+      
+      clearInterval(progressInterval);
+      
+      setUploadingFiles(prev => 
+        prev.map(upload => 
+          upload.file === file 
+            ? { ...upload, progress: 100, uploading: false }
+            : upload
+        )
+      );
+
+      if (success) {
+        setTimeout(() => {
+          setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
+          onUploadSuccess();
+        }, 1000);
+      }
+    }
+  };
+
+  // Fallback for react-dropzone (individual files)
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('React-dropzone files (individual files only):', acceptedFiles.length);
+    
+    const newUploads = acceptedFiles.map(file => ({
+      file,
+      relativePath: file.name,
+      progress: 0,
+      uploading: true,
+    }));
+
+    setUploadingFiles(prev => [...prev, ...newUploads]);
+
+    for (const file of acceptedFiles) {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadingFiles(prev => 
+          prev.map((upload) => 
+            upload.file === file 
+              ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
+              : upload
+          )
+        );
+      }, 200);
+
+      const success = await uploadFile(file, file.name);
       
       clearInterval(progressInterval);
       
@@ -143,9 +236,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   }, [projectId, user, onUploadSuccess, toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     multiple: true,
+    noClick: true, // Disable click on the dropzone, we'll handle it separately
     accept: {
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
@@ -159,26 +253,67 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   });
 
-  const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('=== FOLDER INPUT DEBUG ===');
-    console.log('Total files from folder input:', files.length);
-    files.forEach((file, index) => {
-      console.log(`Folder file ${index + 1}:`, {
-        name: file.name,
-        webkitRelativePath: file.webkitRelativePath,
-        hasWebkitRelativePath: !!file.webkitRelativePath,
-        webkitRelativePathLength: file.webkitRelativePath?.length || 0,
-        type: file.type,
-        size: file.size
-      });
-    });
-    console.log('=== END FOLDER DEBUG ===');
+    console.log('Folder input files:', files.length);
     
+    const filesWithPaths = files.map(file => ({
+      file,
+      relativePath: file.webkitRelativePath || file.name
+    }));
+    
+    if (filesWithPaths.length > 0) {
+      const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
+        file,
+        relativePath,
+        progress: 0,
+        uploading: true,
+      }));
+
+      setUploadingFiles(prev => [...prev, ...newUploads]);
+
+      for (const { file, relativePath } of filesWithPaths) {
+        // Simulate progress
+        const progressInterval = setInterval(() => {
+          setUploadingFiles(prev => 
+            prev.map((upload) => 
+              upload.file === file 
+                ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
+                : upload
+            )
+          );
+        }, 200);
+
+        const success = await uploadFile(file, relativePath);
+        
+        clearInterval(progressInterval);
+        
+        setUploadingFiles(prev => 
+          prev.map(upload => 
+            upload.file === file 
+              ? { ...upload, progress: 100, uploading: false }
+              : upload
+          )
+        );
+
+        if (success) {
+          setTimeout(() => {
+            setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
+            onUploadSuccess();
+          }, 1000);
+        }
+      }
+    }
+    
+    // Reset the input value to allow selecting the same folder again
+    event.target.value = '';
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
     if (files.length > 0) {
       onDrop(files);
     }
-    // Reset the input value to allow selecting the same folder again
     event.target.value = '';
   };
 
@@ -186,27 +321,23 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
 
-  const getDisplayPath = (file: File) => {
-    const path = (file.webkitRelativePath && file.webkitRelativePath.length > 0) 
-      ? file.webkitRelativePath 
-      : file.name;
-    console.log('Display path for', file.name, ':', path);
-    return path;
-  };
-
   return (
     <div className="space-y-4">
       <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
         <div
+          ref={dropzoneRef}
           {...getRootProps()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           className={`p-8 text-center cursor-pointer ${
-            isDragActive ? 'bg-blue-50 border-blue-400' : ''
+            isDragOver ? 'bg-blue-50 border-blue-400' : ''
           }`}
         >
           <input {...getInputProps()} />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragActive ? 'Drop files here' : 'Upload files or folders'}
+            {isDragOver ? 'Drop files or folders here' : 'Upload files or folders'}
           </h3>
           <p className="text-gray-600 mb-4">
             Drag and drop files or folders here, or click to select
@@ -215,10 +346,19 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
             Supports: PDF, Word, Excel, PowerPoint, Text, and Images
           </p>
           <div className="flex items-center justify-center space-x-4">
-            <Button className="mt-4">
-              <FileText className="h-4 w-4 mr-2" />
-              Choose Files
-            </Button>
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <Button type="button" className="mt-4">
+                <FileText className="h-4 w-4 mr-2" />
+                Choose Files
+              </Button>
+              <input
+                id="file-upload"
+                type="file"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
             <label htmlFor="folder-upload" className="cursor-pointer">
               <Button type="button" variant="outline" className="mt-4">
                 <FolderOpen className="h-4 w-4 mr-2" />
@@ -247,7 +387,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">
-                      {getDisplayPath(upload.file)}
+                      {upload.relativePath}
                     </span>
                     <Button
                       variant="ghost"
