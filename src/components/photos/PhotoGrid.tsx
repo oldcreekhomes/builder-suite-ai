@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,12 +152,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
       <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
         <div className="flex items-center space-x-4">
           <Checkbox
-            checked={allSelected}
-            ref={(ref) => {
-              if (ref) {
-                ref.indeterminate = someSelected;
-              }
-            }}
+            checked={allSelected ? true : someSelected ? "indeterminate" : false}
             onCheckedChange={handleSelectAll}
           />
           <span className="text-sm text-gray-600">
