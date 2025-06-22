@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,8 +118,15 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-full h-[90vh] p-0">
-        <div className="relative w-full h-full flex flex-col bg-black">
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex items-center justify-center">
+        <DialogTitle className="sr-only">
+          {photo.description || 'Project Photo'}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Photo viewer showing {currentIndex + 1} of {photos.length} photos
+        </DialogDescription>
+        
+        <div className="relative w-full h-full flex flex-col bg-black rounded-lg overflow-hidden">
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-10 bg-black/50 backdrop-blur-sm p-4">
             <div className="flex items-center justify-between text-white">
@@ -167,6 +174,10 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
               src={photo.url}
               alt={photo.description || 'Project photo'}
               className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                console.error('Image failed to load:', photo.url);
+                e.currentTarget.src = '/placeholder.svg';
+              }}
             />
           </div>
 
