@@ -74,7 +74,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
 
     setIsSaving(true);
     
@@ -86,7 +86,12 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           first_name: firstName,
           last_name: lastName,
           avatar_url: avatarUrl,
-          email: user.email,
+          email: user.email || profile.email,
+          user_type: profile.user_type, // Include the existing user_type
+          // Include other required fields to avoid conflicts
+          approved_by_home_builder: profile.approved_by_home_builder,
+          company_name: profile.company_name,
+          home_builder_id: profile.home_builder_id,
         });
 
       if (error) throw error;
