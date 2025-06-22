@@ -27,15 +27,23 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    // Use webkitRelativePath if available (folder upload), otherwise use file.name (single file)
-    const relativePath = file.webkitRelativePath || file.name;
     
-    console.log('Uploading file:', {
-      name: file.name,
-      webkitRelativePath: file.webkitRelativePath,
-      relativePath: relativePath,
-      hasRelativePath: !!file.webkitRelativePath
-    });
+    // Debug: Let's see ALL properties of the file
+    console.log('=== FILE DEBUG INFO ===');
+    console.log('File object:', file);
+    console.log('File.name:', file.name);
+    console.log('File.webkitRelativePath:', file.webkitRelativePath);
+    console.log('File properties:', Object.getOwnPropertyNames(file));
+    console.log('Has webkitRelativePath property:', 'webkitRelativePath' in file);
+    console.log('webkitRelativePath length:', file.webkitRelativePath?.length);
+    console.log('=== END DEBUG ===');
+    
+    // Use webkitRelativePath if it exists and has content, otherwise use file.name
+    const relativePath = (file.webkitRelativePath && file.webkitRelativePath.length > 0) 
+      ? file.webkitRelativePath 
+      : file.name;
+    
+    console.log('Final relativePath used:', relativePath);
     
     // Create storage path that preserves the folder structure
     const fileName = `${user.id}/${projectId}/${fileId}_${relativePath}`;
@@ -78,11 +86,19 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('Files dropped:', acceptedFiles.map(f => ({ 
-      name: f.name, 
-      webkitRelativePath: f.webkitRelativePath,
-      hasRelativePath: !!f.webkitRelativePath 
-    })));
+    console.log('=== DROP EVENT DEBUG ===');
+    console.log('Total files dropped:', acceptedFiles.length);
+    acceptedFiles.forEach((file, index) => {
+      console.log(`File ${index + 1}:`, {
+        name: file.name,
+        webkitRelativePath: file.webkitRelativePath,
+        hasWebkitRelativePath: !!file.webkitRelativePath,
+        webkitRelativePathLength: file.webkitRelativePath?.length || 0,
+        type: file.type,
+        size: file.size
+      });
+    });
+    console.log('=== END DROP DEBUG ===');
     
     const newUploads = acceptedFiles.map(file => ({
       file,
@@ -145,11 +161,19 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Folder files selected via input:', files.map(f => ({ 
-      name: f.name, 
-      webkitRelativePath: f.webkitRelativePath,
-      hasRelativePath: !!f.webkitRelativePath 
-    })));
+    console.log('=== FOLDER INPUT DEBUG ===');
+    console.log('Total files from folder input:', files.length);
+    files.forEach((file, index) => {
+      console.log(`Folder file ${index + 1}:`, {
+        name: file.name,
+        webkitRelativePath: file.webkitRelativePath,
+        hasWebkitRelativePath: !!file.webkitRelativePath,
+        webkitRelativePathLength: file.webkitRelativePath?.length || 0,
+        type: file.type,
+        size: file.size
+      });
+    });
+    console.log('=== END FOLDER DEBUG ===');
     
     if (files.length > 0) {
       onDrop(files);
@@ -163,7 +187,11 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   };
 
   const getDisplayPath = (file: File) => {
-    return file.webkitRelativePath || file.name;
+    const path = (file.webkitRelativePath && file.webkitRelativePath.length > 0) 
+      ? file.webkitRelativePath 
+      : file.name;
+    console.log('Display path for', file.name, ':', path);
+    return path;
   };
 
   return (
