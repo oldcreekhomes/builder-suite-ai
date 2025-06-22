@@ -39,6 +39,24 @@ export function DashboardHeader() {
     setSearchValue("");
   };
 
+  const handleSearchInputChange = (value: string) => {
+    setSearchValue(value);
+    if (value.length > 0) {
+      setSearchOpen(true);
+    }
+  };
+
+  const handleInputFocus = () => {
+    setSearchOpen(true);
+  };
+
+  const handleInputBlur = () => {
+    // Delay closing to allow for clicking on items
+    setTimeout(() => {
+      setSearchOpen(false);
+    }, 200);
+  };
+
   return (
     <>
       <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -57,36 +75,36 @@ export function DashboardHeader() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input 
                     placeholder="Search projects..." 
-                    className="pl-10 w-64 bg-gray-50 border-gray-200 focus:bg-white cursor-pointer"
+                    className="pl-10 w-64 bg-gray-50 border-gray-200 focus:bg-white"
                     value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    onFocus={() => setSearchOpen(true)}
+                    onChange={(e) => handleSearchInputChange(e.target.value)}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
                   />
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0" align="end">
                 <Command>
-                  <CommandInput 
-                    placeholder="Search projects..." 
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
                   <CommandList>
-                    <CommandEmpty>No projects found.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredProjects.map((project) => (
-                        <CommandItem
-                          key={project.id}
-                          onSelect={() => handleProjectSelect(project.id)}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium">{project.name}</span>
-                            <span className="text-sm text-gray-500">{project.address}</span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    <CommandEmpty>
+                      {searchValue ? "No projects found." : "Start typing to search projects..."}
+                    </CommandEmpty>
+                    {filteredProjects.length > 0 && (
+                      <CommandGroup>
+                        {filteredProjects.map((project) => (
+                          <CommandItem
+                            key={project.id}
+                            onSelect={() => handleProjectSelect(project.id)}
+                            className="cursor-pointer"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{project.name}</span>
+                              <span className="text-sm text-gray-500">{project.address}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
