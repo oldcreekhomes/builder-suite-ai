@@ -170,7 +170,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               <input
                 id="folder-upload"
                 type="file"
-                webkitdirectory=""
+                {...({ webkitdirectory: "" } as any)}
                 multiple
                 onChange={handleFolderUpload}
                 className="hidden"
