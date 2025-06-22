@@ -4,17 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import HomeBuilderSelect from "./HomeBuilderSelect";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState<"home_builder" | "employee" | "">("");
-  const [homeBuildingCompany, setHomeBuildingCompany] = useState("");
-  const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -24,22 +19,9 @@ const SignupForm = () => {
     setIsLoading(true);
 
     try {
-      const metadata: any = {
-        user_type: userType,
-      };
-
-      if (userType === "home_builder") {
-        metadata.company_name = homeBuildingCompany;
-      } else if (userType === "employee") {
-        metadata.home_builder_id = selectedHomeBuilderId;
-      }
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: metadata,
-        },
       });
 
       if (error) {
@@ -81,41 +63,6 @@ const SignupForm = () => {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="user-type">User Type</Label>
-        <Select value={userType} onValueChange={(value: "home_builder" | "employee") => setUserType(value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select user type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="home_builder">Home Builder</SelectItem>
-            <SelectItem value="employee">Employee</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {userType === "home_builder" && (
-        <div className="space-y-2">
-          <Label htmlFor="home-building-company">Home building company</Label>
-          <Input
-            id="home-building-company"
-            type="text"
-            value={homeBuildingCompany}
-            onChange={(e) => setHomeBuildingCompany(e.target.value)}
-            required
-            placeholder="Enter your home building company name"
-          />
-        </div>
-      )}
-
-      {userType === "employee" && (
-        <HomeBuilderSelect 
-          onSelect={(id, name) => {
-            setSelectedHomeBuilderId(id);
-          }}
-        />
-      )}
-      
-      <div className="space-y-2">
         <Label htmlFor="signup-password">Password</Label>
         <Input
           id="signup-password"
@@ -128,7 +75,7 @@ const SignupForm = () => {
         />
       </div>
       
-      <Button type="submit" className="w-full" disabled={isLoading || !userType}>
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Creating account..." : "Create Account"}
       </Button>
     </form>
