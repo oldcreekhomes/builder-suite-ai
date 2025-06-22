@@ -28,18 +28,26 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const index = photos.findIndex(photo => photo.id === currentPhoto.id);
     setCurrentIndex(index >= 0 ? index : 0);
+    setImageLoading(true);
+    setImageError(false);
   }, [currentPhoto, photos]);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
+    setImageLoading(true);
+    setImageError(false);
   };
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
+    setImageLoading(true);
+    setImageError(false);
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -112,6 +120,17 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
     }
   };
 
+  const handleImageLoad = () => {
+    setImageLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setImageLoading(false);
+    setImageError(true);
+    console.error('Image failed to load:', photos[currentIndex]?.url);
+  };
+
   if (!photos[currentIndex]) return null;
 
   const photo = photos[currentIndex];
@@ -170,14 +189,19 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose }: PhotoView
 
           {/* Photo */}
           <div className="flex-1 flex items-center justify-center p-4">
+            {imageLoading && (
+              <div className="text-white">Loading image...</div>
+            )}
+            {imageError && (
+              <div className="text-white">Failed to load image</div>
+            )}
             <img
               src={photo.url}
               alt={photo.description || 'Project photo'}
               className="max-w-full max-h-full object-contain"
-              onError={(e) => {
-                console.error('Image failed to load:', photo.url);
-                e.currentTarget.src = '/placeholder.svg';
-              }}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              style={{ display: imageLoading || imageError ? 'none' : 'block' }}
             />
           </div>
 

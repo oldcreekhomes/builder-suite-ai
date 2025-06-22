@@ -10,6 +10,7 @@ export interface ProjectPhoto {
   description: string | null;
   uploaded_by: string;
   uploaded_at: string;
+  uploaded_by_profile?: { email: string };
 }
 
 export const useProjectPhotos = (projectId: string) => {
@@ -34,7 +35,8 @@ export const useProjectPhotos = (projectId: string) => {
         throw error;
       }
 
-      return data as (ProjectPhoto & { uploaded_by_profile: { email: string } })[];
+      console.log('Fetched photos:', data);
+      return data as ProjectPhoto[];
     },
     enabled: !!user && !!projectId,
   });
