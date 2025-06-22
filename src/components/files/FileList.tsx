@@ -1,7 +1,9 @@
 
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Download, Eye, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -16,6 +18,8 @@ interface FileListProps {
 
 export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
   const { toast } = useToast();
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -45,6 +49,54 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
       gif: "bg-purple-100 text-purple-800",
     };
     return colors[fileType] || "bg-gray-100 text-gray-800";
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(new Set(files.map(file => file.id)));
+    } else {
+      setSelectedFiles(new Set());
+    }
+  };
+
+  const handleSelectFile = (fileId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFiles);
+    if (checked) {
+      newSelected.add(fileId);
+    } else {
+      newSelected.delete(fileId);
+    }
+    setSelectedFiles(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFiles.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .in('id', Array.from(selectedFiles));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedFiles.size} file(s) deleted successfully`,
+      });
+      setSelectedFiles(new Set());
+      onRefresh();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete selected files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleDownload = async (file: any) => {
@@ -107,70 +159,107 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
     );
   }
 
+  const allSelected = files.length > 0 && selectedFiles.size === files.length;
+  const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
+
   return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Uploaded By</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {files.map((file) => (
-            <TableRow key={file.id} className="cursor-pointer hover:bg-gray-50">
-              <TableCell>
-                <div className="flex items-center space-x-3">
-                  {getFileIcon(file.file_type)}
-                  <div>
-                    <div className="font-medium">{file.original_filename}</div>
-                    {file.description && (
-                      <div className="text-sm text-gray-500">{file.description}</div>
-                    )}
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge className={getFileTypeColor(file.file_type)}>
-                  {file.file_type.toUpperCase()}
-                </Badge>
-              </TableCell>
-              <TableCell>{formatFileSize(file.file_size)}</TableCell>
-              <TableCell>{file.uploaded_by_profile?.email || 'Unknown'}</TableCell>
-              <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onFileSelect(file)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDownload(file)}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(file)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+    <div className="space-y-4">
+      {selectedFiles.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+          <span className="text-sm text-blue-800">
+            {selectedFiles.size} file(s) selected
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Selected
+          </Button>
+        </div>
+      )}
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Size</TableHead>
+              <TableHead>Uploaded By</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {files.map((file) => (
+              <TableRow key={file.id} className="cursor-pointer hover:bg-gray-50">
+                <TableCell>
+                  <Checkbox
+                    checked={selectedFiles.has(file.id)}
+                    onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    {getFileIcon(file.file_type)}
+                    <div>
+                      <div className="font-medium">{file.original_filename}</div>
+                      {file.description && (
+                        <div className="text-sm text-gray-500">{file.description}</div>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getFileTypeColor(file.file_type)}>
+                    {file.file_type.toUpperCase()}
+                  </Badge>
+                </TableCell>
+                <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                <TableCell>{file.uploaded_by_profile?.email || 'Unknown'}</TableCell>
+                <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onFileSelect(file)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownload(file)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(file)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
