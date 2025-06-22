@@ -7,8 +7,7 @@ import {
   FileText, 
   Home, 
   Settings,
-  Users,
-  BarChart3
+  Users
 } from "lucide-react";
 
 import {
@@ -25,28 +24,18 @@ import {
 
 const navigationItems = [
   {
-    title: "Dashboard",
+    title: "Project Dashboard",
     url: "/",
     icon: Home,
   },
   {
-    title: "Projects",
-    url: "/projects",
-    icon: Building2,
+    title: "Documents",
+    url: "/documents",
+    icon: FileText,
   },
   {
-    title: "Scheduling",
-    url: "/scheduling",
-    icon: Calendar,
-  },
-  {
-    title: "AI Estimating",
-    url: "/estimating",
-    icon: Calculator,
-  },
-  {
-    title: "Budgets",
-    url: "/budgets",
+    title: "Budget",
+    url: "/budget",
     icon: DollarSign,
   },
   {
@@ -55,13 +44,18 @@ const navigationItems = [
     icon: FileText,
   },
   {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
+    title: "AI Estimating",
+    url: "/estimating",
+    icon: Calculator,
   },
   {
-    title: "Team",
-    url: "/team",
+    title: "Schedules",
+    url: "/schedules",
+    icon: Calendar,
+  },
+  {
+    title: "Companies",
+    url: "/companies",
     icon: Users,
   },
 ];
