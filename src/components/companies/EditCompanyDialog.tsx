@@ -63,22 +63,25 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const isInitializedRef = useRef(false);
+  const initializationDone = useRef(false);
+
+  // Stable company ID for preventing unnecessary re-renders
+  const stableCompanyId = useMemo(() => company?.id, [company?.id]);
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [] } = useQuery({
-    queryKey: ['company-cost-codes', company?.id],
+    queryKey: ['company-cost-codes', stableCompanyId],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!stableCompanyId) return [];
       const { data, error } = await supabase
         .from('company_cost_codes')
         .select('cost_code_id')
-        .eq('company_id', company.id);
+        .eq('company_id', stableCompanyId);
       
       if (error) throw error;
       return data.map(item => item.cost_code_id);
     },
-    enabled: !!company?.id && open,
+    enabled: !!stableCompanyId && open,
   });
 
   const form = useForm<CompanyFormData>({
@@ -92,9 +95,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     },
   });
 
-  // Initialize form when company or dialog state changes
+  // Initialize form data when dialog opens with a company
   useEffect(() => {
-    if (company && open) {
+    if (company && open && !initializationDone.current) {
       console.log('Initializing form for company:', company.id);
       
       form.reset({
@@ -106,25 +109,24 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
 
       setSelectedRepresentatives([]);
-      isInitializedRef.current = false;
+      initializationDone.current = true;
     }
-  }, [company?.id, open, form]);
+  }, [company, open, form]);
 
-  // Handle cost codes initialization only once when data is first loaded
+  // Initialize cost codes only once when data loads
   useEffect(() => {
-    if (open && companyCostCodes && !isInitializedRef.current) {
-      console.log('Initializing cost codes for first time:', companyCostCodes);
+    if (companyCostCodes.length > 0 && initializationDone.current) {
+      console.log('Setting cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
-      isInitializedRef.current = true;
     }
-  }, [companyCostCodes, open]);
+  }, [companyCostCodes]);
 
-  // Reset when dialog closes
+  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedRepresentatives([]);
       setSelectedCostCodes([]);
-      isInitializedRef.current = false;
+      initializationDone.current = false;
       form.reset();
     }
   }, [open, form]);
@@ -220,8 +222,13 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     updateCompanyMutation.mutate(data);
   };
 
+  // Don't render dialog if no company is selected
+  if (!company) {
+    return null;
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Company</DialogTitle>
@@ -317,15 +324,14 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               />
             </div>
 
-            {/* Cost Code Selector - Using the working component */}
             <CostCodeSelector
-              companyId={company?.id || null}
+              companyId={stableCompanyId || null}
               selectedCostCodes={selectedCostCodes}
               onCostCodesChange={handleCostCodesChange}
             />
 
             <RepresentativeSelector
-              companyId={company?.id || null}
+              companyId={stableCompanyId || null}
               selectedRepresentatives={selectedRepresentatives}
               onRepresentativesChange={setSelectedRepresentatives}
             />
