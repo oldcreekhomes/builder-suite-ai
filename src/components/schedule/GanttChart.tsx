@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -125,7 +126,6 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
   const handleAddNewTask = () => {
     const nextTaskNumber = tasks.length + 1;
-    const taskCode = String(nextTaskNumber).padStart(3, '0');
     setNewTask({
       task_name: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
@@ -202,24 +202,24 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     if (isEditing) {
       if (type === "select" && field === "predecessor_id") {
         return (
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 min-w-0">
             <Select value={editValue} onValueChange={setEditValue}>
-              <SelectTrigger className="h-6 text-xs">
+              <SelectTrigger className="h-6 text-xs min-w-[60px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
                 {tasks.filter(t => t.id !== task.id).map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {t.task_code}
+                    {parseInt(t.task_code)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={saveEdit}>
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={cancelEdit}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -228,23 +228,23 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       
       if (field === 'duration') {
         return (
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 min-w-0">
             <Input
               type="number"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="h-6 text-xs w-12"
+              className="h-6 text-xs w-12 flex-shrink-0"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') saveEdit();
                 if (e.key === 'Escape') cancelEdit();
               }}
               autoFocus
             />
-            <span className="text-xs">d</span>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+            <span className="text-xs flex-shrink-0">d</span>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={saveEdit}>
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={cancelEdit}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -253,12 +253,12 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
       if (field === 'progress') {
         return (
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 min-w-0">
             <Input
               type="number"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="h-6 text-xs w-12"
+              className="h-6 text-xs w-12 flex-shrink-0"
               min="0"
               max="100"
               onKeyDown={(e) => {
@@ -267,11 +267,11 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
               }}
               autoFocus
             />
-            <span className="text-xs">%</span>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+            <span className="text-xs flex-shrink-0">%</span>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={saveEdit}>
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={cancelEdit}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -279,22 +279,22 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       }
       
       return (
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 min-w-0">
           <Input
             type={type}
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="h-6 text-xs"
+            className="h-6 text-xs min-w-0 flex-1"
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveEdit();
               if (e.key === 'Escape') cancelEdit();
             }}
             autoFocus
           />
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={saveEdit}>
             <Check className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={cancelEdit}>
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -303,12 +303,12 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
     return (
       <div 
-        className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+        className="cursor-pointer hover:bg-gray-100 p-1 rounded min-w-0 truncate"
         onClick={() => startEditing(task.id, field, value)}
       >
         {field === "predecessor_id" && value ? (
           <Badge variant="outline" className="text-xs px-1 py-0">
-            {tasks.find(t => t.id === value)?.task_code || 'Unknown'}
+            {parseInt(tasks.find(t => t.id === value)?.task_code || '0')}
           </Badge>
         ) : field === "predecessor_id" && !value ? (
           <span className="text-gray-400 text-xs">None</span>
@@ -330,34 +330,34 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     const endDate = parseISO(task.end_date);
 
     return (
-      <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-8`}>
-        <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs`}>
-          {task.task_code.replace(/^0+/, '') || task.task_code}
+      <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-10`}>
+        <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs w-16`}>
+          {parseInt(task.task_code)}
         </TableCell>
-        <TableCell className="py-1 text-xs max-w-[150px]">
+        <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
           {renderEditableCell(task, 'task_name', task.task_name)}
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-20">
           {renderEditableCell(task, 'start_date', task.start_date, 'date')}
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-20">
           {format(endDate, 'MMM dd')}
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-16">
           {renderEditableCell(task, 'duration', task.duration, 'number')}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-24">
           <div className="flex items-center space-x-2">
-            <Progress value={task.progress} className="w-8 h-1" />
-            <div className="w-8">
+            <Progress value={task.progress} className="w-8 h-1 flex-shrink-0" />
+            <div className="w-12 flex-shrink-0">
               {renderEditableCell(task, 'progress', task.progress, 'number')}
             </div>
           </div>
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           {task.resources.length > 0 ? (
             <div className="flex items-center space-x-1">
-              <Users className="h-3 w-3" />
+              <Users className="h-3 w-3 flex-shrink-0" />
               <Badge variant="secondary" className="text-xs px-1 py-0">
                 {task.resources.length}
               </Badge>
@@ -366,15 +366,15 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             renderEditableCell(task, 'resources', task.resources.join(', '))
           )}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           {renderEditableCell(task, 'predecessor_id', task.predecessor_id || '', 'select')}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 flex-shrink-0"
               onClick={() => setEditingTask(task)}
             >
               <Edit className="h-3 w-3" />
@@ -384,7 +384,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -416,14 +416,14 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const renderNewTaskRow = () => {
     if (!isAddingTask) return null;
 
-    const nextTaskCode = String(tasks.length + 1).padStart(3, '0');
+    const nextTaskCode = tasks.length + 1;
 
     return (
-      <TableRow className="bg-blue-50 h-8">
-        <TableCell className="pl-4 font-medium py-1 text-xs">
-          {nextTaskCode.replace(/^0+/, '') || nextTaskCode}
+      <TableRow className="bg-blue-50 h-10">
+        <TableCell className="pl-4 font-medium py-1 text-xs w-16">
+          {nextTaskCode}
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
           <Input
             value={newTask.task_name}
             onChange={(e) => setNewTask({...newTask, task_name: e.target.value})}
@@ -431,7 +431,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             className="h-6 text-xs"
           />
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-20">
           <Input
             type="date"
             value={newTask.start_date}
@@ -439,28 +439,28 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             className="h-6 text-xs"
           />
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-20">
           {format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}
         </TableCell>
-        <TableCell className="py-1 text-xs">
+        <TableCell className="py-1 text-xs w-16">
           <div className="flex items-center space-x-1">
             <Input
               type="number"
               value={newTask.duration}
               onChange={(e) => setNewTask({...newTask, duration: parseInt(e.target.value) || 1})}
-              className="h-6 text-xs w-12"
+              className="h-6 text-xs w-12 flex-shrink-0"
               min="1"
             />
-            <span className="text-xs">d</span>
+            <span className="text-xs flex-shrink-0">d</span>
           </div>
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-24">
           <div className="flex items-center space-x-2">
-            <Progress value={0} className="w-8 h-1" />
-            <span className="text-xs w-8">0%</span>
+            <Progress value={0} className="w-8 h-1 flex-shrink-0" />
+            <span className="text-xs w-12 flex-shrink-0">0%</span>
           </div>
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           <Input
             value={newTask.resources}
             onChange={(e) => setNewTask({...newTask, resources: e.target.value})}
@@ -468,7 +468,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             className="h-6 text-xs"
           />
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           <Select 
             value={newTask.predecessor_id || "none"} 
             onValueChange={(value) => setNewTask({...newTask, predecessor_id: value === "none" ? undefined : value})}
@@ -480,18 +480,18 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
               <SelectItem value="none">None</SelectItem>
               {tasks.map((task) => (
                 <SelectItem key={task.id} value={task.id}>
-                  {task.task_code}
+                  {parseInt(task.task_code)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell className="py-1 w-20">
           <div className="flex space-x-1">
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveNewTask}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={saveNewTask}>
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelNewTask}>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={cancelNewTask}>
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -509,7 +509,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     
     return (
       <div key={task.id} className={`mb-1 ${isChild ? 'ml-4' : ''}`}>
-        <div className="flex items-center h-8">
+        <div className="flex items-center h-10">
           <div className="w-48 flex-shrink-0 text-xs font-medium pr-4 truncate">
             {isChild ? '↳ ' : ''}{task.task_name}
           </div>
@@ -550,16 +550,16 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             <ScrollArea className="h-[400px]">
               <Table>
                 <TableHeader>
-                  <TableRow className="h-6">
-                    <TableHead className="py-1 text-xs">Code</TableHead>
-                    <TableHead className="py-1 text-xs">Task Name</TableHead>
-                    <TableHead className="py-1 text-xs">Start</TableHead>
-                    <TableHead className="py-1 text-xs">End</TableHead>
-                    <TableHead className="py-1 text-xs">Duration</TableHead>
-                    <TableHead className="py-1 text-xs">Progress</TableHead>
-                    <TableHead className="py-1 text-xs">Resources</TableHead>
-                    <TableHead className="py-1 text-xs">Predecessor</TableHead>
-                    <TableHead className="py-1 text-xs">Actions</TableHead>
+                  <TableRow className="h-8">
+                    <TableHead className="py-1 text-xs w-16">#</TableHead>
+                    <TableHead className="py-1 text-xs min-w-[120px]">Task Name</TableHead>
+                    <TableHead className="py-1 text-xs w-20">Start</TableHead>
+                    <TableHead className="py-1 text-xs w-20">End</TableHead>
+                    <TableHead className="py-1 text-xs w-16">Duration</TableHead>
+                    <TableHead className="py-1 text-xs w-24">Progress</TableHead>
+                    <TableHead className="py-1 text-xs w-20">Resources</TableHead>
+                    <TableHead className="py-1 text-xs w-20">Predecessor</TableHead>
+                    <TableHead className="py-1 text-xs w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
