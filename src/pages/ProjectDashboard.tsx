@@ -119,7 +119,7 @@ export default function ProjectDashboard() {
           <header className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-black">
+                <SidebarTrigger className="text-gray-600 hover:text-black h-8 w-8 flex items-center justify-center">
                   <ArrowLeft className="h-4 w-4" />
                 </SidebarTrigger>
                 <div className="flex items-center space-x-2">

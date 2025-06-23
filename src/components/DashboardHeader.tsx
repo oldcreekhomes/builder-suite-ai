@@ -1,7 +1,7 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, Search } from "lucide-react";
+import { Plus, Bell, Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
@@ -67,6 +67,9 @@ export function DashboardHeader() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            <SidebarTrigger className="text-gray-600 hover:text-black h-8 w-8 flex items-center justify-center">
+              <ArrowLeft className="h-4 w-4" />
+            </SidebarTrigger>
             <div>
               <h1 className="text-2xl font-bold text-black">{companyName}</h1>
             </div>
