@@ -4,7 +4,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
 import { ExcelImportDialog } from "@/components/ExcelImportDialog";
@@ -38,6 +38,7 @@ const Settings = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Group cost codes by parent group
   const groupedCostCodes = costCodes.reduce((groups, costCode) => {
@@ -55,6 +56,21 @@ const Settings = () => {
     }
     return groups;
   }, {} as Record<string, typeof costCodes>);
+
+  // Get parent cost code details for group headers
+  const getParentCostCode = (parentGroupCode: string) => {
+    return costCodes.find(cc => cc.code === parentGroupCode);
+  };
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    setCollapsedGroups(newCollapsed);
+  };
 
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
@@ -129,7 +145,6 @@ const Settings = () => {
                           <TableRow>
                             <TableHead>Code</TableHead>
                             <TableHead>Description</TableHead>
-                            <TableHead>Parent Group</TableHead>
                             <TableHead>Quantity</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Unit</TableHead>
@@ -141,13 +156,13 @@ const Settings = () => {
                         <TableBody>
                           {loading ? (
                             <TableRow>
-                              <TableCell colSpan={9} className="text-center py-8">
+                              <TableCell colSpan={8} className="text-center py-8">
                                 Loading cost codes...
                               </TableCell>
                             </TableRow>
                           ) : costCodes.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                 No cost codes found. Add some or import from Excel.
                               </TableCell>
                             </TableRow>
@@ -155,46 +170,63 @@ const Settings = () => {
                             Object.entries(groupedCostCodes).map(([groupKey, groupCostCodes]) => (
                               <>
                                 {groupKey !== 'ungrouped' && (
-                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50">
-                                    <TableCell colSpan={9} className="font-semibold text-gray-700">
-                                      Parent Group: {groupKey}
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                                {groupCostCodes.map((costCode) => (
-                                  <TableRow key={costCode.id} className={groupKey !== 'ungrouped' ? 'bg-gray-25' : ''}>
-                                    <TableCell className="font-medium">
-                                      {groupKey !== 'ungrouped' && <span className="ml-4">↳ </span>}
-                                      {costCode.code}
-                                    </TableCell>
-                                    <TableCell>{costCode.name}</TableCell>
-                                    <TableCell>{costCode.parent_group || "-"}</TableCell>
-                                    <TableCell>{costCode.quantity || "-"}</TableCell>
-                                    <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
-                                    <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
-                                    <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
-                                    <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
-                                    <TableCell>
-                                      <div className="flex gap-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm"
-                                          onClick={() => handleEditClick(costCode)}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm"
-                                          onClick={() => handleDeleteClick(costCode)}
-                                          className="text-red-600 hover:text-red-800"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50 hover:bg-gray-100">
+                                    <TableCell 
+                                      colSpan={8} 
+                                      className="font-semibold text-gray-700 cursor-pointer"
+                                      onClick={() => toggleGroupCollapse(groupKey)}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {collapsedGroups.has(groupKey) ? (
+                                          <ChevronRight className="h-4 w-4" />
+                                        ) : (
+                                          <ChevronDown className="h-4 w-4" />
+                                        )}
+                                        <span>{groupKey}</span>
+                                        {getParentCostCode(groupKey) && (
+                                          <span className="text-gray-600 font-normal">
+                                            - {getParentCostCode(groupKey)?.name}
+                                          </span>
+                                        )}
                                       </div>
                                     </TableCell>
                                   </TableRow>
-                                ))}
+                                )}
+                                {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
+                                  groupCostCodes.map((costCode) => (
+                                    <TableRow key={costCode.id} className={groupKey !== 'ungrouped' ? 'bg-gray-25' : ''}>
+                                      <TableCell className="font-medium">
+                                        {groupKey !== 'ungrouped' && <span className="ml-6"></span>}
+                                        {costCode.code}
+                                      </TableCell>
+                                      <TableCell>{costCode.name}</TableCell>
+                                      <TableCell>{costCode.quantity || "-"}</TableCell>
+                                      <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
+                                      <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
+                                      <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
+                                      <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
+                                      <TableCell>
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => handleEditClick(costCode)}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => handleDeleteClick(costCode)}
+                                            className="text-red-600 hover:text-red-800"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                }
                               </>
                             ))
                           )}
@@ -284,7 +316,7 @@ const Settings = () => {
                 Yes
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogContent>
+          </AlertDialogFooter>
         </AlertDialog>
       </div>
     </SidebarProvider>
