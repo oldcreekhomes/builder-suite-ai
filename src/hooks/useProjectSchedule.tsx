@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -113,6 +112,40 @@ export const useUpdateScheduleTask = () => {
       toast({
         title: "Error",
         description: "Failed to update task",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteScheduleTask = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error deleting schedule task:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-schedule'] });
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Delete task error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
         variant: "destructive",
       });
     },

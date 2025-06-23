@@ -1,12 +1,11 @@
-
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Users, Check, X } from "lucide-react";
-import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask } from "@/hooks/useProjectSchedule";
+import { Edit, Users, Check, X, Trash2 } from "lucide-react";
+import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask, useDeleteScheduleTask } from "@/hooks/useProjectSchedule";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +23,17 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -59,6 +69,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
   const updateTaskMutation = useUpdateScheduleTask();
   const addTaskMutation = useAddScheduleTask();
+  const deleteTaskMutation = useDeleteScheduleTask();
 
   const startEditing = (taskId: string, field: string, currentValue: string | number) => {
     setEditingCell({ taskId, field });
@@ -105,6 +116,11 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const cancelEdit = () => {
     setEditingCell(null);
     setEditValue("");
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTaskMutation.mutateAsync(taskId);
+    onTaskUpdate();
   };
 
   const handleAddNewTask = () => {
@@ -316,7 +332,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     return (
       <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-8`}>
         <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs`}>
-          {task.task_code}
+          {task.task_code.replace(/^0+/, '') || task.task_code}
         </TableCell>
         <TableCell className="py-1 text-xs max-w-[150px]">
           {renderEditableCell(task, 'task_name', task.task_name)}
@@ -354,14 +370,44 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           {renderEditableCell(task, 'predecessor_id', task.predecessor_id || '', 'select')}
         </TableCell>
         <TableCell className="py-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-            onClick={() => setEditingTask(task)}
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setEditingTask(task)}
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{task.task_name}"? This action is permanent and cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </TableCell>
       </TableRow>
     );
@@ -375,7 +421,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     return (
       <TableRow className="bg-blue-50 h-8">
         <TableCell className="pl-4 font-medium py-1 text-xs">
-          {nextTaskCode}
+          {nextTaskCode.replace(/^0+/, '') || nextTaskCode}
         </TableCell>
         <TableCell className="py-1 text-xs">
           <Input
