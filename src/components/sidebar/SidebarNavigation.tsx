@@ -10,7 +10,8 @@ import {
   Users,
   File,
   Image,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from "lucide-react";
 import {
   SidebarContent,
@@ -71,6 +72,11 @@ const navigationItems = [
     title: "Companies",
     url: "/companies",
     icon: Users,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
   },
 ];
 
