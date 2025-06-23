@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -155,9 +154,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         title: "Success",
         description: "Representative updated successfully",
       });
-      form.reset();
-      setCompanySearch("");
-      onOpenChange(false);
+      handleOpenChange(false);
     },
     onError: (error) => {
       console.error('Error updating representative:', error);
