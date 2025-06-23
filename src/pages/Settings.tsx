@@ -1,12 +1,24 @@
+
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
+import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
 import { ExcelImportDialog } from "@/components/ExcelImportDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState } from "react";
 
 const Settings = () => {
@@ -16,6 +28,11 @@ const Settings = () => {
     { code: "003", name: "Concrete Foundation", category: "Foundation" },
   ]);
 
+  const [editingCostCode, setEditingCostCode] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [costCodeToDelete, setCostCodeToDelete] = useState(null);
+
   const handleAddCostCode = (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
     setCostCodes(prev => [...prev, {
@@ -23,6 +40,37 @@ const Settings = () => {
       name: newCostCode.name,
       category: newCostCode.parentGroup || "Uncategorized"
     }]);
+  };
+
+  const handleUpdateCostCode = (oldCode: string, updatedCostCode: any) => {
+    console.log("Updating cost code:", oldCode, updatedCostCode);
+    setCostCodes(prev => prev.map(cc => 
+      cc.code === oldCode 
+        ? {
+            code: updatedCostCode.code,
+            name: updatedCostCode.name,
+            category: updatedCostCode.parentGroup || "Uncategorized"
+          }
+        : cc
+    ));
+  };
+
+  const handleEditClick = (costCode: any) => {
+    setEditingCostCode(costCode);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (costCode: any) => {
+    setCostCodeToDelete(costCode);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (costCodeToDelete) {
+      setCostCodes(prev => prev.filter(cc => cc.code !== costCodeToDelete.code));
+      setCostCodeToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const handleImportCostCodes = (importedCostCodes: any[]) => {
@@ -87,7 +135,23 @@ const Settings = () => {
                               <TableCell>{costCode.name}</TableCell>
                               <TableCell>{costCode.category}</TableCell>
                               <TableCell>
-                                <Button variant="ghost" size="sm">Edit</Button>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditClick(costCode)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDeleteClick(costCode)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -154,6 +218,31 @@ const Settings = () => {
             </div>
           </div>
         </main>
+
+        <EditCostCodeDialog
+          costCode={editingCostCode}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
+          onUpdateCostCode={handleUpdateCostCode}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this cost code?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the cost code "{costCodeToDelete?.name}" (Code: {costCodeToDelete?.code}).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>No</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+                Yes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </SidebarProvider>
   );
