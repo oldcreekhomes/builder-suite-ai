@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,7 +72,7 @@ export function AddTaskDialog({
   useEffect(() => {
     if (open) {
       const nextTaskNumber = existingTasks.length + 1;
-      const code = `TASK-${String(nextTaskNumber).padStart(3, '0')}`;
+      const code = String(nextTaskNumber).padStart(3, '0');
       setTaskCode(code);
     }
   }, [open, existingTasks.length]);
@@ -114,9 +113,9 @@ export function AddTaskDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             {/* Task Code and Name Row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="task_code">Code</Label>
                 <Input
@@ -126,7 +125,7 @@ export function AddTaskDialog({
                   className="bg-gray-50"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-3">
                 <FormField
                   control={form.control}
                   name="task_name"
@@ -144,7 +143,7 @@ export function AddTaskDialog({
             </div>
 
             {/* Date and Duration Row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="start_date"
