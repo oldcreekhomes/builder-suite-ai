@@ -18,7 +18,7 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   const queryClient = useQueryClient();
   const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const initializedRef = useRef(false);
+  const initializedRef = useRef<string | null>(null);
 
   // Fetch all cost codes
   const { data: costCodes = [] } = useQuery({
@@ -49,19 +49,21 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes only once when data first loads
+  // Initialize selected cost codes only once per company
   useEffect(() => {
-    if (companyCostCodes.length >= 0 && !initializedRef.current) {
+    if (companyCostCodes.length >= 0 && initializedRef.current !== companyId) {
       console.log('Initializing cost codes for company:', companyId, companyCostCodes);
       setSelectedCostCodes(companyCostCodes);
-      initializedRef.current = true;
+      initializedRef.current = companyId;
     }
   }, [companyCostCodes, companyId]);
 
-  // Reset initialization when company changes
+  // Reset when company changes
   useEffect(() => {
-    initializedRef.current = false;
-    setSelectedCostCodes([]);
+    if (initializedRef.current !== companyId) {
+      setSelectedCostCodes([]);
+      initializedRef.current = null;
+    }
   }, [companyId]);
 
   // Save cost code associations
@@ -90,9 +92,19 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
 
         if (insertError) throw insertError;
       }
+
+      return costCodeIds;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-cost-codes'] });
+    onSuccess: (costCodeIds) => {
+      // Update the query cache directly instead of invalidating
+      queryClient.setQueryData(['company-cost-codes', companyId], costCodeIds);
+      
+      // Only invalidate other company queries, not this specific one
+      queryClient.invalidateQueries({ 
+        queryKey: ['companies'], 
+        exact: false 
+      });
+      
       toast({
         title: "Success",
         description: "Cost code associations updated successfully",
