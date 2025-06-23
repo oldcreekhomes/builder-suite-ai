@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -200,9 +199,9 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                   <TableRow className="h-8">
                     <TableHead className="py-1 text-xs w-16">#</TableHead>
                     <TableHead className="py-1 text-xs min-w-[120px]">Task Name</TableHead>
-                    <TableHead className="py-1 text-xs w-20">Start</TableHead>
+                    <TableHead className="py-1 text-xs w-20">Start Date</TableHead>
                     <TableHead className="py-1 text-xs w-16">Duration</TableHead>
-                    <TableHead className="py-1 text-xs w-20">End</TableHead>
+                    <TableHead className="py-1 text-xs w-20">End Date</TableHead>
                     <TableHead className="py-1 text-xs w-24">Progress</TableHead>
                     <TableHead className="py-1 text-xs w-20">Resources</TableHead>
                     <TableHead className="py-1 text-xs w-20">Predecessor</TableHead>
