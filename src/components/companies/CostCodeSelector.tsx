@@ -81,7 +81,7 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
         />
       </div>
 
-      {/* Cost code selection */}
+      {/* Cost code selection - Fixed double event handling */}
       <div className="max-h-24 overflow-y-auto border rounded-md">
         {filteredCostCodes.length === 0 ? (
           <div className="p-2 text-gray-500 text-center text-xs">
@@ -91,15 +91,14 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
           filteredCostCodes.map((costCode) => (
             <div
               key={costCode.id}
-              className="p-2 border-b hover:bg-gray-50 cursor-pointer"
-              onClick={() => handleCostCodeToggle(costCode.id)}
+              className="p-2 border-b hover:bg-gray-50"
             >
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={selectedCostCodes.includes(costCode.id)}
                   onCheckedChange={() => handleCostCodeToggle(costCode.id)}
                 />
-                <div className="text-xs">
+                <div className="text-xs cursor-pointer" onClick={() => handleCostCodeToggle(costCode.id)}>
                   <span className="font-medium">{costCode.code}</span> - {costCode.name}
                 </div>
               </div>

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,6 +62,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const previousCostCodesRef = useRef<string[]>([]);
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [] } = useQuery({
@@ -91,7 +91,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     },
   });
 
-  // Initialize form and reset states when company or dialog state changes
+  // Initialize form when company or dialog state changes (without companyCostCodes dependency)
   useEffect(() => {
     if (company && open) {
       console.log('Initializing form for company:', company.id);
@@ -105,18 +105,28 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
 
       setSelectedRepresentatives([]);
-      // Only set cost codes if we have fetched data and it's different from current state
-      if (companyCostCodes.length > 0 || selectedCostCodes.length > 0) {
+    }
+  }, [company?.id, open, form]);
+
+  // Separate useEffect for handling cost codes updates (with proper comparison)
+  useEffect(() => {
+    if (open && companyCostCodes && companyCostCodes.length >= 0) {
+      const costCodesChanged = JSON.stringify(companyCostCodes.sort()) !== JSON.stringify(previousCostCodesRef.current.sort());
+      
+      if (costCodesChanged) {
+        console.log('Cost codes changed, updating selection:', companyCostCodes);
         setSelectedCostCodes(companyCostCodes);
+        previousCostCodesRef.current = [...companyCostCodes];
       }
     }
-  }, [company?.id, open, form, companyCostCodes]);
+  }, [companyCostCodes, open]);
 
   // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedRepresentatives([]);
       setSelectedCostCodes([]);
+      previousCostCodesRef.current = [];
       form.reset();
     }
   }, [open, form]);
