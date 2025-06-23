@@ -1,4 +1,5 @@
 
+
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -187,7 +188,6 @@ const Settings = () => {
                                 {groupKey !== 'ungrouped' && (
                                   <TableRow key={`group-${groupKey}`} className="bg-gray-50 hover:bg-gray-100">
                                     <TableCell 
-                                      colSpan={8} 
                                       className="font-semibold text-gray-700 cursor-pointer"
                                       onClick={() => toggleGroupCollapse(groupKey)}
                                     >
@@ -198,12 +198,42 @@ const Settings = () => {
                                           <ChevronDown className="h-4 w-4" />
                                         )}
                                         <span>{groupKey}</span>
-                                        {getParentCostCode(groupKey) && (
-                                          <span className="text-gray-600 font-normal">
-                                            - {getParentCostCode(groupKey)?.name}
-                                          </span>
-                                        )}
                                       </div>
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-gray-700">
+                                      {getParentCostCode(groupKey)?.name}
+                                    </TableCell>
+                                    <TableCell>{getParentCostCode(groupKey)?.quantity || "-"}</TableCell>
+                                    <TableCell>{getParentCostCode(groupKey)?.price ? `$${getParentCostCode(groupKey)?.price.toFixed(2)}` : "-"}</TableCell>
+                                    <TableCell>{getParentCostCode(groupKey)?.unit_of_measure || "-"}</TableCell>
+                                    <TableCell>{getParentCostCode(groupKey)?.has_specifications ? "Yes" : "No"}</TableCell>
+                                    <TableCell>{getParentCostCode(groupKey)?.has_bidding ? "Yes" : "No"}</TableCell>
+                                    <TableCell>
+                                      {getParentCostCode(groupKey) && (
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditClick(getParentCostCode(groupKey)!);
+                                            }}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteClick(getParentCostCode(groupKey)!);
+                                            }}
+                                            className="text-red-600 hover:text-red-800"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 )}
@@ -339,3 +369,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
