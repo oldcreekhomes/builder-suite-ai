@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Upload, X, Image, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
+import { NewFolderModal } from "@/components/files/NewFolderModal";
 
 interface PhotoUploadDropzoneProps {
   projectId: string;
@@ -17,17 +19,20 @@ interface PhotoUploadDropzoneProps {
 export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadDropzoneProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Array<{
     file: File;
     progress: number;
     uploading: boolean;
   }>>([]);
 
-  const uploadPhoto = async (file: File) => {
+  const uploadPhoto = async (file: File, relativePath: string = '') => {
     if (!user) return;
 
     const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/photos/${fileId}_${file.webkitRelativePath || file.name}`;
+    const fileName = `${user.id}/${projectId}/photos/${fileId}_${relativePath || file.name}`;
     
     try {
       // Upload to Supabase Storage
@@ -48,7 +53,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         .insert({
           project_id: projectId,
           url: publicUrl,
-          description: file.webkitRelativePath || file.name,
+          description: relativePath || file.name,
           uploaded_by: user.id,
         });
 
@@ -59,7 +64,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
       console.error('Upload error:', error);
       toast({
         title: "Upload Error",
-        description: `Failed to upload ${file.name}`,
+        description: `Failed to upload ${relativePath || file.name}`,
         variant: "destructive",
       });
       return false;
@@ -114,16 +119,72 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: true,
+    noClick: true,
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.heic', '.HEIC']
     }
   });
 
-  const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []).filter(file => 
       file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic')
     );
     console.log('Photo folder files selected:', files);
+    
+    if (files.length > 0) {
+      const newUploads = files.map(file => ({
+        file,
+        progress: 0,
+        uploading: true,
+      }));
+
+      setUploadingFiles(prev => [...prev, ...newUploads]);
+
+      for (const file of files) {
+        const relativePath = file.webkitRelativePath || file.name;
+        
+        // Simulate progress
+        const progressInterval = setInterval(() => {
+          setUploadingFiles(prev => 
+            prev.map((upload) => 
+              upload.file === file 
+                ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
+                : upload
+            )
+          );
+        }, 200);
+
+        const success = await uploadPhoto(file, relativePath);
+        
+        clearInterval(progressInterval);
+        
+        setUploadingFiles(prev => 
+          prev.map(upload => 
+            upload.file === file 
+              ? { ...upload, progress: 100, uploading: false }
+              : upload
+          )
+        );
+
+        if (success) {
+          setTimeout(() => {
+            setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
+          }, 1000);
+        }
+      }
+      
+      if (files.length > 0) {
+        setTimeout(() => {
+          onUploadSuccess();
+        }, 1000);
+      }
+    }
+    
+    event.target.value = '';
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
     if (files.length > 0) {
       onDrop(files);
     }
@@ -134,48 +195,92 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
 
+  const handleNewFolder = () => {
+    setShowNewFolderModal(true);
+  };
+
+  const handleContextFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleContextFolderUpload = () => {
+    folderInputRef.current?.click();
+  };
+
+  const handleCreateFolder = (folderName: string) => {
+    // Create a placeholder file to represent the folder structure
+    const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
+    uploadPhoto(folderPlaceholder, `${folderName}/.placeholder`).then((success) => {
+      if (success) {
+        toast({
+          title: "Folder Created",
+          description: `Successfully created folder "${folderName}"`,
+        });
+        onUploadSuccess();
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
-        <div
-          {...getRootProps()}
-          className={`p-8 text-center cursor-pointer ${
-            isDragActive ? 'bg-blue-50 border-blue-400' : ''
-          }`}
+        <FileOperationsContextMenu
+          onNewFolder={handleNewFolder}
+          onFileUpload={handleContextFileUpload}
+          onFolderUpload={handleContextFolderUpload}
         >
-          <input {...getInputProps()} />
-          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragActive ? 'Drop photos here' : 'Upload photos or photo folders'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Drag and drop photos or folders here, or click to select
-          </p>
-          <p className="text-sm text-gray-500 mb-4">
-            Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
-          </p>
-          <div className="flex items-center justify-center space-x-4">
-            <Button className="mt-4">
-              <Image className="h-4 w-4 mr-2" />
-              Choose Photos
-            </Button>
-            <label htmlFor="photo-folder-upload" className="cursor-pointer">
-              <Button type="button" variant="outline" className="mt-4">
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Choose Photo Folder
-              </Button>
-              <input
-                id="photo-folder-upload"
-                type="file"
-                {...({ webkitdirectory: "" } as any)}
-                multiple
-                accept="image/*,.heic,.HEIC"
-                onChange={handleFolderUpload}
-                className="hidden"
-              />
-            </label>
+          <div
+            {...getRootProps()}
+            className={`p-8 text-center cursor-pointer ${
+              isDragActive ? 'bg-blue-50 border-blue-400' : ''
+            }`}
+          >
+            <input {...getInputProps()} />
+            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isDragActive ? 'Drop photos here' : 'Upload photos or photo folders'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Drag and drop photos or folders here, or click to select. Right-click for more options.
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
+            </p>
+            <div className="flex items-center justify-center space-x-4">
+              <label htmlFor="photo-file-upload" className="cursor-pointer">
+                <Button type="button" className="mt-4">
+                  <Image className="h-4 w-4 mr-2" />
+                  Choose Photos
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  id="photo-file-upload"
+                  type="file"
+                  multiple
+                  accept="image/*,.heic,.HEIC"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              <label htmlFor="photo-folder-upload" className="cursor-pointer">
+                <Button type="button" variant="outline" className="mt-4">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Choose Photo Folder
+                </Button>
+                <input
+                  ref={folderInputRef}
+                  id="photo-folder-upload"
+                  type="file"
+                  {...({ webkitdirectory: "" } as any)}
+                  multiple
+                  accept="image/*,.heic,.HEIC"
+                  onChange={handleFolderUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
-        </div>
+        </FileOperationsContextMenu>
       </Card>
 
       {uploadingFiles.length > 0 && (
@@ -206,6 +311,12 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
           </div>
         </Card>
       )}
+
+      <NewFolderModal
+        isOpen={showNewFolderModal}
+        onClose={() => setShowNewFolderModal(false)}
+        onCreateFolder={handleCreateFolder}
+      />
     </div>
   );
 }
