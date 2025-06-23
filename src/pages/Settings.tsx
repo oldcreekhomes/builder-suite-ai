@@ -316,7 +316,7 @@ const Settings = () => {
                 Yes
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogFooter>
+          </AlertDialogContent>
         </AlertDialog>
       </div>
     </SidebarProvider>
