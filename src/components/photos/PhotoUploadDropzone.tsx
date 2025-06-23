@@ -84,6 +84,10 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     for (let i = 0; i < acceptedFiles.length; i++) {
       const file = acceptedFiles[i];
       
+      // Use webkitRelativePath if available (from folder drop), otherwise use just filename
+      const relativePath = file.webkitRelativePath || file.name;
+      console.log('Processing file with relative path:', relativePath);
+      
       // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
@@ -95,7 +99,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         );
       }, 200);
 
-      const success = await uploadPhoto(file);
+      const success = await uploadPhoto(file, relativePath);
       
       clearInterval(progressInterval);
       
