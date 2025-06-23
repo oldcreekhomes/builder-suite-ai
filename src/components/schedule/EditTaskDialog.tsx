@@ -6,14 +6,12 @@ import * as z from "zod";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -116,44 +114,28 @@ export function EditTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Task</DialogTitle>
-          <DialogDescription>
-            Update the task details for {task.task_code}.
-          </DialogDescription>
+          <DialogTitle>Edit Task: {task.task_name}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Task Code and Name Row */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="task_code">Code</Label>
-                <Input
-                  id="task_code"
-                  value={task.task_code}
-                  disabled
-                  className="bg-gray-50"
-                />
-              </div>
-              <div className="col-span-2">
-                <FormField
-                  control={form.control}
-                  name="task_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Task Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter task name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            {/* Task Name */}
+            <FormField
+              control={form.control}
+              name="task_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Task Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter task name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Date and Duration Row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
                 name="start_date"
@@ -187,26 +169,53 @@ export function EditTaskDialog({
               />
             </div>
 
-            {/* Progress */}
-            <FormField
-              control={form.control}
-              name="progress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Progress (%)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min="0"
-                      max="100"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Progress and Predecessor Row */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="progress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Progress (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="predecessor_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Predecessor Task</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select predecessor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No predecessor</SelectItem>
+                        {availablePredecessors.map((availableTask) => (
+                          <SelectItem key={availableTask.id} value={availableTask.id}>
+                            {availableTask.task_code} - {availableTask.task_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Resources */}
             <FormField
@@ -221,33 +230,6 @@ export function EditTaskDialog({
                       {...field} 
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Predecessor */}
-            <FormField
-              control={form.control}
-              name="predecessor_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Predecessor Task</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select predecessor (optional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No predecessor</SelectItem>
-                      {availablePredecessors.map((availableTask) => (
-                        <SelectItem key={availableTask.id} value={availableTask.id}>
-                          {availableTask.task_code} - {availableTask.task_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
