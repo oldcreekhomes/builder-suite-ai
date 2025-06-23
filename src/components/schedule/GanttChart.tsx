@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -211,7 +210,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                 <SelectItem value="none">None</SelectItem>
                 {tasks.filter(t => t.id !== task.id).map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {t.task_code}
+                    {parseInt(t.task_code)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -308,7 +307,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       >
         {field === "predecessor_id" && value ? (
           <Badge variant="outline" className="text-xs px-1 py-0">
-            {tasks.find(t => t.id === value)?.task_code || ''}
+            {parseInt(tasks.find(t => t.id === value)?.task_code || '0')}
           </Badge>
         ) : field === "predecessor_id" && !value ? (
           <span className="text-gray-400 text-xs">None</span>
@@ -332,7 +331,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     return (
       <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-10`}>
         <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs w-16`}>
-          {task.task_code}
+          {parseInt(task.task_code)}
         </TableCell>
         <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
           {renderEditableCell(task, 'task_name', task.task_name)}
@@ -416,12 +415,12 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const renderNewTaskRow = () => {
     if (!isAddingTask) return null;
 
-    const nextTaskCode = String(tasks.length + 1).padStart(3, '0');
+    const nextTaskNumber = tasks.length + 1;
 
     return (
       <TableRow className="bg-blue-50 h-10">
         <TableCell className="pl-4 font-medium py-1 text-xs w-16">
-          {nextTaskCode}
+          {nextTaskNumber}
         </TableCell>
         <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
           <Input
@@ -480,7 +479,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
               <SelectItem value="none">None</SelectItem>
               {tasks.map((task) => (
                 <SelectItem key={task.id} value={task.id}>
-                  {task.task_code}
+                  {parseInt(task.task_code)}
                 </SelectItem>
               ))}
             </SelectContent>
