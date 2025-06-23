@@ -1,5 +1,6 @@
 
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
@@ -16,19 +17,33 @@ import {
 } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
+import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
-  const { data: photos = [] } = useProjectPhotos(projectId || '');
+  const { data: photos = [], refetch } = useProjectPhotos(projectId || '');
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
   
   // Get most recent photos (already ordered by uploaded_at desc)
   const recentPhotos = photos.slice(0, 6);
+
+  const handlePhotosClick = () => {
+    if (photos.length > 0) {
+      setSelectedPhoto(photos[0]); // Start with the most recent photo
+      setShowPhotoViewer(true);
+    }
+  };
+
+  const handlePhotoDeleted = () => {
+    refetch();
+  };
 
   if (!projectId || !currentProject) {
     return (
@@ -43,7 +58,7 @@ export default function ProjectDashboard() {
       title: "Project Photos",
       description: `${photos.length} photos uploaded`,
       icon: Image,
-      onClick: () => navigate(`/project/${projectId}/photos`),
+      onClick: handlePhotosClick,
       content: (
         <div className="mt-4">
           {recentPhotos.length > 0 ? (
@@ -179,7 +194,7 @@ export default function ProjectDashboard() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => navigate(`/project/${projectId}/photos`)}
+                        onClick={handlePhotosClick}
                         className="w-full"
                       >
                         View all {photos.length} photos
@@ -197,6 +212,16 @@ export default function ProjectDashboard() {
             </div>
           </div>
         </main>
+
+        {showPhotoViewer && selectedPhoto && (
+          <PhotoViewer
+            photos={photos}
+            currentPhoto={selectedPhoto}
+            isOpen={showPhotoViewer}
+            onClose={() => setShowPhotoViewer(false)}
+            onPhotoDeleted={handlePhotoDeleted}
+          />
+        )}
       </div>
     </SidebarProvider>
   );
