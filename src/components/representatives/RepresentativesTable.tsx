@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface Representative {
   id: string;
@@ -46,8 +46,6 @@ export function RepresentativesTable() {
   const queryClient = useQueryClient();
   const [editingRepresentative, setEditingRepresentative] = useState<Representative | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [representativeToDelete, setRepresentativeToDelete] = useState<Representative | null>(null);
 
   // Fetch representatives
   const { data: representatives = [], isLoading } = useQuery({
@@ -85,8 +83,6 @@ export function RepresentativesTable() {
         title: "Success",
         description: "Representative deleted successfully",
       });
-      setDeleteDialogOpen(false);
-      setRepresentativeToDelete(null);
     },
     onError: () => {
       toast({
@@ -189,14 +185,12 @@ export function RepresentativesTable() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClick(rep)}
-                        className="hover:bg-red-100 text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <DeleteButton
+                        onDelete={() => deleteRepMutation.mutate(rep.id)}
+                        title="Delete Representative"
+                        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
+                        isLoading={deleteRepMutation.isPending}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -211,26 +205,6 @@ export function RepresentativesTable() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
       />
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Representative</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {representativeToDelete?.first_name} {representativeToDelete?.last_name}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

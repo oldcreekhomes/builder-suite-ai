@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -16,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface Company {
   id: string;
@@ -197,14 +197,12 @@ export function CompaniesTable() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteCompanyMutation.mutate(company.id)}
-                      className="hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <DeleteButton
+                      onDelete={() => deleteCompanyMutation.mutate(company.id)}
+                      title="Delete Company"
+                      description={`Are you sure you want to delete ${company.company_name}? This action cannot be undone and will also delete all associated representatives and cost codes.`}
+                      isLoading={deleteCompanyMutation.isPending}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
