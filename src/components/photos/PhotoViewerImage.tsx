@@ -42,7 +42,7 @@ export function PhotoViewerImage({ photo, zoom }: PhotoViewerImageProps) {
       <img
         src={photo.url}
         alt={photo.description || 'Project photo'}
-        className="max-w-none h-auto object-contain"
+        className="max-w-full max-h-full object-contain"
         onLoad={handleImageLoad}
         onError={handleImageError}
         style={{ 
