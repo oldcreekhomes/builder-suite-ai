@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { X, Download, Trash2, ZoomIn, ZoomOut, Hand } from "lucide-react";
+import { Download, Trash2, ZoomIn, ZoomOut, Hand } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ProjectPhoto {
@@ -98,14 +98,6 @@ export function PhotoViewerHeader({
           className="text-gray-600 hover:text-red-600"
         >
           <Trash2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-gray-600 hover:text-black"
-        >
-          <X className="h-4 w-4" />
         </Button>
       </div>
     </div>
