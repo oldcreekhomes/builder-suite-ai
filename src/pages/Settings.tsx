@@ -1,3 +1,4 @@
+
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -40,9 +41,23 @@ const Settings = () => {
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Group cost codes by parent group
+  // Get all parent codes that have children
+  const parentCodesWithChildren = new Set(
+    costCodes
+      .filter(cc => cc.parent_group)
+      .map(cc => cc.parent_group)
+      .filter(Boolean)
+  );
+
+  // Group cost codes by parent group, excluding parent codes that have children
   const groupedCostCodes = costCodes.reduce((groups, costCode) => {
     const parentGroup = costCode.parent_group;
+    
+    // If this cost code is a parent with children, don't include it as an individual row
+    if (parentCodesWithChildren.has(costCode.code)) {
+      return groups;
+    }
+    
     if (parentGroup) {
       if (!groups[parentGroup]) {
         groups[parentGroup] = [];
