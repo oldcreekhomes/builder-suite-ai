@@ -6,15 +6,11 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { GanttChart } from "@/components/schedule/GanttChart";
-import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const { data: tasks, isLoading, refetch } = useProjectSchedule(projectId);
 
   if (!projectId) {
@@ -30,11 +26,7 @@ export default function ProjectSchedule() {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-bold tracking-tight">Project Schedule</h2>
-              <Button onClick={() => setIsAddTaskOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
-              </Button>
+              <h2 className="text-2xl font-bold tracking-tight">Schedule</h2>
             </div>
 
             <Card>
@@ -44,19 +36,11 @@ export default function ProjectSchedule() {
                     <p>Loading schedule...</p>
                   </div>
                 ) : (
-                  <GanttChart tasks={tasks || []} onTaskUpdate={refetch} />
+                  <GanttChart tasks={tasks || []} onTaskUpdate={refetch} projectId={projectId} />
                 )}
               </CardContent>
             </Card>
           </div>
-
-          <AddTaskDialog
-            projectId={projectId}
-            open={isAddTaskOpen}
-            onOpenChange={setIsAddTaskOpen}
-            onTaskAdded={refetch}
-            existingTasks={tasks || []}
-          />
         </SidebarInset>
       </div>
     </SidebarProvider>
