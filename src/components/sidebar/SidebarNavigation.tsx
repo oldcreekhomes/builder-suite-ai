@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { 
@@ -10,7 +9,8 @@ import {
   Users,
   File,
   Image,
-  ChevronDown
+  ChevronDown,
+  Clock
 } from "lucide-react";
 import {
   SidebarContent,
@@ -65,7 +65,7 @@ const navigationItems = [
   {
     title: "Schedules",
     url: "/schedules",
-    icon: Calendar,
+    icon: Clock,
   },
   {
     title: "Companies",
@@ -143,7 +143,7 @@ export function SidebarNavigation() {
                     asChild 
                     className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
                   >
-                    <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg">
+                    <a href={`/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
                       <item.icon className="h-5 w-5" />
                       <span className="font-medium">{item.title}</span>
                     </a>

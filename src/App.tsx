@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
+import ProjectSchedule from "./pages/ProjectSchedule";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
 
@@ -43,6 +44,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProjectFiles />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/project/:projectId/schedules" 
+              element={
+                <ProtectedRoute>
+                  <ProjectSchedule />
                 </ProtectedRoute>
               } 
             />
