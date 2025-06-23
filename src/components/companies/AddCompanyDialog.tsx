@@ -38,6 +38,7 @@ const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Municipality", "Consultant"]),
   address: z.string().optional(),
+  phone_number: z.string().optional(),
   website: z.string().optional(),
 });
 
@@ -53,6 +54,8 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [costCodeSearch, setCostCodeSearch] = useState("");
+  const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
+  const [representativeSearch, setRepresentativeSearch] = useState("");
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -60,6 +63,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       company_name: "",
       company_type: "Subcontractor",
       address: "",
+      phone_number: "",
       website: "",
     },
   });
@@ -78,10 +82,30 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     },
   });
 
+  // Fetch representatives for selection
+  const { data: representatives = [] } = useQuery({
+    queryKey: ['company-representatives'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, company_id')
+        .order('first_name');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Filter cost codes based on search
   const filteredCostCodes = costCodes.filter(costCode => 
     costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
     costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
+  );
+
+  // Filter representatives based on search
+  const filteredRepresentatives = representatives.filter(rep => 
+    rep.first_name.toLowerCase().includes(representativeSearch.toLowerCase()) ||
+    rep.last_name.toLowerCase().includes(representativeSearch.toLowerCase())
   );
 
   const createCompanyMutation = useMutation({
@@ -95,6 +119,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
           company_name: data.company_name,
           company_type: data.company_type,
           address: data.address || null,
+          phone_number: data.phone_number || null,
           website: data.website || null,
           owner_id: user.id,
         })
@@ -128,6 +153,8 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       form.reset();
       setSelectedCostCodes([]);
       setCostCodeSearch("");
+      setSelectedRepresentatives([]);
+      setRepresentativeSearch("");
       onOpenChange(false);
     },
     onError: (error) => {
@@ -150,6 +177,18 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
 
   const removeCostCode = (costCodeId: string) => {
     setSelectedCostCodes(prev => prev.filter(id => id !== costCodeId));
+  };
+
+  const handleRepresentativeToggle = (representativeId: string) => {
+    setSelectedRepresentatives(prev => 
+      prev.includes(representativeId)
+        ? prev.filter(id => id !== representativeId)
+        : [...prev, representativeId]
+    );
+  };
+
+  const removeRepresentative = (representativeId: string) => {
+    setSelectedRepresentatives(prev => prev.filter(id => id !== representativeId));
   };
 
   const onSubmit = (data: CompanyFormData) => {
@@ -223,30 +262,46 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="website"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Website</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter website URL" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter website URL" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="space-y-4">
               <FormLabel>Associated Cost Codes</FormLabel>
               
               {/* Selected cost codes */}
               {selectedCostCodes.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-md">
+                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
                   {selectedCostCodes.map(costCodeId => {
                     const costCode = costCodes.find(cc => cc.id === costCodeId);
                     return costCode ? (
-                      <Badge key={costCodeId} variant="secondary" className="flex items-center gap-1">
+                      <Badge key={costCodeId} variant="secondary" className="flex items-center gap-1 text-xs">
                         {costCode.code} - {costCode.name}
                         <X 
                           className="h-3 w-3 cursor-pointer hover:text-red-500" 
@@ -270,16 +325,16 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
               </div>
 
               {/* Cost code selection */}
-              <div className="max-h-48 overflow-y-auto border rounded-md">
+              <div className="max-h-32 overflow-y-auto border rounded-md">
                 {filteredCostCodes.length === 0 ? (
-                  <div className="p-3 text-gray-500 text-center">
+                  <div className="p-2 text-gray-500 text-center text-sm">
                     {costCodeSearch ? 'No cost codes found matching your search' : 'No cost codes available'}
                   </div>
                 ) : (
                   filteredCostCodes.map((costCode) => (
                     <div
                       key={costCode.id}
-                      className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
+                      className={`p-2 border-b cursor-pointer hover:bg-gray-50 ${
                         selectedCostCodes.includes(costCode.id) ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => handleCostCodeToggle(costCode.id)}
@@ -291,9 +346,72 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                           onChange={() => handleCostCodeToggle(costCode.id)}
                           className="rounded"
                         />
-                        <div>
-                          <div className="font-medium">{costCode.code}</div>
-                          <div className="text-sm text-gray-600">{costCode.name}</div>
+                        <div className="text-sm">
+                          <span className="font-medium">{costCode.code}</span> - {costCode.name}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <FormLabel>Associated Representatives</FormLabel>
+              
+              {/* Selected representatives */}
+              {selectedRepresentatives.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
+                  {selectedRepresentatives.map(representativeId => {
+                    const representative = representatives.find(rep => rep.id === representativeId);
+                    return representative ? (
+                      <Badge key={representativeId} variant="secondary" className="flex items-center gap-1 text-xs">
+                        {representative.first_name} {representative.last_name}
+                        <X 
+                          className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                          onClick={() => removeRepresentative(representativeId)}
+                        />
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search representatives by name..."
+                  value={representativeSearch}
+                  onChange={(e) => setRepresentativeSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Representative selection */}
+              <div className="max-h-32 overflow-y-auto border rounded-md">
+                {filteredRepresentatives.length === 0 ? (
+                  <div className="p-2 text-gray-500 text-center text-sm">
+                    {representativeSearch ? 'No representatives found matching your search' : 'No representatives available'}
+                  </div>
+                ) : (
+                  filteredRepresentatives.map((representative) => (
+                    <div
+                      key={representative.id}
+                      className={`p-2 border-b cursor-pointer hover:bg-gray-50 ${
+                        selectedRepresentatives.includes(representative.id) ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => handleRepresentativeToggle(representative.id)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedRepresentatives.includes(representative.id)}
+                          onChange={() => handleRepresentativeToggle(representative.id)}
+                          className="rounded"
+                        />
+                        <div className="text-sm">
+                          {representative.first_name} {representative.last_name}
                         </div>
                       </div>
                     </div>
