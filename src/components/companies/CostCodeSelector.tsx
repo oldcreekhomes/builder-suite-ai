@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { X, Search } from "lucide-react";
 
 interface CostCodeSelectorProps {
@@ -37,11 +36,11 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
     costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
   );
 
-  const handleCostCodeToggle = (costCodeId: string) => {
-    const newSelection = selectedCostCodes.includes(costCodeId)
-      ? selectedCostCodes.filter(id => id !== costCodeId)
-      : [...selectedCostCodes, costCodeId];
-    onCostCodesChange(newSelection);
+  const handleCostCodeSelect = (costCodeId: string) => {
+    if (!selectedCostCodes.includes(costCodeId)) {
+      onCostCodesChange([...selectedCostCodes, costCodeId]);
+    }
+    setCostCodeSearch('');
   };
 
   const removeCostCode = (costCodeId: string) => {
@@ -71,39 +70,33 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
       )}
 
       {/* Search input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Search cost codes by number or name..."
-          value={costCodeSearch}
-          onChange={(e) => setCostCodeSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Cost code selection - Fixed double event handling */}
-      <div className="max-h-24 overflow-y-auto border rounded-md">
-        {filteredCostCodes.length === 0 ? (
-          <div className="p-2 text-gray-500 text-center text-xs">
-            {costCodeSearch ? 'No cost codes found matching your search' : 'No cost codes available'}
-          </div>
-        ) : (
-          filteredCostCodes.map((costCode) => (
-            <div
-              key={costCode.id}
-              className="p-2 border-b hover:bg-gray-50"
-            >
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={selectedCostCodes.includes(costCode.id)}
-                  onCheckedChange={() => handleCostCodeToggle(costCode.id)}
-                />
-                <div className="text-xs cursor-pointer" onClick={() => handleCostCodeToggle(costCode.id)}>
-                  <span className="font-medium">{costCode.code}</span> - {costCode.name}
-                </div>
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Search and select cost codes..."
+            value={costCodeSearch}
+            onChange={(e) => setCostCodeSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {costCodeSearch && filteredCostCodes.length > 0 && (
+          <div className="border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
+            {filteredCostCodes.map((costCode) => (
+              <div
+                key={costCode.id}
+                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                onClick={() => handleCostCodeSelect(costCode.id)}
+              >
+                <span className="font-medium">{costCode.code}</span> - {costCode.name}
               </div>
-            </div>
-          ))
+            ))}
+          </div>
+        )}
+        {costCodeSearch && filteredCostCodes.length === 0 && (
+          <div className="border rounded-md bg-white shadow-sm p-3 text-gray-500 text-sm text-center">
+            No cost codes found matching your search
+          </div>
         )}
       </div>
     </div>
