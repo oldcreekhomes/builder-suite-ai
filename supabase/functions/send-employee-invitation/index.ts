@@ -28,13 +28,13 @@ const handler = async (req: Request): Promise<Response> => {
     const confirmationUrl = `${Deno.env.get("SITE_URL") || "https://preview--corebuild-project-hub.lovable.app"}/confirm-invitation?token=${invitationToken}`;
 
     const emailResponse = await resend.emails.send({
-      from: "BuildCore <onboarding@resend.dev>",
+      from: "BuilderSuite AI <noreply@oldcreekhomes.com>",
       to: [email],
-      subject: `Welcome to ${companyName} - Complete Your BuildCore Setup`,
+      subject: `Welcome to ${companyName} - Complete Your BuilderSuite AI Setup`,
       html: `
         <h1>Welcome to ${companyName}!</h1>
         <p>Hi ${firstName},</p>
-        <p>You've been invited to join <strong>${companyName}</strong> on BuildCore, our construction management platform.</p>
+        <p>You've been invited to join <strong>${companyName}</strong> on BuilderSuite AI, our construction management platform.</p>
         <p>To complete your account setup and start collaborating with your team, please click the button below:</p>
         <p>
           <a href="${confirmationUrl}" 
@@ -43,7 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
           </a>
         </p>
         <p>This invitation will expire in 7 days. If you have any questions, please contact your company administrator.</p>
-        <p>Best regards,<br>The BuildCore Team</p>
+        <p>Best regards,<br>The BuilderSuite AI Team</p>
         <hr>
         <p style="font-size: 12px; color: #666;">
           If the button above doesn't work, copy and paste this link into your browser:<br>
