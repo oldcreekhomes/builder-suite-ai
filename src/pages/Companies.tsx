@@ -21,8 +21,7 @@ export default function Companies() {
           <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Company Management</h2>
-                <p className="text-gray-600">Manage your subcontractors, vendors, municipalities, and consultants</p>
+                <h2 className="text-2xl font-bold text-gray-900">Companies</h2>
               </div>
               <Button onClick={() => setAddCompanyOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
