@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
@@ -18,7 +18,6 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   const queryClient = useQueryClient();
   const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const initializedCompanyRef = useRef<string | null>(null);
 
   // Fetch all cost codes
   const { data: costCodes = [] } = useQuery({
@@ -35,7 +34,7 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   });
 
   // Fetch company's current cost codes
-  const { data: companyCostCodes = [] } = useQuery({
+  const { data: companyCostCodes = [], isLoading } = useQuery({
     queryKey: ['company-cost-codes', companyId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -49,23 +48,10 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes ONLY when company changes
-  useEffect(() => {
-    // Only initialize if the company has changed and we have data
-    if (companyId && initializedCompanyRef.current !== companyId && companyCostCodes.length >= 0) {
-      console.log('Initializing cost codes for company:', companyId, companyCostCodes);
-      setSelectedCostCodes(companyCostCodes);
-      initializedCompanyRef.current = companyId;
-    }
-  }, [companyId]);
-
-  // Separate effect to update selected cost codes when data loads for the first time
-  useEffect(() => {
-    if (companyCostCodes.length > 0 && selectedCostCodes.length === 0 && initializedCompanyRef.current === companyId) {
-      console.log('Loading initial cost codes data:', companyCostCodes);
-      setSelectedCostCodes(companyCostCodes);
-    }
-  }, [companyCostCodes]);
+  // Initialize selected cost codes when data loads - using simple assignment without useEffect
+  if (!isLoading && companyCostCodes.length >= 0 && selectedCostCodes.length === 0) {
+    setSelectedCostCodes(companyCostCodes);
+  }
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
