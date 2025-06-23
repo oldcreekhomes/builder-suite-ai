@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Search } from "lucide-react";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -52,6 +52,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const [costCodeSearch, setCostCodeSearch] = useState("");
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -76,6 +77,12 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       return data;
     },
   });
+
+  // Filter cost codes based on search
+  const filteredCostCodes = costCodes.filter(costCode => 
+    costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
+    costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
+  );
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -120,6 +127,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       });
       form.reset();
       setSelectedCostCodes([]);
+      setCostCodeSearch("");
       onOpenChange(false);
     },
     onError: (error) => {
@@ -250,30 +258,47 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                 </div>
               )}
 
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search cost codes by number or name..."
+                  value={costCodeSearch}
+                  onChange={(e) => setCostCodeSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
               {/* Cost code selection */}
               <div className="max-h-48 overflow-y-auto border rounded-md">
-                {costCodes.map((costCode) => (
-                  <div
-                    key={costCode.id}
-                    className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
-                      selectedCostCodes.includes(costCode.id) ? 'bg-blue-50' : ''
-                    }`}
-                    onClick={() => handleCostCodeToggle(costCode.id)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedCostCodes.includes(costCode.id)}
-                        onChange={() => handleCostCodeToggle(costCode.id)}
-                        className="rounded"
-                      />
-                      <div>
-                        <div className="font-medium">{costCode.code}</div>
-                        <div className="text-sm text-gray-600">{costCode.name}</div>
+                {filteredCostCodes.length === 0 ? (
+                  <div className="p-3 text-gray-500 text-center">
+                    {costCodeSearch ? 'No cost codes found matching your search' : 'No cost codes available'}
+                  </div>
+                ) : (
+                  filteredCostCodes.map((costCode) => (
+                    <div
+                      key={costCode.id}
+                      className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
+                        selectedCostCodes.includes(costCode.id) ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => handleCostCodeToggle(costCode.id)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedCostCodes.includes(costCode.id)}
+                          onChange={() => handleCostCodeToggle(costCode.id)}
+                          className="rounded"
+                        />
+                        <div>
+                          <div className="font-medium">{costCode.code}</div>
+                          <div className="text-sm text-gray-600">{costCode.name}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
