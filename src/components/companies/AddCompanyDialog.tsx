@@ -79,11 +79,17 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
-          ...data,
-          owner_id: (await supabase.auth.getUser()).data.user?.id,
+          company_name: data.company_name,
+          company_type: data.company_type,
+          address: data.address || null,
+          website: data.website || null,
+          owner_id: user.id,
         })
         .select()
         .single();

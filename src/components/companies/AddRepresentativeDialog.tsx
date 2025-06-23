@@ -61,11 +61,13 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
       const { error } = await supabase
         .from('company_representatives')
         .insert({
-          ...data,
           company_id: companyId,
+          first_name: data.first_name,
+          last_name: data.last_name,
           email: data.email || null,
           phone_number: data.phone_number || null,
           title: data.title || null,
+          is_primary: data.is_primary,
         });
       
       if (error) throw error;
