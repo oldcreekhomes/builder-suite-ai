@@ -65,7 +65,7 @@ export function AddTaskDialog({
       start_date: format(new Date(), "yyyy-MM-dd"),
       duration: 1,
       resources: "",
-      predecessor_id: "",
+      predecessor_id: "none",
     },
   });
 
@@ -95,7 +95,7 @@ export function AddTaskDialog({
       duration: values.duration,
       progress: 0,
       resources: resourcesArray,
-      predecessor_id: values.predecessor_id || undefined,
+      predecessor_id: values.predecessor_id === "none" ? undefined : values.predecessor_id,
     });
 
     form.reset();
@@ -202,7 +202,7 @@ export function AddTaskDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No predecessor</SelectItem>
+                      <SelectItem value="none">No predecessor</SelectItem>
                       {existingTasks.map((task) => (
                         <SelectItem key={task.id} value={task.id}>
                           {task.task_code} - {task.task_name}

@@ -66,7 +66,7 @@ export function EditTaskDialog({
       duration: task.duration,
       progress: task.progress,
       resources: task.resources.join(', '),
-      predecessor_id: task.predecessor_id || "",
+      predecessor_id: task.predecessor_id || "none",
     },
   });
 
@@ -79,7 +79,7 @@ export function EditTaskDialog({
         duration: task.duration,
         progress: task.progress,
         resources: task.resources.join(', '),
-        predecessor_id: task.predecessor_id || "",
+        predecessor_id: task.predecessor_id || "none",
       });
     }
   }, [task, form]);
@@ -101,7 +101,7 @@ export function EditTaskDialog({
         duration: values.duration,
         progress: values.progress,
         resources: resourcesArray,
-        predecessor_id: values.predecessor_id || undefined,
+        predecessor_id: values.predecessor_id === "none" ? undefined : values.predecessor_id,
       },
     });
 
@@ -231,7 +231,7 @@ export function EditTaskDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No predecessor</SelectItem>
+                      <SelectItem value="none">No predecessor</SelectItem>
                       {availablePredecessors.map((availableTask) => (
                         <SelectItem key={availableTask.id} value={availableTask.id}>
                           {availableTask.task_code} - {availableTask.task_name}
