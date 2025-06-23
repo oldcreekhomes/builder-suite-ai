@@ -13,9 +13,10 @@ interface ProjectPhoto {
 
 interface PhotoViewerImageProps {
   photo: ProjectPhoto;
+  zoom: number;
 }
 
-export function PhotoViewerImage({ photo }: PhotoViewerImageProps) {
+export function PhotoViewerImage({ photo, zoom }: PhotoViewerImageProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -41,10 +42,14 @@ export function PhotoViewerImage({ photo }: PhotoViewerImageProps) {
       <img
         src={photo.url}
         alt={photo.description || 'Project photo'}
-        className="max-w-full max-h-full object-contain"
+        className="max-w-none h-auto object-contain"
         onLoad={handleImageLoad}
         onError={handleImageError}
-        style={{ display: imageLoading || imageError ? 'none' : 'block' }}
+        style={{ 
+          display: imageLoading || imageError ? 'none' : 'block',
+          transform: `scale(${zoom})`,
+          transition: 'transform 0.2s ease'
+        }}
       />
     </div>
   );

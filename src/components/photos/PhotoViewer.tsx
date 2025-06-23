@@ -1,10 +1,10 @@
-
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PhotoViewerHeader } from "./PhotoViewerHeader";
 import { PhotoViewerImage } from "./PhotoViewerImage";
 import { PhotoViewerNavigation } from "./PhotoViewerNavigation";
 import { usePhotoNavigation } from "./hooks/usePhotoNavigation";
 import { usePhotoActions } from "./hooks/usePhotoActions";
+import { usePhotoZoom } from "./hooks/usePhotoZoom";
 
 interface ProjectPhoto {
   id: string;
@@ -40,13 +40,15 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
     goToNext
   });
 
+  const { zoom, zoomIn, zoomOut, resetZoom } = usePhotoZoom();
+
   if (!photos[currentIndex]) return null;
 
   const photo = photos[currentIndex];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 flex flex-col">
+      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col">
         <DialogTitle className="sr-only">
           {photo.description || 'Project Photo'}
         </DialogTitle>
@@ -60,12 +62,15 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
             currentIndex={currentIndex}
             totalPhotos={photos.length}
             isDeleting={isDeleting}
+            zoom={zoom}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
             onDownload={handleDownload}
             onDelete={handleDelete}
             onClose={onClose}
           />
 
-          <PhotoViewerImage photo={photo} />
+          <PhotoViewerImage photo={photo} zoom={zoom} />
 
           <PhotoViewerNavigation
             totalPhotos={photos.length}

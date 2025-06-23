@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { X, Download, Trash2 } from "lucide-react";
+import { X, Download, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ProjectPhoto {
@@ -18,6 +18,9 @@ interface PhotoViewerHeaderProps {
   currentIndex: number;
   totalPhotos: number;
   isDeleting: boolean;
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
   onDownload: (photo: ProjectPhoto) => void;
   onDelete: (photo: ProjectPhoto) => void;
   onClose: () => void;
@@ -28,6 +31,9 @@ export function PhotoViewerHeader({
   currentIndex,
   totalPhotos,
   isDeleting,
+  zoom,
+  onZoomIn,
+  onZoomOut,
   onDownload,
   onDelete,
   onClose
@@ -43,6 +49,27 @@ export function PhotoViewerHeader({
         </p>
       </div>
       <div className="flex items-center space-x-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onZoomOut}
+          disabled={zoom <= 0.25}
+          className="text-gray-600 hover:text-black"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-gray-600 min-w-[3rem] text-center">
+          {Math.round(zoom * 100)}%
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onZoomIn}
+          disabled={zoom >= 3}
+          className="text-gray-600 hover:text-black"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
