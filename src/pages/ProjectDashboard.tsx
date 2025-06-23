@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -125,8 +124,7 @@ export default function ProjectDashboard() {
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-6 w-6 text-gray-600" />
                   <div>
-                    <h1 className="text-2xl font-bold text-black">{currentProject.name}</h1>
-                    <p className="text-gray-600">{currentProject.address}</p>
+                    <h1 className="text-2xl font-bold text-black">{currentProject.address}</h1>
                   </div>
                 </div>
               </div>
@@ -143,6 +141,7 @@ export default function ProjectDashboard() {
             </div>
           </header>
 
+          
           <div className="flex-1 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {dashboardCards.map((card, index) => (
