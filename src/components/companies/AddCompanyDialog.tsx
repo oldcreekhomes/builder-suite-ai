@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -33,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { X, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -325,28 +325,24 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
               </div>
 
               {/* Cost code selection */}
-              <div className="max-h-32 overflow-y-auto border rounded-md">
+              <div className="max-h-24 overflow-y-auto border rounded-md">
                 {filteredCostCodes.length === 0 ? (
-                  <div className="p-2 text-gray-500 text-center text-sm">
+                  <div className="p-2 text-gray-500 text-center text-xs">
                     {costCodeSearch ? 'No cost codes found matching your search' : 'No cost codes available'}
                   </div>
                 ) : (
                   filteredCostCodes.map((costCode) => (
                     <div
                       key={costCode.id}
-                      className={`p-2 border-b cursor-pointer hover:bg-gray-50 ${
-                        selectedCostCodes.includes(costCode.id) ? 'bg-blue-50' : ''
-                      }`}
+                      className="p-2 border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleCostCodeToggle(costCode.id)}
                     >
                       <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedCostCodes.includes(costCode.id)}
-                          onChange={() => handleCostCodeToggle(costCode.id)}
-                          className="rounded"
+                          onCheckedChange={() => handleCostCodeToggle(costCode.id)}
                         />
-                        <div className="text-sm">
+                        <div className="text-xs">
                           <span className="font-medium">{costCode.code}</span> - {costCode.name}
                         </div>
                       </div>
@@ -389,28 +385,24 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
               </div>
 
               {/* Representative selection */}
-              <div className="max-h-32 overflow-y-auto border rounded-md">
+              <div className="max-h-24 overflow-y-auto border rounded-md">
                 {filteredRepresentatives.length === 0 ? (
-                  <div className="p-2 text-gray-500 text-center text-sm">
+                  <div className="p-2 text-gray-500 text-center text-xs">
                     {representativeSearch ? 'No representatives found matching your search' : 'No representatives available'}
                   </div>
                 ) : (
                   filteredRepresentatives.map((representative) => (
                     <div
                       key={representative.id}
-                      className={`p-2 border-b cursor-pointer hover:bg-gray-50 ${
-                        selectedRepresentatives.includes(representative.id) ? 'bg-blue-50' : ''
-                      }`}
+                      className="p-2 border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleRepresentativeToggle(representative.id)}
                     >
                       <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedRepresentatives.includes(representative.id)}
-                          onChange={() => handleRepresentativeToggle(representative.id)}
-                          className="rounded"
+                          onCheckedChange={() => handleRepresentativeToggle(representative.id)}
                         />
-                        <div className="text-sm">
+                        <div className="text-xs">
                           {representative.first_name} {representative.last_name}
                         </div>
                       </div>
