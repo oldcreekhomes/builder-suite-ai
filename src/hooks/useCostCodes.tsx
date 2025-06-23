@@ -40,18 +40,23 @@ export const useCostCodes = () => {
   };
 
   // Add new cost code
-  const addCostCode = async (costCodeData: CostCodeInsert) => {
+  const addCostCode = async (costCodeData: any) => {
     if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('cost_codes')
         .insert({
-          ...costCodeData,
-          owner_id: user.id,
-          has_specifications: costCodeData.has_specifications === 'yes',
-          has_bidding: costCodeData.has_bidding === 'yes',
+          code: costCodeData.code,
+          name: costCodeData.name,
+          category: costCodeData.parentGroup || "Uncategorized",
+          parent_group: costCodeData.parentGroup || null,
+          quantity: costCodeData.quantity || null,
           price: costCodeData.price ? parseFloat(costCodeData.price.toString()) : null,
+          unit_of_measure: costCodeData.unitOfMeasure || null,
+          has_specifications: costCodeData.hasSpecifications === 'yes',
+          has_bidding: costCodeData.hasBidding === 'yes',
+          owner_id: user.id,
         })
         .select()
         .single();
@@ -74,15 +79,20 @@ export const useCostCodes = () => {
   };
 
   // Update cost code
-  const updateCostCode = async (id: string, updates: CostCodeUpdate) => {
+  const updateCostCode = async (id: string, updates: any) => {
     try {
       const { data, error } = await supabase
         .from('cost_codes')
         .update({
-          ...updates,
+          code: updates.code,
+          name: updates.name,
+          category: updates.category || null,
+          parent_group: updates.parent_group || null,
+          quantity: updates.quantity || null,
+          price: updates.price ? parseFloat(updates.price.toString()) : null,
+          unit_of_measure: updates.unit_of_measure || null,
           has_specifications: updates.has_specifications === 'yes',
           has_bidding: updates.has_bidding === 'yes',
-          price: updates.price ? parseFloat(updates.price.toString()) : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
