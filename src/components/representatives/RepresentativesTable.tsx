@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { EditRepresentativeDialog } from "@/components/companies/EditRepresentativeDialog";
+import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
 
 interface Representative {
   id: string;
@@ -33,8 +33,9 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary: boolean;
   company_id: string;
+  receive_bid_notifications?: boolean;
+  receive_schedule_notifications?: boolean;
   companies: {
     company_name: string;
   };
@@ -139,14 +140,13 @@ export function RepresentativesTable() {
               <TableHead>Company</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Primary</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
@@ -179,11 +179,6 @@ export function RepresentativesTable() {
                         </div>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {rep.is_primary && (
-                      <Badge variant="secondary">Primary</Badge>
-                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
