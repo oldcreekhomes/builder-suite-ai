@@ -13,7 +13,8 @@ import {
   Image,
   Plus,
   ChevronRight,
-  Building2
+  Building2,
+  ArrowLeft
 } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
@@ -118,7 +119,9 @@ export default function ProjectDashboard() {
           <header className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-black" />
+                <SidebarTrigger className="text-gray-600 hover:text-black">
+                  <ArrowLeft className="h-4 w-4" />
+                </SidebarTrigger>
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-6 w-6 text-gray-600" />
                   <div>

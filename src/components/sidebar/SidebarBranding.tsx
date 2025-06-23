@@ -1,6 +1,6 @@
 
-import { Building2, ArrowLeft } from "lucide-react";
-import { SidebarHeader, SidebarTrigger } from "@/components/ui/sidebar";
+import { Building2 } from "lucide-react";
+import { SidebarHeader } from "@/components/ui/sidebar";
 
 export function SidebarBranding() {
   return (
@@ -13,9 +13,6 @@ export function SidebarBranding() {
           </div>
           <p className="text-sm text-gray-600">Construction Management</p>
         </div>
-        <SidebarTrigger className="text-gray-600 hover:text-black hover:bg-gray-100 transition-colors h-8 w-8">
-          <ArrowLeft className="h-4 w-4" />
-        </SidebarTrigger>
       </div>
     </SidebarHeader>
   );
