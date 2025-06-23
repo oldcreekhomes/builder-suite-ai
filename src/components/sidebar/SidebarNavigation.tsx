@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { 
@@ -10,8 +9,7 @@ import {
   Users,
   File,
   Image,
-  ChevronDown,
-  Settings
+  ChevronDown
 } from "lucide-react";
 import {
   SidebarContent,
@@ -72,11 +70,6 @@ const navigationItems = [
     title: "Companies",
     url: "/companies",
     icon: Users,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
   },
 ];
 
