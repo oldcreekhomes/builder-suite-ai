@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,9 +30,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
-import { Badge } from "@/components/ui/badge";
-import { X, Search } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CostCodeSelector } from "./CostCodeSelector";
+import { RepresentativeSelector } from "./RepresentativeSelector";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -62,12 +62,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
-  const [representativeSearch, setRepresentativeSearch] = useState("");
-  
-  // Use a ref to track if we've initialized for the current company
-  const lastInitializedCompanyId = useRef<string | null>(null);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -79,46 +74,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       website: "",
     },
   });
-
-  // Fetch cost codes for selection
-  const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cost_codes')
-        .select('id, code, name')
-        .order('code');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch representatives for selection
-  const { data: representatives = [] } = useQuery({
-    queryKey: ['company-representatives'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company_representatives')
-        .select('id, first_name, last_name, company_id')
-        .order('first_name');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Filter cost codes based on search
-  const filteredCostCodes = costCodes.filter(costCode => 
-    costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
-    costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
-  );
-
-  // Filter representatives based on search
-  const filteredRepresentatives = representatives.filter(rep => 
-    rep.first_name.toLowerCase().includes(representativeSearch.toLowerCase()) ||
-    rep.last_name.toLowerCase().includes(representativeSearch.toLowerCase())
-  );
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [] } = useQuery({
@@ -137,9 +92,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     enabled: !!company?.id,
   });
 
-  // Reset form and state when dialog opens with a company
+  // Initialize form and state when company changes
   useEffect(() => {
     if (company && open) {
+      console.log('Setting up form for company:', company.id);
+      
+      // Reset form with company data
       form.reset({
         company_name: company.company_name,
         company_type: company.company_type as any,
@@ -147,32 +105,23 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         phone_number: company.phone_number || "",
         website: company.website || "",
       });
-      
-      // Only initialize cost codes if this is a different company or first time opening
-      if (lastInitializedCompanyId.current !== company.id) {
-        console.log('Initializing for company:', company.id);
-        setSelectedRepresentatives([]);
-        lastInitializedCompanyId.current = company.id;
-      }
-    }
-  }, [company?.id, open, form]);
 
-  // Separate effect to handle cost codes initialization
-  useEffect(() => {
-    if (company?.id && open && companyCostCodes.length >= 0 && lastInitializedCompanyId.current === company.id) {
-      console.log('Setting cost codes for company:', company.id, 'with cost codes:', companyCostCodes);
-      setSelectedCostCodes([...companyCostCodes]);
+      // Initialize cost codes when data is available
+      if (companyCostCodes.length >= 0) {
+        console.log('Setting cost codes:', companyCostCodes);
+        setSelectedCostCodes([...companyCostCodes]);
+      }
+
+      // Reset representatives (we'll load them separately if needed)
+      setSelectedRepresentatives([]);
     }
-  }, [companyCostCodes, company?.id, open]);
+  }, [company, open, form, companyCostCodes]);
 
   // Reset everything when dialog closes
   useEffect(() => {
     if (!open) {
-      setCostCodeSearch("");
-      setRepresentativeSearch("");
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
-      lastInitializedCompanyId.current = null;
     }
   }, [open]);
 
@@ -229,30 +178,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
     },
   });
-
-  const handleCostCodeToggle = (costCodeId: string) => {
-    setSelectedCostCodes(prev => 
-      prev.includes(costCodeId)
-        ? prev.filter(id => id !== costCodeId)
-        : [...prev, costCodeId]
-    );
-  };
-
-  const removeCostCode = (costCodeId: string) => {
-    setSelectedCostCodes(prev => prev.filter(id => id !== costCodeId));
-  };
-
-  const handleRepresentativeToggle = (representativeId: string) => {
-    setSelectedRepresentatives(prev => 
-      prev.includes(representativeId)
-        ? prev.filter(id => id !== representativeId)
-        : [...prev, representativeId]
-    );
-  };
-
-  const removeRepresentative = (representativeId: string) => {
-    setSelectedRepresentatives(prev => prev.filter(id => id !== representativeId));
-  };
 
   const onSubmit = (data: CompanyFormData) => {
     updateCompanyMutation.mutate(data);
@@ -355,125 +280,17 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               />
             </div>
 
-            <div className="space-y-4">
-              <FormLabel>Associated Cost Codes</FormLabel>
-              
-              {/* Selected cost codes */}
-              {selectedCostCodes.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
-                  {selectedCostCodes.map(costCodeId => {
-                    const costCode = costCodes.find(cc => cc.id === costCodeId);
-                    return costCode ? (
-                      <Badge key={costCodeId} variant="secondary" className="flex items-center gap-1 text-xs">
-                        {costCode.code} - {costCode.name}
-                        <X 
-                          className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                          onClick={() => removeCostCode(costCodeId)}
-                        />
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
+            <CostCodeSelector
+              companyId={company?.id || null}
+              selectedCostCodes={selectedCostCodes}
+              onCostCodesChange={setSelectedCostCodes}
+            />
 
-              {/* Search input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search cost codes by number or name..."
-                  value={costCodeSearch}
-                  onChange={(e) => setCostCodeSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Cost code selection */}
-              <div className="max-h-24 overflow-y-auto border rounded-md">
-                {filteredCostCodes.length === 0 ? (
-                  <div className="p-2 text-gray-500 text-center text-xs">
-                    {costCodeSearch ? 'No cost codes found matching your search' : 'No cost codes available'}
-                  </div>
-                ) : (
-                  filteredCostCodes.map((costCode) => (
-                    <div
-                      key={costCode.id}
-                      className="p-2 border-b hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleCostCodeToggle(costCode.id)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={selectedCostCodes.includes(costCode.id)}
-                          onCheckedChange={() => handleCostCodeToggle(costCode.id)}
-                        />
-                        <div className="text-xs">
-                          <span className="font-medium">{costCode.code}</span> - {costCode.name}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <FormLabel>Associated Representatives</FormLabel>
-              
-              {/* Selected representatives */}
-              {selectedRepresentatives.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
-                  {selectedRepresentatives.map(representativeId => {
-                    const representative = representatives.find(rep => rep.id === representativeId);
-                    return representative ? (
-                      <Badge key={representativeId} variant="secondary" className="flex items-center gap-1 text-xs">
-                        {representative.first_name} {representative.last_name}
-                        <X 
-                          className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                          onClick={() => removeRepresentative(representativeId)}
-                        />
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              )}
-
-              {/* Search input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search representatives by name..."
-                  value={representativeSearch}
-                  onChange={(e) => setRepresentativeSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Representative selection */}
-              <div className="max-h-24 overflow-y-auto border rounded-md">
-                {filteredRepresentatives.length === 0 ? (
-                  <div className="p-2 text-gray-500 text-center text-xs">
-                    {representativeSearch ? 'No representatives found matching your search' : 'No representatives available'}
-                  </div>
-                ) : (
-                  filteredRepresentatives.map((representative) => (
-                    <div
-                      key={representative.id}
-                      className="p-2 border-b hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleRepresentativeToggle(representative.id)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={selectedRepresentatives.includes(representative.id)}
-                          onCheckedChange={() => handleRepresentativeToggle(representative.id)}
-                        />
-                        <div className="text-xs">
-                          {representative.first_name} {representative.last_name}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <RepresentativeSelector
+              companyId={company?.id || null}
+              selectedRepresentatives={selectedRepresentatives}
+              onRepresentativesChange={setSelectedRepresentatives}
+            />
 
             <div className="flex justify-end space-x-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
