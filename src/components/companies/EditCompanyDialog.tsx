@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,6 +63,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
+  const initializedCompanyRef = useRef<string | null>(null);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -92,10 +93,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     enabled: !!company?.id,
   });
 
-  // Initialize form and state when company changes
+  // Initialize form and state when company changes - NO DEPENDENCIES ON QUERY DATA
   useEffect(() => {
-    if (company && open) {
-      console.log('Setting up form for company:', company.id);
+    if (company && open && company.id !== initializedCompanyRef.current) {
+      console.log('Initializing form for company:', company.id);
       
       // Reset form with company data
       form.reset({
@@ -106,22 +107,28 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
 
-      // Initialize cost codes when data is available
-      if (companyCostCodes.length >= 0) {
-        console.log('Setting cost codes:', companyCostCodes);
-        setSelectedCostCodes([...companyCostCodes]);
-      }
-
-      // Reset representatives (we'll load them separately if needed)
+      // Reset representatives
       setSelectedRepresentatives([]);
+      
+      // Mark this company as initialized
+      initializedCompanyRef.current = company.id;
     }
-  }, [company, open, form, companyCostCodes]);
+  }, [company, open, form]);
+
+  // Separate effect to handle cost codes initialization - runs when data is available
+  useEffect(() => {
+    if (company?.id && companyCostCodes && companyCostCodes.length >= 0 && company.id === initializedCompanyRef.current) {
+      console.log('Setting cost codes for company:', company.id, companyCostCodes);
+      setSelectedCostCodes([...companyCostCodes]);
+    }
+  }, [company?.id, companyCostCodes?.length]); // Only depend on length, not the array itself
 
   // Reset everything when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
+      initializedCompanyRef.current = null;
     }
   }, [open]);
 
