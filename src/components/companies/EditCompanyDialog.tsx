@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -62,7 +63,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const previousCostCodesRef = useRef<string[]>([]);
+  const isInitializedRef = useRef(false);
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [] } = useQuery({
@@ -91,7 +92,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     },
   });
 
-  // Initialize form when company or dialog state changes (without companyCostCodes dependency)
+  // Initialize form when company or dialog state changes
   useEffect(() => {
     if (company && open) {
       console.log('Initializing form for company:', company.id);
@@ -105,19 +106,16 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
 
       setSelectedRepresentatives([]);
+      isInitializedRef.current = false;
     }
   }, [company?.id, open, form]);
 
-  // Separate useEffect for handling cost codes updates (with proper comparison)
+  // Handle cost codes initialization only once when data is first loaded
   useEffect(() => {
-    if (open && companyCostCodes && companyCostCodes.length >= 0) {
-      const costCodesChanged = JSON.stringify(companyCostCodes.sort()) !== JSON.stringify(previousCostCodesRef.current.sort());
-      
-      if (costCodesChanged) {
-        console.log('Cost codes changed, updating selection:', companyCostCodes);
-        setSelectedCostCodes(companyCostCodes);
-        previousCostCodesRef.current = [...companyCostCodes];
-      }
+    if (open && companyCostCodes && !isInitializedRef.current) {
+      console.log('Initializing cost codes for first time:', companyCostCodes);
+      setSelectedCostCodes([...companyCostCodes]);
+      isInitializedRef.current = true;
     }
   }, [companyCostCodes, open]);
 
@@ -126,7 +124,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     if (!open) {
       setSelectedRepresentatives([]);
       setSelectedCostCodes([]);
-      previousCostCodesRef.current = [];
+      isInitializedRef.current = false;
       form.reset();
     }
   }, [open, form]);
