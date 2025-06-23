@@ -45,7 +45,7 @@ export function FolderHeader({
           ) : (
             <ChevronRight className="h-4 w-4 text-gray-500" />
           )}
-          <Folder className="h-5 w-5 text-yellow-500" />
+          <Folder className="h-5 w-5 text-blue-500" />
           <span className="font-semibold text-gray-700">
             {folderPath === 'Root' ? 'Root Files' : folderPath}
           </span>

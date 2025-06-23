@@ -118,7 +118,7 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
       return (
         <iframe
           src={fileUrl}
-          className="w-full h-96"
+          className="w-full h-[75vh]"
           title={file.original_filename}
         />
       );
@@ -147,7 +147,7 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">

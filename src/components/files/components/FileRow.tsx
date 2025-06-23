@@ -4,9 +4,9 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Eye, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { getDisplayName, getFileTypeColor, formatFileSize } from "../utils/fileUtils";
+import { getDisplayName, formatFileSize, getFileTypeColor } from "../utils/fileUtils";
 
 interface FileRowProps {
   file: any;
@@ -26,26 +26,28 @@ export function FileRow({
   onDelete,
 }: FileRowProps) {
   const displayInfo = getDisplayName(file.original_filename);
-  
+
   return (
-    <TableRow className="cursor-pointer hover:bg-gray-50">
+    <TableRow className="hover:bg-gray-50">
       <TableCell>
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onSelectFile(file.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell>
-        <div className="flex items-center space-x-3 pl-8">
-          <FileText className="h-5 w-5 text-blue-500" />
-          <div>
-            <div className="font-medium" title={displayInfo.fullPath}>
-              {displayInfo.pathWithinFolder || displayInfo.fileName}
-            </div>
-            {file.description && (
-              <div className="text-sm text-gray-500">{file.description}</div>
-            )}
+      <TableCell 
+        className="cursor-pointer hover:text-blue-600"
+        onClick={() => onFileSelect(file)}
+      >
+        <div>
+          <div className="font-medium">
+            {displayInfo.pathWithinFolder || displayInfo.fileName}
           </div>
+          {file.description && (
+            <div className="text-sm text-gray-500 mt-1">
+              {file.description}
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell>
@@ -58,13 +60,6 @@ export function FileRow({
       <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
       <TableCell>
         <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onFileSelect(file)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="sm"

@@ -366,7 +366,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                 ) : (
                   <ChevronRight className="h-5 w-5 text-gray-500" />
                 )}
-                <Folder className="h-6 w-6 text-yellow-500" />
+                <Folder className="h-6 w-6 text-blue-500" />
                 <div>
                   <h3 className="font-semibold text-gray-700">
                     {folderPath === 'Root' ? 'Root Files' : folderPath}
