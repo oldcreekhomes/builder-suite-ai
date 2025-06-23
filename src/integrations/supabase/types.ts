@@ -326,6 +326,66 @@ export type Database = {
           },
         ]
       }
+      project_schedule_tasks: {
+        Row: {
+          created_at: string
+          duration: number
+          end_date: string
+          id: string
+          predecessor_id: string | null
+          progress: number
+          project_id: string
+          resources: string[] | null
+          start_date: string
+          task_code: string
+          task_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration: number
+          end_date: string
+          id?: string
+          predecessor_id?: string | null
+          progress?: number
+          project_id: string
+          resources?: string[] | null
+          start_date: string
+          task_code: string
+          task_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number
+          end_date?: string
+          id?: string
+          predecessor_id?: string | null
+          progress?: number
+          project_id?: string
+          resources?: string[] | null
+          start_date?: string
+          task_code?: string
+          task_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_schedule_tasks_predecessor_id_fkey"
+            columns: ["predecessor_id"]
+            isOneToOne: false
+            referencedRelation: "project_schedule_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_schedule_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string

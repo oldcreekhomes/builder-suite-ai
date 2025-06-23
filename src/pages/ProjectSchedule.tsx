@@ -26,15 +26,12 @@ export default function ProjectSchedule() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Project Schedule" 
-            projectId={projectId}
-          />
+          <DashboardHeader />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold tracking-tight">Schedule</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Project Schedule</h2>
                 <p className="text-muted-foreground">
                   Manage your project timeline and tasks
                 </p>
