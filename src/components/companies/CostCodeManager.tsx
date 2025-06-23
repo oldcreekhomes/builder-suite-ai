@@ -102,13 +102,12 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
   );
 
-  const handleCostCodeToggle = (costCodeId: string) => {
-    const isCurrentlySelected = companyCostCodes.includes(costCodeId);
-    const newSelection = isCurrentlySelected
-      ? companyCostCodes.filter(id => id !== costCodeId)
-      : [...companyCostCodes, costCodeId];
+  const handleCostCodeToggle = (costCodeId: string, checked: boolean) => {
+    const newSelection = checked
+      ? [...companyCostCodes, costCodeId]
+      : companyCostCodes.filter(id => id !== costCodeId);
     
-    console.log('Toggling cost code:', costCodeId, 'New selection:', newSelection);
+    console.log('Toggling cost code:', costCodeId, 'Checked:', checked, 'New selection:', newSelection);
     saveCostCodesMutation.mutate(newSelection);
   };
 
@@ -161,13 +160,12 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
           filteredCostCodes.map((costCode) => (
             <div
               key={costCode.id}
-              className="p-2 border-b hover:bg-gray-50 cursor-pointer"
-              onClick={() => handleCostCodeToggle(costCode.id)}
+              className="p-2 border-b hover:bg-gray-50"
             >
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={companyCostCodes.includes(costCode.id)}
-                  onCheckedChange={() => handleCostCodeToggle(costCode.id)}
+                  onCheckedChange={(checked) => handleCostCodeToggle(costCode.id, checked === true)}
                 />
                 <div className="text-xs">
                   <span className="font-medium">{costCode.code}</span> - {costCode.name}
