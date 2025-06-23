@@ -48,10 +48,13 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes when data loads - using simple assignment without useEffect
-  if (!isLoading && companyCostCodes.length >= 0 && selectedCostCodes.length === 0) {
-    setSelectedCostCodes(companyCostCodes);
-  }
+  // Initialize selected cost codes when company changes or data loads
+  useEffect(() => {
+    if (!isLoading && companyCostCodes) {
+      console.log('Setting selected cost codes for company:', companyId, companyCostCodes);
+      setSelectedCostCodes(companyCostCodes);
+    }
+  }, [companyId, companyCostCodes, isLoading]);
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
