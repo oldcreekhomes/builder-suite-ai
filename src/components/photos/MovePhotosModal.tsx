@@ -86,18 +86,43 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
     const targetFolder = newFolderName || selectedFolder;
 
     try {
-      for (const photo of selectedPhotos) {
-        // Update the photo description to include folder path
-        const originalName = photo.description?.split('/').pop() || `photo-${photo.id}`;
-        const newDescription = `${targetFolder}/${originalName}`;
+      console.log('Moving photos to folder:', targetFolder);
+      console.log('Selected photos:', selectedPhotos);
+
+      const updates = selectedPhotos.map(async (photo) => {
+        // Generate a filename if the photo doesn't have a proper description
+        let filename = photo.description;
+        
+        // If description is null or doesn't contain a filename, generate one
+        if (!filename || filename.includes('/')) {
+          const urlParts = photo.url.split('/');
+          filename = urlParts[urlParts.length - 1] || `photo-${Date.now()}`;
+        }
+
+        // Remove any existing folder path from filename
+        if (filename.includes('/')) {
+          filename = filename.split('/').pop() || filename;
+        }
+
+        const newDescription = `${targetFolder}/${filename}`;
+        
+        console.log('Updating photo:', photo.id, 'with description:', newDescription);
 
         const { error } = await supabase
           .from('project_photos')
           .update({ description: newDescription })
           .eq('id', photo.id);
 
-        if (error) throw error;
-      }
+        if (error) {
+          console.error('Error updating photo:', photo.id, error);
+          throw error;
+        }
+
+        return { id: photo.id, success: true };
+      });
+
+      const results = await Promise.all(updates);
+      console.log('Move results:', results);
 
       toast({
         title: "Success",

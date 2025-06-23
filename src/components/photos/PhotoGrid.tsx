@@ -54,7 +54,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = photo.description || `photo-${photo.id}`;
+      a.download = getPhotoDisplayName(photo);
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -67,6 +67,22 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
         variant: "destructive",
       });
     }
+  };
+
+  const getPhotoDisplayName = (photo: ProjectPhoto) => {
+    if (!photo.description) return `photo-${photo.id}`;
+    
+    // If description contains a folder path, show just the filename
+    if (photo.description.includes('/')) {
+      return photo.description.split('/').pop() || photo.description;
+    }
+    
+    return photo.description;
+  };
+
+  const getPhotoFolder = (photo: ProjectPhoto) => {
+    if (!photo.description || !photo.description.includes('/')) return null;
+    return photo.description.split('/')[0];
   };
 
   const handleDelete = async (photo: ProjectPhoto) => {
@@ -303,7 +319,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
 
                   <img
                     src={photo.url}
-                    alt={photo.description || 'Project photo'}
+                    alt={getPhotoDisplayName(photo)}
                     className="w-full h-full object-cover cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
                   />
@@ -357,9 +373,16 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
                   </div>
                 </div>
                 <div className="p-3">
-                  <p className="text-sm font-medium truncate" title={photo.description || ''}>
-                    {photo.description || 'Untitled'}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium truncate" title={getPhotoDisplayName(photo)}>
+                      {getPhotoDisplayName(photo)}
+                    </p>
+                    {getPhotoFolder(photo) && (
+                      <p className="text-xs text-blue-600 truncate" title={`Folder: ${getPhotoFolder(photo)}`}>
+                        📁 {getPhotoFolder(photo)}
+                      </p>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
                   </p>
