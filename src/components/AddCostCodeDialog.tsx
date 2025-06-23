@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -64,9 +63,6 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add Cost Code</DialogTitle>
-          <DialogDescription>
-            Add a new cost code to your project. Fill in the required information below.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
