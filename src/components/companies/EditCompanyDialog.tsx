@@ -134,7 +134,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     enabled: !!company?.id,
   });
 
-  // Update form when company changes - fixed dependency array
+  // Update form when company changes
   useEffect(() => {
     if (company && open) {
       form.reset({
@@ -144,9 +144,15 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         phone_number: company.phone_number || "",
         website: company.website || "",
       });
-      setSelectedCostCodes(companyCostCodes);
     }
-  }, [company?.id, open, companyCostCodes]); // Removed 'form' from dependency array
+  }, [company?.id, open]);
+
+  // Update selected cost codes when company cost codes are loaded
+  useEffect(() => {
+    if (companyCostCodes.length >= 0 && company?.id && open) {
+      setSelectedCostCodes([...companyCostCodes]);
+    }
+  }, [companyCostCodes.length, company?.id, open]);
 
   // Reset search when dialog opens/closes
   useEffect(() => {
