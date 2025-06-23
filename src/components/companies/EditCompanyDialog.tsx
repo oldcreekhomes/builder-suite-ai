@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
-import { CostCodeManager } from "./CostCodeManager";
+import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeSelector } from "./RepresentativeSelector";
 
 const companySchema = z.object({
@@ -62,6 +62,23 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
+  const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+
+  // Fetch company's current cost codes
+  const { data: companyCostCodes = [] } = useQuery({
+    queryKey: ['company-cost-codes', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const { data, error } = await supabase
+        .from('company_cost_codes')
+        .select('cost_code_id')
+        .eq('company_id', company.id);
+      
+      if (error) throw error;
+      return data.map(item => item.cost_code_id);
+    },
+    enabled: !!company?.id && open,
+  });
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -74,7 +91,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     },
   });
 
-  // Initialize form when company changes
+  // Initialize form and cost codes when company changes
   useEffect(() => {
     if (company && open) {
       console.log('Initializing form for company:', company.id);
@@ -91,13 +108,72 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     }
   }, [company?.id, open, form]);
 
+  // Set cost codes when they're loaded
+  useEffect(() => {
+    if (companyCostCodes.length >= 0) {
+      setSelectedCostCodes(companyCostCodes);
+    }
+  }, [companyCostCodes]);
+
   // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       setSelectedRepresentatives([]);
+      setSelectedCostCodes([]);
       form.reset();
     }
   }, [open, form]);
+
+  // Save cost code associations mutation
+  const saveCostCodesMutation = useMutation({
+    mutationFn: async (costCodeIds: string[]) => {
+      if (!company?.id) return;
+      
+      console.log('Saving cost codes for company:', company.id, costCodeIds);
+      
+      // First, remove all existing associations
+      const { error: deleteError } = await supabase
+        .from('company_cost_codes')
+        .delete()
+        .eq('company_id', company.id);
+
+      if (deleteError) throw deleteError;
+
+      // Then add the new associations
+      if (costCodeIds.length > 0) {
+        const costCodeAssociations = costCodeIds.map(costCodeId => ({
+          company_id: company.id,
+          cost_code_id: costCodeId,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('company_cost_codes')
+          .insert(costCodeAssociations);
+
+        if (insertError) throw insertError;
+      }
+
+      return costCodeIds;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch the company cost codes
+      queryClient.invalidateQueries({ queryKey: ['company-cost-codes', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      
+      toast({
+        title: "Success",
+        description: "Cost code associations updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating cost codes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update cost code associations",
+        variant: "destructive",
+      });
+    },
+  });
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -109,6 +185,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         .eq('id', company.id);
       
       if (companyError) throw companyError;
+
+      // Also save cost codes
+      await saveCostCodesMutation.mutateAsync(selectedCostCodes);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
@@ -127,6 +206,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
     },
   });
+
+  const handleCostCodesChange = (costCodes: string[]) => {
+    setSelectedCostCodes(costCodes);
+  };
 
   const onSubmit = (data: CompanyFormData) => {
     updateCompanyMutation.mutate(data);
@@ -229,10 +312,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               />
             </div>
 
-            {/* Cost Code Manager - Separate Component */}
-            {company?.id && (
-              <CostCodeManager companyId={company.id} />
-            )}
+            {/* Cost Code Selector - Using the working component */}
+            <CostCodeSelector
+              companyId={company?.id || null}
+              selectedCostCodes={selectedCostCodes}
+              onCostCodesChange={handleCostCodesChange}
+            />
 
             <RepresentativeSelector
               companyId={company?.id || null}
