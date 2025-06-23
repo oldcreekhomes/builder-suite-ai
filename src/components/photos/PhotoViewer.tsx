@@ -153,7 +153,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 flex items-center justify-center">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 flex flex-col">
         <DialogTitle className="sr-only">
           {photo.description || 'Project Photo'}
         </DialogTitle>
@@ -161,55 +161,53 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
           Photo viewer showing {currentIndex + 1} of {photos.length} photos
         </DialogDescription>
         
-        <div className="relative w-full h-full flex flex-col bg-black rounded-lg overflow-hidden">
+        <div className="relative w-full h-full flex flex-col bg-white rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="absolute top-0 left-0 right-0 z-10 bg-black/50 backdrop-blur-sm p-4">
-            <div className="flex items-center justify-between text-white">
-              <div className="flex-1">
-                <h3 className="font-medium truncate">
-                  {photo.description || 'Untitled'}
-                </h3>
-                <p className="text-sm text-gray-300">
-                  {currentIndex + 1} of {photos.length} • {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDownload(photo)}
-                  className="text-white hover:bg-white/20"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(photo)}
-                  disabled={isDeleting}
-                  className="text-white hover:bg-white/20"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                  className="text-white hover:bg-white/20"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="flex items-center justify-between p-4 border-b bg-white">
+            <div className="flex-1">
+              <h3 className="font-medium text-black truncate">
+                {photo.description || 'Untitled'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {currentIndex + 1} of {photos.length} • {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDownload(photo)}
+                className="text-gray-600 hover:text-black"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(photo)}
+                disabled={isDeleting}
+                className="text-gray-600 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="text-gray-600 hover:text-black"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Photo */}
-          <div className="flex-1 flex items-center justify-center p-4">
+          {/* Photo Container */}
+          <div className="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-auto">
             {imageLoading && (
-              <div className="text-white">Loading image...</div>
+              <div className="text-gray-500">Loading image...</div>
             )}
             {imageError && (
-              <div className="text-white">Failed to load image</div>
+              <div className="text-red-500">Failed to load image</div>
             )}
             <img
               src={photo.url}
@@ -228,7 +226,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
                 variant="ghost"
                 size="icon"
                 onClick={goToPrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-600 hover:text-black shadow-md"
               >
                 <ChevronLeft className="h-6 w-6" />
               </Button>
@@ -236,7 +234,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
                 variant="ghost"
                 size="icon"
                 onClick={goToNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-600 hover:text-black shadow-md"
               >
                 <ChevronRight className="h-6 w-6" />
               </Button>
