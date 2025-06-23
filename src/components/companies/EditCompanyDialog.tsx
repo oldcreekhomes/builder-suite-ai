@@ -67,6 +67,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [representativeSearch, setRepresentativeSearch] = useState("");
   const initializedRef = useRef<string | null>(null);
+  const costCodesInitialized = useRef(false);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -147,27 +148,48 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
     }
-  }, [company?.id, open]);
+  }, [company?.id, open, form]);
 
-  // Update selected cost codes when company cost codes are loaded
+  // Initialize selected cost codes when dialog opens and data is available
   useEffect(() => {
-    if (company?.id && open && companyCostCodes.length >= 0 && initializedRef.current !== company.id) {
-      console.log('Setting selected cost codes:', companyCostCodes);
+    if (company?.id && open && !costCodesInitialized.current && companyCostCodes.length > 0) {
+      console.log('Initializing selected cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
+      costCodesInitialized.current = true;
       initializedRef.current = company.id;
     }
-  }, [company?.id, open, companyCostCodes]);
+  }, [company?.id, open]);
+
+  // Set cost codes when they're loaded
+  useEffect(() => {
+    if (company?.id && open && companyCostCodes.length > 0 && initializedRef.current !== company.id) {
+      console.log('Setting selected cost codes for new company:', companyCostCodes);
+      setSelectedCostCodes([...companyCostCodes]);
+      initializedRef.current = company.id;
+      costCodesInitialized.current = true;
+    }
+  }, [companyCostCodes.length, company?.id, open]);
 
   // Reset when dialog closes or company changes
   useEffect(() => {
-    if (!open || !company) {
+    if (!open) {
       setCostCodeSearch("");
       setRepresentativeSearch("");
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
       initializedRef.current = null;
+      costCodesInitialized.current = false;
     }
-  }, [open, company?.id]);
+  }, [open]);
+
+  // Reset when company changes
+  useEffect(() => {
+    if (company?.id !== initializedRef.current) {
+      setSelectedCostCodes([]);
+      setSelectedRepresentatives([]);
+      costCodesInitialized.current = false;
+    }
+  }, [company?.id]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
