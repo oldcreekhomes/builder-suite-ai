@@ -1,5 +1,4 @@
 
-
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -76,6 +75,21 @@ const Settings = () => {
   // Get parent cost code details for group headers
   const getParentCostCode = (parentGroupCode: string) => {
     return costCodes.find(cc => cc.code === parentGroupCode);
+  };
+
+  // Function to format unit of measure to capital letters
+  const formatUnitOfMeasure = (unit: string | null) => {
+    if (!unit) return "-";
+    
+    const unitMap: Record<string, string> = {
+      "each": "EA",
+      "square-feet": "SF", 
+      "linear-feet": "LF",
+      "square-yard": "SY",
+      "cubic-yard": "CY"
+    };
+    
+    return unitMap[unit] || unit.toUpperCase();
   };
 
   const toggleGroupCollapse = (groupKey: string) => {
@@ -205,7 +219,7 @@ const Settings = () => {
                                     </TableCell>
                                     <TableCell>{getParentCostCode(groupKey)?.quantity || "-"}</TableCell>
                                     <TableCell>{getParentCostCode(groupKey)?.price ? `$${getParentCostCode(groupKey)?.price.toFixed(2)}` : "-"}</TableCell>
-                                    <TableCell>{getParentCostCode(groupKey)?.unit_of_measure || "-"}</TableCell>
+                                    <TableCell>{formatUnitOfMeasure(getParentCostCode(groupKey)?.unit_of_measure)}</TableCell>
                                     <TableCell>{getParentCostCode(groupKey)?.has_specifications ? "Yes" : "No"}</TableCell>
                                     <TableCell>{getParentCostCode(groupKey)?.has_bidding ? "Yes" : "No"}</TableCell>
                                     <TableCell>
@@ -247,7 +261,7 @@ const Settings = () => {
                                       <TableCell>{costCode.name}</TableCell>
                                       <TableCell>{costCode.quantity || "-"}</TableCell>
                                       <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
-                                      <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
+                                      <TableCell>{formatUnitOfMeasure(costCode.unit_of_measure)}</TableCell>
                                       <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
                                       <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
                                       <TableCell>
@@ -369,4 +383,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
