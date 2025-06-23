@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Download, Trash2, ZoomIn, ZoomOut, Hand } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 
 interface ProjectPhoto {
@@ -90,15 +91,35 @@ export function PhotoViewerHeader({
         >
           <Download className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete(photo)}
-          disabled={isDeleting}
-          className="text-gray-600 hover:text-red-600"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isDeleting}
+              className="text-gray-600 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this picture?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the photo from the project.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => onDelete(photo)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
