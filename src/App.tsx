@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import ProjectFiles from "./pages/ProjectFiles";
 import ProjectSchedule from "./pages/ProjectSchedule";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
+import Companies from "./pages/Companies";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +52,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProjectSchedule />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/companies" 
+              element={
+                <ProtectedRoute>
+                  <Companies />
                 </ProtectedRoute>
               } 
             />
