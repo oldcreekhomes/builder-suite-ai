@@ -32,7 +32,7 @@ export function PhotoViewerImage({ photo, zoom }: PhotoViewerImageProps) {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-auto">
+    <div className="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-hidden">
       {imageLoading && (
         <div className="text-gray-500">Loading image...</div>
       )}

@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PhotoViewerHeader } from "./PhotoViewerHeader";
 import { PhotoViewerImage } from "./PhotoViewerImage";
@@ -48,7 +49,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col">
+      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col border-0">
         <DialogTitle className="sr-only">
           {photo.description || 'Project Photo'}
         </DialogTitle>
