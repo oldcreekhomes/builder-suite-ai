@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,13 +27,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
-import { Badge } from "@/components/ui/badge";
-import { X, Search } from "lucide-react";
+import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -54,7 +52,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const [costCodeSearch, setCostCodeSearch] = useState("");
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -66,26 +63,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       website: "",
     },
   });
-
-  // Fetch cost codes for selection
-  const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cost_codes')
-        .select('id, code, name')
-        .order('code');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Filter cost codes based on search
-  const filteredCostCodes = costCodes.filter(costCode => 
-    costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
-    costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
-  );
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -132,7 +109,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       // Reset form and state
       form.reset();
       setSelectedCostCodes([]);
-      setCostCodeSearch("");
       onOpenChange(false);
     },
     onError: (error) => {
@@ -145,17 +121,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     },
   });
 
-  const handleCostCodeSelect = (costCodeId: string, costCodeDisplay: string) => {
-    if (!selectedCostCodes.includes(costCodeId)) {
-      setSelectedCostCodes(prev => [...prev, costCodeId]);
-    }
-    setCostCodeSearch('');
-  };
-
-  const removeCostCode = (costCodeId: string) => {
-    setSelectedCostCodes(prev => prev.filter(id => id !== costCodeId));
-  };
-
   const onSubmit = (data: CompanyFormData) => {
     createCompanyMutation.mutate(data);
   };
@@ -166,7 +131,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       // Reset form and selections when closing
       form.reset();
       setSelectedCostCodes([]);
-      setCostCodeSearch("");
     }
     onOpenChange(newOpen);
   };
@@ -269,58 +233,11 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                 />
               </div>
 
-              <div className="space-y-4">
-                <FormLabel>Associated Cost Codes</FormLabel>
-                
-                {/* Selected cost codes */}
-                {selectedCostCodes.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
-                    {selectedCostCodes.map(costCodeId => {
-                      const costCode = costCodes.find(cc => cc.id === costCodeId);
-                      return costCode ? (
-                        <Badge key={costCodeId} variant="secondary" className="flex items-center gap-1 text-xs">
-                          {costCode.code} - {costCode.name}
-                          <X 
-                            className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                            onClick={() => removeCostCode(costCodeId)}
-                          />
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-
-                {/* Search input */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Search and select cost codes..."
-                    value={costCodeSearch}
-                    onChange={(e) => setCostCodeSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Cost code selection dropdown */}
-                {costCodeSearch && filteredCostCodes.length > 0 && (
-                  <div className="border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
-                    {filteredCostCodes.map((costCode) => (
-                      <div
-                        key={costCode.id}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                        onClick={() => handleCostCodeSelect(costCode.id, `${costCode.code} - ${costCode.name}`)}
-                      >
-                        <span className="font-medium">{costCode.code}</span> - {costCode.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {costCodeSearch && filteredCostCodes.length === 0 && (
-                  <div className="border rounded-md bg-white shadow-sm p-3 text-gray-500 text-sm text-center">
-                    No cost codes found matching your search
-                  </div>
-                )}
-              </div>
+              <CostCodeSelector
+                companyId={null}
+                selectedCostCodes={selectedCostCodes}
+                onCostCodesChange={setSelectedCostCodes}
+              />
 
               <div className="flex justify-end space-x-4 pt-4">
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
