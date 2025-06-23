@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -151,13 +150,20 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       
       // Only initialize cost codes if this is a different company or first time opening
       if (lastInitializedCompanyId.current !== company.id) {
-        console.log('Initializing for company:', company.id, 'with cost codes:', companyCostCodes);
-        setSelectedCostCodes([...companyCostCodes]);
+        console.log('Initializing for company:', company.id);
         setSelectedRepresentatives([]);
         lastInitializedCompanyId.current = company.id;
       }
     }
-  }, [company?.id, open, form, companyCostCodes]);
+  }, [company?.id, open, form]);
+
+  // Separate effect to handle cost codes initialization
+  useEffect(() => {
+    if (company?.id && open && companyCostCodes.length >= 0 && lastInitializedCompanyId.current === company.id) {
+      console.log('Setting cost codes for company:', company.id, 'with cost codes:', companyCostCodes);
+      setSelectedCostCodes([...companyCostCodes]);
+    }
+  }, [companyCostCodes, company?.id, open]);
 
   // Reset everything when dialog closes
   useEffect(() => {
