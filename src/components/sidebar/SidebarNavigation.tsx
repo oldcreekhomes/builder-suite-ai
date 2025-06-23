@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { 
@@ -80,10 +81,28 @@ export function SidebarNavigation() {
   // Get current project ID from URL
   const getProjectId = () => {
     const pathParts = location.pathname.split('/');
-    return pathParts[2]; // /project/{id}
+    if (pathParts[1] === 'project' && pathParts[2]) {
+      return pathParts[2]; // /project/{id}
+    }
+    return null;
   };
 
   const projectId = getProjectId();
+
+  // Don't show navigation items if no project is selected
+  if (!projectId) {
+    return (
+      <SidebarContent className="px-3 py-4">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">Select a project to see navigation options</p>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    );
+  }
 
   return (
     <SidebarContent className="px-3 py-4">
@@ -107,7 +126,7 @@ export function SidebarNavigation() {
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
                               <a 
-                                href={projectId ? `/project/${projectId}${subItem.url}` : subItem.url}
+                                href={`/project/${projectId}${subItem.url}`}
                                 className="flex items-center space-x-3 p-4 rounded-lg"
                               >
                                 <subItem.icon className="h-4 w-4" />
