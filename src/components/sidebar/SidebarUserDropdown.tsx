@@ -41,7 +41,7 @@ export function SidebarUserDropdown() {
     }
   };
 
-  // Get user initials for fallback
+  // Get user initials for fallback (only used when no avatar)
   const getUserInitials = () => {
     if (profile?.first_name || profile?.last_name) {
       const first = profile.first_name?.charAt(0) || "";
@@ -70,7 +70,11 @@ export function SidebarUserDropdown() {
             <Button variant="ghost" className="w-full justify-start p-2 h-auto">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.avatar_url || ""} alt="User avatar" />
+                  <AvatarImage 
+                    src={profile?.avatar_url || ""} 
+                    alt="User avatar"
+                    className="object-cover"
+                  />
                   <AvatarFallback className="bg-gray-100 text-gray-700 text-sm">
                     {getUserInitials()}
                   </AvatarFallback>

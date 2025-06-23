@@ -47,15 +47,24 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
       
+      console.log("Uploading file to:", fileName);
+      
       const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      console.log("Upload successful:", data);
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
+
+      console.log("Public URL:", publicUrl);
 
       // Update the profile in the database immediately
       const { error: updateError } = await supabase
@@ -63,12 +72,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw updateError;
+      }
+
+      console.log("Database updated successfully");
 
       setAvatarUrl(publicUrl);
       
       // Invalidate the user profile query to refetch the updated data
-      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      await queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
       
       toast({
         title: "Success",
@@ -109,7 +123,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       if (error) throw error;
 
       // Invalidate the user profile query to refetch the updated data
-      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      await queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
 
       toast({
         title: "Success",
