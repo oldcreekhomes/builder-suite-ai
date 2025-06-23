@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,17 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Mail, Phone } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Pencil, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
@@ -109,17 +100,6 @@ export function RepresentativesTable() {
   const handleEditClick = (rep: Representative) => {
     setEditingRepresentative(rep);
     setEditDialogOpen(true);
-  };
-
-  const handleDeleteClick = (rep: Representative) => {
-    setRepresentativeToDelete(rep);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (representativeToDelete) {
-      deleteRepMutation.mutate(representativeToDelete.id);
-    }
   };
 
   if (isLoading) {
