@@ -30,11 +30,10 @@ interface GanttChartProps {
 
 export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
   const [editingTask, setEditingTask] = useState<ScheduleTask | null>(null);
-  const updateTaskMutation = useUpdateScheduleTask();
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-8">
         <p className="text-gray-500 text-lg">No tasks yet</p>
         <p className="text-gray-400">Click "Add Task" to get started</p>
       </div>
@@ -63,48 +62,51 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
     const endDate = parseISO(task.end_date);
 
     return (
-      <TableRow key={task.id} className={isChild ? "bg-gray-50" : ""}>
-        <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium`}>
+      <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-10`}>
+        <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-2 text-sm`}>
           {task.task_code}
         </TableCell>
-        <TableCell>{task.task_name}</TableCell>
-        <TableCell>{format(startDate, 'MMM dd, yyyy')}</TableCell>
-        <TableCell>{format(endDate, 'MMM dd, yyyy')}</TableCell>
-        <TableCell>{task.duration} days</TableCell>
-        <TableCell>
+        <TableCell className="py-2 text-sm truncate max-w-[200px]" title={task.task_name}>
+          {task.task_name}
+        </TableCell>
+        <TableCell className="py-2 text-sm">{format(startDate, 'MMM dd')}</TableCell>
+        <TableCell className="py-2 text-sm">{format(endDate, 'MMM dd')}</TableCell>
+        <TableCell className="py-2 text-sm">{task.duration}d</TableCell>
+        <TableCell className="py-2">
           <div className="flex items-center space-x-2">
-            <Progress value={task.progress} className="w-16" />
-            <span className="text-sm">{task.progress}%</span>
+            <Progress value={task.progress} className="w-12 h-2" />
+            <span className="text-xs w-8">{task.progress}%</span>
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {task.resources.length > 0 ? (
             <div className="flex items-center space-x-1">
-              <Users className="h-4 w-4" />
-              <Badge variant="secondary">
-                {task.resources.length} user{task.resources.length !== 1 ? 's' : ''}
+              <Users className="h-3 w-3" />
+              <Badge variant="secondary" className="text-xs px-1 py-0">
+                {task.resources.length}
               </Badge>
             </div>
           ) : (
-            <span className="text-gray-400">None</span>
+            <span className="text-gray-400 text-xs">None</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           {task.predecessor_id ? (
-            <Badge variant="outline">
+            <Badge variant="outline" className="text-xs px-1 py-0">
               {tasks.find(t => t.id === task.predecessor_id)?.task_code || 'Unknown'}
             </Badge>
           ) : (
-            <span className="text-gray-400">None</span>
+            <span className="text-gray-400 text-xs">None</span>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="py-2">
           <Button
             variant="ghost"
             size="sm"
+            className="h-6 w-6 p-0"
             onClick={() => setEditingTask(task)}
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-3 w-3" />
           </Button>
         </TableCell>
       </TableRow>
@@ -118,16 +120,16 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
     const taskDuration = differenceInDays(endDate, startDate) + 1;
     
     return (
-      <div key={task.id} className={`mb-2 ${isChild ? 'ml-4' : ''}`}>
-        <div className="flex items-center">
-          <div className="w-48 flex-shrink-0 text-sm font-medium pr-4 truncate">
+      <div key={task.id} className={`mb-1 ${isChild ? 'ml-4' : ''}`}>
+        <div className="flex items-center h-10">
+          <div className="w-48 flex-shrink-0 text-xs font-medium pr-4 truncate">
             {isChild ? '↳ ' : ''}{task.task_name}
           </div>
           <div className="flex relative">
             {dateRange.map((_, index) => (
               <div
                 key={index}
-                className={`w-8 ${isChild ? 'h-4' : 'h-6'} border-r border-gray-200`}
+                className={`w-8 ${isChild ? 'h-3' : 'h-4'} border-r border-gray-200`}
               >
                 {index >= taskStartIndex && index < taskStartIndex + taskDuration && (
                   <div 
@@ -146,27 +148,27 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <ResizablePanelGroup direction="horizontal" className="min-h-[600px] border rounded-lg">
+    <div className="space-y-2">
+      <ResizablePanelGroup direction="horizontal" className="min-h-[500px] border rounded-lg">
         {/* Task Table Panel */}
         <ResizablePanel defaultSize={50} minSize={30}>
           <Card className="h-full border-0">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Tasks</h3>
+            <div className="p-3 border-b">
+              <h3 className="text-base font-semibold">Tasks</h3>
             </div>
-            <ScrollArea className="h-[calc(600px-60px)]">
+            <ScrollArea className="h-[calc(500px-50px)]">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Task Name</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Resources</TableHead>
-                    <TableHead>Predecessor</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableRow className="h-8">
+                    <TableHead className="py-2 text-xs">Code</TableHead>
+                    <TableHead className="py-2 text-xs">Task Name</TableHead>
+                    <TableHead className="py-2 text-xs">Start</TableHead>
+                    <TableHead className="py-2 text-xs">End</TableHead>
+                    <TableHead className="py-2 text-xs">Duration</TableHead>
+                    <TableHead className="py-2 text-xs">Progress</TableHead>
+                    <TableHead className="py-2 text-xs">Resources</TableHead>
+                    <TableHead className="py-2 text-xs">Predecessor</TableHead>
+                    <TableHead className="py-2 text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -189,11 +191,11 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
         {/* Gantt Timeline Panel */}
         <ResizablePanel defaultSize={50} minSize={30}>
           <Card className="h-full border-0">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Timeline View</h3>
+            <div className="p-3 border-b">
+              <h3 className="text-base font-semibold">Timeline View</h3>
             </div>
-            <ScrollArea className="h-[calc(600px-60px)]">
-              <div className="p-4">
+            <ScrollArea className="h-[calc(500px-50px)]">
+              <div className="p-3">
                 <div className="overflow-x-auto">
                   <div className="min-w-max">
                     {/* Date headers */}

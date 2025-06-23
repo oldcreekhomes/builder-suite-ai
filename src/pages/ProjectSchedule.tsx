@@ -5,7 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { GanttChart } from "@/components/schedule/GanttChart";
@@ -30,12 +30,7 @@ export default function ProjectSchedule() {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl font-bold tracking-tight">Project Schedule</h2>
-                <p className="text-muted-foreground">
-                  Manage your project timeline and tasks
-                </p>
-              </div>
+              <h2 className="text-3xl font-bold tracking-tight">Project Schedule</h2>
               <Button onClick={() => setIsAddTaskOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Task
@@ -43,10 +38,7 @@ export default function ProjectSchedule() {
             </div>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Project Timeline</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-64">
                     <p>Loading schedule...</p>
