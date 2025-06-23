@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,25 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     };
     return colors[fileType] || "bg-gray-100 text-gray-800";
   };
+
+  // Group files by top-level folder only
+  const groupedFiles = files.reduce((acc, file) => {
+    const displayInfo = getDisplayName(file.original_filename);
+    const folderKey = displayInfo.isInFolder ? displayInfo.topLevelFolder : 'Root';
+    
+    if (!acc[folderKey]) {
+      acc[folderKey] = [];
+    }
+    acc[folderKey].push(file);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Sort folders - Root first, then alphabetically
+  const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
+    if (a === 'Root') return -1;
+    if (b === 'Root') return 1;
+    return a.localeCompare(b);
+  });
 
   const uploadFileToFolder = async (file: File, folderName: string) => {
     if (!user) return false;
