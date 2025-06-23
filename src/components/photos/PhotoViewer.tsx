@@ -1,3 +1,5 @@
+
+import React from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PhotoViewerHeader } from "./PhotoViewerHeader";
 import { PhotoViewerImage } from "./PhotoViewerImage";
