@@ -45,6 +45,10 @@ export function ProjectsOverview() {
     return projects.filter(project => project.status === status);
   };
 
+  const getProjectCount = (status: string) => {
+    return filterProjectsByStatus(status).length;
+  };
+
   const renderProjectCard = (project: any) => {
     const progress = getProgressValue(project.status);
     
@@ -164,7 +168,7 @@ export function ProjectsOverview() {
           <TabsList className="grid w-full grid-cols-5">
             {statusTabs.map((status) => (
               <TabsTrigger key={status} value={status} className="text-xs">
-                {status}
+                {status} ({getProjectCount(status)})
               </TabsTrigger>
             ))}
           </TabsList>
