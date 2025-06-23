@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -145,56 +144,11 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
       file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic')
     );
     console.log('Photo folder files selected:', files);
+    console.log('Files with webkitRelativePath:', files.map(f => ({ name: f.name, path: f.webkitRelativePath })));
     
     if (files.length > 0) {
-      const newUploads = files.map(file => ({
-        file,
-        progress: 0,
-        uploading: true,
-      }));
-
-      setUploadingFiles(prev => [...prev, ...newUploads]);
-
-      for (const file of files) {
-        // For folder input, always use webkitRelativePath if available
-        const relativePath = file.webkitRelativePath || file.name;
-        console.log('Folder upload file path:', relativePath);
-        
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-          setUploadingFiles(prev => 
-            prev.map((upload) => 
-              upload.file === file 
-                ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
-                : upload
-            )
-          );
-        }, 200);
-
-        const success = await uploadPhoto(file, relativePath);
-        
-        clearInterval(progressInterval);
-        
-        setUploadingFiles(prev => 
-          prev.map(upload => 
-            upload.file === file 
-              ? { ...upload, progress: 100, uploading: false }
-              : upload
-          )
-        );
-
-        if (success) {
-          setTimeout(() => {
-            setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
-          }, 1000);
-        }
-      }
-      
-      if (files.length > 0) {
-        setTimeout(() => {
-          onUploadSuccess();
-        }, 1000);
-      }
+      // Use the onDrop handler to maintain consistency
+      await onDrop(files);
     }
     
     event.target.value = '';
