@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
@@ -18,6 +18,7 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   const queryClient = useQueryClient();
   const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const initializedRef = useRef(false);
 
   // Fetch all cost codes
   const { data: costCodes = [] } = useQuery({
@@ -48,16 +49,26 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes when data loads
+  // Initialize selected cost codes only once when data first loads
   useEffect(() => {
-    if (companyCostCodes.length > 0) {
+    if (companyCostCodes.length >= 0 && !initializedRef.current) {
+      console.log('Initializing cost codes for company:', companyId, companyCostCodes);
       setSelectedCostCodes(companyCostCodes);
+      initializedRef.current = true;
     }
-  }, [companyCostCodes]);
+  }, [companyCostCodes, companyId]);
+
+  // Reset initialization when company changes
+  useEffect(() => {
+    initializedRef.current = false;
+    setSelectedCostCodes([]);
+  }, [companyId]);
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
     mutationFn: async (costCodeIds: string[]) => {
+      console.log('Saving cost codes for company:', companyId, costCodeIds);
+      
       // First, remove all existing associations
       const { error: deleteError } = await supabase
         .from('company_cost_codes')
@@ -108,12 +119,14 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
       ? selectedCostCodes.filter(id => id !== costCodeId)
       : [...selectedCostCodes, costCodeId];
     
+    console.log('Toggling cost code:', costCodeId, 'New selection:', newSelection);
     setSelectedCostCodes(newSelection);
     saveCostCodesMutation.mutate(newSelection);
   };
 
   const removeCostCode = (costCodeId: string) => {
     const newSelection = selectedCostCodes.filter(id => id !== costCodeId);
+    console.log('Removing cost code:', costCodeId, 'New selection:', newSelection);
     setSelectedCostCodes(newSelection);
     saveCostCodesMutation.mutate(newSelection);
   };
