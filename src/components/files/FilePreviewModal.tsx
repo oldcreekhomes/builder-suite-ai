@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
     return () => {
       if (fileUrl) {
         URL.revokeObjectURL(fileUrl);
+        setFileUrl(null);
       }
     };
   }, [isOpen, file]);
@@ -32,14 +33,14 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
   const loadFileUrl = async () => {
     setLoading(true);
     try {
+      // Get a signed URL instead of downloading the file directly
       const { data, error } = await supabase.storage
         .from('project-files')
-        .download(file.storage_path);
+        .createSignedUrl(file.storage_path, 3600); // 1 hour expiry
 
       if (error) throw error;
 
-      const url = URL.createObjectURL(data);
-      setFileUrl(url);
+      setFileUrl(data.signedUrl);
     } catch (error) {
       console.error('Preview error:', error);
       toast({
@@ -152,15 +153,10 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
             <DialogTitle className="text-lg font-semibold">
               {file.original_filename}
             </DialogTitle>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
           </div>
         </DialogHeader>
 
