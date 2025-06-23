@@ -47,31 +47,48 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
 
   const fetchFolders = async () => {
     try {
+      console.log('Fetching folders for project:', projectId);
       const { data, error } = await supabase
         .from('project_photos')
         .select('description')
         .eq('project_id', projectId)
         .not('description', 'is', null);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching folders:', error);
+        throw error;
+      }
+
+      console.log('Fetched photo descriptions:', data);
 
       // Extract unique folder names from photo descriptions
       const folderSet = new Set<string>();
       data?.forEach(photo => {
         if (photo.description && photo.description.includes('/')) {
           const folderName = photo.description.split('/')[0];
-          folderSet.add(folderName);
+          if (folderName.trim()) {
+            folderSet.add(folderName);
+          }
         }
       });
 
-      setFolders(Array.from(folderSet).sort());
+      const folderList = Array.from(folderSet).sort();
+      console.log('Extracted folders:', folderList);
+      setFolders(folderList);
     } catch (error) {
       console.error('Error fetching folders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load existing folders",
+        variant: "destructive",
+      });
     }
   };
 
   const handleMove = async () => {
-    if (!selectedFolder && !newFolderName) {
+    const targetFolder = newFolderName.trim() || selectedFolder;
+    
+    if (!targetFolder) {
       toast({
         title: "Select Destination",
         description: "Please select a folder or create a new one",
@@ -90,15 +107,14 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
     }
 
     setIsMoving(true);
-    const targetFolder = newFolderName.trim() || selectedFolder;
 
     try {
       console.log('Moving photos to folder:', targetFolder);
-      console.log('Selected photos:', selectedPhotos);
+      console.log('Selected photos count:', selectedPhotos.length);
 
-      // Process each photo individually to handle errors better
-      for (const photo of selectedPhotos) {
-        // Generate a proper filename for the photo
+      // Process each photo individually
+      const updatePromises = selectedPhotos.map(async (photo) => {
+        // Generate filename for the photo
         let filename = photo.description;
         
         // If description is null, empty, or already contains a folder path, generate a new filename
@@ -106,8 +122,11 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
           // Try to extract filename from URL
           const urlParts = photo.url.split('/');
           const urlFilename = urlParts[urlParts.length - 1];
+          
+          // Extract just the filename part if it has an extension
           if (urlFilename && urlFilename.includes('.')) {
-            filename = urlFilename;
+            const cleanFilename = urlFilename.split('_').pop() || urlFilename;
+            filename = cleanFilename;
           } else {
             filename = `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
           }
@@ -127,15 +146,19 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
 
         if (error) {
           console.error('Error updating photo:', photo.id, error);
-          throw new Error(`Failed to move photo: ${error.message}`);
+          throw new Error(`Failed to move photo ${photo.id}: ${error.message}`);
         }
-      }
+
+        return photo.id;
+      });
+
+      await Promise.all(updatePromises);
 
       console.log('Successfully moved all photos');
 
       toast({
         title: "Success",
-        description: `Moved ${selectedPhotos.length} photo(s) to "${targetFolder}"`,
+        description: `Moved ${selectedPhotos.length} photo(s) to "${targetFolder}" folder`,
       });
 
       onSuccess();

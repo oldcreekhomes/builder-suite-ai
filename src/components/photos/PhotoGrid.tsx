@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,34 +90,17 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setDeletingPhoto(photo.id);
     try {
       console.log('Deleting photo:', photo.id);
-      console.log('Current user:', await supabase.auth.getUser());
       
-      // Check if the photo exists and user has permission to delete it
-      const { data: photoCheck, error: checkError } = await supabase
-        .from('project_photos')
-        .select('*')
-        .eq('id', photo.id)
-        .single();
-      
-      if (checkError) {
-        console.error('Error checking photo:', checkError);
-        throw new Error(`Cannot access photo: ${checkError.message}`);
-      }
-      
-      console.log('Photo found:', photoCheck);
-      
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('project_photos')
         .delete()
-        .eq('id', photo.id)
-        .select(); // Add select to see what was actually deleted
+        .eq('id', photo.id);
 
       if (error) {
         console.error('Delete error:', error);
         throw new Error(`Delete failed: ${error.message}`);
       }
 
-      console.log('Delete result:', data);
       console.log('Photo deleted successfully');
       
       toast({
@@ -160,33 +144,17 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setIsDeleting(true);
     try {
       console.log('Bulk deleting photos:', Array.from(selectedPhotos));
-      console.log('Current user:', await supabase.auth.getUser());
       
-      // First check if photos exist and user has permission
-      const { data: photosCheck, error: checkError } = await supabase
-        .from('project_photos')
-        .select('*')
-        .in('id', Array.from(selectedPhotos));
-      
-      if (checkError) {
-        console.error('Error checking photos:', checkError);
-        throw new Error(`Cannot access photos: ${checkError.message}`);
-      }
-      
-      console.log('Photos found for deletion:', photosCheck);
-      
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('project_photos')
         .delete()
-        .in('id', Array.from(selectedPhotos))
-        .select(); // Add select to see what was actually deleted
+        .in('id', Array.from(selectedPhotos));
 
       if (error) {
         console.error('Bulk delete error:', error);
         throw new Error(`Bulk delete failed: ${error.message}`);
       }
 
-      console.log('Bulk delete result:', data);
       console.log('Bulk delete successful');
       
       toast({
@@ -224,8 +192,10 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setShowShareModal(true);
   };
 
-  const handleContextShare = (photo: ProjectPhoto) => {
-    handleSharePhoto(photo);
+  const handleMoveSuccess = () => {
+    setSelectedPhotos(new Set());
+    setShowMoveModal(false);
+    onRefresh();
   };
 
   if (photos.length === 0) {
@@ -399,7 +369,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </ContextMenuItem>
-              <ContextMenuItem onClick={() => handleContextShare(photo)}>
+              <ContextMenuItem onClick={() => handleSharePhoto(photo)}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Create Link & Share
               </ContextMenuItem>
@@ -420,11 +390,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
         onClose={() => setShowMoveModal(false)}
         selectedPhotoIds={Array.from(selectedPhotos)}
         photos={photos}
-        onSuccess={() => {
-          setSelectedPhotos(new Set());
-          onRefresh();
-          setShowMoveModal(false);
-        }}
+        onSuccess={handleMoveSuccess}
       />
 
       {/* Share Photo Modal */}
