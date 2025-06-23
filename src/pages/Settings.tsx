@@ -1,4 +1,3 @@
-
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -7,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
+import { ExcelImportDialog } from "@/components/ExcelImportDialog";
 import { useState } from "react";
 
 const Settings = () => {
@@ -18,12 +18,21 @@ const Settings = () => {
 
   const handleAddCostCode = (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
-    // Here you would typically save to your backend
     setCostCodes(prev => [...prev, {
       code: newCostCode.code,
       name: newCostCode.name,
       category: newCostCode.parentGroup || "Uncategorized"
     }]);
+  };
+
+  const handleImportCostCodes = (importedCostCodes: any[]) => {
+    console.log("Importing cost codes:", importedCostCodes);
+    const newCostCodes = importedCostCodes.map(code => ({
+      code: code.code,
+      name: code.name,
+      category: code.parentGroup || "Uncategorized"
+    }));
+    setCostCodes(prev => [...prev, ...newCostCodes]);
   };
 
   return (
@@ -52,10 +61,13 @@ const Settings = () => {
                         <h3 className="text-lg font-semibold text-black">Cost Codes</h3>
                         <p className="text-sm text-gray-600">Manage your project cost codes and categories</p>
                       </div>
-                      <AddCostCodeDialog 
-                        existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
-                        onAddCostCode={handleAddCostCode}
-                      />
+                      <div className="flex gap-2">
+                        <ExcelImportDialog onImportCostCodes={handleImportCostCodes} />
+                        <AddCostCodeDialog 
+                          existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
+                          onAddCostCode={handleAddCostCode}
+                        />
+                      </div>
                     </div>
                     
                     <div className="border rounded-lg">
