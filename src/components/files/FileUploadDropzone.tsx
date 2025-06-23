@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -8,6 +7,8 @@ import { Upload, X, FileText, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { FileOperationsContextMenu } from "./FileOperationsContextMenu";
+import { NewFolderModal } from "./NewFolderModal";
 
 interface FileUploadDropzoneProps {
   projectId: string;
@@ -18,7 +19,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   const { user } = useAuth();
   const { toast } = useToast();
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Array<{
     file: File;
     progress: number;
@@ -77,7 +81,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   };
 
-  // Process files from native drag and drop (preserves folder structure)
   const processFilesFromDataTransfer = async (dataTransfer: DataTransfer) => {
     const files: Array<{ file: File; relativePath: string }> = [];
     
@@ -106,7 +109,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     return files;
   };
 
-  // Recursively traverse directory structure
   const traverseFileTree = (item: any, path: string, files: Array<{ file: File; relativePath: string }>) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
@@ -144,7 +146,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     });
   };
 
-  // Handle native drag and drop events
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -224,7 +225,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   };
 
-  // Fallback for react-dropzone (individual files)
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('React-dropzone files (individual files only):', acceptedFiles.length);
     
@@ -383,60 +383,96 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
 
+  const handleNewFolder = () => {
+    setShowNewFolderModal(true);
+  };
+
+  const handleContextFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleContextFolderUpload = () => {
+    folderInputRef.current?.click();
+  };
+
+  const handleCreateFolder = (folderName: string) => {
+    // Create a placeholder file to represent the folder structure
+    const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
+    const folderPath = `${folderName}/.placeholder`;
+    
+    uploadFile(folderPlaceholder, folderPath).then((success) => {
+      if (success) {
+        toast({
+          title: "Folder Created",
+          description: `Successfully created folder "${folderName}"`,
+        });
+        onUploadSuccess();
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
-        <div
-          ref={dropzoneRef}
-          {...getRootProps()}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`p-8 text-center cursor-pointer ${
-            isDragOver ? 'bg-blue-50 border-blue-400' : ''
-          }`}
+        <FileOperationsContextMenu
+          onNewFolder={handleNewFolder}
+          onFileUpload={handleContextFileUpload}
+          onFolderUpload={handleContextFolderUpload}
         >
-          <input {...getInputProps()} />
-          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragOver ? 'Drop files or folders here' : 'Upload files or multiple folders'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Drag and drop multiple files or folders here, or click to select
-          </p>
-          <p className="text-sm text-gray-500 mb-4">
-            Supports: PDF, Word, Excel, PowerPoint, Text, and Images
-          </p>
-          <div className="flex items-center justify-center space-x-4">
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Button type="button" className="mt-4">
-                <FileText className="h-4 w-4 mr-2" />
-                Choose Files
-              </Button>
-              <input
-                id="file-upload"
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-            <label htmlFor="folder-upload" className="cursor-pointer">
-              <Button type="button" variant="outline" className="mt-4">
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Choose Multiple Folders
-              </Button>
-              <input
-                id="folder-upload"
-                type="file"
-                {...({ webkitdirectory: "" } as any)}
-                multiple
-                onChange={handleMultipleFolderUpload}
-                className="hidden"
-              />
-            </label>
+          <div
+            ref={dropzoneRef}
+            {...getRootProps()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`p-8 text-center cursor-pointer ${
+              isDragOver ? 'bg-blue-50 border-blue-400' : ''
+            }`}
+          >
+            <input {...getInputProps()} />
+            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {isDragOver ? 'Drop files or folders here' : 'Upload files or multiple folders'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Drag and drop multiple files or folders here, or click to select. Right-click for more options.
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              Supports: PDF, Word, Excel, PowerPoint, Text, and Images
+            </p>
+            <div className="flex items-center justify-center space-x-4">
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <Button type="button" className="mt-4">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Choose Files
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              <label htmlFor="folder-upload" className="cursor-pointer">
+                <Button type="button" variant="outline" className="mt-4">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Choose Multiple Folders
+                </Button>
+                <input
+                  ref={folderInputRef}
+                  id="folder-upload"
+                  type="file"
+                  {...({ webkitdirectory: "" } as any)}
+                  multiple
+                  onChange={handleMultipleFolderUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
-        </div>
+        </FileOperationsContextMenu>
       </Card>
 
       {uploadingFiles.length > 0 && (
@@ -467,6 +503,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           </div>
         </Card>
       )}
+
+      <NewFolderModal
+        isOpen={showNewFolderModal}
+        onClose={() => setShowNewFolderModal(false)}
+        onCreateFolder={handleCreateFolder}
+      />
     </div>
   );
 }
