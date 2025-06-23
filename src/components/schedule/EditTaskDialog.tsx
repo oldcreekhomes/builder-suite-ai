@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,14 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScheduleTask, useUpdateScheduleTask } from "@/hooks/useProjectSchedule";
-import { format, addDays } from "date-fns";
+import { useUpdateScheduleTask, ScheduleTask } from "@/hooks/useProjectSchedule";
+import { format, addDays, parseISO } from "date-fns";
 
 const formSchema = z.object({
   task_name: z.string().min(1, "Task name is required"),
   start_date: z.string().min(1, "Start date is required"),
   duration: z.number().min(1, "Duration must be at least 1 day"),
-  progress: z.number().min(0).max(100),
+  progress: z.number().min(0).max(100, "Progress must be between 0 and 100"),
   resources: z.string().optional(),
   predecessor_id: z.string().optional(),
 });
@@ -69,6 +70,20 @@ export function EditTaskDialog({
     },
   });
 
+  // Reset form when task changes
+  useEffect(() => {
+    if (task) {
+      form.reset({
+        task_name: task.task_name,
+        start_date: task.start_date,
+        duration: task.duration,
+        progress: task.progress,
+        resources: task.resources.join(', '),
+        predecessor_id: task.predecessor_id || "",
+      });
+    }
+  }, [task, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const startDate = new Date(values.start_date);
     const endDate = addDays(startDate, values.duration - 1);
@@ -87,7 +102,7 @@ export function EditTaskDialog({
         progress: values.progress,
         resources: resourcesArray,
         predecessor_id: values.predecessor_id || undefined,
-      }
+      },
     });
 
     onTaskUpdated();
@@ -103,7 +118,7 @@ export function EditTaskDialog({
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>
-            Update the task details and timeline.
+            Update the task details for {task.task_code}.
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +224,7 @@ export function EditTaskDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Predecessor Task</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select predecessor (optional)" />
