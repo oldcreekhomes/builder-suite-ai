@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProfileDialogProps {
   open: boolean;
@@ -19,6 +21,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -54,7 +57,18 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         .from('avatars')
         .getPublicUrl(fileName);
 
+      // Update the profile in the database immediately
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
       setAvatarUrl(publicUrl);
+      
+      // Invalidate the user profile query to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
       
       toast({
         title: "Success",
@@ -86,14 +100,16 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
           last_name: lastName,
           avatar_url: avatarUrl,
           email: user.email || profile.email,
-          user_type: profile.user_type, // Include the existing user_type
-          // Include other required fields to avoid conflicts
+          user_type: profile.user_type,
           approved_by_home_builder: profile.approved_by_home_builder,
           company_name: profile.company_name,
           home_builder_id: profile.home_builder_id,
         });
 
       if (error) throw error;
+
+      // Invalidate the user profile query to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
 
       toast({
         title: "Success",
