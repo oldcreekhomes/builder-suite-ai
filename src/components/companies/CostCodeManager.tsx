@@ -18,7 +18,7 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   const queryClient = useQueryClient();
   const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
-  const initializedRef = useRef<string | null>(null);
+  const initializedCompanyRef = useRef<string | null>(null);
 
   // Fetch all cost codes
   const { data: costCodes = [] } = useQuery({
@@ -49,22 +49,15 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes only once per company
+  // Initialize selected cost codes when company changes or data loads
   useEffect(() => {
-    if (companyCostCodes.length >= 0 && initializedRef.current !== companyId) {
+    // Only initialize if we haven't initialized for this company yet
+    if (companyId && initializedCompanyRef.current !== companyId) {
       console.log('Initializing cost codes for company:', companyId, companyCostCodes);
       setSelectedCostCodes(companyCostCodes);
-      initializedRef.current = companyId;
+      initializedCompanyRef.current = companyId;
     }
-  }, [companyCostCodes, companyId]);
-
-  // Reset when company changes
-  useEffect(() => {
-    if (initializedRef.current !== companyId) {
-      setSelectedCostCodes([]);
-      initializedRef.current = null;
-    }
-  }, [companyId]);
+  }, [companyId, companyCostCodes]);
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
