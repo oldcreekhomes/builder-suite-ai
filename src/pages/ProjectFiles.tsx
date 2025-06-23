@@ -76,7 +76,6 @@ export default function ProjectFiles() {
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-black">Project Files</h1>
-                  <p className="text-gray-600">Manage documents, spreadsheets, and files</p>
                 </div>
               </div>
               
@@ -141,12 +140,20 @@ export default function ProjectFiles() {
                     files={filteredFiles}
                     onFileSelect={handleFileSelect}
                     onRefresh={refetch}
+                    onUploadToFolder={(folderName, files) => {
+                      // Handle folder upload
+                      console.log('Upload to folder:', folderName, files);
+                    }}
                   />
                 ) : (
                   <FileGrid
                     files={filteredFiles}
                     onFileSelect={handleFileSelect}
                     onRefresh={refetch}
+                    onUploadToFolder={(folderName, files) => {
+                      // Handle folder upload
+                      console.log('Upload to folder:', folderName, files);
+                    }}
                   />
                 )}
               </>

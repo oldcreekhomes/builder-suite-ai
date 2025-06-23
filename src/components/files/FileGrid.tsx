@@ -7,18 +7,22 @@ import { FileText, Download, Eye, Trash2, Image, Folder, ChevronRight, ChevronDo
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FileGridProps {
   files: any[];
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
+  onUploadToFolder?: (folderName: string, files: File[]) => void;
 }
 
-export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
+export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: FileGridProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -95,6 +99,87 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
     if (b === 'Root') return 1;
     return a.localeCompare(b);
   });
+
+  const uploadFileToFolder = async (file: File, folderName: string) => {
+    if (!user) return false;
+
+    const fileId = crypto.randomUUID();
+    const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
+    const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${relativePath}`;
+    
+    try {
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: window.location.pathname.split('/')[2],
+          filename: fileName,
+          original_filename: relativePath,
+          file_size: file.size,
+          file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
+          mime_type: file.type,
+          storage_path: uploadData.path,
+          uploaded_by: user.id,
+        });
+
+      if (dbError) throw dbError;
+      return true;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return false;
+    }
+  };
+
+  const handleFolderDragOver = (e: React.DragEvent, folderName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(folderName);
+  };
+
+  const handleFolderDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+  };
+
+  const handleFolderDrop = async (e: React.DragEvent, folderName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) return;
+
+    toast({
+      title: "Uploading files",
+      description: `Uploading ${droppedFiles.length} file(s) to ${folderName}...`,
+    });
+
+    const uploadPromises = droppedFiles.map(file => uploadFileToFolder(file, folderName));
+    const results = await Promise.all(uploadPromises);
+    const successCount = results.filter(Boolean).length;
+
+    if (successCount > 0) {
+      toast({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${successCount} file(s) to ${folderName}`,
+      });
+      onRefresh();
+    } else {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload files",
+        variant: "destructive",
+      });
+    }
+  };
 
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -257,13 +342,23 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
       {sortedFolders.map((folderPath) => {
         const folderFiles = groupedFiles[folderPath];
         const isExpanded = expandedFolders.has(folderPath);
+        const isDragOver = dragOverFolder === folderPath;
         
         return (
           <div key={folderPath} className="space-y-3">
             {/* Folder Header */}
-            <Card className="p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+            <Card 
+              className={`p-3 cursor-pointer transition-colors ${
+                isDragOver 
+                  ? 'bg-blue-100 border-blue-300' 
+                  : 'bg-gray-50 hover:bg-gray-100'
+              }`}
+              onDragOver={(e) => handleFolderDragOver(e, folderPath)}
+              onDragLeave={handleFolderDragLeave}
+              onDrop={(e) => handleFolderDrop(e, folderPath)}
+            >
               <div 
-                className="flex items-center space-x-3 cursor-pointer"
+                className="flex items-center space-x-3"
                 onClick={() => toggleFolder(folderPath)}
               >
                 {isExpanded ? (
@@ -278,6 +373,11 @@ export function FileGrid({ files, onFileSelect, onRefresh }: FileGridProps) {
                   </h3>
                   <p className="text-sm text-gray-500">
                     {folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''}
+                    {isDragOver && (
+                      <span className="text-blue-600 ml-2">
+                        • Drop files here to upload to this folder
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

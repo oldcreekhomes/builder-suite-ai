@@ -8,18 +8,22 @@ import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FileListProps {
   files: any[];
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
+  onUploadToFolder?: (folderName: string, files: File[]) => void;
 }
 
-export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
+export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: FileListProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -71,24 +75,86 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
     return colors[fileType] || "bg-gray-100 text-gray-800";
   };
 
-  // Group files by top-level folder only
-  const groupedFiles = files.reduce((acc, file) => {
-    const displayInfo = getDisplayName(file.original_filename);
-    const folderKey = displayInfo.isInFolder ? displayInfo.topLevelFolder : 'Root';
-    
-    if (!acc[folderKey]) {
-      acc[folderKey] = [];
-    }
-    acc[folderKey].push(file);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const uploadFileToFolder = async (file: File, folderName: string) => {
+    if (!user) return false;
 
-  // Sort folders - Root first, then alphabetically
-  const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
-    if (a === 'Root') return -1;
-    if (b === 'Root') return 1;
-    return a.localeCompare(b);
-  });
+    const fileId = crypto.randomUUID();
+    const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
+    const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${relativePath}`;
+    
+    try {
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: window.location.pathname.split('/')[2],
+          filename: fileName,
+          original_filename: relativePath,
+          file_size: file.size,
+          file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
+          mime_type: file.type,
+          storage_path: uploadData.path,
+          uploaded_by: user.id,
+        });
+
+      if (dbError) throw dbError;
+      return true;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return false;
+    }
+  };
+
+  const handleFolderDragOver = (e: React.DragEvent, folderName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(folderName);
+  };
+
+  const handleFolderDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+  };
+
+  const handleFolderDrop = async (e: React.DragEvent, folderName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverFolder(null);
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) return;
+
+    toast({
+      title: "Uploading files",
+      description: `Uploading ${droppedFiles.length} file(s) to ${folderName}...`,
+    });
+
+    const uploadPromises = droppedFiles.map(file => uploadFileToFolder(file, folderName));
+    const results = await Promise.all(uploadPromises);
+    const successCount = results.filter(Boolean).length;
+
+    if (successCount > 0) {
+      toast({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${successCount} file(s) to ${folderName}`,
+      });
+      onRefresh();
+    } else {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload files",
+        variant: "destructive",
+      });
+    }
+  };
 
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -260,14 +326,24 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
             {sortedFolders.map((folderPath) => {
               const folderFiles = groupedFiles[folderPath];
               const isExpanded = expandedFolders.has(folderPath);
+              const isDragOver = dragOverFolder === folderPath;
               
               return (
                 <React.Fragment key={folderPath}>
                   {/* Folder Header Row */}
-                  <TableRow className="bg-gray-50 hover:bg-gray-100 border-b-2">
+                  <TableRow 
+                    className={`border-b-2 cursor-pointer transition-colors ${
+                      isDragOver 
+                        ? 'bg-blue-100 border-blue-300' 
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
+                    onDragOver={(e) => handleFolderDragOver(e, folderPath)}
+                    onDragLeave={handleFolderDragLeave}
+                    onDrop={(e) => handleFolderDrop(e, folderPath)}
+                  >
                     <TableCell colSpan={7}>
                       <div 
-                        className="flex items-center space-x-2 cursor-pointer py-1"
+                        className="flex items-center space-x-2 py-1"
                         onClick={() => toggleFolder(folderPath)}
                       >
                         {isExpanded ? (
@@ -282,6 +358,11 @@ export function FileList({ files, onFileSelect, onRefresh }: FileListProps) {
                         <span className="text-sm text-gray-500">
                           ({folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''})
                         </span>
+                        {isDragOver && (
+                          <span className="text-sm text-blue-600 ml-2">
+                            Drop files here to upload to this folder
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
