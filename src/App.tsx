@@ -7,6 +7,8 @@ import { navItems } from "./nav-items";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import ProjectDashboard from "./pages/ProjectDashboard";
+import ProjectPhotos from "./pages/ProjectPhotos";
+import ProjectFiles from "./pages/ProjectFiles";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
 
@@ -25,6 +27,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProjectDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/project/:projectId/photos" 
+              element={
+                <ProtectedRoute>
+                  <ProjectPhotos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/project/:projectId/files" 
+              element={
+                <ProtectedRoute>
+                  <ProjectFiles />
                 </ProtectedRoute>
               } 
             />
