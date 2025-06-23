@@ -16,6 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -55,8 +61,6 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
   const renderTaskRow = (task: ScheduleTask, isChild = false) => {
     const startDate = parseISO(task.start_date);
     const endDate = parseISO(task.end_date);
-    const taskStartIndex = dateRange.findIndex(date => isSameDay(date, startDate));
-    const taskDuration = differenceInDays(endDate, startDate) + 1;
 
     return (
       <TableRow key={task.id} className={isChild ? "bg-gray-50" : ""}>
@@ -107,125 +111,120 @@ export function GanttChart({ tasks, onTaskUpdate }: GanttChartProps) {
     );
   };
 
+  const renderGanttRow = (task: ScheduleTask, isChild = false) => {
+    const startDate = parseISO(task.start_date);
+    const endDate = parseISO(task.end_date);
+    const taskStartIndex = dateRange.findIndex(date => isSameDay(date, startDate));
+    const taskDuration = differenceInDays(endDate, startDate) + 1;
+    
+    return (
+      <div key={task.id} className={`mb-2 ${isChild ? 'ml-4' : ''}`}>
+        <div className="flex items-center">
+          <div className="w-48 flex-shrink-0 text-sm font-medium pr-4 truncate">
+            {isChild ? '↳ ' : ''}{task.task_name}
+          </div>
+          <div className="flex relative">
+            {dateRange.map((_, index) => (
+              <div
+                key={index}
+                className={`w-8 ${isChild ? 'h-4' : 'h-6'} border-r border-gray-200`}
+              >
+                {index >= taskStartIndex && index < taskStartIndex + taskDuration && (
+                  <div 
+                    className={`h-full rounded ${isChild ? 'bg-green-500' : 'bg-blue-500'}`}
+                    style={{
+                      background: `linear-gradient(to right, ${isChild ? '#10b981' : '#3b82f6'} ${task.progress}%, #e5e7eb ${task.progress}%)`
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      {/* Gantt Chart Table */}
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Task Name</TableHead>
-              <TableHead>Start Date</TableHead>
-              <TableHead>End Date</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>Resources</TableHead>
-              <TableHead>Predecessor</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {parentTasks.map(task => (
-              <>
-                {renderTaskRow(task)}
-                {getChildTasks(task.id).map(childTask => 
-                  renderTaskRow(childTask, true)
-                )}
-              </>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {/* Visual Gantt Timeline */}
-      <Card className="p-4">
-        <h3 className="text-lg font-semibold mb-4">Timeline View</h3>
-        <div className="overflow-x-auto">
-          <div className="min-w-max">
-            {/* Date headers */}
-            <div className="flex mb-2">
-              <div className="w-48 flex-shrink-0"></div>
-              {dateRange.map((date, index) => (
-                <div
-                  key={index}
-                  className="w-8 text-xs text-center border-r border-gray-200 p-1"
-                >
-                  {format(date, 'dd')}
-                </div>
-              ))}
+      <ResizablePanelGroup direction="horizontal" className="min-h-[600px] border rounded-lg">
+        {/* Task Table Panel */}
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <Card className="h-full border-0">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-semibold">Tasks</h3>
             </div>
-            
-            {/* Task bars */}
-            {parentTasks.map(task => {
-              const startDate = parseISO(task.start_date);
-              const endDate = parseISO(task.end_date);
-              const taskStartIndex = dateRange.findIndex(date => isSameDay(date, startDate));
-              const taskDuration = differenceInDays(endDate, startDate) + 1;
-              
-              return (
-                <div key={task.id} className="mb-2">
-                  <div className="flex items-center">
-                    <div className="w-48 flex-shrink-0 text-sm font-medium pr-4">
-                      {task.task_name}
-                    </div>
-                    <div className="flex relative">
-                      {dateRange.map((_, index) => (
+            <ScrollArea className="h-[calc(600px-60px)]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Task Name</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead>Resources</TableHead>
+                    <TableHead>Predecessor</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parentTasks.map(task => (
+                    <>
+                      {renderTaskRow(task)}
+                      {getChildTasks(task.id).map(childTask => 
+                        renderTaskRow(childTask, true)
+                      )}
+                    </>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </Card>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Gantt Timeline Panel */}
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <Card className="h-full border-0">
+            <div className="p-4 border-b">
+              <h3 className="text-lg font-semibold">Timeline View</h3>
+            </div>
+            <ScrollArea className="h-[calc(600px-60px)]">
+              <div className="p-4">
+                <div className="overflow-x-auto">
+                  <div className="min-w-max">
+                    {/* Date headers */}
+                    <div className="flex mb-2">
+                      <div className="w-48 flex-shrink-0"></div>
+                      {dateRange.map((date, index) => (
                         <div
                           key={index}
-                          className="w-8 h-6 border-r border-gray-200"
+                          className="w-8 text-xs text-center border-r border-gray-200 p-1"
                         >
-                          {index >= taskStartIndex && index < taskStartIndex + taskDuration && (
-                            <div 
-                              className="h-full bg-blue-500 rounded"
-                              style={{
-                                background: `linear-gradient(to right, #3b82f6 ${task.progress}%, #e5e7eb ${task.progress}%)`
-                              }}
-                            />
-                          )}
+                          {format(date, 'dd')}
                         </div>
                       ))}
                     </div>
-                  </div>
-                  
-                  {/* Child tasks */}
-                  {getChildTasks(task.id).map(childTask => {
-                    const childStartDate = parseISO(childTask.start_date);
-                    const childEndDate = parseISO(childTask.end_date);
-                    const childStartIndex = dateRange.findIndex(date => isSameDay(date, childStartDate));
-                    const childDuration = differenceInDays(childEndDate, childStartDate) + 1;
                     
-                    return (
-                      <div key={childTask.id} className="flex items-center ml-4">
-                        <div className="w-44 flex-shrink-0 text-sm text-gray-600 pr-4">
-                          ↳ {childTask.task_name}
-                        </div>
-                        <div className="flex relative">
-                          {dateRange.map((_, index) => (
-                            <div
-                              key={index}
-                              className="w-8 h-4 border-r border-gray-200"
-                            >
-                              {index >= childStartIndex && index < childStartIndex + childDuration && (
-                                <div 
-                                  className="h-full bg-green-500 rounded"
-                                  style={{
-                                    background: `linear-gradient(to right, #10b981 ${childTask.progress}%, #e5e7eb ${childTask.progress}%)`
-                                  }}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                    {/* Task bars */}
+                    {parentTasks.map(task => (
+                      <div key={task.id}>
+                        {renderGanttRow(task)}
+                        {getChildTasks(task.id).map(childTask => 
+                          renderGanttRow(childTask, true)
+                        )}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </Card>
+              </div>
+            </ScrollArea>
+          </Card>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {editingTask && (
         <EditTaskDialog
