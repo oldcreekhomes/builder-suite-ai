@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +7,8 @@ import { MoreHorizontal, MapPin, Calendar, Plus } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useState } from "react";
+import { NewProjectDialog } from "@/components/NewProjectDialog";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -36,6 +37,7 @@ const statusTabs = ["In Design", "Permitting", "Under Construction", "Completed"
 export function ProjectsOverview() {
   const { data: projects = [], isLoading } = useProjects();
   const navigate = useNavigate();
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
@@ -114,7 +116,10 @@ export function ProjectsOverview() {
   const renderEmptyState = (status: string) => (
     <div className="text-center py-8">
       <div className="flex flex-col items-center justify-center">
-        <div className="bg-gray-100 p-4 rounded-full mb-4">
+        <div 
+          className="bg-gray-100 p-4 rounded-full mb-4 cursor-pointer hover:bg-gray-200 transition-colors"
+          onClick={() => setIsNewProjectOpen(true)}
+        >
           <Plus className="h-8 w-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">No {status.toLowerCase()} projects</h3>
@@ -128,7 +133,7 @@ export function ProjectsOverview() {
       <Card className="bg-white border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-black">Active Projects</h2>
+            <h2 className="text-xl font-bold text-black">Projects</h2>
             <Button variant="outline" size="sm" className="border-gray-200 hover:bg-gray-50">
               View All
             </Button>
@@ -153,40 +158,47 @@ export function ProjectsOverview() {
   }
 
   return (
-    <Card className="bg-white border border-gray-200">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-black">Active Projects</h2>
-          <Button variant="outline" size="sm" className="border-gray-200 hover:bg-gray-50">
-            View All
-          </Button>
+    <>
+      <Card className="bg-white border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-black">Projects</h2>
+            <Button variant="outline" size="sm" className="border-gray-200 hover:bg-gray-50">
+              View All
+            </Button>
+          </div>
         </div>
-      </div>
-      
-      <div className="p-6">
-        <Tabs defaultValue="In Design" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+        
+        <div className="p-6">
+          <Tabs defaultValue="In Design" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              {statusTabs.map((status) => (
+                <TabsTrigger key={status} value={status} className="text-xs">
+                  {status} ({getProjectCount(status)})
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
             {statusTabs.map((status) => (
-              <TabsTrigger key={status} value={status} className="text-xs">
-                {status} ({getProjectCount(status)})
-              </TabsTrigger>
+              <TabsContent key={status} value={status} className="mt-6">
+                <div className="space-y-4">
+                  {(() => {
+                    const statusProjects = filterProjectsByStatus(status);
+                    return statusProjects.length > 0 
+                      ? statusProjects.map(renderProjectCard)
+                      : renderEmptyState(status);
+                  })()}
+                </div>
+              </TabsContent>
             ))}
-          </TabsList>
-          
-          {statusTabs.map((status) => (
-            <TabsContent key={status} value={status} className="mt-6">
-              <div className="space-y-4">
-                {(() => {
-                  const statusProjects = filterProjectsByStatus(status);
-                  return statusProjects.length > 0 
-                    ? statusProjects.map(renderProjectCard)
-                    : renderEmptyState(status);
-                })()}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-    </Card>
+          </Tabs>
+        </div>
+      </Card>
+
+      <NewProjectDialog 
+        open={isNewProjectOpen} 
+        onOpenChange={setIsNewProjectOpen} 
+      />
+    </>
   );
 }
