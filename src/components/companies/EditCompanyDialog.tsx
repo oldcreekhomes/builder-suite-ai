@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,6 +66,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const [costCodeSearch, setCostCodeSearch] = useState("");
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [representativeSearch, setRepresentativeSearch] = useState("");
+  const initializedRef = useRef<string | null>(null);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -150,19 +151,23 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Update selected cost codes when company cost codes are loaded
   useEffect(() => {
-    if (company?.id && open) {
+    if (company?.id && open && companyCostCodes.length >= 0 && initializedRef.current !== company.id) {
       console.log('Setting selected cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
+      initializedRef.current = company.id;
     }
-  }, [company?.id, open, companyCostCodes.length]);
+  }, [company?.id, open, companyCostCodes]);
 
-  // Reset search when dialog opens/closes
+  // Reset when dialog closes or company changes
   useEffect(() => {
-    if (!open) {
+    if (!open || !company) {
       setCostCodeSearch("");
       setRepresentativeSearch("");
+      setSelectedCostCodes([]);
+      setSelectedRepresentatives([]);
+      initializedRef.current = null;
     }
-  }, [open]);
+  }, [open, company?.id]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -206,8 +211,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         title: "Success",
         description: "Company updated successfully",
       });
-      setCostCodeSearch("");
-      setRepresentativeSearch("");
       onOpenChange(false);
     },
     onError: (error) => {
