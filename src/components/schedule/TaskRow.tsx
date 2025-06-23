@@ -146,7 +146,7 @@ export function TaskRow({
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+          </Alert>
         </div>
       </TableCell>
     </TableRow>

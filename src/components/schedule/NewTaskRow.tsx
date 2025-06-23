@@ -55,9 +55,6 @@ export function NewTaskRow({
           className="h-6 text-xs"
         />
       </TableCell>
-      <TableCell className="py-1 text-xs w-20">
-        <span className="whitespace-nowrap">{format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}</span>
-      </TableCell>
       <TableCell className="py-1 text-xs w-16">
         <div className="flex items-center space-x-1">
           <Input
@@ -69,6 +66,9 @@ export function NewTaskRow({
           />
           <span className="text-xs flex-shrink-0">d</span>
         </div>
+      </TableCell>
+      <TableCell className="py-1 text-xs w-20">
+        <span className="whitespace-nowrap">{format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}</span>
       </TableCell>
       <TableCell className="py-1 w-24">
         <div className="flex items-center space-x-2">
