@@ -1,4 +1,3 @@
-
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -39,6 +38,23 @@ const Settings = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
+
+  // Group cost codes by parent group
+  const groupedCostCodes = costCodes.reduce((groups, costCode) => {
+    const parentGroup = costCode.parent_group;
+    if (parentGroup) {
+      if (!groups[parentGroup]) {
+        groups[parentGroup] = [];
+      }
+      groups[parentGroup].push(costCode);
+    } else {
+      if (!groups['ungrouped']) {
+        groups['ungrouped'] = [];
+      }
+      groups['ungrouped'].push(costCode);
+    }
+    return groups;
+  }, {} as Record<string, typeof costCodes>);
 
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
@@ -97,7 +113,6 @@ const Settings = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-lg font-semibold text-black">Cost Codes</h3>
-                        <p className="text-sm text-gray-600">Manage your project cost codes and categories</p>
                       </div>
                       <div className="flex gap-2">
                         <ExcelImportDialog onImportCostCodes={handleImportCostCodes} />
@@ -137,36 +152,50 @@ const Settings = () => {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            costCodes.map((costCode) => (
-                              <TableRow key={costCode.id}>
-                                <TableCell className="font-medium">{costCode.code}</TableCell>
-                                <TableCell>{costCode.name}</TableCell>
-                                <TableCell>{costCode.parent_group || "-"}</TableCell>
-                                <TableCell>{costCode.quantity || "-"}</TableCell>
-                                <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
-                                <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
-                                <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
-                                <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      onClick={() => handleEditClick(costCode)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      onClick={() => handleDeleteClick(costCode)}
-                                      className="text-red-600 hover:text-red-800"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
+                            Object.entries(groupedCostCodes).map(([groupKey, groupCostCodes]) => (
+                              <>
+                                {groupKey !== 'ungrouped' && (
+                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50">
+                                    <TableCell colSpan={9} className="font-semibold text-gray-700">
+                                      Parent Group: {groupKey}
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                                {groupCostCodes.map((costCode) => (
+                                  <TableRow key={costCode.id} className={groupKey !== 'ungrouped' ? 'bg-gray-25' : ''}>
+                                    <TableCell className="font-medium">
+                                      {groupKey !== 'ungrouped' && <span className="ml-4">↳ </span>}
+                                      {costCode.code}
+                                    </TableCell>
+                                    <TableCell>{costCode.name}</TableCell>
+                                    <TableCell>{costCode.parent_group || "-"}</TableCell>
+                                    <TableCell>{costCode.quantity || "-"}</TableCell>
+                                    <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
+                                    <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
+                                    <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
+                                    <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
+                                    <TableCell>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          onClick={() => handleEditClick(costCode)}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          onClick={() => handleDeleteClick(costCode)}
+                                          className="text-red-600 hover:text-red-800"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </>
                             ))
                           )}
                         </TableBody>
