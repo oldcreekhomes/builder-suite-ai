@@ -141,12 +141,18 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
             {/* Row 3 - Column 2: Unit of Measure */}
             <div className="space-y-2">
               <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
-              <Input
-                id="unitOfMeasure"
-                value={formData.unitOfMeasure}
-                onChange={(e) => handleInputChange("unitOfMeasure", e.target.value)}
-                placeholder="e.g., sq ft, linear ft, each"
-              />
+              <Select value={formData.unitOfMeasure} onValueChange={(value) => handleInputChange("unitOfMeasure", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit of measure" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="each">Each</SelectItem>
+                  <SelectItem value="square-feet">Square Feet</SelectItem>
+                  <SelectItem value="linear-feet">Linear Feet</SelectItem>
+                  <SelectItem value="square-yard">Square Yard</SelectItem>
+                  <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Row 4 - Column 1: Has Specifications */}
