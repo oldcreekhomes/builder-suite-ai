@@ -102,7 +102,7 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
                     <SelectValue placeholder="Select parent group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {existingCostCodes.map((costCode) => (
                       <SelectItem key={costCode.code} value={costCode.code}>
                         {costCode.code} - {costCode.name}
