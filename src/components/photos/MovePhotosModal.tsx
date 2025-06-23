@@ -203,9 +203,9 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
                 </SelectTrigger>
                 <SelectContent>
                   {folders.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
                       No existing folders
-                    </SelectItem>
+                    </div>
                   ) : (
                     folders.map((folder) => (
                       <SelectItem key={folder} value={folder}>
