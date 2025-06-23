@@ -49,15 +49,23 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     enabled: !!companyId,
   });
 
-  // Initialize selected cost codes when company changes or data loads
+  // Initialize selected cost codes ONLY when company changes
   useEffect(() => {
-    // Only initialize if we haven't initialized for this company yet
-    if (companyId && initializedCompanyRef.current !== companyId) {
+    // Only initialize if the company has changed and we have data
+    if (companyId && initializedCompanyRef.current !== companyId && companyCostCodes.length >= 0) {
       console.log('Initializing cost codes for company:', companyId, companyCostCodes);
       setSelectedCostCodes(companyCostCodes);
       initializedCompanyRef.current = companyId;
     }
-  }, [companyId, companyCostCodes]);
+  }, [companyId]);
+
+  // Separate effect to update selected cost codes when data loads for the first time
+  useEffect(() => {
+    if (companyCostCodes.length > 0 && selectedCostCodes.length === 0 && initializedCompanyRef.current === companyId) {
+      console.log('Loading initial cost codes data:', companyCostCodes);
+      setSelectedCostCodes(companyCostCodes);
+    }
+  }, [companyCostCodes]);
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
