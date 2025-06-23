@@ -70,109 +70,111 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-6 py-4">
-            {/* Left Column */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Cost Code *</Label>
-                <Input
-                  id="code"
-                  type="number"
-                  value={formData.code}
-                  onChange={(e) => handleInputChange("code", e.target.value)}
-                  placeholder="Enter cost code number"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Enter cost code name"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="parentGroup">Parent Group</Label>
-                <Select value={formData.parentGroup} onValueChange={(value) => handleInputChange("parentGroup", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {existingCostCodes.map((costCode) => (
-                      <SelectItem key={costCode.code} value={costCode.code}>
-                        {costCode.code} - {costCode.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => handleInputChange("quantity", e.target.value)}
-                  placeholder="Enter quantity"
-                />
-              </div>
+            {/* Row 1 - Column 1: Cost Code */}
+            <div className="space-y-2">
+              <Label htmlFor="code">Cost Code *</Label>
+              <Input
+                id="code"
+                type="number"
+                value={formData.code}
+                onChange={(e) => handleInputChange("code", e.target.value)}
+                placeholder="Enter cost code number"
+                required
+              />
+            </div>
+            
+            {/* Row 1 - Column 2: Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter cost code name"
+                required
+              />
+            </div>
+            
+            {/* Row 2 - Column 1: Parent Group */}
+            <div className="space-y-2">
+              <Label htmlFor="parentGroup">Parent Group</Label>
+              <Select value={formData.parentGroup} onValueChange={(value) => handleInputChange("parentGroup", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select parent group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {existingCostCodes.map((costCode) => (
+                    <SelectItem key={costCode.code} value={costCode.code}>
+                      {costCode.code} - {costCode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Row 2 - Column 2: Quantity */}
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                value={formData.quantity}
+                onChange={(e) => handleInputChange("quantity", e.target.value)}
+                placeholder="Enter quantity"
+              />
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange("price", e.target.value)}
-                  placeholder="Enter price"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
-                <Input
-                  id="unitOfMeasure"
-                  value={formData.unitOfMeasure}
-                  onChange={(e) => handleInputChange("unitOfMeasure", e.target.value)}
-                  placeholder="e.g., sq ft, linear ft, each"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="hasSpecifications">Has Specifications</Label>
-                <Select value={formData.hasSpecifications} onValueChange={(value) => handleInputChange("hasSpecifications", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="hasBidding">Has Bidding</Label>
-                <Select value={formData.hasBidding} onValueChange={(value) => handleInputChange("hasBidding", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Row 3 - Column 1: Price */}
+            <div className="space-y-2">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => handleInputChange("price", e.target.value)}
+                placeholder="Enter price"
+              />
+            </div>
+            
+            {/* Row 3 - Column 2: Unit of Measure */}
+            <div className="space-y-2">
+              <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
+              <Input
+                id="unitOfMeasure"
+                value={formData.unitOfMeasure}
+                onChange={(e) => handleInputChange("unitOfMeasure", e.target.value)}
+                placeholder="e.g., sq ft, linear ft, each"
+              />
+            </div>
+            
+            {/* Row 4 - Column 1: Has Specifications */}
+            <div className="space-y-2">
+              <Label htmlFor="hasSpecifications">Has Specifications</Label>
+              <Select value={formData.hasSpecifications} onValueChange={(value) => handleInputChange("hasSpecifications", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Row 4 - Column 2: Has Bidding */}
+            <div className="space-y-2">
+              <Label htmlFor="hasBidding">Has Bidding</Label>
+              <Select value={formData.hasBidding} onValueChange={(value) => handleInputChange("hasBidding", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
