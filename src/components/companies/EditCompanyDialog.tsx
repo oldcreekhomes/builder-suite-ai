@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -131,12 +132,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       if (error) throw error;
       return data.map(item => item.cost_code_id);
     },
-    enabled: !!company?.id && open,
+    enabled: !!company?.id,
   });
 
-  // Update form when company changes
+  // Update form when company changes - with proper dependency array
   useEffect(() => {
-    if (company) {
+    if (company && open) {
       form.reset({
         company_name: company.company_name,
         company_type: company.company_type as any,
@@ -145,18 +146,16 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
     }
-  }, [company, form]);
+  }, [company?.id, open, form]);
 
-  // Update selected cost codes when company cost codes are loaded
+  // Update selected cost codes when company cost codes are loaded - with proper dependency array
   useEffect(() => {
-    if (companyCostCodes.length > 0) {
+    if (open && company?.id) {
       setSelectedCostCodes(companyCostCodes);
-    } else if (open && company) {
-      setSelectedCostCodes([]);
     }
-  }, [companyCostCodes, open, company]);
+  }, [companyCostCodes, open, company?.id]);
 
-  // Reset search when dialog opens/closes
+  // Reset search when dialog opens/closes - with proper dependency array
   useEffect(() => {
     if (!open) {
       setCostCodeSearch("");

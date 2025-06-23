@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -150,6 +151,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
         title: "Success",
         description: "Company created successfully",
       });
+      // Reset form and state
       form.reset();
       setSelectedCostCodes([]);
       setCostCodeSearch("");
@@ -195,8 +197,21 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     createCompanyMutation.mutate(data);
   };
 
+  // Reset state when dialog closes
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset form and selections when closing
+      form.reset();
+      setSelectedCostCodes([]);
+      setCostCodeSearch("");
+      setSelectedRepresentatives([]);
+      setRepresentativeSearch("");
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Company</DialogTitle>
@@ -413,7 +428,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
             </div>
 
             <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={createCompanyMutation.isPending}>
