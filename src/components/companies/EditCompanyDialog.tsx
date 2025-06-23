@@ -149,10 +149,13 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Update selected cost codes when company cost codes are loaded
   useEffect(() => {
-    if (companyCostCodes.length >= 0 && company?.id && open) {
+    if (companyCostCodes && companyCostCodes.length > 0 && company?.id && open) {
       setSelectedCostCodes([...companyCostCodes]);
+    } else if (companyCostCodes && companyCostCodes.length === 0 && company?.id && open) {
+      // Reset to empty array when no cost codes are associated
+      setSelectedCostCodes([]);
     }
-  }, [companyCostCodes.length, company?.id, open]);
+  }, [companyCostCodes, company?.id, open]);
 
   // Reset search when dialog opens/closes
   useEffect(() => {
