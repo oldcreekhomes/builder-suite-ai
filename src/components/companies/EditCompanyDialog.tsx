@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,7 +94,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     enabled: !!company?.id,
   });
 
-  // Initialize form when company changes - SIMPLIFIED
+  // Initialize form when company changes
   useEffect(() => {
     if (company && open && company.id !== initializedCompanyRef.current) {
       console.log('Initializing form for company:', company.id);
@@ -116,9 +116,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       initializedCompanyRef.current = company.id;
       costCodesInitializedRef.current = false;
     }
-  }, [company?.id, open]); // Removed form from dependencies
+  }, [company?.id, open, form]);
 
-  // Initialize cost codes when data becomes available - STABLE DEPENDENCIES
+  // Initialize cost codes when data becomes available
   useEffect(() => {
     if (
       company?.id &&
@@ -128,28 +128,21 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       initializedCompanyRef.current === company.id
     ) {
       console.log('Setting cost codes for company:', company.id, companyCostCodes);
-      setSelectedCostCodes(companyCostCodes.slice()); // Use slice() instead of spread
+      setSelectedCostCodes([...companyCostCodes]);
       costCodesInitializedRef.current = true;
     }
-  }, [company?.id, companyCostCodes]); // Depend on the actual array, not its length
+  }, [company?.id, companyCostCodes]);
 
-  // Reset everything when dialog closes - REMOVED FORM DEPENDENCY
-  const resetFormAndState = useCallback(() => {
+  // Reset everything when dialog closes - SIMPLIFIED
+  useEffect(() => {
     if (!open) {
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
       initializedCompanyRef.current = null;
       costCodesInitializedRef.current = false;
-      // Use setTimeout to avoid potential timing issues
-      setTimeout(() => {
-        form.reset();
-      }, 0);
+      form.reset();
     }
-  }, [open]); // Only depend on open, not form
-
-  useEffect(() => {
-    resetFormAndState();
-  }, [resetFormAndState]);
+  }, [open, form]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
