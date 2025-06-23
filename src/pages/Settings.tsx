@@ -1,3 +1,4 @@
+
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -107,26 +108,31 @@ const Settings = () => {
                       </div>
                     </div>
                     
-                    <div className="border rounded-lg">
+                    <div className="border rounded-lg overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Code</TableHead>
                             <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
+                            <TableHead>Parent Group</TableHead>
+                            <TableHead>Quantity</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Unit</TableHead>
+                            <TableHead>Specifications</TableHead>
+                            <TableHead>Bidding</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {loading ? (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center py-8">
+                              <TableCell colSpan={9} className="text-center py-8">
                                 Loading cost codes...
                               </TableCell>
                             </TableRow>
                           ) : costCodes.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                                 No cost codes found. Add some or import from Excel.
                               </TableCell>
                             </TableRow>
@@ -135,7 +141,12 @@ const Settings = () => {
                               <TableRow key={costCode.id}>
                                 <TableCell className="font-medium">{costCode.code}</TableCell>
                                 <TableCell>{costCode.name}</TableCell>
-                                <TableCell>{costCode.category}</TableCell>
+                                <TableCell>{costCode.parent_group || "-"}</TableCell>
+                                <TableCell>{costCode.quantity || "-"}</TableCell>
+                                <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
+                                <TableCell>{costCode.unit_of_measure || "-"}</TableCell>
+                                <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
+                                <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
                                 <TableCell>
                                   <div className="flex gap-2">
                                     <Button 
