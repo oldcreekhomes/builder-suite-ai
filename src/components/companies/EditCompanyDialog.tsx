@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -116,7 +116,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       initializedCompanyRef.current = company.id;
       costCodesInitializedRef.current = false;
     }
-  }, [company?.id, open]); // Only depend on company ID and open state
+  }, [company?.id, open]); // Removed form from dependencies
 
   // Initialize cost codes when data becomes available - STABLE DEPENDENCIES
   useEffect(() => {
@@ -133,16 +133,23 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     }
   }, [company?.id, companyCostCodes]); // Depend on the actual array, not its length
 
-  // Reset everything when dialog closes
-  useEffect(() => {
+  // Reset everything when dialog closes - REMOVED FORM DEPENDENCY
+  const resetFormAndState = useCallback(() => {
     if (!open) {
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
       initializedCompanyRef.current = null;
       costCodesInitializedRef.current = false;
-      form.reset();
+      // Use setTimeout to avoid potential timing issues
+      setTimeout(() => {
+        form.reset();
+      }, 0);
     }
-  }, [open, form]);
+  }, [open]); // Only depend on open, not form
+
+  useEffect(() => {
+    resetFormAndState();
+  }, [resetFormAndState]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
