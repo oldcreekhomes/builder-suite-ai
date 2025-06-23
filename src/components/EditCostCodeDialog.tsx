@@ -48,7 +48,7 @@ export function EditCostCodeDialog({
         code: costCode.code,
         name: costCode.name,
         category: costCode.category || "",
-        parent_group: costCode.parent_group || "",
+        parent_group: costCode.parent_group || "none",
         quantity: costCode.quantity || "",
         price: costCode.price?.toString() || "",
         unit_of_measure: costCode.unit_of_measure || "",
@@ -61,7 +61,11 @@ export function EditCostCodeDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (costCode) {
-      onUpdateCostCode(costCode.id, formData);
+      const updatedData = {
+        ...formData,
+        parent_group: formData.parent_group === "none" ? null : formData.parent_group
+      };
+      onUpdateCostCode(costCode.id, updatedData);
       onOpenChange(false);
     }
   };
@@ -121,7 +125,7 @@ export function EditCostCodeDialog({
                     <SelectValue placeholder="Select parent group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {existingCostCodes.map((costCode) => (
                       <SelectItem key={costCode.code} value={costCode.code}>
                         {costCode.code} - {costCode.name}

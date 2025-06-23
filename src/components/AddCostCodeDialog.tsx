@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +33,11 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddCostCode(formData);
+    const submissionData = {
+      ...formData,
+      parentGroup: formData.parentGroup === "none" ? null : formData.parentGroup
+    };
+    onAddCostCode(submissionData);
     setFormData({
       code: "",
       name: "",
