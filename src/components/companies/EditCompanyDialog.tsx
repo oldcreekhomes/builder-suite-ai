@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -149,13 +150,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Update selected cost codes when company cost codes are loaded
   useEffect(() => {
-    if (companyCostCodes && companyCostCodes.length > 0 && company?.id && open) {
+    if (company?.id && open) {
+      console.log('Setting selected cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
-    } else if (companyCostCodes && companyCostCodes.length === 0 && company?.id && open) {
-      // Reset to empty array when no cost codes are associated
-      setSelectedCostCodes([]);
     }
-  }, [companyCostCodes, company?.id, open]);
+  }, [company?.id, open, companyCostCodes.length]);
 
   // Reset search when dialog opens/closes
   useEffect(() => {
