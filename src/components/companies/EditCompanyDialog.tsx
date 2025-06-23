@@ -91,7 +91,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     },
   });
 
-  // Initialize form and cost codes when company changes
+  // Initialize form and reset states when company or dialog state changes
   useEffect(() => {
     if (company && open) {
       console.log('Initializing form for company:', company.id);
@@ -105,12 +105,14 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
 
       setSelectedRepresentatives([]);
+      // Initialize cost codes from fetched data
+      setSelectedCostCodes(companyCostCodes);
     }
   }, [company?.id, open, form]);
 
-  // Set cost codes when they're loaded
+  // Update cost codes when they're loaded (only if different)
   useEffect(() => {
-    if (companyCostCodes.length >= 0) {
+    if (companyCostCodes && JSON.stringify(companyCostCodes) !== JSON.stringify(selectedCostCodes)) {
       setSelectedCostCodes(companyCostCodes);
     }
   }, [companyCostCodes]);
