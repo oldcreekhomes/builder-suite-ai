@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PhotoViewerHeader } from "./PhotoViewerHeader";
 import { PhotoViewerImage } from "./PhotoViewerImage";
@@ -6,6 +5,7 @@ import { PhotoViewerNavigation } from "./PhotoViewerNavigation";
 import { usePhotoNavigation } from "./hooks/usePhotoNavigation";
 import { usePhotoActions } from "./hooks/usePhotoActions";
 import { usePhotoZoom } from "./hooks/usePhotoZoom";
+import { usePhotoPan } from "./hooks/usePhotoPan";
 
 interface ProjectPhoto {
   id: string;
@@ -42,6 +42,14 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
   });
 
   const { zoom, zoomIn, zoomOut, resetZoom } = usePhotoZoom();
+  const { panEnabled, togglePan, disablePan } = usePhotoPan();
+
+  // Disable pan when zoom is at 100%
+  React.useEffect(() => {
+    if (zoom === 1) {
+      disablePan();
+    }
+  }, [zoom, disablePan]);
 
   if (!photos[currentIndex]) return null;
 
@@ -64,14 +72,21 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
             totalPhotos={photos.length}
             isDeleting={isDeleting}
             zoom={zoom}
+            panEnabled={panEnabled}
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
+            onPanToggle={togglePan}
             onDownload={handleDownload}
             onDelete={handleDelete}
             onClose={onClose}
           />
 
-          <PhotoViewerImage photo={photo} zoom={zoom} />
+          <PhotoViewerImage 
+            photo={photo} 
+            zoom={zoom} 
+            panEnabled={panEnabled}
+            onPanToggle={togglePan}
+          />
 
           <PhotoViewerNavigation
             totalPhotos={photos.length}
