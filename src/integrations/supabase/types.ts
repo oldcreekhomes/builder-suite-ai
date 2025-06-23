@@ -17,6 +17,7 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
+          phone_number: string | null
           updated_at: string
           website: string | null
         }
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id: string
+          phone_number?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -37,6 +39,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id?: string
+          phone_number?: string | null
           updated_at?: string
           website?: string | null
         }
