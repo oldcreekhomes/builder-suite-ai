@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -36,7 +37,10 @@ const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
-  phone_number: z.string().optional(),
+  phone_number: z.string()
+    .regex(/^\d{3}-\d{3}-\d{4}$/, "Phone number must be in format xxx-xxx-xxxx")
+    .optional()
+    .or(z.literal("")),
   company_name: z.string().min(1, "Company is required"),
   title: z.enum(["estimator", "project manager", "foreman"]),
   receive_bid_notifications: z.boolean().default(false),
@@ -84,6 +88,20 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       receive_schedule_notifications: false,
     },
   });
+
+  // Format phone number as user types
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    
+    // Format as xxx-xxx-xxxx
+    if (digits.length >= 6) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    } else if (digits.length >= 3) {
+      return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    }
+    return digits;
+  };
 
   // Update form when representative changes
   useEffect(() => {
@@ -183,6 +201,11 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     setCompanySearch('');
   };
 
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhoneNumber(value);
+    form.setValue('phone_number', formatted);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
@@ -251,7 +274,12 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter phone number" {...field} />
+                          <Input 
+                            placeholder="xxx-xxx-xxxx" 
+                            {...field}
+                            onChange={(e) => handlePhoneChange(e.target.value)}
+                            maxLength={12}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -376,3 +404,4 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     </Dialog>
   );
 }
+

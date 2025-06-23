@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -115,14 +116,15 @@ export function RepresentativesTable() {
               <TableHead>Name</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Contact</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
@@ -141,20 +143,20 @@ export function RepresentativesTable() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col space-y-1">
-                      {rep.email && (
-                        <div className="flex items-center space-x-1">
-                          <Mail className="h-3 w-3 text-gray-400" />
-                          <span className="text-sm">{rep.email}</span>
-                        </div>
-                      )}
-                      {rep.phone_number && (
-                        <div className="flex items-center space-x-1">
-                          <Phone className="h-3 w-3 text-gray-400" />
-                          <span className="text-sm">{rep.phone_number}</span>
-                        </div>
-                      )}
-                    </div>
+                    {rep.email && (
+                      <div className="flex items-center space-x-1">
+                        <Mail className="h-3 w-3 text-gray-400" />
+                        <span className="text-sm">{rep.email}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {rep.phone_number && (
+                      <div className="flex items-center space-x-1">
+                        <Phone className="h-3 w-3 text-gray-400" />
+                        <span className="text-sm">{rep.phone_number}</span>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
@@ -188,3 +190,4 @@ export function RepresentativesTable() {
     </>
   );
 }
+
