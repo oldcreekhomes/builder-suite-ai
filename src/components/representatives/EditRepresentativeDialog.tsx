@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
@@ -38,6 +40,8 @@ const representativeSchema = z.object({
   phone_number: z.string().optional(),
   company_name: z.string().min(1, "Company is required"),
   title: z.enum(["estimator", "project manager", "foreman"]),
+  receive_bid_notifications: z.boolean().default(false),
+  receive_schedule_notifications: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -49,8 +53,9 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary: boolean;
   company_id: string;
+  receive_bid_notifications?: boolean;
+  receive_schedule_notifications?: boolean;
   companies: {
     company_name: string;
   };
@@ -76,6 +81,8 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       phone_number: "",
       company_name: "",
       title: "estimator",
+      receive_bid_notifications: false,
+      receive_schedule_notifications: false,
     },
   });
 
@@ -89,6 +96,8 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         phone_number: representative.phone_number || "",
         company_name: representative.companies?.company_name || "",
         title: (representative.title as "estimator" | "project manager" | "foreman") || "estimator",
+        receive_bid_notifications: representative.receive_bid_notifications || false,
+        receive_schedule_notifications: representative.receive_schedule_notifications || false,
       });
       setCompanySearch("");
     }
@@ -128,6 +137,8 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         phone_number: data.phone_number || null,
         company_id: selectedCompany.id,
         title: data.title,
+        receive_bid_notifications: data.receive_bid_notifications,
+        receive_schedule_notifications: data.receive_schedule_notifications,
       };
 
       const { error } = await supabase
@@ -184,128 +195,175 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter first name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="general" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="first_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter first name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter last name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter last name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Enter email address" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="phone_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
+                        <Input type="email" placeholder="Enter email address" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="estimator">Estimator</SelectItem>
-                        <SelectItem value="project manager">Project Manager</SelectItem>
-                        <SelectItem value="foreman">Foreman</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="company_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company</FormLabel>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        placeholder="Search and select company..."
-                        value={companySearch || field.value}
-                        onChange={(e) => setCompanySearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    {companySearch && filteredCompanies.length > 0 && (
-                      <div className="border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
-                        {filteredCompanies.map((company) => (
-                          <div
-                            key={company.id}
-                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                            onClick={() => handleCompanySelect(company.company_name)}
-                          >
-                            {company.company_name}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="estimator">Estimator</SelectItem>
+                            <SelectItem value="project manager">Project Manager</SelectItem>
+                            <SelectItem value="foreman">Foreman</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="company_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company</FormLabel>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            placeholder="Search and select company..."
+                            value={companySearch || field.value}
+                            onChange={(e) => setCompanySearch(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        {companySearch && filteredCompanies.length > 0 && (
+                          <div className="border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
+                            {filteredCompanies.map((company) => (
+                              <div
+                                key={company.id}
+                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                onClick={() => handleCompanySelect(company.company_name)}
+                              >
+                                {company.company_name}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        {companySearch && filteredCompanies.length === 0 && (
+                          <div className="border rounded-md bg-white shadow-sm p-3 text-gray-500 text-sm text-center">
+                            No companies found matching your search
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {companySearch && filteredCompanies.length === 0 && (
-                      <div className="border rounded-md bg-white shadow-sm p-3 text-gray-500 text-sm text-center">
-                        No companies found matching your search
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value="notifications" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="receive_bid_notifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Receive Bid Notifications</FormLabel>
                       </div>
-                    )}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receive_schedule_notifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Receive Schedule Notifications</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+            </Tabs>
 
             <div className="flex justify-end space-x-4 pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
