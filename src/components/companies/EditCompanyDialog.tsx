@@ -105,17 +105,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       });
 
       setSelectedRepresentatives([]);
-      // Initialize cost codes from fetched data
-      setSelectedCostCodes(companyCostCodes);
+      // Only set cost codes if we have fetched data and it's different from current state
+      if (companyCostCodes.length > 0 || selectedCostCodes.length > 0) {
+        setSelectedCostCodes(companyCostCodes);
+      }
     }
-  }, [company?.id, open, form]);
-
-  // Update cost codes when they're loaded (only if different)
-  useEffect(() => {
-    if (companyCostCodes && JSON.stringify(companyCostCodes) !== JSON.stringify(selectedCostCodes)) {
-      setSelectedCostCodes(companyCostCodes);
-    }
-  }, [companyCostCodes]);
+  }, [company?.id, open, form, companyCostCodes]);
 
   // Reset when dialog closes
   useEffect(() => {
