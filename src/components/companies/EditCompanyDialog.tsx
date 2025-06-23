@@ -64,6 +64,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const initializedCompanyRef = useRef<string | null>(null);
+  const costCodesInitializedRef = useRef<boolean>(false);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -93,7 +94,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     enabled: !!company?.id,
   });
 
-  // Initialize form and state when company changes - NO DEPENDENCIES ON QUERY DATA
+  // Initialize form when company changes - SIMPLIFIED
   useEffect(() => {
     if (company && open && company.id !== initializedCompanyRef.current) {
       console.log('Initializing form for company:', company.id);
@@ -107,21 +108,30 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
 
-      // Reset representatives
+      // Reset states
+      setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
       
       // Mark this company as initialized
       initializedCompanyRef.current = company.id;
+      costCodesInitializedRef.current = false;
     }
-  }, [company, open, form]);
+  }, [company?.id, open]); // Only depend on company ID and open state
 
-  // Separate effect to handle cost codes initialization - runs when data is available
+  // Initialize cost codes when data becomes available - STABLE DEPENDENCIES
   useEffect(() => {
-    if (company?.id && companyCostCodes && companyCostCodes.length >= 0 && company.id === initializedCompanyRef.current) {
+    if (
+      company?.id &&
+      companyCostCodes &&
+      companyCostCodes.length > 0 &&
+      !costCodesInitializedRef.current &&
+      initializedCompanyRef.current === company.id
+    ) {
       console.log('Setting cost codes for company:', company.id, companyCostCodes);
-      setSelectedCostCodes([...companyCostCodes]);
+      setSelectedCostCodes(companyCostCodes.slice()); // Use slice() instead of spread
+      costCodesInitializedRef.current = true;
     }
-  }, [company?.id, companyCostCodes?.length]); // Only depend on length, not the array itself
+  }, [company?.id, companyCostCodes]); // Depend on the actual array, not its length
 
   // Reset everything when dialog closes
   useEffect(() => {
@@ -129,8 +139,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       setSelectedCostCodes([]);
       setSelectedRepresentatives([]);
       initializedCompanyRef.current = null;
+      costCodesInitializedRef.current = false;
+      form.reset();
     }
-  }, [open]);
+  }, [open, form]);
 
   const updateCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
