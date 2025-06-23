@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -209,6 +210,58 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
         );
       }
       
+      if (field === 'duration') {
+        return (
+          <div className="flex items-center space-x-1">
+            <Input
+              type="number"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-6 text-xs w-12"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveEdit();
+                if (e.key === 'Escape') cancelEdit();
+              }}
+              autoFocus
+            />
+            <span className="text-xs">d</span>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      }
+
+      if (field === 'progress') {
+        return (
+          <div className="flex items-center space-x-1">
+            <Input
+              type="number"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-6 text-xs w-12"
+              min="0"
+              max="100"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveEdit();
+                if (e.key === 'Escape') cancelEdit();
+              }}
+              autoFocus
+            />
+            <span className="text-xs">%</span>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      }
+      
       return (
         <div className="flex items-center space-x-1">
           <Input
@@ -245,6 +298,10 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           <span className="text-gray-400 text-xs">None</span>
         ) : field === "start_date" || field === "end_date" ? (
           format(parseISO(value as string), 'MMM dd')
+        ) : field === "duration" ? (
+          <span>{value}d</span>
+        ) : field === "progress" ? (
+          <span>{value}%</span>
         ) : (
           value
         )}
@@ -271,13 +328,13 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           {format(endDate, 'MMM dd')}
         </TableCell>
         <TableCell className="py-1 text-xs">
-          {renderEditableCell(task, 'duration', task.duration, 'number')}d
+          {renderEditableCell(task, 'duration', task.duration, 'number')}
         </TableCell>
         <TableCell className="py-1">
           <div className="flex items-center space-x-2">
             <Progress value={task.progress} className="w-8 h-1" />
             <div className="w-8">
-              {renderEditableCell(task, 'progress', task.progress, 'number')}%
+              {renderEditableCell(task, 'progress', task.progress, 'number')}
             </div>
           </div>
         </TableCell>
@@ -340,13 +397,16 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           {format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}
         </TableCell>
         <TableCell className="py-1 text-xs">
-          <Input
-            type="number"
-            value={newTask.duration}
-            onChange={(e) => setNewTask({...newTask, duration: parseInt(e.target.value) || 1})}
-            className="h-6 text-xs w-12"
-            min="1"
-          />d
+          <div className="flex items-center space-x-1">
+            <Input
+              type="number"
+              value={newTask.duration}
+              onChange={(e) => setNewTask({...newTask, duration: parseInt(e.target.value) || 1})}
+              className="h-6 text-xs w-12"
+              min="1"
+            />
+            <span className="text-xs">d</span>
+          </div>
         </TableCell>
         <TableCell className="py-1">
           <div className="flex items-center space-x-2">
