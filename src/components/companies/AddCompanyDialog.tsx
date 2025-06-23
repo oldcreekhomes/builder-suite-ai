@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,6 +63,11 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     },
   });
 
+  // Memoize the cost codes change handler to prevent infinite re-renders
+  const handleCostCodesChange = useCallback((costCodes: string[]) => {
+    setSelectedCostCodes(costCodes);
+  }, []);
+
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -126,14 +130,14 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   };
 
   // Reset state when dialog closes
-  const handleOpenChange = (newOpen: boolean) => {
+  const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
       // Reset form and selections when closing
       form.reset();
       setSelectedCostCodes([]);
     }
     onOpenChange(newOpen);
-  };
+  }, [onOpenChange, form]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -236,7 +240,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
               <CostCodeSelector
                 companyId={null}
                 selectedCostCodes={selectedCostCodes}
-                onCostCodesChange={setSelectedCostCodes}
+                onCostCodesChange={handleCostCodesChange}
               />
 
               <div className="flex justify-end space-x-4 pt-4">

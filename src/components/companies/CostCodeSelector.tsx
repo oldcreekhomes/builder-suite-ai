@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
@@ -13,7 +13,11 @@ interface CostCodeSelectorProps {
   onCostCodesChange: (costCodes: string[]) => void;
 }
 
-export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChange }: CostCodeSelectorProps) {
+export const CostCodeSelector = React.memo(function CostCodeSelector({ 
+  companyId, 
+  selectedCostCodes, 
+  onCostCodesChange 
+}: CostCodeSelectorProps) {
   const [costCodeSearch, setCostCodeSearch] = useState("");
 
   // Fetch cost codes for selection
@@ -32,8 +36,9 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
 
   // Filter cost codes based on search
   const filteredCostCodes = costCodes.filter(costCode => 
-    costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
-    costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase())
+    !selectedCostCodes.includes(costCode.id) &&
+    (costCode.code.toLowerCase().includes(costCodeSearch.toLowerCase()) ||
+    costCode.name.toLowerCase().includes(costCodeSearch.toLowerCase()))
   );
 
   const handleCostCodeSelect = (costCodeId: string) => {
@@ -101,4 +106,4 @@ export function CostCodeSelector({ companyId, selectedCostCodes, onCostCodesChan
       </div>
     </div>
   );
-}
+});
