@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -27,8 +28,27 @@ export function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
   useEffect(() => {
+    const getApiKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+        if (error) throw error;
+        setApiKey(data.apiKey);
+      } catch (error) {
+        console.error('Failed to get Google Maps API key:', error);
+        // Fallback to environment variable if function doesn't exist
+        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || null);
+      }
+    };
+
+    getApiKey();
+  }, []);
+
+  useEffect(() => {
+    if (!apiKey) return;
+
     const loadGoogleMaps = () => {
       if (window.google && window.google.maps && window.google.maps.places) {
         setIsLoaded(true);
@@ -36,7 +56,7 @@ export function AddressAutocomplete({
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
       script.defer = true;
       script.onload = () => setIsLoaded(true);
@@ -45,7 +65,7 @@ export function AddressAutocomplete({
     };
 
     loadGoogleMaps();
-  }, []);
+  }, [apiKey]);
 
   useEffect(() => {
     if (!isLoaded || !inputRef.current) return;
