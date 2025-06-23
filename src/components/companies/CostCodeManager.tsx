@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
@@ -17,7 +17,6 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [costCodeSearch, setCostCodeSearch] = useState("");
-  const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
 
   // Fetch all cost codes
   const { data: costCodes = [] } = useQuery({
@@ -33,8 +32,8 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     },
   });
 
-  // Fetch company's current cost codes
-  const { data: companyCostCodes = [], isLoading } = useQuery({
+  // Fetch company's current cost codes - this will be our source of truth
+  const { data: companyCostCodes = [] } = useQuery({
     queryKey: ['company-cost-codes', companyId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -47,14 +46,6 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
     },
     enabled: !!companyId,
   });
-
-  // Initialize selected cost codes when company changes or data loads
-  useEffect(() => {
-    if (!isLoading && companyCostCodes) {
-      console.log('Setting selected cost codes for company:', companyId, companyCostCodes);
-      setSelectedCostCodes(companyCostCodes);
-    }
-  }, [companyId, companyCostCodes, isLoading]);
 
   // Save cost code associations
   const saveCostCodesMutation = useMutation({
@@ -85,15 +76,10 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
 
       return costCodeIds;
     },
-    onSuccess: (costCodeIds) => {
-      // Update the query cache directly instead of invalidating
-      queryClient.setQueryData(['company-cost-codes', companyId], costCodeIds);
-      
-      // Only invalidate other company queries, not this specific one
-      queryClient.invalidateQueries({ 
-        queryKey: ['companies'], 
-        exact: false 
-      });
+    onSuccess: () => {
+      // Invalidate and refetch the company cost codes
+      queryClient.invalidateQueries({ queryKey: ['company-cost-codes', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
       
       toast({
         title: "Success",
@@ -117,19 +103,18 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
   );
 
   const handleCostCodeToggle = (costCodeId: string) => {
-    const newSelection = selectedCostCodes.includes(costCodeId)
-      ? selectedCostCodes.filter(id => id !== costCodeId)
-      : [...selectedCostCodes, costCodeId];
+    const isCurrentlySelected = companyCostCodes.includes(costCodeId);
+    const newSelection = isCurrentlySelected
+      ? companyCostCodes.filter(id => id !== costCodeId)
+      : [...companyCostCodes, costCodeId];
     
     console.log('Toggling cost code:', costCodeId, 'New selection:', newSelection);
-    setSelectedCostCodes(newSelection);
     saveCostCodesMutation.mutate(newSelection);
   };
 
   const removeCostCode = (costCodeId: string) => {
-    const newSelection = selectedCostCodes.filter(id => id !== costCodeId);
+    const newSelection = companyCostCodes.filter(id => id !== costCodeId);
     console.log('Removing cost code:', costCodeId, 'New selection:', newSelection);
-    setSelectedCostCodes(newSelection);
     saveCostCodesMutation.mutate(newSelection);
   };
 
@@ -138,9 +123,9 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
       <FormLabel>Associated Cost Codes</FormLabel>
       
       {/* Selected cost codes */}
-      {selectedCostCodes.length > 0 && (
+      {companyCostCodes.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
-          {selectedCostCodes.map(costCodeId => {
+          {companyCostCodes.map(costCodeId => {
             const costCode = costCodes.find(cc => cc.id === costCodeId);
             return costCode ? (
               <Badge key={costCodeId} variant="secondary" className="flex items-center gap-1 text-xs">
@@ -181,7 +166,7 @@ export function CostCodeManager({ companyId }: CostCodeManagerProps) {
             >
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  checked={selectedCostCodes.includes(costCode.id)}
+                  checked={companyCostCodes.includes(costCode.id)}
                   onCheckedChange={() => handleCostCodeToggle(costCode.id)}
                 />
                 <div className="text-xs">
