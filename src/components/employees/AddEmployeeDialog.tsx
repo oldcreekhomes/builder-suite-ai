@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,6 +30,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
 
   const inviteEmployeeMutation = useMutation({
     mutationFn: async () => {
+      console.log("Starting employee invitation process...");
+      
       // Create the invitation
       const { data: invitationId, error } = await supabase.rpc('invite_employee', {
         p_email: formData.email,
@@ -38,16 +41,26 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         p_role: formData.role,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating invitation:', error);
+        throw error;
+      }
+
+      console.log("Invitation created with ID:", invitationId);
 
       // Get the invitation details including token
       const { data: invitation, error: invitationError } = await supabase
         .from('employee_invitations')
-        .select('*, home_builder_id')
+        .select('*, invitation_token, home_builder_id')
         .eq('id', invitationId)
         .single();
 
-      if (invitationError) throw invitationError;
+      if (invitationError) {
+        console.error('Error fetching invitation:', invitationError);
+        throw invitationError;
+      }
+
+      console.log("Retrieved invitation:", invitation);
 
       // Get company name for the email
       const { data: profile, error: profileError } = await supabase
@@ -56,10 +69,16 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         .eq('id', invitation.home_builder_id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log("Company profile:", profile);
 
       // Send invitation email
-      const { error: emailError } = await supabase.functions.invoke('send-employee-invitation', {
+      console.log("Sending invitation email...");
+      const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-employee-invitation', {
         body: {
           email: formData.email,
           firstName: formData.firstName,
@@ -71,23 +90,17 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
 
       if (emailError) {
         console.error('Email sending error:', emailError);
-        // Don't throw here - invitation was created successfully, just email failed
-        toast({
-          title: "Invitation Created",
-          description: "Invitation was created but email failed to send. Please contact the employee directly.",
-          variant: "destructive",
-        });
+        throw new Error(`Failed to send invitation email: ${emailError.message}`);
       }
 
-      return { invitationId, emailSent: !emailError };
+      console.log("Email sent successfully:", emailResponse);
+      return { invitationId, emailSent: true };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['employee-invitations'] });
       toast({
         title: "Success",
-        description: result.emailSent 
-          ? "Employee invitation sent successfully via email"
-          : "Employee invitation created (email delivery failed)",
+        description: "Employee invitation sent successfully via email",
       });
       setFormData({
         firstName: "",
@@ -99,6 +112,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error('Invitation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to send invitation",
