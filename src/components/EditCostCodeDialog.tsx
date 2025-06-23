@@ -33,7 +33,6 @@ export function EditCostCodeDialog({
   const [formData, setFormData] = useState({
     code: "",
     name: "",
-    category: "",
     parent_group: "",
     quantity: "",
     price: "",
@@ -47,7 +46,6 @@ export function EditCostCodeDialog({
       setFormData({
         code: costCode.code,
         name: costCode.name,
-        category: costCode.category || "",
         parent_group: costCode.parent_group || "none",
         quantity: costCode.quantity || "",
         price: costCode.price?.toString() || "",
@@ -82,6 +80,7 @@ export function EditCostCodeDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
+            {/* Row 1 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Cost Code *</Label>
@@ -107,17 +106,8 @@ export function EditCostCodeDialog({
               </div>
             </div>
 
+            {/* Row 2 */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => handleInputChange("category", e.target.value)}
-                  placeholder="Enter category"
-                />
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="parent_group">Parent Group</Label>
                 <Select value={formData.parent_group} onValueChange={(value) => handleInputChange("parent_group", value)}>
@@ -134,9 +124,7 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+              
               <div className="space-y-2">
                 <Label htmlFor="quantity">Quantity</Label>
                 <Input
@@ -146,7 +134,10 @@ export function EditCostCodeDialog({
                   placeholder="Enter quantity"
                 />
               </div>
-              
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
                 <Input
@@ -158,9 +149,7 @@ export function EditCostCodeDialog({
                   placeholder="Enter price"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+              
               <div className="space-y-2">
                 <Label htmlFor="unit_of_measure">Unit of Measure</Label>
                 <Select value={formData.unit_of_measure} onValueChange={(value) => handleInputChange("unit_of_measure", value)}>
@@ -176,7 +165,10 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            {/* Row 4 */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_specifications">Has Specifications</Label>
                 <Select value={formData.has_specifications} onValueChange={(value) => handleInputChange("has_specifications", value)}>
@@ -189,9 +181,7 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_bidding">Has Bidding</Label>
                 <Select value={formData.has_bidding} onValueChange={(value) => handleInputChange("has_bidding", value)}>
