@@ -9,7 +9,7 @@ export function SidebarBranding() {
         <div className="flex flex-col">
           <div className="flex items-end space-x-2 mb-1">
             <Building2 className="h-8 w-8 text-black" />
-            <h1 className="text-xl font-bold text-black">BuildCore</h1>
+            <h1 className="text-xl font-bold text-black">BuilderSuite AI</h1>
           </div>
           <p className="text-sm text-gray-600">Construction Management</p>
         </div>
