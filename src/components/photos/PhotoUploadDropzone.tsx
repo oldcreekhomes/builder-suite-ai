@@ -73,6 +73,11 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('Photos dropped:', acceptedFiles);
+    
+    // Check if any files have webkitRelativePath (indicating folder drop)
+    const hasRelativePaths = acceptedFiles.some(file => file.webkitRelativePath);
+    console.log('Has relative paths (folder drop):', hasRelativePaths);
+    
     const newUploads = acceptedFiles.map(file => ({
       file,
       progress: 0,
@@ -84,9 +89,15 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     for (let i = 0; i < acceptedFiles.length; i++) {
       const file = acceptedFiles[i];
       
-      // Use webkitRelativePath if available (from folder drop), otherwise use just filename
-      const relativePath = file.webkitRelativePath || file.name;
-      console.log('Processing file with relative path:', relativePath);
+      // For folder drops, use the full relative path. For individual files, just use filename
+      let relativePath: string;
+      if (hasRelativePaths && file.webkitRelativePath) {
+        relativePath = file.webkitRelativePath;
+        console.log('Using webkitRelativePath:', relativePath);
+      } else {
+        relativePath = file.name;
+        console.log('Using filename:', relativePath);
+      }
       
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -145,7 +156,9 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
       setUploadingFiles(prev => [...prev, ...newUploads]);
 
       for (const file of files) {
+        // For folder input, always use webkitRelativePath if available
         const relativePath = file.webkitRelativePath || file.name;
+        console.log('Folder upload file path:', relativePath);
         
         // Simulate progress
         const progressInterval = setInterval(() => {
