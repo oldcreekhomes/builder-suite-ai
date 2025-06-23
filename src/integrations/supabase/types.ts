@@ -9,6 +9,62 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      cost_codes: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          has_bidding: boolean | null
+          has_specifications: boolean | null
+          id: string
+          name: string
+          owner_id: string
+          parent_group: string | null
+          price: number | null
+          quantity: string | null
+          unit_of_measure: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          has_bidding?: boolean | null
+          has_specifications?: boolean | null
+          id?: string
+          name: string
+          owner_id: string
+          parent_group?: string | null
+          price?: number | null
+          quantity?: string | null
+          unit_of_measure?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          has_bidding?: boolean | null
+          has_specifications?: boolean | null
+          id?: string
+          name?: string
+          owner_id?: string
+          parent_group?: string | null
+          price?: number | null
+          quantity?: string | null
+          unit_of_measure?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_codes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invitations: {
         Row: {
           accepted_at: string | null

@@ -1,4 +1,3 @@
-
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -20,67 +19,57 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { useCostCodes } from "@/hooks/useCostCodes";
+import type { Tables } from "@/integrations/supabase/types";
+
+type CostCode = Tables<'cost_codes'>;
 
 const Settings = () => {
-  const [costCodes, setCostCodes] = useState([
-    { code: "001", name: "Site Preparation", category: "Foundation" },
-    { code: "002", name: "Excavation", category: "Foundation" },
-    { code: "003", name: "Concrete Foundation", category: "Foundation" },
-  ]);
+  const {
+    costCodes,
+    loading,
+    addCostCode,
+    updateCostCode,
+    deleteCostCode,
+    importCostCodes,
+  } = useCostCodes();
 
-  const [editingCostCode, setEditingCostCode] = useState(null);
+  const [editingCostCode, setEditingCostCode] = useState<CostCode | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [costCodeToDelete, setCostCodeToDelete] = useState(null);
+  const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
 
-  const handleAddCostCode = (newCostCode: any) => {
+  const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
-    setCostCodes(prev => [...prev, {
-      code: newCostCode.code,
-      name: newCostCode.name,
-      category: newCostCode.parentGroup || "Uncategorized"
-    }]);
+    await addCostCode(newCostCode);
   };
 
-  const handleUpdateCostCode = (oldCode: string, updatedCostCode: any) => {
-    console.log("Updating cost code:", oldCode, updatedCostCode);
-    setCostCodes(prev => prev.map(cc => 
-      cc.code === oldCode 
-        ? {
-            code: updatedCostCode.code,
-            name: updatedCostCode.name,
-            category: updatedCostCode.parentGroup || "Uncategorized"
-          }
-        : cc
-    ));
+  const handleUpdateCostCode = async (costCodeId: string, updatedCostCode: any) => {
+    console.log("Updating cost code:", costCodeId, updatedCostCode);
+    await updateCostCode(costCodeId, updatedCostCode);
   };
 
-  const handleEditClick = (costCode: any) => {
+  const handleEditClick = (costCode: CostCode) => {
     setEditingCostCode(costCode);
     setEditDialogOpen(true);
   };
 
-  const handleDeleteClick = (costCode: any) => {
+  const handleDeleteClick = (costCode: CostCode) => {
     setCostCodeToDelete(costCode);
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (costCodeToDelete) {
-      setCostCodes(prev => prev.filter(cc => cc.code !== costCodeToDelete.code));
+      await deleteCostCode(costCodeToDelete.id);
       setCostCodeToDelete(null);
       setDeleteDialogOpen(false);
     }
   };
 
-  const handleImportCostCodes = (importedCostCodes: any[]) => {
+  const handleImportCostCodes = async (importedCostCodes: any[]) => {
     console.log("Importing cost codes:", importedCostCodes);
-    const newCostCodes = importedCostCodes.map(code => ({
-      code: code.code,
-      name: code.name,
-      category: code.parentGroup || "Uncategorized"
-    }));
-    setCostCodes(prev => [...prev, ...newCostCodes]);
+    await importCostCodes(importedCostCodes);
   };
 
   return (
@@ -129,32 +118,46 @@ const Settings = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {costCodes.map((costCode) => (
-                            <TableRow key={costCode.code}>
-                              <TableCell className="font-medium">{costCode.code}</TableCell>
-                              <TableCell>{costCode.name}</TableCell>
-                              <TableCell>{costCode.category}</TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleEditClick(costCode)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleDeleteClick(costCode)}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-8">
+                                Loading cost codes...
                               </TableCell>
                             </TableRow>
-                          ))}
+                          ) : costCodes.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                                No cost codes found. Add some or import from Excel.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            costCodes.map((costCode) => (
+                              <TableRow key={costCode.id}>
+                                <TableCell className="font-medium">{costCode.code}</TableCell>
+                                <TableCell>{costCode.name}</TableCell>
+                                <TableCell>{costCode.category}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleEditClick(costCode)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleDeleteClick(costCode)}
+                                      className="text-red-600 hover:text-red-800"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
                         </TableBody>
                       </Table>
                     </div>

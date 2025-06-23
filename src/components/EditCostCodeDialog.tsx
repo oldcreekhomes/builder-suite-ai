@@ -11,19 +11,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface CostCode {
-  code: string;
-  name: string;
-  category: string;
-}
+type CostCode = Tables<'cost_codes'>;
 
 interface EditCostCodeDialogProps {
   costCode: CostCode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingCostCodes: Array<{ code: string; name: string; }>;
-  onUpdateCostCode: (oldCode: string, updatedCostCode: any) => void;
+  onUpdateCostCode: (costCodeId: string, updatedCostCode: any) => void;
 }
 
 export function EditCostCodeDialog({ 
@@ -36,12 +33,13 @@ export function EditCostCodeDialog({
   const [formData, setFormData] = useState({
     code: "",
     name: "",
-    parentGroup: "",
+    category: "",
+    parent_group: "",
     quantity: "",
     price: "",
-    unitOfMeasure: "",
-    hasSpecifications: "",
-    hasBidding: "",
+    unit_of_measure: "",
+    has_specifications: "",
+    has_bidding: "",
   });
 
   useEffect(() => {
@@ -49,12 +47,13 @@ export function EditCostCodeDialog({
       setFormData({
         code: costCode.code,
         name: costCode.name,
-        parentGroup: costCode.category || "",
-        quantity: "",
-        price: "",
-        unitOfMeasure: "",
-        hasSpecifications: "",
-        hasBidding: "",
+        category: costCode.category || "",
+        parent_group: costCode.parent_group || "",
+        quantity: costCode.quantity || "",
+        price: costCode.price?.toString() || "",
+        unit_of_measure: costCode.unit_of_measure || "",
+        has_specifications: costCode.has_specifications ? "yes" : "no",
+        has_bidding: costCode.has_bidding ? "yes" : "no",
       });
     }
   }, [costCode]);
@@ -62,7 +61,7 @@ export function EditCostCodeDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (costCode) {
-      onUpdateCostCode(costCode.code, formData);
+      onUpdateCostCode(costCode.id, formData);
       onOpenChange(false);
     }
   };
@@ -84,7 +83,7 @@ export function EditCostCodeDialog({
                 <Label htmlFor="code">Cost Code *</Label>
                 <Input
                   id="code"
-                  type="number"
+                  type="text"
                   value={formData.code}
                   onChange={(e) => handleInputChange("code", e.target.value)}
                   placeholder="Enter cost code number"
@@ -106,13 +105,23 @@ export function EditCostCodeDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="parentGroup">Parent Group</Label>
-                <Select value={formData.parentGroup} onValueChange={(value) => handleInputChange("parentGroup", value)}>
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) => handleInputChange("category", e.target.value)}
+                  placeholder="Enter category"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="parent_group">Parent Group</Label>
+                <Select value={formData.parent_group} onValueChange={(value) => handleInputChange("parent_group", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select parent group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="">None</SelectItem>
                     {existingCostCodes.map((costCode) => (
                       <SelectItem key={costCode.code} value={costCode.code}>
                         {costCode.code} - {costCode.name}
@@ -121,20 +130,19 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-              
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quantity">Quantity</Label>
                 <Input
                   id="quantity"
-                  type="number"
                   value={formData.quantity}
                   onChange={(e) => handleInputChange("quantity", e.target.value)}
                   placeholder="Enter quantity"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+              
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
                 <Input
@@ -146,10 +154,12 @@ export function EditCostCodeDialog({
                   placeholder="Enter price"
                 />
               </div>
-              
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
-                <Select value={formData.unitOfMeasure} onValueChange={(value) => handleInputChange("unitOfMeasure", value)}>
+                <Label htmlFor="unit_of_measure">Unit of Measure</Label>
+                <Select value={formData.unit_of_measure} onValueChange={(value) => handleInputChange("unit_of_measure", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select unit of measure" />
                   </SelectTrigger>
@@ -162,12 +172,10 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hasSpecifications">Has Specifications</Label>
-                <Select value={formData.hasSpecifications} onValueChange={(value) => handleInputChange("hasSpecifications", value)}>
+                <Label htmlFor="has_specifications">Has Specifications</Label>
+                <Select value={formData.has_specifications} onValueChange={(value) => handleInputChange("has_specifications", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />
                   </SelectTrigger>
@@ -177,10 +185,12 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-              
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hasBidding">Has Bidding</Label>
-                <Select value={formData.hasBidding} onValueChange={(value) => handleInputChange("hasBidding", value)}>
+                <Label htmlFor="has_bidding">Has Bidding</Label>
+                <Select value={formData.has_bidding} onValueChange={(value) => handleInputChange("has_bidding", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />
                   </SelectTrigger>
