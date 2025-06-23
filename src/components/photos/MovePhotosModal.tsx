@@ -58,11 +58,9 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
       // Extract unique folder names from photo descriptions
       const folderSet = new Set<string>();
       data?.forEach(photo => {
-        if (photo.description) {
-          const parts = photo.description.split('/');
-          if (parts.length > 1) {
-            folderSet.add(parts[0]);
-          }
+        if (photo.description && photo.description.includes('/')) {
+          const folderName = photo.description.split('/')[0];
+          folderSet.add(folderName);
         }
       });
 
@@ -82,31 +80,45 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
       return;
     }
 
+    if (selectedPhotos.length === 0) {
+      toast({
+        title: "No Photos Selected",
+        description: "Please select photos to move",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsMoving(true);
-    const targetFolder = newFolderName || selectedFolder;
+    const targetFolder = newFolderName.trim() || selectedFolder;
 
     try {
       console.log('Moving photos to folder:', targetFolder);
       console.log('Selected photos:', selectedPhotos);
 
-      const updates = selectedPhotos.map(async (photo) => {
-        // Generate a filename if the photo doesn't have a proper description
+      // Process each photo individually to handle errors better
+      for (const photo of selectedPhotos) {
+        // Generate a proper filename for the photo
         let filename = photo.description;
         
-        // If description is null or doesn't contain a filename, generate one
-        if (!filename || filename.includes('/')) {
+        // If description is null, empty, or already contains a folder path, generate a new filename
+        if (!filename) {
+          // Try to extract filename from URL
           const urlParts = photo.url.split('/');
-          filename = urlParts[urlParts.length - 1] || `photo-${Date.now()}`;
-        }
-
-        // Remove any existing folder path from filename
-        if (filename.includes('/')) {
-          filename = filename.split('/').pop() || filename;
+          const urlFilename = urlParts[urlParts.length - 1];
+          if (urlFilename && urlFilename.includes('.')) {
+            filename = urlFilename;
+          } else {
+            filename = `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+          }
+        } else if (filename.includes('/')) {
+          // If it's already in a folder, just take the filename part
+          filename = filename.split('/').pop() || `photo-${Date.now()}.jpg`;
         }
 
         const newDescription = `${targetFolder}/${filename}`;
         
-        console.log('Updating photo:', photo.id, 'with description:', newDescription);
+        console.log(`Updating photo ${photo.id}: "${photo.description}" -> "${newDescription}"`);
 
         const { error } = await supabase
           .from('project_photos')
@@ -115,14 +127,11 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
 
         if (error) {
           console.error('Error updating photo:', photo.id, error);
-          throw error;
+          throw new Error(`Failed to move photo: ${error.message}`);
         }
+      }
 
-        return { id: photo.id, success: true };
-      });
-
-      const results = await Promise.all(updates);
-      console.log('Move results:', results);
+      console.log('Successfully moved all photos');
 
       toast({
         title: "Success",
@@ -130,11 +139,12 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
       });
 
       onSuccess();
+      handleClose();
     } catch (error) {
       console.error('Error moving photos:', error);
       toast({
         title: "Move Error",
-        description: "Failed to move photos to folder",
+        description: error instanceof Error ? error.message : "Failed to move photos to folder",
         variant: "destructive",
       });
     } finally {
@@ -169,14 +179,20 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
                   <SelectValue placeholder="Choose a folder..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {folders.map((folder) => (
-                    <SelectItem key={folder} value={folder}>
-                      <div className="flex items-center">
-                        <FolderOpen className="h-4 w-4 mr-2" />
-                        {folder}
-                      </div>
+                  {folders.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      No existing folders
                     </SelectItem>
-                  ))}
+                  ) : (
+                    folders.map((folder) => (
+                      <SelectItem key={folder} value={folder}>
+                        <div className="flex items-center">
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          {folder}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
 
@@ -198,6 +214,11 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="Enter folder name..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newFolderName.trim()) {
+                    handleMove();
+                  }
+                }}
               />
               <Button
                 variant="outline"
@@ -220,7 +241,7 @@ export function MovePhotosModal({ isOpen, onClose, selectedPhotoIds, photos, onS
           </Button>
           <Button 
             onClick={handleMove} 
-            disabled={isMoving || (!selectedFolder && !newFolderName)}
+            disabled={isMoving || (!selectedFolder && !newFolderName.trim())}
           >
             {isMoving ? "Moving..." : "Move Photos"}
           </Button>
