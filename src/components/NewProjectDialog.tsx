@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { AddressAutocomplete } from "./AddressAutocomplete";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -168,10 +169,10 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Input
+            <AddressAutocomplete
               id="address"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={setAddress}
               placeholder="Enter project address"
               disabled={isLoading}
             />
