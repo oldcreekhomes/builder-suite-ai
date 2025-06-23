@@ -80,11 +80,11 @@ export function TaskRow({
       <TableCell className="py-1 text-xs w-20">
         {renderEditableCell('start_date', task.start_date, 'date')}
       </TableCell>
-      <TableCell className="py-1 text-xs w-20">
-        <span className="whitespace-nowrap">{format(endDate, 'MMM dd')}</span>
-      </TableCell>
       <TableCell className="py-1 text-xs w-16">
         {renderEditableCell('duration', task.duration, 'number')}
+      </TableCell>
+      <TableCell className="py-1 text-xs w-20">
+        <span className="whitespace-nowrap">{format(endDate, 'MMM dd')}</span>
       </TableCell>
       <TableCell className="py-1 w-24">
         <div className="flex items-center space-x-2">

@@ -201,8 +201,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                     <TableHead className="py-1 text-xs w-16">#</TableHead>
                     <TableHead className="py-1 text-xs min-w-[120px]">Task Name</TableHead>
                     <TableHead className="py-1 text-xs w-20">Start</TableHead>
-                    <TableHead className="py-1 text-xs w-20">End</TableHead>
                     <TableHead className="py-1 text-xs w-16">Duration</TableHead>
+                    <TableHead className="py-1 text-xs w-20">End</TableHead>
                     <TableHead className="py-1 text-xs w-24">Progress</TableHead>
                     <TableHead className="py-1 text-xs w-20">Resources</TableHead>
                     <TableHead className="py-1 text-xs w-20">Predecessor</TableHead>
