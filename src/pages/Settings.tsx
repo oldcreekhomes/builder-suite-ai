@@ -6,8 +6,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
+import { useState } from "react";
 
 const Settings = () => {
+  const [costCodes, setCostCodes] = useState([
+    { code: "001", name: "Site Preparation", category: "Foundation" },
+    { code: "002", name: "Excavation", category: "Foundation" },
+    { code: "003", name: "Concrete Foundation", category: "Foundation" },
+  ]);
+
+  const handleAddCostCode = (newCostCode: any) => {
+    console.log("Adding new cost code:", newCostCode);
+    // Here you would typically save to your backend
+    setCostCodes(prev => [...prev, {
+      code: newCostCode.code,
+      name: newCostCode.name,
+      category: newCostCode.parentGroup || "Uncategorized"
+    }]);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
@@ -34,10 +52,10 @@ const Settings = () => {
                         <h3 className="text-lg font-semibold text-black">Cost Codes</h3>
                         <p className="text-sm text-gray-600">Manage your project cost codes and categories</p>
                       </div>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Cost Code
-                      </Button>
+                      <AddCostCodeDialog 
+                        existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
+                        onAddCostCode={handleAddCostCode}
+                      />
                     </div>
                     
                     <div className="border rounded-lg">
@@ -51,30 +69,16 @@ const Settings = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          <TableRow>
-                            <TableCell className="font-medium">001</TableCell>
-                            <TableCell>Site Preparation</TableCell>
-                            <TableCell>Foundation</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">002</TableCell>
-                            <TableCell>Excavation</TableCell>
-                            <TableCell>Foundation</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">003</TableCell>
-                            <TableCell>Concrete Foundation</TableCell>
-                            <TableCell>Foundation</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
-                            </TableCell>
-                          </TableRow>
+                          {costCodes.map((costCode) => (
+                            <TableRow key={costCode.code}>
+                              <TableCell className="font-medium">{costCode.code}</TableCell>
+                              <TableCell>{costCode.name}</TableCell>
+                              <TableCell>{costCode.category}</TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="sm">Edit</Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
                         </TableBody>
                       </Table>
                     </div>
