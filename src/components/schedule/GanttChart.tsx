@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -71,6 +72,14 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const addTaskMutation = useAddScheduleTask();
   const deleteTaskMutation = useDeleteScheduleTask();
 
+  // Helper function to get task number from task_code
+  const getTaskNumber = (taskCode: string) => {
+    if (!taskCode) return 0;
+    // Parse the task code to get just the number
+    const num = parseInt(taskCode);
+    return isNaN(num) ? 0 : num;
+  };
+
   const startEditing = (taskId: string, field: string, currentValue: string | number) => {
     setEditingCell({ taskId, field });
     setEditValue(String(currentValue));
@@ -124,7 +133,6 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   };
 
   const handleAddNewTask = () => {
-    const nextTaskNumber = tasks.length + 1;
     setNewTask({
       task_name: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
@@ -210,7 +218,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                 <SelectItem value="none">None</SelectItem>
                 {tasks.filter(t => t.id !== task.id).map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {parseInt(t.task_code)}
+                    {getTaskNumber(t.task_code)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -307,12 +315,12 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       >
         {field === "predecessor_id" && value ? (
           <Badge variant="outline" className="text-xs px-1 py-0">
-            {parseInt(tasks.find(t => t.id === value)?.task_code || '0')}
+            {getTaskNumber(tasks.find(t => t.id === value)?.task_code || '0')}
           </Badge>
         ) : field === "predecessor_id" && !value ? (
           <span className="text-gray-400 text-xs">None</span>
         ) : field === "start_date" || field === "end_date" ? (
-          format(parseISO(value as string), 'MMM dd')
+          <span className="whitespace-nowrap">{format(parseISO(value as string), 'MMM dd')}</span>
         ) : field === "duration" ? (
           <span>{value}d</span>
         ) : field === "progress" ? (
@@ -331,16 +339,16 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     return (
       <TableRow key={task.id} className={`${isChild ? 'bg-gray-50' : ''} h-10`}>
         <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs w-16`}>
-          {parseInt(task.task_code)}
+          {getTaskNumber(task.task_code)}
         </TableCell>
         <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
           {renderEditableCell(task, 'task_name', task.task_name)}
         </TableCell>
-        <TableCell className="py-1 text-xs w-20 whitespace-nowrap">
+        <TableCell className="py-1 text-xs w-20">
           {renderEditableCell(task, 'start_date', task.start_date, 'date')}
         </TableCell>
-        <TableCell className="py-1 text-xs w-20 whitespace-nowrap">
-          {format(endDate, 'MMM dd')}
+        <TableCell className="py-1 text-xs w-20">
+          <span className="whitespace-nowrap">{format(endDate, 'MMM dd')}</span>
         </TableCell>
         <TableCell className="py-1 text-xs w-16">
           {renderEditableCell(task, 'duration', task.duration, 'number')}
@@ -430,7 +438,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             className="h-6 text-xs"
           />
         </TableCell>
-        <TableCell className="py-1 text-xs w-20 whitespace-nowrap">
+        <TableCell className="py-1 text-xs w-20">
           <Input
             type="date"
             value={newTask.start_date}
@@ -438,8 +446,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             className="h-6 text-xs"
           />
         </TableCell>
-        <TableCell className="py-1 text-xs w-20 whitespace-nowrap">
-          {format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}
+        <TableCell className="py-1 text-xs w-20">
+          <span className="whitespace-nowrap">{format(addDays(new Date(newTask.start_date), newTask.duration - 1), 'MMM dd')}</span>
         </TableCell>
         <TableCell className="py-1 text-xs w-16">
           <div className="flex items-center space-x-1">
@@ -479,7 +487,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
               <SelectItem value="none">None</SelectItem>
               {tasks.map((task) => (
                 <SelectItem key={task.id} value={task.id}>
-                  {parseInt(task.task_code)}
+                  {getTaskNumber(task.task_code)}
                 </SelectItem>
               ))}
             </SelectContent>
