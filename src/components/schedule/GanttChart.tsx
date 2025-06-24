@@ -1,4 +1,5 @@
 
+
 import React, { useState } from "react";
 import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -122,7 +123,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     onTaskUpdate();
   };
 
-  const handleAddNewTask = () => {
+  const handleQuickAddTask = () => {
     setNewTask({
       task_name: "",
       start_date: format(new Date(), "yyyy-MM-dd"),
@@ -174,7 +175,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           </div>
           <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks yet</h3>
           <p className="text-slate-600 mb-6">Get started by creating your first project task</p>
-          <Button onClick={handleAddNewTask} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleQuickAddTask} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Your First Task
           </Button>
@@ -205,7 +206,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       {/* Modern Toolbar */}
       <div className="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="h-8">
+          <Button variant="outline" size="sm" className="h-8" onClick={handleQuickAddTask}>
             <Plus className="w-4 h-4 mr-2" />
             Quick Add Task
           </Button>
@@ -237,10 +238,6 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             Zoom out
           </Button>
         </div>
-        <Button onClick={handleAddNewTask} className="bg-blue-600 hover:bg-blue-700 h-8">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Task
-        </Button>
       </div>
 
       <ResizablePanelGroup direction="horizontal" className="min-h-[500px] border rounded-lg bg-white shadow-sm">
@@ -249,13 +246,13 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             <ScrollArea className="h-[500px]">
               <Table>
                 <TableHeader>
-                  <TableRow className="h-10 bg-slate-50 border-b border-slate-200">
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-16">Code</TableHead>
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 min-w-[200px]">Name</TableHead>
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-24">Start Date</TableHead>
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-24">End Date</TableHead>
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-20">Duration</TableHead>
-                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-16">Progress</TableHead>
+                  <TableRow className="h-8 bg-slate-50 border-b border-slate-200">
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Code</TableHead>
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 min-w-[180px] pr-2">Name</TableHead>
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-20 pl-2">Start Date</TableHead>
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-20">End Date</TableHead>
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Duration</TableHead>
+                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Progress</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,6 +272,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                         isCollapsed={collapsedSections.has(task.id)}
                         onToggleCollapse={() => toggleSection(task.id)}
                         hasChildren={getChildTasks(task.id).length > 0}
+                        isParent={true}
                       />
                       {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
                         <TaskRow
@@ -339,3 +337,4 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     </div>
   );
 }
+
