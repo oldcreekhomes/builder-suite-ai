@@ -14,6 +14,7 @@ import ProjectFiles from "./pages/ProjectFiles";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import ConfirmInvitation from "./pages/ConfirmInvitation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,9 @@ const App = () => (
         <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
+          
+          {/* Invitation confirmation route - no authentication required */}
+          <Route path="/confirm-invitation" element={<ConfirmInvitation />} />
           
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
