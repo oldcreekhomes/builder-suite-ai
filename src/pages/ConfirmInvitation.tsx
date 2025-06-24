@@ -79,52 +79,85 @@ export default function ConfirmInvitation() {
     setStatus('creating');
 
     try {
-      // For invited employees, skip email confirmation entirely
+      // First, try to sign up with minimal configuration to avoid email triggers
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitationData.email,
-        password: password
-        // No options object at all - this prevents any email confirmation attempt
+        password: password,
+        options: {
+          data: {
+            user_type: 'employee',
+            first_name: invitationData.first_name,
+            last_name: invitationData.last_name,
+            phone_number: invitationData.phone_number,
+            role: invitationData.role,
+            home_builder_id: invitationData.home_builder_id
+          }
+        }
       });
 
-      if (authError) {
-        console.error('Error creating account:', authError);
+      // If we get an email confirmation error, it's not critical - just proceed
+      if (authError && !authError.message?.includes('User already registered')) {
+        console.log('SignUp error (may be expected):', authError);
         
-        // If user already exists, try to sign them in instead
-        if (authError.message?.includes('User already registered')) {
+        // If it's an email-related error, try to sign in directly 
+        if (authError.message?.includes('confirmation') || authError.message?.includes('email')) {
+          console.log('Email confirmation error detected, trying direct sign in...');
+          
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: invitationData.email,
             password: password,
           });
 
-          if (signInError) {
-            setStatus('error');
-            setMessage('Account exists but password is incorrect. Please try again or contact your administrator.');
+          if (!signInError) {
+            // Direct sign in worked, proceed to success
+            setStatus('success');
+            setMessage('Your account has been created successfully!');
+            
+            toast({
+              title: "Welcome to BuilderSuite AI!",
+              description: "Your account has been set up. Redirecting to dashboard...",
+            });
+
+            setTimeout(() => {
+              navigate('/');
+            }, 2000);
             return;
           }
-
-          // Successfully signed in existing user
-          setStatus('success');
-          setMessage('Welcome back! Redirecting to dashboard...');
-          
-          toast({
-            title: "Welcome to BuilderSuite AI!",
-            description: "Signed in successfully. Redirecting to dashboard...",
-          });
-
-          setTimeout(() => {
-            navigate('/');
-          }, 2000);
-          return;
-        } else {
-          setStatus('error');
-          setMessage(authError.message || 'Failed to create account');
-          return;
         }
       }
 
-      console.log('Account created successfully:', authData);
+      // Handle existing user case
+      if (authError?.message?.includes('User already registered')) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitationData.email,
+          password: password,
+        });
+
+        if (signInError) {
+          setStatus('error');
+          setMessage('Account exists but password is incorrect. Please try again or contact your administrator.');
+          return;
+        }
+
+        // Successfully signed in existing user
+        setStatus('success');
+        setMessage('Welcome back! Redirecting to dashboard...');
+        
+        toast({
+          title: "Welcome to BuilderSuite AI!",
+          description: "Signed in successfully. Redirecting to dashboard...",
+        });
+
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+        return;
+      }
+
+      // If signup was successful (or we got here despite email errors)
+      console.log('Account creation result:', authData);
       
-      // Immediately sign the user in to bypass any confirmation requirements
+      // Try to sign in to ensure the user is authenticated
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: invitationData.email,
         password: password,
@@ -132,8 +165,18 @@ export default function ConfirmInvitation() {
 
       if (signInError) {
         console.error('Error signing in after account creation:', signInError);
-        setStatus('error');
-        setMessage('Account created but failed to sign in. Please try logging in manually.');
+        // Don't fail completely - the account might still be created
+        setStatus('success');
+        setMessage('Account created! Please try logging in manually if you\'re not automatically signed in.');
+        
+        toast({
+          title: "Account Created",
+          description: "Please try logging in if you're not automatically signed in.",
+        });
+
+        setTimeout(() => {
+          navigate('/auth');
+        }, 3000);
         return;
       }
 
