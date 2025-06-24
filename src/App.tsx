@@ -11,6 +11,7 @@ import SharedFolder from "./pages/SharedFolder";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
+import ProjectSchedule from "./pages/ProjectSchedule";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
@@ -48,6 +49,9 @@ const App = () => (
           
           {/* Project Files route */}
           <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
+          
+          {/* Project Schedule route */}
+          <Route path="/project/:projectId/schedules" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
