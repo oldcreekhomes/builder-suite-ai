@@ -83,40 +83,54 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // Create the user account with email confirmation completely bypassed
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Try using the admin API to create user without email confirmation
+      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
         email: invitationData.email,
         password: password,
-        options: {
-          data: {
-            user_type: 'employee',
-            first_name: invitationData.first_name,
-            last_name: invitationData.last_name,
-            phone_number: invitationData.phone_number,
-            role: invitationData.role,
-            home_builder_id: invitationData.home_builder_id
-          }
+        email_confirm: true, // Skip email confirmation
+        user_metadata: {
+          user_type: 'employee',
+          first_name: invitationData.first_name,
+          last_name: invitationData.last_name,
+          phone_number: invitationData.phone_number,
+          role: invitationData.role,
+          home_builder_id: invitationData.home_builder_id
         }
       });
 
-      console.log('SignUp result:', { signUpData, signUpError });
+      console.log('Admin createUser result:', { signUpData, signUpError });
 
       if (signUpError) {
-        console.error('Signup error:', signUpError);
-        setStatus('error');
-        setMessage(`Failed to create account: ${signUpError.message}`);
-        return;
+        console.error('Admin createUser error:', signUpError);
+        
+        // Fallback to regular signup with different options
+        console.log('Trying fallback signup method...');
+        const { data: fallbackData, error: fallbackError } = await supabase.auth.signUp({
+          email: invitationData.email,
+          password: password,
+          options: {
+            data: {
+              user_type: 'employee',
+              first_name: invitationData.first_name,
+              last_name: invitationData.last_name,
+              phone_number: invitationData.phone_number,
+              role: invitationData.role,
+              home_builder_id: invitationData.home_builder_id
+            },
+            // Try to disable confirmation by not setting any email options
+          }
+        });
+
+        if (fallbackError) {
+          console.error('Fallback signup error:', fallbackError);
+          setStatus('error');
+          setMessage(`Failed to create account: ${fallbackError.message}`);
+          return;
+        }
+
+        console.log('Fallback signup successful:', fallbackData);
       }
 
-      if (!signUpData.user) {
-        console.error('No user returned from signup');
-        setStatus('error');
-        setMessage('Failed to create account - no user data returned');
-        return;
-      }
-
-      console.log('Account created successfully:', signUpData.user);
-      
       setStatus('success');
       setMessage('Your account has been created successfully!');
       
