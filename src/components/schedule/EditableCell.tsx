@@ -35,27 +35,38 @@ export function EditableCell({
   onEditValueChange,
   allTasks,
 }: EditableCellProps) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSaveEdit();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancelEdit();
+    }
+  };
+
   if (isEditing) {
     if (type === "select" && field === "predecessor_id") {
       return (
         <div className="flex items-center space-x-1 min-w-0">
           <Select value={editValue} onValueChange={onEditValueChange}>
-            <SelectTrigger className="h-6 text-xs min-w-[60px]">
+            <SelectTrigger className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-[80px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
+            <SelectContent className="bg-white border-slate-200 shadow-lg">
+              <SelectItem value="none" className="text-sm">None</SelectItem>
               {allTasks.filter(t => t.id !== task.id).map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {getTaskNumber(t.task_code)}
+                <SelectItem key={t.id} value={t.id} className="text-sm">
+                  Task {getTaskNumber(t.task_code)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onSaveEdit}>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
             <Check className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onCancelEdit}>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-colors flex-shrink-0" onClick={onCancelEdit}>
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -69,18 +80,15 @@ export function EditableCell({
             type="number"
             value={editValue}
             onChange={(e) => onEditValueChange(e.target.value)}
-            className="h-6 text-xs w-12 flex-shrink-0"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSaveEdit();
-              if (e.key === 'Escape') onCancelEdit();
-            }}
+            className="h-8 text-sm w-14 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
+            onKeyDown={handleKeyDown}
             autoFocus
           />
-          <span className="text-xs flex-shrink-0">d</span>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onSaveEdit}>
+          <span className="text-slate-500 text-sm font-medium flex-shrink-0">d</span>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
             <Check className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onCancelEdit}>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-colors flex-shrink-0" onClick={onCancelEdit}>
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -94,20 +102,17 @@ export function EditableCell({
             type="number"
             value={editValue}
             onChange={(e) => onEditValueChange(e.target.value)}
-            className="h-6 text-xs w-12 flex-shrink-0"
+            className="h-8 text-sm w-14 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
             min="0"
             max="100"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSaveEdit();
-              if (e.key === 'Escape') onCancelEdit();
-            }}
+            onKeyDown={handleKeyDown}
             autoFocus
           />
-          <span className="text-xs flex-shrink-0">%</span>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onSaveEdit}>
+          <span className="text-slate-500 text-sm font-medium flex-shrink-0">%</span>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
             <Check className="h-3 w-3" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onCancelEdit}>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-colors flex-shrink-0" onClick={onCancelEdit}>
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -120,17 +125,14 @@ export function EditableCell({
           type={type}
           value={editValue}
           onChange={(e) => onEditValueChange(e.target.value)}
-          className="h-6 text-xs min-w-0 flex-1"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onSaveEdit();
-            if (e.key === 'Escape') onCancelEdit();
-          }}
+          className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-0 flex-1"
+          onKeyDown={handleKeyDown}
           autoFocus
         />
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onSaveEdit}>
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
           <Check className="h-3 w-3" />
         </Button>
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0" onClick={onCancelEdit}>
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-colors flex-shrink-0" onClick={onCancelEdit}>
           <X className="h-3 w-3" />
         </Button>
       </div>
@@ -139,23 +141,23 @@ export function EditableCell({
 
   return (
     <div 
-      className="cursor-pointer hover:bg-gray-100 p-1 rounded min-w-0 truncate"
+      className="cursor-pointer hover:bg-slate-50 p-2 rounded-md min-w-0 truncate transition-colors border border-transparent hover:border-slate-200"
       onClick={() => onStartEditing(task.id, field, value)}
     >
       {field === "predecessor_id" && value ? (
-        <Badge variant="outline" className="text-xs px-1 py-0">
-          {getTaskNumber(allTasks.find(t => t.id === value)?.task_code || '0')}
+        <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border-blue-200">
+          Task {getTaskNumber(allTasks.find(t => t.id === value)?.task_code || '0')}
         </Badge>
       ) : field === "predecessor_id" && !value ? (
-        <span className="text-gray-400 text-xs">None</span>
+        <span className="text-slate-400 text-sm">None</span>
       ) : field === "start_date" || field === "end_date" ? (
-        <span className="whitespace-nowrap">{formatTaskDate(value as string)}</span>
+        <span className="whitespace-nowrap text-slate-700 font-medium">{formatTaskDate(value as string)}</span>
       ) : field === "duration" ? (
-        <span>{value}d</span>
+        <span className="text-slate-700 font-medium">{value}d</span>
       ) : field === "progress" ? (
-        <span>{value}%</span>
+        <span className="text-slate-700 font-medium">{value}%</span>
       ) : (
-        value
+        <span className="text-slate-700">{value}</span>
       )}
     </div>
   );
