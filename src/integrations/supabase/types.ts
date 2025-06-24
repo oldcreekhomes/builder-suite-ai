@@ -557,7 +557,7 @@ export type Database = {
       }
       confirm_invitation: {
         Args: { token: string }
-        Returns: string
+        Returns: Json
       }
       get_home_builders: {
         Args: Record<PropertyKey, never>
