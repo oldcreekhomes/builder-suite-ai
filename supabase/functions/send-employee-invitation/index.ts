@@ -28,7 +28,7 @@ const handler = async (req: Request): Promise<Response> => {
     const confirmationUrl = `${Deno.env.get("SITE_URL") || "https://preview--corebuild-project-hub.lovable.app"}/confirm-invitation?token=${invitationToken}`;
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@oldcreekhomes.com>",
+      from: "BuilderSuite AI <noreply@buildersuiteai.com>",
       to: [email],
       subject: `Welcome to ${companyName} - Complete Your BuilderSuite AI Setup`,
       html: `
