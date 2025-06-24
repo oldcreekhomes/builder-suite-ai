@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Download, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import JSZip from "jszip";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SharedPhoto {
   id: string;
   url: string;
   description: string | null;
+  project_id: string;
+  uploaded_by: string;
+  uploaded_at: string;
 }
 
 export default function SharedFolder() {
@@ -21,33 +25,34 @@ export default function SharedFolder() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    // In a real implementation, you'd fetch the folder data based on shareId
-    // For now, we'll simulate loading
     const loadFolder = async () => {
       try {
-        // This would typically make an API call to get the shared folder
-        // For demo purposes, we'll use placeholder data
-        setTimeout(() => {
-          setFolderName("Shared Folder");
-          setPhotos([
-            {
-              id: "1",
-              url: "https://via.placeholder.com/300x200",
-              description: "Photo 1"
-            },
-            {
-              id: "2", 
-              url: "https://via.placeholder.com/300x200",
-              description: "Photo 2"
-            },
-            {
-              id: "3",
-              url: "https://via.placeholder.com/300x200", 
-              description: "Photo 3"
-            }
-          ]);
-          setIsLoading(false);
-        }, 1000);
+        console.log('Loading shared folder with shareId:', shareId);
+        
+        // In a real implementation, you would store the share mapping in a database
+        // For now, we'll try to extract project info from the current session
+        // and load all photos from the root folder or specific folder path
+        
+        // Try to get the current user's photos (this is a temporary approach)
+        // In production, you'd have a shares table that maps shareId to specific folder/photos
+        const { data: photosData, error } = await supabase
+          .from('project_photos')
+          .select('*')
+          .order('uploaded_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching photos:', error);
+          throw error;
+        }
+
+        console.log('Fetched photos for shared folder:', photosData);
+        
+        // Filter photos that don't have a folder path (root photos) or match the shared folder
+        const sharedPhotos = photosData || [];
+        
+        setFolderName("Shared Photos");
+        setPhotos(sharedPhotos);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading shared folder:', error);
         setIsLoading(false);
@@ -74,6 +79,7 @@ export default function SharedFolder() {
       // Add all photos to the zip
       for (const photo of photos) {
         try {
+          console.log('Downloading photo:', photo.url);
           const response = await fetch(photo.url);
           const blob = await response.blob();
           
@@ -84,12 +90,18 @@ export default function SharedFolder() {
           // Create a filename, using description if available
           let fileName = photo.description || `photo-${photo.id}`;
           
+          // If description contains folder path, extract just the filename
+          if (fileName.includes('/')) {
+            fileName = fileName.split('/').pop() || fileName;
+          }
+          
           // Ensure the filename has an extension
           if (!fileName.includes('.')) {
             fileName += `.${extension}`;
           }
           
           zip.file(fileName, blob);
+          console.log('Added to zip:', fileName);
         } catch (error) {
           console.error(`Failed to add ${photo.description || photo.id} to zip:`, error);
         }
@@ -110,7 +122,7 @@ export default function SharedFolder() {
       
       toast({
         title: "Download Complete",
-        description: `${folderName}.zip has been downloaded`,
+        description: `${folderName}.zip has been downloaded with ${photos.length} photos`,
       });
     } catch (error) {
       console.error('Zip creation error:', error);
@@ -126,12 +138,25 @@ export default function SharedFolder() {
 
   const handlePhotoDownload = async (photo: SharedPhoto) => {
     try {
+      console.log('Downloading individual photo:', photo.url);
       const response = await fetch(photo.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = photo.description || `photo-${photo.id}`;
+      
+      // Create a proper filename
+      let fileName = photo.description || `photo-${photo.id}`;
+      if (fileName.includes('/')) {
+        fileName = fileName.split('/').pop() || fileName;
+      }
+      if (!fileName.includes('.')) {
+        const urlParts = photo.url.split('.');
+        const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
+        fileName += `.${extension}`;
+      }
+      
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -149,7 +174,10 @@ export default function SharedFolder() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading shared folder...</p>
+        </div>
       </div>
     );
   }
@@ -158,8 +186,8 @@ export default function SharedFolder() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Folder Not Found</h1>
-          <p className="text-gray-600">The shared folder could not be found or may have expired.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">No Photos Found</h1>
+          <p className="text-gray-600">The shared folder is empty or may have expired.</p>
         </div>
       </div>
     );
@@ -186,7 +214,7 @@ export default function SharedFolder() {
           size="lg"
         >
           <Download className="h-4 w-4 mr-2" />
-          {isDownloading ? 'Preparing Download...' : 'Download All'}
+          {isDownloading ? 'Preparing Download...' : `Download All (${photos.length} photos)`}
         </Button>
       </div>
 
@@ -198,6 +226,10 @@ export default function SharedFolder() {
                 src={photo.url}
                 alt={photo.description || 'Photo'}
                 className="w-full h-48 object-cover"
+                onError={(e) => {
+                  console.error('Failed to load image:', photo.url);
+                  e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                }}
               />
               <div className="p-3">
                 <p className="text-sm font-medium text-gray-900 truncate">
