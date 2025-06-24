@@ -81,55 +81,22 @@ export default function ConfirmInvitation() {
     setStatus('creating');
 
     try {
-      console.log('Creating account for:', invitationData.email);
+      console.log('Creating account using database function for:', invitationData.email);
       
-      // Try using the admin API to create user without email confirmation
-      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-        email: invitationData.email,
-        password: password,
-        email_confirm: true, // Skip email confirmation
-        user_metadata: {
-          user_type: 'employee',
-          first_name: invitationData.first_name,
-          last_name: invitationData.last_name,
-          phone_number: invitationData.phone_number,
-          role: invitationData.role,
-          home_builder_id: invitationData.home_builder_id
-        }
+      // Use our new database function to create the user
+      const { data: createUserData, error: createUserError } = await supabase.rpc('create_user_from_invitation', {
+        p_invitation_id: invitationData.invitation_id,
+        p_password: password
       });
 
-      console.log('Admin createUser result:', { signUpData, signUpError });
-
-      if (signUpError) {
-        console.error('Admin createUser error:', signUpError);
-        
-        // Fallback to regular signup with different options
-        console.log('Trying fallback signup method...');
-        const { data: fallbackData, error: fallbackError } = await supabase.auth.signUp({
-          email: invitationData.email,
-          password: password,
-          options: {
-            data: {
-              user_type: 'employee',
-              first_name: invitationData.first_name,
-              last_name: invitationData.last_name,
-              phone_number: invitationData.phone_number,
-              role: invitationData.role,
-              home_builder_id: invitationData.home_builder_id
-            },
-            // Try to disable confirmation by not setting any email options
-          }
-        });
-
-        if (fallbackError) {
-          console.error('Fallback signup error:', fallbackError);
-          setStatus('error');
-          setMessage(`Failed to create account: ${fallbackError.message}`);
-          return;
-        }
-
-        console.log('Fallback signup successful:', fallbackData);
+      if (createUserError) {
+        console.error('Error creating user:', createUserError);
+        setStatus('error');
+        setMessage(`Failed to create account: ${createUserError.message}`);
+        return;
       }
+
+      console.log('User created successfully:', createUserData);
 
       setStatus('success');
       setMessage('Your account has been created successfully!');

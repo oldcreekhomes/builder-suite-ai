@@ -559,6 +559,10 @@ export type Database = {
         Args: { token: string }
         Returns: Json
       }
+      create_user_from_invitation: {
+        Args: { p_invitation_id: string; p_password: string }
+        Returns: Json
+      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
