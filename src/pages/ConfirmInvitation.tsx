@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,22 +79,11 @@ export default function ConfirmInvitation() {
     setStatus('creating');
 
     try {
-      // Create account with email confirmation disabled for invited users
+      // For invited employees, skip email confirmation entirely
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitationData.email,
-        password: password,
-        options: {
-          emailRedirectTo: undefined, // Completely disable email confirmation
-          data: {
-            user_type: 'employee',
-            first_name: invitationData.first_name,
-            last_name: invitationData.last_name,
-            phone_number: invitationData.phone_number,
-            role: invitationData.role,
-            home_builder_id: invitationData.home_builder_id,
-            email_confirmed: true // Mark as confirmed in metadata
-          }
-        }
+        password: password
+        // No options object at all - this prevents any email confirmation attempt
       });
 
       if (authError) {
@@ -113,6 +101,20 @@ export default function ConfirmInvitation() {
             setMessage('Account exists but password is incorrect. Please try again or contact your administrator.');
             return;
           }
+
+          // Successfully signed in existing user
+          setStatus('success');
+          setMessage('Welcome back! Redirecting to dashboard...');
+          
+          toast({
+            title: "Welcome to BuilderSuite AI!",
+            description: "Signed in successfully. Redirecting to dashboard...",
+          });
+
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
+          return;
         } else {
           setStatus('error');
           setMessage(authError.message || 'Failed to create account');
@@ -122,20 +124,17 @@ export default function ConfirmInvitation() {
 
       console.log('Account created successfully:', authData);
       
-      // For invited employees, we need to manually confirm them since we bypassed email confirmation
-      if (authData?.user && !authData.user.email_confirmed_at) {
-        // Sign them in immediately to bypass email confirmation requirement
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: invitationData.email,
-          password: password,
-        });
+      // Immediately sign the user in to bypass any confirmation requirements
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invitationData.email,
+        password: password,
+      });
 
-        if (signInError) {
-          console.error('Error signing in after account creation:', signInError);
-          setStatus('error');
-          setMessage('Account created but failed to sign in. Please try logging in manually.');
-          return;
-        }
+      if (signInError) {
+        console.error('Error signing in after account creation:', signInError);
+        setStatus('error');
+        setMessage('Account created but failed to sign in. Please try logging in manually.');
+        return;
       }
 
       setStatus('success');
