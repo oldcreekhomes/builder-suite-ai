@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +83,7 @@ export default function ConfirmInvitation() {
         email: invitationData.email,
         password: password,
         options: {
+          emailRedirectTo: undefined, // Disable email confirmation
           data: {
             user_type: 'employee',
             first_name: invitationData.first_name,
@@ -103,18 +103,35 @@ export default function ConfirmInvitation() {
       }
 
       console.log('Account created successfully:', authData);
+      
+      // If the user is immediately confirmed (no email verification needed)
+      if (authData.user && !authData.user.email_confirmed_at) {
+        // For invited employees, we'll manually confirm them by signing in
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitationData.email,
+          password: password,
+        });
+
+        if (signInError) {
+          console.error('Error signing in after account creation:', signInError);
+          setStatus('error');
+          setMessage('Account created but failed to sign in. Please try logging in.');
+          return;
+        }
+      }
+
       setStatus('success');
       setMessage('Your account has been created successfully!');
       
       toast({
         title: "Welcome!",
-        description: "Your account has been set up. You can now log in.",
+        description: "Your account has been set up. Redirecting to dashboard...",
       });
 
-      // Redirect to login after a short delay
+      // Redirect to dashboard immediately
       setTimeout(() => {
-        navigate('/auth');
-      }, 3000);
+        navigate('/');
+      }, 2000);
 
     } catch (error) {
       console.error('Error:', error);
@@ -209,10 +226,10 @@ export default function ConfirmInvitation() {
           {status === 'success' && (
             <div className="space-y-4 text-center">
               <p className="text-sm text-gray-600">
-                You will be redirected to the login page in a few seconds.
+                You will be redirected to the dashboard in a few seconds.
               </p>
-              <Button onClick={() => navigate('/auth')} className="w-full">
-                Go to Login
+              <Button onClick={() => navigate('/')} className="w-full">
+                Go to Dashboard
               </Button>
             </div>
           )}
