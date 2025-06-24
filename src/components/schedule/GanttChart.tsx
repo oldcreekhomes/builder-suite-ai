@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -210,9 +211,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                 </TableHeader>
                 <TableBody>
                   {parentTasks.map(task => (
-                    <>
+                    <React.Fragment key={task.id}>
                       <TaskRow
-                        key={task.id}
                         task={task}
                         editingCell={editingCell}
                         editValue={editValue}
@@ -240,10 +240,11 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                           allTasks={tasks}
                         />
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                   {isAddingTask && (
                     <NewTaskRow
+                      key="new-task"
                       newTask={newTask}
                       tasks={tasks}
                       onNewTaskChange={setNewTask}
