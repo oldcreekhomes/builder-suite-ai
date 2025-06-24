@@ -1,5 +1,4 @@
 
-
 -- Create a function to handle user creation from confirmed invitations
 CREATE OR REPLACE FUNCTION public.create_user_from_invitation(
   p_invitation_id UUID,
@@ -65,7 +64,7 @@ BEGIN
       'last_name', invitation_record.last_name,
       'phone_number', invitation_record.phone_number,
       'role', invitation_record.role,
-      'home_builder_id', invitation_record.home_builder_id
+      'home_builder_id', invitation_record.home_builder_id::text
     ),
     NOW(),
     NOW(),
@@ -88,4 +87,3 @@ BEGIN
   );
 END;
 $$;
-
