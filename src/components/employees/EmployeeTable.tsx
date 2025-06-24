@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -12,10 +11,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Mail } from "lucide-react";
+import { Pencil, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface Employee {
   id: string;
@@ -209,14 +209,12 @@ export function EmployeeTable() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteEmployeeMutation.mutate(employee.id)}
-                      className="hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <DeleteButton
+                      onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
+                      title="Delete Employee"
+                      description={`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`}
+                      isLoading={deleteEmployeeMutation.isPending}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
@@ -251,14 +249,12 @@ export function EmployeeTable() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteInvitationMutation.mutate(invitation.id)}
-                      className="hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <DeleteButton
+                      onDelete={() => deleteInvitationMutation.mutate(invitation.id)}
+                      title="Delete Invitation"
+                      description={`Are you sure you want to delete the invitation for ${invitation.first_name} ${invitation.last_name}? This action cannot be undone.`}
+                      isLoading={deleteInvitationMutation.isPending}
+                    />
                   </div>
                 </TableCell>
               </TableRow>
