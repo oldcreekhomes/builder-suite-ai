@@ -82,39 +82,37 @@ export function GanttVisualization({
     <div className="p-4 bg-slate-50">
       <div className="overflow-x-auto">
         <div className="min-w-max">
-          {/* Timeline header */}
-          <div className="flex mb-4 sticky top-0 bg-slate-50 z-10 pb-2">
-            <div className="flex-1">
-              {/* Month headers */}
-              <div className="flex border-b border-slate-200 pb-2 mb-2">
-                {weeks.map((week, index) => (
-                  <div
-                    key={index}
-                    className="text-xs font-semibold text-slate-700 text-center px-2"
-                    style={{ width: `${100 / weeks.length}%` }}
-                  >
-                    {format(week, 'MMM yyyy')}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Week grid */}
-              <div className="flex">
-                {dateRange.map((date, index) => (
-                  <div
-                    key={index}
-                    className={`
-                      w-6 text-xs text-center py-1 border-r border-slate-200/50
-                      ${format(date, 'E') === 'Sat' || format(date, 'E') === 'Sun' 
-                        ? 'bg-slate-200/30' 
-                        : 'bg-white'
-                      }
-                    `}
-                  >
-                    {format(date, 'dd')}
-                  </div>
-                ))}
-              </div>
+          {/* Timeline header - moved to top */}
+          <div className="sticky top-0 bg-slate-50 z-10 mb-4">
+            {/* Month headers */}
+            <div className="flex border-b border-slate-200 pb-2 mb-2">
+              {weeks.map((week, index) => (
+                <div
+                  key={index}
+                  className="text-xs font-semibold text-slate-700 text-center px-2"
+                  style={{ width: `${100 / weeks.length}%` }}
+                >
+                  {format(week, 'MMM yyyy')}
+                </div>
+              ))}
+            </div>
+            
+            {/* Week grid */}
+            <div className="flex pb-2">
+              {dateRange.map((date, index) => (
+                <div
+                  key={index}
+                  className={`
+                    w-6 text-xs text-center py-1 border-r border-slate-200/50
+                    ${format(date, 'E') === 'Sat' || format(date, 'E') === 'Sun' 
+                      ? 'bg-slate-200/30' 
+                      : 'bg-white'
+                    }
+                  `}
+                >
+                  {format(date, 'dd')}
+                </div>
+              ))}
             </div>
           </div>
           
