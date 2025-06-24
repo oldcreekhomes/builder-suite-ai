@@ -14,6 +14,7 @@ import ProjectFiles from "./pages/ProjectFiles";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import ConfirmInvitation from "./pages/ConfirmInvitation";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Landing page route */}
+          <Route path="/landing" element={<Landing />} />
+          
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
           

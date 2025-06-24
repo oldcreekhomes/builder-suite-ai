@@ -4,13 +4,20 @@ import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Companies from "./pages/Companies";
 import SettingsPage from "./pages/Settings";
+import Landing from "./pages/Landing";
+
+// Component to handle root route logic
+const RootHandler = () => {
+  // This will be handled by ProtectedRoute to show landing page for unauthenticated users
+  return <Index />;
+};
 
 export const navItems = [
   {
     title: "Home",
     to: "/",
     icon: Home,
-    page: <Index />,
+    page: <RootHandler />,
   },
   {
     title: "Employees", 
