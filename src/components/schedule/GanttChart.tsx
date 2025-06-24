@@ -1,28 +1,14 @@
 
-
 import React, { useState } from "react";
-import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { eachDayOfInterval, parseISO, format, addDays } from "date-fns";
 import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask, useDeleteScheduleTask } from "@/hooks/useProjectSchedule";
 import { EditTaskDialog } from "./EditTaskDialog";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TaskRow } from "./TaskRow";
-import { NewTaskRow } from "./NewTaskRow";
 import { GanttVisualization } from "./GanttVisualization";
-import { Plus, Edit, Trash2, Expand, FoldVertical, ZoomIn, ZoomOut } from "lucide-react";
+import { GanttToolbar } from "./GanttToolbar";
+import { GanttTable } from "./GanttTable";
+import { GanttEmptyState } from "./GanttEmptyState";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -167,21 +153,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   };
 
   if (tasks.length === 0 && !isAddingTask) {
-    return (
-      <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border">
-        <div className="max-w-md mx-auto">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Plus className="w-8 h-8 text-blue-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks yet</h3>
-          <p className="text-slate-600 mb-6">Get started by creating your first project task</p>
-          <Button onClick={handleQuickAddTask} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Task
-          </Button>
-        </div>
-      </div>
-    );
+    return <GanttEmptyState onQuickAddTask={handleQuickAddTask} />;
   }
 
   // Calculate date range for the Gantt chart
@@ -203,109 +175,30 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
   return (
     <div className="space-y-4">
-      {/* Modern Toolbar */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" className="h-8" onClick={handleQuickAddTask}>
-            <Plus className="w-4 h-4 mr-2" />
-            Quick Add Task
-          </Button>
-          <div className="w-px h-6 bg-slate-200"></div>
-          <Button variant="ghost" size="sm" className="h-8">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </Button>
-          <div className="w-px h-6 bg-slate-200"></div>
-          <Button variant="ghost" size="sm" className="h-8">
-            <Expand className="w-4 h-4 mr-2" />
-            Expand all
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8">
-            <FoldVertical className="w-4 h-4 mr-2" />
-            Collapse all
-          </Button>
-          <div className="w-px h-6 bg-slate-200"></div>
-          <Button variant="ghost" size="sm" className="h-8">
-            <ZoomIn className="w-4 h-4 mr-2" />
-            Zoom in
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8">
-            <ZoomOut className="w-4 h-4 mr-2" />
-            Zoom out
-          </Button>
-        </div>
-      </div>
+      <GanttToolbar onQuickAddTask={handleQuickAddTask} />
 
       <ResizablePanelGroup direction="horizontal" className="min-h-[500px] border rounded-lg bg-white shadow-sm">
         <ResizablePanel defaultSize={45} minSize={30}>
-          <div className="h-full">
-            <ScrollArea className="h-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="h-8 bg-slate-50 border-b border-slate-200">
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Code</TableHead>
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 min-w-[180px] pr-2">Name</TableHead>
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-20 pl-2">Start Date</TableHead>
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-20">End Date</TableHead>
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Duration</TableHead>
-                    <TableHead className="py-2 text-xs font-bold text-slate-700 w-16">Progress</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {parentTasks.map(task => (
-                    <React.Fragment key={task.id}>
-                      <TaskRow
-                        task={task}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={startEditing}
-                        onSaveEdit={saveEdit}
-                        onCancelEdit={cancelEdit}
-                        onEditValueChange={setEditValue}
-                        onEditTask={setEditingTask}
-                        onDeleteTask={handleDeleteTask}
-                        allTasks={tasks}
-                        isCollapsed={collapsedSections.has(task.id)}
-                        onToggleCollapse={() => toggleSection(task.id)}
-                        hasChildren={getChildTasks(task.id).length > 0}
-                        isParent={true}
-                      />
-                      {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                        <TaskRow
-                          key={childTask.id}
-                          task={childTask}
-                          isChild={true}
-                          editingCell={editingCell}
-                          editValue={editValue}
-                          onStartEditing={startEditing}
-                          onSaveEdit={saveEdit}
-                          onCancelEdit={cancelEdit}
-                          onEditValueChange={setEditValue}
-                          onEditTask={setEditingTask}
-                          onDeleteTask={handleDeleteTask}
-                          allTasks={tasks}
-                        />
-                      )}
-                    </React.Fragment>
-                  ))}
-                  {isAddingTask && (
-                    <NewTaskRow
-                      key="new-task"
-                      newTask={newTask}
-                      tasks={tasks}
-                      onNewTaskChange={setNewTask}
-                      onSaveNewTask={saveNewTask}
-                      onCancelNewTask={cancelNewTask}
-                    />
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </div>
+          <GanttTable
+            tasks={tasks}
+            parentTasks={parentTasks}
+            collapsedSections={collapsedSections}
+            editingCell={editingCell}
+            editValue={editValue}
+            isAddingTask={isAddingTask}
+            newTask={newTask}
+            getChildTasks={getChildTasks}
+            onStartEditing={startEditing}
+            onSaveEdit={saveEdit}
+            onCancelEdit={cancelEdit}
+            onEditValueChange={setEditValue}
+            onEditTask={setEditingTask}
+            onDeleteTask={handleDeleteTask}
+            onToggleSection={toggleSection}
+            onNewTaskChange={setNewTask}
+            onSaveNewTask={saveNewTask}
+            onCancelNewTask={cancelNewTask}
+          />
         </ResizablePanel>
 
         <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors" />
@@ -337,4 +230,3 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     </div>
   );
 }
-
