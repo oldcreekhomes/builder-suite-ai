@@ -1,4 +1,5 @@
 
+
 -- Create a function to handle user creation from confirmed invitations
 CREATE OR REPLACE FUNCTION public.create_user_from_invitation(
   p_invitation_id UUID,
@@ -30,7 +31,8 @@ BEGIN
   WHERE email = invitation_record.email;
   
   IF existing_user_id IS NOT NULL THEN
-    -- User exists, update their metadata to link them as an employee
+    -- User exists, just update their profile to link them as an employee
+    -- First update their auth metadata
     UPDATE auth.users 
     SET raw_user_meta_data = jsonb_build_object(
       'user_type', 'employee',
@@ -43,53 +45,23 @@ BEGIN
     updated_at = NOW()
     WHERE id = existing_user_id;
     
+    -- Then update their profile in the profiles table
+    UPDATE public.profiles
+    SET user_type = 'employee',
+        first_name = invitation_record.first_name,
+        last_name = invitation_record.last_name,
+        phone_number = invitation_record.phone_number,
+        role = invitation_record.role,
+        home_builder_id = invitation_record.home_builder_id,
+        approved_by_home_builder = true,
+        updated_at = NOW()
+    WHERE id = existing_user_id;
+    
     new_user_id := existing_user_id;
   ELSE
-    -- Create new user
-    INSERT INTO auth.users (
-      instance_id,
-      id,
-      aud,
-      role,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      recovery_sent_at,
-      last_sign_in_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      created_at,
-      updated_at,
-      confirmation_token,
-      email_change,
-      email_change_token_new,
-      recovery_token
-    ) VALUES (
-      '00000000-0000-0000-0000-000000000000',
-      gen_random_uuid(),
-      'authenticated',
-      'authenticated',
-      invitation_record.email,
-      crypt(p_password, gen_salt('bf')),
-      NOW(),
-      NOW(),
-      NOW(),
-      '{"provider": "email", "providers": ["email"]}',
-      jsonb_build_object(
-        'user_type', 'employee',
-        'first_name', invitation_record.first_name,
-        'last_name', invitation_record.last_name,
-        'phone_number', invitation_record.phone_number,
-        'role', invitation_record.role,
-        'home_builder_id', invitation_record.home_builder_id::text
-      ),
-      NOW(),
-      NOW(),
-      '',
-      '',
-      '',
-      ''
-    ) RETURNING id INTO new_user_id;
+    -- User doesn't exist, we need to create them through Supabase Auth
+    -- This should not happen in the invitation flow, but let's handle it
+    RAISE EXCEPTION 'User does not exist. Please sign up first before accepting invitation.';
   END IF;
   
   -- Update invitation status
@@ -105,3 +77,4 @@ BEGIN
   );
 END;
 $$;
+
