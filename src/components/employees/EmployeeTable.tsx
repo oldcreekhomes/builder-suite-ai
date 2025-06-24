@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -11,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Mail } from "lucide-react";
+import { Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
@@ -202,11 +203,12 @@ export function EmployeeTable() {
                 <TableCell className="text-right">
                   <div className="flex justify-end items-center space-x-2">
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setEditingEmployee(employee)}
+                      className="h-8 w-8"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
@@ -249,8 +251,8 @@ export function EmployeeTable() {
                 <TableCell className="text-right">
                   <div className="flex justify-end items-center space-x-2">
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => {
                         // Convert invitation to employee format for editing
                         const employeeFromInvitation: Employee = {
@@ -265,8 +267,9 @@ export function EmployeeTable() {
                         };
                         setEditingEmployee(employeeFromInvitation);
                       }}
+                      className="h-8 w-8"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteInvitationMutation.mutate(invitation.id)}
