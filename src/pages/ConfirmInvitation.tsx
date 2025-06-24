@@ -83,12 +83,11 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // Create the user account with email confirmation completely disabled
+      // Create the user account with email confirmation completely bypassed
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: invitationData.email,
         password: password,
         options: {
-          emailRedirectTo: null, // Completely disable email confirmation
           data: {
             user_type: 'employee',
             first_name: invitationData.first_name,
