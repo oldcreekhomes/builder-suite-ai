@@ -12,7 +12,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Download, Link, Share } from "lucide-react";
+import { Download, Share } from "lucide-react";
 
 interface ProjectPhoto {
   id: string;
@@ -164,10 +164,6 @@ export function FolderView({
     });
   };
 
-  const handleCreateLink = () => {
-    onShareFolder(folderPath, photos);
-  };
-
   const handleShareFolder = () => {
     onShareFolder(folderPath, photos);
   };
@@ -223,10 +219,6 @@ export function FolderView({
           <ContextMenuItem onClick={handleDownloadFolder}>
             <Download className="h-4 w-4 mr-2" />
             Download All
-          </ContextMenuItem>
-          <ContextMenuItem onClick={handleCreateLink}>
-            <Link className="h-4 w-4 mr-2" />
-            Create Link
           </ContextMenuItem>
           <ContextMenuItem onClick={handleShareFolder}>
             <Share className="h-4 w-4 mr-2" />

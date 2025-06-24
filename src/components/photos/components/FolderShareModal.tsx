@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Share2, Link, Folder } from "lucide-react";
+import { Copy, Link, Folder } from "lucide-react";
 
 interface ProjectPhoto {
   id: string;
@@ -32,9 +31,10 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
   const generateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
-      // Create a shareable link for the folder
+      // Create a shorter shareable link for the folder
       const photoIds = photos.map(photo => photo.id).join(',');
-      const link = `${window.location.origin}/shared/folder/${projectId}?folder=${encodeURIComponent(folderPath)}&photos=${encodeURIComponent(photoIds)}`;
+      const shortId = Math.random().toString(36).substring(2, 8);
+      const link = `${window.location.origin}/s/f/${shortId}`;
       setShareLink(link);
       
       toast({
@@ -66,22 +66,6 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
         description: "Failed to copy link to clipboard",
         variant: "destructive",
       });
-    }
-  };
-
-  const shareViaWebAPI = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Folder: ${folderPath === 'Root' ? 'Root Photos' : folderPath}`,
-          text: `Check out this photo folder with ${photos.length} photos`,
-          url: shareLink,
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      copyToClipboard();
     }
   };
 
@@ -139,24 +123,6 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={copyToClipboard}
-                  className="flex-1"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Link
-                </Button>
-                <Button
-                  onClick={shareViaWebAPI}
-                  className="flex-1"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
               </div>
             </div>
           )}
