@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FolderView } from "./components/FolderView";
 import { BulkActionBar } from "./components/BulkActionBar";
 import { MovePhotosModal } from "./MovePhotosModal";
-import { usePhotoActions } from "./hooks/usePhotoActions";
+import { usePhotoGridActions } from "./hooks/usePhotoGridActions";
 
 interface ProjectPhoto {
   id: string;
@@ -25,7 +25,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['Root']));
   const [showMoveModal, setShowMoveModal] = useState(false);
 
-  const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoActions(onRefresh);
+  const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoGridActions(onRefresh);
 
   // Group photos by folder
   const groupPhotos = (photos: ProjectPhoto[]) => {
@@ -146,7 +146,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
         <MovePhotosModal
           isOpen={showMoveModal}
           onClose={() => setShowMoveModal(false)}
-          selectedPhotos={Array.from(selectedPhotos)}
+          selectedPhotoIds={Array.from(selectedPhotos)}
           photos={photos}
           onSuccess={() => {
             setSelectedPhotos(new Set());
