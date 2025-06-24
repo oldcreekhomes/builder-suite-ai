@@ -1,8 +1,9 @@
 
-import { Home, Users, Building2 } from "lucide-react";
+import { Home, Users, Building2, Settings } from "lucide-react";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Companies from "./pages/Companies";
+import SettingsPage from "./pages/Settings";
 
 export const navItems = [
   {
@@ -22,5 +23,11 @@ export const navItems = [
     to: "/companies",
     icon: Building2,
     page: <Companies />,
+  },
+  {
+    title: "Settings", 
+    to: "/settings",
+    icon: Settings,
+    page: <SettingsPage />,
   },
 ];

@@ -12,6 +12,7 @@ import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
 import Companies from "./pages/Companies";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,9 @@ const App = () => (
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
+          
+          {/* Settings route */}
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
