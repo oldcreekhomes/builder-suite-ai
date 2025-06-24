@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -147,17 +148,16 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     console.log('Files with webkitRelativePath:', files.map(f => ({ name: f.name, path: f.webkitRelativePath })));
     
     if (files.length > 0) {
-      // Use the onDrop handler to maintain consistency
       await onDrop(files);
     }
     
     event.target.value = '';
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      onDrop(files);
+      await onDrop(files);
     }
     event.target.value = '';
   };
@@ -170,11 +170,11 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     setShowNewFolderModal(true);
   };
 
-  const handleContextFileUpload = () => {
+  const handleChoosePhotos = () => {
     fileInputRef.current?.click();
   };
 
-  const handleContextFolderUpload = () => {
+  const handleChoosePhotoFolder = () => {
     folderInputRef.current?.click();
   };
 
@@ -197,8 +197,8 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
       <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
         <FileOperationsContextMenu
           onNewFolder={handleNewFolder}
-          onFileUpload={handleContextFileUpload}
-          onFolderUpload={handleContextFolderUpload}
+          onFileUpload={handleChoosePhotos}
+          onFolderUpload={handleChoosePhotoFolder}
         >
           <div
             {...getRootProps()}
@@ -218,41 +218,37 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
               Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
             </p>
             <div className="flex items-center justify-center space-x-4">
-              <label htmlFor="photo-file-upload" className="cursor-pointer">
-                <Button type="button" className="mt-4">
-                  <Image className="h-4 w-4 mr-2" />
-                  Choose Photos
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  id="photo-file-upload"
-                  type="file"
-                  multiple
-                  accept="image/*,.heic,.HEIC"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-              <label htmlFor="photo-folder-upload" className="cursor-pointer">
-                <Button type="button" variant="outline" className="mt-4">
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Choose Photo Folder
-                </Button>
-                <input
-                  ref={folderInputRef}
-                  id="photo-folder-upload"
-                  type="file"
-                  {...({ webkitdirectory: "" } as any)}
-                  multiple
-                  accept="image/*,.heic,.HEIC"
-                  onChange={handleFolderUpload}
-                  className="hidden"
-                />
-              </label>
+              <Button type="button" onClick={handleChoosePhotos} className="mt-4">
+                <Image className="h-4 w-4 mr-2" />
+                Choose Photos
+              </Button>
+              <Button type="button" variant="outline" onClick={handleChoosePhotoFolder} className="mt-4">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Choose Photo Folder
+              </Button>
             </div>
           </div>
         </FileOperationsContextMenu>
       </Card>
+
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,.heic,.HEIC"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        {...({ webkitdirectory: "" } as any)}
+        multiple
+        accept="image/*,.heic,.HEIC"
+        onChange={handleFolderUpload}
+        className="hidden"
+      />
 
       {uploadingFiles.length > 0 && (
         <Card className="p-4">
