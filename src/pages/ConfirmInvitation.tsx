@@ -81,34 +81,14 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // Try to sign up the user with email confirmation disabled
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // First, check if user already exists by trying to sign in
+      const { data: existingSignIn, error: existingSignInError } = await supabase.auth.signInWithPassword({
         email: invitationData.email,
         password: password,
-        options: {
-          emailRedirectTo: undefined // Don't send confirmation email
-        }
       });
 
-      console.log('SignUp result:', { signUpData, signUpError });
-
-      // If user already exists, try to sign them in
-      if (signUpError?.message?.includes('User already registered')) {
-        console.log('User already exists, attempting sign in...');
-        
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: invitationData.email,
-          password: password,
-        });
-
-        if (signInError) {
-          console.error('Sign in error:', signInError);
-          setStatus('error');
-          setMessage('Account exists but password is incorrect. Please try again or contact your administrator.');
-          return;
-        }
-
-        console.log('Sign in successful:', signInData);
+      if (existingSignIn?.user && !existingSignInError) {
+        console.log('User already exists and password is correct, signing in...');
         setStatus('success');
         setMessage('Welcome back! Redirecting to dashboard...');
         
@@ -123,34 +103,52 @@ export default function ConfirmInvitation() {
         return;
       }
 
-      // If there was a different signup error, handle it
-      if (signUpError && !signUpError.message?.includes('confirmation')) {
-        console.error('Unexpected signup error:', signUpError);
+      // User doesn't exist or password is wrong, try to create account
+      console.log('Creating new account...');
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: invitationData.email,
+        password: password,
+      });
+
+      console.log('SignUp result:', { signUpData, signUpError });
+
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        
+        // If user already exists but password was wrong in the first attempt
+        if (signUpError.message?.includes('User already registered')) {
+          setStatus('error');
+          setMessage('An account with this email already exists but the password is incorrect. Please contact your administrator for assistance.');
+          return;
+        }
+        
         setStatus('error');
         setMessage(signUpError.message || 'Failed to create account');
         return;
       }
 
-      // If signup was successful or we got a confirmation error (which we can ignore)
-      console.log('Account created, attempting to sign in...');
+      // Account created successfully
+      console.log('Account created successfully:', signUpData);
       
-      // Now try to sign in with the credentials
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Wait a moment for the account to be fully created
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Now try to sign in with the new credentials
+      console.log('Attempting to sign in with new credentials...');
+      const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
         email: invitationData.email,
         password: password,
       });
 
-      if (signInError) {
-        console.error('Sign in after creation failed:', signInError);
-        
-        // If sign in fails, the account might need email confirmation
-        // In this case, we'll show a success message but ask them to check email
+      if (newSignInError) {
+        console.error('Sign in after creation failed:', newSignInError);
         setStatus('success');
-        setMessage('Account created! Please check your email for a confirmation link, then try signing in.');
+        setMessage('Account created successfully! Please try signing in manually at the login page.');
         
         toast({
           title: "Account Created",
-          description: "Please check your email for confirmation, then sign in manually.",
+          description: "Your account has been created. Please sign in manually.",
         });
 
         setTimeout(() => {
@@ -159,7 +157,7 @@ export default function ConfirmInvitation() {
         return;
       }
 
-      console.log('Sign in successful after account creation:', signInData);
+      console.log('Sign in successful after account creation:', newSignInData);
       
       setStatus('success');
       setMessage('Your account has been created successfully!');
