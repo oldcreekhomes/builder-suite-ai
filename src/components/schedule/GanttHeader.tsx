@@ -1,16 +1,33 @@
 
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
-export function GanttHeader() {
+interface GanttHeaderProps {
+  selectedTasks: Set<string>;
+  allTaskIds: string[];
+  onSelectAll: (checked: boolean) => void;
+}
+
+export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll }: GanttHeaderProps) {
+  const isAllSelected = allTaskIds.length > 0 && selectedTasks.size === allTaskIds.length;
+  const isIndeterminate = selectedTasks.size > 0 && selectedTasks.size < allTaskIds.length;
+
   return (
     <TableHeader>
-      <TableRow className="h-6 bg-slate-50 border-b border-slate-200">
-        <TableHead className="py-1 text-xs font-bold text-slate-700 w-16">Code</TableHead>
-        <TableHead className="py-1 text-xs font-bold text-slate-700 min-w-[120px] pr-1">Name</TableHead>
-        <TableHead className="py-1 text-xs font-bold text-slate-700 w-20 pl-1">Start Date</TableHead>
-        <TableHead className="py-1 text-xs font-bold text-slate-700 w-16">Duration</TableHead>
-        <TableHead className="py-1 text-xs font-bold text-slate-700 w-20">End Date</TableHead>
-        <TableHead className="py-1 text-xs font-bold text-slate-700 w-16">Progress</TableHead>
+      <TableRow className="h-3 bg-slate-50 border-b border-slate-200">
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-8">
+          <Checkbox
+            checked={isAllSelected}
+            onCheckedChange={onSelectAll}
+            className="h-3 w-3"
+          />
+        </TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-16">Code</TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 min-w-[120px] pr-1">Name</TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-20 pl-1">Start Date</TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-16">Duration</TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-20">End Date</TableHead>
+        <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-16">Progress</TableHead>
       </TableRow>
     </TableHeader>
   );

@@ -35,6 +35,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const [editValue, setEditValue] = useState<string>("");
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [newTask, setNewTask] = useState<NewTask>({
     task_name: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
@@ -55,6 +56,24 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       newCollapsed.add(taskId);
     }
     setCollapsedSections(newCollapsed);
+  };
+
+  const handleSelectTask = (taskId: string, checked: boolean) => {
+    const newSelected = new Set(selectedTasks);
+    if (checked) {
+      newSelected.add(taskId);
+    } else {
+      newSelected.delete(taskId);
+    }
+    setSelectedTasks(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTasks(new Set(tasks.map(task => task.id)));
+    } else {
+      setSelectedTasks(new Set());
+    }
   };
 
   const startEditing = (taskId: string, field: string, currentValue: string | number) => {
@@ -187,6 +206,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             editValue={editValue}
             isAddingTask={isAddingTask}
             newTask={newTask}
+            selectedTasks={selectedTasks}
             getChildTasks={getChildTasks}
             onStartEditing={startEditing}
             onSaveEdit={saveEdit}
@@ -198,6 +218,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             onNewTaskChange={setNewTask}
             onSaveNewTask={saveNewTask}
             onCancelNewTask={cancelNewTask}
+            onSelectTask={handleSelectTask}
+            onSelectAll={handleSelectAll}
           />
         </ResizablePanel>
 

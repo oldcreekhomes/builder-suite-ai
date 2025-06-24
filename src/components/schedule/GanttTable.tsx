@@ -28,6 +28,7 @@ interface GanttTableProps {
   editValue: string;
   isAddingTask: boolean;
   newTask: NewTask;
+  selectedTasks: Set<string>;
   getChildTasks: (parentId: string) => ScheduleTask[];
   onStartEditing: (taskId: string, field: string, currentValue: string | number) => void;
   onSaveEdit: () => void;
@@ -39,6 +40,8 @@ interface GanttTableProps {
   onNewTaskChange: (newTask: NewTask) => void;
   onSaveNewTask: () => void;
   onCancelNewTask: () => void;
+  onSelectTask: (taskId: string, checked: boolean) => void;
+  onSelectAll: (checked: boolean) => void;
 }
 
 export function GanttTable({
@@ -49,6 +52,7 @@ export function GanttTable({
   editValue,
   isAddingTask,
   newTask,
+  selectedTasks,
   getChildTasks,
   onStartEditing,
   onSaveEdit,
@@ -60,12 +64,20 @@ export function GanttTable({
   onNewTaskChange,
   onSaveNewTask,
   onCancelNewTask,
+  onSelectTask,
+  onSelectAll,
 }: GanttTableProps) {
+  const allTaskIds = tasks.map(task => task.id);
+
   return (
     <div className="h-full">
       <ScrollArea className="h-[500px]">
         <Table>
-          <GanttHeader />
+          <GanttHeader 
+            selectedTasks={selectedTasks}
+            allTaskIds={allTaskIds}
+            onSelectAll={onSelectAll}
+          />
           <TableBody>
             {parentTasks.map(task => (
               <React.Fragment key={task.id}>
@@ -84,6 +96,8 @@ export function GanttTable({
                   onToggleCollapse={() => onToggleSection(task.id)}
                   hasChildren={getChildTasks(task.id).length > 0}
                   isParent={true}
+                  isSelected={selectedTasks.has(task.id)}
+                  onSelectTask={onSelectTask}
                 />
                 {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
                   <TaskRow
@@ -99,6 +113,8 @@ export function GanttTable({
                     onEditTask={onEditTask}
                     onDeleteTask={onDeleteTask}
                     allTasks={tasks}
+                    isSelected={selectedTasks.has(childTask.id)}
+                    onSelectTask={onSelectTask}
                   />
                 )}
               </React.Fragment>

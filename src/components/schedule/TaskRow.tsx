@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +36,8 @@ interface TaskRowProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   hasChildren?: boolean;
+  isSelected: boolean;
+  onSelectTask: (taskId: string, checked: boolean) => void;
 }
 
 export function TaskRow({
@@ -53,6 +56,8 @@ export function TaskRow({
   isCollapsed = false,
   onToggleCollapse,
   hasChildren = false,
+  isSelected,
+  onSelectTask,
 }: TaskRowProps) {
   const endDate = parseISO(task.end_date);
 
@@ -89,26 +94,34 @@ export function TaskRow({
       hover:bg-slate-50 
       transition-colors 
       border-b border-slate-100
-      h-4
+      h-2
     `}>
-      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-0.5`}>
+      <TableCell className="py-0.25 w-8">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onSelectTask(task.id, checked as boolean)}
+          className="h-3 w-3"
+        />
+      </TableCell>
+      
+      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-0.25`}>
         <div className="flex items-center">
           {!isChild && hasChildren && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-4 w-4 p-0 mr-2 hover:bg-slate-200"
+              className="h-3 w-3 p-0 mr-2 hover:bg-slate-200"
               onClick={onToggleCollapse}
             >
               {isCollapsed ? (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-2 w-2" />
               ) : (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-2 w-2" />
               )}
             </Button>
           )}
           <span className={`
-            px-2 py-0.5 rounded text-xs font-medium
+            px-1 py-0.25 rounded text-xs font-medium
             ${isChild ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}
           `}>
             {getTaskNumber(task.task_code)}
@@ -116,36 +129,36 @@ export function TaskRow({
         </div>
       </TableCell>
       
-      <TableCell className="py-0.5 min-w-[180px] pr-1">
+      <TableCell className="py-0.25 min-w-[180px] pr-1">
         <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
           {renderEditableCell('task_name', task.task_name)}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.5 w-20 pl-1">
+      <TableCell className="py-0.25 w-20 pl-1">
         <div className="text-xs text-slate-600 font-mono">
           {renderEditableCell('start_date', task.start_date, 'date')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.5 w-16">
+      <TableCell className="py-0.25 w-16">
         <div className="flex items-center space-x-1">
           {renderEditableCell('duration', task.duration, 'number')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.5 w-20">
+      <TableCell className="py-0.25 w-20">
         <div className="text-xs text-slate-600 font-mono">
           {format(endDate, 'MMM dd, yyyy')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.5 w-16">
+      <TableCell className="py-0.25 w-16">
         <div className="flex items-center space-x-2">
           <div className="flex-1">
             <Progress 
               value={task.progress} 
-              className={`h-2 ${getProgressColor(task.progress)}`}
+              className={`h-1 ${getProgressColor(task.progress)}`}
             />
           </div>
           <span className="text-xs font-medium text-slate-600 w-8">
