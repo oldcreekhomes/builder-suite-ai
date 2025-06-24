@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -202,12 +203,13 @@ export function EmployeeTable() {
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => setEditingEmployee(employee)}
                       className="hover:bg-gray-100"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
