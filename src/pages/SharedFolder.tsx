@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Download, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import JSZip from "jszip";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SharedPhoto {
   id: string;
@@ -16,6 +15,15 @@ interface SharedPhoto {
   uploaded_at: string;
 }
 
+interface ShareData {
+  shareId: string;
+  folderPath: string;
+  photos: SharedPhoto[];
+  projectId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export default function SharedFolder() {
   const { shareId } = useParams();
   const { toast } = useToast();
@@ -23,36 +31,48 @@ export default function SharedFolder() {
   const [folderName, setFolderName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     const loadFolder = async () => {
       try {
         console.log('Loading shared folder with shareId:', shareId);
         
-        // In a real implementation, you would store the share mapping in a database
-        // For now, we'll try to extract project info from the current session
-        // and load all photos from the root folder or specific folder path
-        
-        // Try to get the current user's photos (this is a temporary approach)
-        // In production, you'd have a shares table that maps shareId to specific folder/photos
-        const { data: photosData, error } = await supabase
-          .from('project_photos')
-          .select('*')
-          .order('uploaded_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching photos:', error);
-          throw error;
+        if (!shareId) {
+          console.error('No shareId provided');
+          setIsLoading(false);
+          return;
         }
 
-        console.log('Fetched photos for shared folder:', photosData);
+        // Retrieve share data from localStorage
+        const shareDataString = localStorage.getItem(`share_${shareId}`);
         
-        // Filter photos that don't have a folder path (root photos) or match the shared folder
-        const sharedPhotos = photosData || [];
+        if (!shareDataString) {
+          console.error('Share data not found for shareId:', shareId);
+          setIsLoading(false);
+          return;
+        }
+
+        const shareData: ShareData = JSON.parse(shareDataString);
+        console.log('Retrieved share data:', shareData);
+
+        // Check if the share has expired
+        const now = new Date();
+        const expiryDate = new Date(shareData.expiresAt);
         
-        setFolderName("Shared Photos");
-        setPhotos(sharedPhotos);
+        if (now > expiryDate) {
+          console.log('Share has expired');
+          setIsExpired(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Set the folder data
+        setFolderName(shareData.folderPath === 'Root' ? 'Root Photos' : shareData.folderPath);
+        setPhotos(shareData.photos);
         setIsLoading(false);
+        
+        console.log('Loaded shared folder with', shareData.photos.length, 'photos');
       } catch (error) {
         console.error('Error loading shared folder:', error);
         setIsLoading(false);
@@ -177,6 +197,17 @@ export default function SharedFolder() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-gray-600">Loading shared folder...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Share Expired</h1>
+          <p className="text-gray-600">This shared folder link has expired.</p>
         </div>
       </div>
     );

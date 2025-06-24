@@ -32,10 +32,30 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
   const generateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
-      // Create a shorter shareable link for the folder
-      const photoIds = photos.map(photo => photo.id).join(',');
-      const shortId = Math.random().toString(36).substring(2, 8);
-      const link = `${window.location.origin}/s/f/${shortId}`;
+      // Create a unique share ID
+      const shareId = Math.random().toString(36).substring(2, 15);
+      
+      // Store the share data in localStorage for this demo
+      // In production, this would be stored in a database
+      const shareData = {
+        shareId,
+        folderPath,
+        photos: photos.map(photo => ({
+          id: photo.id,
+          url: photo.url,
+          description: photo.description,
+          project_id: photo.project_id,
+          uploaded_by: photo.uploaded_by,
+          uploaded_at: photo.uploaded_at
+        })),
+        projectId,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+      };
+      
+      localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
+      
+      const link = `${window.location.origin}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
