@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -82,29 +81,30 @@ export function EmployeeTable() {
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
       console.log('Deleting employee with ID:', employeeId);
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', employeeId);
+      
+      // Use the new database function to delete from both auth.users and profiles
+      const { error } = await supabase.rpc('delete_user_account', {
+        user_id: employeeId
+      });
       
       if (error) {
         console.error('Error deleting employee:', error);
         throw error;
       }
-      console.log('Employee deleted successfully');
+      console.log('Employee deleted successfully from both auth and profiles');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast({
         title: "Success",
-        description: "Employee deleted successfully",
+        description: "Employee account deleted successfully",
       });
     },
     onError: (error) => {
       console.error('Delete employee mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete employee",
+        description: "Failed to delete employee account",
         variant: "destructive",
       });
     },
@@ -242,8 +242,8 @@ export function EmployeeTable() {
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
-                      title="Delete Employee"
-                      description={`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`}
+                      title="Delete Employee Account"
+                      description={`Are you sure you want to permanently delete ${employee.first_name} ${employee.last_name}'s account? This will remove them from both the application and authentication system. This action cannot be undone.`}
                       isLoading={deleteEmployeeMutation.isPending}
                     />
                   </div>
