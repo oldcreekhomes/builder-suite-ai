@@ -1,4 +1,5 @@
 
+
 -- Create a function to handle user creation from confirmed invitations
 CREATE OR REPLACE FUNCTION public.create_user_from_invitation(
   p_invitation_id UUID,
@@ -87,3 +88,4 @@ BEGIN
   );
 END;
 $$;
+
