@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
 import SharedFolder from "./pages/SharedFolder";
 import ProjectDashboard from "./pages/ProjectDashboard";
+import ProjectPhotos from "./pages/ProjectPhotos";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,9 @@ const App = () => (
           
           {/* Project Dashboard route */}
           <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
+          
+          {/* Project Photos route */}
+          <Route path="/project/:projectId/photos" element={<ProtectedRoute><ProjectPhotos /></ProtectedRoute>} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
