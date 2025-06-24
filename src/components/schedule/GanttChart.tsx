@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -187,8 +188,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     parseISO(task.start_date),
     parseISO(task.end_date)
   ]);
-  const minDate = new Date(Math.min(...allDates.map(d => d.getTime()));
-  const maxDate = new Date(Math.max(...allDates.map(d => d.getTime()));
+  const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+  const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
   const dateRange = eachDayOfInterval({ start: minDate, end: maxDate });
 
   // Organize tasks by hierarchy
