@@ -1,11 +1,8 @@
-import { Folder, ChevronRight, ChevronDown, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import { PhotoCard } from "./PhotoCard";
-import { useCallback } from "react";
-import { useDropzone } from "react-dropzone";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { FolderHeader } from "./FolderHeader";
+import { useFolderDragDrop } from "./hooks/useFolderDragDrop";
+import { useFolderDownload } from "./utils/folderDownload";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -13,7 +10,6 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Download, Share } from "lucide-react";
-import JSZip from "jszip";
 
 interface ProjectPhoto {
   id: string;
@@ -58,149 +54,16 @@ export function FolderView({
   onShareFolder,
   projectId
 }: FolderViewProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  const uploadPhoto = async (file: File, relativePath: string) => {
-    if (!user) return false;
-
-    const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/photos/${fileId}_${relativePath}`;
-    
-    try {
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(fileName);
-
-      // Save photo metadata to database
-      const { error: dbError } = await supabase
-        .from('project_photos')
-        .insert({
-          project_id: projectId,
-          url: publicUrl,
-          description: relativePath,
-          uploaded_by: user.id,
-        });
-
-      if (dbError) throw dbError;
-
-      return true;
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload Error",
-        description: `Failed to upload ${file.name}`,
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('Photos dropped into folder:', folderPath, acceptedFiles);
-    
-    let successCount = 0;
-    
-    for (const file of acceptedFiles) {
-      // Create the path with the folder structure
-      const relativePath = folderPath === 'Root' ? file.name : `${folderPath}/${file.name}`;
-      
-      const success = await uploadPhoto(file, relativePath);
-      if (success) {
-        successCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      toast({
-        title: "Upload Complete",
-        description: `Successfully uploaded ${successCount} photo(s) to ${folderPath === 'Root' ? 'Root Photos' : folderPath}`,
-      });
-      onUploadSuccess();
-    }
-  }, [folderPath, projectId, user, toast, onUploadSuccess]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    noClick: true,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.heic', '.HEIC']
-    }
+  const { getRootProps, getInputProps, isDragActive } = useFolderDragDrop({
+    folderPath,
+    projectId,
+    onUploadSuccess
   });
 
-  const handleDownloadFolder = async () => {
-    const zip = new JSZip();
-    const folderName = folderPath === 'Root' ? 'Root Photos' : folderPath;
-    
-    toast({
-      title: "Preparing Download",
-      description: `Creating zip file for ${folderName}...`,
-    });
+  const { downloadFolder } = useFolderDownload();
 
-    try {
-      // Add all photos to the zip
-      for (const photo of photos) {
-        try {
-          const response = await fetch(photo.url);
-          const blob = await response.blob();
-          
-          // Extract file extension from URL or use a default
-          const urlParts = photo.url.split('.');
-          const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
-          
-          // Create a filename, using description if available
-          let fileName = photo.description || `photo-${photo.id}`;
-          
-          // If description contains folder path, extract just the filename
-          if (fileName.includes('/')) {
-            fileName = fileName.split('/').pop() || fileName;
-          }
-          
-          // Ensure the filename has an extension
-          if (!fileName.includes('.')) {
-            fileName += `.${extension}`;
-          }
-          
-          zip.file(fileName, blob);
-        } catch (error) {
-          console.error(`Failed to add ${photo.description || photo.id} to zip:`, error);
-        }
-      }
-
-      // Generate the zip file
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      
-      // Create download link
-      const url = window.URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${folderName}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Download Complete",
-        description: `${folderName}.zip has been downloaded`,
-      });
-    } catch (error) {
-      console.error('Zip creation error:', error);
-      toast({
-        title: "Download Error",
-        description: "Failed to create zip file",
-        variant: "destructive",
-      });
-    }
+  const handleDownloadFolder = () => {
+    downloadFolder(folderPath, photos);
   };
 
   const handleShareFolder = () => {
@@ -211,47 +74,15 @@ export function FolderView({
     <div className="space-y-4">
       <ContextMenu>
         <ContextMenuTrigger>
-          <div 
-            {...getRootProps()}
-            className={`flex items-center space-x-2 py-2 px-4 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg border-2 border-dashed border-gray-300 transition-colors ${
-              isDragActive ? 'bg-blue-50 border-blue-400' : ''
-            }`}
-          >
-            <input {...getInputProps()} />
-            <div 
-              className="flex items-center space-x-2 flex-1"
-              onClick={() => onToggleFolder(folderPath)}
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-gray-500" />
-              )}
-              <Folder className="h-5 w-5 text-blue-500" />
-              <span className="font-semibold text-gray-700">
-                {folderPath === 'Root' ? 'Root Photos' : folderPath}
-              </span>
-              <span className="text-sm text-gray-500">
-                ({photos.length} photo{photos.length !== 1 ? 's' : ''})
-              </span>
-              {isDragActive && (
-                <span className="text-sm text-blue-600 ml-auto">
-                  Drop photos here
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onShareFolder(folderPath, photos);
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <FolderHeader
+            folderPath={folderPath}
+            photos={photos}
+            isExpanded={isExpanded}
+            isDragActive={isDragActive}
+            onToggleFolder={onToggleFolder}
+            getRootProps={getRootProps}
+            getInputProps={getInputProps}
+          />
         </ContextMenuTrigger>
         
         <ContextMenuContent>
