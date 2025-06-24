@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FolderView } from "./components/FolderView";
 import { BulkActionBar } from "./components/BulkActionBar";
@@ -6,6 +5,8 @@ import { MovePhotosModal } from "./MovePhotosModal";
 import { PhotoShareModal } from "./components/PhotoShareModal";
 import { FolderShareModal } from "./components/FolderShareModal";
 import { usePhotoGridActions } from "./hooks/usePhotoGridActions";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectPhoto {
   id: string;
@@ -24,13 +25,16 @@ interface PhotoGridProps {
 }
 
 export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) {
+  const { toast } = useToast();
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['Root']));
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showPhotoShareModal, setShowPhotoShareModal] = useState(false);
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
   const [sharePhoto, setSharePhoto] = useState<ProjectPhoto | null>(null);
   const [shareFolder, setShareFolder] = useState<{ folderPath: string; photos: ProjectPhoto[] } | null>(null);
+  const [isDeletingFolders, setIsDeletingFolders] = useState(false);
 
   const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoGridActions(onRefresh);
 
@@ -83,12 +87,25 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setSelectedPhotos(newSelected);
   };
 
+  const handleFolderSelection = (folderPath: string, checked: boolean) => {
+    const newSelected = new Set(selectedFolders);
+    if (checked) {
+      newSelected.add(folderPath);
+    } else {
+      newSelected.delete(folderPath);
+    }
+    setSelectedFolders(newSelected);
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allPhotoIds = new Set(visiblePhotos.map(photo => photo.id));
+      const allFolderPaths = new Set(Object.keys(folderGroups).filter(path => path !== 'Root'));
       setSelectedPhotos(allPhotoIds);
+      setSelectedFolders(allFolderPaths);
     } else {
       setSelectedPhotos(new Set());
+      setSelectedFolders(new Set());
     }
   };
 
@@ -107,9 +124,56 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   };
 
   const handleBulkDeleteSelected = async () => {
-    const selectedPhotoObjects = visiblePhotos.filter(photo => selectedPhotos.has(photo.id));
-    await handleBulkDelete(selectedPhotoObjects);
-    setSelectedPhotos(new Set());
+    setIsDeletingFolders(true);
+    try {
+      // Delete selected photos
+      if (selectedPhotos.size > 0) {
+        const selectedPhotoObjects = visiblePhotos.filter(photo => selectedPhotos.has(photo.id));
+        await handleBulkDelete(selectedPhotoObjects);
+      }
+
+      // Delete selected folders (including all photos in them)
+      if (selectedFolders.size > 0) {
+        for (const folderPath of selectedFolders) {
+          // Get all photos in this folder (including placeholder)
+          const folderPhotos = photos.filter(photo => 
+            photo.description?.startsWith(folderPath + '/') || 
+            photo.description === `${folderPath}/.placeholder`
+          );
+          
+          if (folderPhotos.length > 0) {
+            const folderPhotoIds = folderPhotos.map(photo => photo.id);
+            
+            const { error } = await supabase
+              .from('project_photos')
+              .delete()
+              .in('id', folderPhotoIds);
+
+            if (error) {
+              throw new Error(`Failed to delete folder ${folderPath}: ${error.message}`);
+            }
+          }
+        }
+
+        toast({
+          title: "Success",
+          description: `Successfully deleted ${selectedFolders.size} folder(s)`,
+        });
+      }
+
+      setSelectedPhotos(new Set());
+      setSelectedFolders(new Set());
+      onRefresh();
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Error",
+        description: error instanceof Error ? error.message : "Failed to delete selected items",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingFolders(false);
+    }
   };
 
   const handlePhotoShare = (photo: ProjectPhoto) => {
@@ -134,15 +198,20 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   // Extract project ID from the first photo
   const projectId = photos[0]?.project_id || '';
 
+  const totalSelected = selectedPhotos.size + selectedFolders.size;
+  const totalItems = visiblePhotos.length + Object.keys(folderGroups).filter(path => path !== 'Root').length;
+
   return (
     <div className="space-y-6">
       <BulkActionBar
         photos={visiblePhotos}
-        selectedPhotos={selectedPhotos}
-        isDeleting={isDeleting}
+        selectedPhotos={new Set([...selectedPhotos, ...Array.from(selectedFolders)])}
+        isDeleting={isDeleting || isDeletingFolders}
         onSelectAll={handleSelectAll}
         onMovePhotos={handleMovePhotos}
         onBulkDelete={handleBulkDeleteSelected}
+        totalSelected={totalSelected}
+        totalItems={totalItems}
       />
 
       <div className="space-y-4">
@@ -158,9 +227,11 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
               folderPath={folderPath}
               photos={folderPhotos}
               isExpanded={expandedFolders.has(folderPath)}
+              isSelected={selectedFolders.has(folderPath)}
               selectedPhotos={selectedPhotos}
               deletingPhoto={deletingPhoto}
               onToggleFolder={handleToggleFolder}
+              onFolderSelection={folderPath !== 'Root' ? handleFolderSelection : undefined}
               onPhotoSelect={onPhotoSelect}
               onPhotoSelection={handlePhotoSelection}
               onDownload={handleDownload}

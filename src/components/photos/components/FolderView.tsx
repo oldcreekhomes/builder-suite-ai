@@ -3,6 +3,7 @@ import { PhotoCard } from "./PhotoCard";
 import { FolderHeader } from "./FolderHeader";
 import { useFolderDragDrop } from "./hooks/useFolderDragDrop";
 import { useFolderDownload } from "./utils/folderDownload";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -27,9 +28,11 @@ interface FolderViewProps {
   isExpanded: boolean;
   selectedPhotos: Set<string>;
   deletingPhoto: string | null;
+  isSelected?: boolean;
   onToggleFolder: (folderPath: string) => void;
   onPhotoSelect: (photo: ProjectPhoto) => void;
   onPhotoSelection: (photoId: string, checked: boolean) => void;
+  onFolderSelection?: (folderPath: string, checked: boolean) => void;
   onDownload: (photo: ProjectPhoto) => void;
   onShare: (photo: ProjectPhoto) => void;
   onDelete: (photo: ProjectPhoto) => void;
@@ -44,9 +47,11 @@ export function FolderView({
   isExpanded,
   selectedPhotos,
   deletingPhoto,
+  isSelected = false,
   onToggleFolder,
   onPhotoSelect,
   onPhotoSelection,
+  onFolderSelection,
   onDownload,
   onShare,
   onDelete,
@@ -70,19 +75,36 @@ export function FolderView({
     onShareFolder(folderPath, photos);
   };
 
+  const handleFolderSelection = (checked: boolean) => {
+    if (onFolderSelection) {
+      onFolderSelection(folderPath, checked);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <ContextMenu>
         <ContextMenuTrigger>
-          <FolderHeader
-            folderPath={folderPath}
-            photos={photos}
-            isExpanded={isExpanded}
-            isDragActive={isDragActive}
-            onToggleFolder={onToggleFolder}
-            getRootProps={getRootProps}
-            getInputProps={getInputProps}
-          />
+          <div className="flex items-center space-x-3">
+            {onFolderSelection && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={handleFolderSelection}
+                className="mt-1"
+              />
+            )}
+            <div className="flex-1">
+              <FolderHeader
+                folderPath={folderPath}
+                photos={photos}
+                isExpanded={isExpanded}
+                isDragActive={isDragActive}
+                onToggleFolder={onToggleFolder}
+                getRootProps={getRootProps}
+                getInputProps={getInputProps}
+              />
+            </div>
+          </div>
         </ContextMenuTrigger>
         
         <ContextMenuContent>
