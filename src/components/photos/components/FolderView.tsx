@@ -1,4 +1,3 @@
-
 import { Folder, ChevronRight, ChevronDown, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhotoCard } from "./PhotoCard";
@@ -7,6 +6,13 @@ import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { Download, Link, Share } from "lucide-react";
 
 interface ProjectPhoto {
   id: string;
@@ -130,49 +136,104 @@ export function FolderView({
     }
   });
 
+  const handleDownloadFolder = async () => {
+    // Download all photos in the folder
+    for (const photo of photos) {
+      try {
+        const response = await fetch(photo.url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = photo.description || `photo-${photo.id}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Add small delay between downloads
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Download error:', error);
+      }
+    }
+    
+    toast({
+      title: "Download Started",
+      description: `Downloading ${photos.length} photo(s) from ${folderPath === 'Root' ? 'Root Photos' : folderPath}`,
+    });
+  };
+
+  const handleCreateLink = () => {
+    onShareFolder(folderPath, photos);
+  };
+
+  const handleShareFolder = () => {
+    onShareFolder(folderPath, photos);
+  };
+
   return (
     <div className="space-y-4">
-      <div 
-        {...getRootProps()}
-        className={`flex items-center space-x-2 py-2 px-4 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg border-2 border-dashed border-gray-300 transition-colors ${
-          isDragActive ? 'bg-blue-50 border-blue-400' : ''
-        }`}
-      >
-        <input {...getInputProps()} />
-        <div 
-          className="flex items-center space-x-2 flex-1"
-          onClick={() => onToggleFolder(folderPath)}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-gray-500" />
-          )}
-          <Folder className="h-5 w-5 text-blue-500" />
-          <span className="font-semibold text-gray-700">
-            {folderPath === 'Root' ? 'Root Photos' : folderPath}
-          </span>
-          <span className="text-sm text-gray-500">
-            ({photos.length} photo{photos.length !== 1 ? 's' : ''})
-          </span>
-          {isDragActive && (
-            <span className="text-sm text-blue-600 ml-auto">
-              Drop photos here
-            </span>
-          )}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onShareFolder(folderPath, photos);
-          }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Share2 className="h-4 w-4" />
-        </Button>
-      </div>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div 
+            {...getRootProps()}
+            className={`flex items-center space-x-2 py-2 px-4 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg border-2 border-dashed border-gray-300 transition-colors ${
+              isDragActive ? 'bg-blue-50 border-blue-400' : ''
+            }`}
+          >
+            <input {...getInputProps()} />
+            <div 
+              className="flex items-center space-x-2 flex-1"
+              onClick={() => onToggleFolder(folderPath)}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-500" />
+              )}
+              <Folder className="h-5 w-5 text-blue-500" />
+              <span className="font-semibold text-gray-700">
+                {folderPath === 'Root' ? 'Root Photos' : folderPath}
+              </span>
+              <span className="text-sm text-gray-500">
+                ({photos.length} photo{photos.length !== 1 ? 's' : ''})
+              </span>
+              {isDragActive && (
+                <span className="text-sm text-blue-600 ml-auto">
+                  Drop photos here
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShareFolder(folderPath, photos);
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </ContextMenuTrigger>
+        
+        <ContextMenuContent>
+          <ContextMenuItem onClick={handleDownloadFolder}>
+            <Download className="h-4 w-4 mr-2" />
+            Download All
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleCreateLink}>
+            <Link className="h-4 w-4 mr-2" />
+            Create Link
+          </ContextMenuItem>
+          <ContextMenuItem onClick={handleShareFolder}>
+            <Share className="h-4 w-4 mr-2" />
+            Share
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       {isExpanded && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 ml-6">
