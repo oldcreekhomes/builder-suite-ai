@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { FolderView } from "./components/FolderView";
 import { BulkActionBar } from "./components/BulkActionBar";
@@ -33,12 +34,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
 
   const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoGridActions(onRefresh);
 
-  // Filter out placeholder files from photos
-  const visiblePhotos = photos.filter(photo => 
-    !photo.description?.endsWith('.placeholder')
-  );
-
-  // Group photos by folder
+  // Group photos by folder, including placeholder files to show empty folders
   const groupPhotos = (photos: ProjectPhoto[]) => {
     const folders: { [key: string]: ProjectPhoto[] } = {};
     
@@ -46,23 +42,36 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
       if (!photo.description) {
         // Photos without description go to Root
         if (!folders['Root']) folders['Root'] = [];
-        folders['Root'].push(photo);
+        if (!photo.description?.endsWith('.placeholder')) {
+          folders['Root'].push(photo);
+        }
       } else if (photo.description.includes('/')) {
         // Photos with folder structure
         const folderPath = photo.description.split('/')[0];
         if (!folders[folderPath]) folders[folderPath] = [];
-        folders[folderPath].push(photo);
+        
+        // Only add non-placeholder files to the folder's photo list
+        if (!photo.description.endsWith('.placeholder')) {
+          folders[folderPath].push(photo);
+        }
       } else {
         // Photos with description but no folder go to Root
         if (!folders['Root']) folders['Root'] = [];
-        folders['Root'].push(photo);
+        if (!photo.description?.endsWith('.placeholder')) {
+          folders['Root'].push(photo);
+        }
       }
     });
     
     return folders;
   };
 
-  const folderGroups = groupPhotos(visiblePhotos);
+  const folderGroups = groupPhotos(photos);
+  
+  // Filter out placeholder files for display and selection
+  const visiblePhotos = photos.filter(photo => 
+    !photo.description?.endsWith('.placeholder')
+  );
 
   const handlePhotoSelection = (photoId: string, checked: boolean) => {
     const newSelected = new Set(selectedPhotos);
@@ -113,7 +122,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setShowFolderShareModal(true);
   };
 
-  if (visiblePhotos.length === 0) {
+  if (Object.keys(folderGroups).length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">No photos uploaded yet</p>
@@ -123,7 +132,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   }
 
   // Extract project ID from the first photo
-  const projectId = visiblePhotos[0]?.project_id || '';
+  const projectId = photos[0]?.project_id || '';
 
   return (
     <div className="space-y-6">
