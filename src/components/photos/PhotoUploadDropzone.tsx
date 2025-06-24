@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -70,6 +71,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     }
   };
 
+  // Use the same folder creation logic as the files section
   const createFolder = async (folderName: string) => {
     if (!user) return false;
 
@@ -91,7 +93,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         .from('project-files')
         .getPublicUrl(fileName);
 
-      // Save folder metadata to database
+      // Save folder metadata to database as a photo record
       const { error: dbError } = await supabase
         .from('project_photos')
         .insert({
@@ -222,6 +224,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     folderInputRef.current?.click();
   };
 
+  // Updated to use the same success handling as files section
   const handleCreateFolder = async (folderName: string) => {
     const success = await createFolder(folderName);
     if (success) {
@@ -229,7 +232,6 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         title: "Folder Created",
         description: `Successfully created folder "${folderName}"`,
       });
-      // Refresh the photos list to show the new folder
       onUploadSuccess();
     }
   };
