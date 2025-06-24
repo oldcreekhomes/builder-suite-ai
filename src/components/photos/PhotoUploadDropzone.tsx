@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -65,6 +64,51 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
       toast({
         title: "Upload Error",
         description: `Failed to upload ${relativePath || file.name}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const createFolder = async (folderName: string) => {
+    if (!user) return false;
+
+    try {
+      // Create a placeholder file to represent the folder structure
+      const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
+      const fileId = crypto.randomUUID();
+      const fileName = `${user.id}/${projectId}/photos/${fileId}_${folderName}/.placeholder`;
+      
+      // Upload placeholder to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, folderPlaceholder);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(fileName);
+
+      // Save folder metadata to database
+      const { error: dbError } = await supabase
+        .from('project_photos')
+        .insert({
+          project_id: projectId,
+          url: publicUrl,
+          description: `${folderName}/.placeholder`,
+          uploaded_by: user.id,
+        });
+
+      if (dbError) throw dbError;
+
+      return true;
+    } catch (error) {
+      console.error('Folder creation error:', error);
+      toast({
+        title: "Folder Creation Error",
+        description: `Failed to create folder "${folderName}"`,
         variant: "destructive",
       });
       return false;
@@ -178,18 +222,15 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     folderInputRef.current?.click();
   };
 
-  const handleCreateFolder = (folderName: string) => {
-    // Create a placeholder file to represent the folder structure
-    const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
-    uploadPhoto(folderPlaceholder, `${folderName}/.placeholder`).then((success) => {
-      if (success) {
-        toast({
-          title: "Folder Created",
-          description: `Successfully created folder "${folderName}"`,
-        });
-        onUploadSuccess();
-      }
-    });
+  const handleCreateFolder = async (folderName: string) => {
+    const success = await createFolder(folderName);
+    if (success) {
+      toast({
+        title: "Folder Created",
+        description: `Successfully created folder "${folderName}"`,
+      });
+      onUploadSuccess();
+    }
   };
 
   return (
