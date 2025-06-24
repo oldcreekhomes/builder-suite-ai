@@ -36,11 +36,11 @@ export function GanttVisualization({
       <div 
         key={task.id} 
         className={`
-          mb-3 relative
+          relative h-8 flex items-center
           ${isChild ? 'ml-8' : ''}
         `}
       >
-        <div className="flex items-center h-8">
+        <div className="flex items-center w-full h-full">
           {/* Task name */}
           <div className={`
             w-48 flex-shrink-0 text-xs font-medium pr-4 truncate
@@ -135,7 +135,7 @@ export function GanttVisualization({
           </div>
           
           {/* Task bars */}
-          <div className="space-y-1">
+          <div className="space-y-0">
             {parentTasks.map(task => (
               <div key={task.id}>
                 {renderTaskBar(task)}

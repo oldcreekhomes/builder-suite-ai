@@ -94,9 +94,9 @@ export function TaskRow({
       hover:bg-slate-50 
       transition-colors 
       border-b border-slate-100
-      h-2
+      h-8
     `}>
-      <TableCell className="py-0.25 w-8">
+      <TableCell className="py-1 w-8">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onSelectTask(task.id, checked as boolean)}
@@ -104,7 +104,7 @@ export function TaskRow({
         />
       </TableCell>
       
-      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-0.25`}>
+      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-1`}>
         <div className="flex items-center">
           {!isChild && hasChildren && (
             <Button
@@ -129,31 +129,31 @@ export function TaskRow({
         </div>
       </TableCell>
       
-      <TableCell className="py-0.25 min-w-[180px] pr-1">
+      <TableCell className="py-1 min-w-[180px] pr-1">
         <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
           {renderEditableCell('task_name', task.task_name)}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.25 w-20 pl-1">
+      <TableCell className="py-1 w-20 pl-1">
         <div className="text-xs text-slate-600 font-mono">
           {renderEditableCell('start_date', task.start_date, 'date')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.25 w-16">
+      <TableCell className="py-1 w-16">
         <div className="flex items-center space-x-1">
           {renderEditableCell('duration', task.duration, 'number')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.25 w-20">
+      <TableCell className="py-1 w-20">
         <div className="text-xs text-slate-600 font-mono">
           {format(endDate, 'MMM dd, yyyy')}
         </div>
       </TableCell>
       
-      <TableCell className="py-0.25 w-16">
+      <TableCell className="py-1 w-16">
         <div className="flex items-center space-x-2">
           <div className="flex-1">
             <Progress 
