@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -12,7 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
@@ -201,14 +202,14 @@ export function EmployeeTable() {
                   <Badge className="bg-green-100 text-green-800">Active</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end items-center space-x-2">
+                  <div className="flex justify-end space-x-2">
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => setEditingEmployee(employee)}
-                      className="h-8 w-8"
+                      className="hover:bg-gray-100"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
@@ -249,10 +250,10 @@ export function EmployeeTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end items-center space-x-2">
+                  <div className="flex justify-end space-x-2">
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="sm"
                       onClick={() => {
                         // Convert invitation to employee format for editing
                         const employeeFromInvitation: Employee = {
@@ -267,9 +268,9 @@ export function EmployeeTable() {
                         };
                         setEditingEmployee(employeeFromInvitation);
                       }}
-                      className="h-8 w-8"
+                      className="hover:bg-gray-100"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteInvitationMutation.mutate(invitation.id)}
@@ -301,3 +302,4 @@ export function EmployeeTable() {
     </>
   );
 }
+
