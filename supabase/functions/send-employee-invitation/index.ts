@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [email],
-      subject: `Welcome to ${companyName} - Complete Your BuilderSuite AI Setup`,
+      subject: `Complete Your BuilderSuite AI Setup`,
       html: `
         <h1>Welcome to ${companyName}!</h1>
         <p>Hi ${firstName},</p>
