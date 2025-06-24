@@ -81,11 +81,12 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // Create the user account
+      // Create the user account with email confirmation disabled
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: invitationData.email,
         password: password,
         options: {
+          emailRedirectTo: undefined, // Disable email confirmation
           data: {
             user_type: 'employee',
             first_name: invitationData.first_name,
@@ -115,63 +116,18 @@ export default function ConfirmInvitation() {
 
       console.log('Account created successfully:', signUpData.user);
       
-      // The user should now be automatically signed in by Supabase
-      // Let's verify this by checking the session
-      const { data: session } = await supabase.auth.getSession();
-      console.log('Current session after signup:', session);
+      setStatus('success');
+      setMessage('Your account has been created successfully!');
       
-      if (session.session?.user) {
-        console.log('User is signed in after account creation');
-        setStatus('success');
-        setMessage('Your account has been created successfully!');
-        
-        toast({
-          title: "Welcome to BuilderSuite AI!",
-          description: "Your account has been set up. Redirecting to dashboard...",
-        });
+      toast({
+        title: "Welcome to BuilderSuite AI!",
+        description: "Your account has been set up. Redirecting to login...",
+      });
 
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      } else {
-        console.log('User not automatically signed in, attempting manual sign in...');
-        
-        // Try to sign in manually
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: invitationData.email,
-          password: password,
-        });
-
-        if (signInError) {
-          console.error('Manual sign in failed:', signInError);
-          setStatus('success');
-          setMessage('Account created successfully! Please sign in manually.');
-          
-          toast({
-            title: "Account Created",
-            description: "Your account has been created. Please sign in at the login page.",
-          });
-
-          setTimeout(() => {
-            navigate('/auth');
-          }, 3000);
-          return;
-        }
-
-        console.log('Manual sign in successful:', signInData);
-        setStatus('success');
-        setMessage('Your account has been created successfully!');
-        
-        toast({
-          title: "Welcome to BuilderSuite AI!",
-          description: "Your account has been set up. Redirecting to dashboard...",
-        });
-
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      }
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        navigate('/auth');
+      }, 2000);
 
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -266,10 +222,10 @@ export default function ConfirmInvitation() {
           {status === 'success' && (
             <div className="space-y-4 text-center">
               <p className="text-sm text-gray-600">
-                You will be redirected to the dashboard in a few seconds.
+                You will be redirected to the login page in a few seconds.
               </p>
-              <Button onClick={() => navigate('/')} className="w-full">
-                Go to Dashboard
+              <Button onClick={() => navigate('/auth')} className="w-full">
+                Go to Login
               </Button>
             </div>
           )}
