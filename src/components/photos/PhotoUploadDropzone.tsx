@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -229,6 +230,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         title: "Folder Created",
         description: `Successfully created folder "${folderName}"`,
       });
+      // Refresh the photos list to show the new folder
       onUploadSuccess();
     }
   };
