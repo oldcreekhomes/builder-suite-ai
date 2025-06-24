@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,11 +160,11 @@ export default function ConfirmInvitation() {
       case 'loading':
         return 'Confirming invitation...';
       case 'form':
-        return `Welcome ${invitationData?.first_name}!`;
+        return `Welcome to BuilderSuite AI, ${invitationData?.first_name}!`;
       case 'creating':
         return 'Creating your account...';
       case 'success':
-        return 'Welcome to BuildCore!';
+        return 'Welcome to BuilderSuite AI!';
       case 'error':
         return 'Invitation Error';
     }
