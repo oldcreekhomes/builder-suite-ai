@@ -35,20 +35,9 @@ export function GanttVisualization({
     return (
       <div 
         key={task.id} 
-        className={`
-          relative h-8 flex items-center
-          ${isChild ? 'ml-8' : ''}
-        `}
+        className="relative h-8 flex items-center"
       >
         <div className="flex items-center w-full h-full">
-          {/* Task name */}
-          <div className={`
-            w-48 flex-shrink-0 text-xs font-medium pr-4 truncate
-            ${isChild ? 'text-slate-600 pl-4' : 'text-slate-800'}
-          `}>
-            {isChild ? '↳ ' : ''}{task.task_name}
-          </div>
-          
           {/* Timeline container */}
           <div className="flex-1 relative h-6 bg-slate-100 rounded">
             {/* Task bar */}
@@ -95,11 +84,6 @@ export function GanttVisualization({
         <div className="min-w-max">
           {/* Timeline header */}
           <div className="flex mb-4 sticky top-0 bg-slate-50 z-10 pb-2">
-            <div className="w-48 flex-shrink-0 pr-4">
-              <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Timeline
-              </div>
-            </div>
             <div className="flex-1">
               {/* Month headers */}
               <div className="flex border-b border-slate-200 pb-2 mb-2">
@@ -134,7 +118,7 @@ export function GanttVisualization({
             </div>
           </div>
           
-          {/* Task bars */}
+          {/* Task bars - render in exact same order as table */}
           <div className="space-y-0">
             {parentTasks.map(task => (
               <div key={task.id}>
