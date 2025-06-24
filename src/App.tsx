@@ -13,6 +13,8 @@ import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
+import Auth from "./pages/Auth";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Auth route */}
+          <Route path="/auth" element={<Auth />} />
+          
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
           <Route path="/s/f/:shareId" element={<SharedFolder />} />
@@ -46,6 +51,9 @@ const App = () => (
           {navItems.map(({ to, page }) => (
             <Route key={to} path={to} element={<ProtectedRoute>{page}</ProtectedRoute>} />
           ))}
+          
+          {/* Catch all route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
