@@ -2,9 +2,8 @@
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Edit, Users, Trash2 } from "lucide-react";
+import { Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +31,9 @@ interface TaskRowProps {
   onEditTask: (task: ScheduleTask) => void;
   onDeleteTask: (taskId: string) => void;
   allTasks: ScheduleTask[];
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  hasChildren?: boolean;
 }
 
 export function TaskRow({
@@ -46,6 +48,9 @@ export function TaskRow({
   onEditTask,
   onDeleteTask,
   allTasks,
+  isCollapsed = false,
+  onToggleCollapse,
+  hasChildren = false,
 }: TaskRowProps) {
   const endDate = parseISO(task.end_date);
 
@@ -69,84 +74,81 @@ export function TaskRow({
     );
   };
 
+  const getProgressColor = (progress: number) => {
+    if (progress === 0) return "bg-slate-200";
+    if (progress < 50) return "bg-yellow-500";
+    if (progress < 100) return "bg-blue-500";
+    return "bg-green-500";
+  };
+
   return (
-    <TableRow className={`${isChild ? 'bg-gray-50' : ''} h-10`}>
-      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-medium py-1 text-xs w-16`}>
-        {getTaskNumber(task.task_code)}
-      </TableCell>
-      <TableCell className="py-1 text-xs min-w-[120px] max-w-[150px]">
-        {renderEditableCell('task_name', task.task_name)}
-      </TableCell>
-      <TableCell className="py-1 text-xs w-20">
-        {renderEditableCell('start_date', task.start_date, 'date')}
-      </TableCell>
-      <TableCell className="py-1 text-xs w-16">
-        {renderEditableCell('duration', task.duration, 'number')}
-      </TableCell>
-      <TableCell className="py-1 text-xs w-20">
-        <span className="whitespace-nowrap">{format(endDate, 'MMM dd')}</span>
-      </TableCell>
-      <TableCell className="py-1 w-24">
-        <div className="flex items-center space-x-2">
-          <Progress value={task.progress} className="w-8 h-1 flex-shrink-0" />
-          <div className="w-12 flex-shrink-0">
-            {renderEditableCell('progress', task.progress, 'number')}
-          </div>
+    <TableRow className={`
+      ${isChild ? 'bg-slate-50/50' : 'bg-white'} 
+      hover:bg-slate-50 
+      transition-colors 
+      border-b border-slate-100
+      h-12
+    `}>
+      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-2`}>
+        <div className="flex items-center">
+          {!isChild && hasChildren && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 mr-2 hover:bg-slate-200"
+              onClick={onToggleCollapse}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+          <span className={`
+            px-2 py-1 rounded text-xs font-medium
+            ${isChild ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}
+          `}>
+            {getTaskNumber(task.task_code)}
+          </span>
         </div>
       </TableCell>
-      <TableCell className="py-1 w-20">
-        {task.resources.length > 0 ? (
-          <div className="flex items-center space-x-1">
-            <Users className="h-3 w-3 flex-shrink-0" />
-            <Badge variant="secondary" className="text-xs px-1 py-0">
-              {task.resources.length}
-            </Badge>
-          </div>
-        ) : (
-          renderEditableCell('resources', task.resources.join(', '))
-        )}
+      
+      <TableCell className="py-2 min-w-[200px]">
+        <div className={`font-medium text-sm ${isChild ? 'text-slate-700 pl-4' : 'text-slate-900'}`}>
+          {renderEditableCell('task_name', task.task_name)}
+        </div>
       </TableCell>
-      <TableCell className="py-1 w-20">
-        {renderEditableCell('predecessor_id', task.predecessor_id || '', 'select')}
+      
+      <TableCell className="py-2 w-24">
+        <div className="text-xs text-slate-600 font-mono">
+          {renderEditableCell('start_date', task.start_date, 'date')}
+        </div>
       </TableCell>
-      <TableCell className="py-1 w-20">
+      
+      <TableCell className="py-2 w-24">
+        <div className="text-xs text-slate-600 font-mono">
+          {format(endDate, 'MMM dd, yyyy')}
+        </div>
+      </TableCell>
+      
+      <TableCell className="py-2 w-20">
         <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 flex-shrink-0"
-            onClick={() => onEditTask(task)}
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete "{task.task_name}"? This action is permanent and cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={() => onDeleteTask(task.id)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {renderEditableCell('duration', task.duration, 'number')}
+        </div>
+      </TableCell>
+      
+      <TableCell className="py-2 w-16">
+        <div className="flex items-center space-x-2">
+          <div className="flex-1">
+            <Progress 
+              value={task.progress} 
+              className={`h-2 ${getProgressColor(task.progress)}`}
+            />
+          </div>
+          <span className="text-xs font-medium text-slate-600 w-8">
+            {task.progress}%
+          </span>
         </div>
       </TableCell>
     </TableRow>

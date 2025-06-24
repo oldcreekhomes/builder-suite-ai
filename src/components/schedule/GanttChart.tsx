@@ -20,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskRow } from "./TaskRow";
 import { NewTaskRow } from "./NewTaskRow";
 import { GanttVisualization } from "./GanttVisualization";
-import { calculateEndDate } from "./utils/ganttUtils";
+import { Plus, Edit, Trash2, Expand, Collapse, ZoomIn, ZoomOut } from "lucide-react";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -46,6 +46,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [newTask, setNewTask] = useState<NewTask>({
     task_name: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
@@ -57,6 +58,16 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const updateTaskMutation = useUpdateScheduleTask();
   const addTaskMutation = useAddScheduleTask();
   const deleteTaskMutation = useDeleteScheduleTask();
+
+  const toggleSection = (taskId: string) => {
+    const newCollapsed = new Set(collapsedSections);
+    if (newCollapsed.has(taskId)) {
+      newCollapsed.delete(taskId);
+    } else {
+      newCollapsed.add(taskId);
+    }
+    setCollapsedSections(newCollapsed);
+  };
 
   const startEditing = (taskId: string, field: string, currentValue: string | number) => {
     setEditingCell({ taskId, field });
@@ -155,11 +166,18 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
   if (tasks.length === 0 && !isAddingTask) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 text-lg">No tasks yet</p>
-        <Button onClick={handleAddNewTask} className="mt-4">
-          Add Your First Task
-        </Button>
+      <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border">
+        <div className="max-w-md mx-auto">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Plus className="w-8 h-8 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks yet</h3>
+          <p className="text-slate-600 mb-6">Get started by creating your first project task</p>
+          <Button onClick={handleAddNewTask} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Your First Task
+          </Button>
+        </div>
       </div>
     );
   }
@@ -173,7 +191,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
   const dateRange = eachDayOfInterval({ start: minDate, end: maxDate });
 
-  // Organize tasks by hierarchy (parents and children)
+  // Organize tasks by hierarchy
   const parentTasks = tasks.filter(task => !task.predecessor_id);
   const childTasks = tasks.filter(task => task.predecessor_id);
 
@@ -182,30 +200,61 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <div></div>
-        <Button onClick={handleAddNewTask} size="sm">
+    <div className="space-y-4">
+      {/* Modern Toolbar */}
+      <div className="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" className="h-8">
+            <Plus className="w-4 h-4 mr-2" />
+            Quick Add Task
+          </Button>
+          <div className="w-px h-6 bg-slate-200"></div>
+          <Button variant="ghost" size="sm" className="h-8">
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8">
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+          <div className="w-px h-6 bg-slate-200"></div>
+          <Button variant="ghost" size="sm" className="h-8">
+            <Expand className="w-4 h-4 mr-2" />
+            Expand all
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8">
+            <Collapse className="w-4 h-4 mr-2" />
+            Collapse all
+          </Button>
+          <div className="w-px h-6 bg-slate-200"></div>
+          <Button variant="ghost" size="sm" className="h-8">
+            <ZoomIn className="w-4 h-4 mr-2" />
+            Zoom in
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8">
+            <ZoomOut className="w-4 h-4 mr-2" />
+            Zoom out
+          </Button>
+        </div>
+        <Button onClick={handleAddNewTask} className="bg-blue-600 hover:bg-blue-700 h-8">
+          <Plus className="w-4 h-4 mr-2" />
           Add Task
         </Button>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="min-h-[400px] border rounded-lg">
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <Card className="h-full border-0">
-            <ScrollArea className="h-[400px]">
+      <ResizablePanelGroup direction="horizontal" className="min-h-[500px] border rounded-lg bg-white shadow-sm">
+        <ResizablePanel defaultSize={45} minSize={30}>
+          <div className="h-full">
+            <ScrollArea className="h-[500px]">
               <Table>
                 <TableHeader>
-                  <TableRow className="h-8">
-                    <TableHead className="py-1 text-xs w-16">#</TableHead>
-                    <TableHead className="py-1 text-xs min-w-[120px]">Task Name</TableHead>
-                    <TableHead className="py-1 text-xs w-20">Start Date</TableHead>
-                    <TableHead className="py-1 text-xs w-16">Duration</TableHead>
-                    <TableHead className="py-1 text-xs w-20 whitespace-nowrap">End Date</TableHead>
-                    <TableHead className="py-1 text-xs w-24">Progress</TableHead>
-                    <TableHead className="py-1 text-xs w-20">Resources</TableHead>
-                    <TableHead className="py-1 text-xs w-20">Predecessor</TableHead>
-                    <TableHead className="py-1 text-xs w-20">Actions</TableHead>
+                  <TableRow className="h-10 bg-slate-50 border-b border-slate-200">
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-16">Code</TableHead>
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 min-w-[200px]">Name</TableHead>
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-24">Start Date</TableHead>
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-24">End Date</TableHead>
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-20">Duration</TableHead>
+                    <TableHead className="py-2 text-xs font-semibold text-slate-700 w-16">Progress</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -222,8 +271,11 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                         onEditTask={setEditingTask}
                         onDeleteTask={handleDeleteTask}
                         allTasks={tasks}
+                        isCollapsed={collapsedSections.has(task.id)}
+                        onToggleCollapse={() => toggleSection(task.id)}
+                        hasChildren={getChildTasks(task.id).length > 0}
                       />
-                      {getChildTasks(task.id).map(childTask => 
+                      {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
                         <TaskRow
                           key={childTask.id}
                           task={childTask}
@@ -254,17 +306,23 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
                 </TableBody>
               </Table>
             </ScrollArea>
-          </Card>
+          </div>
         </ResizablePanel>
 
-        <ResizableHandle withHandle />
+        <ResizableHandle withHandle className="bg-slate-200 hover:bg-slate-300 transition-colors" />
 
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <Card className="h-full border-0">
-            <ScrollArea className="h-[400px]">
-              <GanttVisualization tasks={tasks} dateRange={dateRange} />
+        <ResizablePanel defaultSize={55} minSize={30}>
+          <div className="h-full bg-slate-50">
+            <ScrollArea className="h-[500px]">
+              <GanttVisualization 
+                tasks={tasks} 
+                dateRange={dateRange} 
+                collapsedSections={collapsedSections}
+                parentTasks={parentTasks}
+                getChildTasks={getChildTasks}
+              />
             </ScrollArea>
-          </Card>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 
