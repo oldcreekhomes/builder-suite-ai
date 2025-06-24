@@ -1,5 +1,4 @@
 
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -48,6 +47,7 @@ export function EmployeeTable() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editingInvitation, setEditingInvitation] = useState<EmployeeInvitation | null>(null);
 
   // Fetch existing employees
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
@@ -81,12 +81,17 @@ export function EmployeeTable() {
   // Delete employee mutation
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
+      console.log('Deleting employee with ID:', employeeId);
       const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', employeeId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting employee:', error);
+        throw error;
+      }
+      console.log('Employee deleted successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -95,7 +100,8 @@ export function EmployeeTable() {
         description: "Employee deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Delete employee mutation error:', error);
       toast({
         title: "Error",
         description: "Failed to delete employee",
@@ -107,12 +113,17 @@ export function EmployeeTable() {
   // Delete invitation mutation
   const deleteInvitationMutation = useMutation({
     mutationFn: async (invitationId: string) => {
+      console.log('Deleting invitation with ID:', invitationId);
       const { error } = await supabase
         .from('employee_invitations')
         .delete()
         .eq('id', invitationId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting invitation:', error);
+        throw error;
+      }
+      console.log('Invitation deleted successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-invitations'] });
@@ -121,7 +132,8 @@ export function EmployeeTable() {
         description: "Invitation deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Delete invitation mutation error:', error);
       toast({
         title: "Error",
         description: "Failed to delete invitation",
@@ -162,6 +174,23 @@ export function EmployeeTable() {
     return invitation.status;
   };
 
+  const handleEditEmployee = (employee: Employee) => {
+    console.log('Editing employee:', employee);
+    setEditingEmployee(employee);
+    setEditingInvitation(null);
+  };
+
+  const handleEditInvitation = (invitation: EmployeeInvitation) => {
+    console.log('Editing invitation:', invitation);
+    setEditingInvitation(invitation);
+    setEditingEmployee(null);
+  };
+
+  const handleCloseDialog = () => {
+    setEditingEmployee(null);
+    setEditingInvitation(null);
+  };
+
   if (employeesLoading || invitationsLoading) {
     return <div className="p-6">Loading employees...</div>;
   }
@@ -183,7 +212,7 @@ export function EmployeeTable() {
           <TableBody>
             {/* Active Employees */}
             {employees.map((employee) => (
-              <TableRow key={employee.id}>
+              <TableRow key={`employee-${employee.id}`}>
                 <TableCell className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={employee.avatar_url || ''} />
@@ -206,7 +235,7 @@ export function EmployeeTable() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setEditingEmployee(employee)}
+                      onClick={() => handleEditEmployee(employee)}
                       className="hover:bg-gray-100"
                     >
                       <Pencil className="h-4 w-4" />
@@ -224,7 +253,7 @@ export function EmployeeTable() {
 
             {/* Pending/Confirmed Invitations */}
             {invitations.map((invitation) => (
-              <TableRow key={invitation.id}>
+              <TableRow key={`invitation-${invitation.id}`}>
                 <TableCell className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback>
@@ -254,20 +283,7 @@ export function EmployeeTable() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        // Convert invitation to employee format for editing
-                        const employeeFromInvitation: Employee = {
-                          id: invitation.id,
-                          first_name: invitation.first_name,
-                          last_name: invitation.last_name,
-                          email: invitation.email,
-                          phone_number: invitation.phone_number,
-                          role: invitation.role,
-                          user_type: 'employee',
-                          approved_by_home_builder: false
-                        };
-                        setEditingEmployee(employeeFromInvitation);
-                      }}
+                      onClick={() => handleEditInvitation(invitation)}
                       className="hover:bg-gray-100"
                     >
                       <Pencil className="h-4 w-4" />
@@ -296,10 +312,10 @@ export function EmployeeTable() {
 
       <EditEmployeeDialog
         employee={editingEmployee}
-        open={!!editingEmployee}
-        onOpenChange={(open) => !open && setEditingEmployee(null)}
+        invitation={editingInvitation}
+        open={!!(editingEmployee || editingInvitation)}
+        onOpenChange={(open) => !open && handleCloseDialog()}
       />
     </>
   );
 }
-
