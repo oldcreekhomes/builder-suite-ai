@@ -81,96 +81,97 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // First, check if user already exists by trying to sign in
-      const { data: existingSignIn, error: existingSignInError } = await supabase.auth.signInWithPassword({
-        email: invitationData.email,
-        password: password,
-      });
-
-      if (existingSignIn?.user && !existingSignInError) {
-        console.log('User already exists and password is correct, signing in...');
-        setStatus('success');
-        setMessage('Welcome back! Redirecting to dashboard...');
-        
-        toast({
-          title: "Welcome to BuilderSuite AI!",
-          description: "Signed in successfully. Redirecting to dashboard...",
-        });
-
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-        return;
-      }
-
-      // User doesn't exist or password is wrong, try to create account
-      console.log('Creating new account...');
-      
+      // Create the user account
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: invitationData.email,
         password: password,
+        options: {
+          data: {
+            user_type: 'employee',
+            first_name: invitationData.first_name,
+            last_name: invitationData.last_name,
+            phone_number: invitationData.phone_number,
+            role: invitationData.role,
+            home_builder_id: invitationData.home_builder_id
+          }
+        }
       });
 
       console.log('SignUp result:', { signUpData, signUpError });
 
       if (signUpError) {
         console.error('Signup error:', signUpError);
-        
-        // If user already exists but password was wrong in the first attempt
-        if (signUpError.message?.includes('User already registered')) {
-          setStatus('error');
-          setMessage('An account with this email already exists but the password is incorrect. Please contact your administrator for assistance.');
-          return;
-        }
-        
         setStatus('error');
-        setMessage(signUpError.message || 'Failed to create account');
+        setMessage(`Failed to create account: ${signUpError.message}`);
         return;
       }
 
-      // Account created successfully
-      console.log('Account created successfully:', signUpData);
-      
-      // Wait a moment for the account to be fully created
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Now try to sign in with the new credentials
-      console.log('Attempting to sign in with new credentials...');
-      const { data: newSignInData, error: newSignInError } = await supabase.auth.signInWithPassword({
-        email: invitationData.email,
-        password: password,
-      });
+      if (!signUpData.user) {
+        console.error('No user returned from signup');
+        setStatus('error');
+        setMessage('Failed to create account - no user data returned');
+        return;
+      }
 
-      if (newSignInError) {
-        console.error('Sign in after creation failed:', newSignInError);
+      console.log('Account created successfully:', signUpData.user);
+      
+      // The user should now be automatically signed in by Supabase
+      // Let's verify this by checking the session
+      const { data: session } = await supabase.auth.getSession();
+      console.log('Current session after signup:', session);
+      
+      if (session.session?.user) {
+        console.log('User is signed in after account creation');
         setStatus('success');
-        setMessage('Account created successfully! Please try signing in manually at the login page.');
+        setMessage('Your account has been created successfully!');
         
         toast({
-          title: "Account Created",
-          description: "Your account has been created. Please sign in manually.",
+          title: "Welcome to BuilderSuite AI!",
+          description: "Your account has been set up. Redirecting to dashboard...",
+        });
+
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+      } else {
+        console.log('User not automatically signed in, attempting manual sign in...');
+        
+        // Try to sign in manually
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitationData.email,
+          password: password,
+        });
+
+        if (signInError) {
+          console.error('Manual sign in failed:', signInError);
+          setStatus('success');
+          setMessage('Account created successfully! Please sign in manually.');
+          
+          toast({
+            title: "Account Created",
+            description: "Your account has been created. Please sign in at the login page.",
+          });
+
+          setTimeout(() => {
+            navigate('/auth');
+          }, 3000);
+          return;
+        }
+
+        console.log('Manual sign in successful:', signInData);
+        setStatus('success');
+        setMessage('Your account has been created successfully!');
+        
+        toast({
+          title: "Welcome to BuilderSuite AI!",
+          description: "Your account has been set up. Redirecting to dashboard...",
         });
 
         setTimeout(() => {
-          navigate('/auth');
-        }, 3000);
-        return;
+          navigate('/');
+        }, 2000);
       }
-
-      console.log('Sign in successful after account creation:', newSignInData);
-      
-      setStatus('success');
-      setMessage('Your account has been created successfully!');
-      
-      toast({
-        title: "Welcome to BuilderSuite AI!",
-        description: "Your account has been set up. Redirecting to dashboard...",
-      });
-
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
 
     } catch (error) {
       console.error('Unexpected error:', error);
