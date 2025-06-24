@@ -250,7 +250,29 @@ export function EmployeeTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Convert invitation to employee format for editing
+                        const employeeFromInvitation: Employee = {
+                          id: invitation.id,
+                          first_name: invitation.first_name,
+                          last_name: invitation.last_name,
+                          email: invitation.email,
+                          phone_number: invitation.phone_number,
+                          role: invitation.role,
+                          user_type: 'employee',
+                          approved_by_home_builder: false
+                        };
+                        setEditingEmployee(employeeFromInvitation);
+                      }}
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span>Edit</span>
+                    </Button>
                     <DeleteButton
                       onDelete={() => deleteInvitationMutation.mutate(invitation.id)}
                       title="Delete Invitation"
