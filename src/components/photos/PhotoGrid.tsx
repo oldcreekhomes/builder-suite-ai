@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { FolderView } from "./components/FolderView";
 import { BulkActionBar } from "./components/BulkActionBar";
@@ -27,6 +28,11 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
 
   const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoGridActions(onRefresh);
 
+  // Filter out placeholder files from photos
+  const visiblePhotos = photos.filter(photo => 
+    !photo.description?.endsWith('.placeholder')
+  );
+
   // Group photos by folder
   const groupPhotos = (photos: ProjectPhoto[]) => {
     const folders: { [key: string]: ProjectPhoto[] } = {};
@@ -51,7 +57,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     return folders;
   };
 
-  const folderGroups = groupPhotos(photos);
+  const folderGroups = groupPhotos(visiblePhotos);
 
   const handlePhotoSelection = (photoId: string, checked: boolean) => {
     const newSelected = new Set(selectedPhotos);
@@ -65,7 +71,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allPhotoIds = new Set(photos.map(photo => photo.id));
+      const allPhotoIds = new Set(visiblePhotos.map(photo => photo.id));
       setSelectedPhotos(allPhotoIds);
     } else {
       setSelectedPhotos(new Set());
@@ -87,12 +93,12 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   };
 
   const handleBulkDeleteSelected = async () => {
-    const selectedPhotoObjects = photos.filter(photo => selectedPhotos.has(photo.id));
+    const selectedPhotoObjects = visiblePhotos.filter(photo => selectedPhotos.has(photo.id));
     await handleBulkDelete(selectedPhotoObjects);
     setSelectedPhotos(new Set());
   };
 
-  if (photos.length === 0) {
+  if (visiblePhotos.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">No photos uploaded yet</p>
@@ -102,12 +108,12 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   }
 
   // Extract project ID from the first photo
-  const projectId = photos[0]?.project_id || '';
+  const projectId = visiblePhotos[0]?.project_id || '';
 
   return (
     <div className="space-y-6">
       <BulkActionBar
-        photos={photos}
+        photos={visiblePhotos}
         selectedPhotos={selectedPhotos}
         isDeleting={isDeleting}
         onSelectAll={handleSelectAll}
@@ -147,7 +153,7 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
           isOpen={showMoveModal}
           onClose={() => setShowMoveModal(false)}
           selectedPhotoIds={Array.from(selectedPhotos)}
-          photos={photos}
+          photos={visiblePhotos}
           onSuccess={() => {
             setSelectedPhotos(new Set());
             onRefresh();
