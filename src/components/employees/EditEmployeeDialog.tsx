@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,13 +21,27 @@ interface Employee {
   approved_by_home_builder: boolean;
 }
 
+interface EmployeeInvitation {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number?: string;
+  role: string;
+  status: string;
+  invited_at: string;
+  confirmed_at?: string;
+  expires_at: string;
+}
+
 interface EditEmployeeDialogProps {
   employee: Employee | null;
+  invitation: EmployeeInvitation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmployeeDialogProps) {
+export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }: EditEmployeeDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -47,37 +62,61 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
         phoneNumber: employee.phone_number || "",
         role: employee.role || "accountant",
       });
+    } else if (invitation) {
+      setFormData({
+        firstName: invitation.first_name || "",
+        lastName: invitation.last_name || "",
+        email: invitation.email || "",
+        phoneNumber: invitation.phone_number || "",
+        role: invitation.role || "accountant",
+      });
     }
-  }, [employee]);
+  }, [employee, invitation]);
 
   const updateEmployeeMutation = useMutation({
     mutationFn: async () => {
-      if (!employee) return;
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone_number: formData.phoneNumber || null,
-          role: formData.role,
-        })
-        .eq('id', employee.id);
+      if (employee) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone_number: formData.phoneNumber || null,
+            role: formData.role,
+          })
+          .eq('id', employee.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else if (invitation) {
+        const { error } = await supabase
+          .from('employee_invitations')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone_number: formData.phoneNumber || null,
+            role: formData.role,
+          })
+          .eq('id', invitation.id);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      if (employee) {
+        queryClient.invalidateQueries({ queryKey: ['employees'] });
+      } else if (invitation) {
+        queryClient.invalidateQueries({ queryKey: ['employee-invitations'] });
+      }
       toast({
         title: "Success",
-        description: "Employee updated successfully",
+        description: `${employee ? 'Employee' : 'Invitation'} updated successfully`,
       });
       onOpenChange(false);
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update employee",
+        description: error.message || `Failed to update ${employee ? 'employee' : 'invitation'}`,
         variant: "destructive",
       });
     },
@@ -96,13 +135,16 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
     updateEmployeeMutation.mutate();
   };
 
-  if (!employee) return null;
+  if (!employee && !invitation) return null;
+
+  const isInvitation = !!invitation;
+  const title = isInvitation ? "Edit Invitation" : "Edit Employee";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Employee</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,7 +220,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
               type="submit"
               disabled={updateEmployeeMutation.isPending}
             >
-              {updateEmployeeMutation.isPending ? "Updating..." : "Update Employee"}
+              {updateEmployeeMutation.isPending ? "Updating..." : `Update ${isInvitation ? 'Invitation' : 'Employee'}`}
             </Button>
           </div>
         </form>
