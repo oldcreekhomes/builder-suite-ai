@@ -11,6 +11,7 @@ import SharedFolder from "./pages/SharedFolder";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
+import Companies from "./pages/Companies";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,9 @@ const App = () => (
           
           {/* Project Files route */}
           <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
+          
+          {/* Companies route */}
+          <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
