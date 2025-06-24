@@ -1,9 +1,10 @@
+
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, Image, FolderOpen } from "lucide-react";
+import { Upload, X, Image, FolderOpen, FolderPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -267,6 +268,10 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
               <Button type="button" variant="outline" onClick={handleChoosePhotoFolder} className="mt-4">
                 <FolderOpen className="h-4 w-4 mr-2" />
                 Choose Photo Folder
+              </Button>
+              <Button type="button" variant="outline" onClick={handleNewFolder} className="mt-4">
+                <FolderPlus className="h-4 w-4 mr-2" />
+                Create Folder
               </Button>
             </div>
           </div>
