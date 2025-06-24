@@ -32,6 +32,7 @@ export default function SharedFolder() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadFolder = async () => {
@@ -40,8 +41,18 @@ export default function SharedFolder() {
         
         if (!shareId) {
           console.error('No shareId provided');
+          setError('Invalid share link');
           setIsLoading(false);
           return;
+        }
+
+        // Check all localStorage items for debugging
+        console.log('All localStorage items:');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('share_')) {
+            console.log(`${key}:`, localStorage.getItem(key));
+          }
         }
 
         // Retrieve share data from localStorage
@@ -49,6 +60,8 @@ export default function SharedFolder() {
         
         if (!shareDataString) {
           console.error('Share data not found for shareId:', shareId);
+          console.error('Looking for key:', `share_${shareId}`);
+          setError('Share not found - the link may be invalid or expired');
           setIsLoading(false);
           return;
         }
@@ -61,7 +74,7 @@ export default function SharedFolder() {
         const expiryDate = new Date(shareData.expiresAt);
         
         if (now > expiryDate) {
-          console.log('Share has expired');
+          console.log('Share has expired. Now:', now, 'Expires:', expiryDate);
           setIsExpired(true);
           setIsLoading(false);
           return;
@@ -69,12 +82,17 @@ export default function SharedFolder() {
 
         // Set the folder data
         setFolderName(shareData.folderPath === 'Root' ? 'Root Photos' : shareData.folderPath);
-        setPhotos(shareData.photos);
+        setPhotos(shareData.photos || []);
         setIsLoading(false);
         
-        console.log('Loaded shared folder with', shareData.photos.length, 'photos');
+        console.log('Successfully loaded shared folder with', shareData.photos?.length || 0, 'photos');
+        
+        if (!shareData.photos || shareData.photos.length === 0) {
+          setError('This shared folder is empty');
+        }
       } catch (error) {
         console.error('Error loading shared folder:', error);
+        setError('Failed to load shared folder');
         setIsLoading(false);
       }
     };
@@ -202,6 +220,18 @@ export default function SharedFolder() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Share Not Found</h1>
+          <p className="text-gray-600">{error}</p>
+          <p className="text-sm text-gray-500 mt-2">Please check the link and try again.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -218,7 +248,7 @@ export default function SharedFolder() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">No Photos Found</h1>
-          <p className="text-gray-600">The shared folder is empty or may have expired.</p>
+          <p className="text-gray-600">The shared folder is empty.</p>
         </div>
       </div>
     );

@@ -32,6 +32,10 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
   const generateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
+      console.log('Generating share link for folder:', folderPath);
+      console.log('Photos to share:', photos.length);
+      console.log('Photos data:', photos);
+      
       // Create a unique share ID
       const shareId = Math.random().toString(36).substring(2, 15);
       
@@ -53,14 +57,19 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
       };
       
+      console.log('Storing share data:', shareData);
       localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
+      
+      // Verify it was stored
+      const storedData = localStorage.getItem(`share_${shareId}`);
+      console.log('Verification - stored data:', storedData);
       
       const link = `${window.location.origin}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
         title: "Link Generated",
-        description: "Shareable folder link has been created",
+        description: `Shareable folder link created with ${photos.length} photos`,
       });
     } catch (error) {
       console.error('Error generating share link:', error);
@@ -76,10 +85,18 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
 
   // Auto-generate link when modal opens
   useEffect(() => {
-    if (isOpen && !shareLink) {
+    if (isOpen && !shareLink && photos.length > 0) {
+      console.log('Modal opened, generating link for', photos.length, 'photos');
       generateShareLink();
+    } else if (isOpen && photos.length === 0) {
+      console.warn('No photos to share');
+      toast({
+        title: "No Photos",
+        description: "There are no photos in this folder to share",
+        variant: "destructive",
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, photos.length]);
 
   const copyToClipboard = async () => {
     try {
@@ -127,7 +144,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto mb-2"></div>
               <p className="text-sm text-gray-500">Generating share link...</p>
             </div>
-          ) : (
+          ) : shareLink ? (
             <div className="space-y-3">
               <div>
                 <Label htmlFor="shareLink">Share Link</Label>
@@ -148,8 +165,15 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
                   </Button>
                 </div>
               </div>
+              <div className="text-xs text-gray-500 text-center">
+                Link expires in 7 days
+              </div>
             </div>
-          )}
+          ) : photos.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500">No photos to share in this folder</p>
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
