@@ -1,5 +1,4 @@
 
-
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -90,15 +89,15 @@ export function TaskRow({
       hover:bg-slate-50 
       transition-colors 
       border-b border-slate-100
-      h-9
+      h-4
     `}>
-      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-1`}>
+      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-0.5`}>
         <div className="flex items-center">
           {!isChild && hasChildren && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-5 w-5 p-0 mr-2 hover:bg-slate-200"
+              className="h-4 w-4 p-0 mr-2 hover:bg-slate-200"
               onClick={onToggleCollapse}
             >
               {isCollapsed ? (
@@ -109,7 +108,7 @@ export function TaskRow({
             </Button>
           )}
           <span className={`
-            px-2 py-1 rounded text-xs font-medium
+            px-2 py-0.5 rounded text-xs font-medium
             ${isChild ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}
           `}>
             {getTaskNumber(task.task_code)}
@@ -117,31 +116,31 @@ export function TaskRow({
         </div>
       </TableCell>
       
-      <TableCell className="py-1 min-w-[180px] pr-2">
+      <TableCell className="py-0.5 min-w-[180px] pr-1">
         <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
           {renderEditableCell('task_name', task.task_name)}
         </div>
       </TableCell>
       
-      <TableCell className="py-1 w-20 pl-2">
+      <TableCell className="py-0.5 w-20 pl-1">
         <div className="text-xs text-slate-600 font-mono">
           {renderEditableCell('start_date', task.start_date, 'date')}
         </div>
       </TableCell>
       
-      <TableCell className="py-1 w-20">
-        <div className="text-xs text-slate-600 font-mono">
-          {format(endDate, 'MMM dd, yyyy')}
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 w-16">
+      <TableCell className="py-0.5 w-16">
         <div className="flex items-center space-x-1">
           {renderEditableCell('duration', task.duration, 'number')}
         </div>
       </TableCell>
       
-      <TableCell className="py-1 w-16">
+      <TableCell className="py-0.5 w-20">
+        <div className="text-xs text-slate-600 font-mono">
+          {format(endDate, 'MMM dd, yyyy')}
+        </div>
+      </TableCell>
+      
+      <TableCell className="py-0.5 w-16">
         <div className="flex items-center space-x-2">
           <div className="flex-1">
             <Progress 
@@ -157,4 +156,3 @@ export function TaskRow({
     </TableRow>
   );
 }
-
