@@ -20,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskRow } from "./TaskRow";
 import { NewTaskRow } from "./NewTaskRow";
 import { GanttVisualization } from "./GanttVisualization";
-import { Plus, Edit, Trash2, Expand, Collapse, ZoomIn, ZoomOut } from "lucide-react";
+import { Plus, Edit, Trash2, Expand, FoldVertical, ZoomIn, ZoomOut } from "lucide-react";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -187,8 +187,8 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
     parseISO(task.start_date),
     parseISO(task.end_date)
   ]);
-  const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
-  const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+  const minDate = new Date(Math.min(...allDates.map(d => d.getTime()));
+  const maxDate = new Date(Math.max(...allDates.map(d => d.getTime()));
   const dateRange = eachDayOfInterval({ start: minDate, end: maxDate });
 
   // Organize tasks by hierarchy
@@ -223,7 +223,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
             Expand all
           </Button>
           <Button variant="ghost" size="sm" className="h-8">
-            <Collapse className="w-4 h-4 mr-2" />
+            <FoldVertical className="w-4 h-4 mr-2" />
             Collapse all
           </Button>
           <div className="w-px h-6 bg-slate-200"></div>
