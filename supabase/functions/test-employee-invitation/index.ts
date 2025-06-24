@@ -9,31 +9,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface InvitationEmailRequest {
-  email: string;
-  firstName: string;
-  lastName: string;
-  companyName: string;
-  invitationToken: string;
-}
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, firstName, lastName, companyName, invitationToken }: InvitationEmailRequest = await req.json();
-
-    const confirmationUrl = `${Deno.env.get("SITE_URL") || "https://preview--corebuild-project-hub.lovable.app"}/confirm-invitation?token=${invitationToken}`;
+    const confirmationUrl = `${Deno.env.get("SITE_URL") || "https://preview--corebuild-project-hub.lovable.app"}/confirm-invitation?token=test-token-123`;
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
-      to: [email],
+      to: ["ap@oldcreekhomes.com"],
       subject: `Complete Your BuilderSuite AI Setup`,
       html: `
-        <p>Hi ${firstName},</p>
-        <p>You've been invited to join <strong>${companyName}</strong> on BuilderSuite AI, our construction management platform.</p>
+        <p>Hi Test User,</p>
+        <p>You've been invited to join <strong>Old Creek Homes, LLC</strong> on BuilderSuite AI, our construction management platform.</p>
         <p>To complete your account setup and start collaborating with your team, please click the button below:</p>
         <p>
           <a href="${confirmationUrl}" 
@@ -51,17 +41,17 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Invitation email sent successfully:", emailResponse);
+    console.log("Test invitation email sent successfully:", emailResponse);
 
     return new Response(
-      JSON.stringify({ success: true, emailId: emailResponse.data?.id }), 
+      JSON.stringify({ success: true, emailId: emailResponse.data?.id, message: "Test email sent to ap@oldcreekhomes.com" }), 
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   } catch (error: any) {
-    console.error("Error sending invitation email:", error);
+    console.error("Error sending test invitation email:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
