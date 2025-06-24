@@ -81,48 +81,22 @@ export default function ConfirmInvitation() {
     setStatus('creating');
 
     try {
-      console.log('Creating account for:', invitationData.email);
+      console.log('Creating account using create_user_from_invitation function');
       
-      // Create user account using Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invitationData.email,
-        password: password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            user_type: 'employee',
-            first_name: invitationData.first_name,
-            last_name: invitationData.last_name,
-            phone_number: invitationData.phone_number,
-            role: invitationData.role,
-            home_builder_id: invitationData.home_builder_id
-          }
-        }
+      // Use our database function to create the user account
+      const { data: createResult, error: createError } = await supabase.rpc('create_user_from_invitation', {
+        p_invitation_id: invitationData.invitation_id,
+        p_password: password
       });
 
-      if (authError) {
-        console.error('Error creating user account:', authError);
+      if (createError) {
+        console.error('Error creating user account:', createError);
         setStatus('error');
-        setMessage(`Failed to create account: ${authError.message}`);
+        setMessage(`Failed to create account: ${createError.message}`);
         return;
       }
 
-      console.log('User account created:', authData);
-
-      // Update the invitation status to accepted
-      if (authData.user) {
-        const { error: updateError } = await supabase
-          .from('employee_invitations')
-          .update({ 
-            status: 'accepted',
-            accepted_at: new Date().toISOString()
-          })
-          .eq('id', invitationData.invitation_id);
-
-        if (updateError) {
-          console.error('Error updating invitation status:', updateError);
-        }
-      }
+      console.log('User account created successfully:', createResult);
 
       setStatus('success');
       setMessage('Your account has been created successfully!');
