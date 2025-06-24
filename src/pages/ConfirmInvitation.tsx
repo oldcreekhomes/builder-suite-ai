@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +32,8 @@ export default function ConfirmInvitation() {
 
   const confirmInvitation = async () => {
     try {
+      console.log('Confirming invitation with token:', token);
+      
       const { data, error } = await supabase.rpc('confirm_invitation', {
         token: token
       });
@@ -44,7 +45,7 @@ export default function ConfirmInvitation() {
         return;
       }
 
-      console.log('Invitation confirmed:', data);
+      console.log('Invitation confirmed, received data:', data);
       setInvitationData(data);
       setStatus('form');
       setMessage('Please create your password to complete your account setup');
