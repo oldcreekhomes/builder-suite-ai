@@ -8,6 +8,7 @@ import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
 import SharedFolder from "./pages/SharedFolder";
+import ProjectDashboard from "./pages/ProjectDashboard";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,9 @@ const App = () => (
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
           <Route path="/s/f/:shareId" element={<SharedFolder />} />
+          
+          {/* Project Dashboard route */}
+          <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
