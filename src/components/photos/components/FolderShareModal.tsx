@@ -1,11 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Link, Folder } from "lucide-react";
+import { Copy, Folder } from "lucide-react";
 
 interface ProjectPhoto {
   id: string;
@@ -54,6 +54,13 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
     }
   };
 
+  // Auto-generate link when modal opens
+  useEffect(() => {
+    if (isOpen && !shareLink) {
+      generateShareLink();
+    }
+  }, [isOpen]);
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareLink);
@@ -95,15 +102,11 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
             </p>
           </div>
 
-          {!shareLink ? (
-            <Button
-              onClick={generateShareLink}
-              disabled={isGeneratingLink}
-              className="w-full"
-            >
-              <Link className="h-4 w-4 mr-2" />
-              {isGeneratingLink ? "Generating..." : "Generate Share Link"}
-            </Button>
+          {isGeneratingLink ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto mb-2"></div>
+              <p className="text-sm text-gray-500">Generating share link...</p>
+            </div>
           ) : (
             <div className="space-y-3">
               <div>
