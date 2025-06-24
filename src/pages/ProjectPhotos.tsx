@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -72,7 +71,6 @@ export default function ProjectPhotos() {
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-black">Project Photos</h1>
-                  <p className="text-gray-600">View and manage project photos</p>
                 </div>
               </div>
               
