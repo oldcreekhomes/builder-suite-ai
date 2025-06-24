@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,12 +82,12 @@ export default function ConfirmInvitation() {
     try {
       console.log('Creating account for:', invitationData.email);
       
-      // Create the user account with email confirmation disabled
+      // Create the user account with email confirmation completely disabled
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: invitationData.email,
         password: password,
         options: {
-          emailRedirectTo: undefined, // Disable email confirmation
+          emailRedirectTo: null, // Completely disable email confirmation
           data: {
             user_type: 'employee',
             first_name: invitationData.first_name,
@@ -121,7 +122,7 @@ export default function ConfirmInvitation() {
       
       toast({
         title: "Welcome to BuilderSuite AI!",
-        description: "Your account has been set up. Redirecting to login...",
+        description: "Your account has been set up. You can now sign in with your credentials.",
       });
 
       // Redirect to login page after a short delay
