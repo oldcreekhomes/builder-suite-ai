@@ -81,22 +81,48 @@ export default function ConfirmInvitation() {
     setStatus('creating');
 
     try {
-      console.log('Creating account using database function for:', invitationData.email);
+      console.log('Creating account for:', invitationData.email);
       
-      // Use our new database function to create the user
-      const { data: createUserData, error: createUserError } = await supabase.rpc('create_user_from_invitation', {
-        p_invitation_id: invitationData.invitation_id,
-        p_password: password
+      // Create user account using Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: invitationData.email,
+        password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            user_type: 'employee',
+            first_name: invitationData.first_name,
+            last_name: invitationData.last_name,
+            phone_number: invitationData.phone_number,
+            role: invitationData.role,
+            home_builder_id: invitationData.home_builder_id
+          }
+        }
       });
 
-      if (createUserError) {
-        console.error('Error creating user:', createUserError);
+      if (authError) {
+        console.error('Error creating user account:', authError);
         setStatus('error');
-        setMessage(`Failed to create account: ${createUserError.message}`);
+        setMessage(`Failed to create account: ${authError.message}`);
         return;
       }
 
-      console.log('User created successfully:', createUserData);
+      console.log('User account created:', authData);
+
+      // Update the invitation status to accepted
+      if (authData.user) {
+        const { error: updateError } = await supabase
+          .from('employee_invitations')
+          .update({ 
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', invitationData.invitation_id);
+
+        if (updateError) {
+          console.error('Error updating invitation status:', updateError);
+        }
+      }
 
       setStatus('success');
       setMessage('Your account has been created successfully!');
