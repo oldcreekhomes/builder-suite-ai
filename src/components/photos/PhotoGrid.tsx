@@ -1,8 +1,9 @@
-
 import { useState } from "react";
 import { FolderView } from "./components/FolderView";
 import { BulkActionBar } from "./components/BulkActionBar";
 import { MovePhotosModal } from "./MovePhotosModal";
+import { PhotoShareModal } from "./components/PhotoShareModal";
+import { FolderShareModal } from "./components/FolderShareModal";
 import { usePhotoGridActions } from "./hooks/usePhotoGridActions";
 
 interface ProjectPhoto {
@@ -25,6 +26,10 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['Root']));
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [showPhotoShareModal, setShowPhotoShareModal] = useState(false);
+  const [showFolderShareModal, setShowFolderShareModal] = useState(false);
+  const [sharePhoto, setSharePhoto] = useState<ProjectPhoto | null>(null);
+  const [shareFolder, setShareFolder] = useState<{ folderPath: string; photos: ProjectPhoto[] } | null>(null);
 
   const { handleDownload, handleShare, handleDelete, handleBulkDelete, deletingPhoto, isDeleting } = usePhotoGridActions(onRefresh);
 
@@ -98,6 +103,16 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
     setSelectedPhotos(new Set());
   };
 
+  const handlePhotoShare = (photo: ProjectPhoto) => {
+    setSharePhoto(photo);
+    setShowPhotoShareModal(true);
+  };
+
+  const handleFolderShare = (folderPath: string, photos: ProjectPhoto[]) => {
+    setShareFolder({ folderPath, photos });
+    setShowFolderShareModal(true);
+  };
+
   if (visiblePhotos.length === 0) {
     return (
       <div className="text-center py-12">
@@ -140,9 +155,10 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
               onPhotoSelect={onPhotoSelect}
               onPhotoSelection={handlePhotoSelection}
               onDownload={handleDownload}
-              onShare={handleShare}
+              onShare={handlePhotoShare}
               onDelete={handleDelete}
               onUploadSuccess={onRefresh}
+              onShareFolder={handleFolderShare}
               projectId={projectId}
             />
           ))}
@@ -158,6 +174,30 @@ export function PhotoGrid({ photos, onPhotoSelect, onRefresh }: PhotoGridProps) 
             setSelectedPhotos(new Set());
             onRefresh();
           }}
+        />
+      )}
+
+      {showPhotoShareModal && (
+        <PhotoShareModal
+          isOpen={showPhotoShareModal}
+          onClose={() => {
+            setShowPhotoShareModal(false);
+            setSharePhoto(null);
+          }}
+          photo={sharePhoto}
+        />
+      )}
+
+      {showFolderShareModal && shareFolder && (
+        <FolderShareModal
+          isOpen={showFolderShareModal}
+          onClose={() => {
+            setShowFolderShareModal(false);
+            setShareFolder(null);
+          }}
+          folderPath={shareFolder.folderPath}
+          photos={shareFolder.photos}
+          projectId={projectId}
         />
       )}
     </div>

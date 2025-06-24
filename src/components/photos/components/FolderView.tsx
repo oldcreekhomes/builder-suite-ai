@@ -1,5 +1,6 @@
 
-import { Folder, ChevronRight, ChevronDown } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PhotoCard } from "./PhotoCard";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
@@ -30,6 +31,7 @@ interface FolderViewProps {
   onShare: (photo: ProjectPhoto) => void;
   onDelete: (photo: ProjectPhoto) => void;
   onUploadSuccess: () => void;
+  onShareFolder: (folderPath: string, photos: ProjectPhoto[]) => void;
   projectId: string;
 }
 
@@ -46,6 +48,7 @@ export function FolderView({
   onShare,
   onDelete,
   onUploadSuccess,
+  onShareFolder,
   projectId
 }: FolderViewProps) {
   const { user } = useAuth();
@@ -134,26 +137,41 @@ export function FolderView({
         className={`flex items-center space-x-2 py-2 px-4 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg border-2 border-dashed border-gray-300 transition-colors ${
           isDragActive ? 'bg-blue-50 border-blue-400' : ''
         }`}
-        onClick={() => onToggleFolder(folderPath)}
       >
         <input {...getInputProps()} />
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-500" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-500" />
-        )}
-        <Folder className="h-5 w-5 text-blue-500" />
-        <span className="font-semibold text-gray-700">
-          {folderPath === 'Root' ? 'Root Photos' : folderPath}
-        </span>
-        <span className="text-sm text-gray-500">
-          ({photos.length} photo{photos.length !== 1 ? 's' : ''})
-        </span>
-        {isDragActive && (
-          <span className="text-sm text-blue-600 ml-auto">
-            Drop photos here
+        <div 
+          className="flex items-center space-x-2 flex-1"
+          onClick={() => onToggleFolder(folderPath)}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+          )}
+          <Folder className="h-5 w-5 text-blue-500" />
+          <span className="font-semibold text-gray-700">
+            {folderPath === 'Root' ? 'Root Photos' : folderPath}
           </span>
-        )}
+          <span className="text-sm text-gray-500">
+            ({photos.length} photo{photos.length !== 1 ? 's' : ''})
+          </span>
+          {isDragActive && (
+            <span className="text-sm text-blue-600 ml-auto">
+              Drop photos here
+            </span>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShareFolder(folderPath, photos);
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Share2 className="h-4 w-4" />
+        </Button>
       </div>
 
       {isExpanded && (
