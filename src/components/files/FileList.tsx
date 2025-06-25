@@ -49,12 +49,15 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
   }, [files]);
 
   const toggleFolder = (folderPath: string) => {
-    console.log('Toggle folder called:', folderPath);
-    console.log('Current expanded folders before toggle:', expandedFolders);
+    console.log('=== TOGGLE FOLDER CALLED ===');
+    console.log('Folder path:', folderPath);
+    console.log('Current expanded folders before toggle:', Array.from(expandedFolders));
     
     setExpandedFolders(prev => {
       const newExpanded = new Set(prev);
       const wasExpanded = newExpanded.has(folderPath);
+      
+      console.log('Was expanded:', wasExpanded);
       
       if (wasExpanded) {
         newExpanded.delete(folderPath);
@@ -64,7 +67,8 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
         console.log('Folder expanded:', folderPath);
       }
       
-      console.log('New expanded folders:', Array.from(newExpanded));
+      console.log('New expanded folders after toggle:', Array.from(newExpanded));
+      console.log('=== END TOGGLE FOLDER ===');
       return newExpanded;
     });
   };
@@ -78,7 +82,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   console.log('Grouped files by folder:', groupedFiles);
   console.log('Sorted folders:', sortedFolders);
-  console.log('Current expanded folders:', Array.from(expandedFolders));
+  console.log('Current expanded folders in render:', Array.from(expandedFolders));
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
@@ -127,31 +131,23 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
               
               console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
               
-              const folderRows = [];
-              
-              // Add folder header
-              folderRows.push(
-                <FolderHeader
-                  key={`folder-${folderPath}`}
-                  folderPath={folderPath}
-                  folderFiles={folderFiles}
-                  isExpanded={isExpanded}
-                  isDragOver={isDragOver}
-                  isSelected={isFolderSelected}
-                  onToggleFolder={toggleFolder}
-                  onSelectFolder={handleSelectFolder}
-                  onDragOver={handleFolderDragOver}
-                  onDragLeave={handleFolderDragLeave}
-                  onDrop={handleFolderDrop}
-                />
-              );
-              
-              // Add file rows if expanded
-              if (isExpanded) {
-                folderFiles.forEach((file) => {
-                  folderRows.push(
+              return (
+                <React.Fragment key={folderPath}>
+                  <FolderHeader
+                    folderPath={folderPath}
+                    folderFiles={folderFiles}
+                    isExpanded={isExpanded}
+                    isDragOver={isDragOver}
+                    isSelected={isFolderSelected}
+                    onToggleFolder={toggleFolder}
+                    onSelectFolder={handleSelectFolder}
+                    onDragOver={handleFolderDragOver}
+                    onDragLeave={handleFolderDragLeave}
+                    onDrop={handleFolderDrop}
+                  />
+                  {isExpanded && folderFiles.map((file) => (
                     <FileRow
-                      key={`file-${file.id}`}
+                      key={file.id}
                       file={file}
                       isSelected={selectedFiles.has(file.id)}
                       onSelectFile={handleSelectFile}
@@ -159,11 +155,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                       onDownload={handleDownload}
                       onDelete={handleDelete}
                     />
-                  );
-                });
-              }
-              
-              return folderRows;
+                  ))}
+                </React.Fragment>
+              );
             })}
           </TableBody>
         </Table>

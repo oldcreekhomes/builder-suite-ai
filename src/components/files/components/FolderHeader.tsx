@@ -41,7 +41,9 @@ export function FolderHeader({
   const showFullPath = folderPath !== 'Root' && folderPath.includes('/');
   
   const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+    console.log('Checkbox click prevented propagation for:', folderPath);
   };
   
   const handleCheckboxChange = (checked: boolean) => {
@@ -52,7 +54,7 @@ export function FolderHeader({
   const handleToggleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Toggle button clicked for folder:', folderPath);
+    console.log('Toggle button clicked for folder:', folderPath, 'current expanded:', isExpanded);
     onToggleFolder(folderPath);
   };
 
@@ -96,34 +98,36 @@ export function FolderHeader({
       <TableCell colSpan={6}>
         <div className="flex items-center space-x-2 py-1">
           <div 
-            className="flex items-center space-x-2 cursor-pointer flex-1"
+            className="flex items-center space-x-2 cursor-pointer flex-1 hover:bg-gray-200 rounded p-1 transition-colors"
             style={{ paddingLeft: `${indentLevel * 20}px` }}
             onClick={handleToggleClick}
           >
-            <div className="flex items-center space-x-2">
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-gray-500" />
-              )}
-              <Folder className="h-5 w-5 text-blue-500" />
-              <div className="flex flex-col">
-                <span className="font-semibold text-gray-700">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <div className="flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </div>
+              <Folder className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-semibold text-gray-700 truncate">
                   {displayName}
                 </span>
                 {showFullPath && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 truncate">
                     {folderPath}
                   </span>
                 )}
               </div>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 flex-shrink-0">
                 ({folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''})
               </span>
             </div>
           </div>
           {isDragOver && (
-            <span className="text-sm text-blue-600 ml-2">
+            <span className="text-sm text-blue-600 ml-2 flex-shrink-0">
               Drop files here to upload to this folder
             </span>
           )}
