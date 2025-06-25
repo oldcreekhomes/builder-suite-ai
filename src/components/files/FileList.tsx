@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,12 +42,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     handleFolderDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
 
-  // All folders start collapsed by default - no auto-expansion
+  // Initialize with all folders collapsed when files change
   useEffect(() => {
-    if (files.length > 0) {
-      // Keep all folders collapsed by default
-      setExpandedFolders(new Set());
-    }
+    setExpandedFolders(new Set());
   }, [files]);
 
   const toggleFolder = (folderPath: string) => {
