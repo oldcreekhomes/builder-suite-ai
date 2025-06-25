@@ -82,3 +82,46 @@ export const getFileIcon = (fileType: string) => {
       return '📁';
   }
 };
+
+export const getDisplayName = (originalFilename: string) => {
+  if (!originalFilename) {
+    return { fileName: 'Unknown', pathWithinFolder: null };
+  }
+  
+  const pathParts = originalFilename.split('/');
+  const fileName = pathParts[pathParts.length - 1];
+  
+  if (pathParts.length === 1) {
+    // Root level file
+    return { fileName, pathWithinFolder: null };
+  } else {
+    // File in folder - show relative path within folder
+    const pathWithinFolder = pathParts.slice(1).join('/');
+    return { fileName, pathWithinFolder };
+  }
+};
+
+export const getFileTypeColor = (fileType: string) => {
+  switch (fileType.toLowerCase()) {
+    case 'pdf':
+      return 'bg-red-100 text-red-800';
+    case 'doc':
+    case 'docx':
+      return 'bg-blue-100 text-blue-800';
+    case 'xls':
+    case 'xlsx':
+      return 'bg-green-100 text-green-800';
+    case 'ppt':
+    case 'pptx':
+      return 'bg-orange-100 text-orange-800';
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+      return 'bg-purple-100 text-purple-800';
+    case 'txt':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
