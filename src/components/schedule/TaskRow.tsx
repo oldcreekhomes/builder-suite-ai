@@ -1,4 +1,3 @@
-
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +37,7 @@ interface TaskRowProps {
   hasChildren?: boolean;
   isSelected: boolean;
   onSelectTask: (taskId: string, checked: boolean) => void;
+  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress";
 }
 
 export function TaskRow({
@@ -58,6 +58,7 @@ export function TaskRow({
   hasChildren = false,
   isSelected,
   onSelectTask,
+  columnType,
 }: TaskRowProps) {
   const endDate = parseISO(task.end_date);
 
@@ -88,6 +89,95 @@ export function TaskRow({
     return "bg-green-500";
   };
 
+  const renderColumn = () => {
+    switch (columnType) {
+      case "checkbox":
+        return (
+          <TableCell className="py-1 w-8">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => onSelectTask(task.id, checked as boolean)}
+              className="h-3 w-3"
+            />
+          </TableCell>
+        );
+      case "code":
+        return (
+          <TableCell className="font-mono text-xs text-slate-600 py-1 relative">
+            <div className="flex items-center">
+              {!isChild && hasChildren && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-3 w-3 p-0 mr-1 hover:bg-slate-200 absolute left-0"
+                  onClick={onToggleCollapse}
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-2 w-2" />
+                  ) : (
+                    <ChevronDown className="h-2 w-2" />
+                  )}
+                </Button>
+              )}
+              <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 text-black">
+                {getTaskNumber(task.task_code)}
+              </span>
+            </div>
+          </TableCell>
+        );
+      case "name":
+        return (
+          <TableCell className="py-1 min-w-[180px] pr-1">
+            <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
+              {renderEditableCell('task_name', task.task_name)}
+            </div>
+          </TableCell>
+        );
+      case "startDate":
+        return (
+          <TableCell className="py-1 w-20 pl-1">
+            <div className="text-xs text-slate-600 font-mono">
+              {renderEditableCell('start_date', task.start_date, 'date')}
+            </div>
+          </TableCell>
+        );
+      case "duration":
+        return (
+          <TableCell className="py-1 w-16">
+            <div className="flex items-center space-x-1">
+              {renderEditableCell('duration', task.duration, 'number')}
+            </div>
+          </TableCell>
+        );
+      case "endDate":
+        return (
+          <TableCell className="py-1 w-20">
+            <div className="text-xs text-slate-600 font-mono">
+              {format(endDate, 'MMM dd')}
+            </div>
+          </TableCell>
+        );
+      case "progress":
+        return (
+          <TableCell className="py-1 w-16">
+            <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <Progress 
+                  value={task.progress} 
+                  className={`h-1 ${getProgressColor(task.progress)}`}
+                />
+              </div>
+              <span className="text-xs font-medium text-slate-600 w-8">
+                {task.progress}%
+              </span>
+            </div>
+          </TableCell>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <TableRow className={`
       ${isChild ? 'bg-slate-50/50' : 'bg-white'} 
@@ -96,73 +186,7 @@ export function TaskRow({
       border-b border-slate-100
       h-8
     `}>
-      <TableCell className="py-1 w-8">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => onSelectTask(task.id, checked as boolean)}
-          className="h-3 w-3"
-        />
-      </TableCell>
-      
-      <TableCell className="font-mono text-xs text-slate-600 py-1 relative">
-        <div className="flex items-center">
-          {!isChild && hasChildren && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-3 w-3 p-0 mr-1 hover:bg-slate-200 absolute left-0"
-              onClick={onToggleCollapse}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-2 w-2" />
-              ) : (
-                <ChevronDown className="h-2 w-2" />
-              )}
-            </Button>
-          )}
-          <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 text-black">
-            {getTaskNumber(task.task_code)}
-          </span>
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 min-w-[180px] pr-1">
-        <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
-          {renderEditableCell('task_name', task.task_name)}
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 w-20 pl-1">
-        <div className="text-xs text-slate-600 font-mono">
-          {renderEditableCell('start_date', task.start_date, 'date')}
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 w-16">
-        <div className="flex items-center space-x-1">
-          {renderEditableCell('duration', task.duration, 'number')}
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 w-20">
-        <div className="text-xs text-slate-600 font-mono">
-          {format(endDate, 'MMM dd')}
-        </div>
-      </TableCell>
-      
-      <TableCell className="py-1 w-16">
-        <div className="flex items-center space-x-2">
-          <div className="flex-1">
-            <Progress 
-              value={task.progress} 
-              className={`h-1 ${getProgressColor(task.progress)}`}
-            />
-          </div>
-          <span className="text-xs font-medium text-slate-600 w-8">
-            {task.progress}%
-          </span>
-        </div>
-      </TableCell>
+      {renderColumn()}
     </TableRow>
   );
 }
