@@ -109,11 +109,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     return files;
   };
 
-  const traverseFileTree = (item: any, path: string, files: Array<{ file: File; relativePath: string }>) => {
+  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
         item.file((file: File) => {
-          const fullPath = path + file.name;
+          // Preserve the complete path including all nested folders
+          const fullPath = currentPath + file.name;
+          console.log('Adding file with full path:', fullPath);
           files.push({ file, relativePath: fullPath });
           resolve();
         });
@@ -127,9 +129,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               // No more entries, we're done with this directory
               resolve();
             } else {
-              // Process all entries in this batch
+              // Process all entries in this batch with the updated path
+              const newPath = currentPath + item.name + '/';
+              console.log('Processing directory:', item.name, 'with path:', newPath);
+              
               const promises = entries.map(entry => 
-                traverseFileTree(entry, path + item.name + '/', files)
+                traverseFileTree(entry, newPath, files)
               );
               Promise.all(promises).then(() => {
                 // Continue reading in case there are more entries
@@ -167,7 +172,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     if (filesWithPaths.length === 0) return;
 
-    console.log(`Processing ${filesWithPaths.length} files from multiple folders`);
+    console.log(`Processing ${filesWithPaths.length} files from nested folder structure`);
 
     const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
       file,
@@ -219,7 +224,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     if (successCount > 0) {
       toast({
         title: "Upload Complete",
-        description: `Successfully uploaded ${successCount} file(s) from multiple folders`,
+        description: `Successfully uploaded ${successCount} file(s) with folder structure preserved`,
       });
       onUploadSuccess();
     }
@@ -289,28 +294,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleMultipleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Multiple folder input files:', files.length);
-    
-    // Group files by their top-level folder
-    const folderGroups = new Map<string, Array<{ file: File; relativePath: string }>>();
-    
-    files.forEach(file => {
-      const relativePath = file.webkitRelativePath || file.name;
-      const topLevelFolder = relativePath.split('/')[0];
-      
-      if (!folderGroups.has(topLevelFolder)) {
-        folderGroups.set(topLevelFolder, []);
-      }
-      folderGroups.get(topLevelFolder)!.push({ file, relativePath });
-    });
-    
-    console.log(`Processing ${folderGroups.size} folders with ${files.length} total files`);
+    console.log('Folder input files:', files.length);
     
     if (files.length > 0) {
       const filesWithPaths = files.map(file => ({
         file,
+        // Use webkitRelativePath to preserve the complete folder structure
         relativePath: file.webkitRelativePath || file.name
       }));
+
+      console.log('Files with webkitRelativePath:', filesWithPaths.map(f => ({ name: f.file.name, path: f.relativePath })));
 
       const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
         file,
@@ -358,10 +351,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
       const results = await Promise.all(uploadPromises);
       const successCount = results.filter(Boolean).length;
       
+      // Count unique folders by looking at the paths
+      const uniqueFolders = new Set(filesWithPaths.map(f => f.relativePath.split('/')[0]));
+      
       if (successCount > 0) {
         toast({
           title: "Upload Complete", 
-          description: `Successfully uploaded ${successCount} file(s) from ${folderGroups.size} folder(s)`,
+          description: `Successfully uploaded ${successCount} file(s) from ${uniqueFolders.size} folder(s) with nested structure preserved`,
         });
         onUploadSuccess();
       }
@@ -432,10 +428,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isDragOver ? 'Drop files or folders here' : 'Upload files or multiple folders'}
+              {isDragOver ? 'Drop files or folders here' : 'Upload files or nested folders'}
             </h3>
             <p className="text-gray-600 mb-4">
-              Drag and drop multiple files or folders here, or click to select. Right-click for more options.
+              Drag and drop files or complete folder structures here. Nested folders will be preserved.
             </p>
             <p className="text-sm text-gray-500 mb-4">
               Supports: PDF, Word, Excel, PowerPoint, Text, and Images
@@ -458,7 +454,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               <label htmlFor="folder-upload" className="cursor-pointer">
                 <Button type="button" variant="outline" className="mt-4">
                   <FolderOpen className="h-4 w-4 mr-2" />
-                  Choose Multiple Folders
+                  Choose Folders
                 </Button>
                 <input
                   ref={folderInputRef}
