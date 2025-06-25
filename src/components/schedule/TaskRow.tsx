@@ -1,3 +1,4 @@
+
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -145,7 +146,7 @@ export function TaskRow({
       
       <TableCell className="py-1 w-20">
         <div className="text-xs text-slate-600 font-mono">
-          {format(endDate, 'MMM dd, yyyy')}
+          {format(endDate, 'MMM dd')}
         </div>
       </TableCell>
       
