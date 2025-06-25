@@ -1,8 +1,12 @@
-
 export const groupFilesByFolder = (files: any[]) => {
   const grouped: { [key: string]: any[] } = {};
   
   files.forEach(file => {
+    // Skip folder placeholder files from being displayed
+    if (file.file_type === 'folderkeeper') {
+      return;
+    }
+    
     // Use original_filename which contains the full path
     const filePath = file.original_filename || file.filename || '';
     
@@ -23,6 +27,23 @@ export const groupFilesByFolder = (files: any[]) => {
         grouped[folderPath] = [];
       }
       grouped[folderPath].push(file);
+    }
+  });
+  
+  // Add empty folders by checking for folderkeeper files
+  files.forEach(file => {
+    if (file.file_type === 'folderkeeper') {
+      const filePath = file.original_filename || file.filename || '';
+      const pathParts = filePath.split('/');
+      
+      if (pathParts.length > 1) {
+        // Remove the .folderkeeper filename to get the folder path
+        const folderPath = pathParts.slice(0, -1).join('/');
+        
+        if (!grouped[folderPath]) {
+          grouped[folderPath] = [];
+        }
+      }
     }
   });
   

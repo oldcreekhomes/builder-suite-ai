@@ -461,13 +461,66 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     folderInputRef.current?.click();
   };
 
-  const handleCreateFolder = (folderName: string) => {
-    // Simply show success message without creating any placeholder files
-    toast({
-      title: "Folder Ready",
-      description: `Folder "${folderName}" is ready. Upload files to it to create the folder structure.`,
-    });
-    onUploadSuccess();
+  const createFolderPlaceholder = async (folderName: string) => {
+    if (!user) return false;
+
+    try {
+      // Create a placeholder file in the folder to make it visible
+      const placeholderContent = new Blob([''], { type: 'text/plain' });
+      const placeholderFile = new File([placeholderContent], '.folderkeeper', {
+        type: 'text/plain'
+      });
+
+      const fileId = crypto.randomUUID();
+      const fileName = `${user.id}/${projectId}/${fileId}_${folderName}/.folderkeeper`;
+      
+      // Upload placeholder to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, placeholderFile);
+
+      if (uploadError) throw uploadError;
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: projectId,
+          filename: fileName,
+          original_filename: `${folderName}/.folderkeeper`,
+          file_size: 0,
+          file_type: 'folderkeeper',
+          mime_type: 'text/plain',
+          storage_path: uploadData.path,
+          uploaded_by: user.id,
+          description: 'Folder placeholder'
+        });
+
+      if (dbError) throw dbError;
+
+      return true;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return false;
+    }
+  };
+
+  const handleCreateFolder = async (folderName: string) => {
+    const success = await createFolderPlaceholder(folderName);
+    
+    if (success) {
+      toast({
+        title: "Folder Created",
+        description: `Folder "${folderName}" has been created successfully.`,
+      });
+      onUploadSuccess();
+    } else {
+      toast({
+        title: "Error",
+        description: `Failed to create folder "${folderName}".`,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
