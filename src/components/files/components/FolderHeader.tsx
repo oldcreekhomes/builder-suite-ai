@@ -24,6 +24,17 @@ export function FolderHeader({
   onDragLeave,
   onDrop,
 }: FolderHeaderProps) {
+  // Calculate folder depth for indentation
+  const folderDepth = folderPath === 'Root' ? 0 : folderPath.split('/').length;
+  const indentLevel = Math.max(0, folderDepth - 1);
+  
+  // Get display name (last part of the path for nested folders)
+  const displayName = folderPath === 'Root' ? 'Root Files' : 
+    folderPath.split('/').pop() || folderPath;
+  
+  // Show full path in subtle text for nested folders
+  const showFullPath = folderPath !== 'Root' && folderPath.includes('/');
+  
   return (
     <TableRow 
       className={`border-b-2 cursor-pointer transition-colors ${
@@ -39,6 +50,7 @@ export function FolderHeader({
         <div 
           className="flex items-center space-x-2 py-1"
           onClick={() => onToggleFolder(folderPath)}
+          style={{ paddingLeft: `${indentLevel * 20}px` }}
         >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -46,9 +58,16 @@ export function FolderHeader({
             <ChevronRight className="h-4 w-4 text-gray-500" />
           )}
           <Folder className="h-5 w-5 text-blue-500" />
-          <span className="font-semibold text-gray-700">
-            {folderPath === 'Root' ? 'Root Files' : folderPath}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-700">
+              {displayName}
+            </span>
+            {showFullPath && (
+              <span className="text-xs text-gray-500">
+                {folderPath}
+              </span>
+            )}
+          </div>
           <span className="text-sm text-gray-500">
             ({folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''})
           </span>

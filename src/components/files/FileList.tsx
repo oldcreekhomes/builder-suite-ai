@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,15 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     handleFolderDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
 
+  // Auto-expand all folders when files change
+  useEffect(() => {
+    if (files.length > 0) {
+      const groupedFiles = groupFilesByFolder(files);
+      const folderPaths = Object.keys(groupedFiles);
+      setExpandedFolders(new Set(folderPaths));
+    }
+  }, [files]);
+
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderPath)) {
@@ -55,6 +64,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   const groupedFiles = groupFilesByFolder(files);
   const sortedFolders = sortFolders(Object.keys(groupedFiles));
+
+  console.log('Grouped files by folder:', groupedFiles);
+  console.log('Sorted folders:', sortedFolders);
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;

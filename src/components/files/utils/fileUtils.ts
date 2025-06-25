@@ -1,71 +1,84 @@
 
+export const groupFilesByFolder = (files: any[]) => {
+  const grouped: { [key: string]: any[] } = {};
+  
+  files.forEach(file => {
+    // Use original_filename which contains the full path
+    const filePath = file.original_filename || file.filename || '';
+    
+    // Extract the folder path from the file path
+    const pathParts = filePath.split('/');
+    
+    if (pathParts.length === 1) {
+      // Root level file
+      if (!grouped['Root']) {
+        grouped['Root'] = [];
+      }
+      grouped['Root'].push(file);
+    } else {
+      // File is in a folder - use the complete folder path except the filename
+      const folderPath = pathParts.slice(0, -1).join('/');
+      
+      if (!grouped[folderPath]) {
+        grouped[folderPath] = [];
+      }
+      grouped[folderPath].push(file);
+    }
+  });
+  
+  return grouped;
+};
+
+export const sortFolders = (folderPaths: string[]) => {
+  return folderPaths.sort((a, b) => {
+    // Root folder always comes first
+    if (a === 'Root') return -1;
+    if (b === 'Root') return 1;
+    
+    // Sort by folder depth first (shallower folders first)
+    const aDepth = a.split('/').length;
+    const bDepth = b.split('/').length;
+    
+    if (aDepth !== bDepth) {
+      return aDepth - bDepth;
+    }
+    
+    // If same depth, sort alphabetically
+    return a.localeCompare(b);
+  });
+};
+
 export const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
+  
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const getDisplayName = (filename: string) => {
-  if (filename.includes('/')) {
-    const parts = filename.split('/');
-    const fileName = parts[parts.length - 1];
-    const topLevelFolder = parts[0];
-    // Get everything after the top-level folder for display within the folder
-    const pathWithinFolder = parts.slice(1).join('/');
-    return {
-      fileName: fileName,
-      topLevelFolder: topLevelFolder,
-      pathWithinFolder: pathWithinFolder,
-      isInFolder: true,
-      fullPath: filename
-    };
+export const getFileIcon = (fileType: string) => {
+  switch (fileType.toLowerCase()) {
+    case 'pdf':
+      return '📄';
+    case 'doc':
+    case 'docx':
+      return '📝';
+    case 'xls':
+    case 'xlsx':
+      return '📊';
+    case 'ppt':
+    case 'pptx':
+      return '📽️';
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+      return '🖼️';
+    case 'txt':
+      return '📃';
+    default:
+      return '📁';
   }
-  return {
-    fileName: filename,
-    topLevelFolder: '',
-    pathWithinFolder: '',
-    isInFolder: false,
-    fullPath: filename
-  };
-};
-
-export const getFileTypeColor = (fileType: string) => {
-  const colors: { [key: string]: string } = {
-    pdf: "bg-red-100 text-red-800",
-    doc: "bg-blue-100 text-blue-800",
-    docx: "bg-blue-100 text-blue-800",
-    xls: "bg-green-100 text-green-800",
-    xlsx: "bg-green-100 text-green-800",
-    ppt: "bg-orange-100 text-orange-800",
-    pptx: "bg-orange-100 text-orange-800",
-    txt: "bg-gray-100 text-gray-800",
-    jpg: "bg-purple-100 text-purple-800",
-    jpeg: "bg-purple-100 text-purple-800",
-    png: "bg-purple-100 text-purple-800",
-    gif: "bg-purple-100 text-purple-800",
-  };
-  return colors[fileType] || "bg-gray-100 text-gray-800";
-};
-
-export const groupFilesByFolder = (files: any[]) => {
-  return files.reduce((acc, file) => {
-    const displayInfo = getDisplayName(file.original_filename);
-    const folderKey = displayInfo.isInFolder ? displayInfo.topLevelFolder : 'Root';
-    
-    if (!acc[folderKey]) {
-      acc[folderKey] = [];
-    }
-    acc[folderKey].push(file);
-    return acc;
-  }, {} as Record<string, any[]>);
-};
-
-export const sortFolders = (folderKeys: string[]) => {
-  return folderKeys.sort((a, b) => {
-    if (a === 'Root') return -1;
-    if (b === 'Root') return 1;
-    return a.localeCompare(b);
-  });
 };
