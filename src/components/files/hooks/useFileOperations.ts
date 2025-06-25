@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,11 +10,10 @@ export const useFileOperations = (onRefresh: () => void) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
 
-  const uploadFileToFolder = async (file: File, folderName: string) => {
+  const uploadFileToFolder = async (file: File, relativePath: string) => {
     if (!user) return false;
 
     const fileId = crypto.randomUUID();
-    const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
     const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${relativePath}`;
     
     try {

@@ -48,6 +48,24 @@ export function FolderHeader({
     e.stopPropagation();
     onToggleFolder(folderPath);
   };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDragOver(e, folderPath);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDragLeave(e);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDrop(e, folderPath);
+  };
   
   return (
     <TableRow 
@@ -56,9 +74,9 @@ export function FolderHeader({
           ? 'bg-blue-100 border-blue-300' 
           : 'bg-gray-50 hover:bg-gray-100'
       }`}
-      onDragOver={(e) => onDragOver(e, folderPath)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, folderPath)}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       onClick={handleExpandClick}
     >
       <TableCell className="w-12">
