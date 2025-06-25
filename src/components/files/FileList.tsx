@@ -39,12 +39,18 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     handleFolderDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
 
-  // Auto-expand all folders when files change
+  // Auto-expand only top-level folders when files change
   useEffect(() => {
     if (files.length > 0) {
       const groupedFiles = groupFilesByFolder(files);
       const folderPaths = Object.keys(groupedFiles);
-      setExpandedFolders(new Set(folderPaths));
+      
+      // Only expand top-level folders (Root and folders without '/' in their path)
+      const topLevelFolders = folderPaths.filter(path => 
+        path === 'Root' || !path.includes('/')
+      );
+      
+      setExpandedFolders(new Set(topLevelFolders));
     }
   }, [files]);
 
