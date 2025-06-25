@@ -3,12 +3,15 @@ import React, { useState } from "react";
 import { eachDayOfInterval, parseISO, format, addDays } from "date-fns";
 import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask, useDeleteScheduleTask } from "@/hooks/useProjectSchedule";
 import { EditTaskDialog } from "./EditTaskDialog";
+import { TaskEditModal } from "./TaskEditModal";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GanttVisualization } from "./GanttVisualization";
 import { GanttToolbar } from "./GanttToolbar";
 import { GanttTable } from "./GanttTable";
 import { GanttEmptyState } from "./GanttEmptyState";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -36,6 +39,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [showEditModal, setShowEditModal] = useState(false);
   const [newTask, setNewTask] = useState<NewTask>({
     task_name: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
@@ -73,6 +77,17 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
       setSelectedTasks(new Set(tasks.map(task => task.id)));
     } else {
       setSelectedTasks(new Set());
+    }
+  };
+
+  const handleEditSelected = () => {
+    if (selectedTasks.size === 1) {
+      const taskId = Array.from(selectedTasks)[0];
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        setEditingTask(task);
+        setShowEditModal(true);
+      }
     }
   };
 
@@ -194,7 +209,28 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
 
   return (
     <div className="space-y-4">
-      <GanttToolbar onQuickAddTask={handleQuickAddTask} />
+      <div className="flex items-center justify-between">
+        <GanttToolbar onQuickAddTask={handleQuickAddTask} />
+        
+        {selectedTasks.size > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">
+              {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
+            </span>
+            {selectedTasks.size === 1 && (
+              <Button
+                onClick={handleEditSelected}
+                size="sm"
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Task
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
       <ResizablePanelGroup direction="horizontal" className="min-h-[500px] border rounded-lg bg-white shadow-sm">
         <ResizablePanel defaultSize={45} minSize={30}>
@@ -240,11 +276,27 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {editingTask && (
+      {editingTask && !showEditModal && (
         <EditTaskDialog
           task={editingTask}
           open={!!editingTask}
           onOpenChange={() => setEditingTask(null)}
+          onTaskUpdated={onTaskUpdate}
+          allTasks={tasks}
+        />
+      )}
+
+      {editingTask && showEditModal && (
+        <TaskEditModal
+          task={editingTask}
+          open={showEditModal}
+          onOpenChange={(open) => {
+            setShowEditModal(open);
+            if (!open) {
+              setEditingTask(null);
+              setSelectedTasks(new Set());
+            }
+          }}
           onTaskUpdated={onTaskUpdate}
           allTasks={tasks}
         />
