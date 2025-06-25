@@ -53,7 +53,7 @@ export function NewTaskRow({
       </TableCell>
       <TableCell className="font-mono text-xs text-slate-600 py-1 relative">
         <div className="flex items-center">
-          <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 bg-blue-50 text-blue-700">
+          <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 text-black">
             {nextTaskNumber}
           </span>
         </div>
