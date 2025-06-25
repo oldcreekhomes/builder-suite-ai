@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Check, X } from "lucide-react";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 import { getTaskNumber } from "./utils/ganttUtils";
@@ -48,7 +49,7 @@ export function NewTaskRow({
   return (
     <TableRow className="bg-blue-50/30 border-blue-200 h-12">
       <TableCell className="py-1 w-8">
-        {/* Empty checkbox column to match header */}
+        <Checkbox className="h-3 w-3" disabled />
       </TableCell>
       <TableCell className="pl-4 font-medium py-2 text-xs w-16">
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-medium">
