@@ -7,10 +7,10 @@ export function SidebarBranding() {
     <SidebarHeader className="p-6 border-b border-gray-200">
       <div className="flex items-end justify-between">
         <div className="flex flex-col">
-          <div className="flex items-end space-x-2 mb-1">
+          <a href="/" className="flex items-end space-x-2 mb-1 hover:opacity-80 transition-opacity">
             <Building2 className="h-8 w-8 text-black" />
             <h1 className="text-xl font-bold text-black">BuilderSuite AI</h1>
-          </div>
+          </a>
           <p className="text-sm text-gray-600">Construction Management</p>
         </div>
       </div>
