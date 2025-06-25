@@ -70,62 +70,6 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     }
   };
 
-  // Create folder by uploading a placeholder file to establish folder structure
-  const createFolder = async (folderName: string) => {
-    if (!user) return false;
-
-    try {
-      // Create a placeholder file to represent the folder structure in storage
-      const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
-      const fileId = crypto.randomUUID();
-      const fileName = `${user.id}/${projectId}/photos/${folderName}/.placeholder`;
-      
-      console.log('Creating folder with path:', fileName);
-      
-      // Upload placeholder to Supabase Storage to create the folder structure
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(fileName, folderPlaceholder);
-
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('Folder placeholder uploaded successfully:', uploadData);
-      
-      // Also save a record in project_photos to make the folder visible in the photos section
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(fileName);
-
-      const { error: dbError } = await supabase
-        .from('project_photos')
-        .insert({
-          project_id: projectId,
-          url: publicUrl,
-          description: `${folderName}/.placeholder`,
-          uploaded_by: user.id,
-        });
-
-      if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw dbError;
-      }
-
-      console.log('Folder created successfully in photos section');
-      return true;
-    } catch (error) {
-      console.error('Folder creation error:', error);
-      toast({
-        title: "Folder Creation Error",
-        description: `Failed to create folder "${folderName}"`,
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('Photos dropped:', acceptedFiles);
     
@@ -234,15 +178,13 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
   };
 
   const handleCreateFolder = async (folderName: string) => {
-    console.log('Creating folder:', folderName);
-    const success = await createFolder(folderName);
-    if (success) {
-      toast({
-        title: "Folder Created",
-        description: `Successfully created folder "${folderName}"`,
-      });
-      onUploadSuccess();
-    }
+    // Simply show success message without creating any placeholder files
+    console.log('Folder ready:', folderName);
+    toast({
+      title: "Folder Ready",
+      description: `Folder "${folderName}" is ready. Upload photos to it to create the folder structure.`,
+    });
+    onUploadSuccess();
   };
 
   return (

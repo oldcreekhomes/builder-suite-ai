@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -405,19 +404,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   };
 
   const handleCreateFolder = (folderName: string) => {
-    // Create a placeholder file to represent the folder structure
-    const folderPlaceholder = new File([''], '.placeholder', { type: 'text/plain' });
-    const folderPath = `${folderName}/.placeholder`;
-    
-    uploadFile(folderPlaceholder, folderPath).then((success) => {
-      if (success) {
-        toast({
-          title: "Folder Created",
-          description: `Successfully created folder "${folderName}"`,
-        });
-        onUploadSuccess();
-      }
+    // Simply show success message without creating any placeholder files
+    toast({
+      title: "Folder Ready",
+      description: `Folder "${folderName}" is ready. Upload files to it to create the folder structure.`,
     });
+    onUploadSuccess();
   };
 
   return (
