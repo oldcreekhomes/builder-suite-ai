@@ -127,6 +127,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
           <TableBody>
             {sortedFolders.map((folderPath) => {
               const folderFiles = groupedFiles[folderPath];
+              // Ensure folders are collapsed by default - only expanded if explicitly in the set
               const isExpanded = expandedFolders.has(folderPath);
               const isDragOver = dragOverFolder === folderPath;
               const isFolderSelected = selectedFolders.has(folderPath);
