@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -104,7 +105,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     await Promise.all(promises);
     
-    console.log('Files with preserved paths from multiple folders:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
+    console.log('Files with preserved paths from drag and drop:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
     
     return files;
   };
@@ -297,13 +298,21 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     console.log('Folder input files:', files.length);
     
     if (files.length > 0) {
-      const filesWithPaths = files.map(file => ({
-        file,
+      const filesWithPaths = files.map(file => {
         // Use webkitRelativePath to preserve the complete folder structure
-        relativePath: file.webkitRelativePath || file.name
-      }));
+        const relativePath = file.webkitRelativePath || file.name;
+        console.log('File with webkitRelativePath:', {
+          name: file.name,
+          webkitRelativePath: file.webkitRelativePath,
+          finalPath: relativePath
+        });
+        return {
+          file,
+          relativePath
+        };
+      });
 
-      console.log('Files with webkitRelativePath:', filesWithPaths.map(f => ({ name: f.file.name, path: f.relativePath })));
+      console.log('All files with preserved paths:', filesWithPaths.map(f => ({ name: f.file.name, path: f.relativePath })));
 
       const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
         file,
@@ -351,13 +360,17 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
       const results = await Promise.all(uploadPromises);
       const successCount = results.filter(Boolean).length;
       
-      // Count unique folders by looking at the paths
-      const uniqueFolders = new Set(filesWithPaths.map(f => f.relativePath.split('/')[0]));
+      // Count unique top-level folders by looking at the paths
+      const uniqueTopFolders = new Set(
+        filesWithPaths
+          .map(f => f.relativePath.split('/')[0])
+          .filter(folder => folder !== '')
+      );
       
       if (successCount > 0) {
         toast({
           title: "Upload Complete", 
-          description: `Successfully uploaded ${successCount} file(s) from ${uniqueFolders.size} folder(s) with nested structure preserved`,
+          description: `Successfully uploaded ${successCount} file(s) from ${uniqueTopFolders.size} folder(s) with complete nested structure preserved`,
         });
         onUploadSuccess();
       }
@@ -431,7 +444,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               {isDragOver ? 'Drop files or folders here' : 'Upload files or nested folders'}
             </h3>
             <p className="text-gray-600 mb-4">
-              Drag and drop files or complete folder structures here. Nested folders will be preserved.
+              Drag and drop files or complete folder structures here. All nested subfolders will be preserved.
             </p>
             <p className="text-sm text-gray-500 mb-4">
               Supports: PDF, Word, Excel, PowerPoint, Text, and Images
