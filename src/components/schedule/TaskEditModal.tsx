@@ -138,14 +138,14 @@ export function TaskEditModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Row 1: Code and Task Name */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Task Code */}
               <FormField
                 control={form.control}
                 name="task_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Task Code</FormLabel>
+                    <FormLabel>Code</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter task code" {...field} />
                     </FormControl>
@@ -154,7 +154,99 @@ export function TaskEditModal({
                 )}
               />
 
-              {/* Progress */}
+              <FormField
+                control={form.control}
+                name="task_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Task Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter task name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Row 2: Start Date and Duration */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duration (days)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        placeholder="1"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Row 3: End Date and Predecessor */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input 
+                  type="date" 
+                  value={endDate}
+                  readOnly
+                  className="bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="predecessor_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Predecessor</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select predecessor task" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No predecessor</SelectItem>
+                        {availablePredecessors.map((availableTask) => (
+                          <SelectItem key={availableTask.id} value={availableTask.id}>
+                            {availableTask.task_code} - {availableTask.task_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Row 4: Progress and Resources */}
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="progress"
@@ -175,117 +267,25 @@ export function TaskEditModal({
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Task Name */}
-            <FormField
-              control={form.control}
-              name="task_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Task Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter task name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-3 gap-4">
-              {/* Start Date */}
               <FormField
                 control={form.control}
-                name="start_date"
+                name="resources"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>Resources</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Duration */}
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration (days)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        placeholder="1"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      <Textarea 
+                        placeholder="Enter resource names or emails, separated by commas"
+                        className="min-h-[80px]"
+                        {...field} 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* End Date (Read-only) */}
-              <div className="space-y-2">
-                <Label>End Date</Label>
-                <Input 
-                  type="date" 
-                  value={endDate}
-                  readOnly
-                  className="bg-gray-50 cursor-not-allowed"
-                />
-              </div>
             </div>
-
-            {/* Predecessor Task */}
-            <FormField
-              control={form.control}
-              name="predecessor_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Predecessor Task</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select predecessor task" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">No predecessor</SelectItem>
-                      {availablePredecessors.map((availableTask) => (
-                        <SelectItem key={availableTask.id} value={availableTask.id}>
-                          {availableTask.task_code} - {availableTask.task_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Resources */}
-            <FormField
-              control={form.control}
-              name="resources"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Resources (Company Users)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter resource names or emails, separated by commas"
-                      className="min-h-[80px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
