@@ -120,7 +120,7 @@ export function EditableCell({
     }
     
     return (
-      <div className="flex items-center space-x-1 min-w-0 ml-4">
+      <div className={`flex items-center space-x-1 min-w-0 ${field === 'task_name' ? '' : 'ml-4'}`}>
         <Input
           type={type}
           value={editValue}
@@ -141,7 +141,7 @@ export function EditableCell({
 
   return (
     <div 
-      className="cursor-pointer hover:bg-slate-50 p-2 rounded-md min-w-0 truncate transition-colors border border-transparent hover:border-slate-200 ml-4"
+      className={`cursor-pointer hover:bg-slate-50 p-2 rounded-md min-w-0 truncate transition-colors border border-transparent hover:border-slate-200 ${field === 'task_name' ? '' : 'ml-4'}`}
       onClick={() => onStartEditing(task.id, field, value)}
     >
       {field === "predecessor_id" && value ? (
