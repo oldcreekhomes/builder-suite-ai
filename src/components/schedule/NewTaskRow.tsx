@@ -47,6 +47,9 @@ export function NewTaskRow({
 
   return (
     <TableRow className="bg-blue-50/30 border-blue-200 h-12">
+      <TableCell className="py-1 w-8">
+        {/* Empty checkbox column to match header */}
+      </TableCell>
       <TableCell className="pl-4 font-medium py-2 text-xs w-16">
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-medium">
           {nextTaskNumber}
