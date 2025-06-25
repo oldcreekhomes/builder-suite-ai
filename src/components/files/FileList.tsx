@@ -48,13 +48,19 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
   }, [files]);
 
   const toggleFolder = (folderPath: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(folderPath)) {
-      newExpanded.delete(folderPath);
-    } else {
-      newExpanded.add(folderPath);
-    }
-    setExpandedFolders(newExpanded);
+    console.log('Toggling folder:', folderPath, 'Current expanded:', expandedFolders);
+    setExpandedFolders(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(folderPath)) {
+        newExpanded.delete(folderPath);
+        console.log('Collapsing folder:', folderPath);
+      } else {
+        newExpanded.add(folderPath);
+        console.log('Expanding folder:', folderPath);
+      }
+      console.log('New expanded folders:', newExpanded);
+      return newExpanded;
+    });
   };
 
   if (files.length === 0) {
@@ -66,6 +72,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   console.log('Grouped files by folder:', groupedFiles);
   console.log('Sorted folders:', sortedFolders);
+  console.log('Current expanded folders:', expandedFolders);
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
@@ -111,6 +118,8 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
               const isExpanded = expandedFolders.has(folderPath);
               const isDragOver = dragOverFolder === folderPath;
               const isFolderSelected = selectedFolders.has(folderPath);
+              
+              console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
               
               return (
                 <React.Fragment key={folderPath}>

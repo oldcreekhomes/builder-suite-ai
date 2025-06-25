@@ -44,8 +44,7 @@ export function FolderHeader({
     e.stopPropagation();
   };
   
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRowClick = () => {
     onToggleFolder(folderPath);
   };
 
@@ -77,7 +76,7 @@ export function FolderHeader({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={handleExpandClick}
+      onClick={handleRowClick}
     >
       <TableCell className="w-12">
         <div onClick={handleCheckboxClick}>
