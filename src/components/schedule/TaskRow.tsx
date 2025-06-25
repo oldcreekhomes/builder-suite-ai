@@ -1,4 +1,3 @@
-
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -120,10 +119,7 @@ export function TaskRow({
               )}
             </Button>
           )}
-          <span className={`
-            px-1 py-0.25 rounded text-xs font-medium ml-4
-            ${isChild ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}
-          `}>
+          <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 text-black">
             {getTaskNumber(task.task_code)}
           </span>
         </div>
