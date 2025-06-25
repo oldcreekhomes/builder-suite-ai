@@ -9,6 +9,7 @@ export const useFileOperations = (onRefresh: () => void) => {
   const { user } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
 
   const uploadFileToFolder = async (file: File, folderName: string) => {
     if (!user) return false;
@@ -97,29 +98,82 @@ export const useFileOperations = (onRefresh: () => void) => {
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedFiles.size === 0) return;
-    
-    setIsDeleting(true);
+  const handleFolderDelete = async (folderPath: string) => {
     try {
+      setIsDeleting(true);
+      
+      // Delete all files in the folder (including nested folders)
       const { error } = await supabase
         .from('project_files')
         .update({ is_deleted: true, updated_at: new Date().toISOString() })
-        .in('id', Array.from(selectedFiles));
+        .like('original_filename', `${folderPath}%`);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `${selectedFiles.size} file(s) deleted successfully`,
+        description: `Folder "${folderPath}" and all its contents deleted successfully`,
       });
+      
+      // Remove from selected folders
+      const newSelectedFolders = new Set(selectedFolders);
+      newSelectedFolders.delete(folderPath);
+      setSelectedFolders(newSelectedFolders);
+      
+      onRefresh();
+    } catch (error) {
+      console.error('Folder delete error:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete folder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFiles.size === 0 && selectedFolders.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      // Delete selected files
+      if (selectedFiles.size > 0) {
+        const { error: filesError } = await supabase
+          .from('project_files')
+          .update({ is_deleted: true, updated_at: new Date().toISOString() })
+          .in('id', Array.from(selectedFiles));
+
+        if (filesError) throw filesError;
+      }
+
+      // Delete selected folders and their contents
+      for (const folderPath of selectedFolders) {
+        if (folderPath !== 'Root') { // Don't allow deleting Root folder
+          const { error: folderError } = await supabase
+            .from('project_files')
+            .update({ is_deleted: true, updated_at: new Date().toISOString() })
+            .like('original_filename', `${folderPath}%`);
+
+          if (folderError) throw folderError;
+        }
+      }
+
+      const totalDeleted = selectedFiles.size + selectedFolders.size;
+      toast({
+        title: "Success",
+        description: `${totalDeleted} item(s) deleted successfully`,
+      });
+      
       setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
       onRefresh();
     } catch (error) {
       console.error('Bulk delete error:', error);
       toast({
         title: "Delete Error",
-        description: "Failed to delete selected files",
+        description: "Failed to delete selected items",
         variant: "destructive",
       });
     } finally {
@@ -145,14 +199,27 @@ export const useFileOperations = (onRefresh: () => void) => {
     setSelectedFiles(newSelected);
   };
 
+  const handleSelectFolder = (folderPath: string, checked: boolean) => {
+    const newSelected = new Set(selectedFolders);
+    if (checked) {
+      newSelected.add(folderPath);
+    } else {
+      newSelected.delete(folderPath);
+    }
+    setSelectedFolders(newSelected);
+  };
+
   return {
     selectedFiles,
+    selectedFolders,
     isDeleting,
     uploadFileToFolder,
     handleDownload,
     handleDelete,
+    handleFolderDelete,
     handleBulkDelete,
     handleSelectAll,
     handleSelectFile,
+    handleSelectFolder,
   };
 };

@@ -1,6 +1,7 @@
 
 import React from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Folder, ChevronRight, ChevronDown } from "lucide-react";
 
 interface FolderHeaderProps {
@@ -8,7 +9,9 @@ interface FolderHeaderProps {
   folderFiles: any[];
   isExpanded: boolean;
   isDragOver: boolean;
+  isSelected: boolean;
   onToggleFolder: (folderPath: string) => void;
+  onSelectFolder: (folderPath: string, checked: boolean) => void;
   onDragOver: (e: React.DragEvent, folderName: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, folderName: string) => void;
@@ -19,7 +22,9 @@ export function FolderHeader({
   folderFiles,
   isExpanded,
   isDragOver,
+  isSelected,
   onToggleFolder,
+  onSelectFolder,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -35,6 +40,15 @@ export function FolderHeader({
   // Show full path in subtle text for nested folders
   const showFullPath = folderPath !== 'Root' && folderPath.includes('/');
   
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+  
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleFolder(folderPath);
+  };
+  
   return (
     <TableRow 
       className={`border-b-2 cursor-pointer transition-colors ${
@@ -45,11 +59,19 @@ export function FolderHeader({
       onDragOver={(e) => onDragOver(e, folderPath)}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, folderPath)}
+      onClick={handleExpandClick}
     >
-      <TableCell colSpan={7}>
+      <TableCell className="w-12">
+        <div onClick={handleCheckboxClick}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onSelectFolder(folderPath, checked as boolean)}
+          />
+        </div>
+      </TableCell>
+      <TableCell colSpan={6}>
         <div 
           className="flex items-center space-x-2 py-1"
-          onClick={() => onToggleFolder(folderPath)}
           style={{ paddingLeft: `${indentLevel * 20}px` }}
         >
           {isExpanded ? (

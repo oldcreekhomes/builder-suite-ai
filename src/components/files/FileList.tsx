@@ -23,13 +23,16 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   const {
     selectedFiles,
+    selectedFolders,
     isDeleting,
     uploadFileToFolder,
     handleDownload,
     handleDelete,
+    handleFolderDelete,
     handleBulkDelete,
     handleSelectAll,
     handleSelectFile,
+    handleSelectFolder,
   } = useFileOperations(onRefresh);
 
   const {
@@ -81,6 +84,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     <div className="space-y-4">
       <BulkActionBar
         selectedCount={selectedFiles.size}
+        selectedFolderCount={selectedFolders.size}
         onBulkDelete={handleBulkDelete}
         isDeleting={isDeleting}
       />
@@ -116,6 +120,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
               const folderFiles = groupedFiles[folderPath];
               const isExpanded = expandedFolders.has(folderPath);
               const isDragOver = dragOverFolder === folderPath;
+              const isFolderSelected = selectedFolders.has(folderPath);
               
               return (
                 <React.Fragment key={folderPath}>
@@ -124,7 +129,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                     folderFiles={folderFiles}
                     isExpanded={isExpanded}
                     isDragOver={isDragOver}
+                    isSelected={isFolderSelected}
                     onToggleFolder={toggleFolder}
+                    onSelectFolder={handleSelectFolder}
                     onDragOver={handleFolderDragOver}
                     onDragLeave={handleFolderDragLeave}
                     onDrop={handleFolderDrop}
