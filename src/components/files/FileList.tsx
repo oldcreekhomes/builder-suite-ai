@@ -19,6 +19,7 @@ interface FileListProps {
 }
 
 export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: FileListProps) {
+  // Start with empty Set - all folders collapsed by default
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const {
@@ -42,9 +43,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     handleFolderDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
 
-  // Initialize with all folders collapsed when files change
+  // Reset to collapsed state when files change
   useEffect(() => {
-    console.log('Files changed, resetting expanded folders');
+    console.log('Files changed, ensuring all folders start collapsed');
     setExpandedFolders(new Set());
   }, [files]);
 
@@ -83,6 +84,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
   console.log('Grouped files by folder:', groupedFiles);
   console.log('Sorted folders:', sortedFolders);
   console.log('Current expanded folders in render:', Array.from(expandedFolders));
+  console.log('All folders should be collapsed by default');
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
