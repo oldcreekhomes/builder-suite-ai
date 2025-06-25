@@ -30,6 +30,26 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     relativePath: string;
   }>>([]);
 
+  // Filter out system files and unwanted files
+  const isValidFile = (file: File, relativePath: string = '') => {
+    const fileName = file.name;
+    const systemFiles = ['.DS_Store', 'Thumbs.db', '.gitkeep', '.gitignore'];
+    const hiddenFiles = fileName.startsWith('.');
+    
+    // Allow .gitignore and .gitkeep as they're legitimate files
+    if (fileName === '.gitignore' || fileName === '.gitkeep') {
+      return true;
+    }
+    
+    // Filter out system files and other hidden files
+    if (systemFiles.includes(fileName) || (hiddenFiles && fileName !== '.gitignore' && fileName !== '.gitkeep')) {
+      console.log('Filtering out system/hidden file:', fileName);
+      return false;
+    }
+    
+    return true;
+  };
+
   const uploadFile = async (file: File, relativePath: string) => {
     if (!user) return;
 
@@ -95,7 +115,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         } else {
           // Fallback for browsers that don't support webkitGetAsEntry
           const file = item.getAsFile();
-          if (file) {
+          if (file && isValidFile(file)) {
             files.push({ file, relativePath: file.name });
           }
         }
@@ -104,9 +124,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     await Promise.all(promises);
     
-    console.log('Files with preserved paths from drag and drop:', files.map(f => ({ name: f.file.name, path: f.relativePath })));
+    // Filter out invalid files
+    const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
     
-    return files;
+    console.log('Valid files with preserved paths from drag and drop:', validFiles.map(f => ({ name: f.file.name, path: f.relativePath })));
+    
+    return validFiles;
   };
 
   const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>) => {
@@ -115,8 +138,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         item.file((file: File) => {
           // Preserve the complete path including all nested folders
           const fullPath = currentPath + file.name;
-          console.log('Adding file with full path:', fullPath);
-          files.push({ file, relativePath: fullPath });
+          
+          // Only add valid files
+          if (isValidFile(file, fullPath)) {
+            console.log('Adding valid file with full path:', fullPath);
+            files.push({ file, relativePath: fullPath });
+          } else {
+            console.log('Skipping invalid file:', fullPath);
+          }
           resolve();
         });
       } else if (item.isDirectory) {
@@ -170,9 +199,15 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
     const filesWithPaths = await processFilesFromDataTransfer(e.dataTransfer);
     
-    if (filesWithPaths.length === 0) return;
+    if (filesWithPaths.length === 0) {
+      toast({
+        title: "No Valid Files",
+        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+      });
+      return;
+    }
 
-    console.log(`Processing ${filesWithPaths.length} files from nested folder structure`);
+    console.log(`Processing ${filesWithPaths.length} valid files from nested folder structure`);
 
     const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
       file,
@@ -233,7 +268,18 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('React-dropzone files (individual files only):', acceptedFiles.length);
     
-    const newUploads = acceptedFiles.map(file => ({
+    // Filter out system files
+    const validFiles = acceptedFiles.filter(file => isValidFile(file));
+    
+    if (validFiles.length === 0) {
+      toast({
+        title: "No Valid Files",
+        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+      });
+      return;
+    }
+
+    const newUploads = validFiles.map(file => ({
       file,
       relativePath: file.name,
       progress: 0,
@@ -242,7 +288,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
-    for (const file of acceptedFiles) {
+    for (const file of validFiles) {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
@@ -296,8 +342,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     const files = Array.from(event.target.files || []);
     console.log('Folder input files:', files.length);
     
-    if (files.length > 0) {
-      const filesWithPaths = files.map(file => {
+    // Filter out system files and get valid files with paths
+    const filesWithPaths = files
+      .filter(file => isValidFile(file, file.webkitRelativePath))
+      .map(file => {
         // Use webkitRelativePath to preserve the complete folder structure
         const relativePath = file.webkitRelativePath || file.name;
         console.log('File with webkitRelativePath:', {
@@ -311,68 +359,76 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         };
       });
 
-      console.log('All files with preserved paths:', filesWithPaths.map(f => ({ name: f.file.name, path: f.relativePath })));
+    if (filesWithPaths.length === 0) {
+      toast({
+        title: "No Valid Files",
+        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+      });
+      event.target.value = '';
+      return;
+    }
 
-      const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
-        file,
-        relativePath,
-        progress: 0,
-        uploading: true,
-      }));
+    console.log('All valid files with preserved paths:', filesWithPaths.map(f => ({ name: f.file.name, path: f.relativePath })));
 
-      setUploadingFiles(prev => [...prev, ...newUploads]);
+    const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
+      file,
+      relativePath,
+      progress: 0,
+      uploading: true,
+    }));
 
-      // Upload all files concurrently
-      const uploadPromises = filesWithPaths.map(async ({ file, relativePath }) => {
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-          setUploadingFiles(prev => 
-            prev.map((upload) => 
-              upload.file === file 
-                ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
-                : upload
-            )
-          );
-        }, 200);
+    setUploadingFiles(prev => [...prev, ...newUploads]);
 
-        const success = await uploadFile(file, relativePath);
-        
-        clearInterval(progressInterval);
-        
+    // Upload all files concurrently
+    const uploadPromises = filesWithPaths.map(async ({ file, relativePath }) => {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
-          prev.map(upload => 
+          prev.map((upload) => 
             upload.file === file 
-              ? { ...upload, progress: 100, uploading: false }
+              ? { ...upload, progress: Math.min(upload.progress + 10, 90) }
               : upload
           )
         );
+      }, 200);
 
-        if (success) {
-          setTimeout(() => {
-            setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
-          }, 1000);
-        }
-
-        return success;
-      });
-
-      const results = await Promise.all(uploadPromises);
-      const successCount = results.filter(Boolean).length;
+      const success = await uploadFile(file, relativePath);
       
-      // Count unique top-level folders by looking at the paths
-      const uniqueTopFolders = new Set(
-        filesWithPaths
-          .map(f => f.relativePath.split('/')[0])
-          .filter(folder => folder !== '')
+      clearInterval(progressInterval);
+      
+      setUploadingFiles(prev => 
+        prev.map(upload => 
+          upload.file === file 
+            ? { ...upload, progress: 100, uploading: false }
+            : upload
+        )
       );
-      
-      if (successCount > 0) {
-        toast({
-          title: "Upload Complete", 
-          description: `Successfully uploaded ${successCount} file(s) from ${uniqueTopFolders.size} folder(s) with complete nested structure preserved`,
-        });
-        onUploadSuccess();
+
+      if (success) {
+        setTimeout(() => {
+          setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
+        }, 1000);
       }
+
+      return success;
+    });
+
+    const results = await Promise.all(uploadPromises);
+    const successCount = results.filter(Boolean).length;
+    
+    // Count unique top-level folders by looking at the paths
+    const uniqueTopFolders = new Set(
+      filesWithPaths
+        .map(f => f.relativePath.split('/')[0])
+        .filter(folder => folder !== '')
+    );
+    
+    if (successCount > 0) {
+      toast({
+        title: "Upload Complete", 
+        description: `Successfully uploaded ${successCount} file(s) from ${uniqueTopFolders.size} folder(s) with complete nested structure preserved`,
+      });
+      onUploadSuccess();
     }
     
     // Reset the input value to allow selecting the same folders again
@@ -381,8 +437,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    if (files.length > 0) {
-      onDrop(files);
+    const validFiles = files.filter(file => isValidFile(file));
+    
+    if (validFiles.length > 0) {
+      onDrop(validFiles);
     }
     event.target.value = '';
   };
@@ -439,7 +497,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               Drag and drop files or complete folder structures here. All nested subfolders will be preserved.
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              Supports: PDF, Word, Excel, PowerPoint, Text, and Images
+              Supports: PDF, Word, Excel, PowerPoint, Text, and Images. System files (.DS_Store, etc.) are automatically filtered out.
             </p>
             <div className="flex items-center justify-center space-x-4">
               <label htmlFor="file-upload" className="cursor-pointer">
