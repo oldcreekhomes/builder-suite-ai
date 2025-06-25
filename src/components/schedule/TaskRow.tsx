@@ -104,7 +104,7 @@ export function TaskRow({
         />
       </TableCell>
       
-      <TableCell className={`${isChild ? 'pl-8' : 'pl-4'} font-mono text-xs text-slate-600 py-1`}>
+      <TableCell className="pl-4 font-mono text-xs text-slate-600 py-1">
         <div className="flex items-center">
           {!isChild && hasChildren && (
             <Button
