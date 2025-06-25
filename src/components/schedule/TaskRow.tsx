@@ -104,13 +104,13 @@ export function TaskRow({
         />
       </TableCell>
       
-      <TableCell className="pl-4 font-mono text-xs text-slate-600 py-1">
+      <TableCell className="font-mono text-xs text-slate-600 py-1 relative">
         <div className="flex items-center">
           {!isChild && hasChildren && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-3 w-3 p-0 mr-2 hover:bg-slate-200"
+              className="h-3 w-3 p-0 mr-1 hover:bg-slate-200 absolute left-0"
               onClick={onToggleCollapse}
             >
               {isCollapsed ? (
@@ -121,7 +121,7 @@ export function TaskRow({
             </Button>
           )}
           <span className={`
-            px-1 py-0.25 rounded text-xs font-medium
+            px-1 py-0.25 rounded text-xs font-medium ml-4
             ${isChild ? 'bg-slate-100 text-slate-600' : 'bg-blue-50 text-blue-700'}
           `}>
             {getTaskNumber(task.task_code)}
