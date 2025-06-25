@@ -44,21 +44,27 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   // Initialize with all folders collapsed when files change
   useEffect(() => {
+    console.log('Files changed, resetting expanded folders');
     setExpandedFolders(new Set());
   }, [files]);
 
   const toggleFolder = (folderPath: string) => {
-    console.log('Toggling folder:', folderPath, 'Current expanded:', expandedFolders);
+    console.log('Toggle folder called:', folderPath);
+    console.log('Current expanded folders before toggle:', expandedFolders);
+    
     setExpandedFolders(prev => {
       const newExpanded = new Set(prev);
-      if (newExpanded.has(folderPath)) {
+      const wasExpanded = newExpanded.has(folderPath);
+      
+      if (wasExpanded) {
         newExpanded.delete(folderPath);
-        console.log('Collapsing folder:', folderPath);
+        console.log('Folder collapsed:', folderPath);
       } else {
         newExpanded.add(folderPath);
-        console.log('Expanding folder:', folderPath);
+        console.log('Folder expanded:', folderPath);
       }
-      console.log('New expanded folders:', newExpanded);
+      
+      console.log('New expanded folders:', Array.from(newExpanded));
       return newExpanded;
     });
   };
@@ -72,7 +78,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
 
   console.log('Grouped files by folder:', groupedFiles);
   console.log('Sorted folders:', sortedFolders);
-  console.log('Current expanded folders:', expandedFolders);
+  console.log('Current expanded folders:', Array.from(expandedFolders));
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
@@ -121,24 +127,31 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
               
               console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
               
-              return (
-                <React.Fragment key={folderPath}>
-                  <FolderHeader
-                    folderPath={folderPath}
-                    folderFiles={folderFiles}
-                    isExpanded={isExpanded}
-                    isDragOver={isDragOver}
-                    isSelected={isFolderSelected}
-                    onToggleFolder={toggleFolder}
-                    onSelectFolder={handleSelectFolder}
-                    onDragOver={handleFolderDragOver}
-                    onDragLeave={handleFolderDragLeave}
-                    onDrop={handleFolderDrop}
-                  />
-                  
-                  {isExpanded && folderFiles.map((file) => (
+              const folderRows = [];
+              
+              // Add folder header
+              folderRows.push(
+                <FolderHeader
+                  key={`folder-${folderPath}`}
+                  folderPath={folderPath}
+                  folderFiles={folderFiles}
+                  isExpanded={isExpanded}
+                  isDragOver={isDragOver}
+                  isSelected={isFolderSelected}
+                  onToggleFolder={toggleFolder}
+                  onSelectFolder={handleSelectFolder}
+                  onDragOver={handleFolderDragOver}
+                  onDragLeave={handleFolderDragLeave}
+                  onDrop={handleFolderDrop}
+                />
+              );
+              
+              // Add file rows if expanded
+              if (isExpanded) {
+                folderFiles.forEach((file) => {
+                  folderRows.push(
                     <FileRow
-                      key={file.id}
+                      key={`file-${file.id}`}
                       file={file}
                       isSelected={selectedFiles.has(file.id)}
                       onSelectFile={handleSelectFile}
@@ -146,9 +159,11 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                       onDownload={handleDownload}
                       onDelete={handleDelete}
                     />
-                  ))}
-                </React.Fragment>
-              );
+                  );
+                });
+              }
+              
+              return folderRows;
             })}
           </TableBody>
         </Table>

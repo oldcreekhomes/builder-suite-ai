@@ -44,7 +44,10 @@ export function FolderHeader({
     e.stopPropagation();
   };
   
-  const handleRowClick = () => {
+  const handleRowClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('FolderHeader row clicked:', folderPath);
     onToggleFolder(folderPath);
   };
 
