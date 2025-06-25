@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { eachDayOfInterval, parseISO, format, addDays } from "date-fns";
 import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask, useDeleteScheduleTask } from "@/hooks/useProjectSchedule";
@@ -210,7 +209,11 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <GanttToolbar onQuickAddTask={handleQuickAddTask} />
+        <GanttToolbar 
+          onQuickAddTask={handleQuickAddTask} 
+          selectedTasks={selectedTasks}
+          onEditSelected={handleEditSelected}
+        />
         
         {selectedTasks.size > 0 && (
           <div className="flex items-center gap-2">

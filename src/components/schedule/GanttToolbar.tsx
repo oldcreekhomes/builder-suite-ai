@@ -4,9 +4,11 @@ import { Plus, Edit, Trash2, Expand, FoldVertical, ZoomIn, ZoomOut } from "lucid
 
 interface GanttToolbarProps {
   onQuickAddTask: () => void;
+  selectedTasks: Set<string>;
+  onEditSelected: () => void;
 }
 
-export function GanttToolbar({ onQuickAddTask }: GanttToolbarProps) {
+export function GanttToolbar({ onQuickAddTask, selectedTasks, onEditSelected }: GanttToolbarProps) {
   return (
     <div className="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
       <div className="flex items-center space-x-2">
@@ -15,7 +17,13 @@ export function GanttToolbar({ onQuickAddTask }: GanttToolbarProps) {
           Quick Add Task
         </Button>
         <div className="w-px h-6 bg-slate-200"></div>
-        <Button variant="ghost" size="sm" className="h-8">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8"
+          onClick={onEditSelected}
+          disabled={selectedTasks.size !== 1}
+        >
           <Edit className="w-4 h-4 mr-2" />
           Edit
         </Button>
