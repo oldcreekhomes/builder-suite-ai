@@ -41,11 +41,11 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     handleFolderDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
 
-  // Only auto-expand Root folder when files change
+  // All folders start collapsed by default - no auto-expansion
   useEffect(() => {
     if (files.length > 0) {
-      // Only expand the Root folder by default, keep all other folders collapsed
-      setExpandedFolders(new Set(['Root']));
+      // Keep all folders collapsed by default
+      setExpandedFolders(new Set());
     }
   }, [files]);
 
