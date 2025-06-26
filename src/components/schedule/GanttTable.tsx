@@ -140,7 +140,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
           
-          <ResizableHandle withHandle />
+          <ResizableHandle />
           
           <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
             <Table>
@@ -208,7 +208,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
             <Table>
@@ -276,7 +276,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
             <Table>
@@ -344,7 +344,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
             <Table>
@@ -412,7 +412,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
             <Table>
@@ -480,7 +480,7 @@ export function GanttTable({
             </Table>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
             <Table>
