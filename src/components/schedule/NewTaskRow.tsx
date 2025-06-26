@@ -1,3 +1,4 @@
+
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Check, X } from "lucide-react";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 import { getTaskNumber } from "./utils/ganttUtils";
+import { ColumnType } from "./types";
 
 interface NewTask {
   task_name: string;
@@ -23,7 +25,7 @@ interface NewTaskRowProps {
   onNewTaskChange: (newTask: NewTask) => void;
   onSaveNewTask: () => void;
   onCancelNewTask: () => void;
-  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress";
+  columnType: ColumnType;
 }
 
 export function NewTaskRow({
@@ -123,6 +125,39 @@ export function NewTaskRow({
               <Progress value={0} className="w-10 h-2 bg-slate-100" />
               <span className="text-slate-500 text-sm font-medium w-8">0%</span>
             </div>
+          </TableCell>
+        );
+      case "resources":
+        return (
+          <TableCell className="py-2 text-xs w-32">
+            <Input
+              value={newTask.resources}
+              onChange={(e) => onNewTaskChange({...newTask, resources: e.target.value})}
+              placeholder="Enter resources..."
+              className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm"
+              onKeyDown={handleKeyDown}
+            />
+          </TableCell>
+        );
+      case "predecessors":
+        return (
+          <TableCell className="py-2 text-xs w-24">
+            <Select
+              value={newTask.predecessor_id || "none"}
+              onValueChange={(value) => onNewTaskChange({...newTask, predecessor_id: value === "none" ? undefined : value})}
+            >
+              <SelectTrigger className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-slate-200 shadow-lg">
+                <SelectItem value="none" className="text-sm">None</SelectItem>
+                {tasks.map((task) => (
+                  <SelectItem key={task.id} value={task.id} className="text-sm">
+                    Task {getTaskNumber(task.task_code)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </TableCell>
         );
       default:
