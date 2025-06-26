@@ -1,8 +1,14 @@
 
 import { TableRow } from "@/components/ui/table";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
-import { ColumnType } from "./types";
-import { TaskCellFactory } from "./components/TaskCellFactory";
+import { CheckboxCell } from "./components/CheckboxCell";
+import { CodeCell } from "./components/CodeCell";
+import { NameCell } from "./components/NameCell";
+import { DateCell } from "./components/DateCell";
+import { DurationCell } from "./components/DurationCell";
+import { ProgressCell } from "./components/ProgressCell";
+import { ResourcesCell } from "./components/ResourcesCell";
+import { PredecessorsCell } from "./components/PredecessorsCell";
 import { getTaskRowClassName } from "./components/TaskRowStyles";
 
 interface TaskRowProps {
@@ -23,7 +29,6 @@ interface TaskRowProps {
   hasChildren?: boolean;
   isSelected: boolean;
   onSelectTask: (taskId: string, checked: boolean) => void;
-  columnType: ColumnType;
 }
 
 export function TaskRow({
@@ -42,13 +47,23 @@ export function TaskRow({
   hasChildren = false,
   isSelected,
   onSelectTask,
-  columnType,
 }: TaskRowProps) {
   return (
     <TableRow className={getTaskRowClassName(isChild)}>
-      <TaskCellFactory
+      <CheckboxCell
+        isSelected={isSelected}
+        onSelectTask={onSelectTask}
+        taskId={task.id}
+      />
+      <CodeCell
+        taskCode={task.task_code}
+        isChild={isChild}
+        hasChildren={hasChildren}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
+      <NameCell
         task={task}
-        columnType={columnType}
         isChild={isChild}
         isParent={isParent}
         editingCell={editingCell}
@@ -58,11 +73,60 @@ export function TaskRow({
         onCancelEdit={onCancelEdit}
         onEditValueChange={onEditValueChange}
         allTasks={allTasks}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={onToggleCollapse}
-        hasChildren={hasChildren}
-        isSelected={isSelected}
-        onSelectTask={onSelectTask}
+      />
+      <DateCell
+        task={task}
+        field="start_date"
+        editingCell={editingCell}
+        editValue={editValue}
+        onStartEditing={onStartEditing}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onEditValueChange={onEditValueChange}
+        allTasks={allTasks}
+      />
+      <DurationCell
+        task={task}
+        editingCell={editingCell}
+        editValue={editValue}
+        onStartEditing={onStartEditing}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onEditValueChange={onEditValueChange}
+        allTasks={allTasks}
+      />
+      <DateCell
+        task={task}
+        field="end_date"
+        editingCell={editingCell}
+        editValue={editValue}
+        onStartEditing={onStartEditing}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onEditValueChange={onEditValueChange}
+        allTasks={allTasks}
+        isEditable={false}
+      />
+      <ProgressCell progress={task.progress} />
+      <ResourcesCell
+        task={task}
+        editingCell={editingCell}
+        editValue={editValue}
+        onStartEditing={onStartEditing}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onEditValueChange={onEditValueChange}
+        allTasks={allTasks}
+      />
+      <PredecessorsCell
+        task={task}
+        editingCell={editingCell}
+        editValue={editValue}
+        onStartEditing={onStartEditing}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onEditValueChange={onEditValueChange}
+        allTasks={allTasks}
       />
     </TableRow>
   );

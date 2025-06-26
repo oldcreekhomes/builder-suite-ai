@@ -1,14 +1,13 @@
+
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody } from "@/components/ui/table";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScheduleTask, useUpdateScheduleTask } from "@/hooks/useProjectSchedule";
 import { TaskRow } from "./TaskRow";
 import { NewTaskRow } from "./NewTaskRow";
-import { GanttHeader } from "./GanttHeader";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, addDays } from "date-fns";
-import { ColumnType } from "./types";
 
 interface NewTask {
   task_name: string;
@@ -141,221 +140,92 @@ export function GanttTable({
   };
 
   const allTaskIds = tasks.map(task => task.id);
-
-  const renderTaskRowsForColumn = (columnType: ColumnType) => {
-    return (
-      <>
-        {parentTasks.map(task => (
-          <React.Fragment key={task.id}>
-            <TaskRow
-              task={task}
-              editingCell={editingCell}
-              editValue={editValue}
-              onStartEditing={onStartEditing}
-              onSaveEdit={() => {
-                if (editingCell) {
-                  handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
-                }
-              }}
-              onCancelEdit={onCancelEdit}
-              onEditValueChange={onEditValueChange}
-              onEditTask={onEditTask}
-              onDeleteTask={onDeleteTask}
-              allTasks={tasks}
-              isCollapsed={collapsedSections.has(task.id)}
-              onToggleCollapse={() => onToggleSection(task.id)}
-              hasChildren={getChildTasks(task.id).length > 0}
-              isParent={true}
-              isSelected={selectedTasks.has(task.id)}
-              onSelectTask={onSelectTask}
-              columnType={columnType}
-            />
-            {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-              <TaskRow
-                key={childTask.id}
-                task={childTask}
-                isChild={true}
-                editingCell={editingCell}
-                editValue={editValue}
-                onStartEditing={onStartEditing}
-                onSaveEdit={() => {
-                  if (editingCell) {
-                    handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
-                  }
-                }}
-                onCancelEdit={onCancelEdit}
-                onEditValueChange={onEditValueChange}
-                onEditTask={onEditTask}
-                onDeleteTask={onDeleteTask}
-                allTasks={tasks}
-                isSelected={selectedTasks.has(childTask.id)}
-                onSelectTask={onSelectTask}
-                columnType={columnType}
-              />
-            )}
-          </React.Fragment>
-        ))}
-        {isAddingTask && (
-          <NewTaskRow
-            key="new-task"
-            newTask={newTask}
-            tasks={tasks}
-            onNewTaskChange={onNewTaskChange}
-            onSaveNewTask={onSaveNewTask}
-            onCancelNewTask={onCancelNewTask}
-            columnType={columnType}
-          />
-        )}
-      </>
-    );
-  };
+  const isAllSelected = allTaskIds.length > 0 && selectedTasks.size === allTaskIds.length;
 
   return (
     <div className="h-full">
       <ScrollArea className="h-[500px]">
-        <ResizablePanelGroup direction="horizontal" className="min-h-full">
-          <ResizablePanel defaultSize={3} minSize={2} maxSize={4}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="checkbox"
+        <Table>
+          <TableHeader>
+            <TableRow className="h-8 bg-slate-50 border-b border-slate-200">
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-12">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={onSelectAll}
+                  className="h-3 w-3"
+                />
+              </TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-16">Code</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[200px]">Name</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-28">Start Date</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-20">Duration</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-28">End Date</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-24">Progress</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-32">Resources</TableHead>
+              <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center w-28">Predecessors</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {parentTasks.map(task => (
+              <React.Fragment key={task.id}>
+                <TaskRow
+                  task={task}
+                  editingCell={editingCell}
+                  editValue={editValue}
+                  onStartEditing={onStartEditing}
+                  onSaveEdit={() => {
+                    if (editingCell) {
+                      handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
+                    }
+                  }}
+                  onCancelEdit={onCancelEdit}
+                  onEditValueChange={onEditValueChange}
+                  onEditTask={onEditTask}
+                  onDeleteTask={onDeleteTask}
+                  allTasks={tasks}
+                  isCollapsed={collapsedSections.has(task.id)}
+                  onToggleCollapse={() => onToggleSection(task.id)}
+                  hasChildren={getChildTasks(task.id).length > 0}
+                  isParent={true}
+                  isSelected={selectedTasks.has(task.id)}
+                  onSelectTask={onSelectTask}
+                />
+                {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
+                  <TaskRow
+                    key={childTask.id}
+                    task={childTask}
+                    isChild={true}
+                    editingCell={editingCell}
+                    editValue={editValue}
+                    onStartEditing={onStartEditing}
+                    onSaveEdit={() => {
+                      if (editingCell) {
+                        handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
+                      }
+                    }}
+                    onCancelEdit={onCancelEdit}
+                    onEditValueChange={onEditValueChange}
+                    onEditTask={onEditTask}
+                    onDeleteTask={onDeleteTask}
+                    allTasks={tasks}
+                    isSelected={selectedTasks.has(childTask.id)}
+                    onSelectTask={onSelectTask}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+            {isAddingTask && (
+              <NewTaskRow
+                key="new-task"
+                newTask={newTask}
+                tasks={tasks}
+                onNewTaskChange={onNewTaskChange}
+                onSaveNewTask={onSaveNewTask}
+                onCancelNewTask={onCancelNewTask}
               />
-              <TableBody>
-                {renderTaskRowsForColumn("checkbox")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-          
-          <ResizableHandle />
-          
-          <ResizablePanel defaultSize={6} minSize={4} maxSize={8}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="code"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("code")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={20} minSize={8} maxSize={40}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="name"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("name")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="startDate"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("startDate")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="duration"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("duration")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={11} minSize={7} maxSize={15}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="endDate"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("endDate")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="progress"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("progress")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={15} minSize={10} maxSize={25}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="resources"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("resources")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          <ResizablePanel defaultSize={12} minSize={8} maxSize={18}>
-            <Table>
-              <GanttHeader 
-                selectedTasks={selectedTasks}
-                allTaskIds={allTaskIds}
-                onSelectAll={onSelectAll}
-                columnType="predecessors"
-              />
-              <TableBody>
-                {renderTaskRowsForColumn("predecessors")}
-              </TableBody>
-            </Table>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            )}
+          </TableBody>
+        </Table>
       </ScrollArea>
     </div>
   );
