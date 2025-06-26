@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { ProjectGantt } from "@/components/schedule/ProjectGantt";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -51,18 +51,7 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Schedule</h2>
             </div>
 
-            <Card>
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Schedule Coming Soon
-                  </h3>
-                  <p className="text-gray-600">
-                    Project scheduling functionality will be available soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <ProjectGantt projectId={projectId} />
           </div>
         </SidebarInset>
       </div>
