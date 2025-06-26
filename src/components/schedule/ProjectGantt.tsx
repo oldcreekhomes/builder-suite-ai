@@ -137,6 +137,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
           >
             <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
             <ColumnsDirective>
+              <ColumnDirective field="id" headerText="ID" width="80" isPrimaryKey={true} visible={false} />
               <ColumnDirective field="task_name" headerText="Task Name" width="250" />
               <ColumnDirective field="start_date" headerText="Start Date" width="150" />
               <ColumnDirective field="end_date" headerText="End Date" width="150" />
