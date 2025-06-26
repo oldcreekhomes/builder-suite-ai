@@ -3,10 +3,12 @@ import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody } from "@/components/ui/table";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ScheduleTask } from "@/hooks/useProjectSchedule";
+import { ScheduleTask, useUpdateScheduleTask } from "@/hooks/useProjectSchedule";
 import { TaskRow } from "./TaskRow";
 import { NewTaskRow } from "./NewTaskRow";
 import { GanttHeader } from "./GanttHeader";
+import { useToast } from "@/hooks/use-toast";
+import { format, parseISO, addDays } from "date-fns";
 
 interface NewTask {
   task_name: string;
@@ -68,6 +70,72 @@ export function GanttTable({
   onSelectTask,
   onSelectAll,
 }: GanttTableProps) {
+  const updateTaskMutation = useUpdateScheduleTask();
+  const { toast } = useToast();
+
+  const handleInlineEdit = async (taskId: string, field: string, value: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+      let updates: Partial<ScheduleTask> = {};
+      
+      switch (field) {
+        case 'task_name':
+          updates.task_name = value;
+          break;
+        case 'duration':
+          const duration = parseInt(value);
+          if (isNaN(duration) || duration <= 0) {
+            toast({
+              title: "Invalid Duration",
+              description: "Duration must be a positive number",
+              variant: "destructive",
+            });
+            return;
+          }
+          updates.duration = duration;
+          // Recalculate end date
+          const startDate = parseISO(task.start_date);
+          const endDate = addDays(startDate, duration - 1);
+          updates.end_date = format(endDate, 'yyyy-MM-dd');
+          break;
+        case 'progress':
+          const progress = parseInt(value);
+          if (isNaN(progress) || progress < 0 || progress > 100) {
+            toast({
+              title: "Invalid Progress",
+              description: "Progress must be between 0 and 100",
+              variant: "destructive",
+            });
+            return;
+          }
+          updates.progress = progress;
+          break;
+        case 'start_date':
+          updates.start_date = value;
+          // Recalculate end date
+          const newStartDate = parseISO(value);
+          const newEndDate = addDays(newStartDate, task.duration - 1);
+          updates.end_date = format(newEndDate, 'yyyy-MM-dd');
+          break;
+        case 'predecessor_id':
+          updates.predecessor_id = value === 'none' ? null : value;
+          break;
+      }
+
+      await updateTaskMutation.mutateAsync({ id: taskId, updates });
+      onCancelEdit(); // Clear editing state after successful update
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const allTaskIds = tasks.map(task => task.id);
 
   const renderTaskRowsForColumn = (columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress") => {
@@ -80,7 +148,11 @@ export function GanttTable({
               editingCell={editingCell}
               editValue={editValue}
               onStartEditing={onStartEditing}
-              onSaveEdit={onSaveEdit}
+              onSaveEdit={() => {
+                if (editingCell) {
+                  handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
+                }
+              }}
               onCancelEdit={onCancelEdit}
               onEditValueChange={onEditValueChange}
               onEditTask={onEditTask}
@@ -102,7 +174,11 @@ export function GanttTable({
                 editingCell={editingCell}
                 editValue={editValue}
                 onStartEditing={onStartEditing}
-                onSaveEdit={onSaveEdit}
+                onSaveEdit={() => {
+                  if (editingCell) {
+                    handleInlineEdit(editingCell.taskId, editingCell.field, editValue);
+                  }
+                }}
                 onCancelEdit={onCancelEdit}
                 onEditValueChange={onEditValueChange}
                 onEditTask={onEditTask}

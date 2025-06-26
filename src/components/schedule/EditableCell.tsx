@@ -46,6 +46,13 @@ export function EditableCell({
     }
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isEditing) {
+      onStartEditing(task.id, field, value);
+    }
+  };
+
   if (isEditing) {
     if (type === "select" && field === "predecessor_id") {
       return (
@@ -83,6 +90,7 @@ export function EditableCell({
             className="h-8 text-sm w-14 border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
             onKeyDown={handleKeyDown}
             autoFocus
+            min="1"
           />
           <span className="text-slate-500 text-sm font-medium flex-shrink-0">d</span>
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
@@ -142,7 +150,7 @@ export function EditableCell({
   return (
     <div 
       className="cursor-pointer hover:bg-blue-50 hover:border-blue-200 p-2 rounded-md min-w-0 truncate transition-all duration-200 border border-transparent group"
-      onClick={() => onStartEditing(task.id, field, value)}
+      onClick={handleClick}
     >
       {field === "predecessor_id" && value ? (
         <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border-blue-200 group-hover:bg-blue-100">
