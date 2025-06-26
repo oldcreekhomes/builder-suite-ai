@@ -102,54 +102,57 @@ export function GanttVisualization({
           const predecessorIndex = visibleTasks.findIndex(t => t.id === task.predecessor_id);
           
           if (predecessorIndex !== -1) {
-            // Calculate positions
+            // Calculate positions based on date range
             const predecessorEnd = parseISO(predecessorTask.end_date);
             const taskStart = parseISO(task.start_date);
             
             const predecessorEndIndex = dateRange.findIndex(date => isSameDay(date, predecessorEnd));
             const taskStartIndex = dateRange.findIndex(date => isSameDay(date, taskStart));
             
-            const totalDays = dateRange.length;
-            const predecessorEndPercentage = ((predecessorEndIndex + 1) / totalDays) * 100;
-            const taskStartPercentage = (taskStartIndex / totalDays) * 100;
-            
-            // Vertical positions (32px per row, 16px offset to center)
-            const predecessorY = predecessorIndex * 32 + 16;
-            const taskY = taskIndex * 32 + 16;
-            
-            lines.push(
-              <g key={`${task.id}-${task.predecessor_id}`}>
-                {/* Horizontal line from predecessor end */}
-                <line
-                  x1={`${predecessorEndPercentage}%`}
-                  y1={predecessorY}
-                  x2={`${predecessorEndPercentage + 2}%`}
-                  y2={predecessorY}
-                  stroke="#64748b"
-                  strokeWidth="2"
-                  markerEnd="url(#arrowhead-right)"
-                />
-                {/* Vertical line */}
-                <line
-                  x1={`${predecessorEndPercentage + 2}%`}
-                  y1={predecessorY}
-                  x2={`${predecessorEndPercentage + 2}%`}
-                  y2={taskY}
-                  stroke="#64748b"
-                  strokeWidth="2"
-                />
-                {/* Horizontal line to task start */}
-                <line
-                  x1={`${predecessorEndPercentage + 2}%`}
-                  y1={taskY}
-                  x2={`${taskStartPercentage}%`}
-                  y2={taskY}
-                  stroke="#64748b"
-                  strokeWidth="2"
-                  markerEnd="url(#arrowhead)"
-                />
-              </g>
-            );
+            if (predecessorEndIndex !== -1 && taskStartIndex !== -1) {
+              const totalDays = dateRange.length;
+              const predecessorEndPercentage = ((predecessorEndIndex + 1) / totalDays) * 100;
+              const taskStartPercentage = (taskStartIndex / totalDays) * 100;
+              
+              // Vertical positions (32px per row, 16px offset to center on task bar)
+              const predecessorY = predecessorIndex * 32 + 16;
+              const taskY = taskIndex * 32 + 16;
+              
+              lines.push(
+                <g key={`dependency-${task.id}-${task.predecessor_id}`}>
+                  {/* Horizontal line from predecessor end */}
+                  <line
+                    x1={`${predecessorEndPercentage}%`}
+                    y1={predecessorY}
+                    x2={`${Math.min(predecessorEndPercentage + 3, taskStartPercentage)}%`}
+                    y2={predecessorY}
+                    stroke="#64748b"
+                    strokeWidth="2"
+                  />
+                  {/* Vertical line if needed */}
+                  {predecessorY !== taskY && (
+                    <line
+                      x1={`${Math.min(predecessorEndPercentage + 3, taskStartPercentage)}%`}
+                      y1={predecessorY}
+                      x2={`${Math.min(predecessorEndPercentage + 3, taskStartPercentage)}%`}
+                      y2={taskY}
+                      stroke="#64748b"
+                      strokeWidth="2"
+                    />
+                  )}
+                  {/* Horizontal line to task start with arrow */}
+                  <line
+                    x1={`${Math.min(predecessorEndPercentage + 3, taskStartPercentage)}%`}
+                    y1={taskY}
+                    x2={`${taskStartPercentage}%`}
+                    y2={taskY}
+                    stroke="#64748b"
+                    strokeWidth="2"
+                    markerEnd="url(#arrowhead)"
+                  />
+                </g>
+              );
+            }
           }
         }
       }
@@ -216,34 +219,24 @@ export function GanttVisualization({
             
             {/* Dependency lines overlay */}
             <svg 
-              className="absolute top-0 left-0 w-full pointer-events-none"
+              className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
               style={{ height: `${visibleTasks.length * 32}px` }}
             >
               <defs>
                 <marker
                   id="arrowhead"
-                  markerWidth="6"
-                  markerHeight="4"
-                  refX="6"
-                  refY="2"
+                  markerWidth="8"
+                  markerHeight="8"
+                  refX="7"
+                  refY="4"
                   orient="auto"
+                  markerUnits="strokeWidth"
                 >
                   <polygon
-                    points="0 0, 6 2, 0 4"
+                    points="0,0 0,8 8,4"
                     fill="#64748b"
-                  />
-                </marker>
-                <marker
-                  id="arrowhead-right"
-                  markerWidth="6"
-                  markerHeight="4"
-                  refX="0"
-                  refY="2"
-                  orient="auto"
-                >
-                  <polygon
-                    points="0 2, 6 0, 6 4"
-                    fill="#64748b"
+                    stroke="#64748b"
+                    strokeWidth="1"
                   />
                 </marker>
               </defs>
