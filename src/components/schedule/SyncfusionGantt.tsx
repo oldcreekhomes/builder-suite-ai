@@ -28,24 +28,27 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
     },
   }));
 
-  const handleTaskChange = (task: Task) => {
-    console.log('Task changed:', task);
-    onTaskUpdate();
-  };
-
-  const handleTaskDelete = (task: Task) => {
-    console.log('Task deleted:', task);
-    onTaskUpdate();
-  };
-
   const handleDateChange = (task: Task) => {
     console.log('Date changed:', task);
+    onTaskUpdate();
+  };
+
+  const handleDelete = (task: Task) => {
+    console.log('Task deleted:', task);
     onTaskUpdate();
   };
 
   const handleProgressChange = (task: Task) => {
     console.log('Progress changed:', task);
     onTaskUpdate();
+  };
+
+  const handleDoubleClick = (task: Task) => {
+    console.log('Task double clicked:', task);
+  };
+
+  const handleClick = (task: Task) => {
+    console.log('Task clicked:', task);
   };
 
   // Show loading state if no tasks
@@ -66,9 +69,10 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
         tasks={ganttTasks}
         viewMode={ViewMode.Day}
         onDateChange={handleDateChange}
-        onTaskChange={handleTaskChange}
-        onTaskDelete={handleTaskDelete}
+        onDelete={handleDelete}
         onProgressChange={handleProgressChange}
+        onDoubleClick={handleDoubleClick}
+        onClick={handleClick}
         listCellWidth="200px"
         columnWidth={60}
         rowHeight={50}
