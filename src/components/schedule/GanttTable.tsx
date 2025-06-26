@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody } from "@/components/ui/table";
@@ -9,6 +8,7 @@ import { NewTaskRow } from "./NewTaskRow";
 import { GanttHeader } from "./GanttHeader";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, addDays } from "date-fns";
+import { ColumnType } from "./types";
 
 interface NewTask {
   task_name: string;
@@ -142,7 +142,7 @@ export function GanttTable({
 
   const allTaskIds = tasks.map(task => task.id);
 
-  const renderTaskRowsForColumn = (columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors") => {
+  const renderTaskRowsForColumn = (columnType: ColumnType) => {
     return (
       <>
         {parentTasks.map(task => (

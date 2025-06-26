@@ -1,17 +1,17 @@
 
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ColumnType } from "./types";
 
 interface GanttHeaderProps {
   selectedTasks: Set<string>;
   allTaskIds: string[];
   onSelectAll: (checked: boolean) => void;
-  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors";
+  columnType: ColumnType;
 }
 
 export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll, columnType }: GanttHeaderProps) {
   const isAllSelected = allTaskIds.length > 0 && selectedTasks.size === allTaskIds.length;
-  const isIndeterminate = selectedTasks.size > 0 && selectedTasks.size < allTaskIds.length;
 
   const renderColumn = () => {
     switch (columnType) {

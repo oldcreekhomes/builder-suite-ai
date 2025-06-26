@@ -19,6 +19,7 @@ import {
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 import { EditableCell } from "./EditableCell";
 import { getTaskNumber } from "./utils/ganttUtils";
+import { ColumnType } from "./types";
 
 interface TaskRowProps {
   task: ScheduleTask;
@@ -38,7 +39,7 @@ interface TaskRowProps {
   hasChildren?: boolean;
   isSelected: boolean;
   onSelectTask: (taskId: string, checked: boolean) => void;
-  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors";
+  columnType: ColumnType;
 }
 
 export function TaskRow({
