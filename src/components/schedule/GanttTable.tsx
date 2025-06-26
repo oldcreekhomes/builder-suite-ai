@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Table, TableBody } from "@/components/ui/table";
