@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Edit, Selection, Toolbar, DayMarkers } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Edit, Selection, Toolbar } from '@syncfusion/ej2-react-gantt';
 import { useProjectSchedule } from '@/hooks/useProjectSchedule';
 import { initializeSyncfusion } from '@/utils/syncfusionLicense';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ interface ProjectGanttProps {
 }
 
 export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
-  const { tasks, isLoading, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
+  const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
 
   useEffect(() => {
     initializeSyncfusion();
@@ -42,39 +42,55 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   ];
 
   const handleActionComplete = (args: any) => {
-    if (args.requestType === 'save') {
-      if (args.action === 'add') {
-        const newTask = {
-          project_id: projectId,
-          task_name: args.data.task_name || 'New Task',
-          start_date: args.data.start_date || new Date().toISOString(),
-          end_date: args.data.end_date || new Date().toISOString(),
-          duration: args.data.duration || 1,
-          progress: args.data.progress || 0,
-          predecessor: args.data.predecessor || '',
-          resources: args.data.resources || '',
-          notes: args.data.notes || '',
-          parent_id: args.data.parent_id || null
-        };
-        createTask.mutate(newTask);
-      } else if (args.action === 'edit') {
-        updateTask.mutate({
-          id: args.data.id,
-          task_name: args.data.task_name,
-          start_date: args.data.start_date,
-          end_date: args.data.end_date,
-          duration: args.data.duration,
-          progress: args.data.progress,
-          predecessor: args.data.predecessor,
-          resources: args.data.resources,
-          notes: args.data.notes,
-          parent_id: args.data.parent_id
-        });
+    try {
+      if (args.requestType === 'save') {
+        if (args.action === 'add') {
+          const newTask = {
+            project_id: projectId,
+            task_name: args.data.task_name || 'New Task',
+            start_date: args.data.start_date || new Date().toISOString(),
+            end_date: args.data.end_date || new Date().toISOString(),
+            duration: args.data.duration || 1,
+            progress: args.data.progress || 0,
+            predecessor: args.data.predecessor || '',
+            resources: args.data.resources || '',
+            notes: args.data.notes || '',
+            parent_id: args.data.parent_id || null
+          };
+          createTask.mutate(newTask);
+        } else if (args.action === 'edit') {
+          updateTask.mutate({
+            id: args.data.id,
+            task_name: args.data.task_name,
+            start_date: args.data.start_date,
+            end_date: args.data.end_date,
+            duration: args.data.duration,
+            progress: args.data.progress,
+            predecessor: args.data.predecessor,
+            resources: args.data.resources,
+            notes: args.data.notes,
+            parent_id: args.data.parent_id
+          });
+        }
+      } else if (args.requestType === 'delete') {
+        deleteTask.mutate(args.data[0].id);
       }
-    } else if (args.requestType === 'delete') {
-      deleteTask.mutate(args.data[0].id);
+    } catch (error) {
+      console.error('Error in handleActionComplete:', error);
     }
   };
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center text-red-600">
+            Error loading schedule: {error.message}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -94,7 +110,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
       <CardContent>
         <div className="h-[600px]">
           <GanttComponent
-            dataSource={tasks}
+            dataSource={tasks || []}
             taskFields={taskSettings}
             editSettings={editSettings}
             toolbar={toolbarOptions}
