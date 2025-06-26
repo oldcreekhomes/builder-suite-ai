@@ -17,8 +17,8 @@ export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll, columnType
     switch (columnType) {
       case "checkbox":
         return (
-          <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-8 text-center">
-            <div className="flex justify-center">
+          <TableHead className="py-0.5 text-xs font-bold text-slate-700 w-8">
+            <div className="flex justify-center items-center h-full">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={onSelectAll}
@@ -32,7 +32,13 @@ export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll, columnType
       case "name":
         return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[50px] pr-1">Name</TableHead>;
       case "startDate":
-        return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[80px] pl-1">Start Date</TableHead>;
+        return (
+          <TableHead className="py-0.5 text-xs font-bold text-slate-700 min-w-[80px] pl-1">
+            <div className="flex justify-center items-center h-full">
+              Start Date
+            </div>
+          </TableHead>
+        );
       case "duration":
         return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[70px]">Duration</TableHead>;
       case "endDate":
