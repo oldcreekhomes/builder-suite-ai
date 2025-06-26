@@ -74,7 +74,7 @@ export function GanttTable({
     <div className="h-full">
       <ScrollArea className="h-[500px]">
         <ResizablePanelGroup direction="horizontal" className="min-h-full">
-          <ResizablePanel defaultSize={5} minSize={3} maxSize={8}>
+          <ResizablePanel defaultSize={3} minSize={2} maxSize={5}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -142,7 +142,7 @@ export function GanttTable({
           
           <ResizableHandle />
           
-          <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
+          <ResizablePanel defaultSize={6} minSize={4} maxSize={10}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -210,7 +210,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+          <ResizablePanel defaultSize={30} minSize={8} maxSize={40}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -278,7 +278,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
+          <ResizablePanel defaultSize={12} minSize={8} maxSize={20}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -346,7 +346,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
+          <ResizablePanel defaultSize={8} minSize={6} maxSize={15}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -414,7 +414,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
+          <ResizablePanel defaultSize={11} minSize={7} maxSize={20}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -482,7 +482,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
+          <ResizablePanel defaultSize={10} minSize={7} maxSize={20}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
