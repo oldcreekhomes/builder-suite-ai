@@ -82,11 +82,11 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
   const timelineSettings = {
     showTooltip: true,
     topTier: {
-      unit: 'Week',
+      unit: 'Week' as any,
       format: 'dd/MM/yyyy'
     },
     bottomTier: {
-      unit: 'Day',
+      unit: 'Day' as any,
       count: 1
     }
   };
