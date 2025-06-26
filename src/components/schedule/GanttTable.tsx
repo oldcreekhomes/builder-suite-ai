@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Table, TableBody } from "@/components/ui/table";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
@@ -73,6 +73,7 @@ export function GanttTable({
   return (
     <div className="h-full">
       <ScrollArea className="h-[500px]">
+        <ScrollBar orientation="vertical" />
         <ResizablePanelGroup direction="horizontal" className="min-h-full">
           <ResizablePanel defaultSize={3} minSize={2} maxSize={4}>
             <Table>
