@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { ScheduleTask, useUpdateScheduleTask, useAddScheduleTask, useDeleteScheduleTask } from "@/hooks/useProjectSchedule";
 import { SyncfusionGantt } from "./SyncfusionGantt";
 import { GanttEmptyState } from "./GanttEmptyState";
+import { AddTaskDialog } from "./AddTaskDialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -13,15 +14,29 @@ interface GanttChartProps {
 }
 
 export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) {
-  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const handleQuickAddTask = () => {
-    setIsAddingTask(true);
-    // This will be handled by Syncfusion's built-in add functionality
+    setIsAddDialogOpen(true);
+  };
+
+  const handleTaskAdded = () => {
+    onTaskUpdate();
   };
 
   if (tasks.length === 0) {
-    return <GanttEmptyState onQuickAddTask={handleQuickAddTask} />;
+    return (
+      <>
+        <GanttEmptyState onQuickAddTask={handleQuickAddTask} />
+        <AddTaskDialog
+          projectId={projectId}
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onTaskAdded={handleTaskAdded}
+          existingTasks={tasks}
+        />
+      </>
+    );
   }
 
   return (
@@ -42,6 +57,14 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           projectId={projectId}
         />
       </div>
+
+      <AddTaskDialog
+        projectId={projectId}
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onTaskAdded={handleTaskAdded}
+        existingTasks={tasks}
+      />
     </div>
   );
 }
