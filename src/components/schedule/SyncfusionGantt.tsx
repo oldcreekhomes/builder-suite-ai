@@ -1,6 +1,7 @@
 
 import React from "react";
-import { GanttComponent, Inject, Selection, Edit, Toolbar, ColumnsDirective, ColumnDirective } from '@syncfusion/ej2-react-gantt';
+import { Gantt, Task, EventOption, StylingOption, ViewMode, DisplayOption } from "gantt-task-react";
+import "gantt-task-react/dist/index.css";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 
 interface SyncfusionGanttProps {
@@ -10,44 +11,41 @@ interface SyncfusionGanttProps {
 }
 
 export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGanttProps) {
-  // Transform our tasks to Syncfusion Gantt format
-  const ganttData = tasks.map((task, index) => ({
-    TaskID: index + 1,
-    TaskName: task.task_name,
-    StartDate: new Date(task.start_date),
-    Duration: task.duration,
-    Progress: task.progress,
-    Predecessor: task.predecessor_id ? tasks.findIndex(t => t.id === task.predecessor_id) + 1 : null,
-    taskId: task.id, // Keep original ID for updates
+  // Transform our tasks to gantt-task-react format
+  const ganttTasks: Task[] = tasks.map((task, index) => ({
+    start: new Date(task.start_date),
+    end: new Date(task.end_date),
+    name: task.task_name,
+    id: task.id,
+    type: 'task',
+    progress: task.progress,
+    isDisabled: false,
+    styles: {
+      backgroundColor: '#3b82f6',
+      backgroundSelectedColor: '#1d4ed8',
+      progressColor: '#22c55e',
+      progressSelectedColor: '#16a34a',
+    },
   }));
 
-  const taskFields = {
-    id: 'TaskID',
-    name: 'TaskName',
-    startDate: 'StartDate',
-    duration: 'Duration',
-    progress: 'Progress',
-    dependency: 'Predecessor',
+  const handleTaskChange = (task: Task) => {
+    console.log('Task changed:', task);
+    onTaskUpdate();
   };
 
-  const labelSettings = {
-    leftLabel: 'TaskName',
+  const handleTaskDelete = (task: Task) => {
+    console.log('Task deleted:', task);
+    onTaskUpdate();
   };
 
-  const editSettings = {
-    allowEditing: true,
-    allowDeleting: true,
-    allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true
+  const handleDateChange = (task: Task) => {
+    console.log('Date changed:', task);
+    onTaskUpdate();
   };
 
-  const toolbarOptions = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'];
-
-  const handleActionComplete = (args: any) => {
-    console.log('Gantt action completed:', args);
-    if (args.requestType === 'save' || args.requestType === 'delete') {
-      onTaskUpdate();
-    }
+  const handleProgressChange = (task: Task) => {
+    console.log('Progress changed:', task);
+    onTaskUpdate();
   };
 
   // Show loading state if no tasks
@@ -63,41 +61,23 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
   }
 
   return (
-    <div className="h-[600px] w-full">
-      <GanttComponent
-        id="ProjectGantt"
-        dataSource={ganttData}
-        taskFields={taskFields}
-        labelSettings={labelSettings}
-        editSettings={editSettings}
-        toolbar={toolbarOptions}
-        height="600px"
-        actionComplete={handleActionComplete}
-        allowSelection={true}
-        allowReordering={true}
-        allowResizing={true}
-        allowSorting={true}
-        gridLines="Both"
-        timelineSettings={{
-          topTier: {
-            unit: 'Week',
-            format: 'MMM dd, y',
-          },
-          bottomTier: {
-            unit: 'Day',
-            format: 'd',
-          },
-        }}
-      >
-        <ColumnsDirective>
-          <ColumnDirective field='TaskID' headerText='ID' width='60' />
-          <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
-          <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
-          <ColumnDirective field='Duration' headerText='Duration' width='100' />
-          <ColumnDirective field='Progress' headerText='Progress' width='100' />
-        </ColumnsDirective>
-        <Inject services={[Selection, Edit, Toolbar]} />
-      </GanttComponent>
+    <div className="h-[600px] w-full bg-white rounded-lg border overflow-hidden">
+      <Gantt
+        tasks={ganttTasks}
+        viewMode={ViewMode.Day}
+        onDateChange={handleDateChange}
+        onTaskChange={handleTaskChange}
+        onTaskDelete={handleTaskDelete}
+        onProgressChange={handleProgressChange}
+        listCellWidth="200px"
+        columnWidth={60}
+        rowHeight={50}
+        barCornerRadius={3}
+        handleWidth={8}
+        fontFamily="Inter, system-ui, sans-serif"
+        fontSize="14px"
+        locale="en-US"
+      />
     </div>
   );
 }
