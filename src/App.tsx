@@ -22,8 +22,8 @@ import NotFound from "./pages/NotFound";
 // Register Syncfusion license
 import { registerLicense } from '@syncfusion/ej2-base';
 
-// Set Syncfusion license key - using trial license
-registerLicense('Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdnWX9feHVSR2hdVkN3XkU=');
+// Set Syncfusion license key - using valid trial license
+registerLicense('ORg4AjUWIQA/Gnt3VVhhQlJDfVhdX2ZWfFN0QHNRdVpyfldFcDwsT3RfQFhjT3xWdERjWHpcdX1cQ2tfUQ==');
 
 const queryClient = new QueryClient();
 
