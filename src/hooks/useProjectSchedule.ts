@@ -26,6 +26,8 @@ export const useProjectSchedule = (projectId: string) => {
     queryFn: async () => {
       if (!projectId) return [];
 
+      console.log('Fetching schedule tasks for project:', projectId);
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -37,6 +39,7 @@ export const useProjectSchedule = (projectId: string) => {
         throw error;
       }
 
+      console.log('Fetched schedule tasks:', data);
       return data as ScheduleTask[];
     },
     enabled: !!projectId,
@@ -44,6 +47,8 @@ export const useProjectSchedule = (projectId: string) => {
 
   const createTask = useMutation({
     mutationFn: async (task: Omit<ScheduleTask, 'id' | 'created_at' | 'updated_at'>) => {
+      console.log('Creating new task:', task);
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .insert([task])
@@ -55,6 +60,7 @@ export const useProjectSchedule = (projectId: string) => {
         throw error;
       }
 
+      console.log('Created task:', data);
       return data;
     },
     onSuccess: () => {
@@ -64,6 +70,8 @@ export const useProjectSchedule = (projectId: string) => {
 
   const updateTask = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ScheduleTask> & { id: string }) => {
+      console.log('Updating task:', id, updates);
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -76,6 +84,7 @@ export const useProjectSchedule = (projectId: string) => {
         throw error;
       }
 
+      console.log('Updated task:', data);
       return data;
     },
     onSuccess: () => {
@@ -85,6 +94,8 @@ export const useProjectSchedule = (projectId: string) => {
 
   const deleteTask = useMutation({
     mutationFn: async (taskId: string) => {
+      console.log('Deleting task:', taskId);
+
       const { error } = await supabase
         .from('project_schedule_tasks')
         .delete()
@@ -94,6 +105,8 @@ export const useProjectSchedule = (projectId: string) => {
         console.error('Error deleting task:', error);
         throw error;
       }
+
+      console.log('Deleted task:', taskId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-schedule', projectId] });
