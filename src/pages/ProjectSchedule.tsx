@@ -46,13 +46,13 @@ export default function ProjectSchedule() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader />
+          <DashboardHeader 
+            title={projectLoading ? "Loading..." : project?.address || "Project"} 
+          />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight">
-                {projectLoading ? "Loading..." : project?.address || "Schedule"}
-              </h2>
+              <h2 className="text-2xl font-bold tracking-tight">Schedule</h2>
             </div>
 
             <Card>

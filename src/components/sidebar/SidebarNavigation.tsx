@@ -7,7 +7,6 @@ import {
   DollarSign, 
   FileText, 
   Home, 
-  Users,
   File,
   Image,
   ChevronDown,
@@ -64,14 +63,9 @@ const navigationItems = [
     icon: Calculator,
   },
   {
-    title: "Schedules",
+    title: "Schedule",
     url: "/schedules",
     icon: Clock,
-  },
-  {
-    title: "Companies",
-    url: "/companies",
-    icon: Users,
   },
 ];
 
