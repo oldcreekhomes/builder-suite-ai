@@ -11,6 +11,7 @@ import { GanttTable } from "./GanttTable";
 import { GanttEmptyState } from "./GanttEmptyState";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface GanttChartProps {
   tasks: ScheduleTask[];
@@ -88,6 +89,15 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
         setShowEditModal(true);
       }
     }
+  };
+
+  const handleDeleteSelected = async () => {
+    const selectedTasksArray = Array.from(selectedTasks);
+    for (const taskId of selectedTasksArray) {
+      await deleteTaskMutation.mutateAsync(taskId);
+    }
+    setSelectedTasks(new Set());
+    onTaskUpdate();
   };
 
   const startEditing = (taskId: string, field: string, currentValue: string | number) => {
@@ -213,6 +223,7 @@ export function GanttChart({ tasks, onTaskUpdate, projectId }: GanttChartProps) 
           onQuickAddTask={handleQuickAddTask} 
           selectedTasks={selectedTasks}
           onEditSelected={handleEditSelected}
+          onDeleteSelected={handleDeleteSelected}
         />
         
         {selectedTasks.size > 0 && (

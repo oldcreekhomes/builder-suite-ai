@@ -6,9 +6,10 @@ interface GanttToolbarProps {
   onQuickAddTask: () => void;
   selectedTasks: Set<string>;
   onEditSelected: () => void;
+  onDeleteSelected: () => void;
 }
 
-export function GanttToolbar({ onQuickAddTask, selectedTasks, onEditSelected }: GanttToolbarProps) {
+export function GanttToolbar({ onQuickAddTask, selectedTasks, onEditSelected, onDeleteSelected }: GanttToolbarProps) {
   return (
     <div className="flex items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
       <div className="flex items-center space-x-2">
@@ -27,7 +28,13 @@ export function GanttToolbar({ onQuickAddTask, selectedTasks, onEditSelected }: 
           <Edit className="w-4 h-4 mr-2" />
           Edit
         </Button>
-        <Button variant="ghost" size="sm" className="h-8">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8"
+          onClick={onDeleteSelected}
+          disabled={selectedTasks.size === 0}
+        >
           <Trash2 className="w-4 h-4 mr-2" />
           Delete
         </Button>
