@@ -46,9 +46,7 @@ export default function ProjectSchedule() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title={projectLoading ? "Loading..." : project?.address || "Project"} 
-          />
+          <DashboardHeader />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
