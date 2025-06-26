@@ -51,7 +51,7 @@ export function EditableCell({
       return (
         <div className="flex items-center space-x-1 min-w-0">
           <Select value={editValue} onValueChange={onEditValueChange}>
-            <SelectTrigger className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-[80px]">
+            <SelectTrigger className="h-8 text-sm border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-[80px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border-slate-200 shadow-lg">
@@ -80,7 +80,7 @@ export function EditableCell({
             type="number"
             value={editValue}
             onChange={(e) => onEditValueChange(e.target.value)}
-            className="h-8 text-sm w-14 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
+            className="h-8 text-sm w-14 border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
             onKeyDown={handleKeyDown}
             autoFocus
           />
@@ -102,7 +102,7 @@ export function EditableCell({
             type="number"
             value={editValue}
             onChange={(e) => onEditValueChange(e.target.value)}
-            className="h-8 text-sm w-14 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
+            className="h-8 text-sm w-14 border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm flex-shrink-0"
             min="0"
             max="100"
             onKeyDown={handleKeyDown}
@@ -120,12 +120,12 @@ export function EditableCell({
     }
     
     return (
-      <div className={`flex items-center space-x-1 min-w-0 ${field === 'task_name' ? '' : 'ml-4'}`}>
+      <div className="flex items-center space-x-1 min-w-0">
         <Input
           type={type}
           value={editValue}
           onChange={(e) => onEditValueChange(e.target.value)}
-          className="h-8 text-sm border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-0 flex-1"
+          className="h-8 text-sm border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-0 flex-1"
           onKeyDown={handleKeyDown}
           autoFocus
         />
@@ -141,23 +141,23 @@ export function EditableCell({
 
   return (
     <div 
-      className={`cursor-pointer hover:bg-slate-50 p-2 rounded-md min-w-0 truncate transition-colors border border-transparent hover:border-slate-200 ${field === 'task_name' ? '' : 'ml-4'}`}
+      className="cursor-pointer hover:bg-blue-50 hover:border-blue-200 p-2 rounded-md min-w-0 truncate transition-all duration-200 border border-transparent group"
       onClick={() => onStartEditing(task.id, field, value)}
     >
       {field === "predecessor_id" && value ? (
-        <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border-blue-200">
+        <Badge variant="outline" className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border-blue-200 group-hover:bg-blue-100">
           Task {getTaskNumber(allTasks.find(t => t.id === value)?.task_code || '0')}
         </Badge>
       ) : field === "predecessor_id" && !value ? (
-        <span className="text-slate-400 text-sm">None</span>
+        <span className="text-slate-400 text-sm group-hover:text-slate-600">Click to set</span>
       ) : field === "start_date" || field === "end_date" ? (
-        <span className="whitespace-nowrap text-slate-700 font-medium">{formatTaskDate(value as string)}</span>
+        <span className="whitespace-nowrap text-slate-700 font-medium group-hover:text-blue-700">{formatTaskDate(value as string)}</span>
       ) : field === "duration" ? (
-        <span className="text-slate-700 font-medium">{value}d</span>
+        <span className="text-slate-700 font-medium group-hover:text-blue-700">{value}d</span>
       ) : field === "progress" ? (
-        <span className="text-slate-700 font-medium">{value}%</span>
+        <span className="text-slate-700 font-medium group-hover:text-blue-700">{value}%</span>
       ) : (
-        <span className="text-slate-700">{value}</span>
+        <span className="text-slate-700 group-hover:text-blue-700">{value}</span>
       )}
     </div>
   );

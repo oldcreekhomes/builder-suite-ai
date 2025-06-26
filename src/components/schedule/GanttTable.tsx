@@ -70,6 +70,66 @@ export function GanttTable({
 }: GanttTableProps) {
   const allTaskIds = tasks.map(task => task.id);
 
+  const renderTaskRowsForColumn = (columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress") => {
+    return (
+      <>
+        {parentTasks.map(task => (
+          <React.Fragment key={task.id}>
+            <TaskRow
+              task={task}
+              editingCell={editingCell}
+              editValue={editValue}
+              onStartEditing={onStartEditing}
+              onSaveEdit={onSaveEdit}
+              onCancelEdit={onCancelEdit}
+              onEditValueChange={onEditValueChange}
+              onEditTask={onEditTask}
+              onDeleteTask={onDeleteTask}
+              allTasks={tasks}
+              isCollapsed={collapsedSections.has(task.id)}
+              onToggleCollapse={() => onToggleSection(task.id)}
+              hasChildren={getChildTasks(task.id).length > 0}
+              isParent={true}
+              isSelected={selectedTasks.has(task.id)}
+              onSelectTask={onSelectTask}
+              columnType={columnType}
+            />
+            {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
+              <TaskRow
+                key={childTask.id}
+                task={childTask}
+                isChild={true}
+                editingCell={editingCell}
+                editValue={editValue}
+                onStartEditing={onStartEditing}
+                onSaveEdit={onSaveEdit}
+                onCancelEdit={onCancelEdit}
+                onEditValueChange={onEditValueChange}
+                onEditTask={onEditTask}
+                onDeleteTask={onDeleteTask}
+                allTasks={tasks}
+                isSelected={selectedTasks.has(childTask.id)}
+                onSelectTask={onSelectTask}
+                columnType={columnType}
+              />
+            )}
+          </React.Fragment>
+        ))}
+        {isAddingTask && (
+          <NewTaskRow
+            key="new-task"
+            newTask={newTask}
+            tasks={tasks}
+            onNewTaskChange={onNewTaskChange}
+            onSaveNewTask={onSaveNewTask}
+            onCancelNewTask={onCancelNewTask}
+            columnType={columnType}
+          />
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="h-full">
       <ScrollArea className="h-[500px]">
@@ -83,59 +143,7 @@ export function GanttTable({
                 columnType="checkbox"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="checkbox"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="checkbox"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="checkbox"
-                  />
-                )}
+                {renderTaskRowsForColumn("checkbox")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -151,59 +159,7 @@ export function GanttTable({
                 columnType="code"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="code"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="code"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="code"
-                  />
-                )}
+                {renderTaskRowsForColumn("code")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -219,59 +175,7 @@ export function GanttTable({
                 columnType="name"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="name"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="name"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="name"
-                  />
-                )}
+                {renderTaskRowsForColumn("name")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -287,59 +191,7 @@ export function GanttTable({
                 columnType="startDate"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="startDate"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="startDate"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="startDate"
-                  />
-                )}
+                {renderTaskRowsForColumn("startDate")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -355,59 +207,7 @@ export function GanttTable({
                 columnType="duration"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="duration"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="duration"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="duration"
-                  />
-                )}
+                {renderTaskRowsForColumn("duration")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -423,59 +223,7 @@ export function GanttTable({
                 columnType="endDate"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="endDate"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="endDate"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="endDate"
-                  />
-                )}
+                {renderTaskRowsForColumn("endDate")}
               </TableBody>
             </Table>
           </ResizablePanel>
@@ -491,59 +239,7 @@ export function GanttTable({
                 columnType="progress"
               />
               <TableBody>
-                {parentTasks.map(task => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      onStartEditing={onStartEditing}
-                      onSaveEdit={onSaveEdit}
-                      onCancelEdit={onCancelEdit}
-                      onEditValueChange={onEditValueChange}
-                      onEditTask={onEditTask}
-                      onDeleteTask={onDeleteTask}
-                      allTasks={tasks}
-                      isCollapsed={collapsedSections.has(task.id)}
-                      onToggleCollapse={() => onToggleSection(task.id)}
-                      hasChildren={getChildTasks(task.id).length > 0}
-                      isParent={true}
-                      isSelected={selectedTasks.has(task.id)}
-                      onSelectTask={onSelectTask}
-                      columnType="progress"
-                    />
-                    {!collapsedSections.has(task.id) && getChildTasks(task.id).map(childTask => 
-                      <TaskRow
-                        key={childTask.id}
-                        task={childTask}
-                        isChild={true}
-                        editingCell={editingCell}
-                        editValue={editValue}
-                        onStartEditing={onStartEditing}
-                        onSaveEdit={onSaveEdit}
-                        onCancelEdit={onCancelEdit}
-                        onEditValueChange={onEditValueChange}
-                        onEditTask={onEditTask}
-                        onDeleteTask={onDeleteTask}
-                        allTasks={tasks}
-                        isSelected={selectedTasks.has(childTask.id)}
-                        onSelectTask={onSelectTask}
-                        columnType="progress"
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-                {isAddingTask && (
-                  <NewTaskRow
-                    key="new-task"
-                    newTask={newTask}
-                    tasks={tasks}
-                    onNewTaskChange={onNewTaskChange}
-                    onSaveNewTask={onSaveNewTask}
-                    onCancelNewTask={onCancelNewTask}
-                    columnType="progress"
-                  />
-                )}
+                {renderTaskRowsForColumn("progress")}
               </TableBody>
             </Table>
           </ResizablePanel>
