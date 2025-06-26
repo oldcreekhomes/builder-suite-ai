@@ -1,6 +1,18 @@
 
 import React, { useEffect } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Edit, Selection, Toolbar } from '@syncfusion/ej2-react-gantt';
+import { 
+  GanttComponent, 
+  ColumnsDirective, 
+  ColumnDirective, 
+  Edit, 
+  Selection, 
+  Toolbar,
+  Filter,
+  Sort,
+  Resize,
+  ColumnMenu,
+  Inject
+} from '@syncfusion/ej2-react-gantt';
 import { useProjectSchedule } from '@/hooks/useProjectSchedule';
 import { initializeSyncfusion } from '@/utils/syncfusionLicense';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,6 +135,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             height="100%"
             actionComplete={handleActionComplete}
           >
+            <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
             <ColumnsDirective>
               <ColumnDirective field="task_name" headerText="Task Name" width="250" />
               <ColumnDirective field="start_date" headerText="Start Date" width="150" />
