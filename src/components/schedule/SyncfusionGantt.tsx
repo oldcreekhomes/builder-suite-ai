@@ -1,7 +1,6 @@
 
 import React from "react";
-import { Gantt, Task, EventOption, StylingOption, ViewMode, DisplayOption } from "gantt-task-react";
-import "gantt-task-react/dist/index.css";
+import { GanttComponent, Inject, Selection, Edit, Toolbar, ColumnsDirective, ColumnDirective } from '@syncfusion/ej2-react-gantt';
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 
 interface SyncfusionGanttProps {
@@ -11,67 +10,64 @@ interface SyncfusionGanttProps {
 }
 
 export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGanttProps) {
-  // Transform our tasks to gantt-task-react format
-  const ganttTasks: Task[] = tasks.map((task, index) => {
-    const startDate = new Date(task.start_date);
-    const endDate = new Date(task.end_date);
+  // Transform our tasks to Syncfusion Gantt format
+  const ganttData = tasks.map((task, index) => ({
+    TaskID: index + 1,
+    TaskName: task.task_name,
+    StartDate: new Date(task.start_date),
+    Duration: task.duration,
+    Progress: task.progress,
+    Predecessor: task.predecessor_id ? tasks.findIndex(t => t.id === task.predecessor_id) + 1 : null,
+    taskId: task.id, // Keep original ID for updates
+  }));
+
+  const taskFields = {
+    id: 'TaskID',
+    name: 'TaskName',
+    startDate: 'StartDate',
+    duration: 'Duration',
+    progress: 'Progress',
+    dependency: 'Predecessor',
+  };
+
+  const labelSettings = {
+    leftLabel: 'TaskName',
+    rightLabel: 'Progress'
+  };
+
+  const editSettings = {
+    allowEditing: true,
+    allowDeleting: true,
+    allowTaskbarEditing: true,
+    showDeleteConfirmDialog: true
+  };
+
+  const toolbarOptions = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'];
+
+  // Calculate project start and end dates from tasks
+  const projectStartDate = tasks.length > 0 
+    ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
+    : new Date();
     
-    // Ensure valid dates
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      console.warn(`Invalid dates for task ${task.task_name}`);
-      // Use fallback dates
-      const fallbackStart = new Date();
-      const fallbackEnd = new Date(fallbackStart.getTime() + 24 * 60 * 60 * 1000); // 1 day later
-      
-      return {
-        start: fallbackStart,
-        end: fallbackEnd,
-        name: task.task_name || `Task ${index + 1}`,
-        id: task.id,
-        type: 'task',
-        progress: Math.min(100, Math.max(0, task.progress || 0)),
-        isDisabled: false,
-      };
+  const projectEndDate = tasks.length > 0
+    ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
+    : new Date();
+
+  const handleActionComplete = (args: any) => {
+    console.log('Gantt action completed:', args);
+    // Trigger refresh when tasks are modified
+    if (args.requestType === 'save' || args.requestType === 'delete') {
+      onTaskUpdate();
     }
-
-    return {
-      start: startDate,
-      end: endDate,
-      name: task.task_name || `Task ${index + 1}`,
-      id: task.id,
-      type: 'task',
-      progress: Math.min(100, Math.max(0, task.progress || 0)),
-      isDisabled: false,
-    };
-  });
-
-  // Handle task changes
-  const handleTaskChange = (task: Task) => {
-    console.log("Task changed:", task);
-    onTaskUpdate();
   };
 
-  const handleTaskDelete = (task: Task) => {
-    console.log("Task deleted:", task);
-    onTaskUpdate();
-  };
-
-  const handleProgressChange = (task: Task) => {
-    console.log("Progress changed:", task);
-    onTaskUpdate();
-  };
-
-  const handleDblClick = (task: Task) => {
-    console.log("Task double clicked:", task);
-  };
-
-  // Show loading state if no valid tasks
-  if (ganttTasks.length === 0) {
+  // Show loading state if no tasks
+  if (tasks.length === 0) {
     return (
       <div className="h-[600px] w-full flex items-center justify-center bg-gray-50 rounded-lg">
         <div className="text-center">
-          <p className="text-gray-600 mb-2">No valid tasks to display</p>
-          <p className="text-sm text-gray-500">Add tasks with valid dates to see the Gantt chart</p>
+          <p className="text-gray-600 mb-2">No tasks to display</p>
+          <p className="text-sm text-gray-500">Add tasks to see the Gantt chart</p>
         </div>
       </div>
     );
@@ -80,17 +76,42 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
   return (
     <div className="h-[600px] w-full">
       <div className="w-full h-full rounded-lg border border-gray-200 overflow-hidden">
-        <Gantt
-          tasks={ganttTasks}
-          viewMode={ViewMode.Day}
-          onDateChange={handleTaskChange}
-          onDelete={handleTaskDelete}
-          onProgressChange={handleProgressChange}
-          onDoubleClick={handleDblClick}
-          listCellWidth="250px"
-          columnWidth={60}
-          rowHeight={50}
-        />
+        <GanttComponent
+          id="ProjectGantt"
+          dataSource={ganttData}
+          taskFields={taskFields}
+          labelSettings={labelSettings}
+          editSettings={editSettings}
+          toolbar={toolbarOptions}
+          height="100%"
+          projectStartDate={projectStartDate}
+          projectEndDate={projectEndDate}
+          actionComplete={handleActionComplete}
+          allowSelection={true}
+          allowReordering={true}
+          allowResizing={true}
+          allowSorting={true}
+          gridLines="Both"
+          timelineSettings={{
+            topTier: {
+              unit: 'Week',
+              format: 'MMM dd, y',
+            },
+            bottomTier: {
+              unit: 'Day',
+              format: 'd',
+            },
+          }}
+        >
+          <ColumnsDirective>
+            <ColumnDirective field='TaskID' headerText='ID' width='50' />
+            <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
+            <ColumnDirective field='StartDate' headerText='Start Date' width='100' />
+            <ColumnDirective field='Duration' headerText='Duration' width='80' />
+            <ColumnDirective field='Progress' headerText='Progress' width='80' />
+          </ColumnsDirective>
+          <Inject services={[Selection, Edit, Toolbar]} />
+        </GanttComponent>
       </div>
     </div>
   );
