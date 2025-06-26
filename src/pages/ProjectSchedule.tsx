@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,12 +7,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { GanttChart } from "@/components/schedule/GanttChart";
-import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const { data: tasks, isLoading: tasksLoading, refetch } = useProjectSchedule(projectId);
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -55,14 +52,15 @@ export default function ProjectSchedule() {
             </div>
 
             <Card>
-              <CardContent className="p-4">
-                {tasksLoading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <p>Loading schedule...</p>
-                  </div>
-                ) : (
-                  <GanttChart tasks={tasks || []} onTaskUpdate={refetch} projectId={projectId} />
-                )}
+              <CardContent className="p-8">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Schedule Coming Soon
+                  </h3>
+                  <p className="text-gray-600">
+                    Project scheduling functionality will be available soon.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
