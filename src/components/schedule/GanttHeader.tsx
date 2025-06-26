@@ -6,7 +6,7 @@ interface GanttHeaderProps {
   selectedTasks: Set<string>;
   allTaskIds: string[];
   onSelectAll: (checked: boolean) => void;
-  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress";
+  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors";
 }
 
 export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll, columnType }: GanttHeaderProps) {
@@ -39,6 +39,10 @@ export function GanttHeader({ selectedTasks, allTaskIds, onSelectAll, columnType
         return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[50px] pr-1">End Date</TableHead>;
       case "progress":
         return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[50px] pr-1">Progress</TableHead>;
+      case "resources":
+        return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[50px] pr-1">Resources</TableHead>;
+      case "predecessors":
+        return <TableHead className="py-0.5 text-xs font-bold text-slate-700 text-center min-w-[50px] pr-1">Predecessors</TableHead>;
       default:
         return null;
     }

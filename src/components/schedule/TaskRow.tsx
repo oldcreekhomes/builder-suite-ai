@@ -1,3 +1,4 @@
+
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -37,7 +38,7 @@ interface TaskRowProps {
   hasChildren?: boolean;
   isSelected: boolean;
   onSelectTask: (taskId: string, checked: boolean) => void;
-  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress";
+  columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors";
 }
 
 export function TaskRow({
@@ -170,6 +171,22 @@ export function TaskRow({
               <span className="text-xs font-medium text-slate-600 w-8">
                 {task.progress}%
               </span>
+            </div>
+          </TableCell>
+        );
+      case "resources":
+        return (
+          <TableCell className="py-1 w-32">
+            <div className="text-xs text-slate-600">
+              {renderEditableCell('resources', task.resources?.join(', ') || '', 'text')}
+            </div>
+          </TableCell>
+        );
+      case "predecessors":
+        return (
+          <TableCell className="py-1 w-24">
+            <div className="text-xs text-slate-600">
+              {renderEditableCell('predecessor_id', task.predecessor_id || '', 'select')}
             </div>
           </TableCell>
         );

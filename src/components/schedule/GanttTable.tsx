@@ -122,6 +122,10 @@ export function GanttTable({
         case 'predecessor_id':
           updates.predecessor_id = value === 'none' ? null : value;
           break;
+        case 'resources':
+          // Convert comma-separated string to array
+          updates.resources = value.split(',').map(r => r.trim()).filter(r => r);
+          break;
       }
 
       await updateTaskMutation.mutateAsync({ id: taskId, updates });
@@ -138,7 +142,7 @@ export function GanttTable({
 
   const allTaskIds = tasks.map(task => task.id);
 
-  const renderTaskRowsForColumn = (columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress") => {
+  const renderTaskRowsForColumn = (columnType: "checkbox" | "code" | "name" | "startDate" | "duration" | "endDate" | "progress" | "resources" | "predecessors") => {
     return (
       <>
         {parentTasks.map(task => (
@@ -242,7 +246,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={30} minSize={8} maxSize={50}>
+          <ResizablePanel defaultSize={20} minSize={8} maxSize={40}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -258,7 +262,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={12} minSize={8} maxSize={15}>
+          <ResizablePanel defaultSize={10} minSize={8} maxSize={15}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -306,7 +310,7 @@ export function GanttTable({
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={10} minSize={7} maxSize={15}>
+          <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
             <Table>
               <GanttHeader 
                 selectedTasks={selectedTasks}
@@ -316,6 +320,38 @@ export function GanttTable({
               />
               <TableBody>
                 {renderTaskRowsForColumn("progress")}
+              </TableBody>
+            </Table>
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          <ResizablePanel defaultSize={15} minSize={10} maxSize={25}>
+            <Table>
+              <GanttHeader 
+                selectedTasks={selectedTasks}
+                allTaskIds={allTaskIds}
+                onSelectAll={onSelectAll}
+                columnType="resources"
+              />
+              <TableBody>
+                {renderTaskRowsForColumn("resources")}
+              </TableBody>
+            </Table>
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          <ResizablePanel defaultSize={12} minSize={8} maxSize={18}>
+            <Table>
+              <GanttHeader 
+                selectedTasks={selectedTasks}
+                allTaskIds={allTaskIds}
+                onSelectAll={onSelectAll}
+                columnType="predecessors"
+              />
+              <TableBody>
+                {renderTaskRowsForColumn("predecessors")}
               </TableBody>
             </Table>
           </ResizablePanel>
