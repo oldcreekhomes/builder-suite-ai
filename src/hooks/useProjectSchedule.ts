@@ -40,7 +40,68 @@ export const useProjectSchedule = (projectId: string) => {
       }
 
       console.log('Fetched schedule tasks:', data);
-      return data as ScheduleTask[];
+      
+      // Transform the data to match Syncfusion Gantt format
+      const transformedTasks = data?.map(task => ({
+        id: task.id,
+        task_name: task.task_name,
+        start_date: new Date(task.start_date),
+        end_date: new Date(task.end_date),
+        duration: task.duration || 1,
+        progress: task.progress || 0,
+        predecessor: task.predecessor || '',
+        resources: task.resources || '',
+        notes: task.notes || '',
+        parent_id: task.parent_id || null,
+        project_id: task.project_id
+      })) || [];
+      
+      console.log('Transformed tasks for Gantt:', transformedTasks);
+      
+      // If no tasks exist, create a sample task for testing
+      if (transformedTasks.length === 0) {
+        console.log('No tasks found, creating sample task...');
+        const sampleTask = {
+          project_id: projectId,
+          task_name: 'Sample Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+          duration: 7,
+          progress: 25,
+          predecessor: '',
+          resources: 'Team A',
+          notes: 'This is a sample task to test the Gantt chart',
+          parent_id: null
+        };
+        
+        // Create the sample task
+        const { data: newTask, error: createError } = await supabase
+          .from('project_schedule_tasks')
+          .insert([sampleTask])
+          .select()
+          .single();
+          
+        if (createError) {
+          console.error('Error creating sample task:', createError);
+        } else {
+          console.log('Created sample task:', newTask);
+          return [{
+            id: newTask.id,
+            task_name: newTask.task_name,
+            start_date: new Date(newTask.start_date),
+            end_date: new Date(newTask.end_date),
+            duration: newTask.duration || 1,
+            progress: newTask.progress || 0,
+            predecessor: newTask.predecessor || '',
+            resources: newTask.resources || '',
+            notes: newTask.notes || '',
+            parent_id: newTask.parent_id || null,
+            project_id: newTask.project_id
+          }];
+        }
+      }
+      
+      return transformedTasks;
     },
     enabled: !!projectId,
   });
