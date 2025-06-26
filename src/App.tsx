@@ -19,6 +19,12 @@ import Landing from "./pages/Landing";
 import ConfirmInvitation from "./pages/ConfirmInvitation";
 import NotFound from "./pages/NotFound";
 
+// Register Syncfusion license
+import { registerLicense } from '@syncfusion/ej2-base';
+
+// Set Syncfusion license key - using trial license
+registerLicense('Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdnWX9feHVSR2hdVkN3XkU=');
+
 const queryClient = new QueryClient();
 
 const App = () => (
