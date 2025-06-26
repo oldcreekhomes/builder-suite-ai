@@ -4,9 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Check, X, CalendarIcon } from "lucide-react";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 import { getTaskNumber, formatTaskDate } from "./utils/ganttUtils";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface EditableCellProps {
   task: ScheduleTask;
@@ -35,6 +39,8 @@ export function EditableCell({
   onEditValueChange,
   allTasks,
 }: EditableCellProps) {
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -50,6 +56,14 @@ export function EditableCell({
     e.stopPropagation();
     if (!isEditing) {
       onStartEditing(task.id, field, value);
+    }
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      onEditValueChange(format(date, 'yyyy-MM-dd'));
+      setDatePopoverOpen(false);
+      onSaveEdit();
     }
   };
 
@@ -70,6 +84,43 @@ export function EditableCell({
               ))}
             </SelectContent>
           </Select>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
+            <Check className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 transition-colors flex-shrink-0" onClick={onCancelEdit}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      );
+    }
+
+    if (type === "date") {
+      return (
+        <div className="flex items-center space-x-1 min-w-0">
+          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-8 text-sm border-blue-300 focus:border-blue-500 focus:ring-blue-500/20 bg-white shadow-sm min-w-[120px] justify-start text-left font-normal",
+                  !editValue && "text-muted-foreground"
+                )}
+                onClick={() => setDatePopoverOpen(true)}
+              >
+                <CalendarIcon className="mr-2 h-3 w-3" />
+                {editValue ? formatTaskDate(editValue) : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={editValue ? parseISO(editValue) : undefined}
+                onSelect={handleDateSelect}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
           <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600 transition-colors flex-shrink-0" onClick={onSaveEdit}>
             <Check className="h-3 w-3" />
           </Button>

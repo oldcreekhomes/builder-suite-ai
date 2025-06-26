@@ -167,9 +167,7 @@ export function TaskRow({
                   className={`h-1 ${getProgressColor(task.progress)}`}
                 />
               </div>
-              <span className="text-xs font-medium text-slate-600 w-8">
-                {task.progress}%
-              </span>
+              {renderEditableCell('progress', task.progress, 'number')}
             </div>
           </TableCell>
         );
