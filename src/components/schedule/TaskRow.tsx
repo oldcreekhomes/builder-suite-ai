@@ -1,25 +1,9 @@
 
-import { format, parseISO } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { TableCell, TableRow } from "@/components/ui/table";
-import { Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { TableRow } from "@/components/ui/table";
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
-import { EditableCell } from "./EditableCell";
-import { getTaskNumber } from "./utils/ganttUtils";
 import { ColumnType } from "./types";
+import { TaskCellFactory } from "./components/TaskCellFactory";
+import { getTaskRowClassName } from "./components/TaskRowStyles";
 
 interface TaskRowProps {
   task: ScheduleTask;
@@ -52,8 +36,6 @@ export function TaskRow({
   onSaveEdit,
   onCancelEdit,
   onEditValueChange,
-  onEditTask,
-  onDeleteTask,
   allTasks,
   isCollapsed = false,
   onToggleCollapse,
@@ -62,149 +44,26 @@ export function TaskRow({
   onSelectTask,
   columnType,
 }: TaskRowProps) {
-  const endDate = parseISO(task.end_date);
-
-  const renderEditableCell = (field: string, value: string | number, type: "text" | "date" | "number" | "select" = "text") => {
-    const isEditing = editingCell?.taskId === task.id && editingCell?.field === field;
-    
-    return (
-      <EditableCell
+  return (
+    <TableRow className={getTaskRowClassName(isChild)}>
+      <TaskCellFactory
         task={task}
-        field={field}
-        value={value}
-        type={type}
-        isEditing={isEditing}
+        columnType={columnType}
+        isChild={isChild}
+        isParent={isParent}
+        editingCell={editingCell}
         editValue={editValue}
         onStartEditing={onStartEditing}
         onSaveEdit={onSaveEdit}
         onCancelEdit={onCancelEdit}
         onEditValueChange={onEditValueChange}
         allTasks={allTasks}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        hasChildren={hasChildren}
+        isSelected={isSelected}
+        onSelectTask={onSelectTask}
       />
-    );
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress === 0) return "bg-slate-200";
-    if (progress < 50) return "bg-yellow-500";
-    if (progress < 100) return "bg-blue-500";
-    return "bg-green-500";
-  };
-
-  const renderColumn = () => {
-    switch (columnType) {
-      case "checkbox":
-        return (
-          <TableCell className="py-1 w-8">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked) => onSelectTask(task.id, checked as boolean)}
-              className="h-3 w-3"
-            />
-          </TableCell>
-        );
-      case "code":
-        return (
-          <TableCell className="font-mono text-xs text-slate-600 py-1 relative">
-            <div className="flex items-center">
-              {!isChild && hasChildren && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-3 w-3 p-0 mr-1 hover:bg-slate-200 absolute left-0"
-                  onClick={onToggleCollapse}
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="h-2 w-2" />
-                  ) : (
-                    <ChevronDown className="h-2 w-2" />
-                  )}
-                </Button>
-              )}
-              <span className="px-1 py-0.25 rounded text-xs font-medium ml-4 text-black">
-                {getTaskNumber(task.task_code)}
-              </span>
-            </div>
-          </TableCell>
-        );
-      case "name":
-        return (
-          <TableCell className="py-1 min-w-[180px] pr-1">
-            <div className={`text-sm ${isChild ? 'text-slate-700 pl-4' : isParent ? 'text-slate-900 font-bold' : 'text-slate-900'}`}>
-              {renderEditableCell('task_name', task.task_name)}
-            </div>
-          </TableCell>
-        );
-      case "startDate":
-        return (
-          <TableCell className="py-1 w-20 pl-1">
-            <div className="text-xs text-slate-600 font-mono">
-              {renderEditableCell('start_date', task.start_date, 'date')}
-            </div>
-          </TableCell>
-        );
-      case "duration":
-        return (
-          <TableCell className="py-1 w-16">
-            <div className="flex items-center space-x-1">
-              {renderEditableCell('duration', task.duration, 'number')}
-            </div>
-          </TableCell>
-        );
-      case "endDate":
-        return (
-          <TableCell className="py-1 w-20">
-            <div className="text-xs text-slate-600 font-mono">
-              {format(endDate, 'MMM dd')}
-            </div>
-          </TableCell>
-        );
-      case "progress":
-        return (
-          <TableCell className="py-1 w-16">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1">
-                <Progress 
-                  value={task.progress} 
-                  className={`h-1 ${getProgressColor(task.progress)}`}
-                />
-              </div>
-              <span className="text-xs font-medium text-slate-600 w-8">
-                {task.progress}%
-              </span>
-            </div>
-          </TableCell>
-        );
-      case "resources":
-        return (
-          <TableCell className="py-1 w-32">
-            <div className="text-xs text-slate-600">
-              {renderEditableCell('resources', task.resources?.join(', ') || '', 'text')}
-            </div>
-          </TableCell>
-        );
-      case "predecessors":
-        return (
-          <TableCell className="py-1 w-24">
-            <div className="text-xs text-slate-600">
-              {renderEditableCell('predecessor_id', task.predecessor_id || '', 'select')}
-            </div>
-          </TableCell>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <TableRow className={`
-      ${isChild ? 'bg-slate-50/50' : 'bg-white'} 
-      hover:bg-slate-50 
-      transition-colors 
-      border-b border-slate-100
-      h-8
-    `}>
-      {renderColumn()}
     </TableRow>
   );
 }
