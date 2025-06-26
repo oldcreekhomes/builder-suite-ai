@@ -1,6 +1,18 @@
 
 import React from "react";
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers } from '@syncfusion/ej2-react-gantt';
+import { 
+  GanttComponent, 
+  ColumnsDirective, 
+  ColumnDirective, 
+  Inject, 
+  Edit, 
+  Selection, 
+  Toolbar, 
+  DayMarkers,
+  Sort,
+  Resize,
+  ContextMenu
+} from '@syncfusion/ej2-react-gantt';
 import { ScheduleTask } from "@/hooks/useProjectSchedule";
 
 interface SyncfusionGanttProps {
@@ -44,6 +56,10 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll', 'ZoomIn', 'ZoomOut', 'ZoomToFit'];
 
+  const splitterSettings = {
+    columnIndex: 4
+  };
+
   return (
     <div className="h-[600px] w-full">
       <GanttComponent
@@ -57,8 +73,19 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
         allowSorting={true}
         enableContextMenu={true}
         height="100%"
+        splitterSettings={splitterSettings}
         projectStartDate={new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))}
         projectEndDate={new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))}
+        timelineSettings={{
+          topTier: {
+            unit: 'Week',
+            format: 'dd/MM/yyyy'
+          },
+          bottomTier: {
+            unit: 'Day',
+            count: 1
+          }
+        }}
       >
         <ColumnsDirective>
           <ColumnDirective field="TaskID" headerText="ID" width="70" />
@@ -68,7 +95,7 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
           <ColumnDirective field="Progress" headerText="Progress" width="100" />
           <ColumnDirective field="Resources" headerText="Resources" width="200" />
         </ColumnsDirective>
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Sort, Resize, ContextMenu]} />
       </GanttComponent>
     </div>
   );
