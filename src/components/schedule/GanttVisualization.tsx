@@ -22,6 +22,18 @@ export function GanttVisualization({
   const endDate = dateRange[dateRange.length - 1];
   const weeks = eachWeekOfInterval({ start: startDate, end: endDate });
 
+  // Get all visible tasks in order
+  const getVisibleTasks = () => {
+    const visibleTasks: ScheduleTask[] = [];
+    parentTasks.forEach(task => {
+      visibleTasks.push(task);
+      if (!collapsedSections.has(task.id)) {
+        visibleTasks.push(...getChildTasks(task.id));
+      }
+    });
+    return visibleTasks;
+  };
+
   const renderTaskBar = (task: ScheduleTask, isChild = false) => {
     const taskStart = parseISO(task.start_date);
     const taskEnd = parseISO(task.end_date);
@@ -36,6 +48,7 @@ export function GanttVisualization({
       <div 
         key={task.id} 
         className="relative h-8 flex items-center"
+        data-task-id={task.id}
       >
         <div className="flex items-center w-full h-full">
           {/* Timeline container */}
@@ -78,10 +91,79 @@ export function GanttVisualization({
     );
   };
 
+  const renderDependencyLines = () => {
+    const visibleTasks = getVisibleTasks();
+    const lines = [];
+
+    visibleTasks.forEach((task, taskIndex) => {
+      if (task.predecessor_id) {
+        const predecessorTask = tasks.find(t => t.id === task.predecessor_id);
+        if (predecessorTask) {
+          const predecessorIndex = visibleTasks.findIndex(t => t.id === task.predecessor_id);
+          
+          if (predecessorIndex !== -1) {
+            // Calculate positions
+            const predecessorEnd = parseISO(predecessorTask.end_date);
+            const taskStart = parseISO(task.start_date);
+            
+            const predecessorEndIndex = dateRange.findIndex(date => isSameDay(date, predecessorEnd));
+            const taskStartIndex = dateRange.findIndex(date => isSameDay(date, taskStart));
+            
+            const totalDays = dateRange.length;
+            const predecessorEndPercentage = ((predecessorEndIndex + 1) / totalDays) * 100;
+            const taskStartPercentage = (taskStartIndex / totalDays) * 100;
+            
+            // Vertical positions (32px per row, 16px offset to center)
+            const predecessorY = predecessorIndex * 32 + 16;
+            const taskY = taskIndex * 32 + 16;
+            
+            lines.push(
+              <g key={`${task.id}-${task.predecessor_id}`}>
+                {/* Horizontal line from predecessor end */}
+                <line
+                  x1={`${predecessorEndPercentage}%`}
+                  y1={predecessorY}
+                  x2={`${predecessorEndPercentage + 2}%`}
+                  y2={predecessorY}
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  markerEnd="url(#arrowhead-right)"
+                />
+                {/* Vertical line */}
+                <line
+                  x1={`${predecessorEndPercentage + 2}%`}
+                  y1={predecessorY}
+                  x2={`${predecessorEndPercentage + 2}%`}
+                  y2={taskY}
+                  stroke="#64748b"
+                  strokeWidth="2"
+                />
+                {/* Horizontal line to task start */}
+                <line
+                  x1={`${predecessorEndPercentage + 2}%`}
+                  y1={taskY}
+                  x2={`${taskStartPercentage}%`}
+                  y2={taskY}
+                  stroke="#64748b"
+                  strokeWidth="2"
+                  markerEnd="url(#arrowhead)"
+                />
+              </g>
+            );
+          }
+        }
+      }
+    });
+
+    return lines;
+  };
+
+  const visibleTasks = getVisibleTasks();
+
   return (
     <div className="p-4 bg-slate-50">
       <div className="overflow-x-auto">
-        <div className="min-w-max">
+        <div className="min-w-max relative">
           {/* Timeline header - moved to top */}
           <div className="sticky top-0 bg-slate-50 z-10 mb-4">
             {/* Month headers */}
@@ -116,18 +198,57 @@ export function GanttVisualization({
             </div>
           </div>
           
-          {/* Task bars - render in exact same order as table */}
-          <div className="space-y-0">
-            {parentTasks.map(task => (
-              <div key={task.id}>
-                {renderTaskBar(task)}
-                {!collapsedSections.has(task.id) && 
-                  getChildTasks(task.id).map(childTask => 
-                    renderTaskBar(childTask, true)
-                  )
-                }
-              </div>
-            ))}
+          {/* Task bars container */}
+          <div className="relative">
+            {/* Task bars - render in exact same order as table */}
+            <div className="space-y-0">
+              {parentTasks.map(task => (
+                <div key={task.id}>
+                  {renderTaskBar(task)}
+                  {!collapsedSections.has(task.id) && 
+                    getChildTasks(task.id).map(childTask => 
+                      renderTaskBar(childTask, true)
+                    )
+                  }
+                </div>
+              ))}
+            </div>
+            
+            {/* Dependency lines overlay */}
+            <svg 
+              className="absolute top-0 left-0 w-full pointer-events-none"
+              style={{ height: `${visibleTasks.length * 32}px` }}
+            >
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="6"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 6 2, 0 4"
+                    fill="#64748b"
+                  />
+                </marker>
+                <marker
+                  id="arrowhead-right"
+                  markerWidth="6"
+                  markerHeight="4"
+                  refX="0"
+                  refY="2"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 2, 6 0, 6 4"
+                    fill="#64748b"
+                  />
+                </marker>
+              </defs>
+              {renderDependencyLines()}
+            </svg>
           </div>
         </div>
       </div>
