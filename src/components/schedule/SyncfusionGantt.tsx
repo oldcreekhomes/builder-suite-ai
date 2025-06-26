@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { 
   GanttComponent, 
   ColumnsDirective, 
@@ -23,19 +23,32 @@ interface SyncfusionGanttProps {
 }
 
 export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGanttProps) {
-  // Transform our tasks to Syncfusion format
-  const transformedTasks = tasks.map((task, index) => ({
-    TaskID: index + 1, // Use sequential IDs starting from 1
-    TaskName: task.task_name,
-    StartDate: new Date(task.start_date),
-    EndDate: new Date(task.end_date),
-    Duration: task.duration,
-    Progress: task.progress,
-    Resources: task.resources.join(', '),
-    Predecessor: task.predecessor_id ? 
-      tasks.findIndex(t => t.id === task.predecessor_id) + 1 : null,
-    originalId: task.id
-  }));
+  const ganttRef = useRef<GanttComponent>(null);
+
+  // Transform our tasks to Syncfusion format with proper validation
+  const transformedTasks = tasks.map((task, index) => {
+    const startDate = new Date(task.start_date);
+    const endDate = new Date(task.end_date);
+    
+    // Ensure valid dates
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.warn(`Invalid dates for task ${task.task_name}`);
+      return null;
+    }
+
+    return {
+      TaskID: index + 1,
+      TaskName: task.task_name || `Task ${index + 1}`,
+      StartDate: startDate,
+      EndDate: endDate,
+      Duration: Math.max(1, task.duration || 1),
+      Progress: Math.min(100, Math.max(0, task.progress || 0)),
+      Resources: task.resources ? task.resources.join(', ') : '',
+      Predecessor: task.predecessor_id ? 
+        tasks.findIndex(t => t.id === task.predecessor_id) + 1 : null,
+      originalId: task.id
+    };
+  }).filter(Boolean); // Remove null entries
 
   const taskFields = {
     id: 'TaskID',
@@ -71,22 +84,24 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
     rightLabel: 'Resources'
   };
 
-  const projectStartDate = tasks.length > 0 ? 
-    new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime()))) : 
-    new Date();
+  // Calculate project dates with fallbacks
+  const now = new Date();
+  const projectStartDate = transformedTasks.length > 0 ? 
+    new Date(Math.min(...transformedTasks.map(t => t.StartDate.getTime()))) : 
+    now;
     
-  const projectEndDate = tasks.length > 0 ? 
-    new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime()))) : 
-    new Date();
+  const projectEndDate = transformedTasks.length > 0 ? 
+    new Date(Math.max(...transformedTasks.map(t => t.EndDate.getTime()))) : 
+    new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
   const timelineSettings = {
     showTooltip: true,
     topTier: {
-      unit: 'Week' as any,
+      unit: 'Week',
       format: 'dd/MM/yyyy'
     },
     bottomTier: {
-      unit: 'Day' as any,
+      unit: 'Day',
       count: 1
     }
   };
@@ -102,10 +117,44 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
     }
   };
 
+  const created = () => {
+    console.log('Gantt component created successfully');
+  };
+
+  const load = () => {
+    console.log('Gantt component loading...');
+  };
+
+  // Handle component cleanup
+  useEffect(() => {
+    return () => {
+      if (ganttRef.current) {
+        try {
+          ganttRef.current.destroy();
+        } catch (error) {
+          console.warn('Error destroying Gantt component:', error);
+        }
+      }
+    };
+  }, []);
+
+  // Show loading state if no valid tasks
+  if (transformedTasks.length === 0) {
+    return (
+      <div className="h-[600px] w-full flex items-center justify-center bg-gray-50 rounded-lg">
+        <div className="text-center">
+          <p className="text-gray-600 mb-2">No valid tasks to display</p>
+          <p className="text-sm text-gray-500">Add tasks with valid dates to see the Gantt chart</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[600px] w-full">
       <GanttComponent
-        id="gantt"
+        ref={ganttRef}
+        id={`gantt-${projectId}`}
         dataSource={transformedTasks}
         taskFields={taskFields}
         editSettings={editSettings}
@@ -124,6 +173,8 @@ export function SyncfusionGantt({ tasks, onTaskUpdate, projectId }: SyncfusionGa
         timelineSettings={timelineSettings}
         actionBegin={actionBegin}
         actionComplete={actionComplete}
+        created={created}
+        load={load}
         rowHeight={40}
         taskbarHeight={30}
       >
