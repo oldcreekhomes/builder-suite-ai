@@ -1,4 +1,3 @@
-
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Plus, Bell, Search, ArrowLeft } from "lucide-react";
@@ -22,7 +21,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  title?: string;
+}
+
+export function DashboardHeader({ title }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -61,6 +64,9 @@ export function DashboardHeader() {
 
   // Get company name from profile, fallback to "Company"
   const companyName = profile?.company_name || "Company";
+  
+  // Use provided title or fallback to company name
+  const displayTitle = title || companyName;
 
   return (
     <>
@@ -71,7 +77,7 @@ export function DashboardHeader() {
               <ArrowLeft className="h-4 w-4" />
             </SidebarTrigger>
             <div>
-              <h1 className="text-2xl font-bold text-black">{companyName}</h1>
+              <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
             </div>
           </div>
           
