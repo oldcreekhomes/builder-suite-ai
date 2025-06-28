@@ -83,11 +83,68 @@
   }
 }
 
-/* Ensure Syncfusion components are properly styled */
+/* Enhanced Syncfusion Gantt styling */
 .e-gantt {
   font-family: inherit !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
 }
 
 .e-gantt .e-toolbar {
   border-bottom: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+  padding: 8px !important;
+}
+
+.e-gantt .e-toolbar .e-toolbar-items {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 4px !important;
+}
+
+.e-gantt .e-toolbar .e-toolbar-item {
+  display: inline-flex !important;
+  margin: 0 2px !important;
+}
+
+.e-gantt .e-toolbar .e-tbar-btn {
+  padding: 6px 12px !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 14px !important;
+}
+
+.e-gantt .e-toolbar .e-tbar-btn:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.e-gantt .e-grid .e-headercell {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.e-gantt .e-grid .e-rowcell {
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.e-gantt .e-gantt-chart {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Fix for toolbar layout issues */
+.e-gantt .e-toolbar-left {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+}
+
+/* Ensure proper container styling */
+.gantt-container {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }

@@ -163,8 +163,8 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="w-full" style={{ height: '600px' }}>
+      <CardContent className="p-0">
+        <div className="gantt-container" style={{ height: '600px', width: '100%' }}>
           <GanttComponent
             id={`gantt-${projectId}`}
             dataSource={tasks || []}
