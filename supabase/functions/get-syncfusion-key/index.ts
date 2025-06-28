@@ -13,10 +13,14 @@ serve(async (req) => {
   }
 
   try {
-    const licenseKey = Deno.env.get('VITE_SYNCFUSION_LICENSE_KEY')
+    console.log('Getting Syncfusion license key from environment...')
+    const licenseKey = Deno.env.get('SYNCFUSION_LICENSE_KEY')
+    
+    console.log('License key found:', !!licenseKey)
+    console.log('License key length:', licenseKey ? licenseKey.length : 0)
     
     if (!licenseKey) {
-      console.error('VITE_SYNCFUSION_LICENSE_KEY not found in environment')
+      console.error('SYNCFUSION_LICENSE_KEY not found in environment variables')
       return new Response(
         JSON.stringify({ error: 'Syncfusion license key not configured' }),
         { 

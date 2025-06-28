@@ -6,37 +6,30 @@ export const initializeSyncfusion = async () => {
   console.log('Initializing Syncfusion license...');
   
   try {
-    // Try to get the license key from Supabase secrets via edge function
+    // Try to get the license key from Supabase edge function
+    console.log('Calling Supabase edge function for license key...');
     const { data, error } = await supabase.functions.invoke('get-syncfusion-key');
     
-    let licenseKey = null;
-    
-    if (!error && data?.licenseKey) {
-      licenseKey = data.licenseKey;
-      console.log('License key retrieved from Supabase secrets');
-    } else {
-      // Fallback to environment variable
-      licenseKey = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY;
-      console.log('Using environment variable fallback');
+    if (error) {
+      console.error('Error calling edge function:', error);
+      throw new Error(`Edge function error: ${error.message}`);
     }
     
-    console.log('License key exists:', !!licenseKey);
-    console.log('License key length:', licenseKey ? licenseKey.length : 0);
+    console.log('Edge function response:', data);
     
-    if (licenseKey && licenseKey.trim()) {
-      registerLicense(licenseKey.trim());
+    if (data?.licenseKey) {
+      console.log('License key retrieved successfully, length:', data.licenseKey.length);
+      registerLicense(data.licenseKey.trim());
       console.log('Syncfusion license registered successfully');
+      return true;
     } else {
-      console.warn('Syncfusion license key not found or empty. Some features may be limited.');
-      console.warn('Expected secret: VITE_SYNCFUSION_LICENSE_KEY in Supabase');
+      console.warn('No license key found in edge function response');
+      console.warn('Please ensure SYNCFUSION_LICENSE_KEY is set in Supabase Edge Functions secrets');
+      return false;
     }
   } catch (error) {
     console.error('Error initializing Syncfusion license:', error);
-    // Fallback to environment variable
-    const licenseKey = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY;
-    if (licenseKey && licenseKey.trim()) {
-      registerLicense(licenseKey.trim());
-      console.log('Syncfusion license registered via fallback');
-    }
+    console.warn('Syncfusion will run in trial mode with license validation messages');
+    return false;
   }
 };

@@ -24,17 +24,25 @@ interface ProjectGanttProps {
 export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
   const [licenseInitialized, setLicenseInitialized] = useState(false);
+  const [licenseError, setLicenseError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initialize Syncfusion license and wait for completion
     const initLicense = async () => {
       try {
-        await initializeSyncfusion();
-        setLicenseInitialized(true);
-        console.log('Syncfusion license initialization complete');
+        console.log('Starting Syncfusion license initialization...');
+        const success = await initializeSyncfusion();
+        
+        if (success) {
+          console.log('License initialization successful');
+          setLicenseError(null);
+        } else {
+          console.warn('License initialization failed - running in trial mode');
+          setLicenseError('Running in trial mode - license key not found');
+        }
       } catch (error) {
-        console.error('Failed to initialize Syncfusion license:', error);
-        // Still allow rendering even if license fails
+        console.error('License initialization error:', error);
+        setLicenseError('License initialization failed');
+      } finally {
         setLicenseInitialized(true);
       }
     };
@@ -129,7 +137,14 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
       <Card>
         <CardContent className="p-8">
           <div className="text-center">
-            {isLoading ? 'Loading schedule...' : 'Initializing Gantt chart...'}
+            <div className="mb-2">
+              {isLoading ? 'Loading schedule...' : 'Initializing Gantt chart...'}
+            </div>
+            {licenseError && (
+              <div className="text-sm text-yellow-600">
+                {licenseError}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -142,11 +157,16 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
     <Card>
       <CardHeader>
         <CardTitle>Project Schedule</CardTitle>
+        {licenseError && (
+          <div className="text-sm text-yellow-600 mt-2">
+            Note: {licenseError}
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <div className="w-full" style={{ height: '600px' }}>
           <GanttComponent
-            id="gantt-control"
+            id={`gantt-${projectId}`}
             dataSource={tasks || []}
             taskFields={taskSettings}
             editSettings={editSettings}
