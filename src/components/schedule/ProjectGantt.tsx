@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   GanttComponent, 
   ColumnsDirective, 
@@ -23,10 +23,23 @@ interface ProjectGanttProps {
 
 export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
+  const [licenseInitialized, setLicenseInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize Syncfusion license asynchronously
-    initializeSyncfusion().catch(console.error);
+    // Initialize Syncfusion license and wait for completion
+    const initLicense = async () => {
+      try {
+        await initializeSyncfusion();
+        setLicenseInitialized(true);
+        console.log('Syncfusion license initialization complete');
+      } catch (error) {
+        console.error('Failed to initialize Syncfusion license:', error);
+        // Still allow rendering even if license fails
+        setLicenseInitialized(true);
+      }
+    };
+    
+    initLicense();
   }, []);
 
   const taskSettings = {
@@ -56,6 +69,8 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
 
   const handleActionComplete = (args: any) => {
     try {
+      console.log('Gantt Action Complete:', args);
+      
       if (args.requestType === 'save') {
         if (args.action === 'add') {
           const newTask = {
@@ -70,9 +85,10 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             notes: args.data.notes || '',
             parent_id: args.data.parent_id || null
           };
+          console.log('Creating new task:', newTask);
           createTask.mutate(newTask);
         } else if (args.action === 'edit') {
-          updateTask.mutate({
+          const updatedTask = {
             id: args.data.id,
             task_name: args.data.task_name,
             start_date: args.data.start_date,
@@ -83,9 +99,12 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             resources: args.data.resources,
             notes: args.data.notes,
             parent_id: args.data.parent_id
-          });
+          };
+          console.log('Updating task:', updatedTask);
+          updateTask.mutate(updatedTask);
         }
       } else if (args.requestType === 'delete') {
+        console.log('Deleting task:', args.data[0].id);
         deleteTask.mutate(args.data[0].id);
       }
     } catch (error) {
@@ -105,15 +124,19 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !licenseInitialized) {
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center">Loading schedule...</div>
+          <div className="text-center">
+            {isLoading ? 'Loading schedule...' : 'Initializing Gantt chart...'}
+          </div>
         </CardContent>
       </Card>
     );
   }
+
+  console.log('Rendering Gantt with tasks:', tasks);
 
   return (
     <Card>
@@ -121,8 +144,9 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
         <CardTitle>Project Schedule</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[600px]">
+        <div className="w-full" style={{ height: '600px' }}>
           <GanttComponent
+            id="gantt-control"
             dataSource={tasks || []}
             taskFields={taskSettings}
             editSettings={editSettings}
@@ -134,14 +158,17 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             showColumnMenu={true}
             highlightWeekends={true}
             height="100%"
+            width="100%"
             actionComplete={handleActionComplete}
+            projectStartDate={new Date('2025-01-01')}
+            projectEndDate={new Date('2025-12-31')}
           >
             <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
             <ColumnsDirective>
               <ColumnDirective field="id" headerText="ID" width="80" isPrimaryKey={true} visible={false} />
               <ColumnDirective field="task_name" headerText="Task Name" width="250" />
               <ColumnDirective field="start_date" headerText="Start Date" width="150" />
-              <ColumnDirective field="end_date" headerText="End Date" width="150" />
+              <ColumnDirective field="end_date" headerText="End Date" width="150" />  
               <ColumnDirective field="duration" headerText="Duration" width="100" />
               <ColumnDirective field="progress" headerText="Progress" width="100" />
               <ColumnDirective field="resources" headerText="Resources" width="150" />
