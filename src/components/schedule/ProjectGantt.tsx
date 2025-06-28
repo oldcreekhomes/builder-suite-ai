@@ -75,6 +75,10 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'
   ];
 
+  const splitterSettings = {
+    columnIndex: 3
+  };
+
   const handleActionComplete = (args: any) => {
     try {
       console.log('Gantt Action Complete:', args);
@@ -154,7 +158,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   console.log('Rendering Gantt with tasks:', tasks);
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Project Schedule</CardTitle>
         {licenseError && (
@@ -164,13 +168,14 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
         )}
       </CardHeader>
       <CardContent className="p-0">
-        <div className="gantt-container" style={{ height: '600px', width: '100%' }}>
+        <div style={{ height: '700px', width: '100%' }}>
           <GanttComponent
             id={`gantt-${projectId}`}
             dataSource={tasks || []}
             taskFields={taskSettings}
             editSettings={editSettings}
             toolbar={toolbarOptions}
+            splitterSettings={splitterSettings}
             allowSelection={true}
             allowResizing={true}
             allowSorting={true}
@@ -182,6 +187,16 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             actionComplete={handleActionComplete}
             projectStartDate={new Date('2025-01-01')}
             projectEndDate={new Date('2025-12-31')}
+            timelineSettings={{
+              topTier: {
+                unit: 'Week',
+                format: 'dd/MM/yyyy'
+              },
+              bottomTier: {
+                unit: 'Day',
+                count: 1
+              }
+            }}
           >
             <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
             <ColumnsDirective>

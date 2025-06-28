@@ -83,7 +83,7 @@
   }
 }
 
-/* Enhanced Syncfusion Gantt styling */
+/* Syncfusion Gantt chart styling */
 .e-gantt {
   font-family: inherit !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -100,6 +100,7 @@
   display: flex !important;
   flex-direction: row !important;
   gap: 4px !important;
+  flex-wrap: wrap !important;
 }
 
 .e-gantt .e-toolbar .e-toolbar-item {
@@ -114,6 +115,7 @@
   border: 1px solid hsl(var(--border)) !important;
   color: hsl(var(--foreground)) !important;
   font-size: 14px !important;
+  white-space: nowrap !important;
 }
 
 .e-gantt .e-toolbar .e-tbar-btn:hover {
@@ -135,16 +137,47 @@
   background-color: hsl(var(--background)) !important;
 }
 
-/* Fix for toolbar layout issues */
-.e-gantt .e-toolbar-left {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
+.e-gantt .e-gantt-chart .e-chart-row {
+  border-color: hsl(var(--border)) !important;
 }
 
-/* Ensure proper container styling */
-.gantt-container {
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden !important;
+.e-gantt .e-gantt-chart .e-timeline-header-container {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.e-gantt .e-gantt-chart .e-timeline-header-container .e-timeline-top-header {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.e-gantt .e-gantt-chart .e-timeline-header-container .e-timeline-header {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Task bar styling */
+.e-gantt .e-taskbar-main-container .e-taskbar {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+}
+
+.e-gantt .e-taskbar-main-container .e-taskbar-progress {
+  background-color: hsl(var(--accent)) !important;
+}
+
+/* Splitter styling */
+.e-gantt .e-splitter .e-split-bar {
+  background-color: hsl(var(--border)) !important;
+}
+
+/* Fix for proper rendering */
+.e-gantt .e-gantt-chart-container {
+  overflow: visible !important;
+}
+
+.e-gantt .e-timeline-header-container {
+  position: relative !important;
 }
