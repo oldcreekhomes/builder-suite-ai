@@ -25,7 +25,8 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
 
   useEffect(() => {
-    initializeSyncfusion();
+    // Initialize Syncfusion license asynchronously
+    initializeSyncfusion().catch(console.error);
   }, []);
 
   const taskSettings = {

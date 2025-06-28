@@ -6,8 +6,8 @@ import "./index.css";
 import { initializeSyncfusion } from "./utils/syncfusionLicense";
 import { AuthProvider } from "./hooks/useAuth";
 
-// Initialize Syncfusion license
-initializeSyncfusion();
+// Initialize Syncfusion license asynchronously
+initializeSyncfusion().catch(console.error);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
