@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -20,6 +21,7 @@ interface AddBudgetModalProps {
 
 export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCodeIds }: AddBudgetModalProps) {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -66,14 +68,19 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
     },
   });
 
-  // Group cost codes by parent group
+  // Group cost codes by parent group, excluding uncategorized and existing cost codes
   const groupedCostCodes = costCodes.reduce((acc, costCode) => {
     // Skip cost codes that are already in the budget
     if (existingCostCodeIds.includes(costCode.id)) {
       return acc;
     }
 
-    const group = costCode.parent_group || 'Uncategorized';
+    // Skip uncategorized items
+    const group = costCode.parent_group;
+    if (!group || group.toLowerCase() === 'uncategorized') {
+      return acc;
+    }
+
     if (!acc[group]) {
       acc[group] = [];
     }
@@ -89,6 +96,24 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
       newSelected.delete(costCodeId);
     }
     setSelectedCostCodes(newSelected);
+  };
+
+  const handleExpandAll = () => {
+    setExpandedGroups(new Set(Object.keys(groupedCostCodes)));
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
+  const handleGroupToggle = (group: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(group)) {
+      newExpanded.delete(group);
+    } else {
+      newExpanded.add(group);
+    }
+    setExpandedGroups(newExpanded);
   };
 
   const handleSave = () => {
@@ -120,36 +145,33 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const allAvailableIds = Object.values(groupedCostCodes)
-                  .flat()
-                  .map(cc => cc.id);
-                setSelectedCostCodes(new Set(allAvailableIds));
-              }}
+              onClick={handleExpandAll}
             >
               Expand All
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setSelectedCostCodes(new Set())}
+              onClick={handleCollapseAll}
               className="ml-2"
             >
               Collapse All
             </Button>
           </div>
 
-          <Accordion type="multiple" className="w-full">
+          <div className="space-y-2">
             {Object.entries(groupedCostCodes).map(([group, codes]) => (
-              <AccordionItem key={group} value={group}>
-                <AccordionTrigger className="text-left">
-                  <div className="flex items-center gap-2">
-                    <span>{group}</span>
-                    <span className="text-sm text-gray-500">({codes.length})</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2 pl-4">
+              <Collapsible 
+                key={group} 
+                open={expandedGroups.has(group)}
+                onOpenChange={() => handleGroupToggle(group)}
+              >
+                <CollapsibleTrigger className="flex items-center w-full p-2 hover:bg-gray-50 rounded">
+                  <ChevronDown className={`h-4 w-4 mr-2 transition-transform ${expandedGroups.has(group) ? 'rotate-0' : '-rotate-90'}`} />
+                  <span className="font-medium text-left">{group}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 pl-6 pt-2">
                     {codes.map((costCode) => (
                       <div key={costCode.id} className="flex items-center space-x-3">
                         <Checkbox
@@ -168,10 +190,10 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
                       </div>
                     ))}
                   </div>
-                </AccordionContent>
-              </AccordionItem>
+                </CollapsibleContent>
+              </Collapsible>
             ))}
-          </Accordion>
+          </div>
 
           {Object.keys(groupedCostCodes).length === 0 && (
             <div className="text-center py-8 text-gray-500">
