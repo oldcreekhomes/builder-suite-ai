@@ -72,7 +72,7 @@ export function BudgetTableRow({
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '30px' }}>
+      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
         {costCode?.code}
       </TableCell>
       <TableCell className="py-1 text-sm" style={{ paddingLeft: '30px' }}>
