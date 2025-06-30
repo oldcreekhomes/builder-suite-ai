@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +22,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
   const [editValues, setEditValues] = useState<Record<string, { quantity: string; unit_price: string }>>({});
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -106,6 +106,44 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     setExpandedGroups(newExpanded);
   };
 
+  const handleGroupCheckboxChange = (group: string, checked: boolean) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    const newSelected = new Set(selectedItems);
+    
+    if (checked) {
+      // Select all items in this group
+      groupItems.forEach(item => newSelected.add(item.id));
+    } else {
+      // Deselect all items in this group
+      groupItems.forEach(item => newSelected.delete(item.id));
+    }
+    
+    setSelectedItems(newSelected);
+  };
+
+  const handleItemCheckboxChange = (itemId: string, checked: boolean) => {
+    const newSelected = new Set(selectedItems);
+    
+    if (checked) {
+      newSelected.add(itemId);
+    } else {
+      newSelected.delete(itemId);
+    }
+    
+    setSelectedItems(newSelected);
+  };
+
+  const isGroupSelected = (group: string) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    return groupItems.length > 0 && groupItems.every(item => selectedItems.has(item.id));
+  };
+
+  const isGroupPartiallySelected = (group: string) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    const selectedInGroup = groupItems.filter(item => selectedItems.has(item.id));
+    return selectedInGroup.length > 0 && selectedInGroup.length < groupItems.length;
+  };
+
   const handleEdit = (budgetId: string, currentQuantity: number, currentPrice: number) => {
     setEditingRows(prev => new Set([...prev, budgetId]));
     setEditValues(prev => ({
@@ -176,7 +214,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
           <TableBody>
             {budgetItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                   No budget items added yet.
                 </TableCell>
               </TableRow>
@@ -188,6 +226,9 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                       group={group}
                       isExpanded={expandedGroups.has(group)}
                       onToggle={handleGroupToggle}
+                      isSelected={isGroupSelected(group)}
+                      isPartiallySelected={isGroupPartiallySelected(group)}
+                      onCheckboxChange={handleGroupCheckboxChange}
                     />
                     
                     {expandedGroups.has(group) && items.map((item) => (
@@ -201,6 +242,8 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                         onCancel={handleCancel}
                         onInputChange={handleInputChange}
                         formatUnitOfMeasure={formatUnitOfMeasure}
+                        isSelected={selectedItems.has(item.id)}
+                        onCheckboxChange={handleItemCheckboxChange}
                       />
                     ))}
                   </React.Fragment>

@@ -6,6 +6,7 @@ export function BudgetTableHeader() {
   return (
     <TableHeader>
       <TableRow>
+        <TableHead className="font-bold w-12"></TableHead>
         <TableHead className="font-bold">Cost Code</TableHead>
         <TableHead className="font-bold">Name</TableHead>
         <TableHead className="font-bold">Quantity</TableHead>

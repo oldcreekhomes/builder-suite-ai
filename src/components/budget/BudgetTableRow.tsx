@@ -3,6 +3,7 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Save, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -17,6 +18,8 @@ interface BudgetTableRowProps {
   onCancel: (budgetId: string) => void;
   onInputChange: (budgetId: string, field: 'quantity' | 'unit_price', value: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
+  isSelected: boolean;
+  onCheckboxChange: (itemId: string, checked: boolean) => void;
 }
 
 export function BudgetTableRow({ 
@@ -27,20 +30,28 @@ export function BudgetTableRow({
   onSave, 
   onCancel, 
   onInputChange, 
-  formatUnitOfMeasure 
+  formatUnitOfMeasure,
+  isSelected,
+  onCheckboxChange
 }: BudgetTableRowProps) {
   const costCode = item.cost_codes as CostCode;
   const total = (item.quantity || 0) * (item.unit_price || 0);
 
   return (
-    <TableRow>
-      <TableCell className="font-medium" style={{ paddingLeft: '20px' }}>
+    <TableRow className={isSelected ? 'bg-blue-50' : ''}>
+      <TableCell className="w-12">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
+        />
+      </TableCell>
+      <TableCell className="font-medium" style={{ paddingLeft: '30px' }}>
         {costCode?.code}
       </TableCell>
-      <TableCell style={{ paddingLeft: '20px' }}>
+      <TableCell style={{ paddingLeft: '30px' }}>
         {costCode?.name}
       </TableCell>
-      <TableCell style={{ paddingLeft: '20px' }}>
+      <TableCell style={{ paddingLeft: '30px' }}>
         {isEditing ? (
           <Input
             type="number"
@@ -53,10 +64,10 @@ export function BudgetTableRow({
           item.quantity || 0
         )}
       </TableCell>
-      <TableCell style={{ paddingLeft: '20px' }}>
+      <TableCell style={{ paddingLeft: '30px' }}>
         {formatUnitOfMeasure(costCode?.unit_of_measure)}
       </TableCell>
-      <TableCell style={{ paddingLeft: '20px' }}>
+      <TableCell style={{ paddingLeft: '30px' }}>
         {isEditing ? (
           <Input
             type="number"
@@ -69,10 +80,10 @@ export function BudgetTableRow({
           `$${(item.unit_price || 0).toFixed(2)}`
         )}
       </TableCell>
-      <TableCell className="font-medium" style={{ paddingLeft: '20px' }}>
+      <TableCell className="font-medium" style={{ paddingLeft: '30px' }}>
         ${total.toFixed(2)}
       </TableCell>
-      <TableCell style={{ paddingLeft: '20px' }}>
+      <TableCell style={{ paddingLeft: '30px' }}>
         {isEditing ? (
           <div className="flex gap-1">
             <Button
