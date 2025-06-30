@@ -27,8 +27,8 @@ export function BudgetGroupHeader({
         <Checkbox
           checked={isSelected}
           ref={(el) => {
-            if (el) {
-              el.indeterminate = isPartiallySelected && !isSelected;
+            if (el && 'indeterminate' in el) {
+              (el as any).indeterminate = isPartiallySelected && !isSelected;
             }
           }}
           onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
