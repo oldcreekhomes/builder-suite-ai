@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, X } from 'lucide-react';
+import { Save, X, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AddBudgetModal } from './AddBudgetModal';
 import type { Tables } from '@/integrations/supabase/types';
@@ -20,6 +20,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [editValues, setEditValues] = useState<Record<string, { quantity: string; unit_price: string }>>({});
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -121,6 +122,28 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
   // Get existing cost code IDs for the modal
   const existingCostCodeIds = budgetItems.map(item => item.cost_code_id);
 
+  // Group budget items by parent group
+  const groupedBudgetItems = budgetItems.reduce((acc, item) => {
+    const costCode = item.cost_codes as CostCode;
+    const group = costCode?.parent_group || 'Uncategorized';
+    
+    if (!acc[group]) {
+      acc[group] = [];
+    }
+    acc[group].push(item);
+    return acc;
+  }, {} as Record<string, typeof budgetItems>);
+
+  const handleGroupToggle = (group: string) => {
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(group)) {
+      newExpanded.delete(group);
+    } else {
+      newExpanded.add(group);
+    }
+    setExpandedGroups(newExpanded);
+  };
+
   const handleAddCostCode = (costCodeId: string) => {
     createBudgetItem.mutate(costCodeId);
   };
@@ -210,77 +233,108 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              budgetItems.map((item) => {
-                const costCode = item.cost_codes as CostCode;
-                const isEditing = editingRows.has(item.id);
-                const editValue = editValues[item.id];
-                const total = (item.quantity || 0) * (item.unit_price || 0);
-
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{costCode?.code}</TableCell>
-                    <TableCell>{costCode?.name}</TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={editValue?.quantity || ''}
-                          onChange={(e) => handleInputChange(item.id, 'quantity', e.target.value)}
-                          className="w-20"
-                        />
-                      ) : (
-                        item.quantity || 0
-                      )}
-                    </TableCell>
-                    <TableCell>{formatUnitOfMeasure(costCode?.unit_of_measure)}</TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={editValue?.unit_price || ''}
-                          onChange={(e) => handleInputChange(item.id, 'unit_price', e.target.value)}
-                          className="w-24"
-                        />
-                      ) : (
-                        `$${(item.unit_price || 0).toFixed(2)}`
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      ${total.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleSave(item.id)}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleCancel(item.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+              <>
+                {Object.entries(groupedBudgetItems).map(([group, items]) => (
+                  <React.Fragment key={group}>
+                    {/* Parent Group Header */}
+                    <TableRow className="bg-gray-50">
+                      <TableCell 
+                        colSpan={7} 
+                        className="font-medium cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleGroupToggle(group)}
+                      >
+                        <div className="flex items-center">
+                          <ChevronDown 
+                            className={`h-4 w-4 mr-2 transition-transform ${
+                              expandedGroups.has(group) ? 'rotate-0' : '-rotate-90'
+                            }`} 
+                          />
+                          {group}
                         </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEdit(item.id, item.quantity || 0, item.unit_price || 0)}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Child Items */}
+                    {expandedGroups.has(group) && items.map((item) => {
+                      const costCode = item.cost_codes as CostCode;
+                      const isEditing = editingRows.has(item.id);
+                      const editValue = editValues[item.id];
+                      const total = (item.quantity || 0) * (item.unit_price || 0);
+
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium" style={{ paddingLeft: '10px' }}>
+                            {costCode?.code}
+                          </TableCell>
+                          <TableCell style={{ paddingLeft: '10px' }}>
+                            {costCode?.name}
+                          </TableCell>
+                          <TableCell style={{ paddingLeft: '10px' }}>
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editValue?.quantity || ''}
+                                onChange={(e) => handleInputChange(item.id, 'quantity', e.target.value)}
+                                className="w-20"
+                              />
+                            ) : (
+                              item.quantity || 0
+                            )}
+                          </TableCell>
+                          <TableCell style={{ paddingLeft: '10px' }}>
+                            {formatUnitOfMeasure(costCode?.unit_of_measure)}
+                          </TableCell>
+                          <TableCell style={{ paddingLeft: '10px' }}>
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editValue?.unit_price || ''}
+                                onChange={(e) => handleInputChange(item.id, 'unit_price', e.target.value)}
+                                className="w-24"
+                              />
+                            ) : (
+                              `$${(item.unit_price || 0).toFixed(2)}`
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium" style={{ paddingLeft: '10px' }}>
+                            ${total.toFixed(2)}
+                          </TableCell>
+                          <TableCell style={{ paddingLeft: '10px' }}>
+                            {isEditing ? (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleSave(item.id)}
+                                >
+                                  <Save className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleCancel(item.id)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEdit(item.id, item.quantity || 0, item.unit_price || 0)}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </>
             )}
           </TableBody>
         </Table>
