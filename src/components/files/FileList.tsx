@@ -101,8 +101,8 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
       <Card>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
+            <TableRow className="h-8">
+              <TableHead className="w-12 py-1">
                 <Checkbox
                   checked={allSelected}
                   ref={(el) => {
@@ -116,12 +116,12 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                   onCheckedChange={(checked) => handleSelectAll(checked as boolean, files)}
                 />
               </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Uploaded By</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="py-1">Name</TableHead>
+              <TableHead className="py-1">Type</TableHead>
+              <TableHead className="py-1">Size</TableHead>
+              <TableHead className="py-1">Uploaded By</TableHead>
+              <TableHead className="py-1">Date</TableHead>
+              <TableHead className="py-1">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
