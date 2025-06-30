@@ -404,69 +404,6 @@ export type Database = {
           },
         ]
       }
-      project_schedule_tasks: {
-        Row: {
-          created_at: string
-          duration: number | null
-          end_date: string
-          id: string
-          notes: string | null
-          parent_id: string | null
-          predecessor: string | null
-          progress: number | null
-          project_id: string
-          resources: string | null
-          start_date: string
-          task_name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          duration?: number | null
-          end_date: string
-          id?: string
-          notes?: string | null
-          parent_id?: string | null
-          predecessor?: string | null
-          progress?: number | null
-          project_id: string
-          resources?: string | null
-          start_date: string
-          task_name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          duration?: number | null
-          end_date?: string
-          id?: string
-          notes?: string | null
-          parent_id?: string | null
-          predecessor?: string | null
-          progress?: number | null
-          project_id?: string
-          resources?: string | null
-          start_date?: string
-          task_name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_schedule_tasks_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "project_schedule_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_schedule_tasks_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       projects: {
         Row: {
           address: string

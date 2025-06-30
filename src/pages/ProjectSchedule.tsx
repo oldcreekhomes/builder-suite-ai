@@ -6,12 +6,9 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { GanttChart } from "@/components/schedule/GanttChart";
-import { useScheduleTasks } from "@/hooks/useScheduleTasks";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const { tasks, addTask, updateTask } = useScheduleTasks(projectId || '');
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -53,12 +50,9 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Schedule</h2>
             </div>
 
-            <GanttChart 
-              projectId={projectId}
-              tasks={tasks}
-              onAddTask={addTask}
-              onUpdateTask={updateTask}
-            />
+            <div className="text-center py-8 text-gray-500">
+              <p>Schedule functionality will be implemented here.</p>
+            </div>
           </div>
         </SidebarInset>
       </div>
