@@ -48,13 +48,13 @@ export function BudgetTableRow({
     }
   };
 
-  const handleQuantityKeyPress = (e: React.KeyboardEvent) => {
+  const handleQuantityKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     }
   };
 
-  const handleUnitPriceKeyPress = (e: React.KeyboardEvent) => {
+  const handleUnitPriceKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     }
