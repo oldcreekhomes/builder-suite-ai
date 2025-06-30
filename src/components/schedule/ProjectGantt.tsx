@@ -1,20 +1,6 @@
 
-import React, { useEffect, useState } from 'react';
-import { 
-  GanttComponent, 
-  ColumnsDirective, 
-  ColumnDirective, 
-  Edit, 
-  Selection, 
-  Toolbar,
-  Filter,
-  Sort,
-  Resize,
-  ColumnMenu,
-  Inject
-} from '@syncfusion/ej2-react-gantt';
+import React from 'react';
 import { useProjectSchedule } from '@/hooks/useProjectSchedule';
-import { initializeSyncfusion } from '@/utils/syncfusionLicense';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ProjectGanttProps {
@@ -22,120 +8,7 @@ interface ProjectGanttProps {
 }
 
 export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
-  const { tasks, isLoading, error, createTask, updateTask, deleteTask } = useProjectSchedule(projectId);
-  const [licenseInitialized, setLicenseInitialized] = useState(false);
-  const [licenseError, setLicenseError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const initLicense = async () => {
-      try {
-        console.log('Starting Syncfusion license initialization...');
-        const success = await initializeSyncfusion();
-        
-        if (success) {
-          console.log('License initialization successful');
-          setLicenseError(null);
-        } else {
-          console.warn('License initialization failed - running in trial mode');
-          setLicenseError('Running in trial mode - license key not found');
-        }
-      } catch (error) {
-        console.error('License initialization error:', error);
-        setLicenseError('License initialization failed');
-      } finally {
-        setLicenseInitialized(true);
-      }
-    };
-    
-    initLicense();
-  }, []);
-
-  const taskSettings = {
-    id: 'id',
-    name: 'task_name',
-    startDate: 'start_date',
-    endDate: 'end_date',
-    duration: 'duration',
-    progress: 'progress',
-    dependency: 'predecessor',
-    resourceInfo: 'resources',
-    notes: 'notes',
-    parentID: 'parent_id'
-  };
-
-  const editSettings = {
-    allowAdding: true,
-    allowEditing: true,
-    allowDeleting: true,
-    allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true
-  };
-
-  const toolbarOptions = [
-    'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'
-  ];
-
-  const splitterSettings = {
-    columnIndex: 4,
-    position: '50%'
-  };
-
-  const timelineSettings = {
-    timelineUnitSize: 60,
-    topTier: {
-      unit: 'Month' as any,
-      format: 'MMM yyyy'
-    },
-    bottomTier: {
-      unit: 'Week' as any,
-      format: 'dd'
-    }
-  };
-
-  const handleActionComplete = (args: any) => {
-    try {
-      console.log('Gantt Action Complete:', args);
-      
-      if (args.requestType === 'save') {
-        if (args.action === 'add') {
-          const newTask = {
-            project_id: projectId,
-            task_name: args.data.task_name || 'New Task',
-            start_date: args.data.start_date || new Date().toISOString(),
-            end_date: args.data.end_date || new Date().toISOString(),
-            duration: args.data.duration || 1,
-            progress: args.data.progress || 0,
-            predecessor: args.data.predecessor || '',
-            resources: args.data.resources || '',
-            notes: args.data.notes || '',
-            parent_id: args.data.parent_id || null
-          };
-          console.log('Creating new task:', newTask);
-          createTask.mutate(newTask);
-        } else if (args.action === 'edit') {
-          const updatedTask = {
-            id: args.data.id,
-            task_name: args.data.task_name,
-            start_date: args.data.start_date,
-            end_date: args.data.end_date,
-            duration: args.data.duration,
-            progress: args.data.progress,
-            predecessor: args.data.predecessor,
-            resources: args.data.resources,
-            notes: args.data.notes,
-            parent_id: args.data.parent_id
-          };
-          console.log('Updating task:', updatedTask);
-          updateTask.mutate(updatedTask);
-        }
-      } else if (args.requestType === 'delete') {
-        console.log('Deleting task:', args.data[0].id);
-        deleteTask.mutate(args.data[0].id);
-      }
-    } catch (error) {
-      console.error('Error in handleActionComplete:', error);
-    }
-  };
+  const { tasks, isLoading, error } = useProjectSchedule(projectId);
 
   if (error) {
     return (
@@ -149,73 +22,48 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
     );
   }
 
-  if (isLoading || !licenseInitialized) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="p-8">
           <div className="text-center">
-            <div className="mb-2">
-              {isLoading ? 'Loading schedule...' : 'Initializing Gantt chart...'}
-            </div>
-            {licenseError && (
-              <div className="text-sm text-yellow-600">
-                {licenseError}
-              </div>
-            )}
+            Loading schedule...
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  console.log('Rendering Gantt with tasks:', tasks);
-
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Project Schedule</CardTitle>
-        {licenseError && (
-          <div className="text-sm text-yellow-600 mt-2">
-            Note: {licenseError}
-          </div>
-        )}
       </CardHeader>
       <CardContent className="p-6">
-        <div className="gantt-wrapper" style={{ height: '600px', width: '100%' }}>
-          <GanttComponent
-            id={`gantt-${projectId}`}
-            dataSource={tasks || []}
-            taskFields={taskSettings}
-            editSettings={editSettings}
-            toolbar={toolbarOptions}
-            splitterSettings={splitterSettings}
-            timelineSettings={timelineSettings}
-            allowSelection={true}
-            allowResizing={true}
-            allowSorting={true}
-            allowFiltering={true}
-            showColumnMenu={true}
-            highlightWeekends={true}
-            height="100%"
-            width="100%"
-            actionComplete={handleActionComplete}
-            projectStartDate={new Date('2025-01-01')}
-            projectEndDate={new Date('2025-12-31')}
-            gridLines="Both"
-            treeColumnIndex={1}
-            allowReordering={true}
-          >
-            <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
-            <ColumnsDirective>
-              <ColumnDirective field="id" headerText="ID" width="80" isPrimaryKey={true} visible={false} />
-              <ColumnDirective field="task_name" headerText="Task Name" width="250" />
-              <ColumnDirective field="start_date" headerText="Start Date" width="150" />
-              <ColumnDirective field="end_date" headerText="End Date" width="150" />  
-              <ColumnDirective field="duration" headerText="Duration" width="100" />
-              <ColumnDirective field="progress" headerText="Progress" width="100" />
-              <ColumnDirective field="resources" headerText="Resources" width="150" />
-            </ColumnsDirective>
-          </GanttComponent>
+        <div className="space-y-4">
+          <p className="text-muted-foreground">
+            Gantt chart component ready for implementation with your preferred library.
+          </p>
+          
+          {/* Display basic task data for now */}
+          <div className="space-y-2">
+            <h3 className="font-semibold">Current Tasks:</h3>
+            {tasks && tasks.length > 0 ? (
+              <div className="space-y-2">
+                {tasks.map((task) => (
+                  <div key={task.id} className="p-3 border rounded-lg">
+                    <div className="font-medium">{task.task_name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(task.start_date).toLocaleDateString()} - {new Date(task.end_date).toLocaleDateString()}
+                    </div>
+                    <div className="text-sm">Progress: {task.progress}%</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No tasks found</p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
