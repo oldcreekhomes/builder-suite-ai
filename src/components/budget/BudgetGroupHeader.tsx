@@ -2,7 +2,9 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, Edit, Trash2 } from 'lucide-react';
+import { DeleteButton } from '@/components/ui/delete-button';
 
 interface BudgetGroupHeaderProps {
   group: string;
@@ -11,6 +13,9 @@ interface BudgetGroupHeaderProps {
   isSelected: boolean;
   isPartiallySelected: boolean;
   onCheckboxChange: (group: string, checked: boolean) => void;
+  onEditGroup: (group: string) => void;
+  onDeleteGroup: (group: string) => void;
+  isDeleting?: boolean;
 }
 
 export function BudgetGroupHeader({ 
@@ -19,7 +24,10 @@ export function BudgetGroupHeader({
   onToggle, 
   isSelected, 
   isPartiallySelected, 
-  onCheckboxChange 
+  onCheckboxChange,
+  onEditGroup,
+  onDeleteGroup,
+  isDeleting = false
 }: BudgetGroupHeaderProps) {
   return (
     <TableRow className="bg-gray-50">
@@ -35,7 +43,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={7} 
+        colSpan={6} 
         className="font-medium cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
@@ -46,6 +54,30 @@ export function BudgetGroupHeader({
             }`} 
           />
           {group}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditGroup(group);
+            }}
+            disabled={isDeleting}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <DeleteButton
+            onDelete={() => onDeleteGroup(group)}
+            title="Delete Group"
+            description={`Are you sure you want to delete all budget items in the "${group}" group? This action cannot be undone.`}
+            size="sm"
+            variant="ghost"
+            isLoading={isDeleting}
+            showIcon={true}
+          />
         </div>
       </TableCell>
     </TableRow>

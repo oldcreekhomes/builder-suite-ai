@@ -23,6 +23,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [deletingGroups, setDeletingGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -62,6 +63,60 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
       toast({
         title: "Success",
         description: "Budget item updated successfully",
+      });
+    },
+  });
+
+  // Delete group mutation
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (group: string) => {
+      const groupItems = groupedBudgetItems[group] || [];
+      const itemIds = groupItems.map(item => item.id);
+      
+      const { error } = await supabase
+        .from('project_budgets')
+        .delete()
+        .in('id', itemIds);
+      
+      if (error) throw error;
+      return group;
+    },
+    onSuccess: (group) => {
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      
+      // Remove deleted items from selected items
+      const groupItems = groupedBudgetItems[group] || [];
+      const newSelected = new Set(selectedItems);
+      groupItems.forEach(item => newSelected.delete(item.id));
+      setSelectedItems(newSelected);
+      
+      // Remove group from expanded groups
+      const newExpanded = new Set(expandedGroups);
+      newExpanded.delete(group);
+      setExpandedGroups(newExpanded);
+      
+      setDeletingGroups(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(group);
+        return newSet;
+      });
+      
+      toast({
+        title: "Success",
+        description: `All items in "${group}" group have been deleted`,
+      });
+    },
+    onError: (error, group) => {
+      console.error('Error deleting group:', error);
+      setDeletingGroups(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(group);
+        return newSet;
+      });
+      toast({
+        title: "Error",
+        description: `Failed to delete "${group}" group`,
+        variant: "destructive",
       });
     },
   });
@@ -199,6 +254,39 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     }));
   };
 
+  const handleEditGroup = (group: string) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    const newEditingRows = new Set(editingRows);
+    const newEditValues = { ...editValues };
+    
+    // Add all items in the group to editing mode
+    groupItems.forEach(item => {
+      newEditingRows.add(item.id);
+      newEditValues[item.id] = {
+        quantity: (item.quantity || 0).toString(),
+        unit_price: (item.unit_price || 0).toString(),
+      };
+    });
+    
+    setEditingRows(newEditingRows);
+    setEditValues(newEditValues);
+    
+    // Expand the group if it's not already expanded
+    if (!expandedGroups.has(group)) {
+      setExpandedGroups(prev => new Set([...prev, group]));
+    }
+    
+    toast({
+      title: "Edit Mode",
+      description: `All items in "${group}" group are now in edit mode`,
+    });
+  };
+
+  const handleDeleteGroup = (group: string) => {
+    setDeletingGroups(prev => new Set([...prev, group]));
+    deleteGroupMutation.mutate(group);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -229,6 +317,9 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                       isSelected={isGroupSelected(group)}
                       isPartiallySelected={isGroupPartiallySelected(group)}
                       onCheckboxChange={handleGroupCheckboxChange}
+                      onEditGroup={handleEditGroup}
+                      onDeleteGroup={handleDeleteGroup}
+                      isDeleting={deletingGroups.has(group)}
                     />
                     
                     {expandedGroups.has(group) && items.map((item) => (
