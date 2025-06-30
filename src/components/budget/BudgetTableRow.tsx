@@ -60,6 +60,10 @@ export function BudgetTableRow({
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return `$${Math.round(amount).toLocaleString()}`;
+  };
+
   return (
     <TableRow className={isSelected ? 'bg-blue-50' : ''}>
       <TableCell className="w-12">
@@ -100,7 +104,7 @@ export function BudgetTableRow({
         />
       </TableCell>
       <TableCell className="font-medium" style={{ paddingLeft: '30px' }}>
-        ${total.toFixed(2)}
+        {formatCurrency(total)}
       </TableCell>
       <TableCell style={{ paddingLeft: '30px' }}>
         {/* Actions column - could be used for additional actions if needed */}

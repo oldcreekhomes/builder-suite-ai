@@ -13,10 +13,14 @@ export function BudgetTableFooter({ budgetItems }: BudgetTableFooterProps) {
     0
   );
 
+  const formatCurrency = (amount: number) => {
+    return `$${Math.round(amount).toLocaleString()}`;
+  };
+
   return (
     <div className="flex justify-end">
       <div className="text-lg font-semibold">
-        Total Budget: ${totalBudget.toFixed(2)}
+        Total Budget: {formatCurrency(totalBudget)}
       </div>
     </div>
   );
