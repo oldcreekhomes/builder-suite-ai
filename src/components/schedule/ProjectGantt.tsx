@@ -1,140 +1,69 @@
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import GSTC from 'gantt-schedule-timeline-calendar';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ProjectGanttProps {
   projectId: string;
 }
 
+interface TaskData {
+  name: string;
+  start: number;
+  duration: number;
+  startDate: string;
+  endDate: string;
+}
+
 export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
-  const gstcWrapperRef = useRef<HTMLDivElement>(null);
+  console.log('Rendering Gantt chart for project:', projectId);
 
-  useEffect(() => {
-    if (!gstcWrapperRef.current) return;
-
-    console.log('Initializing Gantt chart for project:', projectId);
-
-    // Clear any existing content
-    gstcWrapperRef.current.innerHTML = '';
-
-    // Sample data for the Gantt chart with correct ID format
-    const rows = {
-      'gstcid-1': {
-        id: 'gstcid-1',
-        label: 'Foundation Work'
-      },
-      'gstcid-2': {
-        id: 'gstcid-2',
-        label: 'Framing'
-      },
-      'gstcid-3': {
-        id: 'gstcid-3',
-        label: 'Electrical'
-      },
-      'gstcid-4': {
-        id: 'gstcid-4',
-        label: 'Plumbing'
-      }
-    };
-
-    const items = {
-      'gstcid-item-1': {
-        id: 'gstcid-item-1',
-        rowId: 'gstcid-1',
-        label: 'Foundation Work',
-        time: {
-          start: new Date().getTime(),
-          end: new Date().getTime() + 7 * 24 * 60 * 60 * 1000
-        }
-      },
-      'gstcid-item-2': {
-        id: 'gstcid-item-2',
-        rowId: 'gstcid-2',
-        label: 'Framing',
-        time: {
-          start: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
-          end: new Date().getTime() + 14 * 24 * 60 * 60 * 1000
-        }
-      },
-      'gstcid-item-3': {
-        id: 'gstcid-item-3',
-        rowId: 'gstcid-3',
-        label: 'Electrical',
-        time: {
-          start: new Date().getTime() + 14 * 24 * 60 * 60 * 1000,
-          end: new Date().getTime() + 21 * 24 * 60 * 60 * 1000
-        }
-      },
-      'gstcid-item-4': {
-        id: 'gstcid-item-4',
-        rowId: 'gstcid-4',
-        label: 'Plumbing',
-        time: {
-          start: new Date().getTime() + 16 * 24 * 60 * 60 * 1000,
-          end: new Date().getTime() + 23 * 24 * 60 * 60 * 1000
-        }
-      }
-    };
-
-    const columns = {
-      data: {
-        id: {
-          id: 'id',
-          data: 'id',
-          width: 60,
-          header: {
-            content: 'ID'
-          }
-        },
-        label: {
-          id: 'label',
-          data: 'label',
-          width: 200,
-          header: {
-            content: 'Task'
-          }
-        }
-      }
-    };
-
-    const config = {
-      licenseKey: 'GPL-My-Project-Is-Open-Source',
-      list: {
-        rows,
-        columns
-      },
-      chart: {
-        items,
-        time: {
-          zoom: 21
-        }
-      }
-    };
-
-    console.log('Creating Gantt chart with config:', config);
-
-    try {
-      const state = GSTC.api.stateFromConfig(config);
-      console.log('State created:', state);
-      
-      const gstc = GSTC({
-        element: gstcWrapperRef.current,
-        state
-      });
-
-      console.log('Gantt chart created successfully:', gstc);
-
-      return () => {
-        console.log('Cleaning up Gantt chart');
-        if (gstc && typeof gstc.destroy === 'function') {
-          gstc.destroy();
-        }
-      };
-    } catch (error) {
-      console.error('Error creating Gantt chart:', error);
+  // Sample data with dates and durations
+  const tasks: TaskData[] = [
+    {
+      name: 'Foundation Work',
+      start: 0,
+      duration: 7,
+      startDate: new Date().toLocaleDateString(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+    },
+    {
+      name: 'Framing',
+      start: 7,
+      duration: 7,
+      startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString()
+    },
+    {
+      name: 'Electrical',
+      start: 14,
+      duration: 7,
+      startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toLocaleDateString()
+    },
+    {
+      name: 'Plumbing',
+      start: 16,
+      duration: 7,
+      startDate: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      endDate: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toLocaleDateString()
     }
-  }, [projectId]);
+  ];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded shadow">
+          <p className="font-semibold">{data.name}</p>
+          <p className="text-sm text-gray-600">Start: {data.startDate}</p>
+          <p className="text-sm text-gray-600">End: {data.endDate}</p>
+          <p className="text-sm text-gray-600">Duration: {data.duration} days</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card className="w-full">
@@ -142,11 +71,52 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
         <CardTitle>Project Schedule</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div 
-          ref={gstcWrapperRef}
-          style={{ width: '100%', height: '500px' }}
-          className="gantt-container border border-gray-200 rounded"
-        />
+        <div className="w-full h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={tasks}
+              layout="horizontal"
+              margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                type="number" 
+                domain={[0, 30]}
+                label={{ value: 'Days', position: 'insideBottom', offset: -5 }}
+              />
+              <YAxis 
+                type="category" 
+                dataKey="name" 
+                width={80}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar 
+                dataKey="duration" 
+                fill="#3b82f6" 
+                stackId="timeline"
+              />
+              <Bar 
+                dataKey="start" 
+                fill="transparent" 
+                stackId="timeline"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        
+        <div className="mt-6">
+          <h4 className="text-lg font-semibold mb-3">Task List</h4>
+          <div className="space-y-2">
+            {tasks.map((task, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                <span className="font-medium">{task.name}</span>
+                <div className="text-sm text-gray-600">
+                  {task.startDate} - {task.endDate}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
