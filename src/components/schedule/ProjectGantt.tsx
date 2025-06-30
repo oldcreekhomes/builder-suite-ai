@@ -13,57 +13,59 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   useEffect(() => {
     if (!gstcWrapperRef.current) return;
 
-    // Sample data for the Gantt chart
+    console.log('Initializing Gantt chart for project:', projectId);
+
+    // Sample data for the Gantt chart with correct ID format
     const rows = {
-      '1': {
-        id: '1',
+      'gstcid-1': {
+        id: 'gstcid-1',
         label: 'Foundation Work'
       },
-      '2': {
-        id: '2',
+      'gstcid-2': {
+        id: 'gstcid-2',
         label: 'Framing'
       },
-      '3': {
-        id: '3',
+      'gstcid-3': {
+        id: 'gstcid-3',
         label: 'Electrical'
       },
-      '4': {
-        id: '4',
+      'gstcid-4': {
+        id: 'gstcid-4',
         label: 'Plumbing'
       }
     };
 
     const items = {
-      '1': {
-        id: '1',
-        rowId: '1',
+      'gstcid-item-1': {
+        id: 'gstcid-item-1',
+        rowId: 'gstcid-1',
         label: 'Foundation Work',
         time: {
           start: new Date().getTime(),
           end: new Date().getTime() + 7 * 24 * 60 * 60 * 1000
         }
       },
-      '2': {
-        id: '2',
-        rowId: '2',
+      'gstcid-item-2': {
+        id: 'gstcid-item-2',
+        rowId: 'gstcid-2',
         label: 'Framing',
         time: {
           start: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
           end: new Date().getTime() + 14 * 24 * 60 * 60 * 1000
         }
       },
-      '3': {
-        id: '3',
-        rowId: '3',
+      'gstcid-item-3': {
+        id: 'gstcid-item-3',
+        rowId: 'gstcid-3',
         label: 'Electrical',
         time: {
           start: new Date().getTime() + 14 * 24 * 60 * 60 * 1000,
           end: new Date().getTime() + 21 * 24 * 60 * 60 * 1000
         }
       },
-      '4': {
-        id: '4',
-        rowId: '4',
+      'gstcid-item-4': {
+        id: 'gstcid-item-4',
+        rowId: 'gstcid-4',
         label: 'Plumbing',
         time: {
           start: new Date().getTime() + 16 * 24 * 60 * 60 * 1000,
@@ -107,12 +109,17 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
       }
     };
 
+    console.log('Creating Gantt chart with config:', config);
+
     const gstc = GSTC({
       element: gstcWrapperRef.current,
       state: GSTC.api.stateFromConfig(config)
     });
 
+    console.log('Gantt chart created successfully');
+
     return () => {
+      console.log('Cleaning up Gantt chart');
       if (gstc && gstc.destroy) {
         gstc.destroy();
       }
