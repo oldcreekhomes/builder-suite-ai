@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +19,6 @@ interface BudgetTableProps {
 }
 
 export function BudgetTable({ projectId }: BudgetTableProps) {
-  const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
-  const [editValues, setEditValues] = useState<Record<string, { quantity: string; unit_price: string }>>({});
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -199,86 +198,19 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     return selectedInGroup.length > 0 && selectedInGroup.length < groupItems.length;
   };
 
-  const handleEdit = (budgetId: string, currentQuantity: number, currentPrice: number) => {
-    setEditingRows(prev => new Set([...prev, budgetId]));
-    setEditValues(prev => ({
-      ...prev,
-      [budgetId]: {
-        quantity: currentQuantity.toString(),
-        unit_price: currentPrice.toString(),
-      }
-    }));
-  };
-
-  const handleSave = (budgetId: string) => {
-    const values = editValues[budgetId];
-    if (values) {
-      updateBudgetItem.mutate({
-        id: budgetId,
-        quantity: parseFloat(values.quantity) || 0,
-        unit_price: parseFloat(values.unit_price) || 0,
-      });
-      setEditingRows(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(budgetId);
-        return newSet;
-      });
-      setEditValues(prev => {
-        const newValues = { ...prev };
-        delete newValues[budgetId];
-        return newValues;
-      });
-    }
-  };
-
-  const handleCancel = (budgetId: string) => {
-    setEditingRows(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(budgetId);
-      return newSet;
-    });
-    setEditValues(prev => {
-      const newValues = { ...prev };
-      delete newValues[budgetId];
-      return newValues;
-    });
-  };
-
-  const handleInputChange = (budgetId: string, field: 'quantity' | 'unit_price', value: string) => {
-    setEditValues(prev => ({
-      ...prev,
-      [budgetId]: {
-        ...prev[budgetId],
-        [field]: value,
-      }
-    }));
+  const handleUpdateItem = (id: string, quantity: number, unit_price: number) => {
+    updateBudgetItem.mutate({ id, quantity, unit_price });
   };
 
   const handleEditGroup = (group: string) => {
-    const groupItems = groupedBudgetItems[group] || [];
-    const newEditingRows = new Set(editingRows);
-    const newEditValues = { ...editValues };
-    
-    // Add all items in the group to editing mode
-    groupItems.forEach(item => {
-      newEditingRows.add(item.id);
-      newEditValues[item.id] = {
-        quantity: (item.quantity || 0).toString(),
-        unit_price: (item.unit_price || 0).toString(),
-      };
-    });
-    
-    setEditingRows(newEditingRows);
-    setEditValues(newEditValues);
-    
     // Expand the group if it's not already expanded
     if (!expandedGroups.has(group)) {
       setExpandedGroups(prev => new Set([...prev, group]));
     }
     
     toast({
-      title: "Edit Mode",
-      description: `All items in "${group}" group are now in edit mode`,
+      title: "Group Expanded",
+      description: `"${group}" group is now expanded for editing`,
     });
   };
 
@@ -326,12 +258,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                       <BudgetTableRow
                         key={item.id}
                         item={item}
-                        isEditing={editingRows.has(item.id)}
-                        editValue={editValues[item.id]}
-                        onEdit={handleEdit}
-                        onSave={handleSave}
-                        onCancel={handleCancel}
-                        onInputChange={handleInputChange}
+                        onUpdate={handleUpdateItem}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
