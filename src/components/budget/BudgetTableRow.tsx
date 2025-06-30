@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -70,7 +69,7 @@ export function BudgetTableRow({
   };
 
   return (
-    <TableRow className={`h-10 ${isSelected ? 'bg-blue-50' : ''}`}>
+    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="w-12 py-1">
         <Checkbox
           checked={isSelected}
@@ -80,10 +79,10 @@ export function BudgetTableRow({
       <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
         {costCode?.code}
       </TableCell>
-      <TableCell className="py-1 text-sm" style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1 text-sm">
         {costCode?.name}
       </TableCell>
-      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1">
         <Input
           type="number"
           step="0.01"
@@ -94,10 +93,10 @@ export function BudgetTableRow({
           className="w-20 h-7 text-sm"
         />
       </TableCell>
-      <TableCell className="py-1 text-sm" style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1 text-sm">
         {formatUnitOfMeasure(costCode?.unit_of_measure)}
       </TableCell>
-      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1">
         <Input
           type="number"
           step="0.01"
@@ -108,10 +107,10 @@ export function BudgetTableRow({
           className="w-24 h-7 text-sm"
         />
       </TableCell>
-      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '30px' }}>
+      <TableCell className="font-medium py-1 text-sm">
         {formatCurrency(total)}
       </TableCell>
-      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1">
         <DeleteButton
           onDelete={() => onDelete(item.id)}
           title="Delete Budget Item"
