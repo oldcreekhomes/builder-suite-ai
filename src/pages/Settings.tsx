@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -6,6 +5,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
@@ -41,6 +41,14 @@ const Settings = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  
+  // Bulk selection state for cost codes
+  const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  
+  // Bulk selection state for specifications
+  const [selectedSpecifications, setSelectedSpecifications] = useState<Set<string>>(new Set());
+  const [bulkDeleteSpecsDialogOpen, setBulkDeleteSpecsDialogOpen] = useState(false);
 
   // Get all parent codes that have children
   const parentCodesWithChildren = new Set(
@@ -108,6 +116,67 @@ const Settings = () => {
     setCollapsedGroups(newCollapsed);
   };
 
+  // Cost code selection handlers
+  const handleCostCodeSelect = (costCodeId: string, checked: boolean) => {
+    const newSelected = new Set(selectedCostCodes);
+    if (checked) {
+      newSelected.add(costCodeId);
+    } else {
+      newSelected.delete(costCodeId);
+    }
+    setSelectedCostCodes(newSelected);
+  };
+
+  const handleSelectAllCostCodes = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(costCodes.map(cc => cc.id));
+      setSelectedCostCodes(allIds);
+    } else {
+      setSelectedCostCodes(new Set());
+    }
+  };
+
+  const handleBulkDeleteCostCodes = async () => {
+    for (const id of selectedCostCodes) {
+      await deleteCostCode(id);
+    }
+    setSelectedCostCodes(new Set());
+    setBulkDeleteDialogOpen(false);
+  };
+
+  // Specification selection handlers (mock data for now)
+  const mockSpecs = [
+    { id: '1', name: 'Concrete Mix Design', category: 'Foundation' },
+    { id: '2', name: 'Framing Lumber', category: 'Framing' },
+    { id: '3', name: 'Insulation', category: 'Insulation' }
+  ];
+
+  const handleSpecificationSelect = (specId: string, checked: boolean) => {
+    const newSelected = new Set(selectedSpecifications);
+    if (checked) {
+      newSelected.add(specId);
+    } else {
+      newSelected.delete(specId);
+    }
+    setSelectedSpecifications(newSelected);
+  };
+
+  const handleSelectAllSpecifications = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(mockSpecs.map(spec => spec.id));
+      setSelectedSpecifications(allIds);
+    } else {
+      setSelectedSpecifications(new Set());
+    }
+  };
+
+  const handleBulkDeleteSpecifications = () => {
+    // This would implement actual bulk delete for specifications
+    console.log('Bulk deleting specifications:', selectedSpecifications);
+    setSelectedSpecifications(new Set());
+    setBulkDeleteSpecsDialogOpen(false);
+  };
+
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
     await addCostCode(newCostCode);
@@ -164,8 +233,23 @@ const Settings = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-lg font-semibold text-black">Cost Codes</h3>
+                        {selectedCostCodes.size > 0 && (
+                          <p className="text-sm text-gray-600">
+                            {selectedCostCodes.size} item{selectedCostCodes.size !== 1 ? 's' : ''} selected
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2">
+                        {selectedCostCodes.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setBulkDeleteDialogOpen(true)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Selected ({selectedCostCodes.size})
+                          </Button>
+                        )}
                         <ExcelImportDialog onImportCostCodes={handleImportCostCodes} />
                         <AddCostCodeDialog 
                           existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
@@ -178,6 +262,17 @@ const Settings = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="h-10">
+                            <TableHead className="font-bold py-2 text-sm w-12">
+                              <Checkbox
+                                checked={selectedCostCodes.size === costCodes.length && costCodes.length > 0}
+                                onCheckedChange={handleSelectAllCostCodes}
+                                ref={(el) => {
+                                  if (el && 'indeterminate' in el) {
+                                    (el as any).indeterminate = selectedCostCodes.size > 0 && selectedCostCodes.size < costCodes.length;
+                                  }
+                                }}
+                              />
+                            </TableHead>
                             <TableHead className="font-bold py-2 text-sm">Code</TableHead>
                             <TableHead className="font-bold py-2 text-sm">Description</TableHead>
                             <TableHead className="font-bold py-2 text-sm">Quantity</TableHead>
@@ -191,13 +286,13 @@ const Settings = () => {
                         <TableBody>
                           {loading ? (
                             <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8">
+                              <TableCell colSpan={9} className="text-center py-8">
                                 Loading cost codes...
                               </TableCell>
                             </TableRow>
                           ) : costCodes.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                                 No cost codes found. Add some or import from Excel.
                               </TableCell>
                             </TableRow>
@@ -206,6 +301,16 @@ const Settings = () => {
                               <React.Fragment key={groupKey}>
                                 {groupKey !== 'ungrouped' && (
                                   <TableRow className="bg-gray-50 h-10">
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <Checkbox
+                                          checked={selectedCostCodes.has(getParentCostCode(groupKey)!.id)}
+                                          onCheckedChange={(checked) => 
+                                            handleCostCodeSelect(getParentCostCode(groupKey)!.id, checked as boolean)
+                                          }
+                                        />
+                                      )}
+                                    </TableCell>
                                     <TableCell 
                                       className="font-semibold text-gray-700 cursor-pointer py-1 text-sm"
                                       onClick={() => toggleGroupCollapse(groupKey)}
@@ -259,6 +364,14 @@ const Settings = () => {
                                 {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
                                   groupCostCodes.map((costCode) => (
                                     <TableRow key={costCode.id} className="h-8">
+                                      <TableCell className="py-1">
+                                        <Checkbox
+                                          checked={selectedCostCodes.has(costCode.id)}
+                                          onCheckedChange={(checked) => 
+                                            handleCostCodeSelect(costCode.id, checked as boolean)
+                                          }
+                                        />
+                                      </TableCell>
                                       <TableCell className="font-medium py-1 text-sm">
                                         {groupKey !== 'ungrouped' && <span className="ml-6"></span>}
                                         {costCode.code}
@@ -306,17 +419,45 @@ const Settings = () => {
                       <div>
                         <h3 className="text-lg font-semibold text-black">Specifications</h3>
                         <p className="text-sm text-gray-600">Manage your project specifications and requirements</p>
+                        {selectedSpecifications.size > 0 && (
+                          <p className="text-sm text-gray-600">
+                            {selectedSpecifications.size} item{selectedSpecifications.size !== 1 ? 's' : ''} selected
+                          </p>
+                        )}
                       </div>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Specification
-                      </Button>
+                      <div className="flex gap-2">
+                        {selectedSpecifications.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setBulkDeleteSpecsDialogOpen(true)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Selected ({selectedSpecifications.size})
+                          </Button>
+                        )}
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Specification
+                        </Button>
+                      </div>
                     </div>
                     
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
                           <TableRow className="h-10">
+                            <TableHead className="font-bold py-2 text-sm w-12">
+                              <Checkbox
+                                checked={selectedSpecifications.size === mockSpecs.length && mockSpecs.length > 0}
+                                onCheckedChange={handleSelectAllSpecifications}
+                                ref={(el) => {
+                                  if (el && 'indeterminate' in el) {
+                                    (el as any).indeterminate = selectedSpecifications.size > 0 && selectedSpecifications.size < mockSpecs.length;
+                                  }
+                                }}
+                              />
+                            </TableHead>
                             <TableHead className="font-bold py-2 text-sm">Specification</TableHead>
                             <TableHead className="font-bold py-2 text-sm">Category</TableHead>
                             <TableHead className="font-bold py-2 text-sm">Description</TableHead>
@@ -325,6 +466,14 @@ const Settings = () => {
                         </TableHeader>
                         <TableBody>
                           <TableRow className="h-8">
+                            <TableCell className="py-1">
+                              <Checkbox
+                                checked={selectedSpecifications.has('1')}
+                                onCheckedChange={(checked) => 
+                                  handleSpecificationSelect('1', checked as boolean)
+                                }
+                              />
+                            </TableCell>
                             <TableCell className="font-medium py-1 text-sm">Concrete Mix Design</TableCell>
                             <TableCell className="py-1 text-sm">Foundation</TableCell>
                             <TableCell className="py-1 text-sm">3000 PSI concrete with air entrainment</TableCell>
@@ -335,6 +484,14 @@ const Settings = () => {
                             </TableCell>
                           </TableRow>
                           <TableRow className="h-8">
+                            <TableCell className="py-1">
+                              <Checkbox
+                                checked={selectedSpecifications.has('2')}
+                                onCheckedChange={(checked) => 
+                                  handleSpecificationSelect('2', checked as boolean)
+                                }
+                              />
+                            </TableCell>
                             <TableCell className="font-medium py-1 text-sm">Framing Lumber</TableCell>
                             <TableCell className="py-1 text-sm">Framing</TableCell>
                             <TableCell className="py-1 text-sm">Grade A Douglas Fir 2x4, 2x6, 2x8</TableCell>
@@ -345,6 +502,14 @@ const Settings = () => {
                             </TableCell>
                           </TableRow>
                           <TableRow className="h-8">
+                            <TableCell className="py-1">
+                              <Checkbox
+                                checked={selectedSpecifications.has('3')}
+                                onCheckedChange={(checked) => 
+                                  handleSpecificationSelect('3', checked as boolean)
+                                }
+                              />
+                            </TableCell>
                             <TableCell className="font-medium py-1 text-sm">Insulation</TableCell>
                             <TableCell className="py-1 text-sm">Insulation</TableCell>
                             <TableCell className="py-1 text-sm">R-15 fiberglass batt insulation</TableCell>
@@ -384,6 +549,40 @@ const Settings = () => {
               <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>No</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
                 Yes
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Selected Cost Codes</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedCostCodes.size} selected cost code{selectedCostCodes.size !== 1 ? 's' : ''}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setBulkDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDeleteCostCodes} className="bg-red-600 hover:bg-red-700">
+                Delete Selected
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={bulkDeleteSpecsDialogOpen} onOpenChange={setBulkDeleteSpecsDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Selected Specifications</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedSpecifications.size} selected specification{selectedSpecifications.size !== 1 ? 's' : ''}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setBulkDeleteSpecsDialogOpen(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDeleteSpecifications} className="bg-red-600 hover:bg-red-700">
+                Delete Selected
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
