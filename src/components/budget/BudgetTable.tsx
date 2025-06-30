@@ -206,6 +206,14 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     deleteGroupMutation.mutate(group);
   };
 
+  const calculateGroupTotal = (group: string) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    return groupItems.reduce(
+      (sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 
+      0
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -239,6 +247,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                       onEditGroup={() => {}}
                       onDeleteGroup={handleDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
+                      groupTotal={calculateGroupTotal(group)}
                     />
                     
                     {expandedGroups.has(group) && items.map((item) => (

@@ -15,6 +15,7 @@ interface BudgetGroupHeaderProps {
   onEditGroup: (group: string) => void;
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
+  groupTotal: number;
 }
 
 export function BudgetGroupHeader({ 
@@ -25,8 +26,13 @@ export function BudgetGroupHeader({
   isPartiallySelected, 
   onCheckboxChange,
   onDeleteGroup,
-  isDeleting = false
+  isDeleting = false,
+  groupTotal
 }: BudgetGroupHeaderProps) {
+  const formatCurrency = (amount: number) => {
+    return `$${Math.round(amount).toLocaleString()}`;
+  };
+
   return (
     <TableRow className="bg-gray-50">
       <TableCell className="w-12">
@@ -41,7 +47,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={6} 
+        colSpan={5} 
         className="font-medium cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
@@ -53,6 +59,9 @@ export function BudgetGroupHeader({
           />
           {group}
         </div>
+      </TableCell>
+      <TableCell className="font-medium">
+        {formatCurrency(groupTotal)}
       </TableCell>
       <TableCell>
         <div className="flex gap-1">
