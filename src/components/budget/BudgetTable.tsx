@@ -34,7 +34,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { deletingGroups, handleUpdateItem, handleDeleteGroup } = useBudgetMutations(projectId);
+  const { deletingGroups, deletingItems, handleUpdateItem, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBudgetItems[group] || [];
@@ -43,6 +43,14 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     // Clean up UI state after deletion
     removeDeletedItemsFromSelection(groupItems);
     removeGroupFromExpanded(group);
+  };
+
+  const onDeleteItem = (itemId: string) => {
+    handleDeleteItem(itemId);
+    
+    // Clean up UI state after deletion
+    const newSelectedItems = new Set(selectedItems);
+    newSelectedItems.delete(itemId);
   };
 
   const onGroupCheckboxChange = (group: string, checked: boolean) => {
@@ -91,9 +99,11 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                         key={item.id}
                         item={item}
                         onUpdate={handleUpdateItem}
+                        onDelete={onDeleteItem}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
+                        isDeleting={deletingItems.has(item.id)}
                       />
                     ))}
                   </React.Fragment>

@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function useBudgetMutations(projectId: string) {
   const [deletingGroups, setDeletingGroups] = useState<Set<string>>(new Set());
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -27,6 +28,46 @@ export function useBudgetMutations(projectId: string) {
       toast({
         title: "Success",
         description: "Budget item updated successfully",
+      });
+    },
+  });
+
+  // Delete individual item mutation
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('project_budgets')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) throw error;
+      return itemId;
+    },
+    onSuccess: (itemId) => {
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      
+      setDeletingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+      
+      toast({
+        title: "Success",
+        description: "Budget item deleted successfully",
+      });
+    },
+    onError: (error, itemId) => {
+      console.error('Error deleting item:', error);
+      setDeletingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+      toast({
+        title: "Error",
+        description: "Failed to delete budget item",
+        variant: "destructive",
       });
     },
   });
@@ -77,6 +118,11 @@ export function useBudgetMutations(projectId: string) {
     updateBudgetItem.mutate({ id, quantity, unit_price });
   };
 
+  const handleDeleteItem = (itemId: string) => {
+    setDeletingItems(prev => new Set([...prev, itemId]));
+    deleteItemMutation.mutate(itemId);
+  };
+
   const handleDeleteGroup = (group: string, groupItems: any[]) => {
     setDeletingGroups(prev => new Set([...prev, group]));
     deleteGroupMutation.mutate({ group, groupItems });
@@ -84,7 +130,9 @@ export function useBudgetMutations(projectId: string) {
 
   return {
     deletingGroups,
+    deletingItems,
     handleUpdateItem,
+    handleDeleteItem,
     handleDeleteGroup
   };
 }

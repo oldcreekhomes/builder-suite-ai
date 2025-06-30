@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DeleteButton } from '@/components/ui/delete-button';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -10,17 +11,21 @@ type CostCode = Tables<'cost_codes'>;
 interface BudgetTableRowProps {
   item: any; // Project budget item with cost_codes relation
   onUpdate: (id: string, quantity: number, unit_price: number) => void;
+  onDelete: (itemId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
+  isDeleting?: boolean;
 }
 
 export function BudgetTableRow({ 
   item, 
   onUpdate, 
+  onDelete,
   formatUnitOfMeasure,
   isSelected,
-  onCheckboxChange
+  onCheckboxChange,
+  isDeleting = false
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -107,7 +112,15 @@ export function BudgetTableRow({
         {formatCurrency(total)}
       </TableCell>
       <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
-        {/* Actions column - could be used for additional actions if needed */}
+        <DeleteButton
+          onDelete={() => onDelete(item.id)}
+          title="Delete Budget Item"
+          description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+          size="sm"
+          variant="ghost"
+          isLoading={isDeleting}
+          showIcon={true}
+        />
       </TableCell>
     </TableRow>
   );
