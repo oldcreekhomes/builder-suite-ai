@@ -11,6 +11,7 @@ import SharedFolder from "./pages/SharedFolder";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
+import ProjectBudget from "./pages/ProjectBudget";
 import ProjectSchedule from "./pages/ProjectSchedule";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
@@ -51,7 +52,7 @@ const App = () => (
           <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
           
           {/* Project Budget route */}
-          <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
+          <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectBudget /></ProtectedRoute>} />
           
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedules" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />

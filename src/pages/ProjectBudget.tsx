@@ -6,8 +6,9 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { BudgetTable } from "@/components/budget/BudgetTable";
 
-export default function ProjectSchedule() {
+export default function ProjectBudget() {
   const { projectId } = useParams();
 
   // Fetch project data to get the address
@@ -47,13 +48,13 @@ export default function ProjectSchedule() {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Budget</h2>
             </div>
 
-            <div className="border rounded-lg p-8 text-center text-gray-500">
-              <h3 className="text-lg font-medium mb-2">Schedule Coming Soon</h3>
-              <p>Project scheduling features will be available here.</p>
-            </div>
+            <BudgetTable 
+              projectId={projectId} 
+              projectAddress={project?.address}
+            />
           </div>
         </SidebarInset>
       </div>
