@@ -86,15 +86,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .bg-gray-100 { background-color: #f5f5f5; }
             .bg-gray-50 { background-color: #f9f9f9; }
             .border-t-2 { border-top: 2px solid #ccc; }
-            .print-footer { 
-              margin-top: 20px; 
-              padding-top: 15px; 
-              position: fixed; 
-              bottom: 0; 
-              left: 0; 
-              right: 0; 
-              background: white;
-            }
+            .print-footer { margin-top: 20px; padding-top: 15px; }
             .text-sm { font-size: 11px; }
             .text-lg { font-size: 14px; }
             .text-xl { font-size: 16px; }
@@ -107,13 +99,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .p-1 { padding: 4px; }
             .p-2 { padding: 8px; }
             .pt-4 { padding-top: 16px; }
-            .flex { display: flex; }
-            .justify-between { justify-content: space-between; }
-            .items-center { align-items: center; }
             @media print {
-              body { margin: 0; padding-bottom: 100px; }
+              body { margin: 0; }
               .page-break { page-break-before: always; }
-              @page { margin-bottom: 100px; }
             }
           </style>
         </head>
