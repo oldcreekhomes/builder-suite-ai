@@ -124,7 +124,18 @@ export const useCostCodes = () => {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a foreign key constraint error
+        if (error.code === '23503' && error.message.includes('project_budgets')) {
+          toast({
+            title: "Cannot Delete Cost Code",
+            description: "This cost code is being used in project budgets and cannot be deleted. Please remove it from all project budgets first.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
       
       setCostCodes(prev => prev.filter(cc => cc.id !== id));
       toast({
