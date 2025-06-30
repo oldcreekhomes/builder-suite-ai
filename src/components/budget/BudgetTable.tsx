@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Save, X, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AddBudgetModal } from './AddBudgetModal';
+import { BudgetTableHeader } from './BudgetTableHeader';
+import { BudgetGroupHeader } from './BudgetGroupHeader';
+import { BudgetTableRow } from './BudgetTableRow';
+import { BudgetTableFooter } from './BudgetTableFooter';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
-type ProjectBudget = Tables<'project_budgets'>;
 
 interface BudgetTableProps {
   projectId: string;
@@ -23,20 +25,6 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  // Fetch cost codes
-  const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cost_codes')
-        .select('*')
-        .order('code');
-      
-      if (error) throw error;
-      return data as CostCode[];
-    },
-  });
 
   // Fetch existing budget items for this project
   const { data: budgetItems = [] } = useQuery({
@@ -54,32 +42,6 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
       return data;
     },
     enabled: !!projectId,
-  });
-
-  // Create budget item mutation
-  const createBudgetItem = useMutation({
-    mutationFn: async (costCodeId: string) => {
-      const { data, error } = await supabase
-        .from('project_budgets')
-        .insert({
-          project_id: projectId,
-          cost_code_id: costCodeId,
-          quantity: 0,
-          unit_price: 0,
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
-      toast({
-        title: "Success",
-        description: "Budget item added successfully",
-      });
-    },
   });
 
   // Update budget item mutation
@@ -142,10 +104,6 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
       newExpanded.add(group);
     }
     setExpandedGroups(newExpanded);
-  };
-
-  const handleAddCostCode = (costCodeId: string) => {
-    createBudgetItem.mutate(costCodeId);
   };
 
   const handleEdit = (budgetId: string, currentQuantity: number, currentPrice: number) => {
@@ -214,17 +172,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold">Cost Code</TableHead>
-              <TableHead className="font-bold">Name</TableHead>
-              <TableHead className="font-bold">Quantity</TableHead>
-              <TableHead className="font-bold">Unit</TableHead>
-              <TableHead className="font-bold">Price</TableHead>
-              <TableHead className="font-bold">Total</TableHead>
-              <TableHead className="font-bold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+          <BudgetTableHeader />
           <TableBody>
             {budgetItems.length === 0 ? (
               <TableRow>
@@ -236,102 +184,25 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
               <>
                 {Object.entries(groupedBudgetItems).map(([group, items]) => (
                   <React.Fragment key={group}>
-                    {/* Parent Group Header */}
-                    <TableRow className="bg-gray-50">
-                      <TableCell 
-                        colSpan={7} 
-                        className="font-medium cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleGroupToggle(group)}
-                      >
-                        <div className="flex items-center">
-                          <ChevronDown 
-                            className={`h-4 w-4 mr-2 transition-transform ${
-                              expandedGroups.has(group) ? 'rotate-0' : '-rotate-90'
-                            }`} 
-                          />
-                          {group}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <BudgetGroupHeader
+                      group={group}
+                      isExpanded={expandedGroups.has(group)}
+                      onToggle={handleGroupToggle}
+                    />
                     
-                    {/* Child Items */}
-                    {expandedGroups.has(group) && items.map((item) => {
-                      const costCode = item.cost_codes as CostCode;
-                      const isEditing = editingRows.has(item.id);
-                      const editValue = editValues[item.id];
-                      const total = (item.quantity || 0) * (item.unit_price || 0);
-
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium" style={{ paddingLeft: '10px' }}>
-                            {costCode?.code}
-                          </TableCell>
-                          <TableCell style={{ paddingLeft: '10px' }}>
-                            {costCode?.name}
-                          </TableCell>
-                          <TableCell style={{ paddingLeft: '10px' }}>
-                            {isEditing ? (
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editValue?.quantity || ''}
-                                onChange={(e) => handleInputChange(item.id, 'quantity', e.target.value)}
-                                className="w-20"
-                              />
-                            ) : (
-                              item.quantity || 0
-                            )}
-                          </TableCell>
-                          <TableCell style={{ paddingLeft: '10px' }}>
-                            {formatUnitOfMeasure(costCode?.unit_of_measure)}
-                          </TableCell>
-                          <TableCell style={{ paddingLeft: '10px' }}>
-                            {isEditing ? (
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editValue?.unit_price || ''}
-                                onChange={(e) => handleInputChange(item.id, 'unit_price', e.target.value)}
-                                className="w-24"
-                              />
-                            ) : (
-                              `$${(item.unit_price || 0).toFixed(2)}`
-                            )}
-                          </TableCell>
-                          <TableCell className="font-medium" style={{ paddingLeft: '10px' }}>
-                            ${total.toFixed(2)}
-                          </TableCell>
-                          <TableCell style={{ paddingLeft: '10px' }}>
-                            {isEditing ? (
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleSave(item.id)}
-                                >
-                                  <Save className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleCancel(item.id)}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(item.id, item.quantity || 0, item.unit_price || 0)}
-                              >
-                                Edit
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {expandedGroups.has(group) && items.map((item) => (
+                      <BudgetTableRow
+                        key={item.id}
+                        item={item}
+                        isEditing={editingRows.has(item.id)}
+                        editValue={editValues[item.id]}
+                        onEdit={handleEdit}
+                        onSave={handleSave}
+                        onCancel={handleCancel}
+                        onInputChange={handleInputChange}
+                        formatUnitOfMeasure={formatUnitOfMeasure}
+                      />
+                    ))}
                   </React.Fragment>
                 ))}
               </>
@@ -340,13 +211,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
         </Table>
       </div>
 
-      {budgetItems.length > 0 && (
-        <div className="flex justify-end">
-          <div className="text-lg font-semibold">
-            Total Budget: ${budgetItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0).toFixed(2)}
-          </div>
-        </div>
-      )}
+      <BudgetTableFooter budgetItems={budgetItems} />
 
       <AddBudgetModal
         projectId={projectId}
