@@ -2,8 +2,7 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, Edit, Trash2 } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 
 interface BudgetGroupHeaderProps {
@@ -25,7 +24,6 @@ export function BudgetGroupHeader({
   isSelected, 
   isPartiallySelected, 
   onCheckboxChange,
-  onEditGroup,
   onDeleteGroup,
   isDeleting = false
 }: BudgetGroupHeaderProps) {
@@ -58,17 +56,6 @@ export function BudgetGroupHeader({
       </TableCell>
       <TableCell>
         <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditGroup(group);
-            }}
-            disabled={isDeleting}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}
             title="Delete Group"

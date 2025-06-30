@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -202,18 +201,6 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     updateBudgetItem.mutate({ id, quantity, unit_price });
   };
 
-  const handleEditGroup = (group: string) => {
-    // Expand the group if it's not already expanded
-    if (!expandedGroups.has(group)) {
-      setExpandedGroups(prev => new Set([...prev, group]));
-    }
-    
-    toast({
-      title: "Group Expanded",
-      description: `"${group}" group is now expanded for editing`,
-    });
-  };
-
   const handleDeleteGroup = (group: string) => {
     setDeletingGroups(prev => new Set([...prev, group]));
     deleteGroupMutation.mutate(group);
@@ -249,7 +236,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
                       isSelected={isGroupSelected(group)}
                       isPartiallySelected={isGroupPartiallySelected(group)}
                       onCheckboxChange={handleGroupCheckboxChange}
-                      onEditGroup={handleEditGroup}
+                      onEditGroup={() => {}}
                       onDeleteGroup={handleDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
                     />
