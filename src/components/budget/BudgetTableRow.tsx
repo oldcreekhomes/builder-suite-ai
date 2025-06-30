@@ -65,20 +65,20 @@ export function BudgetTableRow({
   };
 
   return (
-    <TableRow className={isSelected ? 'bg-blue-50' : ''}>
-      <TableCell className="w-12">
+    <TableRow className={`h-10 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableCell className="w-12 py-1">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="font-medium" style={{ paddingLeft: '30px' }}>
+      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '30px' }}>
         {costCode?.code}
       </TableCell>
-      <TableCell style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1 text-sm" style={{ paddingLeft: '30px' }}>
         {costCode?.name}
       </TableCell>
-      <TableCell style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
         <Input
           type="number"
           step="0.01"
@@ -86,13 +86,13 @@ export function BudgetTableRow({
           onChange={(e) => setQuantity(e.target.value)}
           onBlur={handleQuantityBlur}
           onKeyPress={handleQuantityKeyPress}
-          className="w-20 h-8"
+          className="w-20 h-7 text-sm"
         />
       </TableCell>
-      <TableCell style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1 text-sm" style={{ paddingLeft: '30px' }}>
         {formatUnitOfMeasure(costCode?.unit_of_measure)}
       </TableCell>
-      <TableCell style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
         <Input
           type="number"
           step="0.01"
@@ -100,13 +100,13 @@ export function BudgetTableRow({
           onChange={(e) => setUnitPrice(e.target.value)}
           onBlur={handleUnitPriceBlur}
           onKeyPress={handleUnitPriceKeyPress}
-          className="w-24 h-8"
+          className="w-24 h-7 text-sm"
         />
       </TableCell>
-      <TableCell className="font-medium" style={{ paddingLeft: '30px' }}>
+      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '30px' }}>
         {formatCurrency(total)}
       </TableCell>
-      <TableCell style={{ paddingLeft: '30px' }}>
+      <TableCell className="py-1" style={{ paddingLeft: '30px' }}>
         {/* Actions column - could be used for additional actions if needed */}
       </TableCell>
     </TableRow>
