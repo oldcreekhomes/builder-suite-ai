@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,11 +41,14 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
   // Create budget items mutation
   const createBudgetItems = useMutation({
     mutationFn: async (costCodeIds: string[]) => {
-      const budgetItems = costCodeIds.map(costCodeId => ({
+      // Get the selected cost codes with their default values
+      const selectedCostCodesData = costCodes.filter(cc => costCodeIds.includes(cc.id));
+      
+      const budgetItems = selectedCostCodesData.map(costCode => ({
         project_id: projectId,
-        cost_code_id: costCodeId,
-        quantity: 0,
-        unit_price: 0,
+        cost_code_id: costCode.id,
+        quantity: costCode.quantity ? parseFloat(costCode.quantity) : 0,
+        unit_price: costCode.price ? parseFloat(costCode.price.toString()) : 0,
       }));
 
       const { data, error } = await supabase
