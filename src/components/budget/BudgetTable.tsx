@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -76,16 +77,28 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         <head>
           <title>Project Budget - ${projectAddress || 'Budget'}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            body { font-family: Arial, sans-serif; margin: 15px; font-size: 12px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+            th, td { border: 1px solid #ccc; padding: 4px; text-align: left; }
             th { background-color: #f5f5f5; font-weight: bold; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
             .bg-gray-100 { background-color: #f5f5f5; }
+            .bg-gray-50 { background-color: #f9f9f9; }
             .border-t-2 { border-top: 2px solid #ccc; }
-            .print-header { margin-bottom: 30px; }
-            .print-footer { margin-top: 30px; padding-top: 15px; }
+            .print-footer { margin-top: 20px; padding-top: 15px; }
+            .text-sm { font-size: 11px; }
+            .text-lg { font-size: 14px; }
+            .text-xl { font-size: 16px; }
+            .text-2xl { font-size: 18px; }
+            .font-bold { font-weight: bold; }
+            .font-semibold { font-weight: 600; }
+            .mb-2 { margin-bottom: 8px; }
+            .mb-4 { margin-bottom: 16px; }
+            .mb-6 { margin-bottom: 24px; }
+            .p-1 { padding: 4px; }
+            .p-2 { padding: 8px; }
+            .pt-4 { padding-top: 16px; }
             @media print {
               body { margin: 0; }
               .page-break { page-break-before: always; }
