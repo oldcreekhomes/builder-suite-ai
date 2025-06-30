@@ -1,4 +1,3 @@
-
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -19,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCostCodes } from "@/hooks/useCostCodes";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -48,6 +47,11 @@ const Settings = () => {
       .map(cc => cc.parent_group)
       .filter(Boolean)
   );
+
+  // Initialize collapsed state for all parent groups
+  useEffect(() => {
+    setCollapsedGroups(new Set(Array.from(parentCodesWithChildren)));
+  }, [costCodes]);
 
   // Group cost codes by parent group, excluding parent codes that have children
   const groupedCostCodes = costCodes.reduce((groups, costCode) => {
@@ -197,9 +201,9 @@ const Settings = () => {
                             </TableRow>
                           ) : (
                             Object.entries(groupedCostCodes).map(([groupKey, groupCostCodes]) => (
-                              <>
+                              <React.Fragment key={groupKey}>
                                 {groupKey !== 'ungrouped' && (
-                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50 h-10">
+                                  <TableRow className="bg-gray-50 h-10">
                                     <TableCell 
                                       className="font-semibold text-gray-700 cursor-pointer py-1 text-sm"
                                       onClick={() => toggleGroupCollapse(groupKey)}
@@ -285,7 +289,7 @@ const Settings = () => {
                                     </TableRow>
                                   ))
                                 }
-                              </>
+                              </React.Fragment>
                             ))
                           )}
                         </TableBody>
