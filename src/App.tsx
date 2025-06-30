@@ -50,6 +50,9 @@ const App = () => (
           {/* Project Files route */}
           <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
           
+          {/* Project Budget route */}
+          <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
+          
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedules" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
           
