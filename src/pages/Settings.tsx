@@ -1,3 +1,4 @@
+
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -167,18 +168,18 @@ const Settings = () => {
                       </div>
                     </div>
                     
-                    <div className="border rounded-lg overflow-x-auto">
+                    <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Code</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Unit</TableHead>
-                            <TableHead>Specifications</TableHead>
-                            <TableHead>Bidding</TableHead>
-                            <TableHead>Actions</TableHead>
+                          <TableRow className="h-10">
+                            <TableHead className="font-bold py-2 text-sm">Code</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Description</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Quantity</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Price</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Unit</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Specifications</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Bidding</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -198,9 +199,9 @@ const Settings = () => {
                             Object.entries(groupedCostCodes).map(([groupKey, groupCostCodes]) => (
                               <>
                                 {groupKey !== 'ungrouped' && (
-                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50 hover:bg-gray-100">
+                                  <TableRow key={`group-${groupKey}`} className="bg-gray-50 h-10">
                                     <TableCell 
-                                      className="font-semibold text-gray-700 cursor-pointer"
+                                      className="font-semibold text-gray-700 cursor-pointer py-1 text-sm"
                                       onClick={() => toggleGroupCollapse(groupKey)}
                                     >
                                       <div className="flex items-center gap-2">
@@ -212,17 +213,17 @@ const Settings = () => {
                                         <span>{groupKey}</span>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="font-semibold text-gray-700">
+                                    <TableCell className="font-semibold text-gray-700 py-1 text-sm">
                                       {getParentCostCode(groupKey)?.name}
                                     </TableCell>
-                                    <TableCell>{getParentCostCode(groupKey)?.quantity || "-"}</TableCell>
-                                    <TableCell>{getParentCostCode(groupKey)?.price ? `$${getParentCostCode(groupKey)?.price.toFixed(2)}` : "-"}</TableCell>
-                                    <TableCell>{formatUnitOfMeasure(getParentCostCode(groupKey)?.unit_of_measure)}</TableCell>
-                                    <TableCell>{getParentCostCode(groupKey)?.has_specifications ? "Yes" : "No"}</TableCell>
-                                    <TableCell>{getParentCostCode(groupKey)?.has_bidding ? "Yes" : "No"}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.quantity || "-"}</TableCell>
+                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.price ? `$${getParentCostCode(groupKey)?.price.toFixed(2)}` : "-"}</TableCell>
+                                    <TableCell className="py-1 text-sm">{formatUnitOfMeasure(getParentCostCode(groupKey)?.unit_of_measure)}</TableCell>
+                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.has_specifications ? "Yes" : "No"}</TableCell>
+                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.has_bidding ? "Yes" : "No"}</TableCell>
+                                    <TableCell className="py-1">
                                       {getParentCostCode(groupKey) && (
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-1">
                                           <Button 
                                             variant="ghost" 
                                             size="sm"
@@ -240,7 +241,7 @@ const Settings = () => {
                                               e.stopPropagation();
                                               handleDeleteClick(getParentCostCode(groupKey)!);
                                             }}
-                                            className="text-red-600 hover:text-red-800"
+                                            className="text-red-600 hover:text-red-800 hover:bg-red-100"
                                           >
                                             <Trash2 className="h-4 w-4" />
                                           </Button>
@@ -251,19 +252,19 @@ const Settings = () => {
                                 )}
                                 {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
                                   groupCostCodes.map((costCode) => (
-                                    <TableRow key={costCode.id} className={groupKey !== 'ungrouped' ? 'bg-gray-25' : ''}>
-                                      <TableCell className="font-medium">
+                                    <TableRow key={costCode.id} className="h-8">
+                                      <TableCell className="font-medium py-1 text-sm">
                                         {groupKey !== 'ungrouped' && <span className="ml-6"></span>}
                                         {costCode.code}
                                       </TableCell>
-                                      <TableCell>{costCode.name}</TableCell>
-                                      <TableCell>{costCode.quantity || "-"}</TableCell>
-                                      <TableCell>{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
-                                      <TableCell>{formatUnitOfMeasure(costCode.unit_of_measure)}</TableCell>
-                                      <TableCell>{costCode.has_specifications ? "Yes" : "No"}</TableCell>
-                                      <TableCell>{costCode.has_bidding ? "Yes" : "No"}</TableCell>
-                                      <TableCell>
-                                        <div className="flex gap-2">
+                                      <TableCell className="py-1 text-sm">{costCode.name}</TableCell>
+                                      <TableCell className="py-1 text-sm">{costCode.quantity || "-"}</TableCell>
+                                      <TableCell className="py-1 text-sm">{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
+                                      <TableCell className="py-1 text-sm">{formatUnitOfMeasure(costCode.unit_of_measure)}</TableCell>
+                                      <TableCell className="py-1 text-sm">{costCode.has_specifications ? "Yes" : "No"}</TableCell>
+                                      <TableCell className="py-1 text-sm">{costCode.has_bidding ? "Yes" : "No"}</TableCell>
+                                      <TableCell className="py-1">
+                                        <div className="flex gap-1">
                                           <Button 
                                             variant="ghost" 
                                             size="sm"
@@ -275,7 +276,7 @@ const Settings = () => {
                                             variant="ghost" 
                                             size="sm"
                                             onClick={() => handleDeleteClick(costCode)}
-                                            className="text-red-600 hover:text-red-800"
+                                            className="text-red-600 hover:text-red-800 hover:bg-red-100"
                                           >
                                             <Trash2 className="h-4 w-4" />
                                           </Button>
@@ -306,39 +307,45 @@ const Settings = () => {
                       </Button>
                     </div>
                     
-                    <div className="border rounded-lg">
+                    <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Specification</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Actions</TableHead>
+                          <TableRow className="h-10">
+                            <TableHead className="font-bold py-2 text-sm">Specification</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Category</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Description</TableHead>
+                            <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          <TableRow>
-                            <TableCell className="font-medium">Concrete Mix Design</TableCell>
-                            <TableCell>Foundation</TableCell>
-                            <TableCell>3000 PSI concrete with air entrainment</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
+                          <TableRow className="h-8">
+                            <TableCell className="font-medium py-1 text-sm">Concrete Mix Design</TableCell>
+                            <TableCell className="py-1 text-sm">Foundation</TableCell>
+                            <TableCell className="py-1 text-sm">3000 PSI concrete with air entrainment</TableCell>
+                            <TableCell className="py-1">
+                              <Button variant="ghost" size="sm">
+                                <Edit className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">Framing Lumber</TableCell>
-                            <TableCell>Framing</TableCell>
-                            <TableCell>Grade A Douglas Fir 2x4, 2x6, 2x8</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
+                          <TableRow className="h-8">
+                            <TableCell className="font-medium py-1 text-sm">Framing Lumber</TableCell>
+                            <TableCell className="py-1 text-sm">Framing</TableCell>
+                            <TableCell className="py-1 text-sm">Grade A Douglas Fir 2x4, 2x6, 2x8</TableCell>
+                            <TableCell className="py-1">
+                              <Button variant="ghost" size="sm">
+                                <Edit className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">Insulation</TableCell>
-                            <TableCell>Insulation</TableCell>
-                            <TableCell>R-15 fiberglass batt insulation</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">Edit</Button>
+                          <TableRow className="h-8">
+                            <TableCell className="font-medium py-1 text-sm">Insulation</TableCell>
+                            <TableCell className="py-1 text-sm">Insulation</TableCell>
+                            <TableCell className="py-1 text-sm">R-15 fiberglass batt insulation</TableCell>
+                            <TableCell className="py-1">
+                              <Button variant="ghost" size="sm">
+                                <Edit className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         </TableBody>
