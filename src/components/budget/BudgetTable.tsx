@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Save, X } from 'lucide-react';
+import { Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -185,26 +185,6 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Project Budget</h3>
-        {availableCostCodes.length > 0 && (
-          <div className="flex items-center gap-2">
-            <select 
-              className="border rounded px-3 py-2 text-sm"
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleAddCostCode(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-            >
-              <option value="">Add Cost Code...</option>
-              {availableCostCodes.map(costCode => (
-                <option key={costCode.id} value={costCode.id}>
-                  {costCode.code} - {costCode.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -224,7 +204,7 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
             {budgetItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  No budget items added yet. Use the dropdown above to add cost codes to your budget.
+                  No budget items added yet.
                 </TableCell>
               </TableRow>
             ) : (
