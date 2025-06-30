@@ -26,7 +26,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     startDate: '',
     duration: 1,
     progress: 0,
-    predecessor: '',
+    predecessor: 'none',
     resources: ''
   });
 
@@ -44,7 +44,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       duration: formData.duration,
       endDate,
       progress: formData.progress,
-      predecessor: formData.predecessor || undefined,
+      predecessor: formData.predecessor === 'none' ? undefined : formData.predecessor,
       resources: formData.resources.split(',').map(r => r.trim()).filter(r => r.length > 0)
     };
 
@@ -55,7 +55,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       startDate: '',
       duration: 1,
       progress: 0,
-      predecessor: '',
+      predecessor: 'none',
       resources: ''
     });
     onOpenChange(false);
@@ -139,7 +139,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
                   <SelectValue placeholder="Select predecessor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {existingTasks.map(task => (
                     <SelectItem key={task.id} value={task.id}>
                       {task.code}: {task.name}
