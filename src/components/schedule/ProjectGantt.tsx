@@ -83,11 +83,11 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   const timelineSettings = {
     timelineUnitSize: 60,
     topTier: {
-      unit: 'Month',
+      unit: 'Month' as any,
       format: 'MMM yyyy'
     },
     bottomTier: {
-      unit: 'Week',
+      unit: 'Week' as any,
       format: 'dd'
     }
   };
