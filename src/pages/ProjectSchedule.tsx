@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { BudgetTable } from "@/components/budget/BudgetTable";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -47,12 +48,10 @@ export default function ProjectSchedule() {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight">Schedule</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Budget</h2>
             </div>
 
-            <div className="text-center py-8 text-gray-500">
-              <p>Schedule functionality will be implemented here.</p>
-            </div>
+            <BudgetTable projectId={projectId} />
           </div>
         </SidebarInset>
       </div>
