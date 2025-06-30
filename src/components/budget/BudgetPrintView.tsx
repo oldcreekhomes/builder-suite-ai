@@ -22,15 +22,15 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
     return items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
   };
 
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const date = now.toLocaleDateString();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${date}, ${time}`;
+  };
+
   return (
     <div className="print-content hidden">
-      <div className="print-header mb-6">
-        <h1 className="text-2xl font-bold text-center mb-2">Project Budget</h1>
-        {projectAddress && (
-          <p className="text-center text-gray-600 mb-4">{projectAddress}</p>
-        )}
-      </div>
-
       {Object.entries(groupedBudgetItems).map(([group, items]) => (
         <div key={group} className="mb-6">
           <table className="w-full border-collapse border border-gray-300 mb-2">
@@ -67,9 +67,14 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
       ))}
 
       <div className="print-footer mt-6 pt-4 border-t-2 border-gray-300">
-        <p className="text-center text-sm text-gray-500 mb-4">
-          Generated on {new Date().toLocaleDateString()}
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-sm text-gray-500">
+            {getCurrentDateTime()}
+          </p>
+          <div className="text-right">
+            <p className="text-lg font-bold">Project Budget - {projectAddress}</p>
+          </div>
+        </div>
         <div className="text-right">
           <p className="text-xl font-bold">Total Budget: {formatCurrency(totalBudget)}</p>
         </div>
