@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AddBudgetModal } from './AddBudgetModal';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -19,6 +19,7 @@ interface BudgetTableProps {
 export function BudgetTable({ projectId }: BudgetTableProps) {
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [editValues, setEditValues] = useState<Record<string, { quantity: string; unit_price: string }>>({});
+  const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -117,10 +118,8 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     return unitMap[unit] || unit.toUpperCase();
   };
 
-  // Get available cost codes (not already in budget)
-  const availableCostCodes = costCodes.filter(
-    costCode => !budgetItems.some(item => item.cost_code_id === costCode.id)
-  );
+  // Get existing cost code IDs for the modal
+  const existingCostCodeIds = budgetItems.map(item => item.cost_code_id);
 
   const handleAddCostCode = (costCodeId: string) => {
     createBudgetItem.mutate(costCodeId);
@@ -185,6 +184,9 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Project Budget</h3>
+        <Button onClick={() => setShowAddBudgetModal(true)}>
+          Add Budget
+        </Button>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -291,6 +293,13 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
           </div>
         </div>
       )}
+
+      <AddBudgetModal
+        projectId={projectId}
+        open={showAddBudgetModal}
+        onOpenChange={setShowAddBudgetModal}
+        existingCostCodeIds={existingCostCodeIds}
+      />
     </div>
   );
 }
