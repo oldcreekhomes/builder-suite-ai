@@ -15,6 +15,9 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
 
     console.log('Initializing Gantt chart for project:', projectId);
 
+    // Clear any existing content
+    gstcWrapperRef.current.innerHTML = '';
+
     // Sample data for the Gantt chart with correct ID format
     const rows = {
       'gstcid-1': {
@@ -104,26 +107,34 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
       chart: {
         items,
         time: {
-          zoom: 21
+          zoom: 21,
+          period: 'day'
         }
       }
     };
 
     console.log('Creating Gantt chart with config:', config);
 
-    const gstc = GSTC({
-      element: gstcWrapperRef.current,
-      state: GSTC.api.stateFromConfig(config)
-    });
+    try {
+      const state = GSTC.api.stateFromConfig(config);
+      console.log('State created:', state);
+      
+      const gstc = GSTC({
+        element: gstcWrapperRef.current,
+        state
+      });
 
-    console.log('Gantt chart created successfully');
+      console.log('Gantt chart created successfully:', gstc);
 
-    return () => {
-      console.log('Cleaning up Gantt chart');
-      if (gstc && gstc.destroy) {
-        gstc.destroy();
-      }
-    };
+      return () => {
+        console.log('Cleaning up Gantt chart');
+        if (gstc && typeof gstc.destroy === 'function') {
+          gstc.destroy();
+        }
+      };
+    } catch (error) {
+      console.error('Error creating Gantt chart:', error);
+    }
   }, [projectId]);
 
   return (
@@ -135,7 +146,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
         <div 
           ref={gstcWrapperRef}
           style={{ width: '100%', height: '500px' }}
-          className="gantt-container"
+          className="gantt-container border border-gray-200 rounded"
         />
       </CardContent>
     </Card>
