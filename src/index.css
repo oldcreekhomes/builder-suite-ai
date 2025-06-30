@@ -83,11 +83,18 @@
   }
 }
 
-/* Syncfusion Gantt chart styling */
+/* Enhanced Syncfusion Gantt chart styling */
+.gantt-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+}
+
 .e-gantt {
   font-family: inherit !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: calc(var(--radius) - 2px) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 .e-gantt .e-toolbar {
@@ -131,10 +138,13 @@
 .e-gantt .e-grid .e-rowcell {
   border-color: hsl(var(--border)) !important;
   color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
+/* Gantt chart area styling */
 .e-gantt .e-gantt-chart {
   background-color: hsl(var(--background)) !important;
+  border-left: 1px solid hsl(var(--border)) !important;
 }
 
 .e-gantt .e-gantt-chart .e-chart-row {
@@ -171,13 +181,36 @@
 /* Splitter styling */
 .e-gantt .e-splitter .e-split-bar {
   background-color: hsl(var(--border)) !important;
+  width: 4px !important;
 }
 
-/* Fix for proper rendering */
+.e-gantt .e-splitter .e-split-bar:hover {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Chart container fixes */
 .e-gantt .e-gantt-chart-container {
-  overflow: visible !important;
+  position: relative !important;
+  overflow: auto !important;
+  height: 100% !important;
 }
 
 .e-gantt .e-timeline-header-container {
-  position: relative !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+}
+
+/* Grid lines */
+.e-gantt .e-chart-row {
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+.e-gantt .e-chart-row:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.3) !important;
+}
+
+/* Weekend highlighting */
+.e-gantt .e-weekend {
+  background-color: hsl(var(--muted) / 0.5) !important;
 }

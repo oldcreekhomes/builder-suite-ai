@@ -76,7 +76,20 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
   ];
 
   const splitterSettings = {
-    columnIndex: 3
+    columnIndex: 4,
+    position: '50%'
+  };
+
+  const timelineSettings = {
+    timelineUnitSize: 60,
+    topTier: {
+      unit: 'Month',
+      format: 'MMM yyyy'
+    },
+    bottomTier: {
+      unit: 'Week',
+      format: 'dd'
+    }
   };
 
   const handleActionComplete = (args: any) => {
@@ -167,8 +180,8 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
           </div>
         )}
       </CardHeader>
-      <CardContent className="p-0">
-        <div style={{ height: '700px', width: '100%' }}>
+      <CardContent className="p-6">
+        <div className="gantt-wrapper" style={{ height: '600px', width: '100%' }}>
           <GanttComponent
             id={`gantt-${projectId}`}
             dataSource={tasks || []}
@@ -176,6 +189,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             editSettings={editSettings}
             toolbar={toolbarOptions}
             splitterSettings={splitterSettings}
+            timelineSettings={timelineSettings}
             allowSelection={true}
             allowResizing={true}
             allowSorting={true}
@@ -187,16 +201,9 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
             actionComplete={handleActionComplete}
             projectStartDate={new Date('2025-01-01')}
             projectEndDate={new Date('2025-12-31')}
-            timelineSettings={{
-              topTier: {
-                unit: 'Week',
-                format: 'dd/MM/yyyy'
-              },
-              bottomTier: {
-                unit: 'Day',
-                count: 1
-              }
-            }}
+            gridLines="Both"
+            treeColumnIndex={1}
+            allowReordering={true}
           >
             <Inject services={[Edit, Selection, Toolbar, Filter, Sort, Resize, ColumnMenu]} />
             <ColumnsDirective>
