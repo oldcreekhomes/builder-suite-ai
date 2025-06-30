@@ -98,6 +98,32 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
     setSelectedCostCodes(newSelected);
   };
 
+  const handleGroupCheckboxChange = (group: string, checked: boolean) => {
+    const groupCostCodes = groupedCostCodes[group] || [];
+    const newSelected = new Set(selectedCostCodes);
+    
+    if (checked) {
+      // Select all items in this group
+      groupCostCodes.forEach(costCode => newSelected.add(costCode.id));
+    } else {
+      // Deselect all items in this group
+      groupCostCodes.forEach(costCode => newSelected.delete(costCode.id));
+    }
+    
+    setSelectedCostCodes(newSelected);
+  };
+
+  const isGroupSelected = (group: string) => {
+    const groupCostCodes = groupedCostCodes[group] || [];
+    return groupCostCodes.length > 0 && groupCostCodes.every(costCode => selectedCostCodes.has(costCode.id));
+  };
+
+  const isGroupPartiallySelected = (group: string) => {
+    const groupCostCodes = groupedCostCodes[group] || [];
+    const selectedInGroup = groupCostCodes.filter(costCode => selectedCostCodes.has(costCode.id));
+    return selectedInGroup.length > 0 && selectedInGroup.length < groupCostCodes.length;
+  };
+
   const handleExpandAll = () => {
     setExpandedGroups(new Set(Object.keys(groupedCostCodes)));
   };
@@ -167,8 +193,20 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
                 onOpenChange={() => handleGroupToggle(group)}
               >
                 <CollapsibleTrigger className="flex items-center w-full p-2 hover:bg-gray-50 rounded">
-                  <ChevronDown className={`h-4 w-4 mr-2 transition-transform ${expandedGroups.has(group) ? 'rotate-0' : '-rotate-90'}`} />
-                  <span className="font-medium text-left">{group}</span>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={isGroupSelected(group)}
+                      ref={(el) => {
+                        if (el && 'indeterminate' in el) {
+                          (el as any).indeterminate = isGroupPartiallySelected(group) && !isGroupSelected(group);
+                        }
+                      }}
+                      onCheckedChange={(checked) => handleGroupCheckboxChange(group, checked as boolean)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <ChevronDown className={`h-4 w-4 transition-transform ${expandedGroups.has(group) ? 'rotate-0' : '-rotate-90'}`} />
+                    <span className="font-medium text-left">{group}</span>
+                  </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="space-y-2 pl-6 pt-2">
