@@ -51,7 +51,10 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Budget</h2>
             </div>
 
-            <BudgetTable projectId={projectId} />
+            <BudgetTable 
+              projectId={projectId} 
+              projectAddress={project?.address}
+            />
           </div>
         </SidebarInset>
       </div>

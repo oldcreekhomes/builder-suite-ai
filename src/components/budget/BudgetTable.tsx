@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,8 @@ import { BudgetTableHeader } from './BudgetTableHeader';
 import { BudgetGroupHeader } from './BudgetGroupHeader';
 import { BudgetTableRow } from './BudgetTableRow';
 import { BudgetTableFooter } from './BudgetTableFooter';
+import { BudgetPrintToolbar } from './BudgetPrintToolbar';
+import { BudgetPrintView } from './BudgetPrintView';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
@@ -14,9 +15,10 @@ import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 
 interface BudgetTableProps {
   projectId: string;
+  projectAddress?: string;
 }
 
-export function BudgetTable({ projectId }: BudgetTableProps) {
+export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
@@ -58,10 +60,58 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
     handleGroupCheckboxChange(group, checked, groupItems);
   };
 
+  const handlePrint = () => {
+    // Show the print content
+    const printContent = document.querySelector('.print-content');
+    if (printContent) {
+      printContent.classList.remove('hidden');
+    }
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Project Budget - ${projectAddress || 'Budget'}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .bg-gray-100 { background-color: #f5f5f5; }
+            .border-t-2 { border-top: 2px solid #ccc; }
+            .print-header { margin-bottom: 30px; }
+            .print-footer { margin-top: 30px; padding-top: 15px; }
+            @media print {
+              body { margin: 0; }
+              .page-break { page-break-before: always; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent?.innerHTML || ''}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    // Hide the print content again
+    if (printContent) {
+      printContent.classList.add('hidden');
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Project Budget</h3>
+      <BudgetPrintToolbar onPrint={handlePrint} />
+
+      <div className="flex items-center justify-end">
         <Button onClick={() => setShowAddBudgetModal(true)}>
           Add Budget
         </Button>
@@ -115,6 +165,12 @@ export function BudgetTable({ projectId }: BudgetTableProps) {
       </div>
 
       <BudgetTableFooter budgetItems={budgetItems} />
+
+      <BudgetPrintView 
+        budgetItems={budgetItems}
+        groupedBudgetItems={groupedBudgetItems}
+        projectAddress={projectAddress}
+      />
 
       <AddBudgetModal
         projectId={projectId}
