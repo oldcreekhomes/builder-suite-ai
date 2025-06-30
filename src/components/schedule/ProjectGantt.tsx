@@ -107,8 +107,7 @@ export const ProjectGantt: React.FC<ProjectGanttProps> = ({ projectId }) => {
       chart: {
         items,
         time: {
-          zoom: 21,
-          period: 'day'
+          zoom: 21
         }
       }
     };
