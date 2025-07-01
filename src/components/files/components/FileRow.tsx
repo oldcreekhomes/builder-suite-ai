@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Download, Trash2, Edit, Check, X } from "lucide-react";
+import { Download, Edit, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { getDisplayName, formatFileSize, getFileTypeColor } from "../utils/fileUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface FileRowProps {
   file: any;
@@ -76,6 +77,30 @@ export function FileRow({
   const handleCancelEdit = () => {
     setEditName(displayInfo.pathWithinFolder || displayInfo.fileName);
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .eq('id', file.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Error",
+        description: "Failed to delete file",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -161,14 +186,14 @@ export function FileRow({
               >
                 <Download className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete File"
+                description={`Are you sure you want to delete "${displayInfo.pathWithinFolder || displayInfo.fileName}"? This action cannot be undone.`}
                 size="sm"
-                onClick={() => onDelete(file)}
-                className="text-red-600 hover:text-red-800 hover:bg-red-100"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                variant="ghost"
+                showIcon={true}
+              />
             </>
           )}
         </div>

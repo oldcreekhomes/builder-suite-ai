@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, Eye, Trash2, Image, Edit, Check, X } from "lucide-react";
+import { FileText, Download, Eye, Edit, Check, X, Image } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatFileSize, getDisplayName, getFileTypeColor } from "../utils/fileGridUtils";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 interface FileGridCardProps {
   file: any;
@@ -108,7 +109,7 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
     }
   };
 
-  const handleDelete = async (file: any) => {
+  const handleDelete = async () => {
     try {
       const { error } = await supabase
         .from('project_files')
@@ -231,14 +232,14 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
               >
                 <Download className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete File"
+                description={`Are you sure you want to delete "${displayInfo.pathWithinFolder || displayInfo.fileName}"? This action cannot be undone.`}
                 size="sm"
-                onClick={() => handleDelete(file)}
-                className="text-red-600 hover:text-red-800 hover:bg-red-100"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                variant="ghost"
+                showIcon={true}
+              />
             </>
           )}
         </div>
