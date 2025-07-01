@@ -82,8 +82,7 @@ export function ProjectsOverview() {
     setEditingProject(project);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, projectId: string) => {
-    e.stopPropagation();
+  const handleDeleteClick = (projectId: string) => {
     deleteProjectMutation.mutate(projectId);
   };
 
@@ -135,15 +134,17 @@ export function ProjectsOverview() {
             >
               <Edit className="h-3 w-3" />
             </Button>
-            <DeleteButton
-              onDelete={(e) => handleDeleteClick(e, project.id)}
-              title="Delete Project"
-              description={`Are you sure you want to delete ${project.name}? This action cannot be undone and will also delete all associated data.`}
-              isLoading={deleteProjectMutation.isPending}
-              size="sm"
-              className="h-6 w-6 p-0"
-              showIcon={true}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <DeleteButton
+                onDelete={() => handleDeleteClick(project.id)}
+                title="Delete Project"
+                description={`Are you sure you want to delete ${project.name}? This action cannot be undone and will also delete all associated data.`}
+                isLoading={deleteProjectMutation.isPending}
+                size="sm"
+                className="h-6 w-6 p-0"
+                showIcon={true}
+              />
+            </div>
           </div>
         </div>
         
