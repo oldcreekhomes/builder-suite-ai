@@ -263,7 +263,7 @@ const Settings = () => {
                 Delete Selected
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogFooter>
+          </AlertDialogContent>
         </AlertDialog>
       </div>
     </SidebarProvider>
