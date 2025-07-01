@@ -70,12 +70,15 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
             border: 1px solid #e2e8f0 !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
             background: white !important;
+            position: fixed !important;
           }
           .pac-item {
             padding: 8px 12px !important;
             border-bottom: 1px solid #f1f5f9 !important;
             cursor: pointer !important;
             background: white !important;
+            position: relative !important;
+            z-index: 99999 !important;
           }
           .pac-item:hover {
             background-color: #f8fafc !important;
@@ -100,6 +103,7 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
 
+      // Create new autocomplete instance
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         companyNameRef.current,
         {
@@ -108,30 +112,60 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         }
       );
 
-      autocompleteRef.current.addListener('place_changed', () => {
+      // Add event listener for place selection
+      const placeChangedListener = () => {
         const place = autocompleteRef.current?.getPlace();
         console.log('Place selected:', place);
         
         if (place && place.name) {
           setIsLoadingGoogleData(true);
-          onPlaceSelected(place);
-          setIsLoadingGoogleData(false);
           
-          toast({
-            title: "Success",
-            description: "Company information loaded from Google Places",
-          });
+          // Small delay to ensure UI updates
+          setTimeout(() => {
+            onPlaceSelected(place);
+            setIsLoadingGoogleData(false);
+            
+            toast({
+              title: "Success",
+              description: "Company information loaded from Google Places",
+            });
+          }, 100);
         }
-      });
+      };
+
+      autocompleteRef.current.addListener('place_changed', placeChangedListener);
+
+      // Also listen for direct clicks on pac-items
+      const handlePacItemClick = (event: Event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('.pac-item')) {
+          // Trigger place_changed event manually after a small delay
+          setTimeout(() => {
+            const place = autocompleteRef.current?.getPlace();
+            if (place && place.name) {
+              onPlaceSelected(place);
+              toast({
+                title: "Success",
+                description: "Company information loaded from Google Places",
+              });
+            }
+          }, 50);
+        }
+      };
+
+      // Add click listener to document to catch pac-item clicks
+      document.addEventListener('click', handlePacItemClick);
+
+      return () => {
+        if (autocompleteRef.current) {
+          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
+        document.removeEventListener('click', handlePacItemClick);
+      };
+
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
     }
-
-    return () => {
-      if (autocompleteRef.current) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-    };
   }, [isGoogleLoaded, open, onPlaceSelected]);
 
   return {
