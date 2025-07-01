@@ -1,14 +1,20 @@
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoreHorizontal, MapPin, Calendar, Plus } from "lucide-react";
+import { MoreHorizontal, MapPin, Calendar, Plus, Edit } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -37,10 +43,44 @@ const statusTabs = ["In Design", "Permitting", "Under Construction", "Completed"
 export function ProjectsOverview() {
   const { data: projects = [], isLoading } = useProjects();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
+
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({
+        title: "Success",
+        description: "Project deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent, project: any) => {
+    e.stopPropagation();
+    setEditingProject(project);
   };
 
   const filterProjectsByStatus = (status: string) => {
@@ -49,6 +89,11 @@ export function ProjectsOverview() {
 
   const getProjectCount = (status: string) => {
     return filterProjectsByStatus(status).length;
+  };
+
+  const formatDateWithOrdinal = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMMM do, yyyy');
   };
 
   const renderProjectCard = (project: any) => {
@@ -70,7 +115,7 @@ export function ProjectsOverview() {
               </div>
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                {format(new Date(project.created_at), 'MMM dd, yyyy')}
+                {formatDateWithOrdinal(project.created_at)}
               </div>
             </div>
           </div>
@@ -81,13 +126,20 @@ export function ProjectsOverview() {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Add more actions menu here if needed
-              }}
+              onClick={(e) => handleEditClick(e, project)}
+              className="h-6 w-6 p-0 hover:bg-gray-100"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <Edit className="h-3 w-3" />
             </Button>
+            <DeleteButton
+              onDelete={() => deleteProjectMutation.mutate(project.id)}
+              title="Delete Project"
+              description={`Are you sure you want to delete ${project.name}? This action cannot be undone and will also delete all associated data.`}
+              isLoading={deleteProjectMutation.isPending}
+              size="sm"
+              className="h-6 w-6 p-0"
+              showIcon={true}
+            />
           </div>
         </div>
         
@@ -198,6 +250,12 @@ export function ProjectsOverview() {
       <NewProjectDialog 
         open={isNewProjectOpen} 
         onOpenChange={setIsNewProjectOpen} 
+      />
+
+      <EditProjectDialog
+        project={editingProject}
+        open={!!editingProject}
+        onOpenChange={(open) => !open && setEditingProject(null)}
       />
     </>
   );
