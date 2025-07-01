@@ -1,48 +1,60 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Tables } from '@/integrations/supabase/types';
 
-type CostCode = Tables<'cost_codes'>;
+interface CostCode {
+  id: string;
+  code: string;
+  name: string;
+  unit_of_measure: string | null;
+  category: string | null;
+  parent_group: string | null;
+  has_bidding: boolean;
+}
 
 export const useAddBiddingModal = (projectId: string, existingCostCodeIds: string[]) => {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [groupedCostCodes, setGroupedCostCodes] = useState<Record<string, CostCode[]>>({});
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch cost codes that have bidding enabled and aren't already in the project
+  // Fetch cost codes that have bidding enabled and are not already in the project
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes-bidding'],
+    queryKey: ['cost-codes-for-bidding', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cost_codes')
         .select('*')
         .eq('has_bidding', true)
-        .order('parent_group', { ascending: true })
-        .order('code', { ascending: true });
+        .not('id', 'in', `(${existingCostCodeIds.join(',') || 'null'})`);
 
       if (error) {
         console.error('Error fetching cost codes:', error);
         throw error;
       }
 
-      // Filter out cost codes that are already in the project bidding
-      return (data || []).filter(code => !existingCostCodeIds.includes(code.id));
+      return data || [];
     },
+    enabled: !!projectId,
   });
 
   // Group cost codes by parent_group or category
-  const groupedCostCodes = costCodes.reduce((acc, code) => {
-    const group = code.parent_group || code.category || 'Uncategorized';
-    if (!acc[group]) {
-      acc[group] = [];
-    }
-    acc[group].push(code);
-    return acc;
-  }, {} as Record<string, CostCode[]>);
+  useEffect(() => {
+    const grouped = costCodes.reduce((acc, costCode) => {
+      const group = costCode.parent_group || costCode.category || 'Uncategorized';
+      if (!acc[group]) {
+        acc[group] = [];
+      }
+      acc[group].push(costCode);
+      return acc;
+    }, {} as Record<string, CostCode[]>);
+
+    setGroupedCostCodes(grouped);
+  }, [costCodes]);
 
   // Create bidding items mutation
   const createBiddingItems = useMutation({
@@ -50,8 +62,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
       const biddingItems = costCodeIds.map(costCodeId => ({
         project_id: projectId,
         cost_code_id: costCodeId,
-        quantity: 0,
-        unit_price: 0,
+        status: 'draft'
       }));
 
       const { error } = await supabase
@@ -62,58 +73,56 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['cost-codes-bidding'] });
       toast({
         title: "Success",
-        description: "Bid package loaded successfully",
+        description: "Bidding items added successfully",
       });
-      resetSelection();
+      setSelectedCostCodes(new Set());
     },
     onError: (error) => {
       console.error('Error creating bidding items:', error);
       toast({
         title: "Error",
-        description: "Failed to load bid package",
+        description: "Failed to create bidding items",
         variant: "destructive",
       });
     },
   });
 
   const handleCostCodeToggle = (costCodeId: string) => {
-    setSelectedCostCodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(costCodeId)) {
-        newSet.delete(costCodeId);
-      } else {
-        newSet.add(costCodeId);
-      }
-      return newSet;
-    });
+    const newSelection = new Set(selectedCostCodes);
+    if (newSelection.has(costCodeId)) {
+      newSelection.delete(costCodeId);
+    } else {
+      newSelection.add(costCodeId);
+    }
+    setSelectedCostCodes(newSelection);
   };
 
   const handleGroupCheckboxChange = (group: string, checked: boolean) => {
-    const groupCodes = groupedCostCodes[group] || [];
-    setSelectedCostCodes(prev => {
-      const newSet = new Set(prev);
-      groupCodes.forEach(code => {
-        if (checked) {
-          newSet.add(code.id);
-        } else {
-          newSet.delete(code.id);
-        }
-      });
-      return newSet;
+    const groupCostCodes = groupedCostCodes[group] || [];
+    const newSelection = new Set(selectedCostCodes);
+    
+    groupCostCodes.forEach(costCode => {
+      if (checked) {
+        newSelection.add(costCode.id);
+      } else {
+        newSelection.delete(costCode.id);
+      }
     });
+    
+    setSelectedCostCodes(newSelection);
   };
 
   const isGroupSelected = (group: string) => {
-    const groupCodes = groupedCostCodes[group] || [];
-    return groupCodes.length > 0 && groupCodes.every(code => selectedCostCodes.has(code.id));
+    const groupCostCodes = groupedCostCodes[group] || [];
+    return groupCostCodes.length > 0 && groupCostCodes.every(costCode => selectedCostCodes.has(costCode.id));
   };
 
   const isGroupPartiallySelected = (group: string) => {
-    const groupCodes = groupedCostCodes[group] || [];
-    return groupCodes.some(code => selectedCostCodes.has(code.id)) && !isGroupSelected(group);
+    const groupCostCodes = groupedCostCodes[group] || [];
+    const selectedInGroup = groupCostCodes.filter(costCode => selectedCostCodes.has(costCode.id));
+    return selectedInGroup.length > 0 && selectedInGroup.length < groupCostCodes.length;
   };
 
   const handleExpandAll = () => {
@@ -125,15 +134,13 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   };
 
   const handleGroupToggle = (group: string) => {
-    setExpandedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(group)) {
-        newSet.delete(group);
-      } else {
-        newSet.add(group);
-      }
-      return newSet;
-    });
+    const newExpanded = new Set(expandedGroups);
+    if (newExpanded.has(group)) {
+      newExpanded.delete(group);
+    } else {
+      newExpanded.add(group);
+    }
+    setExpandedGroups(newExpanded);
   };
 
   const handleSave = () => {
@@ -144,7 +151,6 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
   const resetSelection = () => {
     setSelectedCostCodes(new Set());
-    setExpandedGroups(new Set());
   };
 
   return {
