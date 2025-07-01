@@ -1,9 +1,14 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
+import { useState } from "react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BasicCompanyInfoProps {
   companyName: string;
@@ -23,6 +28,14 @@ interface BasicCompanyInfoProps {
   isLoadingGoogleData: boolean;
 }
 
+const companyTypes = [
+  "Subcontractor",
+  "Vendor", 
+  "Municipality",
+  "Consultant",
+  "Finance"
+];
+
 export function BasicCompanyInfo({
   companyName,
   setCompanyName,
@@ -40,6 +53,8 @@ export function BasicCompanyInfo({
   isGoogleLoaded,
   isLoadingGoogleData
 }: BasicCompanyInfoProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,17 +87,47 @@ export function BasicCompanyInfo({
 
         <div>
           <Label htmlFor="companyType">Company Type *</Label>
-          <Select value={companyType} onValueChange={setCompanyType} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Select company type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Subcontractor">Subcontractor</SelectItem>
-              <SelectItem value="Vendor">Vendor</SelectItem>
-              <SelectItem value="Municipality">Municipality</SelectItem>
-              <SelectItem value="Consultant">Consultant</SelectItem>
-            </SelectContent>
-          </Select>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between"
+              >
+                {companyType || "Select company type..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" style={{ zIndex: 999999 }}>
+              <Command>
+                <CommandInput placeholder="Search company type..." />
+                <CommandList>
+                  <CommandEmpty>No company type found.</CommandEmpty>
+                  <CommandGroup>
+                    {companyTypes.map((type) => (
+                      <CommandItem
+                        key={type}
+                        value={type}
+                        onSelect={(currentValue) => {
+                          setCompanyType(currentValue === companyType ? "" : currentValue);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            companyType === type ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {type}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
