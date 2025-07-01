@@ -80,8 +80,8 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>{company.company_name}</span>
+          <DialogTitle className="flex items-center justify-between pr-8">
+            <span className="flex-1 truncate">{company.company_name}</span>
             <Badge className={getCompanyTypeColor(company.company_type)}>
               {company.company_type}
             </Badge>
