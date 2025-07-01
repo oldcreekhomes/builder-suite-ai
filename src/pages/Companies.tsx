@@ -10,6 +10,8 @@ import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RepresentativesTable } from "@/components/representatives/RepresentativesTable";
 import { AddRepresentativeModal } from "@/components/representatives/AddRepresentativeModal";
+import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
+import { MarketplaceRepresentativesTable } from "@/components/marketplace/MarketplaceRepresentativesTable";
 
 export default function Companies() {
   const [addCompanyOpen, setAddCompanyOpen] = useState(false);
@@ -30,9 +32,11 @@ export default function Companies() {
             </div>
 
             <Tabs defaultValue="companies" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
+                <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
+                <TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
               </TabsList>
               
               <TabsContent value="companies" className="space-y-4">
@@ -53,6 +57,26 @@ export default function Companies() {
                   </Button>
                 </div>
                 <RepresentativesTable />
+              </TabsContent>
+              
+              <TabsContent value="marketplace-companies" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold">Marketplace Companies</h3>
+                    <p className="text-sm text-gray-600">Browse companies available in the marketplace</p>
+                  </div>
+                </div>
+                <MarketplaceCompaniesTable />
+              </TabsContent>
+              
+              <TabsContent value="marketplace-representatives" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold">Marketplace Representatives</h3>
+                    <p className="text-sm text-gray-600">Browse representatives from marketplace companies</p>
+                  </div>
+                </div>
+                <MarketplaceRepresentativesTable />
               </TabsContent>
             </Tabs>
           </div>

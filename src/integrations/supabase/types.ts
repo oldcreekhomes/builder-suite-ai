@@ -243,6 +243,107 @@ export type Database = {
           },
         ]
       }
+      marketplace_companies: {
+        Row: {
+          address: string | null
+          company_name: string
+          company_type: string
+          created_at: string
+          description: string | null
+          id: string
+          insurance_verified: boolean | null
+          license_numbers: string[] | null
+          phone_number: string | null
+          rating: number | null
+          review_count: number | null
+          service_areas: string[] | null
+          specialties: string[] | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          company_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          insurance_verified?: boolean | null
+          license_numbers?: string[] | null
+          phone_number?: string | null
+          rating?: number | null
+          review_count?: number | null
+          service_areas?: string[] | null
+          specialties?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          company_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          insurance_verified?: boolean | null
+          license_numbers?: string[] | null
+          phone_number?: string | null
+          rating?: number | null
+          review_count?: number | null
+          service_areas?: string[] | null
+          specialties?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      marketplace_company_representatives: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_primary: boolean | null
+          last_name: string
+          marketplace_company_id: string
+          phone_number: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_primary?: boolean | null
+          last_name: string
+          marketplace_company_id: string
+          phone_number?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_primary?: boolean | null
+          last_name?: string
+          marketplace_company_id?: string
+          phone_number?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_company_representatives_marketplace_company_id_fkey"
+            columns: ["marketplace_company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_by_home_builder: boolean
