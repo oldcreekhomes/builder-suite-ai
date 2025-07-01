@@ -116,10 +116,6 @@ export function ProjectsOverview() {
                 <MapPin className="h-4 w-4 mr-1" />
                 {project.address}
               </div>
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-1" />
-                {formatDateWithOrdinal(project.created_at)}
-              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -163,7 +159,7 @@ export function ProjectsOverview() {
           </div>
           <div className="text-sm">
             <span className="text-gray-600">Created: </span>
-            <span className="font-medium text-black">{format(new Date(project.created_at), 'MMM dd')}</span>
+            <span className="font-medium text-black">{formatDateWithOrdinal(project.created_at)}</span>
           </div>
         </div>
       </div>
