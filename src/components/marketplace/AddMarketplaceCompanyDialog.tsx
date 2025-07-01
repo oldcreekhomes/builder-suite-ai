@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
 
 interface AddMarketplaceCompanyDialogProps {
   open: boolean;
@@ -34,8 +40,109 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   const [newServiceArea, setNewServiceArea] = useState("");
   const [newLicenseNumber, setNewLicenseNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingGoogleData, setIsLoadingGoogleData] = useState(false);
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
+  const companyNameRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const queryClient = useQueryClient();
+
+  // Load Google Maps API key
+  useEffect(() => {
+    const getApiKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+        if (error) throw error;
+        setApiKey(data.apiKey);
+      } catch (error) {
+        console.error('Failed to get Google Maps API key:', error);
+        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || null);
+      }
+    };
+
+    getApiKey();
+  }, []);
+
+  // Load Google Places API
+  useEffect(() => {
+    if (!apiKey) return;
+
+    const loadGooglePlaces = () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setIsGoogleLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setIsGoogleLoaded(true);
+      script.onerror = () => console.error('Failed to load Google Places API');
+      document.head.appendChild(script);
+    };
+
+    loadGooglePlaces();
+  }, [apiKey]);
+
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    if (!isGoogleLoaded || !companyNameRef.current || !open) return;
+
+    try {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        companyNameRef.current,
+        {
+          types: ['establishment'],
+          fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total', 'business_status', 'types']
+        }
+      );
+
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (place && place.name) {
+          setIsLoadingGoogleData(true);
+          console.log('Selected place:', place);
+          
+          // Auto-populate fields
+          setCompanyName(place.name);
+          setAddress(place.formatted_address || "");
+          setPhoneNumber(place.formatted_phone_number || "");
+          setWebsite(place.website || "");
+          setRating(place.rating ? place.rating.toString() : "");
+          setReviewCount(place.user_ratings_total ? place.user_ratings_total.toString() : "");
+          
+          // Try to determine company type from Google place types
+          if (place.types) {
+            const placeTypes = place.types;
+            if (placeTypes.includes('general_contractor') || placeTypes.includes('contractor')) {
+              setCompanyType('Subcontractor');
+            } else if (placeTypes.includes('store') || placeTypes.includes('hardware_store')) {
+              setCompanyType('Vendor');
+            } else if (placeTypes.includes('local_government_office')) {
+              setCompanyType('Municipality');
+            }
+          }
+
+          setIsLoadingGoogleData(false);
+          
+          toast({
+            title: "Success",
+            description: "Company information loaded from Google Places",
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing Google Places Autocomplete:', error);
+    }
+
+    return () => {
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [isGoogleLoaded, open]);
 
   const handleAddSpecialty = () => {
     if (newSpecialty.trim() && !specialties.includes(newSpecialty.trim())) {
@@ -153,13 +260,28 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="companyName">Company Name *</Label>
-              <Input
-                id="companyName"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Enter company name"
-                required
-              />
+              <div className="relative">
+                <Input
+                  ref={companyNameRef}
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder={isGoogleLoaded ? "Start typing company name..." : "Enter company name"}
+                  required
+                  disabled={isLoadingGoogleData}
+                />
+                {isGoogleLoaded && (
+                  <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                )}
+                {isLoadingGoogleData && (
+                  <div className="absolute right-3 top-3 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                )}
+              </div>
+              {isGoogleLoaded && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Search powered by Google Places - start typing to see suggestions
+                </p>
+              )}
             </div>
 
             <div>
