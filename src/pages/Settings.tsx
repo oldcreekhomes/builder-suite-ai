@@ -55,9 +55,10 @@ const Settings = () => {
       .filter(Boolean)
   );
 
-  // Initialize collapsed state for all parent groups
+  // Initialize collapsed state - now empty by default (all groups expanded)
   useEffect(() => {
-    setCollapsedGroups(new Set(Array.from(parentCodesWithChildren)));
+    // Don't automatically collapse any groups - leave them all expanded by default
+    setCollapsedGroups(new Set());
   }, [costCodes]);
 
   const toggleGroupCollapse = (groupKey: string) => {
