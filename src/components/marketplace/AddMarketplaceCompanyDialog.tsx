@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -332,7 +331,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
             <Checkbox
               id="insuranceVerified"
               checked={insuranceVerified}
-              onCheckedChange={setInsuranceVerified}
+              onCheckedChange={(checked) => setInsuranceVerified(checked === true)}
             />
             <Label htmlFor="insuranceVerified">Insurance Verified</Label>
           </div>
