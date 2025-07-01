@@ -87,11 +87,6 @@ export function MarketplaceCompaniesTable() {
               <TableRow key={company.id}>
                 <TableCell>
                   <div className="font-medium">{company.company_name}</div>
-                  {company.description && (
-                    <div className="text-sm text-gray-500 truncate max-w-[200px]">
-                      {company.description}
-                    </div>
-                  )}
                 </TableCell>
                 <TableCell>
                   <Badge className={getCompanyTypeColor(company.company_type)}>
@@ -124,14 +119,12 @@ export function MarketplaceCompaniesTable() {
                 <TableCell>
                   {company.specialties && company.specialties.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {company.specialties.slice(0, 2).map((specialty, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {specialty}
-                        </Badge>
-                      ))}
-                      {company.specialties.length > 2 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {company.specialties[0]}
+                      </Badge>
+                      {company.specialties.length > 1 && (
                         <Badge variant="secondary" className="text-xs">
-                          +{company.specialties.length - 2} more
+                          +{company.specialties.length - 1} more
                         </Badge>
                       )}
                     </div>
@@ -167,7 +160,7 @@ export function MarketplaceCompaniesTable() {
                     onClick={() => setViewingCompany(company)}
                     className="hover:bg-gray-100"
                   >
-                    View Details
+                    Details
                   </Button>
                 </TableCell>
               </TableRow>

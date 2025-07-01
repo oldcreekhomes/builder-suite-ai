@@ -35,7 +35,7 @@ export default function Companies() {
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
-                <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
+                <TabsTrigger value="marketplace-companies">Marketplace Companies</TabsTrigger>
                 <TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
               </TabsList>
               
