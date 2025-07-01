@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,6 +36,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   const queryClient = useQueryClient();
 
   const handlePlaceSelected = (place: any) => {
+    console.log('handlePlaceSelected called with:', place);
     const formData = createFormDataFromPlace(place);
     setCompanyName(formData.companyName);
     setAddress(formData.address);
@@ -161,7 +161,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto" style={{ zIndex: 50 }}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
         <DialogHeader className="pr-8">
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>

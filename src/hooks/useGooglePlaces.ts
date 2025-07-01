@@ -65,12 +65,13 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         style.id = 'google-autocomplete-styles';
         style.textContent = `
           .pac-container {
-            z-index: 99999 !important;
+            z-index: 999999 !important;
             border-radius: 8px !important;
             border: 1px solid #e2e8f0 !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
             background: white !important;
-            position: fixed !important;
+            position: absolute !important;
+            overflow: visible !important;
           }
           .pac-item {
             padding: 8px 12px !important;
@@ -78,7 +79,8 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
             cursor: pointer !important;
             background: white !important;
             position: relative !important;
-            z-index: 99999 !important;
+            z-index: 999999 !important;
+            pointer-events: auto !important;
           }
           .pac-item:hover {
             background-color: #f8fafc !important;
@@ -112,15 +114,18 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         }
       );
 
+      console.log('Google Places Autocomplete initialized');
+
       // Add event listener for place selection
       const placeChangedListener = () => {
         const place = autocompleteRef.current?.getPlace();
-        console.log('Place selected:', place);
+        console.log('Place changed event triggered:', place);
         
         if (place && place.name) {
+          console.log('Valid place selected, processing...', place.name);
           setIsLoadingGoogleData(true);
           
-          // Small delay to ensure UI updates
+          // Process the place selection
           setTimeout(() => {
             onPlaceSelected(place);
             setIsLoadingGoogleData(false);
@@ -135,13 +140,19 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
 
       autocompleteRef.current.addListener('place_changed', placeChangedListener);
 
-      // Also listen for direct clicks on pac-items
-      const handlePacItemClick = (event: Event) => {
+      // Add a more robust click handler
+      const handleDocumentClick = (event: Event) => {
         const target = event.target as HTMLElement;
-        if (target.closest('.pac-item')) {
-          // Trigger place_changed event manually after a small delay
+        const pacItem = target.closest('.pac-item');
+        
+        if (pacItem) {
+          console.log('PAC item clicked:', pacItem);
+          
+          // Force trigger the place_changed event
           setTimeout(() => {
             const place = autocompleteRef.current?.getPlace();
+            console.log('Place from clicked item:', place);
+            
             if (place && place.name) {
               onPlaceSelected(place);
               toast({
@@ -149,18 +160,18 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
                 description: "Company information loaded from Google Places",
               });
             }
-          }, 50);
+          }, 200);
         }
       };
 
-      // Add click listener to document to catch pac-item clicks
-      document.addEventListener('click', handlePacItemClick);
+      // Add click listener with capturing phase
+      document.addEventListener('click', handleDocumentClick, true);
 
       return () => {
         if (autocompleteRef.current) {
           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
-        document.removeEventListener('click', handlePacItemClick);
+        document.removeEventListener('click', handleDocumentClick, true);
       };
 
     } catch (error) {
