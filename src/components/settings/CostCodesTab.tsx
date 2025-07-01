@@ -42,41 +42,46 @@ export function CostCodesTab({
   onImportCostCodes,
   onBulkDeleteCostCodes
 }: CostCodesTabProps) {
-  // Get all parent codes that have children
-  const parentCodesWithChildren = new Set(
-    costCodes
-      .filter(cc => cc.parent_group)
-      .map(cc => cc.parent_group)
-      .filter(Boolean)
-  );
+  // Get all parent codes that have children - use a more stable approach
+  const parentCodesWithChildren = React.useMemo(() => {
+    const parents = new Set<string>();
+    costCodes.forEach(cc => {
+      if (cc.parent_group) {
+        parents.add(cc.parent_group);
+      }
+    });
+    return parents;
+  }, [costCodes]);
 
-  // Group cost codes by parent group, excluding parent codes that have children
-  const groupedCostCodes = costCodes.reduce((groups, costCode) => {
-    const parentGroup = costCode.parent_group;
+  // Group cost codes by parent group - improved logic to maintain stability
+  const groupedCostCodes = React.useMemo(() => {
+    const groups: Record<string, CostCode[]> = {};
     
-    // If this cost code is a parent with children, don't include it as an individual row
-    if (parentCodesWithChildren.has(costCode.code)) {
-      return groups;
-    }
+    costCodes.forEach(costCode => {
+      const parentGroup = costCode.parent_group;
+      
+      // If this cost code has a parent group, add it to that group
+      if (parentGroup) {
+        if (!groups[parentGroup]) {
+          groups[parentGroup] = [];
+        }
+        groups[parentGroup].push(costCode);
+      } else {
+        // If no parent group, add to ungrouped
+        if (!groups['ungrouped']) {
+          groups['ungrouped'] = [];
+        }
+        groups['ungrouped'].push(costCode);
+      }
+    });
     
-    if (parentGroup) {
-      if (!groups[parentGroup]) {
-        groups[parentGroup] = [];
-      }
-      groups[parentGroup].push(costCode);
-    } else {
-      if (!groups['ungrouped']) {
-        groups['ungrouped'] = [];
-      }
-      groups['ungrouped'].push(costCode);
-    }
     return groups;
-  }, {} as Record<string, typeof costCodes>);
+  }, [costCodes]);
 
   // Get parent cost code details for group headers
-  const getParentCostCode = (parentGroupCode: string) => {
+  const getParentCostCode = React.useCallback((parentGroupCode: string) => {
     return costCodes.find(cc => cc.code === parentGroupCode);
-  };
+  }, [costCodes]);
 
   return (
     <div className="space-y-4">
@@ -158,18 +163,23 @@ export function CostCodesTab({
                     />
                   )}
                   {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
-                    groupCostCodes.map((costCode) => (
-                      <CostCodeTableRow
-                        key={costCode.id}
-                        costCode={costCode}
-                        isSelected={selectedCostCodes.has(costCode.id)}
-                        onSelect={onCostCodeSelect}
-                        onEdit={onEditCostCode}
-                        onDelete={onDeleteCostCode}
-                        onUpdate={onUpdateCostCode}
-                        isGrouped={groupKey !== 'ungrouped'}
-                      />
-                    ))
+                    groupCostCodes
+                      .filter(costCode => {
+                        // Don't show parent codes as individual rows if they have children
+                        return !parentCodesWithChildren.has(costCode.code);
+                      })
+                      .map((costCode) => (
+                        <CostCodeTableRow
+                          key={costCode.id}
+                          costCode={costCode}
+                          isSelected={selectedCostCodes.has(costCode.id)}
+                          onSelect={onCostCodeSelect}
+                          onEdit={onEditCostCode}
+                          onDelete={onDeleteCostCode}
+                          onUpdate={onUpdateCostCode}
+                          isGrouped={groupKey !== 'ungrouped'}
+                        />
+                      ))
                   }
                 </React.Fragment>
               ))

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,17 +78,9 @@ export const useCostCodes = () => {
     }
   };
 
-  // Update cost code - optimized to maintain data structure
+  // Update cost code - improved to prevent UI flickering
   const updateCostCode = async (id: string, updates: any) => {
     try {
-      // Optimistically update the UI first
-      setCostCodes(prev => prev.map(cc => {
-        if (cc.id === id) {
-          return { ...cc, ...updates };
-        }
-        return cc;
-      }));
-
       // Prepare the update data with proper type handling
       const updateData: any = {};
       
@@ -110,13 +103,9 @@ export const useCostCodes = () => {
         .select()
         .single();
 
-      if (error) {
-        // Revert optimistic update on error
-        await fetchCostCodes();
-        throw error;
-      }
+      if (error) throw error;
       
-      // Update with the actual data from the server
+      // Update with the actual data from the server - single atomic update
       setCostCodes(prev => prev.map(cc => cc.id === id ? data : cc));
       
     } catch (error) {
