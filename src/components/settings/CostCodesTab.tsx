@@ -61,7 +61,7 @@ export function CostCodesTab({
       const parentGroup = costCode.parent_group;
       
       // If this cost code has a parent group, add it to that group
-      if (parentGroup) {
+      if (parentGroup && parentGroup.trim() !== '') {
         if (!groups[parentGroup]) {
           groups[parentGroup] = [];
         }
@@ -73,6 +73,11 @@ export function CostCodesTab({
         }
         groups['ungrouped'].push(costCode);
       }
+    });
+    
+    // Sort each group's cost codes by code for consistency
+    Object.keys(groups).forEach(groupKey => {
+      groups[groupKey].sort((a, b) => a.code.localeCompare(b.code));
     });
     
     return groups;
@@ -147,42 +152,50 @@ export function CostCodesTab({
                 </TableCell>
               </TableRow>
             ) : (
-              Object.entries(groupedCostCodes).map(([groupKey, groupCostCodes]) => (
-                <React.Fragment key={groupKey}>
-                  {groupKey !== 'ungrouped' && (
-                    <CostCodeGroupRow
-                      groupKey={groupKey}
-                      parentCostCode={getParentCostCode(groupKey)}
-                      isCollapsed={collapsedGroups.has(groupKey)}
-                      isSelected={getParentCostCode(groupKey) ? selectedCostCodes.has(getParentCostCode(groupKey)!.id) : false}
-                      onToggleCollapse={onToggleGroupCollapse}
-                      onSelect={onCostCodeSelect}
-                      onEdit={onEditCostCode}
-                      onDelete={onDeleteCostCode}
-                      onUpdate={onUpdateCostCode}
-                    />
-                  )}
-                  {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
-                    groupCostCodes
-                      .filter(costCode => {
-                        // Don't show parent codes as individual rows if they have children
-                        return !parentCodesWithChildren.has(costCode.code);
-                      })
-                      .map((costCode) => (
-                        <CostCodeTableRow
-                          key={costCode.id}
-                          costCode={costCode}
-                          isSelected={selectedCostCodes.has(costCode.id)}
-                          onSelect={onCostCodeSelect}
-                          onEdit={onEditCostCode}
-                          onDelete={onDeleteCostCode}
-                          onUpdate={onUpdateCostCode}
-                          isGrouped={groupKey !== 'ungrouped'}
-                        />
-                      ))
-                  }
-                </React.Fragment>
-              ))
+              // Sort groups to show ungrouped first, then alphabetically
+              Object.entries(groupedCostCodes)
+                .sort(([a], [b]) => {
+                  if (a === 'ungrouped') return -1;
+                  if (b === 'ungrouped') return 1;
+                  return a.localeCompare(b);
+                })
+                .map(([groupKey, groupCostCodes]) => (
+                  <React.Fragment key={`group-${groupKey}`}>
+                    {groupKey !== 'ungrouped' && (
+                      <CostCodeGroupRow
+                        groupKey={groupKey}
+                        parentCostCode={getParentCostCode(groupKey)}
+                        isCollapsed={collapsedGroups.has(groupKey)}
+                        isSelected={getParentCostCode(groupKey) ? selectedCostCodes.has(getParentCostCode(groupKey)!.id) : false}
+                        onToggleCollapse={onToggleGroupCollapse}
+                        onSelect={onCostCodeSelect}
+                        onEdit={onEditCostCode}
+                        onDelete={onDeleteCostCode}
+                        onUpdate={onUpdateCostCode}
+                      />
+                    )}
+                    {/* Always show cost codes that aren't parent codes, regardless of collapse state initially */}
+                    {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
+                      groupCostCodes
+                        .filter(costCode => {
+                          // Only hide parent codes that have children, show all other cost codes
+                          return !parentCodesWithChildren.has(costCode.code);
+                        })
+                        .map((costCode) => (
+                          <CostCodeTableRow
+                            key={`row-${costCode.id}`}
+                            costCode={costCode}
+                            isSelected={selectedCostCodes.has(costCode.id)}
+                            onSelect={onCostCodeSelect}
+                            onEdit={onEditCostCode}
+                            onDelete={onDeleteCostCode}
+                            onUpdate={onUpdateCostCode}
+                            isGrouped={groupKey !== 'ungrouped'}
+                          />
+                        ))
+                    }
+                  </React.Fragment>
+                ))
             )}
           </TableBody>
         </Table>
