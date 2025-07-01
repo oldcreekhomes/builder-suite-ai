@@ -145,11 +145,11 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
+        <DialogHeader className="pr-8">
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="companyName">Company Name *</Label>

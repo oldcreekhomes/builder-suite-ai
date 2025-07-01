@@ -69,7 +69,7 @@ export default function Companies() {
                   </div>
                   <Button onClick={() => setAddMarketplaceCompanyOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Marketplace Company
+                    Add Company
                   </Button>
                 </div>
                 <MarketplaceCompaniesTable />
