@@ -299,6 +299,51 @@ export type Database = {
           },
         ]
       }
+      project_bidding: {
+        Row: {
+          cost_code_id: string
+          created_at: string
+          id: string
+          project_id: string
+          quantity: number | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          cost_code_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+          quantity?: number | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cost_code_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          quantity?: number | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_bidding_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bidding_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_budgets: {
         Row: {
           cost_code_id: string

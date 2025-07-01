@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { BiddingTable } from "@/components/bidding/BiddingTable";
 
 export default function ProjectBidding() {
   const { projectId } = useParams();
@@ -50,10 +51,10 @@ export default function ProjectBidding() {
               <h2 className="text-2xl font-bold tracking-tight">Project Bidding</h2>
             </div>
 
-            <div className="border rounded-lg p-8 text-center text-gray-500">
-              <h3 className="text-lg font-medium mb-2">Bidding Management Coming Soon</h3>
-              <p>Project bidding features will be available here.</p>
-            </div>
+            <BiddingTable 
+              projectId={projectId} 
+              projectAddress={project?.address}
+            />
           </div>
         </SidebarInset>
       </div>
