@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Globe, MapPin, Users } from "lucide-react";
+import { Edit, Trash2, Globe, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -196,7 +196,7 @@ export function CompaniesTable() {
                       onClick={() => setEditingCompany(company)}
                       className="h-6 w-6 p-0 hover:bg-gray-100"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteCompanyMutation.mutate(company.id)}

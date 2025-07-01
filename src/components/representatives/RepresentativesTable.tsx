@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Mail, Phone } from "lucide-react";
+import { Edit, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
@@ -164,7 +165,7 @@ export function RepresentativesTable() {
                         onClick={() => handleEditClick(rep)}
                         className="h-6 w-6 p-0"
                       >
-                        <Pencil className="h-3 w-3" />
+                        <Edit className="h-3 w-3" />
                       </Button>
                       <DeleteButton
                         onDelete={() => deleteRepMutation.mutate(rep.id)}
