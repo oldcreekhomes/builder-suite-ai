@@ -29,8 +29,8 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingItemWithCostCode[]>>({});
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
-  // Fetch bidding items with cost codes
-  const { data: biddingItems = [], isLoading, refetch } = useQuery<BiddingItemWithCostCode[]>({
+  // Fetch bidding items with cost codes - remove generic type to avoid deep instantiation
+  const queryResult = useQuery({
     queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
       if (!projectId) return [];
@@ -77,6 +77,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
     },
     enabled: !!projectId,
   });
+
+  // Extract values with explicit typing
+  const biddingItems: BiddingItemWithCostCode[] = queryResult.data || [];
+  const isLoading = queryResult.isLoading;
+  const refetch = queryResult.refetch;
 
   // Group bidding items by cost code category/parent_group
   useEffect(() => {
