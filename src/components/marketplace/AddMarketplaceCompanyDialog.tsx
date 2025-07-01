@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -91,28 +90,34 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   useEffect(() => {
     if (!isGoogleLoaded || !companyNameRef.current || !open) return;
 
-    // Add custom CSS for autocomplete dropdown z-index
+    // Add custom CSS for autocomplete dropdown with higher z-index
     const addAutocompleteStyles = () => {
       if (!document.getElementById('google-autocomplete-styles')) {
         const style = document.createElement('style');
         style.id = 'google-autocomplete-styles';
         style.textContent = `
           .pac-container {
-            z-index: 9999 !important;
+            z-index: 99999 !important;
             border-radius: 8px !important;
             border: 1px solid #e2e8f0 !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            background: white !important;
           }
           .pac-item {
             padding: 8px 12px !important;
             border-bottom: 1px solid #f1f5f9 !important;
             cursor: pointer !important;
+            background: white !important;
           }
           .pac-item:hover {
             background-color: #f8fafc !important;
           }
-          .pac-item-selected {
+          .pac-item-selected,
+          .pac-item:active {
             background-color: #e2e8f0 !important;
+          }
+          .pac-matched {
+            font-weight: bold;
           }
         `;
         document.head.appendChild(style);
@@ -122,6 +127,11 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
     addAutocompleteStyles();
 
     try {
+      // Clear any existing autocomplete
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         companyNameRef.current,
         {
@@ -283,7 +293,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto" style={{ zIndex: 50 }}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto" style={{ zIndex: 9998 }}>
         <DialogHeader className="pr-8">
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>
