@@ -1,10 +1,10 @@
 
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, Search, Grid, List, Filter } from "lucide-react";
+import { ArrowLeft, Search, Grid, List, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
@@ -13,6 +13,7 @@ import { FileGrid } from "@/components/files/FileGrid";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
 import { FilePreviewModal } from "@/components/files/FilePreviewModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -35,9 +36,25 @@ export default function ProjectFiles() {
 
   const fileTypes = [...new Set(files.map(file => file.file_type))];
 
-  const handleFileSelect = (file: any) => {
-    setSelectedFile(file);
-    setShowPreview(true);
+  const handleFileSelect = async (file: any) => {
+    try {
+      // Get a signed URL and open directly in new tab
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(file.storage_path, 7200); // 2 hours expiry
+
+      if (error) throw error;
+
+      // Open the file in a new tab
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open file",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUploadSuccess = () => {
@@ -160,14 +177,6 @@ export default function ProjectFiles() {
             )}
           </div>
         </main>
-
-        {showPreview && selectedFile && (
-          <FilePreviewModal
-            file={selectedFile}
-            isOpen={showPreview}
-            onClose={() => setShowPreview(false)}
-          />
-        )}
       </div>
     </SidebarProvider>
   );
