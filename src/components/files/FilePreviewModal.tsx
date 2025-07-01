@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -33,10 +33,10 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
   const loadFileUrl = async () => {
     setLoading(true);
     try {
-      // Get a signed URL instead of downloading the file directly
+      // Get a signed URL with longer expiry for better user experience
       const { data, error } = await supabase.storage
         .from('project-files')
-        .createSignedUrl(file.storage_path, 3600); // 1 hour expiry
+        .createSignedUrl(file.storage_path, 7200); // 2 hours expiry
 
       if (error) throw error;
 
@@ -79,6 +79,12 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
     }
   };
 
+  const handleOpenInNewTab = () => {
+    if (fileUrl) {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -116,21 +122,40 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
 
     if (fileType === 'pdf') {
       return (
-        <iframe
-          src={fileUrl}
-          className="w-full h-[75vh]"
-          title={file.original_filename}
-        />
+        <div className="text-center py-12 space-y-4">
+          <p className="text-gray-600 mb-4">PDF Preview</p>
+          <div className="space-y-3">
+            <Button onClick={handleOpenInNewTab} className="mr-3">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in New Tab
+            </Button>
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          </div>
+          <p className="text-sm text-gray-500 mt-4">
+            Click "Open in New Tab" to view the PDF in your browser
+          </p>
+        </div>
       );
     }
 
     if (fileType === 'txt') {
       return (
-        <iframe
-          src={fileUrl}
-          className="w-full h-96 border border-gray-200 rounded"
-          title={file.original_filename}
-        />
+        <div className="text-center py-12 space-y-4">
+          <p className="text-gray-600 mb-4">Text File Preview</p>
+          <div className="space-y-3">
+            <Button onClick={handleOpenInNewTab} className="mr-3">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in New Tab
+            </Button>
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download File
+            </Button>
+          </div>
+        </div>
       );
     }
 
@@ -147,16 +172,24 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">
               {file.original_filename}
             </DialogTitle>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
+            <div className="flex space-x-2">
+              {fileUrl && (
+                <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open in New Tab
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
