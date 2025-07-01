@@ -30,9 +30,9 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
   // Fetch bidding items with cost codes
-  const { data: biddingItems = [], isLoading, refetch } = useQuery({
+  const { data: biddingItems = [], isLoading, refetch } = useQuery<BiddingItemWithCostCode[]>({
     queryKey: ['project-bidding', projectId, status],
-    queryFn: async (): Promise<BiddingItemWithCostCode[]> => {
+    queryFn: async () => {
       if (!projectId) return [];
 
       let query = supabase
@@ -55,7 +55,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       }
 
       // Transform the data to match our simplified interface
-      return (data || []).map(item => ({
+      const result: BiddingItemWithCostCode[] = (data || []).map((item: any) => ({
         id: item.id,
         project_id: item.project_id,
         cost_code_id: item.cost_code_id,
@@ -72,6 +72,8 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
           parent_group: item.cost_codes?.parent_group || null,
         }
       }));
+      
+      return result;
     },
     enabled: !!projectId,
   });
