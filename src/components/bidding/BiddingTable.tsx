@@ -31,12 +31,11 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     handleItemCheckboxChange,
     isGroupSelected,
     isGroupPartiallySelected,
-    calculateGroupTotal,
     removeDeletedItemsFromSelection,
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { deletingGroups, deletingItems, handleUpdateItem, handleDeleteItem, handleDeleteGroup } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup } = useBiddingMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBiddingItems[group] || [];
@@ -93,7 +92,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           <TableBody>
             {biddingItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                   {getEmptyStateMessage()}
                 </TableCell>
               </TableRow>
@@ -111,14 +110,12 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                       onEditGroup={() => {}}
                       onDeleteGroup={onDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
-                      groupTotal={calculateGroupTotal(items)}
                     />
                     
                     {expandedGroups.has(group) && items.map((item) => (
                       <BiddingTableRow
                         key={item.id}
                         item={item}
-                        onUpdate={handleUpdateItem}
                         onDelete={onDeleteItem}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}

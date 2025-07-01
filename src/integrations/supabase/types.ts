@@ -305,8 +305,6 @@ export type Database = {
           created_at: string
           id: string
           project_id: string
-          quantity: number | null
-          unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -314,8 +312,6 @@ export type Database = {
           created_at?: string
           id?: string
           project_id: string
-          quantity?: number | null
-          unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -323,8 +319,6 @@ export type Database = {
           created_at?: string
           id?: string
           project_id?: string
-          quantity?: number | null
-          unit_price?: number | null
           updated_at?: string
         }
         Relationships: [

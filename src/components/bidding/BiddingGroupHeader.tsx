@@ -15,7 +15,6 @@ interface BiddingGroupHeaderProps {
   onEditGroup: (group: string) => void;
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
-  groupTotal: number;
 }
 
 export function BiddingGroupHeader({ 
@@ -26,13 +25,8 @@ export function BiddingGroupHeader({
   isPartiallySelected, 
   onCheckboxChange,
   onDeleteGroup,
-  isDeleting = false,
-  groupTotal
+  isDeleting = false
 }: BiddingGroupHeaderProps) {
-  const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
-  };
-
   return (
     <TableRow className="bg-gray-50 h-10">
       <TableCell className="w-12 py-1">
@@ -47,7 +41,7 @@ export function BiddingGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={5} 
+        colSpan={3} 
         className="font-medium cursor-pointer hover:bg-gray-100 py-1 text-sm"
         onClick={() => onToggle(group)}
       >
@@ -59,9 +53,6 @@ export function BiddingGroupHeader({
           />
           {group}
         </div>
-      </TableCell>
-      <TableCell className="font-medium py-1 text-sm">
-        {formatCurrency(groupTotal)}
       </TableCell>
       <TableCell className="py-1">
         <div className="flex gap-1">

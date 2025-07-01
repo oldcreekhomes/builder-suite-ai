@@ -13,13 +13,11 @@ interface SimpleCostCode {
   parent_group: string | null;
 }
 
-// Simplified interface for bidding item with cost code
+// Simplified interface for bidding item with cost code (removed quantity and unit_price)
 interface BiddingItemWithCostCode {
   id: string;
   project_id: string;
   cost_code_id: string;
-  quantity: number | null;
-  unit_price: number | null;
   created_at: string;
   updated_at: string;
   cost_codes: SimpleCostCode;
@@ -29,8 +27,8 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingItemWithCostCode[]>>({});
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
-  // Fetch bidding items with cost codes - remove generic type to avoid deep instantiation
-  const queryResult = useQuery({
+  // Fetch bidding items with cost codes
+  const { data: biddingItems, isLoading, refetch } = useQuery({
     queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
       if (!projectId) return [];
@@ -59,8 +57,6 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         id: item.id,
         project_id: item.project_id,
         cost_code_id: item.cost_code_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
         created_at: item.created_at,
         updated_at: item.updated_at,
         cost_codes: {
@@ -76,16 +72,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       return result;
     },
     enabled: !!projectId,
-  });
-
-  // Extract values with explicit typing
-  const biddingItems: BiddingItemWithCostCode[] = queryResult.data || [];
-  const isLoading = queryResult.isLoading;
-  const refetch = queryResult.refetch;
+  }) as { data: BiddingItemWithCostCode[], isLoading: boolean, refetch: any };
 
   // Group bidding items by cost code category/parent_group
   useEffect(() => {
-    const grouped = biddingItems.reduce((acc, item) => {
+    const grouped = (biddingItems || []).reduce((acc, item) => {
       const costCode = item.cost_codes;
       const group = costCode?.parent_group || costCode?.category || 'Uncategorized';
       
@@ -97,11 +88,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
     }, {} as Record<string, BiddingItemWithCostCode[]>);
 
     setGroupedBiddingItems(grouped);
-    setExistingCostCodeIds(biddingItems.map(item => item.cost_code_id));
+    setExistingCostCodeIds((biddingItems || []).map(item => item.cost_code_id));
   }, [biddingItems]);
 
   return {
-    biddingItems,
+    biddingItems: biddingItems || [],
     groupedBiddingItems,
     existingCostCodeIds,
     isLoading,

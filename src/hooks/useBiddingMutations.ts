@@ -10,33 +10,6 @@ export const useBiddingMutations = (projectId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Update bidding item
-  const updateBiddingItem = useMutation({
-    mutationFn: async ({ id, quantity, unit_price }: { id: string; quantity: number; unit_price: number }) => {
-      const { error } = await supabase
-        .from('project_bidding')
-        .update({
-          quantity,
-          unit_price,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
-    },
-    onError: (error) => {
-      console.error('Error updating bidding item:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update bidding item",
-        variant: "destructive",
-      });
-    },
-  });
-
   // Delete bidding item
   const deleteBiddingItem = useMutation({
     mutationFn: async (itemId: string) => {
@@ -91,10 +64,6 @@ export const useBiddingMutations = (projectId: string) => {
     },
   });
 
-  const handleUpdateItem = (id: string, quantity: number, unit_price: number) => {
-    updateBiddingItem.mutate({ id, quantity, unit_price });
-  };
-
   const handleDeleteItem = (itemId: string) => {
     setDeletingItems(prev => new Set(prev).add(itemId));
     deleteBiddingItem.mutate(itemId, {
@@ -125,7 +94,6 @@ export const useBiddingMutations = (projectId: string) => {
   return {
     deletingGroups,
     deletingItems,
-    handleUpdateItem,
     handleDeleteItem,
     handleDeleteGroup,
   };
