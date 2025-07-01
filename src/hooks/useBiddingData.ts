@@ -2,12 +2,18 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 
-type CostCode = Tables<'cost_codes'>;
-type ProjectBidding = Tables<'project_bidding'>;
+// Simple interface for cost code to avoid deep type instantiation
+interface SimpleCostCode {
+  id: string;
+  code: string;
+  name: string;
+  unit_of_measure: string | null;
+  category: string | null;
+  parent_group: string | null;
+}
 
-// Simplified interface to avoid deep type instantiation
+// Simplified interface for bidding item with cost code
 interface BiddingItemWithCostCode {
   id: string;
   project_id: string;
@@ -16,7 +22,7 @@ interface BiddingItemWithCostCode {
   unit_price: number | null;
   created_at: string;
   updated_at: string;
-  cost_codes: CostCode;
+  cost_codes: SimpleCostCode;
 }
 
 export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'closed') => {
@@ -48,7 +54,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         throw error;
       }
 
-      // Transform the data to match our interface
+      // Transform the data to match our simplified interface
       return (data || []).map(item => ({
         id: item.id,
         project_id: item.project_id,
@@ -57,7 +63,14 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         unit_price: item.unit_price,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        cost_codes: item.cost_codes as CostCode
+        cost_codes: {
+          id: item.cost_codes?.id || '',
+          code: item.cost_codes?.code || '',
+          name: item.cost_codes?.name || '',
+          unit_of_measure: item.cost_codes?.unit_of_measure || null,
+          category: item.cost_codes?.category || null,
+          parent_group: item.cost_codes?.parent_group || null,
+        }
       }));
     },
     enabled: !!projectId,
