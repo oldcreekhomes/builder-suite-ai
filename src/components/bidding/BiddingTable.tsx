@@ -10,6 +10,7 @@ import { BiddingTableFooter } from './BiddingTableFooter';
 import { useBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBiddingMutations } from '@/hooks/useBiddingMutations';
+import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 
 interface BiddingTableProps {
@@ -36,6 +37,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   } = useBudgetGroups();
   
   const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup } = useBiddingMutations(projectId);
+  const { toggleBidStatus } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBiddingItems[group] || [];
@@ -75,6 +77,8 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const getLoadButtonText = () => {
     return status === 'draft' ? 'Load Bid Package' : 'View Bid Packages';
   };
+
+  const isReadOnly = status !== 'draft';
 
   return (
     <div className="space-y-4">
@@ -117,10 +121,12 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         key={item.id}
                         item={item}
                         onDelete={onDeleteItem}
+                        onToggleBidStatus={toggleBidStatus}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
                         isDeleting={deletingItems.has(item.id)}
+                        isReadOnly={isReadOnly}
                       />
                     ))}
                   </React.Fragment>

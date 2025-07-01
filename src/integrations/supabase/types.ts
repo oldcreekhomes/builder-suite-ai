@@ -305,6 +305,7 @@ export type Database = {
           created_at: string
           id: string
           project_id: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -312,6 +313,7 @@ export type Database = {
           created_at?: string
           id?: string
           project_id: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -319,6 +321,7 @@ export type Database = {
           created_at?: string
           id?: string
           project_id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -334,6 +337,48 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_bidding_companies: {
+        Row: {
+          bid_status: string
+          company_id: string
+          created_at: string
+          id: string
+          project_bidding_id: string
+          updated_at: string
+        }
+        Insert: {
+          bid_status?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          project_bidding_id: string
+          updated_at?: string
+        }
+        Update: {
+          bid_status?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          project_bidding_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_bidding_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bidding_companies_project_bidding_id_fkey"
+            columns: ["project_bidding_id"]
+            isOneToOne: false
+            referencedRelation: "project_bidding"
             referencedColumns: ["id"]
           },
         ]
