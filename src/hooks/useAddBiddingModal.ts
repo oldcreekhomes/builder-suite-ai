@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,10 +7,16 @@ interface CostCode {
   id: string;
   code: string;
   name: string;
-  unit_of_measure: string | null;
-  category: string | null;
-  parent_group: string | null;
+  unit_of_measure: string;
+  category: string;
+  parent_group: string;
   has_bidding: boolean;
+  has_specifications: boolean;
+  owner_id: string;
+  price: number;
+  quantity: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useAddBiddingModal = (projectId: string, existingCostCodeIds: string[]) => {
@@ -37,7 +42,16 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
         throw error;
       }
 
-      return data || [];
+      // Transform the data to handle nullable values
+      return (data || []).map(costCode => ({
+        ...costCode,
+        unit_of_measure: costCode.unit_of_measure || '',
+        category: costCode.category || 'Uncategorized',
+        parent_group: costCode.parent_group || 'General',
+        price: costCode.price || 0,
+        quantity: costCode.quantity || '',
+        has_specifications: costCode.has_specifications || false
+      }));
     },
     enabled: !!projectId,
   });
