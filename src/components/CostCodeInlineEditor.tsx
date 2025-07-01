@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X, Edit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Edit } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -114,7 +113,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
   if (!isEditing) {
     return (
       <div 
-        className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded group"
+        className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded group min-h-[32px]"
         onClick={() => setIsEditing(true)}
       >
         <span className="text-sm">{displayValue()}</span>
@@ -125,74 +124,81 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
 
   if (field === 'has_specifications' || field === 'has_bidding') {
     return (
-      <div className="flex items-center gap-2">
-        <Select value={value} onValueChange={setValue}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="yes">Yes</SelectItem>
-            <SelectItem value="no">No</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button size="sm" variant="ghost" onClick={handleSave}>
-          <Check className="h-4 w-4 text-green-600" />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={handleCancel}>
-          <X className="h-4 w-4 text-red-600" />
-        </Button>
-      </div>
+      <Select 
+        value={value} 
+        onValueChange={(newValue) => {
+          setValue(newValue);
+          // Auto-save for dropdowns
+          let updateData: any = {};
+          updateData[field] = newValue;
+          onUpdate(costCode.id, updateData);
+          setIsEditing(false);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsEditing(false);
+          }
+        }}
+      >
+        <SelectTrigger className="h-8 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="yes">Yes</SelectItem>
+          <SelectItem value="no">No</SelectItem>
+        </SelectContent>
+      </Select>
     );
   }
 
   if (field === 'unit_of_measure') {
     return (
-      <div className="flex items-center gap-2">
-        <Select value={value} onValueChange={setValue}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder="Select unit" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="each">Each</SelectItem>
-            <SelectItem value="square-feet">Square Feet</SelectItem>
-            <SelectItem value="linear-feet">Linear Feet</SelectItem>
-            <SelectItem value="square-yard">Square Yard</SelectItem>
-            <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button size="sm" variant="ghost" onClick={handleSave}>
-          <Check className="h-4 w-4 text-green-600" />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={handleCancel}>
-          <X className="h-4 w-4 text-red-600" />
-        </Button>
-      </div>
+      <Select 
+        value={value} 
+        onValueChange={(newValue) => {
+          setValue(newValue);
+          // Auto-save for dropdowns
+          let updateData: any = {};
+          updateData.unit_of_measure = newValue;
+          onUpdate(costCode.id, updateData);
+          setIsEditing(false);
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsEditing(false);
+          }
+        }}
+      >
+        <SelectTrigger className="h-8 text-sm">
+          <SelectValue placeholder="Select unit" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="each">Each</SelectItem>
+          <SelectItem value="square-feet">Square Feet</SelectItem>
+          <SelectItem value="linear-feet">Linear Feet</SelectItem>
+          <SelectItem value="square-yard">Square Yard</SelectItem>
+          <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+        </SelectContent>
+      </Select>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Input
-        type={field === 'price' ? 'number' : 'text'}
-        step={field === 'price' ? '0.01' : undefined}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="h-8 text-sm"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            handleSave();
-          } else if (e.key === 'Escape') {
-            handleCancel();
-          }
-        }}
-        autoFocus
-      />
-      <Button size="sm" variant="ghost" onClick={handleSave}>
-        <Check className="h-4 w-4 text-green-600" />
-      </Button>
-      <Button size="sm" variant="ghost" onClick={handleCancel}>
-        <X className="h-4 w-4 text-red-600" />
-      </Button>
-    </div>
+    <Input
+      type={field === 'price' ? 'number' : 'text'}
+      step={field === 'price' ? '0.01' : undefined}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      className="h-8 text-sm"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          handleSave();
+        } else if (e.key === 'Escape') {
+          handleCancel();
+        }
+      }}
+      onBlur={handleSave}
+      autoFocus
+    />
   );
 }
