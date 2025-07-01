@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -10,6 +11,7 @@ import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { AddCostCodeDialog } from "@/components/AddCostCodeDialog";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
 import { ExcelImportDialog } from "@/components/ExcelImportDialog";
+import { CostCodeInlineEditor } from "@/components/CostCodeInlineEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -89,21 +91,6 @@ const Settings = () => {
   // Get parent cost code details for group headers
   const getParentCostCode = (parentGroupCode: string) => {
     return costCodes.find(cc => cc.code === parentGroupCode);
-  };
-
-  // Function to format unit of measure to capital letters
-  const formatUnitOfMeasure = (unit: string | null) => {
-    if (!unit) return "-";
-    
-    const unitMap: Record<string, string> = {
-      "each": "EA",
-      "square-feet": "SF", 
-      "linear-feet": "LF",
-      "square-yard": "SY",
-      "cubic-yard": "CY"
-    };
-    
-    return unitMap[unit] || unit.toUpperCase();
   };
 
   const toggleGroupCollapse = (groupKey: string) => {
@@ -327,11 +314,51 @@ const Settings = () => {
                                     <TableCell className="font-semibold text-gray-700 py-1 text-sm">
                                       {getParentCostCode(groupKey)?.name}
                                     </TableCell>
-                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.quantity || "-"}</TableCell>
-                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.price ? `$${getParentCostCode(groupKey)?.price.toFixed(2)}` : "-"}</TableCell>
-                                    <TableCell className="py-1 text-sm">{formatUnitOfMeasure(getParentCostCode(groupKey)?.unit_of_measure)}</TableCell>
-                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.has_specifications ? "Yes" : "No"}</TableCell>
-                                    <TableCell className="py-1 text-sm">{getParentCostCode(groupKey)?.has_bidding ? "Yes" : "No"}</TableCell>
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <CostCodeInlineEditor
+                                          costCode={getParentCostCode(groupKey)!}
+                                          field="quantity"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <CostCodeInlineEditor
+                                          costCode={getParentCostCode(groupKey)!}
+                                          field="price"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <CostCodeInlineEditor
+                                          costCode={getParentCostCode(groupKey)!}
+                                          field="unit_of_measure"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <CostCodeInlineEditor
+                                          costCode={getParentCostCode(groupKey)!}
+                                          field="has_specifications"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                      {getParentCostCode(groupKey) && (
+                                        <CostCodeInlineEditor
+                                          costCode={getParentCostCode(groupKey)!}
+                                          field="has_bidding"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      )}
+                                    </TableCell>
                                     <TableCell className="py-1">
                                       {getParentCostCode(groupKey) && (
                                         <div className="flex gap-1">
@@ -377,11 +404,41 @@ const Settings = () => {
                                         {costCode.code}
                                       </TableCell>
                                       <TableCell className="py-1 text-sm">{costCode.name}</TableCell>
-                                      <TableCell className="py-1 text-sm">{costCode.quantity || "-"}</TableCell>
-                                      <TableCell className="py-1 text-sm">{costCode.price ? `$${costCode.price.toFixed(2)}` : "-"}</TableCell>
-                                      <TableCell className="py-1 text-sm">{formatUnitOfMeasure(costCode.unit_of_measure)}</TableCell>
-                                      <TableCell className="py-1 text-sm">{costCode.has_specifications ? "Yes" : "No"}</TableCell>
-                                      <TableCell className="py-1 text-sm">{costCode.has_bidding ? "Yes" : "No"}</TableCell>
+                                      <TableCell className="py-1">
+                                        <CostCodeInlineEditor
+                                          costCode={costCode}
+                                          field="quantity"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <CostCodeInlineEditor
+                                          costCode={costCode}
+                                          field="price"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <CostCodeInlineEditor
+                                          costCode={costCode}
+                                          field="unit_of_measure"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <CostCodeInlineEditor
+                                          costCode={costCode}
+                                          field="has_specifications"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <CostCodeInlineEditor
+                                          costCode={costCode}
+                                          field="has_bidding"
+                                          onUpdate={handleUpdateCostCode}
+                                        />
+                                      </TableCell>
                                       <TableCell className="py-1">
                                         <div className="flex gap-1">
                                           <Button 
