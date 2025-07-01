@@ -64,7 +64,7 @@ export function MarketplaceCompaniesTable() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading marketplace companies...</div>;
+    return <div className="p-4 text-sm">Loading marketplace companies...</div>;
   }
 
   return (
@@ -72,72 +72,72 @@ export function MarketplaceCompaniesTable() {
       <div className="bg-white rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Company Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead>Specialties</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Location</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Rating</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Specialties</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Contact</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {companies.map((company) => (
-              <TableRow key={company.id}>
-                <TableCell>
-                  <div className="font-medium">{company.company_name}</div>
+              <TableRow key={company.id} className="h-10">
+                <TableCell className="px-2 py-1">
+                  <div className="text-xs font-medium">{company.company_name}</div>
                 </TableCell>
-                <TableCell>
-                  <Badge className={getCompanyTypeColor(company.company_type)}>
+                <TableCell className="px-2 py-1">
+                  <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] px-1 py-0`}>
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   <div className="flex items-center space-x-1">
                     {company.address && (
                       <>
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600 truncate max-w-[150px]">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-600 truncate max-w-[120px]">
                           {company.address}
                         </span>
                       </>
                     )}
-                    {!company.address && <span className="text-gray-400">-</span>}
+                    {!company.address && <span className="text-gray-400 text-xs">-</span>}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   {company.rating && (
                     <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium">{company.rating}</span>
-                      <span className="text-sm text-gray-500">({company.review_count || 0})</span>
+                      <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                      <span className="text-xs font-medium">{company.rating}</span>
+                      <span className="text-xs text-gray-500">({company.review_count || 0})</span>
                     </div>
                   )}
-                  {!company.rating && <span className="text-gray-400">-</span>}
+                  {!company.rating && <span className="text-gray-400 text-xs">-</span>}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   {company.specialties && company.specialties.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0">
                         {company.specialties[0]}
                       </Badge>
                       {company.specialties.length > 1 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">
                           +{company.specialties.length - 1} more
                         </Badge>
                       )}
                     </div>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-400 text-xs">-</span>
                   )}
                 </TableCell>
-                <TableCell>
-                  <div className="flex flex-col space-y-1">
+                <TableCell className="px-2 py-1">
+                  <div className="flex flex-col space-y-0.5">
                     {company.phone_number && (
                       <div className="flex items-center space-x-1">
-                        <Phone className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs text-gray-600">{company.phone_number}</span>
+                        <Phone className="h-2.5 w-2.5 text-gray-400" />
+                        <span className="text-[10px] text-gray-600">{company.phone_number}</span>
                       </div>
                     )}
                     {company.website && (
@@ -147,18 +147,18 @@ export function MarketplaceCompaniesTable() {
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
                       >
-                        <Globe className="h-3 w-3" />
-                        <span className="text-xs">Website</span>
+                        <Globe className="h-2.5 w-2.5" />
+                        <span className="text-[10px]">Website</span>
                       </a>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="px-2 py-1 text-right">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewingCompany(company)}
-                    className="hover:bg-gray-100"
+                    className="h-6 px-2 text-xs hover:bg-gray-100"
                   >
                     Details
                   </Button>
@@ -168,7 +168,7 @@ export function MarketplaceCompaniesTable() {
 
             {companies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No marketplace companies found.
                 </TableCell>
               </TableRow>

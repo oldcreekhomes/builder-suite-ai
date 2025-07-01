@@ -109,7 +109,7 @@ export function MarketplaceRepresentativesTable() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading marketplace representatives...</div>;
+    return <div className="p-4 text-sm">Loading marketplace representatives...</div>;
   }
 
   return (
@@ -117,69 +117,69 @@ export function MarketplaceRepresentativesTable() {
       <div className="bg-white rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {representatives.map((rep) => (
-              <TableRow key={rep.id}>
-                <TableCell>
+              <TableRow key={rep.id} className="h-10">
+                <TableCell className="px-2 py-1">
                   <div className="flex flex-col">
-                    <div className="font-medium">
+                    <div className="text-xs font-medium">
                       {rep.first_name} {rep.last_name}
                     </div>
                     {rep.is_primary && (
-                      <Badge variant="secondary" className="text-xs mt-1 w-fit">
+                      <Badge variant="secondary" className="text-[10px] mt-0.5 w-fit px-1 py-0">
                         Primary Contact
                       </Badge>
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <div className="font-medium text-sm">
+                <TableCell className="px-2 py-1">
+                  <div className="text-xs font-medium">
                     {rep.marketplace_companies.company_name}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-xs w-fit`}>
+                <TableCell className="px-2 py-1">
+                  <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-[10px] w-fit px-1 py-0`}>
                     {rep.marketplace_companies.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   {rep.email ? (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Mail className="h-3 w-3 text-gray-400" />
-                      <span className="text-sm">{rep.email}</span>
+                      <span className="text-xs">{rep.email}</span>
                     </div>
                   ) : (
-                    <span className="text-gray-400 text-sm">-</span>
+                    <span className="text-gray-400 text-xs">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   {rep.phone_number ? (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-sm">{rep.phone_number}</span>
+                      <span className="text-xs">{rep.phone_number}</span>
                     </div>
                   ) : (
-                    <span className="text-gray-400 text-sm">-</span>
+                    <span className="text-gray-400 text-xs">-</span>
                   )}
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
+                <TableCell className="px-2 py-1">
+                  <div className="flex items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-gray-600 hover:text-gray-800"
+                      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
                       onClick={() => handleEditClick(rep)}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
@@ -194,7 +194,7 @@ export function MarketplaceRepresentativesTable() {
 
             {representatives.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
                   No marketplace representatives found.
                 </TableCell>
               </TableRow>

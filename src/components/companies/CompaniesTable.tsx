@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -113,7 +114,7 @@ export function CompaniesTable() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading companies...</div>;
+    return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
   return (
@@ -121,41 +122,41 @@ export function CompaniesTable() {
       <div className="bg-white rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Company Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Website</TableHead>
-              <TableHead>Representatives</TableHead>
-              <TableHead>Cost Codes</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {companies.map((company) => (
-              <TableRow key={company.id}>
-                <TableCell>
-                  <div className="font-medium">{company.company_name}</div>
+              <TableRow key={company.id} className="h-10">
+                <TableCell className="px-2 py-1">
+                  <div className="text-xs font-medium">{company.company_name}</div>
                 </TableCell>
-                <TableCell>
-                  <Badge className={getCompanyTypeColor(company.company_type)}>
+                <TableCell className="px-2 py-1">
+                  <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] px-1 py-0`}>
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   <div className="flex items-center space-x-1">
                     {company.address && (
                       <>
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600 truncate max-w-[200px]">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-600 truncate max-w-[150px]">
                           {company.address}
                         </span>
                       </>
                     )}
-                    {!company.address && <span className="text-gray-400">-</span>}
+                    {!company.address && <span className="text-gray-400 text-xs">-</span>}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   {company.website ? (
                     <a 
                       href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
@@ -163,29 +164,29 @@ export function CompaniesTable() {
                       rel="noopener noreferrer"
                       className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
                     >
-                      <Globe className="h-4 w-4" />
-                      <span className="text-sm">Website</span>
+                      <Globe className="h-3 w-3" />
+                      <span className="text-xs">Website</span>
                     </a>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-400 text-xs">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-2 py-1">
                   <div className="flex items-center space-x-1">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{company.representatives_count || 0}</span>
+                    <Users className="h-3 w-3 text-gray-400" />
+                    <span className="text-xs">{company.representatives_count || 0}</span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm">{company.cost_codes_count || 0}</span>
+                <TableCell className="px-2 py-1">
+                  <span className="text-xs">{company.cost_codes_count || 0}</span>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
+                <TableCell className="px-2 py-1 text-right">
+                  <div className="flex justify-end space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setViewingCompany(company)}
-                      className="hover:bg-gray-100"
+                      className="h-6 px-2 text-xs hover:bg-gray-100"
                     >
                       View
                     </Button>
@@ -193,9 +194,9 @@ export function CompaniesTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setEditingCompany(company)}
-                      className="hover:bg-gray-100"
+                      className="h-6 w-6 p-0 hover:bg-gray-100"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
                     <DeleteButton
                       onDelete={() => deleteCompanyMutation.mutate(company.id)}
@@ -210,7 +211,7 @@ export function CompaniesTable() {
 
             {companies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>

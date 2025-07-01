@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -104,7 +102,7 @@ export function RepresentativesTable() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-4">Loading representatives...</div>;
+    return <div className="text-center py-2 text-sm">Loading representatives...</div>;
   }
 
   return (
@@ -112,60 +110,61 @@ export function RepresentativesTable() {
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
             ) : (
               representatives.map((rep) => (
-                <TableRow key={rep.id}>
-                  <TableCell className="font-medium">
+                <TableRow key={rep.id} className="h-10">
+                  <TableCell className="px-2 py-1 text-xs font-medium">
                     {rep.first_name} {rep.last_name}
                   </TableCell>
-                  <TableCell>{rep.companies?.company_name}</TableCell>
-                  <TableCell>
+                  <TableCell className="px-2 py-1 text-xs">{rep.companies?.company_name}</TableCell>
+                  <TableCell className="px-2 py-1">
                     {rep.title && (
-                      <Badge className={getTypeColor(rep.title.toLowerCase())}>
+                      <Badge className={`${getTypeColor(rep.title.toLowerCase())} text-[10px] px-1 py-0`}>
                         {rep.title}
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-2 py-1">
                     {rep.email && (
                       <div className="flex items-center space-x-1">
-                        <Mail className="h-3 w-3 text-gray-400" />
-                        <span className="text-sm">{rep.email}</span>
+                        <Mail className="h-2.5 w-2.5 text-gray-400" />
+                        <span className="text-xs">{rep.email}</span>
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-2 py-1">
                     {rep.phone_number && (
                       <div className="flex items-center space-x-1">
-                        <Phone className="h-3 w-3 text-gray-400" />
-                        <span className="text-sm">{rep.phone_number}</span>
+                        <Phone className="h-2.5 w-2.5 text-gray-400" />
+                        <span className="text-xs">{rep.phone_number}</span>
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
+                  <TableCell className="px-2 py-1 text-right">
+                    <div className="flex justify-end space-x-1">
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleEditClick(rep)}
+                        className="h-6 w-6 p-0"
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="h-3 w-3" />
                       </Button>
                       <DeleteButton
                         onDelete={() => deleteRepMutation.mutate(rep.id)}
@@ -190,4 +189,3 @@ export function RepresentativesTable() {
     </>
   );
 }
-
