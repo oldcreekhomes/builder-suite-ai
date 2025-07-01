@@ -40,6 +40,10 @@ export function AddBiddingModal({ projectId, open, onOpenChange, existingCostCod
     onOpenChange(false);
   };
 
+  const handleCostCodeToggleWrapper = (costCodeId: string, checked: boolean) => {
+    handleCostCodeToggle(costCodeId);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -65,7 +69,7 @@ export function AddBiddingModal({ projectId, open, onOpenChange, existingCostCod
                 selectedCostCodes={selectedCostCodes}
                 onGroupToggle={handleGroupToggle}
                 onGroupCheckboxChange={handleGroupCheckboxChange}
-                onCostCodeToggle={handleCostCodeToggle}
+                onCostCodeToggle={handleCostCodeToggleWrapper}
               />
             ))}
           </div>
