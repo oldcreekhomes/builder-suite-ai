@@ -1,5 +1,5 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Table, 
   TableBody, 
@@ -9,8 +9,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Building2 } from "lucide-react";
+import { Mail, Phone, Building2, Edit, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarketplaceRepresentativeWithCompany {
   id: string;
@@ -28,6 +31,9 @@ interface MarketplaceRepresentativeWithCompany {
 }
 
 export function MarketplaceRepresentativesTable() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: representatives = [], isLoading } = useQuery({
     queryKey: ['marketplace-representatives'],
     queryFn: async () => {
@@ -44,6 +50,32 @@ export function MarketplaceRepresentativesTable() {
       
       if (error) throw error;
       return data as MarketplaceRepresentativeWithCompany[];
+    },
+  });
+
+  const deleteRepresentativeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('marketplace_company_representatives')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketplace-representatives'] });
+      toast({
+        title: "Success",
+        description: "Representative deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting representative:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete representative",
+        variant: "destructive",
+      });
     },
   });
 
@@ -72,72 +104,86 @@ export function MarketplaceRepresentativesTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Title</TableHead>
             <TableHead>Company</TableHead>
-            <TableHead>Contact Information</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {representatives.map((rep) => (
             <TableRow key={rep.id}>
               <TableCell>
-                <div className="font-medium">
-                  {rep.first_name} {rep.last_name}
+                <div className="flex flex-col">
+                  <div className="font-medium">
+                    {rep.first_name} {rep.last_name}
+                  </div>
+                  {rep.is_primary && (
+                    <Badge variant="secondary" className="text-xs mt-1 w-fit">
+                      Primary Contact
+                    </Badge>
+                  )}
                 </div>
               </TableCell>
               <TableCell>
-                {rep.title ? (
-                  <span className="text-sm">{rep.title}</span>
+                <div className="font-medium text-sm">
+                  {rep.marketplace_companies.company_name}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col space-y-1">
+                  <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-xs w-fit`}>
+                    {rep.marketplace_companies.company_type}
+                  </Badge>
+                  {rep.title && (
+                    <span className="text-sm text-gray-600">{rep.title}</span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                {rep.email ? (
+                  <div className="flex items-center space-x-2">
+                    <Mail className="h-3 w-3 text-gray-400" />
+                    <span className="text-sm">{rep.email}</span>
+                  </div>
                 ) : (
-                  <span className="text-gray-400">-</span>
+                  <span className="text-gray-400 text-sm">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {rep.phone_number ? (
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-3 w-3 text-gray-400" />
+                    <span className="text-sm">{rep.phone_number}</span>
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-sm">-</span>
                 )}
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <Building2 className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <div className="font-medium text-sm">
-                      {rep.marketplace_companies.company_name}
-                    </div>
-                    <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-xs`}>
-                      {rep.marketplace_companies.company_type}
-                    </Badge>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <DeleteButton
+                    onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
+                    title="Delete Representative"
+                    description="Are you sure you want to delete this representative? This action cannot be undone."
+                    isLoading={deleteRepresentativeMutation.isPending}
+                  />
                 </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  {rep.email && (
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-3 w-3 text-gray-400" />
-                      <span className="text-sm">{rep.email}</span>
-                    </div>
-                  )}
-                  {rep.phone_number && (
-                    <div className="flex items-center space-x-2">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-sm">{rep.phone_number}</span>
-                    </div>
-                  )}
-                  {!rep.email && !rep.phone_number && (
-                    <span className="text-gray-400 text-sm">No contact info</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                {rep.is_primary && (
-                  <Badge variant="secondary" className="text-xs">
-                    Primary Contact
-                  </Badge>
-                )}
               </TableCell>
             </TableRow>
           ))}
 
           {representatives.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                 No marketplace representatives found.
               </TableCell>
             </TableRow>
