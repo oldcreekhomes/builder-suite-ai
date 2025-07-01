@@ -12,10 +12,12 @@ import { RepresentativesTable } from "@/components/representatives/Representativ
 import { AddRepresentativeModal } from "@/components/representatives/AddRepresentativeModal";
 import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
 import { MarketplaceRepresentativesTable } from "@/components/marketplace/MarketplaceRepresentativesTable";
+import { AddMarketplaceCompanyDialog } from "@/components/marketplace/AddMarketplaceCompanyDialog";
 
 export default function Companies() {
   const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
+  const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
 
   return (
     <SidebarProvider>
@@ -65,6 +67,10 @@ export default function Companies() {
                     <h3 className="text-lg font-semibold">Marketplace Companies</h3>
                     <p className="text-sm text-gray-600">Browse companies available in the marketplace</p>
                   </div>
+                  <Button onClick={() => setAddMarketplaceCompanyOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Marketplace Company
+                  </Button>
                 </div>
                 <MarketplaceCompaniesTable />
               </TabsContent>
@@ -89,6 +95,11 @@ export default function Companies() {
           <AddRepresentativeModal 
             open={addRepresentativeOpen} 
             onOpenChange={setAddRepresentativeOpen} 
+          />
+
+          <AddMarketplaceCompanyDialog 
+            open={addMarketplaceCompanyOpen} 
+            onOpenChange={setAddMarketplaceCompanyOpen} 
           />
         </SidebarInset>
       </div>
