@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -33,7 +33,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
   });
 
   // Update form data when project changes
-  useState(() => {
+  useEffect(() => {
     if (project) {
       setFormData({
         name: project.name,
