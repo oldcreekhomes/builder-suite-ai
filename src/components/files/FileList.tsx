@@ -157,6 +157,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                       onFileSelect={onFileSelect}
                       onDownload={handleDownload}
                       onDelete={handleDelete}
+                      onRefresh={onRefresh}
                     />
                   ))}
                 </React.Fragment>

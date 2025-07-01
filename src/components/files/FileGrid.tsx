@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Eye, Trash2, Image, Folder, ChevronRight, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FileText, Download, Eye, Trash2, Image, Folder, ChevronRight, ChevronDown, Edit, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,8 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editNames, setEditNames] = useState<Record<string, string>>({});
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -99,6 +102,57 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
     if (b === 'Root') return 1;
     return a.localeCompare(b);
   });
+
+  const startEditingFile = (fileId: string, currentName: string) => {
+    setEditingFile(fileId);
+    setEditNames({ ...editNames, [fileId]: currentName });
+  };
+
+  const handleSaveEdit = async (fileId: string) => {
+    const newName = editNames[fileId];
+    if (!newName?.trim()) {
+      toast({
+        title: "Error",
+        description: "File name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ 
+          original_filename: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fileId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "File name updated successfully",
+      });
+      
+      setEditingFile(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating file name:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update file name",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = (fileId: string) => {
+    setEditingFile(null);
+    const newEditNames = { ...editNames };
+    delete newEditNames[fileId];
+    setEditNames(newEditNames);
+  };
 
   const uploadFileToFolder = async (file: File, folderName: string) => {
     if (!user) return false;
@@ -388,6 +442,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ml-8">
                 {folderFiles.map((file) => {
                   const displayInfo = getDisplayName(file.original_filename);
+                  const isEditing = editingFile === file.id;
                   
                   return (
                     <Card key={file.id} className="p-4 hover:shadow-md transition-shadow relative">
@@ -399,7 +454,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                         />
                       </div>
                       
-                      <div className="flex flex-col h-full cursor-pointer" onClick={() => onFileSelect(file)}>
+                      <div className="flex flex-col h-full">
                         <div className="flex items-center justify-between mb-3 mt-6">
                           {getFileIcon(file.file_type)}
                           <Badge className={getFileTypeColor(file.file_type)}>
@@ -407,11 +462,28 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                           </Badge>
                         </div>
                         
-                        <h3 className="font-semibold text-sm mb-2 line-clamp-2" title={displayInfo.fullPath}>
-                          {displayInfo.pathWithinFolder || displayInfo.fileName}
-                        </h3>
+                        {isEditing ? (
+                          <Input
+                            value={editNames[file.id] || ''}
+                            onChange={(e) => setEditNames({ ...editNames, [file.id]: e.target.value })}
+                            className="font-semibold text-sm mb-2"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(file.id);
+                              if (e.key === 'Escape') handleCancelEdit(file.id);
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <h3 
+                            className="font-semibold text-sm mb-2 line-clamp-2 cursor-pointer hover:text-blue-600" 
+                            title={displayInfo.fullPath}
+                            onClick={() => onFileSelect(file)}
+                          >
+                            {displayInfo.pathWithinFolder || displayInfo.fileName}
+                          </h3>
+                        )}
                         
-                        {file.description && (
+                        {file.description && !isEditing && (
                           <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                             {file.description}
                           </p>
@@ -426,27 +498,61 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                         </div>
                         
                         <div className="flex items-center justify-between mt-3 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onFileSelect(file)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownload(file)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(file)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isEditing ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSaveEdit(file.id)}
+                                className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCancelEdit(file.id)}
+                                className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditingFile(file.id, displayInfo.pathWithinFolder || displayInfo.fileName)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onFileSelect(file)}
+                                className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownload(file)}
+                                className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(file)}
+                                className="text-red-600 hover:text-red-800 hover:bg-red-100"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </Card>
