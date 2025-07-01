@@ -11,24 +11,29 @@ interface BiddingItemWithCostCode extends ProjectBidding {
   cost_codes: CostCode;
 }
 
-export const useBiddingData = (projectId: string) => {
+export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'closed') => {
   const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingItemWithCostCode[]>>({});
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
   // Fetch bidding items with cost codes
   const { data: biddingItems = [], isLoading, refetch } = useQuery({
-    queryKey: ['project-bidding', projectId],
+    queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
       if (!projectId) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('project_bidding')
         .select(`
           *,
           cost_codes (*)
         `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+        .eq('project_id', projectId);
+
+      // Filter by status if provided, otherwise default to 'draft'
+      const filterStatus = status || 'draft';
+      query = query.eq('status', filterStatus);
+
+      const { data, error } = await query.order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching bidding items:', error);

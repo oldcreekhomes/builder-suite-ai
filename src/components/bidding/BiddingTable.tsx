@@ -15,12 +15,13 @@ import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 interface BiddingTableProps {
   projectId: string;
   projectAddress?: string;
+  status: 'draft' | 'sent' | 'closed';
 }
 
-export function BiddingTable({ projectId, projectAddress }: BiddingTableProps) {
+export function BiddingTable({ projectId, projectAddress, status }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   
-  const { biddingItems, groupedBiddingItems, existingCostCodeIds } = useBiddingData(projectId);
+  const { biddingItems, groupedBiddingItems, existingCostCodeIds } = useBiddingData(projectId, status);
   
   const {
     expandedGroups,
@@ -59,13 +60,32 @@ export function BiddingTable({ projectId, projectAddress }: BiddingTableProps) {
     handleGroupCheckboxChange(group, checked, groupItems);
   };
 
+  const getEmptyStateMessage = () => {
+    switch (status) {
+      case 'draft':
+        return 'No draft bid packages yet.';
+      case 'sent':
+        return 'No sent bid packages yet.';
+      case 'closed':
+        return 'No closed bid packages yet.';
+      default:
+        return 'No bid packages found.';
+    }
+  };
+
+  const getLoadButtonText = () => {
+    return status === 'draft' ? 'Load Bid Package' : 'View Bid Packages';
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setShowAddBiddingModal(true)}>
-          Load Bid Package
-        </Button>
-      </div>
+      {status === 'draft' && (
+        <div className="flex items-center justify-end">
+          <Button onClick={() => setShowAddBiddingModal(true)}>
+            {getLoadButtonText()}
+          </Button>
+        </div>
+      )}
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
@@ -74,7 +94,7 @@ export function BiddingTable({ projectId, projectAddress }: BiddingTableProps) {
             {biddingItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                  No bid packages loaded yet.
+                  {getEmptyStateMessage()}
                 </TableCell>
               </TableRow>
             ) : (
@@ -116,12 +136,14 @@ export function BiddingTable({ projectId, projectAddress }: BiddingTableProps) {
 
       <BiddingTableFooter biddingItems={biddingItems} />
 
-      <AddBiddingModal
-        projectId={projectId}
-        open={showAddBiddingModal}
-        onOpenChange={setShowAddBiddingModal}
-        existingCostCodeIds={existingCostCodeIds}
-      />
+      {status === 'draft' && (
+        <AddBiddingModal
+          projectId={projectId}
+          open={showAddBiddingModal}
+          onOpenChange={setShowAddBiddingModal}
+          existingCostCodeIds={existingCostCodeIds}
+        />
+      )}
     </div>
   );
 }

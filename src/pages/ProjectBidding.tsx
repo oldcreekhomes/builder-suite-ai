@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BiddingTable } from "@/components/bidding/BiddingTable";
 
 export default function ProjectBidding() {
@@ -51,10 +52,37 @@ export default function ProjectBidding() {
               <h2 className="text-2xl font-bold tracking-tight">Project Bidding</h2>
             </div>
 
-            <BiddingTable 
-              projectId={projectId} 
-              projectAddress={project?.address}
-            />
+            <Tabs defaultValue="draft" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="draft">Draft</TabsTrigger>
+                <TabsTrigger value="sent">Sent</TabsTrigger>
+                <TabsTrigger value="closed">Closed</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="draft" className="mt-6">
+                <BiddingTable 
+                  projectId={projectId} 
+                  projectAddress={project?.address}
+                  status="draft"
+                />
+              </TabsContent>
+              
+              <TabsContent value="sent" className="mt-6">
+                <BiddingTable 
+                  projectId={projectId} 
+                  projectAddress={project?.address}
+                  status="sent"
+                />
+              </TabsContent>
+              
+              <TabsContent value="closed" className="mt-6">
+                <BiddingTable 
+                  projectId={projectId} 
+                  projectAddress={project?.address}
+                  status="closed"
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </SidebarInset>
       </div>
