@@ -60,10 +60,10 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
         updateData.unit_of_measure = value;
         break;
       case 'has_specifications':
-        updateData.has_specifications = value;
+        updateData.has_specifications = value === 'yes';
         break;
       case 'has_bidding':
-        updateData.has_bidding = value;
+        updateData.has_bidding = value === 'yes';
         break;
     }
     
@@ -128,9 +128,9 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
         value={value} 
         onValueChange={(newValue) => {
           setValue(newValue);
-          // Auto-save for dropdowns
+          // Auto-save for dropdowns with proper boolean conversion
           let updateData: any = {};
-          updateData[field] = newValue;
+          updateData[field] = newValue === 'yes';
           onUpdate(costCode.id, updateData);
           setIsEditing(false);
         }}

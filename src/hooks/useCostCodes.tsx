@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -78,34 +77,48 @@ export const useCostCodes = () => {
     }
   };
 
-  // Update cost code
+  // Update cost code - optimized to maintain data structure
   const updateCostCode = async (id: string, updates: any) => {
     try {
+      // Optimistically update the UI first
+      setCostCodes(prev => prev.map(cc => {
+        if (cc.id === id) {
+          return { ...cc, ...updates };
+        }
+        return cc;
+      }));
+
+      // Prepare the update data with proper type handling
+      const updateData: any = {};
+      
+      if (updates.code !== undefined) updateData.code = updates.code;
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.parent_group !== undefined) updateData.parent_group = updates.parent_group;
+      if (updates.quantity !== undefined) updateData.quantity = updates.quantity;
+      if (updates.price !== undefined) updateData.price = updates.price ? parseFloat(updates.price.toString()) : null;
+      if (updates.unit_of_measure !== undefined) updateData.unit_of_measure = updates.unit_of_measure;
+      if (updates.has_specifications !== undefined) updateData.has_specifications = Boolean(updates.has_specifications);
+      if (updates.has_bidding !== undefined) updateData.has_bidding = Boolean(updates.has_bidding);
+      
+      updateData.updated_at = new Date().toISOString();
+
       const { data, error } = await supabase
         .from('cost_codes')
-        .update({
-          code: updates.code,
-          name: updates.name,
-          category: updates.category || null,
-          parent_group: updates.parent_group || null,
-          quantity: updates.quantity || null,
-          price: updates.price ? parseFloat(updates.price.toString()) : null,
-          unit_of_measure: updates.unit_of_measure || null,
-          has_specifications: updates.has_specifications === 'yes',
-          has_bidding: updates.has_bidding === 'yes',
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Revert optimistic update on error
+        await fetchCostCodes();
+        throw error;
+      }
       
+      // Update with the actual data from the server
       setCostCodes(prev => prev.map(cc => cc.id === id ? data : cc));
-      toast({
-        title: "Success",
-        description: "Cost code updated successfully",
-      });
+      
     } catch (error) {
       console.error('Error updating cost code:', error);
       toast({
