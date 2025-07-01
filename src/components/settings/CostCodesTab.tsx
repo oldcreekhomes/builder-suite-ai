@@ -64,11 +64,14 @@ export function CostCodesTab({
       if (costCode.parent_group && costCode.parent_group.trim() !== '') {
         groupKey = costCode.parent_group;
       } else {
-        // If no explicit parent_group, check if this code should belong to a parent based on code prefix
-        const codePrefix = costCode.code.substring(0, 4); // Get first 4 characters
-        const potentialParent = costCodes.find(cc => cc.code === codePrefix && parentCodes.has(cc.code));
-        if (potentialParent) {
-          groupKey = codePrefix;
+        // If no explicit parent_group, try to find a matching parent by checking if the code starts with any parent code
+        const matchingParent = Array.from(parentCodes).find(parentCode => {
+          // Check if this cost code starts with the parent code (e.g., "4070" starts with "4000")
+          return costCode.code.startsWith(parentCode) && costCode.code !== parentCode;
+        });
+        
+        if (matchingParent) {
+          groupKey = matchingParent;
         }
       }
       
