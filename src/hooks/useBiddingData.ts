@@ -40,7 +40,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         throw error;
       }
 
-      return (data || []) as BiddingItemWithCostCode[];
+      // Explicitly type the return data to avoid deep type instantiation
+      return (data || []).map(item => ({
+        ...item,
+        cost_codes: item.cost_codes as CostCode
+      })) as BiddingItemWithCostCode[];
     },
     enabled: !!projectId,
   });
@@ -48,7 +52,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   // Group bidding items by cost code category/parent_group
   useEffect(() => {
     const grouped = biddingItems.reduce((acc, item) => {
-      const costCode = item.cost_codes as CostCode;
+      const costCode = item.cost_codes;
       const group = costCode?.parent_group || costCode?.category || 'Uncategorized';
       
       if (!acc[group]) {
