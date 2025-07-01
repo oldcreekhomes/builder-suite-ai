@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Table, 
@@ -132,14 +131,9 @@ export function MarketplaceRepresentativesTable() {
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex flex-col space-y-1">
-                  <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-xs w-fit`}>
-                    {rep.marketplace_companies.company_type}
-                  </Badge>
-                  {rep.title && (
-                    <span className="text-sm text-gray-600">{rep.title}</span>
-                  )}
-                </div>
+                <Badge className={`${getCompanyTypeColor(rep.marketplace_companies.company_type)} text-xs w-fit`}>
+                  {rep.marketplace_companies.company_type}
+                </Badge>
               </TableCell>
               <TableCell>
                 {rep.email ? (
