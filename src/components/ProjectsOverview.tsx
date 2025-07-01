@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -83,6 +82,11 @@ export function ProjectsOverview() {
     setEditingProject(project);
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    deleteProjectMutation.mutate(projectId);
+  };
+
   const filterProjectsByStatus = (status: string) => {
     return projects.filter(project => project.status === status);
   };
@@ -132,7 +136,7 @@ export function ProjectsOverview() {
               <Edit className="h-3 w-3" />
             </Button>
             <DeleteButton
-              onDelete={() => deleteProjectMutation.mutate(project.id)}
+              onDelete={(e) => handleDeleteClick(e, project.id)}
               title="Delete Project"
               description={`Are you sure you want to delete ${project.name}? This action cannot be undone and will also delete all associated data.`}
               isLoading={deleteProjectMutation.isPending}
