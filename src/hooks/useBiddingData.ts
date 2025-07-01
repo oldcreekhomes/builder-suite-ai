@@ -7,7 +7,15 @@ import type { Tables } from '@/integrations/supabase/types';
 type CostCode = Tables<'cost_codes'>;
 type ProjectBidding = Tables<'project_bidding'>;
 
-interface BiddingItemWithCostCode extends ProjectBidding {
+// Simplified interface to avoid deep type instantiation
+interface BiddingItemWithCostCode {
+  id: string;
+  project_id: string;
+  cost_code_id: string;
+  quantity: number | null;
+  unit_price: number | null;
+  created_at: string;
+  updated_at: string;
   cost_codes: CostCode;
 }
 
@@ -18,7 +26,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   // Fetch bidding items with cost codes
   const { data: biddingItems = [], isLoading, refetch } = useQuery({
     queryKey: ['project-bidding', projectId, status],
-    queryFn: async () => {
+    queryFn: async (): Promise<BiddingItemWithCostCode[]> => {
       if (!projectId) return [];
 
       let query = supabase
@@ -40,11 +48,17 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         throw error;
       }
 
-      // Explicitly type the return data to avoid deep type instantiation
+      // Transform the data to match our interface
       return (data || []).map(item => ({
-        ...item,
+        id: item.id,
+        project_id: item.project_id,
+        cost_code_id: item.cost_code_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
         cost_codes: item.cost_codes as CostCode
-      })) as BiddingItemWithCostCode[];
+      }));
     },
     enabled: !!projectId,
   });
