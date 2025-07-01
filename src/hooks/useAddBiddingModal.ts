@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,11 +32,17 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   const { data: costCodes = [] } = useQuery({
     queryKey: ['cost-codes-for-bidding', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('cost_codes')
         .select('*')
-        .eq('has_bidding', true)
-        .not('id', 'in', `(${existingCostCodeIds.join(',') || 'null'})`);
+        .eq('has_bidding', true);
+
+      // Only add the exclusion filter if there are existing cost code IDs
+      if (existingCostCodeIds.length > 0) {
+        query = query.not('id', 'in', `(${existingCostCodeIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching cost codes:', error);
