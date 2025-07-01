@@ -42,8 +42,8 @@ export function CostCodesTab({
   onImportCostCodes,
   onBulkDeleteCostCodes
 }: CostCodesTabProps) {
-  // Get all parent codes that have children - use a more stable approach
-  const parentCodesWithChildren = React.useMemo(() => {
+  // Find all parent codes - these are codes that other codes reference as parent_group
+  const parentCodes = React.useMemo(() => {
     const parents = new Set<string>();
     costCodes.forEach(cc => {
       if (cc.parent_group) {
@@ -53,26 +53,29 @@ export function CostCodesTab({
     return parents;
   }, [costCodes]);
 
-  // Group cost codes by parent group - improved logic to maintain stability
+  // Group cost codes by their parent group or by code prefix
   const groupedCostCodes = React.useMemo(() => {
     const groups: Record<string, CostCode[]> = {};
     
     costCodes.forEach(costCode => {
-      const parentGroup = costCode.parent_group;
+      let groupKey = 'ungrouped';
       
-      // If this cost code has a parent group, add it to that group
-      if (parentGroup && parentGroup.trim() !== '') {
-        if (!groups[parentGroup]) {
-          groups[parentGroup] = [];
-        }
-        groups[parentGroup].push(costCode);
+      // First, check if this cost code has an explicit parent_group
+      if (costCode.parent_group && costCode.parent_group.trim() !== '') {
+        groupKey = costCode.parent_group;
       } else {
-        // If no parent group, add to ungrouped
-        if (!groups['ungrouped']) {
-          groups['ungrouped'] = [];
+        // If no explicit parent_group, check if this code should belong to a parent based on code prefix
+        const codePrefix = costCode.code.substring(0, 4); // Get first 4 characters
+        const potentialParent = costCodes.find(cc => cc.code === codePrefix && parentCodes.has(cc.code));
+        if (potentialParent) {
+          groupKey = codePrefix;
         }
-        groups['ungrouped'].push(costCode);
       }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(costCode);
     });
     
     // Sort each group's cost codes by code for consistency
@@ -81,7 +84,7 @@ export function CostCodesTab({
     });
     
     return groups;
-  }, [costCodes]);
+  }, [costCodes, parentCodes]);
 
   // Get parent cost code details for group headers
   const getParentCostCode = React.useCallback((parentGroupCode: string) => {
@@ -174,12 +177,12 @@ export function CostCodesTab({
                         onUpdate={onUpdateCostCode}
                       />
                     )}
-                    {/* Always show cost codes that aren't parent codes, regardless of collapse state initially */}
+                    {/* Show child cost codes when group is expanded or ungrouped */}
                     {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
                       groupCostCodes
                         .filter(costCode => {
-                          // Only hide parent codes that have children, show all other cost codes
-                          return !parentCodesWithChildren.has(costCode.code);
+                          // Only show child codes (not the parent code itself in the child list)
+                          return !parentCodes.has(costCode.code);
                         })
                         .map((costCode) => (
                           <CostCodeTableRow
