@@ -5,12 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, Eye, Edit, Check, X, Image } from "lucide-react";
+import { FileText, Download, Eye, Edit, Check, X, Image, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatFileSize, getDisplayName, getFileTypeColor } from "../utils/fileGridUtils";
 import { DeleteButton } from "@/components/ui/delete-button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface FileGridCardProps {
   file: any;
@@ -18,9 +24,10 @@ interface FileGridCardProps {
   onSelectFile: (fileId: string, checked: boolean) => void;
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
+  onShare: (file: any) => void;
 }
 
-export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onRefresh }: FileGridCardProps) {
+export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onRefresh, onShare }: FileGridCardProps) {
   const { toast } = useToast();
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>('');
@@ -134,7 +141,9 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
   };
 
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow relative">
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card className="p-4 hover:shadow-md transition-shadow relative">
       <div className="absolute top-2 left-2 z-10">
         <Checkbox
           checked={isSelected}
@@ -245,5 +254,25 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
         </div>
       </div>
     </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onFileSelect(file)}>
+          <Eye className="h-4 w-4 mr-2" />
+          View
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => handleDownload(file)}>
+          <Download className="h-4 w-4 mr-2" />
+          Download
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onShare(file)}>
+          <Share2 className="h-4 w-4 mr-2" />
+          Create Link & Share
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => startEditingFile(file.id, displayInfo.pathWithinFolder || displayInfo.fileName)}>
+          <Edit className="h-4 w-4 mr-2" />
+          Rename
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

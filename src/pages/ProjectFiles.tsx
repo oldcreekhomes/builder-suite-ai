@@ -14,6 +14,8 @@ import { useProjectFiles } from "@/hooks/useProjectFiles";
 import { FilePreviewModal } from "@/components/files/FilePreviewModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { FileShareModal } from "@/components/files/components/FileShareModal";
+import { FolderShareModal } from "@/components/files/components/FolderShareModal";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -24,6 +26,10 @@ export default function ProjectFiles() {
   const [fileTypeFilter, setFileTypeFilter] = useState('all');
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showFileShareModal, setShowFileShareModal] = useState(false);
+  const [showFolderShareModal, setShowFolderShareModal] = useState(false);
+  const [shareFile, setShareFile] = useState<any>(null);
+  const [shareFolder, setShareFolder] = useState<{ folderPath: string; files: any[] } | null>(null);
 
   const { data: files = [], isLoading, refetch } = useProjectFiles(projectId || '');
 
@@ -63,6 +69,16 @@ export default function ProjectFiles() {
       title: "Success",
       description: "File uploaded successfully",
     });
+  };
+
+  const handleFileShare = (file: any) => {
+    setShareFile(file);
+    setShowFileShareModal(true);
+  };
+
+  const handleFolderShare = (folderPath: string, files: any[]) => {
+    setShareFolder({ folderPath, files });
+    setShowFolderShareModal(true);
   };
 
   if (!projectId) {
@@ -161,6 +177,8 @@ export default function ProjectFiles() {
                       // Handle folder upload
                       console.log('Upload to folder:', folderName, files);
                     }}
+                    onShare={handleFileShare}
+                    onShareFolder={handleFolderShare}
                   />
                 ) : (
                   <FileGrid
@@ -171,12 +189,34 @@ export default function ProjectFiles() {
                       // Handle folder upload
                       console.log('Upload to folder:', folderName, files);
                     }}
+                    onShare={handleFileShare}
+                    onShareFolder={handleFolderShare}
                   />
                 )}
               </>
             )}
           </div>
         </main>
+
+        <FileShareModal
+          isOpen={showFileShareModal}
+          onClose={() => {
+            setShowFileShareModal(false);
+            setShareFile(null);
+          }}
+          file={shareFile}
+        />
+
+        <FolderShareModal
+          isOpen={showFolderShareModal}
+          onClose={() => {
+            setShowFolderShareModal(false);
+            setShareFolder(null);
+          }}
+          folderPath={shareFolder?.folderPath || ''}
+          files={shareFolder?.files || []}
+          projectId={projectId || ''}
+        />
       </div>
     </SidebarProvider>
   );

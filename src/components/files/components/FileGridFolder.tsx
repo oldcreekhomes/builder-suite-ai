@@ -1,6 +1,12 @@
 
 import { Card } from "@/components/ui/card";
-import { Folder, ChevronRight, ChevronDown } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Download, Share2 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface FileGridFolderProps {
   folderPath: string;
@@ -11,6 +17,7 @@ interface FileGridFolderProps {
   onDragOver: (e: React.DragEvent, folderName: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, folderName: string) => void;
+  onShareFolder: (folderPath: string, files: any[]) => void;
 }
 
 export function FileGridFolder({
@@ -21,19 +28,31 @@ export function FileGridFolder({
   onToggleFolder,
   onDragOver,
   onDragLeave,
-  onDrop
+  onDrop,
+  onShareFolder,
 }: FileGridFolderProps) {
+  
+  const handleDownloadFolder = () => {
+    // TODO: Implement folder download
+    console.log('Download folder:', folderPath);
+  };
+
+  const handleShareFolder = () => {
+    onShareFolder(folderPath, folderFiles);
+  };
   return (
-    <Card 
-      className={`p-3 cursor-pointer transition-colors ${
-        isDragOver 
-          ? 'bg-blue-100 border-blue-300' 
-          : 'bg-gray-50 hover:bg-gray-100'
-      }`}
-      onDragOver={(e) => onDragOver(e, folderPath)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, folderPath)}
-    >
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card 
+          className={`p-3 cursor-pointer transition-colors ${
+            isDragOver 
+              ? 'bg-blue-100 border-blue-300' 
+              : 'bg-gray-50 hover:bg-gray-100'
+          }`}
+          onDragOver={(e) => onDragOver(e, folderPath)}
+          onDragLeave={onDragLeave}
+          onDrop={(e) => onDrop(e, folderPath)}
+        >
       <div 
         className="flex items-center space-x-3"
         onClick={() => onToggleFolder(folderPath)}
@@ -59,5 +78,17 @@ export function FileGridFolder({
         </div>
       </div>
     </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={handleDownloadFolder}>
+          <Download className="h-4 w-4 mr-2" />
+          Download All
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleShareFolder}>
+          <Share2 className="h-4 w-4 mr-2" />
+          Share
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

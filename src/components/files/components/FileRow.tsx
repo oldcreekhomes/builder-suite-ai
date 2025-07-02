@@ -5,12 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Download, Edit, Check, X } from "lucide-react";
+import { Download, Edit, Check, X, Share2, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { getDisplayName, formatFileSize, getFileTypeColor } from "../utils/fileUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface FileRowProps {
   file: any;
@@ -20,6 +26,7 @@ interface FileRowProps {
   onDownload: (file: any) => void;
   onDelete: (file: any) => void;
   onRefresh?: () => void;
+  onShare: (file: any) => void;
 }
 
 export function FileRow({
@@ -30,6 +37,7 @@ export function FileRow({
   onDownload,
   onDelete,
   onRefresh,
+  onShare,
 }: FileRowProps) {
   const displayInfo = getDisplayName(file.original_filename);
   const { toast } = useToast();
@@ -104,7 +112,9 @@ export function FileRow({
   };
 
   return (
-    <TableRow className="hover:bg-gray-50">
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <TableRow className="hover:bg-gray-50">
       <TableCell>
         <Checkbox
           checked={isSelected}
@@ -199,5 +209,25 @@ export function FileRow({
         </div>
       </TableCell>
     </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onFileSelect(file)}>
+          <Eye className="h-4 w-4 mr-2" />
+          View
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onDownload(file)}>
+          <Download className="h-4 w-4 mr-2" />
+          Download
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onShare(file)}>
+          <Share2 className="h-4 w-4 mr-2" />
+          Create Link & Share
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => setIsEditing(true)}>
+          <Edit className="h-4 w-4 mr-2" />
+          Rename
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

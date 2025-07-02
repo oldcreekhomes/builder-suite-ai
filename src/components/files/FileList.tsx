@@ -16,9 +16,11 @@ interface FileListProps {
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
   onUploadToFolder?: (folderName: string, files: File[]) => void;
+  onShare: (file: any) => void;
+  onShareFolder: (folderPath: string, files: any[]) => void;
 }
 
-export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: FileListProps) {
+export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onShare, onShareFolder }: FileListProps) {
   // Start with empty Set - all folders collapsed by default
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
@@ -147,6 +149,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                     onDragOver={handleFolderDragOver}
                     onDragLeave={handleFolderDragLeave}
                     onDrop={handleFolderDrop}
+                    onShareFolder={onShareFolder}
                   />
                   {isExpanded && folderFiles.map((file) => (
                     <FileRow
@@ -158,6 +161,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder }: F
                       onDownload={handleDownload}
                       onDelete={handleDelete}
                       onRefresh={onRefresh}
+                      onShare={onShare}
                     />
                   ))}
                 </React.Fragment>

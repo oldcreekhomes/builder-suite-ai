@@ -15,6 +15,7 @@ interface FolderHeaderProps {
   onDragOver: (e: React.DragEvent, folderName: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, folderName: string) => void;
+  onShareFolder: (folderPath: string, files: any[]) => void;
 }
 
 export function FolderHeader({
@@ -28,7 +29,17 @@ export function FolderHeader({
   onDragOver,
   onDragLeave,
   onDrop,
+  onShareFolder,
 }: FolderHeaderProps) {
+  
+  const handleDownloadFolder = () => {
+    // TODO: Implement folder download
+    console.log('Download folder:', folderPath);
+  };
+
+  const handleShareFolder = () => {
+    onShareFolder(folderPath, folderFiles);
+  };
   // Calculate folder depth for indentation
   const folderDepth = folderPath === 'Root' ? 0 : folderPath.split('/').length;
   const indentLevel = Math.max(0, folderDepth - 1);
