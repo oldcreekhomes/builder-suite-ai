@@ -15,10 +15,22 @@ interface SharedPhoto {
   uploaded_at: string;
 }
 
+interface SharedFile {
+  id: string;
+  original_filename: string;
+  file_size: number;
+  file_type: string;
+  storage_path: string;
+  project_id: string;
+  uploaded_by: string;
+  uploaded_at: string;
+}
+
 interface ShareData {
   shareId: string;
   folderPath: string;
-  photos: SharedPhoto[];
+  photos?: SharedPhoto[];
+  files?: SharedFile[];
   projectId: string;
   createdAt: string;
   expiresAt: string;
@@ -28,7 +40,9 @@ export default function SharedFolder() {
   const { shareId } = useParams();
   const { toast } = useToast();
   const [photos, setPhotos] = useState<SharedPhoto[]>([]);
+  const [files, setFiles] = useState<SharedFile[]>([]);
   const [folderName, setFolderName] = useState("");
+  const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
@@ -80,16 +94,22 @@ export default function SharedFolder() {
           return;
         }
 
-        // Set the folder data
-        setFolderName(shareData.folderPath === 'Root' ? 'Root Photos' : shareData.folderPath);
-        setPhotos(shareData.photos || []);
-        setIsLoading(false);
-        
-        console.log('Successfully loaded shared folder with', shareData.photos?.length || 0, 'photos');
-        
-        if (!shareData.photos || shareData.photos.length === 0) {
+        // Determine share type and set data accordingly
+        if (shareData.files && shareData.files.length > 0) {
+          setShareType('files');
+          setFolderName(shareData.folderPath === 'Root' ? 'Root Files' : shareData.folderPath);
+          setFiles(shareData.files);
+          console.log('Successfully loaded shared folder with', shareData.files.length, 'files');
+        } else if (shareData.photos && shareData.photos.length > 0) {
+          setShareType('photos');
+          setFolderName(shareData.folderPath === 'Root' ? 'Root Photos' : shareData.folderPath);
+          setPhotos(shareData.photos);
+          console.log('Successfully loaded shared folder with', shareData.photos.length, 'photos');
+        } else {
           setError('This shared folder is empty');
         }
+        
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading shared folder:', error);
         setError('Failed to load shared folder');
@@ -103,7 +123,8 @@ export default function SharedFolder() {
   }, [shareId]);
 
   const handleDownloadAll = async () => {
-    if (photos.length === 0) return;
+    const items = shareType === 'files' ? files : photos;
+    if (items.length === 0) return;
     
     setIsDownloading(true);
     const zip = new JSZip();
@@ -114,54 +135,69 @@ export default function SharedFolder() {
     });
 
     try {
-      // Add all photos to the zip
-      for (const photo of photos) {
-        try {
-          console.log('Downloading photo:', photo.url);
-          const response = await fetch(photo.url);
-          const blob = await response.blob();
-          
-          // Extract file extension from URL or use a default
-          const urlParts = photo.url.split('.');
-          const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
-          
-          // Create a filename, using description if available
-          let fileName = photo.description || `photo-${photo.id}`;
-          
-          // If description contains folder path, extract just the filename
-          if (fileName.includes('/')) {
-            fileName = fileName.split('/').pop() || fileName;
+      if (shareType === 'files') {
+        // Add all files to the zip
+        for (const file of files) {
+          try {
+            console.log('Downloading file:', file.original_filename);
+            // For files, we would need to get the actual file content from Supabase storage
+            // Since this is a share link, we'll need to create a temporary signed URL
+            // For now, we'll skip the actual file download since we don't have access
+            console.warn('File download from shared links not yet implemented');
+          } catch (error) {
+            console.error(`Failed to add ${file.original_filename} to zip:`, error);
           }
-          
-          // Ensure the filename has an extension
-          if (!fileName.includes('.')) {
-            fileName += `.${extension}`;
-          }
-          
-          zip.file(fileName, blob);
-          console.log('Added to zip:', fileName);
-        } catch (error) {
-          console.error(`Failed to add ${photo.description || photo.id} to zip:`, error);
         }
-      }
+      } else {
+        // Add all photos to the zip
+        for (const photo of photos) {
+          try {
+            console.log('Downloading photo:', photo.url);
+            const response = await fetch(photo.url);
+            const blob = await response.blob();
+            
+            // Extract file extension from URL or use a default
+            const urlParts = photo.url.split('.');
+            const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
+            
+            // Create a filename, using description if available
+            let fileName = photo.description || `photo-${photo.id}`;
+            
+            // If description contains folder path, extract just the filename
+            if (fileName.includes('/')) {
+              fileName = fileName.split('/').pop() || fileName;
+            }
+            
+            // Ensure the filename has an extension
+            if (!fileName.includes('.')) {
+              fileName += `.${extension}`;
+            }
+            
+            zip.file(fileName, blob);
+            console.log('Added to zip:', fileName);
+          } catch (error) {
+            console.error(`Failed to add ${photo.description || photo.id} to zip:`, error);
+          }
+        }
 
-      // Generate the zip file
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      
-      // Create download link
-      const url = window.URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${folderName}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Download Complete",
-        description: `${folderName}.zip has been downloaded with ${photos.length} photos`,
-      });
+        // Generate the zip file
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${folderName}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Download Complete",
+          description: `${folderName}.zip has been downloaded with ${photos.length} photos`,
+        });
+      }
     } catch (error) {
       console.error('Zip creation error:', error);
       toast({
@@ -172,6 +208,16 @@ export default function SharedFolder() {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handleFileDownload = async (file: SharedFile) => {
+    // For file downloads from shared links, we would need signed URLs
+    // This is a placeholder for now
+    toast({
+      title: "Download Not Available",
+      description: "File downloads from shared links are not yet supported",
+      variant: "destructive",
+    });
   };
 
   const handlePhotoDownload = async (photo: SharedPhoto) => {
@@ -243,7 +289,18 @@ export default function SharedFolder() {
     );
   }
 
-  if (photos.length === 0) {
+  if (shareType === 'files' && files.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">No Files Found</h1>
+          <p className="text-gray-600">The shared folder is empty.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (shareType === 'photos' && photos.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -254,6 +311,9 @@ export default function SharedFolder() {
     );
   }
 
+  const itemCount = shareType === 'files' ? files.length : photos.length;
+  const itemType = shareType === 'files' ? 'file' : 'photo';
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -262,7 +322,7 @@ export default function SharedFolder() {
             <Folder className="h-6 w-6 text-blue-500" />
             <h1 className="text-2xl font-bold text-black">{folderName}</h1>
             <span className="text-sm text-gray-500">
-              ({photos.length} photo{photos.length !== 1 ? 's' : ''})
+              ({itemCount} {itemType}{itemCount !== 1 ? 's' : ''})
             </span>
           </div>
         </div>
@@ -271,44 +331,73 @@ export default function SharedFolder() {
       <div className="flex justify-center py-4">
         <Button 
           onClick={handleDownloadAll}
-          disabled={isDownloading}
+          disabled={isDownloading || (shareType === 'files')}
           size="lg"
         >
           <Download className="h-4 w-4 mr-2" />
-          {isDownloading ? 'Preparing Download...' : `Download All (${photos.length} photos)`}
+          {isDownloading ? 'Preparing Download...' : 
+           shareType === 'files' ? 'Download Not Available' :
+           `Download All (${itemCount} ${itemType}s)`}
         </Button>
       </div>
 
       <div className="flex-1 p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {photos.map((photo) => (
-            <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <img
-                src={photo.url}
-                alt={photo.description || 'Photo'}
-                className="w-full h-48 object-cover"
-                onError={(e) => {
-                  console.error('Failed to load image:', photo.url);
-                  e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
-                }}
-              />
-              <div className="p-3">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {photo.description || 'Untitled Photo'}
-                </p>
+        {shareType === 'files' ? (
+          <div className="grid grid-cols-1 gap-4">
+            {files.map((file) => (
+              <div key={file.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900">{file.original_filename}</h3>
+                  <p className="text-sm text-gray-500">
+                    {file.file_type.toUpperCase()} • {Math.round(file.file_size / 1024)} KB
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
+                  </p>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePhotoDownload(photo)}
-                  className="mt-2 w-full"
+                  onClick={() => handleFileDownload(file)}
+                  disabled
                 >
-                  <Download className="h-3 w-3 mr-1" />
+                  <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {photos.map((photo) => (
+              <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <img
+                  src={photo.url}
+                  alt={photo.description || 'Photo'}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load image:', photo.url);
+                    e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                  }}
+                />
+                <div className="p-3">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {photo.description || 'Untitled Photo'}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePhotoDownload(photo)}
+                    className="mt-2 w-full"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
