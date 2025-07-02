@@ -70,11 +70,20 @@ export default function SharedFolder() {
         }
 
         // Retrieve share data from localStorage
-        const shareDataString = localStorage.getItem(`share_${shareId}`);
+        const shareKey = `share_${shareId}`;
+        console.log('Looking for localStorage key:', shareKey);
+        const shareDataString = localStorage.getItem(shareKey);
         
         if (!shareDataString) {
           console.error('Share data not found for shareId:', shareId);
-          console.error('Looking for key:', `share_${shareId}`);
+          console.error('Looking for key:', shareKey);
+          console.error('Available share keys in localStorage:');
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key?.startsWith('share_')) {
+              console.error('Found key:', key);
+            }
+          }
           setError('Share not found - the link may be invalid or expired');
           setIsLoading(false);
           return;
