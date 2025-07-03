@@ -24,7 +24,7 @@ export const useProject = (projectId: string) => {
         .from('projects')
         .select('*')
         .eq('id', projectId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching project:', error);
@@ -34,5 +34,7 @@ export const useProject = (projectId: string) => {
       return data as Project;
     },
     enabled: !!user && !!projectId,
+    staleTime: 0, // Always refetch to ensure fresh data
+    refetchOnWindowFocus: true,
   });
 };
