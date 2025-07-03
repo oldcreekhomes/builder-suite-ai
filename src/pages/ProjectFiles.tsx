@@ -11,6 +11,7 @@ import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 import { FileList } from "@/components/files/FileList";
 import { FileGrid } from "@/components/files/FileGrid";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
+import { useProject } from "@/hooks/useProject";
 import { FilePreviewModal } from "@/components/files/FilePreviewModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ export default function ProjectFiles() {
   const [shareFolder, setShareFolder] = useState<{ folderPath: string; files: any[] } | null>(null);
 
   const { data: files = [], isLoading, refetch } = useProjectFiles(projectId || '');
+  const { data: project } = useProject(projectId || '');
 
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,6 +111,9 @@ export default function ProjectFiles() {
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-black">Project Files</h1>
+                  {project?.address && (
+                    <p className="text-sm text-gray-600">{project.address}</p>
+                  )}
                 </div>
               </div>
               

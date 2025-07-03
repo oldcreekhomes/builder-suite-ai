@@ -11,6 +11,7 @@ import { PhotoUploadDropzone } from "@/components/photos/PhotoUploadDropzone";
 import { PhotoGrid } from "@/components/photos/PhotoGrid";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
+import { useProject } from "@/hooks/useProject";
 
 export default function ProjectPhotos() {
   const { projectId } = useParams();
@@ -21,6 +22,7 @@ export default function ProjectPhotos() {
   const [showViewer, setShowViewer] = useState(false);
 
   const { data: photos = [], isLoading, refetch } = useProjectPhotos(projectId || '');
+  const { data: project } = useProject(projectId || '');
 
   const filteredPhotos = photos.filter(photo => 
     photo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -72,6 +74,9 @@ export default function ProjectPhotos() {
                 </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-black">Project Photos</h1>
+                  {project?.address && (
+                    <p className="text-sm text-gray-600">{project.address}</p>
+                  )}
                 </div>
               </div>
               
