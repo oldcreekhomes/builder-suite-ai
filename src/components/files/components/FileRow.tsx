@@ -55,10 +55,17 @@ export function FileRow({
     }
 
     try {
+      // Preserve folder structure when renaming
+      const originalPath = file.original_filename;
+      const lastSlashIndex = originalPath.lastIndexOf('/');
+      const newFilename = lastSlashIndex !== -1 
+        ? originalPath.substring(0, lastSlashIndex + 1) + editName
+        : editName;
+
       const { error } = await supabase
         .from('project_files')
         .update({ 
-          original_filename: editName,
+          original_filename: newFilename,
           updated_at: new Date().toISOString()
         })
         .eq('id', file.id);
