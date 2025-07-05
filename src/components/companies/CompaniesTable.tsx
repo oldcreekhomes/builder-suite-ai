@@ -39,11 +39,13 @@ export function CompaniesTable() {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
+      console.log('Fetching companies...');
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
         .order('company_name');
       
+      console.log('Companies fetch result:', { companiesData, error: companiesError });
       if (companiesError) throw companiesError;
 
       // Get counts for representatives and cost codes
