@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { Building2, Check, X, Upload, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Building2, Upload, FileText } from 'lucide-react';
 
 interface Company {
   id: string;
@@ -37,10 +38,14 @@ export function BiddingCompanyList({
   onToggleBidStatus, 
   isReadOnly = false 
 }: BiddingCompanyListProps) {
+  const handleBidStatusChange = (companyId: string, newStatus: string) => {
+    onToggleBidStatus(biddingItemId, companyId, newStatus);
+  };
+
   if (companies.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={9} className="text-sm text-gray-500 italic text-center py-4">
+        <TableCell colSpan={8} className="text-sm text-gray-500 italic text-center py-4">
           No companies associated with this cost code
         </TableCell>
       </TableRow>
@@ -55,42 +60,25 @@ export function BiddingCompanyList({
           <TableCell className="py-1 text-sm" style={{ paddingLeft: '70px' }}>
             <div className="flex items-center space-x-2">
               <Building2 className="h-4 w-4 text-gray-400" />
-              <div>
-                <div className="font-medium text-sm">{biddingCompany.companies.company_name}</div>
-                <div className="text-xs text-gray-500">{biddingCompany.companies.company_type}</div>
+              <div className="font-medium text-sm whitespace-nowrap">
+                {biddingCompany.companies.company_name}
               </div>
             </div>
           </TableCell>
-          <TableCell className="py-1 text-sm">
-            <div className="flex items-center space-x-2">
-              <Badge 
-                variant={biddingCompany.bid_status === 'will_bid' ? 'default' : 'secondary'}
-                className={
-                  biddingCompany.bid_status === 'will_bid' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }
-              >
-                {biddingCompany.bid_status === 'will_bid' ? (
-                  <><Check className="h-3 w-3 mr-1" /> Will Bid</>
-                ) : (
-                  <><X className="h-3 w-3 mr-1" /> Will Not Bid</>
-                )}
-              </Badge>
-              {!isReadOnly && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onToggleBidStatus(
-                    biddingItemId, 
-                    biddingCompany.company_id, 
-                    biddingCompany.bid_status
-                  )}
-                >
-                  Toggle
-                </Button>
-              )}
-            </div>
+          <TableCell className="py-1">
+            <Select 
+              value={biddingCompany.bid_status} 
+              onValueChange={(value) => handleBidStatusChange(biddingCompany.company_id, value)}
+              disabled={isReadOnly}
+            >
+              <SelectTrigger className="w-28 h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white border shadow-md z-50">
+                <SelectItem value="will_bid">Will Bid</SelectItem>
+                <SelectItem value="will_not_bid">Will Not Bid</SelectItem>
+              </SelectContent>
+            </Select>
           </TableCell>
           <TableCell className="py-1">
             <Input
