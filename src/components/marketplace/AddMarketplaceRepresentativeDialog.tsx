@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +36,6 @@ const representativeSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone_number: z.string().optional(),
   title: z.string().optional(),
-  is_primary: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -60,7 +58,6 @@ export function AddMarketplaceRepresentativeDialog({ open, onOpenChange }: AddMa
       email: "",
       phone_number: "",
       title: "",
-      is_primary: false,
     },
   });
 
@@ -88,7 +85,6 @@ export function AddMarketplaceRepresentativeDialog({ open, onOpenChange }: AddMa
           email: data.email || null,
           phone_number: data.phone_number || null,
           title: data.title || null,
-          is_primary: data.is_primary,
         });
       
       if (error) throw error;
@@ -227,24 +223,6 @@ export function AddMarketplaceRepresentativeDialog({ open, onOpenChange }: AddMa
                       </SelectContent>
                   </Select>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="is_primary"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Primary Representative</FormLabel>
-                  </div>
                 </FormItem>
               )}
             />

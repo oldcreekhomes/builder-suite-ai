@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +36,6 @@ const representativeSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone_number: z.string().optional(),
   title: z.string().optional(),
-  is_primary: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -49,7 +47,6 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary: boolean;
 }
 
 interface EditRepresentativeDialogProps {
@@ -70,7 +67,6 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       email: "",
       phone_number: "",
       title: "",
-      is_primary: false,
     },
   });
 
@@ -83,7 +79,6 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         email: representative.email || "",
         phone_number: representative.phone_number || "",
         title: representative.title || "",
-        is_primary: representative.is_primary,
       });
     }
   }, [representative, form]);
@@ -213,24 +208,6 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                     </SelectContent>
                   </Select>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="is_primary"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Primary Representative</FormLabel>
-                  </div>
                 </FormItem>
               )}
             />

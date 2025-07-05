@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
@@ -38,7 +37,6 @@ const representativeSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone_number: z.string().optional(),
   title: z.string().optional(),
-  is_primary: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -51,7 +49,6 @@ interface MarketplaceRepresentativeWithCompany {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary?: boolean;
   marketplace_companies: {
     company_name: string;
     company_type: string;
@@ -81,7 +78,6 @@ export function EditMarketplaceRepresentativeDialog({
       email: "",
       phone_number: "",
       title: "",
-      is_primary: false,
     },
   });
 
@@ -111,7 +107,6 @@ export function EditMarketplaceRepresentativeDialog({
           email: data.email || null,
           phone_number: data.phone_number || null,
           title: data.title || null,
-          is_primary: data.is_primary,
         })
         .eq('id', representative.id);
       
@@ -145,7 +140,6 @@ export function EditMarketplaceRepresentativeDialog({
         email: representative.email || "",
         phone_number: representative.phone_number || "",
         title: representative.title || "",
-        is_primary: representative.is_primary || false,
       });
     }
   }, [representative, open, form]);
@@ -265,24 +259,6 @@ export function EditMarketplaceRepresentativeDialog({
                     </SelectContent>
                   </Select>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="is_primary"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Primary Representative</FormLabel>
-                  </div>
                 </FormItem>
               )}
             />
