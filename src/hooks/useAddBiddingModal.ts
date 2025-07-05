@@ -80,23 +80,61 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   // Create bidding items mutation
   const createBiddingItems = useMutation({
     mutationFn: async (costCodeIds: string[]) => {
+      // First, create the project bidding items
       const biddingItems = costCodeIds.map(costCodeId => ({
         project_id: projectId,
         cost_code_id: costCodeId,
         status: 'draft'
       }));
 
-      const { error } = await supabase
+      const { data: insertedBiddingItems, error: biddingError } = await supabase
         .from('project_bidding')
-        .insert(biddingItems);
+        .insert(biddingItems)
+        .select('id, cost_code_id');
 
-      if (error) throw error;
+      if (biddingError) throw biddingError;
+
+      // Get all companies associated with the selected cost codes
+      const { data: companyCostCodes, error: companyError } = await supabase
+        .from('company_cost_codes')
+        .select('company_id, cost_code_id')
+        .in('cost_code_id', costCodeIds);
+
+      if (companyError) throw companyError;
+
+      // Create project_bidding_companies entries
+      if (companyCostCodes && companyCostCodes.length > 0) {
+        const biddingCompanies = [];
+        
+        // For each company/cost code combination, find the corresponding bidding item
+        for (const companyCostCode of companyCostCodes) {
+          const biddingItem = insertedBiddingItems?.find(
+            item => item.cost_code_id === companyCostCode.cost_code_id
+          );
+          
+          if (biddingItem) {
+            biddingCompanies.push({
+              project_bidding_id: biddingItem.id,
+              company_id: companyCostCode.company_id,
+              bid_status: 'will_bid'
+            });
+          }
+        }
+
+        if (biddingCompanies.length > 0) {
+          const { error: companyBiddingError } = await supabase
+            .from('project_bidding_companies')
+            .insert(biddingCompanies);
+
+          if (companyBiddingError) throw companyBiddingError;
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       toast({
         title: "Success",
-        description: "Bidding items added successfully",
+        description: "Bidding items and associated companies loaded successfully",
       });
       setSelectedCostCodes(new Set());
     },
