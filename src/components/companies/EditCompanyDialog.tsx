@@ -61,7 +61,6 @@ interface EditCompanyDialogProps {
 export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedRepresentatives, setSelectedRepresentatives] = useState<string[]>([]);
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const initializationDone = useRef(false);
 
@@ -108,14 +107,13 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
 
-      setSelectedRepresentatives([]);
       initializationDone.current = true;
     }
   }, [company, open, form]);
 
   // Initialize cost codes only once when data loads
   useEffect(() => {
-    if (companyCostCodes.length > 0 && initializationDone.current) {
+    if (initializationDone.current) {
       console.log('Setting cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
     }
@@ -124,7 +122,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
-      setSelectedRepresentatives([]);
       setSelectedCostCodes([]);
       initializationDone.current = false;
       form.reset();
@@ -332,8 +329,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
             <RepresentativeSelector
               companyId={stableCompanyId || null}
-              selectedRepresentatives={selectedRepresentatives}
-              onRepresentativesChange={setSelectedRepresentatives}
             />
 
             <div className="flex justify-end space-x-4">

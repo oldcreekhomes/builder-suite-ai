@@ -1,112 +1,64 @@
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { X, Search } from "lucide-react";
 
 interface RepresentativeSelectorProps {
   companyId: string | null;
-  selectedRepresentatives: string[];
-  onRepresentativesChange: (representatives: string[]) => void;
 }
 
-export function RepresentativeSelector({ companyId, selectedRepresentatives, onRepresentativesChange }: RepresentativeSelectorProps) {
-  const [representativeSearch, setRepresentativeSearch] = useState("");
+export function RepresentativeSelector({ companyId }: RepresentativeSelectorProps) {
 
-  // Fetch representatives for selection
+  // Fetch representatives for this specific company
   const { data: representatives = [] } = useQuery({
-    queryKey: ['company-representatives'],
+    queryKey: ['company-representatives', companyId],
     queryFn: async () => {
+      if (!companyId) return [];
       const { data, error } = await supabase
         .from('company_representatives')
-        .select('id, first_name, last_name, company_id')
+        .select('id, first_name, last_name, company_id, title, email, phone_number')
+        .eq('company_id', companyId)
         .order('first_name');
       
       if (error) throw error;
       return data;
     },
+    enabled: !!companyId,
   });
-
-  // Filter representatives based on search
-  const filteredRepresentatives = representatives.filter(rep => 
-    rep.first_name.toLowerCase().includes(representativeSearch.toLowerCase()) ||
-    rep.last_name.toLowerCase().includes(representativeSearch.toLowerCase())
-  );
-
-  const handleRepresentativeToggle = (representativeId: string) => {
-    const newSelection = selectedRepresentatives.includes(representativeId)
-      ? selectedRepresentatives.filter(id => id !== representativeId)
-      : [...selectedRepresentatives, representativeId];
-    onRepresentativesChange(newSelection);
-  };
-
-  const removeRepresentative = (representativeId: string) => {
-    onRepresentativesChange(selectedRepresentatives.filter(id => id !== representativeId));
-  };
 
   return (
     <div className="space-y-4">
-      <FormLabel>Associated Representatives</FormLabel>
+      <FormLabel>Company Representatives</FormLabel>
       
-      {/* Selected representatives */}
-      {selectedRepresentatives.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
-          {selectedRepresentatives.map(representativeId => {
-            const representative = representatives.find(rep => rep.id === representativeId);
-            return representative ? (
-              <Badge key={representativeId} variant="secondary" className="flex items-center gap-1 text-xs">
-                {representative.first_name} {representative.last_name}
-                <X 
-                  className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                  onClick={() => removeRepresentative(representativeId)}
-                />
-              </Badge>
-            ) : null;
-          })}
-        </div>
-      )}
-
-      {/* Search input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Search representatives by name..."
-          value={representativeSearch}
-          onChange={(e) => setRepresentativeSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Representative selection */}
-      <div className="max-h-24 overflow-y-auto border rounded-md">
-        {filteredRepresentatives.length === 0 ? (
-          <div className="p-2 text-gray-500 text-center text-xs">
-            {representativeSearch ? 'No representatives found matching your search' : 'No representatives available'}
-          </div>
-        ) : (
-          filteredRepresentatives.map((representative) => (
-            <div
-              key={representative.id}
-              className="p-2 border-b hover:bg-gray-50 cursor-pointer"
-              onClick={() => handleRepresentativeToggle(representative.id)}
-            >
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={selectedRepresentatives.includes(representative.id)}
-                  onCheckedChange={() => handleRepresentativeToggle(representative.id)}
-                />
-                <div className="text-xs">
-                  {representative.first_name} {representative.last_name}
+      {/* Display existing representatives */}
+      {representatives.length > 0 ? (
+        <div className="space-y-2">
+          {representatives.map(representative => (
+            <div key={representative.id} className="p-3 bg-gray-50 rounded-md border">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-medium text-sm">
+                    {representative.first_name} {representative.last_name}
+                  </div>
+                  {representative.title && (
+                    <div className="text-xs text-gray-600">{representative.title}</div>
+                  )}
+                  {representative.email && (
+                    <div className="text-xs text-gray-600">{representative.email}</div>
+                  )}
+                  {representative.phone_number && (
+                    <div className="text-xs text-gray-600">{representative.phone_number}</div>
+                  )}
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-3 text-gray-500 text-center text-sm border rounded-md bg-gray-50">
+          No representatives found for this company
+        </div>
+      )}
     </div>
   );
 }
