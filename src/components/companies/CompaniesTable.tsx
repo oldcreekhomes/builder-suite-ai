@@ -72,6 +72,8 @@ export function CompaniesTable() {
 
       return companiesWithCounts as Company[];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Delete company mutation
