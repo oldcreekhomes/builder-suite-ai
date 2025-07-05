@@ -18,6 +18,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -193,9 +200,24 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter job title" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select title" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Estimator">Estimator</SelectItem>
+                      <SelectItem value="Project Manager">Project Manager</SelectItem>
+                      <SelectItem value="Foreman">Foreman</SelectItem>
+                      <SelectItem value="Superintendent">Superintendent</SelectItem>
+                      <SelectItem value="Sales Representative">Sales Representative</SelectItem>
+                      <SelectItem value="Office Manager">Office Manager</SelectItem>
+                      <SelectItem value="Owner">Owner</SelectItem>
+                      <SelectItem value="Vice President">Vice President</SelectItem>
+                      <SelectItem value="President">President</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
