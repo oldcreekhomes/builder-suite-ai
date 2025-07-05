@@ -91,6 +91,8 @@ export type Database = {
           is_primary: boolean | null
           last_name: string
           phone_number: string | null
+          receive_bid_notifications: boolean | null
+          receive_schedule_notifications: boolean | null
           title: string | null
           updated_at: string
         }
@@ -103,6 +105,8 @@ export type Database = {
           is_primary?: boolean | null
           last_name: string
           phone_number?: string | null
+          receive_bid_notifications?: boolean | null
+          receive_schedule_notifications?: boolean | null
           title?: string | null
           updated_at?: string
         }
@@ -115,6 +119,8 @@ export type Database = {
           is_primary?: boolean | null
           last_name?: string
           phone_number?: string | null
+          receive_bid_notifications?: boolean | null
+          receive_schedule_notifications?: boolean | null
           title?: string | null
           updated_at?: string
         }
