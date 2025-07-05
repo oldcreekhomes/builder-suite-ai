@@ -39,9 +39,7 @@ const representativeSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone_number: z.string().optional(),
   company_name: z.string().min(1, "Company is required"),
-  title: z.enum(["estimator", "project manager", "foreman"]),
-  receive_bid_notifications: z.boolean().default(false),
-  receive_schedule_notifications: z.boolean().default(false),
+  title: z.string().optional(),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -64,9 +62,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
       email: "",
       phone_number: "",
       company_name: "",
-      title: "estimator",
-      receive_bid_notifications: false,
-      receive_schedule_notifications: false,
+      title: "",
     },
   });
 
@@ -104,9 +100,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         email: data.email || null,
         phone_number: data.phone_number || null,
         company_id: selectedCompany.id,
-        title: data.title,
-        receive_bid_notifications: data.receive_bid_notifications,
-        receive_schedule_notifications: data.receive_schedule_notifications,
+        title: data.title || null,
       };
 
       const { data: representative, error } = await supabase
@@ -165,13 +159,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="general" className="space-y-4">
+            <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -236,19 +224,10 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="estimator">Estimator</SelectItem>
-                            <SelectItem value="project manager">Project Manager</SelectItem>
-                            <SelectItem value="foreman">Foreman</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter job title" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -294,46 +273,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                     </FormItem>
                   )}
                 />
-              </TabsContent>
-
-              <TabsContent value="notifications" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="receive_bid_notifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Receive Bid Notifications</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="receive_schedule_notifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Receive Schedule Notifications</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-            </Tabs>
+              </div>
 
             <div className="flex justify-end space-x-4 pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
