@@ -96,7 +96,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           <TableBody>
             {biddingItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   {getEmptyStateMessage()}
                 </TableCell>
               </TableRow>

@@ -34,6 +34,10 @@ interface BiddingItemWithCostCode {
   project_id: string;
   cost_code_id: string;
   status: string;
+  price: number | null;
+  proposals: string | null;
+  due_date: string | null;
+  reminder_date: string | null;
   created_at: string;
   updated_at: string;
   cost_codes: SimpleCostCode;
@@ -85,6 +89,10 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         project_id: item.project_id,
         cost_code_id: item.cost_code_id,
         status: item.status,
+        price: item.price || null,
+        proposals: item.proposals || null,
+        due_date: item.due_date || null,
+        reminder_date: item.reminder_date || null,
         created_at: item.created_at,
         updated_at: item.updated_at,
         cost_codes: {
