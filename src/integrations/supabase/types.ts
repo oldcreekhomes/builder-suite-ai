@@ -410,36 +410,24 @@ export type Database = {
         Row: {
           cost_code_id: string
           created_at: string
-          due_date: string | null
           id: string
-          price: number | null
           project_id: string
-          proposals: string | null
-          reminder_date: string | null
           status: string
           updated_at: string
         }
         Insert: {
           cost_code_id: string
           created_at?: string
-          due_date?: string | null
           id?: string
-          price?: number | null
           project_id: string
-          proposals?: string | null
-          reminder_date?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           cost_code_id?: string
           created_at?: string
-          due_date?: string | null
           id?: string
-          price?: number | null
           project_id?: string
-          proposals?: string | null
-          reminder_date?: string | null
           status?: string
           updated_at?: string
         }
@@ -465,24 +453,36 @@ export type Database = {
           bid_status: string
           company_id: string
           created_at: string
+          due_date: string | null
           id: string
+          price: number | null
           project_bidding_id: string
+          proposals: string | null
+          reminder_date: string | null
           updated_at: string
         }
         Insert: {
           bid_status?: string
           company_id: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          price?: number | null
           project_bidding_id: string
+          proposals?: string | null
+          reminder_date?: string | null
           updated_at?: string
         }
         Update: {
           bid_status?: string
           company_id?: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          price?: number | null
           project_bidding_id?: string
+          proposals?: string | null
+          reminder_date?: string | null
           updated_at?: string
         }
         Relationships: [

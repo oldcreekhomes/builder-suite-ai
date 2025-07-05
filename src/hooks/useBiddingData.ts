@@ -25,6 +25,10 @@ interface BiddingCompany {
   id: string;
   company_id: string;
   bid_status: 'will_bid' | 'will_not_bid';
+  price: number | null;
+  proposals: string | null;
+  due_date: string | null;
+  reminder_date: string | null;
   companies: SimpleCompany;
 }
 
@@ -34,10 +38,6 @@ interface BiddingItemWithCostCode {
   project_id: string;
   cost_code_id: string;
   status: string;
-  price: number | null;
-  proposals: string | null;
-  due_date: string | null;
-  reminder_date: string | null;
   created_at: string;
   updated_at: string;
   cost_codes: SimpleCostCode;
@@ -63,6 +63,10 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
             id,
             company_id,
             bid_status,
+            price,
+            proposals,
+            due_date,
+            reminder_date,
             companies (
               id,
               company_name,
@@ -89,10 +93,6 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
         project_id: item.project_id,
         cost_code_id: item.cost_code_id,
         status: item.status,
-        price: item.price || null,
-        proposals: item.proposals || null,
-        due_date: item.due_date || null,
-        reminder_date: item.reminder_date || null,
         created_at: item.created_at,
         updated_at: item.updated_at,
         cost_codes: {
@@ -107,6 +107,10 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
           id: pbc.id,
           company_id: pbc.company_id,
           bid_status: pbc.bid_status,
+          price: pbc.price || null,
+          proposals: pbc.proposals || null,
+          due_date: pbc.due_date || null,
+          reminder_date: pbc.reminder_date || null,
           companies: {
             id: pbc.companies?.id || '',
             company_name: pbc.companies?.company_name || '',
