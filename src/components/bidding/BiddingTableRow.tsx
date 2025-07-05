@@ -57,7 +57,6 @@ export function BiddingTableRow({
             {costCode?.code} - {costCode?.name}
           </div>
         </TableCell>
-        <TableCell className="py-1 text-sm"></TableCell>
         <TableCell className="py-1"></TableCell>
         <TableCell className="py-1"></TableCell>
         <TableCell className="py-1"></TableCell>

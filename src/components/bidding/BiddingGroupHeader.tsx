@@ -41,7 +41,7 @@ export function BiddingGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={6} 
+        colSpan={5} 
         className="font-medium cursor-pointer hover:bg-gray-100 py-1 text-sm"
         onClick={() => onToggle(group)}
       >
