@@ -9,6 +9,8 @@ import { ChevronDown, ChevronRight, Upload, Paperclip } from 'lucide-react';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { EditBiddingSpecificationsModal } from './EditBiddingSpecificationsModal';
+import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
+import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -68,6 +70,20 @@ export function BiddingTableRow({
       }
     };
     input.click();
+  };
+
+  const handleFilePreview = async (fileName: string) => {
+    try {
+      const { data } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(`specifications/${fileName}`);
+      
+      if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
   };
 
   return (
@@ -161,6 +177,26 @@ export function BiddingTableRow({
         </TableCell>
         <TableCell className="py-1">
           <div className="flex items-center justify-end space-x-2">
+            {/* Show specification files if they exist */}
+            {item.files && item.files.length > 0 && (
+              <div className="flex items-center space-x-1">
+                {item.files.map((fileName: string, index: number) => {
+                  const IconComponent = getFileIcon(fileName);
+                  const iconColorClass = getFileIconColor(fileName);
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleFilePreview(fileName)}
+                      className={`${iconColorClass} transition-colors p-1`}
+                      title={fileName}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            
             {!isReadOnly && (
               <>
                 <Button
