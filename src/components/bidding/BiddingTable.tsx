@@ -36,7 +36,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, updateDueDate, updateReminderDate, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
@@ -96,7 +96,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           <TableBody>
             {biddingItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   {getEmptyStateMessage()}
                 </TableCell>
               </TableRow>
@@ -121,6 +121,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         key={item.id}
                         item={item}
                         onDelete={onDeleteItem}
+                        onUpdateStatus={handleUpdateStatus}
                         onToggleBidStatus={toggleBidStatus}
                         onUpdatePrice={updatePrice}
                         onUpdateDueDate={updateDueDate}

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import type { Tables } from '@/integrations/supabase/types';
@@ -12,6 +13,7 @@ type CostCode = Tables<'cost_codes'>;
 interface BiddingTableRowProps {
   item: any; // Project bidding item with cost_codes relation and companies
   onDelete: (itemId: string) => void;
+  onUpdateStatus: (itemId: string, status: string) => void;
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
@@ -29,6 +31,7 @@ interface BiddingTableRowProps {
 export function BiddingTableRow({ 
   item, 
   onDelete,
+  onUpdateStatus,
   onToggleBidStatus,
   onUpdatePrice,
   onUpdateDueDate,
@@ -68,6 +71,22 @@ export function BiddingTableRow({
             </button>
             {costCode?.code} - {costCode?.name}
           </div>
+        </TableCell>
+        <TableCell className="py-1">
+          <Select 
+            value={item.status || 'draft'} 
+            onValueChange={(value) => onUpdateStatus(item.id, value)}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className="w-20 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border shadow-md z-50">
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
         </TableCell>
         <TableCell className="py-1"></TableCell>
         <TableCell className="py-1"></TableCell>

@@ -91,10 +91,42 @@ export const useBiddingMutations = (projectId: string) => {
     });
   };
 
+  // Update bidding item status
+  const updateBiddingStatus = useMutation({
+    mutationFn: async ({ itemId, status }: { itemId: string; status: string }) => {
+      const { error } = await supabase
+        .from('project_bidding')
+        .update({ status })
+        .eq('id', itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Bidding status updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating bidding status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bidding status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateStatus = (itemId: string, status: string) => {
+    updateBiddingStatus.mutate({ itemId, status });
+  };
+
   return {
     deletingGroups,
     deletingItems,
     handleDeleteItem,
     handleDeleteGroup,
+    handleUpdateStatus,
   };
 };
