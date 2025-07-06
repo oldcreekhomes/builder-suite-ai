@@ -239,7 +239,7 @@ export function BiddingCompanyList({
           <TableCell className="py-1">
             <div className="flex items-center space-x-2">
               {biddingCompany.proposals ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center space-x-2">
                   {(() => {
                     const IconComponent = getFileIcon(biddingCompany.proposals);
                     const iconColorClass = getFileIconColor(biddingCompany.proposals);
@@ -253,6 +253,16 @@ export function BiddingCompanyList({
                       </button>
                     );
                   })()}
+                  {!isReadOnly && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      onClick={() => handleFileUpload(biddingCompany.company_id)}
+                    >
+                      Replace
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Button
