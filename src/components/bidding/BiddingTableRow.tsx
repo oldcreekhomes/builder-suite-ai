@@ -61,6 +61,7 @@ export function BiddingTableRow({
         <TableCell className="py-1"></TableCell>
         <TableCell className="py-1"></TableCell>
         <TableCell className="py-1"></TableCell>
+        <TableCell className="py-1"></TableCell>
         <TableCell className="py-1">
           {!isReadOnly && (
             <DeleteButton

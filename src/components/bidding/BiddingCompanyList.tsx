@@ -82,13 +82,12 @@ export function BiddingCompanyList({
           <Button
             variant="outline"
             className={cn(
-              "w-32 h-8 text-sm justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              "w-8 h-8 text-sm justify-center",
+              date && "text-foreground"
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="mr-2 h-3 w-3" />
-            {date ? format(date, "MM/dd/yyyy") : <span>{placeholder}</span>}
+            <CalendarIcon className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -133,7 +132,7 @@ export function BiddingCompanyList({
               onValueChange={(value) => handleBidStatusChange(biddingCompany.company_id, value)}
               disabled={isReadOnly}
             >
-              <SelectTrigger className="w-20 h-8 text-sm">
+              <SelectTrigger className="w-14 h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border shadow-md z-50">
