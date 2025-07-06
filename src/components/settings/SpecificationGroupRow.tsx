@@ -68,7 +68,7 @@ export function SpecificationGroupRow({
         </span>
       </TableCell>
       <TableCell className="py-2 font-semibold">
-        {groupKey}
+        {parentCostCode ? parentCostCode.cost_code.name : groupKey}
       </TableCell>
       <TableCell className="py-2">
         {/* Empty description cell */}
