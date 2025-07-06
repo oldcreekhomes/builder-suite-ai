@@ -139,7 +139,7 @@ export type Database = {
           cost_code_id: string
           created_at: string
           description: string | null
-          files: Json | null
+          files: string[] | null
           id: string
           updated_at: string
         }
@@ -147,7 +147,7 @@ export type Database = {
           cost_code_id: string
           created_at?: string
           description?: string | null
-          files?: Json | null
+          files?: string[] | null
           id?: string
           updated_at?: string
         }
@@ -155,7 +155,7 @@ export type Database = {
           cost_code_id?: string
           created_at?: string
           description?: string | null
-          files?: Json | null
+          files?: string[] | null
           id?: string
           updated_at?: string
         }
