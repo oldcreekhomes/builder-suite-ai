@@ -86,7 +86,18 @@ export function SpecificationsTable({
             </TableRow>
           ) : (
             // Sort groups to show ungrouped first, then alphabetically
+            // Only show parent groups that have child specifications
             Object.entries(groupedSpecifications)
+              .filter(([groupKey, groupSpecifications]) => {
+                if (groupKey === 'ungrouped') return true;
+                
+                // Only show parent groups if they have child specifications
+                // (not counting the parent cost code itself)
+                const childSpecs = groupSpecifications.filter(spec => 
+                  !parentCodes.has(spec.cost_code.code)
+                );
+                return childSpecs.length > 0;
+              })
               .sort(([a], [b]) => {
                 if (a === 'ungrouped') return -1;
                 if (b === 'ungrouped') return 1;
