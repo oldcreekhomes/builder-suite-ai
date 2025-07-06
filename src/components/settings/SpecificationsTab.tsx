@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { BulkActionBar } from './BulkActionBar';
 import { SpecificationsTable } from './SpecificationsTable';
 import { useCostCodeGrouping } from '@/hooks/useCostCodeGrouping';
@@ -103,10 +101,6 @@ export function SpecificationsTab({
             onBulkDelete={onBulkDeleteSpecifications}
             label="specifications"
           />
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Specification
-          </Button>
         </div>
       </div>
       
