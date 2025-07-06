@@ -14,7 +14,7 @@ export const useBiddingMutations = (projectId: string) => {
   const deleteBiddingItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .delete()
         .eq('id', itemId);
 
@@ -24,14 +24,14 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       toast({
         title: "Success",
-        description: "Bidding item deleted successfully",
+        description: "Bidding package deleted successfully",
       });
     },
     onError: (error) => {
-      console.error('Error deleting bidding item:', error);
+      console.error('Error deleting bidding package:', error);
       toast({
         title: "Error",
-        description: "Failed to delete bidding item",
+        description: "Failed to delete bidding package",
         variant: "destructive",
       });
     },
@@ -41,7 +41,7 @@ export const useBiddingMutations = (projectId: string) => {
   const deleteBiddingGroup = useMutation({
     mutationFn: async (itemIds: string[]) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .delete()
         .in('id', itemIds);
 
@@ -91,11 +91,11 @@ export const useBiddingMutations = (projectId: string) => {
     });
   };
 
-  // Update bidding item status
+  // Update bidding package status
   const updateBiddingStatus = useMutation({
     mutationFn: async ({ itemId, status }: { itemId: string; status: string }) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .update({ status })
         .eq('id', itemId);
 
@@ -118,11 +118,11 @@ export const useBiddingMutations = (projectId: string) => {
     },
   });
 
-  // Update bidding item due date
+  // Update bidding package due date
   const updateBiddingDueDate = useMutation({
     mutationFn: async ({ itemId, dueDate }: { itemId: string; dueDate: string | null }) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .update({ due_date: dueDate })
         .eq('id', itemId);
 
@@ -145,11 +145,11 @@ export const useBiddingMutations = (projectId: string) => {
     },
   });
 
-  // Update bidding item reminder date
+  // Update bidding package reminder date
   const updateBiddingReminderDate = useMutation({
     mutationFn: async ({ itemId, reminderDate }: { itemId: string; reminderDate: string | null }) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .update({ reminder_date: reminderDate })
         .eq('id', itemId);
 
@@ -172,11 +172,11 @@ export const useBiddingMutations = (projectId: string) => {
     },
   });
 
-  // Update bidding item specifications
+  // Update bidding package specifications
   const updateBiddingSpecifications = useMutation({
     mutationFn: async ({ itemId, specifications }: { itemId: string; specifications: string }) => {
       const { error } = await supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .update({ specifications })
         .eq('id', itemId);
 

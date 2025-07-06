@@ -406,63 +406,6 @@ export type Database = {
           },
         ]
       }
-      project_bidding: {
-        Row: {
-          cost_code_id: string
-          created_at: string
-          due_date: string | null
-          id: string
-          name: string | null
-          project_id: string
-          reminder_date: string | null
-          reminder_day_of_week: number | null
-          specifications: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          cost_code_id: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          name?: string | null
-          project_id: string
-          reminder_date?: string | null
-          reminder_day_of_week?: number | null
-          specifications?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          cost_code_id?: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          name?: string | null
-          project_id?: string
-          reminder_date?: string | null
-          reminder_day_of_week?: number | null
-          specifications?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_bidding_cost_code_id_fkey"
-            columns: ["cost_code_id"]
-            isOneToOne: false
-            referencedRelation: "cost_codes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_bidding_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_bidding_bid_package_companies: {
         Row: {
           bid_package_id: string
@@ -517,62 +460,12 @@ export type Database = {
           },
         ]
       }
-      project_bidding_bid_package_files: {
-        Row: {
-          bid_package_id: string
-          file_size: number
-          file_type: string
-          filename: string
-          id: string
-          original_filename: string
-          storage_path: string
-          uploaded_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          bid_package_id: string
-          file_size: number
-          file_type: string
-          filename: string
-          id?: string
-          original_filename: string
-          storage_path: string
-          uploaded_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          bid_package_id?: string
-          file_size?: number
-          file_type?: string
-          filename?: string
-          id?: string
-          original_filename?: string
-          storage_path?: string
-          uploaded_at?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_bidding_bid_package_files_bid_package_id_fkey"
-            columns: ["bid_package_id"]
-            isOneToOne: false
-            referencedRelation: "project_bidding_bid_packages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_bidding_bid_package_files_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_bidding_bid_packages: {
         Row: {
           cost_code_id: string
           created_at: string
           due_date: string | null
+          files: string[] | null
           id: string
           name: string
           project_id: string
@@ -586,6 +479,7 @@ export type Database = {
           cost_code_id: string
           created_at?: string
           due_date?: string | null
+          files?: string[] | null
           id?: string
           name: string
           project_id: string
@@ -599,6 +493,7 @@ export type Database = {
           cost_code_id?: string
           created_at?: string
           due_date?: string | null
+          files?: string[] | null
           id?: string
           name?: string
           project_id?: string
@@ -621,60 +516,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_bidding_companies: {
-        Row: {
-          bid_status: string
-          company_id: string
-          created_at: string
-          due_date: string | null
-          id: string
-          price: number | null
-          project_bidding_id: string
-          proposals: string[] | null
-          reminder_date: string | null
-          updated_at: string
-        }
-        Insert: {
-          bid_status?: string
-          company_id: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          price?: number | null
-          project_bidding_id: string
-          proposals?: string[] | null
-          reminder_date?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bid_status?: string
-          company_id?: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          price?: number | null
-          project_bidding_id?: string
-          proposals?: string[] | null
-          reminder_date?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_bidding_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_bidding_companies_project_bidding_id_fkey"
-            columns: ["project_bidding_id"]
-            isOneToOne: false
-            referencedRelation: "project_bidding"
             referencedColumns: ["id"]
           },
         ]

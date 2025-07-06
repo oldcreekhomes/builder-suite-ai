@@ -26,47 +26,48 @@ interface BiddingCompany {
   company_id: string;
   bid_status: 'will_bid' | 'will_not_bid';
   price: number | null;
-  proposals: string | null;
-  due_date: string | null;
-  reminder_date: string | null;
+  proposals: string[] | null;
   companies: SimpleCompany;
 }
 
-// Simplified interface for bidding item with cost code and companies
-interface BiddingItemWithCostCode {
+// Simplified interface for bidding package with cost code and companies
+interface BiddingPackageWithCostCode {
   id: string;
   project_id: string;
   cost_code_id: string;
+  name: string;
   status: string;
+  due_date: string | null;
+  reminder_date: string | null;
+  specifications: string | null;
+  files: string[] | null;
   created_at: string;
   updated_at: string;
   cost_codes: SimpleCostCode;
-  project_bidding_companies: BiddingCompany[];
+  project_bidding_bid_package_companies: BiddingCompany[];
 }
 
 export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'closed') => {
-  const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingItemWithCostCode[]>>({});
+  const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingPackageWithCostCode[]>>({});
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
-  // Fetch bidding items with cost codes and companies
+  // Fetch bidding packages with cost codes and companies
   const { data: biddingItems, isLoading, refetch } = useQuery({
     queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
       if (!projectId) return [];
 
       let query = supabase
-        .from('project_bidding')
+        .from('project_bidding_bid_packages')
         .select(`
           *,
           cost_codes (*),
-          project_bidding_companies (
+          project_bidding_bid_package_companies (
             id,
             company_id,
             bid_status,
             price,
             proposals,
-            due_date,
-            reminder_date,
             companies (
               id,
               company_name,
@@ -83,16 +84,21 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       const { data, error } = await query.order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching bidding items:', error);
+        console.error('Error fetching bidding packages:', error);
         throw error;
       }
 
       // Transform the data to match our simplified interface
-      const result: BiddingItemWithCostCode[] = (data || []).map((item: any) => ({
+      const result: BiddingPackageWithCostCode[] = (data || []).map((item: any) => ({
         id: item.id,
         project_id: item.project_id,
         cost_code_id: item.cost_code_id,
+        name: item.name || '',
         status: item.status,
+        due_date: item.due_date,
+        reminder_date: item.reminder_date,
+        specifications: item.specifications,
+        files: item.files || [],
         created_at: item.created_at,
         updated_at: item.updated_at,
         cost_codes: {
@@ -103,14 +109,12 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
           category: item.cost_codes?.category || null,
           parent_group: item.cost_codes?.parent_group || null,
         },
-        project_bidding_companies: (item.project_bidding_companies || []).map((pbc: any) => ({
+        project_bidding_bid_package_companies: (item.project_bidding_bid_package_companies || []).map((pbc: any) => ({
           id: pbc.id,
           company_id: pbc.company_id,
           bid_status: pbc.bid_status,
           price: pbc.price || null,
-          proposals: pbc.proposals || null,
-          due_date: pbc.due_date || null,
-          reminder_date: pbc.reminder_date || null,
+          proposals: pbc.proposals || [],
           companies: {
             id: pbc.companies?.id || '',
             company_name: pbc.companies?.company_name || '',
@@ -124,7 +128,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
     enabled: !!projectId,
   });
 
-  // Group bidding items by cost code category/parent_group
+  // Group bidding packages by cost code category/parent_group
   useEffect(() => {
     const grouped = (biddingItems || []).reduce((acc, item) => {
       const costCode = item.cost_codes;
@@ -135,7 +139,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       }
       acc[group].push(item);
       return acc;
-    }, {} as Record<string, BiddingItemWithCostCode[]>);
+    }, {} as Record<string, BiddingPackageWithCostCode[]>);
 
     setGroupedBiddingItems(grouped);
     setExistingCostCodeIds((biddingItems || []).map(item => item.cost_code_id));

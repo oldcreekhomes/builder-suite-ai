@@ -15,8 +15,6 @@ interface BiddingCompany {
   bid_status: 'will_bid' | 'will_not_bid';
   price: number | null;
   proposals: string[] | null;
-  due_date: string | null;
-  reminder_date: string | null;
   companies: Company;
 }
 
