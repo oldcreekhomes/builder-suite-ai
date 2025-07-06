@@ -4,11 +4,11 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Upload } from 'lucide-react';
+import { ChevronDown, ChevronRight, Upload, Paperclip } from 'lucide-react';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
+import { EditBiddingSpecificationsModal } from './EditBiddingSpecificationsModal';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -52,6 +52,7 @@ export function BiddingTableRow({
 }: BiddingTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showSpecsModal, setShowSpecsModal] = useState(false);
   const costCode = item.cost_codes as CostCode;
 
   const handleFileUpload = () => {
@@ -133,14 +134,29 @@ export function BiddingTableRow({
           />
         </TableCell>
         <TableCell className="py-1">
-          <div className="max-w-[200px]">
-            <Textarea
-              value={item.specifications || ''}
-              onChange={(e) => onUpdateSpecifications(item.id, e.target.value)}
-              placeholder="Specifications..."
-              className="min-h-[32px] h-8 text-sm resize-none"
-              disabled={isReadOnly}
-            />
+          <div className="flex items-center justify-center">
+            {item.specifications && item.specifications.trim() !== '' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSpecsModal(true)}
+                className="h-8 w-8 p-0"
+                title="View/Edit Specifications"
+                disabled={isReadOnly}
+              >
+                <Paperclip className="h-4 w-4 text-blue-600" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSpecsModal(true)}
+                className="h-8 text-xs px-2"
+                disabled={isReadOnly}
+              >
+                Add Specs
+              </Button>
+            )}
           </div>
         </TableCell>
         <TableCell className="py-1">
@@ -184,6 +200,17 @@ export function BiddingTableRow({
           isReadOnly={isReadOnly}
         />
       )}
+      
+      <EditBiddingSpecificationsModal
+        open={showSpecsModal}
+        onOpenChange={setShowSpecsModal}
+        costCodeName={costCode?.name || ''}
+        costCodeCode={costCode?.code || ''}
+        specifications={item.specifications || ''}
+        onUpdateSpecifications={async (specifications) => {
+          await onUpdateSpecifications(item.id, specifications);
+        }}
+      />
     </>
   );
 }
