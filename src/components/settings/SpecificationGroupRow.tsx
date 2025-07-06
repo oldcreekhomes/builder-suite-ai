@@ -43,7 +43,7 @@ export function SpecificationGroupRow({
   return (
     <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">
       <TableCell className="py-2">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center">
           <button
             onClick={() => onToggleCollapse(groupKey)}
             className="hover:bg-gray-100 rounded p-1"
