@@ -152,7 +152,7 @@ export function BiddingCompanyList({
           <Button
             variant="outline"
             className={cn(
-              "w-32 h-8 text-sm justify-start text-left font-normal",
+              "w-full h-8 text-sm justify-start text-left font-normal max-w-[120px]",
               !date && "text-muted-foreground"
             )}
             disabled={disabled}
