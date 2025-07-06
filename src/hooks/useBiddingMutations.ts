@@ -22,6 +22,7 @@ export const useBiddingMutations = (projectId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
       toast({
         title: "Success",
         description: "Bidding package deleted successfully",
@@ -49,6 +50,7 @@ export const useBiddingMutations = (projectId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
       toast({
         title: "Success",
         description: "Bidding group deleted successfully",
