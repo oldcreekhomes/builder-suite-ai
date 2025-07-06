@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
-import { SpecificationFilePreviewModal } from './SpecificationFilePreviewModal';
 
 interface SpecificationFilesCellProps {
   files: string[] | null;
@@ -20,12 +20,18 @@ export function SpecificationFilesCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: SpecificationFilesCellProps) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  
-  const handleFilePreview = (fileName: string) => {
-    setSelectedFile(fileName);
-    setPreviewModalOpen(true);
+  const handleFilePreview = async (fileName: string) => {
+    try {
+      const { data } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(`specifications/${fileName}`);
+      
+      if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
   };
 
   return (
@@ -74,15 +80,6 @@ export function SpecificationFilesCell({
           </Button>
         </div>
       )}
-      
-      <SpecificationFilePreviewModal
-        isOpen={previewModalOpen}
-        onClose={() => {
-          setPreviewModalOpen(false);
-          setSelectedFile(null);
-        }}
-        fileName={selectedFile}
-      />
     </div>
   );
 }
