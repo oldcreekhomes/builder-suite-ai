@@ -167,11 +167,10 @@ export function BiddingCompanyList({
           </TableCell>
           <TableCell className="py-1">
             <Input
-              type="number"
+              type="text"
               placeholder="$0.00"
               value={biddingCompany.price || ''}
               onChange={(e) => handlePriceChange(biddingCompany.company_id, e.target.value)}
-              onBlur={(e) => handlePriceChange(biddingCompany.company_id, e.target.value)}
               className="w-24 h-8 text-sm"
               disabled={isReadOnly}
             />
