@@ -54,7 +54,7 @@ export function BiddingTableRow({
             onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
+        <TableCell className="font-medium py-1 text-sm">
           <div className="flex items-center">
             <button
               onClick={() => setIsExpanded(!isExpanded)}

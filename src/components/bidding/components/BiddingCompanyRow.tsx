@@ -55,8 +55,8 @@ export function BiddingCompanyRow({
   return (
     <TableRow className="bg-gray-50/50">
       <TableCell className="w-12 py-1"></TableCell>
-      <TableCell className="py-1 text-sm" style={{ paddingLeft: '70px' }}>
-        <div className="font-medium text-sm whitespace-nowrap">
+      <TableCell className="py-1 text-sm">
+        <div className="font-medium text-sm whitespace-nowrap ml-8">
           {biddingCompany.companies.company_name}
         </div>
       </TableCell>
