@@ -172,6 +172,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Bid package email sent successfully:", emailResponse);
 
+    // Send test copy to mgray@oldcreekhomes.com
+    try {
+      await resend.emails.send({
+        from: "Bid Packages <noreply@yourdomain.com>",
+        to: ["mgray@oldcreekhomes.com"],
+        subject: `[TEST COPY] ${subject}`,
+        html: emailHTML
+      });
+      console.log("Test copy sent to mgray@oldcreekhomes.com");
+    } catch (testEmailError) {
+      console.error("Error sending test copy:", testEmailError);
+      // Don't fail the main request if test email fails
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
