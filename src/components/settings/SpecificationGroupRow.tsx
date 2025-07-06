@@ -54,12 +54,6 @@ export function SpecificationGroupRow({
               <ChevronDown className="h-4 w-4" />
             )}
           </button>
-          {parentCostCode && (
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked) => onSelect(parentCostCode.id, checked as boolean)}
-            />
-          )}
         </div>
       </TableCell>
       <TableCell className="py-2 text-left">
