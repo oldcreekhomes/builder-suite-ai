@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Upload, Paperclip } from 'lucide-react';
+import { ChevronDown, ChevronRight, Upload, Paperclip, Send } from 'lucide-react';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { EditBiddingSpecificationsModal } from './EditBiddingSpecificationsModal';
@@ -225,15 +225,25 @@ export function BiddingTableRow({
         <TableCell className="py-1">
           <div className="flex items-center justify-end space-x-2">            
             {!isReadOnly && (
-              <DeleteButton
-                onDelete={() => onDelete(item.id)}
-                title="Delete Bidding Item"
-                description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={isDeleting}
-                showIcon={true}
-              />
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  title="Send Bid Package"
+                >
+                  <Send className="h-4 w-4 text-black" />
+                </Button>
+                <DeleteButton
+                  onDelete={() => onDelete(item.id)}
+                  title="Delete Bidding Item"
+                  description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+                  size="sm"
+                  variant="ghost"
+                  isLoading={isDeleting}
+                  showIcon={true}
+                />
+              </>
             )}
           </div>
         </TableCell>
