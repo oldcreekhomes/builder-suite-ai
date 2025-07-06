@@ -42,7 +42,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
         query = query.not('id', 'in', `(${existingCostCodeIds.join(',')})`);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching cost codes:', error);
