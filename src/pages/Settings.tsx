@@ -288,14 +288,24 @@ const Settings = () => {
     input.onchange = async (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
       if (files.length > 0) {
-        // For now, just simulate the file upload
-        // In a real implementation, you'd upload to Supabase storage
-        const fileNames = files.map(file => file.name);
-        
         try {
+          const uploadedFileNames = [];
+          
+          // Upload each file to storage
+          for (const file of files) {
+            const fileName = `${Date.now()}-${file.name}`;
+            const { error: uploadError } = await supabase.storage
+              .from('project-files')
+              .upload(`specifications/${fileName}`, file);
+
+            if (uploadError) throw uploadError;
+            uploadedFileNames.push(fileName);
+          }
+          
+          // Update database with uploaded file names
           const { error } = await supabase
             .from('cost_code_specifications')
-            .update({ files: fileNames })
+            .update({ files: uploadedFileNames })
             .eq('id', specId);
 
           if (error) throw error;
