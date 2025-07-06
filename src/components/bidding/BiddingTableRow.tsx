@@ -4,8 +4,11 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronRight, Upload } from 'lucide-react';
 import { BiddingCompanyList } from './BiddingCompanyList';
+import { BiddingDatePicker } from './components/BiddingDatePicker';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -14,6 +17,9 @@ interface BiddingTableRowProps {
   item: any; // Project bidding item with cost_codes relation and companies
   onDelete: (itemId: string) => void;
   onUpdateStatus: (itemId: string, status: string) => void;
+  onUpdateDueDate: (itemId: string, dueDate: string | null) => void;
+  onUpdateReminderDate: (itemId: string, reminderDate: string | null) => void;
+  onUpdateSpecifications: (itemId: string, specifications: string) => void;
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
@@ -30,6 +36,9 @@ export function BiddingTableRow({
   item, 
   onDelete,
   onUpdateStatus,
+  onUpdateDueDate,
+  onUpdateReminderDate,
+  onUpdateSpecifications,
   onToggleBidStatus,
   onUpdatePrice,
   onUploadProposal,
@@ -42,7 +51,23 @@ export function BiddingTableRow({
   isReadOnly = false
 }: BiddingTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const costCode = item.cost_codes as CostCode;
+
+  const handleFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length > 0) {
+        // Handle bid package file upload - we'll need to implement this
+        console.log('Bid package files:', files);
+      }
+    };
+    input.click();
+  };
 
   return (
     <>
@@ -85,27 +110,92 @@ export function BiddingTableRow({
           </Select>
         </TableCell>
         <TableCell className="py-1 w-32">
-          {/* Due Date field - you can add a date picker here */}
-          {item.due_date ? new Date(item.due_date).toLocaleDateString() : ''}
+          <BiddingDatePicker
+            value={item.due_date}
+            onChange={onUpdateDueDate}
+            placeholder="mm/dd/yyyy"
+            disabled={isReadOnly}
+            companyId=""
+            biddingItemId={item.id}
+            field="due_date"
+          />
         </TableCell>
         <TableCell className="py-1 w-32">
-          {/* Reminder Date field - you can add a date picker here */}
-          {item.reminder_date ? new Date(item.reminder_date).toLocaleDateString() : ''}
+          <BiddingDatePicker
+            value={item.reminder_date}
+            onChange={onUpdateReminderDate}
+            placeholder="mm/dd/yyyy"
+            disabled={isReadOnly}
+            companyId=""
+            biddingItemId={item.id}
+            field="reminder_date"
+            dueDate={item.due_date}
+          />
         </TableCell>
         <TableCell className="py-1">
-          {!isReadOnly && (
-            <DeleteButton
-              onDelete={() => onDelete(item.id)}
-              title="Delete Bidding Item"
-              description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-              size="sm"
-              variant="ghost"
-              isLoading={isDeleting}
-              showIcon={true}
-            />
-          )}
+          <div className="flex items-center space-x-2">
+            {!isReadOnly && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm" 
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="h-8 text-xs"
+                >
+                  Details
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFileUpload}
+                  className="h-8 text-xs"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Files
+                </Button>
+              </>
+            )}
+            {!isReadOnly && (
+              <DeleteButton
+                onDelete={() => onDelete(item.id)}
+                title="Delete Bidding Item"
+                description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={isDeleting}
+                showIcon={true}
+              />
+            )}
+          </div>
         </TableCell>
       </TableRow>
+      
+      {/* Specifications and Files Details Row */}
+      {showDetails && (
+        <TableRow>
+          <TableCell></TableCell>
+          <TableCell colSpan={5} className="py-4">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Specifications</label>
+                <Textarea
+                  value={item.specifications || ''}
+                  onChange={(e) => onUpdateSpecifications(item.id, e.target.value)}
+                  placeholder="Enter bid package specifications..."
+                  className="min-h-[100px]"
+                  disabled={isReadOnly}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Files</label>
+                <div className="text-sm text-gray-500">
+                  File management coming soon...
+                </div>
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
       
       {isExpanded && (
         <BiddingCompanyList

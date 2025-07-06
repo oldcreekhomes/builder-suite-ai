@@ -36,7 +36,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
@@ -122,6 +122,9 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         item={item}
                         onDelete={onDeleteItem}
                         onUpdateStatus={handleUpdateStatus}
+                        onUpdateDueDate={handleUpdateDueDate}
+                        onUpdateReminderDate={handleUpdateReminderDate}
+                        onUpdateSpecifications={handleUpdateSpecifications}
                         onToggleBidStatus={toggleBidStatus}
                         onUpdatePrice={updatePrice}
                         onUploadProposal={uploadProposal}
