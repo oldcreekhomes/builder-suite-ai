@@ -2,7 +2,6 @@ import React from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +40,6 @@ export function BiddingDatePicker({
           )}
           disabled={disabled}
         >
-          <CalendarIcon className="mr-2 h-3 w-3" />
           {date ? format(date, "MM/dd/yyyy") : placeholder}
         </Button>
       </PopoverTrigger>
