@@ -45,7 +45,7 @@ export function SpecificationTableRow({
           onCheckedChange={(checked) => onSelect(specification.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className={`font-medium py-1 text-sm ${isGrouped ? 'pl-8' : ''}`}>
+      <TableCell className={`py-1 text-sm text-left ${isGrouped ? 'pl-8' : ''}`}>
         {specification.cost_code.code}
       </TableCell>
       <TableCell className="py-1 text-sm">

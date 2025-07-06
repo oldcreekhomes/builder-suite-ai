@@ -62,13 +62,13 @@ export function SpecificationGroupRow({
           )}
         </div>
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell className="py-2 text-left">
         <span className="font-semibold">
           {parentCostCode ? parentCostCode.cost_code.code : groupKey}
         </span>
       </TableCell>
       <TableCell className="py-2 font-semibold">
-        {parentCostCode ? parentCostCode.cost_code.name : groupKey}
+        {parentCostCode ? `${parentCostCode.cost_code.name} Group` : `${groupKey} Group`}
       </TableCell>
       <TableCell className="py-2">
         {/* Empty description cell */}
