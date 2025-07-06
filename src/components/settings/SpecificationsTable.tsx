@@ -6,21 +6,27 @@ import { SpecificationGroupRow } from './SpecificationGroupRow';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+type CostCodeSpecification = Tables<'cost_code_specifications'>;
+
+// Combined type for specifications with cost code data
+type SpecificationWithCostCode = CostCodeSpecification & {
+  cost_code: CostCode;
+};
 
 interface SpecificationsTableProps {
-  specifications: CostCode[];
+  specifications: SpecificationWithCostCode[];
   loading: boolean;
   selectedSpecifications: Set<string>;
   collapsedGroups: Set<string>;
-  groupedSpecifications: Record<string, CostCode[]>;
+  groupedSpecifications: Record<string, SpecificationWithCostCode[]>;
   parentCodes: Set<string>;
   onSpecificationSelect: (specId: string, checked: boolean) => void;
   onSelectAllSpecifications: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
   onUpdateSpecification: (specId: string, updatedSpec: any) => void;
-  onEditSpecification: (spec: CostCode) => void;
-  onDeleteSpecification: (spec: CostCode) => void;
-  getParentCostCode: (parentGroupCode: string) => CostCode | undefined;
+  onEditSpecification: (spec: SpecificationWithCostCode) => void;
+  onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
+  getParentCostCode: (parentGroupCode: string) => SpecificationWithCostCode | undefined;
 }
 
 export function SpecificationsTable({
@@ -56,8 +62,8 @@ export function SpecificationsTable({
             </TableHead>
             <TableHead className="font-bold py-2 text-sm">Code</TableHead>
             <TableHead className="font-bold py-2 text-sm">Name</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Category</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Unit of Measure</TableHead>
+            <TableHead className="font-bold py-2 text-sm">Description</TableHead>
+            <TableHead className="font-bold py-2 text-sm">Files</TableHead>
             <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -70,7 +76,7 @@ export function SpecificationsTable({
             </TableRow>
           ) : specifications.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                 No cost codes with specifications found. Enable specifications on cost codes to see them here.
               </TableCell>
             </TableRow>
@@ -102,7 +108,7 @@ export function SpecificationsTable({
                     groupSpecifications
                       .filter(spec => {
                         // Only show child codes (not the parent code itself in the child list)
-                        return !parentCodes.has(spec.code);
+                        return !parentCodes.has(spec.cost_code.code);
                       })
                       .map((spec) => (
                         <SpecificationTableRow

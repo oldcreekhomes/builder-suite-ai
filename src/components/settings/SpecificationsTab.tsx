@@ -8,9 +8,15 @@ import { useCostCodeGrouping } from '@/hooks/useCostCodeGrouping';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+type CostCodeSpecification = Tables<'cost_code_specifications'>;
+
+// Combined type for specifications with cost code data
+type SpecificationWithCostCode = CostCodeSpecification & {
+  cost_code: CostCode;
+};
 
 interface SpecificationsTabProps {
-  specifications: CostCode[];
+  specifications: SpecificationWithCostCode[];
   loading: boolean;
   selectedSpecifications: Set<string>;
   collapsedGroups: Set<string>;
@@ -18,9 +24,9 @@ interface SpecificationsTabProps {
   onSelectAllSpecifications: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
   onBulkDeleteSpecifications: () => void;
-  onEditSpecification: (costCode: CostCode) => void;
+  onEditSpecification: (spec: SpecificationWithCostCode) => void;
   onUpdateSpecification: (specId: string, updatedSpec: any) => void;
-  onDeleteSpecification: (spec: CostCode) => void;
+  onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
 }
 
 export function SpecificationsTab({
@@ -36,7 +42,23 @@ export function SpecificationsTab({
   onUpdateSpecification,
   onDeleteSpecification
 }: SpecificationsTabProps) {
-  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(specifications);
+  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(
+    specifications.map(spec => spec.cost_code)
+  );
+  
+  // Convert grouped cost codes back to specifications format
+  const groupedSpecifications = Object.entries(groupedCostCodes).reduce((acc, [key, costCodes]) => {
+    acc[key] = specifications.filter(spec => 
+      costCodes.some(costCode => costCode.id === spec.cost_code.id)
+    );
+    return acc;
+  }, {} as Record<string, SpecificationWithCostCode[]>);
+
+  const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
+    const parentCostCode = getParentCostCode(parentGroupCode);
+    if (!parentCostCode) return undefined;
+    return specifications.find(spec => spec.cost_code.id === parentCostCode.id);
+  };
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -67,7 +89,7 @@ export function SpecificationsTab({
         loading={loading}
         selectedSpecifications={selectedSpecifications}
         collapsedGroups={collapsedGroups}
-        groupedSpecifications={groupedCostCodes}
+        groupedSpecifications={groupedSpecifications}
         parentCodes={parentCodes}
         onSpecificationSelect={onSpecificationSelect}
         onSelectAllSpecifications={onSelectAllSpecifications}
@@ -75,7 +97,7 @@ export function SpecificationsTab({
         onUpdateSpecification={onUpdateSpecification}
         onEditSpecification={onEditSpecification}
         onDeleteSpecification={onDeleteSpecification}
-        getParentCostCode={getParentCostCode}
+        getParentCostCode={getParentSpecification}
       />
     </div>
   );

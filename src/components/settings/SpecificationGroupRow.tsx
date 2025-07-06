@@ -6,16 +6,22 @@ import { ChevronDown, ChevronRight, Edit, Trash2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+type CostCodeSpecification = Tables<'cost_code_specifications'>;
+
+// Combined type for specifications with cost code data
+type SpecificationWithCostCode = CostCodeSpecification & {
+  cost_code: CostCode;
+};
 
 interface SpecificationGroupRowProps {
   groupKey: string;
-  parentCostCode?: CostCode;
+  parentCostCode?: SpecificationWithCostCode;
   isCollapsed: boolean;
   isSelected: boolean;
   onToggleCollapse: (groupKey: string) => void;
   onSelect: (specId: string, checked: boolean) => void;
-  onEdit: (spec: CostCode) => void;
-  onDelete: (spec: CostCode) => void;
+  onEdit: (spec: SpecificationWithCostCode) => void;
+  onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
 }
 
@@ -53,18 +59,18 @@ export function SpecificationGroupRow({
             )}
           </button>
           <span className="font-semibold">
-            {parentCostCode ? parentCostCode.code : groupKey}
+            {parentCostCode ? parentCostCode.cost_code.code : groupKey}
           </span>
         </div>
       </TableCell>
       <TableCell className="py-2 font-semibold">
-        {parentCostCode ? parentCostCode.name : `${groupKey} Group`}
+        {parentCostCode ? parentCostCode.cost_code.name : `${groupKey} Group`}
       </TableCell>
       <TableCell className="py-2">
-        {parentCostCode?.category || 'N/A'}
+        {parentCostCode?.description || 'Group description'}
       </TableCell>
       <TableCell className="py-2">
-        {parentCostCode?.unit_of_measure || 'N/A'}
+        {parentCostCode?.files ? (Array.isArray(parentCostCode.files) ? parentCostCode.files.length : JSON.parse(parentCostCode.files as string).length) : 0} files
       </TableCell>
       <TableCell className="py-2">
         {parentCostCode && (

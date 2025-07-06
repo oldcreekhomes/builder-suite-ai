@@ -134,6 +134,41 @@ export type Database = {
           },
         ]
       }
+      cost_code_specifications: {
+        Row: {
+          cost_code_id: string
+          created_at: string
+          description: string | null
+          files: Json | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          cost_code_id: string
+          created_at?: string
+          description?: string | null
+          files?: Json | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_code_id?: string
+          created_at?: string
+          description?: string | null
+          files?: Json | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_code_specifications_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_codes: {
         Row: {
           category: string | null

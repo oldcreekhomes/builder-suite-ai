@@ -19,9 +19,18 @@ import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { useState, useEffect } from "react";
 import { useCostCodes } from "@/hooks/useCostCodes";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
 type CostCode = Tables<'cost_codes'>;
+type CostCodeSpecification = Tables<'cost_code_specifications'>;
+
+// Combined type for specifications with cost code data
+type SpecificationWithCostCode = CostCodeSpecification & {
+  cost_code: CostCode;
+};
 
 const Settings = () => {
   const {
@@ -32,6 +41,13 @@ const Settings = () => {
     deleteCostCode,
     importCostCodes,
   } = useCostCodes();
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Specifications state
+  const [specifications, setSpecifications] = useState<SpecificationWithCostCode[]>([]);
+  const [specificationsLoading, setSpecificationsLoading] = useState(true);
 
   const [editingCostCode, setEditingCostCode] = useState<CostCode | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -58,8 +74,35 @@ const Settings = () => {
   // Initialize collapsed state for specifications - now empty by default (all groups expanded)
   const [collapsedSpecGroups, setCollapsedSpecGroups] = useState<Set<string>>(new Set());
 
-  // Get cost codes that have specifications enabled
-  const specificationsEnabled = costCodes.filter(cc => cc.has_specifications);
+  // Fetch specifications
+  const fetchSpecifications = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('cost_code_specifications')
+        .select(`
+          *,
+          cost_code:cost_codes(*)
+        `);
+
+      if (error) throw error;
+      setSpecifications(data || []);
+    } catch (error) {
+      console.error('Error fetching specifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load specifications",
+        variant: "destructive",
+      });
+    } finally {
+      setSpecificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSpecifications();
+  }, [user]);
 
   useEffect(() => {
     // Don't automatically collapse any groups - leave them all expanded by default
@@ -128,7 +171,7 @@ const Settings = () => {
 
   const handleSelectAllSpecifications = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(specificationsEnabled.map(spec => spec.id));
+      const allIds = new Set(specifications.map(spec => spec.id));
       setSelectedSpecifications(allIds);
     } else {
       setSelectedSpecifications(new Set());
@@ -136,21 +179,38 @@ const Settings = () => {
   };
 
   const handleBulkDeleteSpecifications = async () => {
-    // Disable specifications for selected cost codes
+    // Delete selected specifications
     for (const id of selectedSpecifications) {
-      await updateCostCode(id, { has_specifications: false });
+      try {
+        const { error } = await supabase
+          .from('cost_code_specifications')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error deleting specification:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete specification",
+          variant: "destructive",
+        });
+      }
     }
     setSelectedSpecifications(new Set());
     setBulkDeleteSpecsDialogOpen(false);
+    fetchSpecifications(); // Refresh data
   };
 
-  const handleEditSpecification = (costCode: CostCode) => {
-    setEditingCostCode(costCode);
+  const handleEditSpecification = (spec: SpecificationWithCostCode) => {
+    // For now, edit the underlying cost code
+    setEditingCostCode(spec.cost_code);
     setEditDialogOpen(true);
   };
 
-  const handleDeleteSpecification = (costCode: CostCode) => {
-    setCostCodeToDelete(costCode);
+  const handleDeleteSpecification = (spec: SpecificationWithCostCode) => {
+    // For now, we'll delete the specification record
+    setCostCodeToDelete(spec.cost_code);
     setDeleteDialogOpen(true);
   };
 
@@ -229,8 +289,8 @@ const Settings = () => {
                 
                 <TabsContent value="specifications" className="mt-6">
                   <SpecificationsTab
-                    specifications={specificationsEnabled}
-                    loading={loading}
+                    specifications={specifications}
+                    loading={specificationsLoading}
                     selectedSpecifications={selectedSpecifications}
                     collapsedGroups={collapsedSpecGroups}
                     onSpecificationSelect={handleSpecificationSelect}

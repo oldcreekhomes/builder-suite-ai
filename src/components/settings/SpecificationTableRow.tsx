@@ -6,14 +6,20 @@ import { Edit, Trash2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+type CostCodeSpecification = Tables<'cost_code_specifications'>;
+
+// Combined type for specifications with cost code data
+type SpecificationWithCostCode = CostCodeSpecification & {
+  cost_code: CostCode;
+};
 
 interface SpecificationTableRowProps {
-  specification: CostCode;
+  specification: SpecificationWithCostCode;
   isSelected: boolean;
   isGrouped: boolean;
   onSelect: (specId: string, checked: boolean) => void;
-  onEdit: (spec: CostCode) => void;
-  onDelete: (spec: CostCode) => void;
+  onEdit: (spec: SpecificationWithCostCode) => void;
+  onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
 }
 
@@ -35,16 +41,16 @@ export function SpecificationTableRow({
         />
       </TableCell>
       <TableCell className={`font-medium py-1 text-sm ${isGrouped ? 'pl-8' : ''}`}>
-        {specification.code}
+        {specification.cost_code.code}
       </TableCell>
       <TableCell className="py-1 text-sm">
-        {specification.name}
+        {specification.cost_code.name}
       </TableCell>
       <TableCell className="py-1 text-sm">
-        {specification.category || 'Uncategorized'}
+        {specification.description || 'No description'}
       </TableCell>
       <TableCell className="py-1 text-sm">
-        {specification.unit_of_measure || 'N/A'}
+        {specification.files ? (Array.isArray(specification.files) ? specification.files.length : JSON.parse(specification.files as string).length) : 0} files
       </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center space-x-1">
