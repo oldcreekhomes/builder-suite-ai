@@ -410,24 +410,39 @@ export type Database = {
         Row: {
           cost_code_id: string
           created_at: string
+          due_date: string | null
           id: string
+          name: string | null
           project_id: string
+          reminder_date: string | null
+          reminder_day_of_week: number | null
+          specifications: string | null
           status: string
           updated_at: string
         }
         Insert: {
           cost_code_id: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          name?: string | null
           project_id: string
+          reminder_date?: string | null
+          reminder_day_of_week?: number | null
+          specifications?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           cost_code_id?: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          name?: string | null
           project_id?: string
+          reminder_date?: string | null
+          reminder_day_of_week?: number | null
+          specifications?: string | null
           status?: string
           updated_at?: string
         }
