@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, X } from 'lucide-react';
+import { Upload, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 
@@ -53,10 +53,10 @@ export function ProposalCell({
                 {!isReadOnly && (
                   <button
                     onClick={() => onFileDelete(companyId, fileName)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
+                    className="text-red-500 hover:text-red-700 transition-colors p-1"
                     title="Delete file"
                   >
-                    <X className="h-3 w-3" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>
