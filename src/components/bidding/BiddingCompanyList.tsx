@@ -82,12 +82,13 @@ export function BiddingCompanyList({
           <Button
             variant="outline"
             className={cn(
-              "w-8 h-8 text-sm justify-center",
-              date && "text-foreground"
+              "w-32 h-8 text-sm justify-start text-left font-normal",
+              !date && "text-muted-foreground"
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="h-3 w-3" />
+            <CalendarIcon className="mr-2 h-3 w-3" />
+            {date ? format(date, "MM/dd/yyyy") : <span>{placeholder}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -119,11 +120,8 @@ export function BiddingCompanyList({
         <TableRow key={biddingCompany.id} className="bg-gray-50/50">
           <TableCell className="w-12 py-1"></TableCell>
           <TableCell className="py-1 text-sm" style={{ paddingLeft: '70px' }}>
-            <div className="flex items-center space-x-2">
-              <Building2 className="h-4 w-4 text-gray-400" />
-              <div className="font-medium text-sm whitespace-nowrap">
-                {biddingCompany.companies.company_name}
-              </div>
+            <div className="font-medium text-sm whitespace-nowrap">
+              {biddingCompany.companies.company_name}
             </div>
           </TableCell>
           <TableCell className="py-1">
@@ -132,7 +130,7 @@ export function BiddingCompanyList({
               onValueChange={(value) => handleBidStatusChange(biddingCompany.company_id, value)}
               disabled={isReadOnly}
             >
-              <SelectTrigger className="w-14 h-8 text-sm">
+              <SelectTrigger className="w-20 h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border shadow-md z-50">
