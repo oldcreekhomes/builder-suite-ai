@@ -92,19 +92,41 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   // Create bidding items mutation
   const createBiddingItems = useMutation({
     mutationFn: async (costCodeIds: string[]) => {
-      // First, create the project bidding items
-      const biddingItems = costCodeIds.map(costCodeId => ({
-        project_id: projectId,
-        cost_code_id: costCodeId,
-        status: 'draft'
-      }));
+      // First, fetch specifications for the selected cost codes
+      const { data: specifications, error: specsError } = await supabase
+        .from('cost_code_specifications')
+        .select('cost_code_id, description, files')
+        .in('cost_code_id', costCodeIds);
+
+      if (specsError) {
+        console.error('Error fetching specifications:', specsError);
+      }
+
+      // Create a map of cost_code_id to specifications
+      const specsMap = new Map();
+      specifications?.forEach(spec => {
+        specsMap.set(spec.cost_code_id, {
+          description: spec.description,
+          files: spec.files || []
+        });
+      });
+
+      // Create the project bidding items with specifications data
+      const biddingItems = costCodeIds.map(costCodeId => {
+        const specs = specsMap.get(costCodeId);
+        return {
+          project_id: projectId,
+          cost_code_id: costCodeId,
+          status: 'draft',
+          name: '', // Add required name field
+          specifications: specs?.description || null,
+          files: specs?.files || []
+        };
+      });
 
       const { data: insertedBiddingItems, error: biddingError } = await supabase
         .from('project_bid_packages')
-        .insert(biddingItems.map(item => ({
-          ...item,
-          name: '' // Add required name field
-        })))
+        .insert(biddingItems)
         .select('id, cost_code_id');
 
       if (biddingError) throw biddingError;
