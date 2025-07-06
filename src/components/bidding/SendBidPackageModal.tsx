@@ -137,19 +137,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span><strong>Status:</strong> {bidPackage.status || 'Draft'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-muted-foreground" />
                   <span><strong>Due Date:</strong> {bidPackage.due_date ? format(new Date(bidPackage.due_date), 'MMM dd, yyyy') : 'Not set'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
                   <span><strong>Reminder Date:</strong> {bidPackage.reminder_date ? format(new Date(bidPackage.reminder_date), 'MMM dd, yyyy') : 'Not set'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span><strong>Bid Package Name:</strong> {bidPackage.name || 'N/A'}</span>
                 </div>
               </div>
             </div>
