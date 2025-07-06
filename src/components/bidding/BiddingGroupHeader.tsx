@@ -55,7 +55,7 @@ export function BiddingGroupHeader({
         </div>
       </TableCell>
       <TableCell className="py-1">
-        <div className="flex gap-1">
+        <div className="flex items-center justify-end space-x-2">
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}
             title="Delete Group"
