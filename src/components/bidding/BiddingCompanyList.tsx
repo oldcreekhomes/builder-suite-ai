@@ -28,7 +28,7 @@ interface BiddingCompanyListProps {
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
-  onDeleteProposal: (biddingItemId: string, companyId: string, fileName: string) => void;
+  onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
@@ -41,7 +41,7 @@ export function BiddingCompanyList({
   onUpdateDueDate,
   onUpdateReminderDate,
   onUploadProposal,
-  onDeleteProposal,
+  onDeleteAllProposals,
   onDeleteCompany,
   isReadOnly = false
 }: BiddingCompanyListProps) {
@@ -74,8 +74,8 @@ export function BiddingCompanyList({
     input.click();
   };
 
-  const handleFileDelete = (companyId: string, fileName: string) => {
-    onDeleteProposal(biddingItemId, companyId, fileName);
+  const handleDeleteAllFiles = (companyId: string) => {
+    onDeleteAllProposals(biddingItemId, companyId);
   };
 
   const handlePriceChange = (companyId: string, value: string) => {
@@ -118,7 +118,7 @@ export function BiddingCompanyList({
           onUpdateDueDate={onUpdateDueDate}
           onUpdateReminderDate={onUpdateReminderDate}
           onFileUpload={handleFileUpload}
-          onFileDelete={handleFileDelete}
+          onDeleteAllFiles={handleDeleteAllFiles}
           onDeleteCompany={onDeleteCompany}
           isReadOnly={isReadOnly}
         />

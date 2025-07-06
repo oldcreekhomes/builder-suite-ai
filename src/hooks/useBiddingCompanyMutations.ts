@@ -254,25 +254,16 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Delete single proposal file
-  const deleteProposal = useMutation({
+  // Delete all proposal files for a company
+  const deleteAllProposals = useMutation({
     mutationFn: async ({ 
       biddingItemId, 
-      companyId,
-      fileName 
+      companyId
     }: { 
       biddingItemId: string; 
       companyId: string;
-      fileName: string;
     }) => {
-      // Delete file from storage
-      const { error: deleteError } = await supabase.storage
-        .from('project-files')
-        .remove([`proposals/${fileName}`]);
-
-      if (deleteError) console.warn('Could not delete file from storage:', deleteError);
-
-      // Remove from database array
+      // Get existing proposals to delete from storage
       const { data: existing } = await supabase
         .from('project_bidding_companies')
         .select('id, proposals')
@@ -280,14 +271,20 @@ export const useBiddingCompanyMutations = (projectId: string) => {
         .eq('company_id', companyId)
         .single();
 
-      if (existing) {
-        const currentProposals = existing.proposals || [];
-        const updatedProposals = currentProposals.filter((f: string) => f !== fileName);
-        
+      if (existing && existing.proposals) {
+        // Delete all files from storage
+        const filesToDelete = existing.proposals.map((fileName: string) => `proposals/${fileName}`);
+        const { error: deleteError } = await supabase.storage
+          .from('project-files')
+          .remove(filesToDelete);
+
+        if (deleteError) console.warn('Could not delete some files from storage:', deleteError);
+
+        // Clear proposals array in database
         const { error } = await supabase
           .from('project_bidding_companies')
           .update({ 
-            proposals: updatedProposals.length > 0 ? updatedProposals : null, 
+            proposals: null, 
             updated_at: new Date().toISOString() 
           })
           .eq('id', existing.id);
@@ -299,14 +296,14 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       toast({
         title: "Success",
-        description: "Proposal deleted successfully",
+        description: "All proposals deleted successfully",
       });
     },
     onError: (error) => {
-      console.error('Error deleting proposal:', error);
+      console.error('Error deleting proposals:', error);
       toast({
         title: "Error",
-        description: "Failed to delete proposal",
+        description: "Failed to delete proposals",
         variant: "destructive",
       });
     },
@@ -362,12 +359,12 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     uploadProposal: (biddingItemId: string, companyId: string, files: File[]) => {
       uploadProposal.mutate({ biddingItemId, companyId, files });
     },
-    deleteProposal: (biddingItemId: string, companyId: string, fileName: string) => {
-      deleteProposal.mutate({ biddingItemId, companyId, fileName });
+    deleteAllProposals: (biddingItemId: string, companyId: string) => {
+      deleteAllProposals.mutate({ biddingItemId, companyId });
     },
     deleteCompany: (biddingItemId: string, companyId: string) => {
       deleteCompany.mutate({ biddingItemId, companyId });
     },
-    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending || deleteProposal.isPending || deleteCompany.isPending,
+    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending || deleteAllProposals.isPending || deleteCompany.isPending,
   };
 };

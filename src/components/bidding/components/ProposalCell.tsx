@@ -8,7 +8,7 @@ interface ProposalCellProps {
   proposals: string[] | null;
   companyId: string;
   onFileUpload: (companyId: string) => void;
-  onFileDelete: (companyId: string, fileName: string) => void;
+  onDeleteAllFiles: (companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -16,7 +16,7 @@ export function ProposalCell({
   proposals, 
   companyId, 
   onFileUpload,
-  onFileDelete,
+  onDeleteAllFiles,
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
@@ -55,17 +55,14 @@ export function ProposalCell({
             })}
           </div>
           {!isReadOnly && (
-            <div className="flex items-center space-x-1 pr-2">
-              {proposals.map((fileName, index) => (
-                <button
-                  key={index}
-                  onClick={() => onFileDelete(companyId, fileName)}
-                  className="text-red-500 hover:text-red-700 transition-colors p-1"
-                  title="Delete file"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              ))}
+            <div className="flex items-center pr-2">
+              <button
+                onClick={() => onDeleteAllFiles(companyId)}
+                className="text-red-500 hover:text-red-700 transition-colors p-1"
+                title="Delete all files"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           )}
         </>
