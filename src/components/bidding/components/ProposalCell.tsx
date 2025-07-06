@@ -1,13 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 
 interface ProposalCellProps {
   proposals: string | null;
   companyId: string;
   onFileUpload: (companyId: string) => void;
-  onFilePreview: (fileName: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -15,9 +15,22 @@ export function ProposalCell({
   proposals, 
   companyId, 
   onFileUpload, 
-  onFilePreview, 
   isReadOnly = false 
 }: ProposalCellProps) {
+  const handleFilePreview = async (fileName: string) => {
+    try {
+      const { data } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(`proposals/${fileName}`);
+      
+      if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2">
       {proposals ? (
@@ -27,7 +40,7 @@ export function ProposalCell({
             const iconColorClass = getFileIconColor(proposals);
             return (
               <button
-                onClick={() => onFilePreview(proposals)}
+                onClick={() => handleFilePreview(proposals)}
                 className={`${iconColorClass} transition-colors p-1`}
                 disabled={isReadOnly}
               >

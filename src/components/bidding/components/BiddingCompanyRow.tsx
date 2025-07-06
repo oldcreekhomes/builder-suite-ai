@@ -33,7 +33,6 @@ interface BiddingCompanyRowProps {
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onFileUpload: (companyId: string) => void;
-  onFilePreview: (fileName: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
@@ -48,7 +47,6 @@ export function BiddingCompanyRow({
   onUpdateDueDate,
   onUpdateReminderDate,
   onFileUpload,
-  onFilePreview,
   onDeleteCompany,
   isReadOnly = false
 }: BiddingCompanyRowProps) {
@@ -91,7 +89,6 @@ export function BiddingCompanyRow({
           proposals={biddingCompany.proposals}
           companyId={biddingCompany.company_id}
           onFileUpload={onFileUpload}
-          onFilePreview={onFilePreview}
           isReadOnly={isReadOnly}
         />
       </TableCell>

@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { FilePreviewModal } from './FilePreviewModal';
 import { BiddingCompanyRow } from './components/BiddingCompanyRow';
 
 interface Company {
@@ -45,7 +44,6 @@ export function BiddingCompanyList({
   isReadOnly = false
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
-  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   // Initialize local prices from companies data
   useEffect(() => {
@@ -89,10 +87,6 @@ export function BiddingCompanyList({
     }
   };
 
-  const handleFilePreview = (fileName: string) => {
-    setPreviewFile(fileName);
-  };
-
   if (companies.length === 0) {
     return (
       <TableRow>
@@ -117,17 +111,10 @@ export function BiddingCompanyList({
           onUpdateDueDate={onUpdateDueDate}
           onUpdateReminderDate={onUpdateReminderDate}
           onFileUpload={handleFileUpload}
-          onFilePreview={handleFilePreview}
           onDeleteCompany={onDeleteCompany}
           isReadOnly={isReadOnly}
         />
       ))}
-      
-      <FilePreviewModal
-        isOpen={previewFile !== null}
-        onClose={() => setPreviewFile(null)}
-        fileName={previewFile}
-      />
     </>
   );
 }
