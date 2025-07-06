@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { SpecificationFilePreviewModal } from './SpecificationFilePreviewModal';
 
 interface SpecificationFilesCellProps {
   files: string[] | null;
@@ -20,18 +20,12 @@ export function SpecificationFilesCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: SpecificationFilesCellProps) {
-  const handleFilePreview = async (fileName: string) => {
-    try {
-      const { data } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(`specifications/${fileName}`);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
-    }
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  
+  const handleFilePreview = (fileName: string) => {
+    setSelectedFile(fileName);
+    setPreviewModalOpen(true);
   };
 
   return (
@@ -46,9 +40,9 @@ export function SpecificationFilesCell({
                 <button
                   key={index}
                   onClick={() => handleFilePreview(fileName)}
-                  className={`${iconColorClass} transition-colors p-1`}
+                  className={`${iconColorClass} hover:scale-110 transition-all p-1`}
                   disabled={isReadOnly}
-                  title={fileName}
+                  title={fileName.includes('-') && /^\d{13}-/.test(fileName) ? fileName.split('-').slice(1).join('-') : fileName}
                 >
                   <IconComponent className="h-4 w-4" />
                 </button>
@@ -80,6 +74,15 @@ export function SpecificationFilesCell({
           </Button>
         </div>
       )}
+      
+      <SpecificationFilePreviewModal
+        isOpen={previewModalOpen}
+        onClose={() => {
+          setPreviewModalOpen(false);
+          setSelectedFile(null);
+        }}
+        fileName={selectedFile}
+      />
     </div>
   );
 }
