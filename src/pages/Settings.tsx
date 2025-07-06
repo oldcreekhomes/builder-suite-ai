@@ -474,6 +474,7 @@ const Settings = () => {
                     loading={specificationsLoading}
                     selectedSpecifications={selectedSpecifications}
                     collapsedGroups={collapsedSpecGroups}
+                    allCostCodes={costCodes}
                     onSpecificationSelect={handleSpecificationSelect}
                     onSelectAllSpecifications={handleSelectAllSpecifications}
                     onToggleGroupCollapse={toggleSpecificationGroupCollapse}

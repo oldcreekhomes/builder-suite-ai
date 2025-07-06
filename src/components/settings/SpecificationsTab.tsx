@@ -20,6 +20,7 @@ interface SpecificationsTabProps {
   loading: boolean;
   selectedSpecifications: Set<string>;
   collapsedGroups: Set<string>;
+  allCostCodes: CostCode[]; // Add this to get access to ALL cost codes including parents
   onSpecificationSelect: (specId: string, checked: boolean) => void;
   onSelectAllSpecifications: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
@@ -36,6 +37,7 @@ export function SpecificationsTab({
   loading,
   selectedSpecifications,
   collapsedGroups,
+  allCostCodes,
   onSpecificationSelect,
   onSelectAllSpecifications,
   onToggleGroupCollapse,
@@ -46,9 +48,8 @@ export function SpecificationsTab({
   onFileUpload,
   onDeleteAllFiles
 }: SpecificationsTabProps) {
-  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(
-    specifications.map(spec => spec.cost_code)
-  );
+  // Use ALL cost codes for grouping so we can find parent codes like "4000"
+  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes);
   
   // Convert grouped cost codes back to specifications format
   const groupedSpecifications = Object.entries(groupedCostCodes).reduce((acc, [key, costCodes]) => {
@@ -59,12 +60,14 @@ export function SpecificationsTab({
   }, {} as Record<string, SpecificationWithCostCode[]>);
 
   const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
+    // First, try to find the actual parent cost code using the hook
     const parentCostCode = getParentCostCode(parentGroupCode);
     
-    // If we found an actual parent cost code, use it
     if (parentCostCode) {
+      // We found the actual parent cost code (e.g., code "4000" with name "HOME BUILDING COSTS")
       let parentSpec = specifications.find(spec => spec.cost_code.id === parentCostCode.id);
       
+      // Even if there's no specification record for the parent, create a virtual one with the correct cost code data
       if (!parentSpec) {
         parentSpec = {
           id: parentCostCode.id,
@@ -73,36 +76,11 @@ export function SpecificationsTab({
           files: null,
           created_at: '',
           updated_at: '',
-          cost_code: parentCostCode
+          cost_code: parentCostCode  // This should have code "4000" and name "HOME BUILDING COSTS"
         } as SpecificationWithCostCode;
       }
       
       return parentSpec;
-    }
-    
-    // If no parent cost code exists, derive info from child cost codes
-    const childSpecs = specifications.filter(spec => 
-      spec.cost_code.parent_group === parentGroupCode || 
-      spec.cost_code.code.startsWith(parentGroupCode)
-    );
-    
-    if (childSpecs.length > 0) {
-      // Use the first child's data to create a virtual parent
-      const firstChild = childSpecs[0];
-      return {
-        id: `virtual-${parentGroupCode}`,
-        cost_code_id: `virtual-${parentGroupCode}`,
-        description: null,
-        files: null,
-        created_at: '',
-        updated_at: '',
-        cost_code: {
-          ...firstChild.cost_code,
-          id: `virtual-${parentGroupCode}`,
-          code: parentGroupCode,
-          name: firstChild.cost_code.name // Use the child's name as the base for the group
-        }
-      } as SpecificationWithCostCode;
     }
     
     return undefined;
