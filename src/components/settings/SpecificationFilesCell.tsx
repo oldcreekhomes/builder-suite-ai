@@ -38,7 +38,7 @@ export function SpecificationFilesCell({
     <div className="flex items-center w-full">
       {files && files.length > 0 ? (
         <>
-          <div className="flex items-center space-x-2 flex-1">
+          <div className="flex items-center space-x-2">
             {files.map((fileName, index) => {
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
@@ -54,17 +54,17 @@ export function SpecificationFilesCell({
                 </button>
               );
             })}
+            {!isReadOnly && (
+              <DeleteButton
+                onDelete={() => onDeleteAllFiles(specificationId)}
+                title="Delete All Files"
+                description="Are you sure you want to delete all specification files? This action cannot be undone."
+                size="sm"
+                variant="ghost"
+                showIcon={true}
+              />
+            )}
           </div>
-          {!isReadOnly && (
-            <DeleteButton
-              onDelete={() => onDeleteAllFiles(specificationId)}
-              title="Delete All Files"
-              description="Are you sure you want to delete all specification files? This action cannot be undone."
-              size="sm"
-              variant="ghost"
-              showIcon={true}
-            />
-          )}
         </>
       ) : (
         <div className="flex items-center space-x-2">
