@@ -25,8 +25,6 @@ interface BiddingCompanyListProps {
   companies: BiddingCompany[];
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
-  onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
-  onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
   onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
@@ -38,8 +36,6 @@ export function BiddingCompanyList({
   companies, 
   onToggleBidStatus, 
   onUpdatePrice,
-  onUpdateDueDate,
-  onUpdateReminderDate,
   onUploadProposal,
   onDeleteAllProposals,
   onDeleteCompany,
@@ -97,7 +93,7 @@ export function BiddingCompanyList({
   if (companies.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={8} className="text-sm text-gray-500 italic text-center py-4">
+        <TableCell colSpan={6} className="text-sm text-gray-500 italic text-center py-4">
           No companies associated with this cost code
         </TableCell>
       </TableRow>
@@ -106,6 +102,16 @@ export function BiddingCompanyList({
 
   return (
     <>
+      {/* Company header row */}
+      <TableRow className="bg-gray-100">
+        <TableCell className="w-12 py-2"></TableCell>
+        <TableCell className="font-bold py-2 text-sm pl-8">Company</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Will Bid</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Price</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Proposals</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Actions</TableCell>
+      </TableRow>
+      
       {companies.map((biddingCompany) => (
         <BiddingCompanyRow
           key={biddingCompany.id}
@@ -115,8 +121,6 @@ export function BiddingCompanyList({
           onBidStatusChange={handleBidStatusChange}
           onPriceChange={handlePriceChange}
           onPriceBlur={handlePriceBlur}
-          onUpdateDueDate={onUpdateDueDate}
-          onUpdateReminderDate={onUpdateReminderDate}
           onFileUpload={handleFileUpload}
           onDeleteAllFiles={handleDeleteAllFiles}
           onDeleteCompany={onDeleteCompany}

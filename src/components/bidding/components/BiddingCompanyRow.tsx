@@ -3,7 +3,6 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { BiddingDatePicker } from './BiddingDatePicker';
 import { ProposalCell } from './ProposalCell';
 
 interface Company {
@@ -30,8 +29,6 @@ interface BiddingCompanyRowProps {
   onBidStatusChange: (companyId: string, newStatus: string) => void;
   onPriceChange: (companyId: string, value: string) => void;
   onPriceBlur: (companyId: string, value: string) => void;
-  onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
-  onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onFileUpload: (companyId: string) => void;
   onDeleteAllFiles: (companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
@@ -45,8 +42,6 @@ export function BiddingCompanyRow({
   onBidStatusChange,
   onPriceChange,
   onPriceBlur,
-  onUpdateDueDate,
-  onUpdateReminderDate,
   onFileUpload,
   onDeleteAllFiles,
   onDeleteCompany,
@@ -55,7 +50,7 @@ export function BiddingCompanyRow({
   return (
     <TableRow className="bg-gray-50/50">
       <TableCell className="w-12 py-1"></TableCell>
-      <TableCell className="py-1 text-sm">
+        <TableCell className="py-1 text-sm">
         <div className="font-medium text-sm whitespace-nowrap ml-8">
           {biddingCompany.companies.company_name}
         </div>
@@ -93,29 +88,6 @@ export function BiddingCompanyRow({
           onFileUpload={onFileUpload}
           onDeleteAllFiles={onDeleteAllFiles}
           isReadOnly={isReadOnly}
-        />
-      </TableCell>
-      <TableCell className="py-1 w-32">
-        <BiddingDatePicker
-          value={biddingCompany.due_date}
-          onChange={onUpdateDueDate}
-          placeholder="mm/dd/yyyy"
-          disabled={isReadOnly}
-          companyId={biddingCompany.company_id}
-          biddingItemId={biddingItemId}
-          field="due_date"
-        />
-      </TableCell>
-      <TableCell className="py-1 w-32">
-        <BiddingDatePicker
-          value={biddingCompany.reminder_date}
-          onChange={onUpdateReminderDate}
-          placeholder="mm/dd/yyyy"
-          disabled={isReadOnly}
-          companyId={biddingCompany.company_id}
-          biddingItemId={biddingItemId}
-          field="reminder_date"
-          dueDate={biddingCompany.due_date}
         />
       </TableCell>
       <TableCell className="py-1">

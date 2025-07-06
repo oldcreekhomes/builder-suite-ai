@@ -16,8 +16,6 @@ interface BiddingTableRowProps {
   onUpdateStatus: (itemId: string, status: string) => void;
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
-  onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
-  onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
   onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
@@ -34,8 +32,6 @@ export function BiddingTableRow({
   onUpdateStatus,
   onToggleBidStatus,
   onUpdatePrice,
-  onUpdateDueDate,
-  onUpdateReminderDate,
   onUploadProposal,
   onDeleteAllProposals,
   onDeleteCompany,
@@ -88,11 +84,14 @@ export function BiddingTableRow({
             </SelectContent>
           </Select>
         </TableCell>
-        <TableCell className="py-1"></TableCell>
-        <TableCell className="py-1"></TableCell>
-        <TableCell className="py-1"></TableCell>
-        <TableCell className="py-1"></TableCell>
-        <TableCell className="py-1"></TableCell>
+        <TableCell className="py-1 w-32">
+          {/* Due Date field - you can add a date picker here */}
+          {item.due_date ? new Date(item.due_date).toLocaleDateString() : ''}
+        </TableCell>
+        <TableCell className="py-1 w-32">
+          {/* Reminder Date field - you can add a date picker here */}
+          {item.reminder_date ? new Date(item.reminder_date).toLocaleDateString() : ''}
+        </TableCell>
         <TableCell className="py-1">
           {!isReadOnly && (
             <DeleteButton
@@ -114,8 +113,6 @@ export function BiddingTableRow({
           companies={item.project_bidding_companies || []}
           onToggleBidStatus={onToggleBidStatus}
           onUpdatePrice={onUpdatePrice}
-          onUpdateDueDate={onUpdateDueDate}
-          onUpdateReminderDate={onUpdateReminderDate}
           onUploadProposal={onUploadProposal}
           onDeleteAllProposals={onDeleteAllProposals}
           onDeleteCompany={onDeleteCompany}
