@@ -116,6 +116,22 @@ export function BiddingCompanyList({
     }
   };
 
+  const getFileIconColor = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return 'text-red-600 hover:text-red-800';
+      case 'xlsx':
+      case 'xls':
+        return 'text-green-600 hover:text-green-800';
+      case 'docx':
+      case 'doc':
+        return 'text-blue-600 hover:text-blue-800';
+      default:
+        return 'text-gray-600 hover:text-gray-800';
+    }
+  };
+
   const handleFilePreview = (fileName: string) => {
     setPreviewFile(fileName);
   };
@@ -226,10 +242,11 @@ export function BiddingCompanyList({
                 <div className="flex items-center justify-center">
                   {(() => {
                     const IconComponent = getFileIcon(biddingCompany.proposals);
+                    const iconColorClass = getFileIconColor(biddingCompany.proposals);
                     return (
                       <button
                         onClick={() => handleFilePreview(biddingCompany.proposals!)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                        className={`${iconColorClass} transition-colors p-1`}
                         disabled={isReadOnly}
                       >
                         <IconComponent className="h-4 w-4" />
