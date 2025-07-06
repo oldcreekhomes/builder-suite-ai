@@ -42,19 +42,17 @@ export function SpecificationGroupRow({
 }: SpecificationGroupRowProps) {
   return (
     <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">
-      <TableCell className="py-2">
-        <div className="flex items-center">
-          <button
-            onClick={() => onToggleCollapse(groupKey)}
-            className="hover:bg-gray-100 rounded p-1"
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
-        </div>
+      <TableCell className="py-2 pl-4">
+        <button
+          onClick={() => onToggleCollapse(groupKey)}
+          className="hover:bg-gray-100 rounded p-1 -ml-1"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </button>
       </TableCell>
       <TableCell className="py-2 text-left">
         <span className="font-semibold">
