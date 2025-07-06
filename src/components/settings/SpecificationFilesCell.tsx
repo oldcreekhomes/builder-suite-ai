@@ -35,10 +35,10 @@ export function SpecificationFilesCell({
   };
 
   return (
-    <div className="flex items-center justify-between w-full">
+    <div className="flex items-center w-full">
       {files && files.length > 0 ? (
         <>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-1">
             {files.map((fileName, index) => {
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
@@ -56,29 +56,39 @@ export function SpecificationFilesCell({
             })}
           </div>
           {!isReadOnly && (
-            <div className="flex items-center pr-2">
-              <DeleteButton
-                onDelete={() => onDeleteAllFiles(specificationId)}
-                title="Delete All Files"
-                description="Are you sure you want to delete all specification files? This action cannot be undone."
-                size="sm"
-                variant="ghost"
-                showIcon={true}
-              />
-            </div>
+            <DeleteButton
+              onDelete={() => onDeleteAllFiles(specificationId)}
+              title="Delete All Files"
+              description="Are you sure you want to delete all specification files? This action cannot be undone."
+              size="sm"
+              variant="ghost"
+              showIcon={true}
+            />
           )}
         </>
       ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs"
-          disabled={isReadOnly}
-          onClick={() => onFileUpload(specificationId)}
-        >
-          <Upload className="h-3 w-3 mr-1" />
-          Upload
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            disabled={isReadOnly}
+            onClick={() => onFileUpload(specificationId)}
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            Upload
+          </Button>
+          {!isReadOnly && (
+            <DeleteButton
+              onDelete={() => onDeleteAllFiles(specificationId)}
+              title="Delete All Files"
+              description="Are you sure you want to delete all specification files? This action cannot be undone."
+              size="sm"
+              variant="ghost"
+              showIcon={true}
+            />
+          )}
+        </div>
       )}
     </div>
   );

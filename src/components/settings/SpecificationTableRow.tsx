@@ -2,7 +2,7 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Paperclip } from 'lucide-react';
 import { SpecificationFilesCell } from './SpecificationFilesCell';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -52,12 +52,22 @@ export function SpecificationTableRow({
         {specification.cost_code.name}
       </TableCell>
       <TableCell className="py-1 text-sm">
-        <button
-          onClick={() => onEditDescription(specification)}
-          className="text-left hover:text-blue-600 transition-colors cursor-pointer"
-        >
-          {specification.description || 'Click to add description'}
-        </button>
+        {specification.description ? (
+          <button
+            onClick={() => onEditDescription(specification)}
+            className="flex items-center text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+            title="Click to view/edit description"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => onEditDescription(specification)}
+            className="text-left hover:text-blue-600 transition-colors cursor-pointer text-gray-500"
+          >
+            Click to add description
+          </button>
+        )}
       </TableCell>
       <TableCell className="py-1">
         <SpecificationFilesCell
