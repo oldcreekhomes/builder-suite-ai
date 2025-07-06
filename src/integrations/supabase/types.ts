@@ -406,7 +406,7 @@ export type Database = {
           },
         ]
       }
-      project_bidding_bid_package_companies: {
+      project_bid_package_companies: {
         Row: {
           bid_package_id: string
           bid_status: string
@@ -448,7 +448,7 @@ export type Database = {
             foreignKeyName: "project_bidding_bid_package_companies_bid_package_id_fkey"
             columns: ["bid_package_id"]
             isOneToOne: false
-            referencedRelation: "project_bidding_bid_packages"
+            referencedRelation: "project_bid_packages"
             referencedColumns: ["id"]
           },
           {
@@ -460,7 +460,7 @@ export type Database = {
           },
         ]
       }
-      project_bidding_bid_packages: {
+      project_bid_packages: {
         Row: {
           cost_code_id: string
           created_at: string

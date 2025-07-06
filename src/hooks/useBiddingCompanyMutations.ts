@@ -20,7 +20,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       
       // Check if record exists
       const { data: existing } = await supabase
-        .from('project_bidding_bid_package_companies')
+        .from('project_bid_package_companies')
         .select('id')
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId)
@@ -29,7 +29,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       if (existing) {
         // Update existing record
         const { error } = await supabase
-          .from('project_bidding_bid_package_companies')
+          .from('project_bid_package_companies')
           .update({ bid_status: newStatus, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
         
@@ -37,7 +37,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       } else {
         // Create new record
         const { error } = await supabase
-          .from('project_bidding_bid_package_companies')
+          .from('project_bid_package_companies')
           .insert({
             bid_package_id: biddingItemId,
             company_id: companyId,
@@ -77,7 +77,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     }) => {
       // Check if record exists
       const { data: existing } = await supabase
-        .from('project_bidding_bid_package_companies')
+        .from('project_bid_package_companies')
         .select('id')
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId)
@@ -86,7 +86,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       if (existing) {
         // Update existing record
         const { error } = await supabase
-          .from('project_bidding_bid_package_companies')
+          .from('project_bid_package_companies')
           .update({ price: price, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
         
@@ -134,7 +134,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
       // Get existing proposals and add new ones
       const { data: existing } = await supabase
-        .from('project_bidding_bid_package_companies')
+        .from('project_bid_package_companies')
         .select('id, proposals')
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId)
@@ -145,7 +145,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
         const updatedProposals = [...currentProposals, ...uploadedFileNames];
         
         const { error } = await supabase
-          .from('project_bidding_bid_package_companies')
+          .from('project_bid_package_companies')
           .update({ proposals: updatedProposals, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
         
@@ -180,7 +180,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     }) => {
       // Get existing proposals to delete from storage
       const { data: existing } = await supabase
-        .from('project_bidding_bid_package_companies')
+        .from('project_bid_package_companies')
         .select('id, proposals')
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId)
@@ -197,7 +197,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
         // Clear proposals array in database
         const { error } = await supabase
-          .from('project_bidding_bid_package_companies')
+          .from('project_bid_package_companies')
           .update({ 
             proposals: [], 
             updated_at: new Date().toISOString() 
@@ -234,7 +234,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       companyId: string; 
     }) => {
       const { error } = await supabase
-        .from('project_bidding_bid_package_companies')
+        .from('project_bid_package_companies')
         .delete()
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId);

@@ -44,7 +44,7 @@ interface BiddingPackageWithCostCode {
   created_at: string;
   updated_at: string;
   cost_codes: SimpleCostCode;
-  project_bidding_bid_package_companies: BiddingCompany[];
+  project_bid_package_companies: BiddingCompany[];
 }
 
 export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'closed') => {
@@ -58,11 +58,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       if (!projectId) return [];
 
       let query = supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .select(`
           *,
           cost_codes (*),
-          project_bidding_bid_package_companies (
+          project_bid_package_companies (
             id,
             company_id,
             bid_status,
@@ -109,7 +109,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
           category: item.cost_codes?.category || null,
           parent_group: item.cost_codes?.parent_group || null,
         },
-        project_bidding_bid_package_companies: (item.project_bidding_bid_package_companies || []).map((pbc: any) => ({
+        project_bid_package_companies: (item.project_bid_package_companies || []).map((pbc: any) => ({
           id: pbc.id,
           company_id: pbc.company_id,
           bid_status: pbc.bid_status,

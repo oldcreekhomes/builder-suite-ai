@@ -14,7 +14,7 @@ export const useBiddingMutations = (projectId: string) => {
   const deleteBiddingItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .delete()
         .eq('id', itemId);
 
@@ -41,7 +41,7 @@ export const useBiddingMutations = (projectId: string) => {
   const deleteBiddingGroup = useMutation({
     mutationFn: async (itemIds: string[]) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .delete()
         .in('id', itemIds);
 
@@ -95,7 +95,7 @@ export const useBiddingMutations = (projectId: string) => {
   const updateBiddingStatus = useMutation({
     mutationFn: async ({ itemId, status }: { itemId: string; status: string }) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .update({ status })
         .eq('id', itemId);
 
@@ -122,7 +122,7 @@ export const useBiddingMutations = (projectId: string) => {
   const updateBiddingDueDate = useMutation({
     mutationFn: async ({ itemId, dueDate }: { itemId: string; dueDate: string | null }) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .update({ due_date: dueDate })
         .eq('id', itemId);
 
@@ -149,7 +149,7 @@ export const useBiddingMutations = (projectId: string) => {
   const updateBiddingReminderDate = useMutation({
     mutationFn: async ({ itemId, reminderDate }: { itemId: string; reminderDate: string | null }) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .update({ reminder_date: reminderDate })
         .eq('id', itemId);
 
@@ -176,7 +176,7 @@ export const useBiddingMutations = (projectId: string) => {
   const updateBiddingSpecifications = useMutation({
     mutationFn: async ({ itemId, specifications }: { itemId: string; specifications: string }) => {
       const { error } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .update({ specifications })
         .eq('id', itemId);
 

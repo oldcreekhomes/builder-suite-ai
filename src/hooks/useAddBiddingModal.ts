@@ -88,7 +88,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
       }));
 
       const { data: insertedBiddingItems, error: biddingError } = await supabase
-        .from('project_bidding_bid_packages')
+        .from('project_bid_packages')
         .insert(biddingItems.map(item => ({
           ...item,
           name: '' // Add required name field
@@ -126,7 +126,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
         if (biddingCompanies.length > 0) {
           const { error: companyBiddingError } = await supabase
-            .from('project_bidding_bid_package_companies')
+            .from('project_bid_package_companies')
             .insert(biddingCompanies.map(company => ({
               bid_package_id: company.project_bidding_id,
               company_id: company.company_id,
