@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2 } from 'lucide-react';
+import { Upload } from 'lucide-react';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 
@@ -56,13 +57,14 @@ export function ProposalCell({
           </div>
           {!isReadOnly && (
             <div className="flex items-center pr-2">
-              <button
-                onClick={() => onDeleteAllFiles(companyId)}
-                className="text-red-500 hover:text-red-700 transition-colors p-1"
-                title="Delete all files"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <DeleteButton
+                onDelete={() => onDeleteAllFiles(companyId)}
+                title="Delete All Proposals"
+                description="Are you sure you want to delete all proposal files? This action cannot be undone."
+                size="sm"
+                variant="ghost"
+                showIcon={true}
+              />
             </div>
           )}
         </>
