@@ -17,6 +17,7 @@ interface BiddingTableRowProps {
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, file: File) => void;
+  onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
@@ -32,6 +33,7 @@ export function BiddingTableRow({
   onUpdateDueDate,
   onUpdateReminderDate,
   onUploadProposal,
+  onDeleteCompany,
   formatUnitOfMeasure,
   isSelected,
   onCheckboxChange,
@@ -94,6 +96,7 @@ export function BiddingTableRow({
           onUpdateDueDate={onUpdateDueDate}
           onUpdateReminderDate={onUpdateReminderDate}
           onUploadProposal={onUploadProposal}
+          onDeleteCompany={onDeleteCompany}
           isReadOnly={isReadOnly}
         />
       )}

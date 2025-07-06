@@ -246,6 +246,40 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
+  // Delete company from bidding item
+  const deleteCompany = useMutation({
+    mutationFn: async ({ 
+      biddingItemId, 
+      companyId 
+    }: { 
+      biddingItemId: string; 
+      companyId: string; 
+    }) => {
+      const { error } = await supabase
+        .from('project_bidding_companies')
+        .delete()
+        .eq('project_bidding_id', biddingItemId)
+        .eq('company_id', companyId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Company removed from bidding item successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting company:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove company from bidding item",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     toggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string) => {
       updateBidStatus.mutate({ biddingItemId, companyId, newStatus });
@@ -262,6 +296,9 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     uploadProposal: (biddingItemId: string, companyId: string, file: File) => {
       uploadProposal.mutate({ biddingItemId, companyId, file });
     },
-    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending,
+    deleteCompany: (biddingItemId: string, companyId: string) => {
+      deleteCompany.mutate({ biddingItemId, companyId });
+    },
+    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending || deleteCompany.isPending,
   };
 };

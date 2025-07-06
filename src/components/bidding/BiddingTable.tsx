@@ -37,7 +37,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   } = useBudgetGroups();
   
   const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup } = useBiddingMutations(projectId);
-  const { toggleBidStatus, updatePrice, updateDueDate, updateReminderDate, uploadProposal } = useBiddingCompanyMutations(projectId);
+  const { toggleBidStatus, updatePrice, updateDueDate, updateReminderDate, uploadProposal, deleteCompany } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBiddingItems[group] || [];
@@ -126,6 +126,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         onUpdateDueDate={updateDueDate}
                         onUpdateReminderDate={updateReminderDate}
                         onUploadProposal={uploadProposal}
+                        onDeleteCompany={deleteCompany}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}

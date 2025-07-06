@@ -39,6 +39,7 @@ interface BiddingCompanyListProps {
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, file: File) => void;
+  onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -50,7 +51,8 @@ export function BiddingCompanyList({
   onUpdateDueDate,
   onUpdateReminderDate,
   onUploadProposal,
-  isReadOnly = false 
+  onDeleteCompany,
+  isReadOnly = false
 }: BiddingCompanyListProps) {
   const [fileInputs, setFileInputs] = useState<Record<string, HTMLInputElement | null>>({});
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
@@ -273,7 +275,7 @@ export function BiddingCompanyList({
           <TableCell className="py-1">
             {!isReadOnly && (
               <DeleteButton
-                onDelete={() => {/* Handle delete company */}}
+                onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.company_id)}
                 title="Remove Company"
                 description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
                 size="sm"
