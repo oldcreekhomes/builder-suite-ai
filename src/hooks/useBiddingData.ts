@@ -141,6 +141,11 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
       return acc;
     }, {} as Record<string, BiddingPackageWithCostCode[]>);
 
+    // Sort each group chronologically by created_at
+    Object.keys(grouped).forEach(group => {
+      grouped[group].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
+
     setGroupedBiddingItems(grouped);
     setExistingCostCodeIds((biddingItems || []).map(item => item.cost_code_id));
   }, [biddingItems]);
