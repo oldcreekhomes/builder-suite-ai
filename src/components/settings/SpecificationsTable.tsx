@@ -54,15 +54,6 @@ export function SpecificationsTable({
         <TableHeader>
           <TableRow className="h-10">
             <TableHead className="font-bold py-2 text-sm w-12">
-              <Checkbox
-                checked={selectedSpecifications.size === specifications.length && specifications.length > 0}
-                onCheckedChange={onSelectAllSpecifications}
-                ref={(el) => {
-                  if (el && 'indeterminate' in el) {
-                    (el as any).indeterminate = selectedSpecifications.size > 0 && selectedSpecifications.size < specifications.length;
-                  }
-                }}
-              />
             </TableHead>
             <TableHead className="font-bold py-2 text-sm">Code</TableHead>
             <TableHead className="font-bold py-2 text-sm">Name</TableHead>
