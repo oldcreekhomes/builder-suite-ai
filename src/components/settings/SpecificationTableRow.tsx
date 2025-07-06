@@ -71,7 +71,19 @@ export function SpecificationTableRow({
       </TableCell>
       <TableCell className="py-1">
         <SpecificationFilesCell
-          files={specification.files ? (Array.isArray(specification.files) ? specification.files : JSON.parse(specification.files as string)) : null}
+          files={(() => {
+            if (!specification.files) return null;
+            if (Array.isArray(specification.files)) return specification.files as string[];
+            if (typeof specification.files === 'string') {
+              try {
+                const parsed = JSON.parse(specification.files);
+                return Array.isArray(parsed) ? parsed : null;
+              } catch {
+                return null;
+              }
+            }
+            return null;
+          })()}
           specificationId={specification.id}
           onFileUpload={onFileUpload}
           onDeleteAllFiles={onDeleteAllFiles}
