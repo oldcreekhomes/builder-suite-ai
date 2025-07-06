@@ -78,16 +78,6 @@ export function SpecificationFilesCell({
             <Upload className="h-3 w-3 mr-1" />
             Upload
           </Button>
-          {!isReadOnly && (
-            <DeleteButton
-              onDelete={() => onDeleteAllFiles(specificationId)}
-              title="Delete All Files"
-              description="Are you sure you want to delete all specification files? This action cannot be undone."
-              size="sm"
-              variant="ghost"
-              showIcon={true}
-            />
-          )}
         </div>
       )}
     </div>
