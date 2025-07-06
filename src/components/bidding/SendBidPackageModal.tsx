@@ -150,13 +150,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           {/* Specifications and Files */}
           {(bidPackage.specifications || (bidPackage.files && bidPackage.files.length > 0)) && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <FileText className="h-3 w-3" />
-                <h4 className="font-medium text-sm">Specifications & Files</h4>
-              </div>
               <div className="grid grid-cols-3 gap-3">
                 {/* Specifications - 2/3 width */}
                 <div className="col-span-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-3 w-3" />
+                    <h4 className="font-medium text-sm">Specifications</h4>
+                  </div>
                   {bidPackage.specifications ? (
                     <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
                       <p className="text-xs whitespace-pre-wrap">{bidPackage.specifications}</p>
@@ -170,16 +170,19 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                 
                 {/* Files - 1/3 width */}
                 <div className="col-span-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-3 w-3" />
+                    <h4 className="font-medium text-sm">Files</h4>
+                  </div>
                   {bidPackage.files && bidPackage.files.length > 0 ? (
                     <div className="bg-muted p-2 rounded-lg max-h-32 overflow-y-auto">
-                      <div className="space-y-1">
+                      <div className="flex flex-wrap gap-1">
                         {bidPackage.files.map((fileName: string, index: number) => {
                           const IconComponent = getFileIcon(fileName);
                           const iconColorClass = getFileIconColor(fileName);
                           return (
-                            <div key={index} className="flex items-center gap-1 text-xs">
-                              <IconComponent className={`h-3 w-3 ${iconColorClass} flex-shrink-0`} />
-                              <span className="truncate">{fileName}</span>
+                            <div key={index} className="flex items-center justify-center p-1" title={fileName}>
+                              <IconComponent className={`h-4 w-4 ${iconColorClass}`} />
                             </div>
                           );
                         })}
