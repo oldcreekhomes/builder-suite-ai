@@ -61,7 +61,24 @@ export function SpecificationsTab({
   const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
     const parentCostCode = getParentCostCode(parentGroupCode);
     if (!parentCostCode) return undefined;
-    return specifications.find(spec => spec.cost_code.id === parentCostCode.id);
+    
+    // Find the specification that matches this parent cost code
+    let parentSpec = specifications.find(spec => spec.cost_code.id === parentCostCode.id);
+    
+    // If no specification exists for the parent cost code, create a virtual one with the cost code data
+    if (!parentSpec) {
+      parentSpec = {
+        id: parentCostCode.id,
+        cost_code_id: parentCostCode.id,
+        description: null,
+        files: null,
+        created_at: '',
+        updated_at: '',
+        cost_code: parentCostCode
+      } as SpecificationWithCostCode;
+    }
+    
+    return parentSpec;
   };
   return (
     <div className="space-y-4">
