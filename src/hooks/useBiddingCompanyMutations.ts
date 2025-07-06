@@ -7,18 +7,17 @@ export const useBiddingCompanyMutations = (projectId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Toggle company bid status
-  const toggleBidStatus = useMutation({
+  // Update company bid status
+  const updateBidStatus = useMutation({
     mutationFn: async ({ 
       biddingItemId, 
       companyId, 
-      currentStatus 
+      newStatus 
     }: { 
       biddingItemId: string; 
       companyId: string; 
-      currentStatus: string; 
+      newStatus: string; 
     }) => {
-      const newStatus = currentStatus === 'will_bid' ? 'will_not_bid' : 'will_bid';
       
       // Check if record exists
       const { data: existing } = await supabase
@@ -248,8 +247,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
   });
 
   return {
-    toggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => {
-      toggleBidStatus.mutate({ biddingItemId, companyId, currentStatus });
+    toggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string) => {
+      updateBidStatus.mutate({ biddingItemId, companyId, newStatus });
     },
     updatePrice: (biddingItemId: string, companyId: string, price: number | null) => {
       updatePrice.mutate({ biddingItemId, companyId, price });
@@ -263,6 +262,6 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     uploadProposal: (biddingItemId: string, companyId: string, file: File) => {
       uploadProposal.mutate({ biddingItemId, companyId, file });
     },
-    isLoading: toggleBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending,
+    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending,
   };
 };
