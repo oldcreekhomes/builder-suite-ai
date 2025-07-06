@@ -43,14 +43,6 @@ export function SpecificationGroupRow({
   return (
     <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">
       <TableCell className="py-2">
-        {parentCostCode && (
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => onSelect(parentCostCode.id, checked as boolean)}
-          />
-        )}
-      </TableCell>
-      <TableCell className="py-2">
         <div className="flex items-center">
           <button
             onClick={() => onToggleCollapse(groupKey)}
@@ -62,41 +54,38 @@ export function SpecificationGroupRow({
               <ChevronDown className="h-4 w-4" />
             )}
           </button>
-          <span className="font-semibold">
-            {parentCostCode ? parentCostCode.cost_code.code : groupKey}
-          </span>
+          {parentCostCode && (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => onSelect(parentCostCode.id, checked as boolean)}
+            />
+          )}
         </div>
       </TableCell>
+      <TableCell className="py-2">
+        <span className="font-semibold">
+          {parentCostCode ? parentCostCode.cost_code.code : groupKey}
+        </span>
+      </TableCell>
       <TableCell className="py-2 font-semibold">
-        {parentCostCode ? parentCostCode.cost_code.name : groupKey}
+        {groupKey}
       </TableCell>
       <TableCell className="py-2">
-        {parentCostCode?.description || 'Group description'}
+        {/* Empty description cell */}
       </TableCell>
       <TableCell className="py-2">
-        {parentCostCode?.files ? (Array.isArray(parentCostCode.files) ? parentCostCode.files.length : JSON.parse(parentCostCode.files as string).length) : 0} files
+        {/* Empty files cell */}
       </TableCell>
       <TableCell className="py-2">
-        {parentCostCode && (
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditDescription(parentCostCode)}
-              className="h-7 w-7 p-0"
-            >
-              <Edit className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(parentCostCode)}
-              className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => parentCostCode && onDelete(parentCostCode)}
+          className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+          title="Delete group"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
       </TableCell>
     </TableRow>
   );
