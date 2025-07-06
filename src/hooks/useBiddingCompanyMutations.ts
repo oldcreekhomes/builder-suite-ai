@@ -191,39 +191,47 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Upload proposal file
+  // Upload proposal files
   const uploadProposal = useMutation({
     mutationFn: async ({ 
       biddingItemId, 
       companyId, 
-      file 
+      files 
     }: { 
       biddingItemId: string; 
       companyId: string; 
-      file: File; 
+      files: File[]; 
     }) => {
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${biddingItemId}-${companyId}-${Date.now()}.${fileExt}`;
+      const uploadedFileNames: string[] = [];
       
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(`proposals/${fileName}`, file);
+      // Upload all files to storage
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${biddingItemId}-${companyId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(`proposals/${fileName}`, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
+        uploadedFileNames.push(fileName);
+      }
 
-      // Update database with file name
+      // Get existing proposals and add new ones
       const { data: existing } = await supabase
         .from('project_bidding_companies')
-        .select('id')
+        .select('id, proposals')
         .eq('project_bidding_id', biddingItemId)
         .eq('company_id', companyId)
         .single();
 
       if (existing) {
+        const currentProposals = existing.proposals || [];
+        const updatedProposals = [...currentProposals, ...uploadedFileNames];
+        
         const { error } = await supabase
           .from('project_bidding_companies')
-          .update({ proposals: fileName, updated_at: new Date().toISOString() })
+          .update({ proposals: updatedProposals, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
         
         if (error) throw error;
@@ -233,14 +241,72 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       toast({
         title: "Success",
-        description: "Proposal uploaded successfully",
+        description: "Proposals uploaded successfully",
       });
     },
     onError: (error) => {
-      console.error('Error uploading proposal:', error);
+      console.error('Error uploading proposals:', error);
       toast({
         title: "Error",
-        description: "Failed to upload proposal",
+        description: "Failed to upload proposals",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete single proposal file
+  const deleteProposal = useMutation({
+    mutationFn: async ({ 
+      biddingItemId, 
+      companyId,
+      fileName 
+    }: { 
+      biddingItemId: string; 
+      companyId: string;
+      fileName: string;
+    }) => {
+      // Delete file from storage
+      const { error: deleteError } = await supabase.storage
+        .from('project-files')
+        .remove([`proposals/${fileName}`]);
+
+      if (deleteError) console.warn('Could not delete file from storage:', deleteError);
+
+      // Remove from database array
+      const { data: existing } = await supabase
+        .from('project_bidding_companies')
+        .select('id, proposals')
+        .eq('project_bidding_id', biddingItemId)
+        .eq('company_id', companyId)
+        .single();
+
+      if (existing) {
+        const currentProposals = existing.proposals || [];
+        const updatedProposals = currentProposals.filter((f: string) => f !== fileName);
+        
+        const { error } = await supabase
+          .from('project_bidding_companies')
+          .update({ 
+            proposals: updatedProposals.length > 0 ? updatedProposals : null, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Proposal deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting proposal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete proposal",
         variant: "destructive",
       });
     },
@@ -293,12 +359,15 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     updateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => {
       updateReminderDate.mutate({ biddingItemId, companyId, reminderDate });
     },
-    uploadProposal: (biddingItemId: string, companyId: string, file: File) => {
-      uploadProposal.mutate({ biddingItemId, companyId, file });
+    uploadProposal: (biddingItemId: string, companyId: string, files: File[]) => {
+      uploadProposal.mutate({ biddingItemId, companyId, files });
+    },
+    deleteProposal: (biddingItemId: string, companyId: string, fileName: string) => {
+      deleteProposal.mutate({ biddingItemId, companyId, fileName });
     },
     deleteCompany: (biddingItemId: string, companyId: string) => {
       deleteCompany.mutate({ biddingItemId, companyId });
     },
-    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending || deleteCompany.isPending,
+    isLoading: updateBidStatus.isPending || updatePrice.isPending || updateDueDate.isPending || updateReminderDate.isPending || uploadProposal.isPending || deleteProposal.isPending || deleteCompany.isPending,
   };
 };

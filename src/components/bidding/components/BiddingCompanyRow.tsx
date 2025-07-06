@@ -17,7 +17,7 @@ interface BiddingCompany {
   company_id: string;
   bid_status: 'will_bid' | 'will_not_bid';
   price: number | null;
-  proposals: string | null;
+  proposals: string[] | null;
   due_date: string | null;
   reminder_date: string | null;
   companies: Company;
@@ -33,6 +33,7 @@ interface BiddingCompanyRowProps {
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
   onFileUpload: (companyId: string) => void;
+  onFileDelete: (companyId: string, fileName: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
@@ -47,6 +48,7 @@ export function BiddingCompanyRow({
   onUpdateDueDate,
   onUpdateReminderDate,
   onFileUpload,
+  onFileDelete,
   onDeleteCompany,
   isReadOnly = false
 }: BiddingCompanyRowProps) {
@@ -89,6 +91,7 @@ export function BiddingCompanyRow({
           proposals={biddingCompany.proposals}
           companyId={biddingCompany.company_id}
           onFileUpload={onFileUpload}
+          onFileDelete={onFileDelete}
           isReadOnly={isReadOnly}
         />
       </TableCell>

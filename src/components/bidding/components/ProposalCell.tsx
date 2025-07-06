@@ -1,20 +1,22 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 
 interface ProposalCellProps {
-  proposals: string | null;
+  proposals: string[] | null;
   companyId: string;
   onFileUpload: (companyId: string) => void;
+  onFileDelete: (companyId: string, fileName: string) => void;
   isReadOnly?: boolean;
 }
 
 export function ProposalCell({ 
   proposals, 
   companyId, 
-  onFileUpload, 
+  onFileUpload,
+  onFileDelete,
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
@@ -33,29 +35,45 @@ export function ProposalCell({
 
   return (
     <div className="flex items-center space-x-2">
-      {proposals ? (
-        <div className="flex items-center space-x-2">
-          {(() => {
-            const IconComponent = getFileIcon(proposals);
-            const iconColorClass = getFileIconColor(proposals);
+      {proposals && proposals.length > 0 ? (
+        <div className="flex flex-col space-y-1 w-full">
+          {proposals.map((fileName, index) => {
+            const IconComponent = getFileIcon(fileName);
+            const iconColorClass = getFileIconColor(fileName);
             return (
-              <button
-                onClick={() => handleFilePreview(proposals)}
-                className={`${iconColorClass} transition-colors p-1`}
-                disabled={isReadOnly}
-              >
-                <IconComponent className="h-4 w-4" />
-              </button>
+              <div key={index} className="flex items-center space-x-1 bg-gray-50 rounded px-2 py-1">
+                <button
+                  onClick={() => handleFilePreview(fileName)}
+                  className={`${iconColorClass} transition-colors p-1`}
+                  disabled={isReadOnly}
+                  title={fileName}
+                >
+                  <IconComponent className="h-3 w-3" />
+                </button>
+                <span className="text-xs text-gray-600 truncate max-w-[80px]" title={fileName}>
+                  {fileName.split('-').slice(-1)[0] || fileName}
+                </span>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => onFileDelete(companyId, fileName)}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                    title="Delete file"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             );
-          })()}
+          })}
           {!isReadOnly && (
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-xs px-2"
+              className="h-6 text-xs px-2 mt-1"
               onClick={() => onFileUpload(companyId)}
             >
-              Replace
+              <Upload className="h-3 w-3 mr-1" />
+              Add More
             </Button>
           )}
         </div>

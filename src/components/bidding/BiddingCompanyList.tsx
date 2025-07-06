@@ -14,7 +14,7 @@ interface BiddingCompany {
   company_id: string;
   bid_status: 'will_bid' | 'will_not_bid';
   price: number | null;
-  proposals: string | null;
+  proposals: string[] | null;
   due_date: string | null;
   reminder_date: string | null;
   companies: Company;
@@ -27,7 +27,8 @@ interface BiddingCompanyListProps {
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
   onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
-  onUploadProposal: (biddingItemId: string, companyId: string, file: File) => void;
+  onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
+  onDeleteProposal: (biddingItemId: string, companyId: string, fileName: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
@@ -40,6 +41,7 @@ export function BiddingCompanyList({
   onUpdateDueDate,
   onUpdateReminderDate,
   onUploadProposal,
+  onDeleteProposal,
   onDeleteCompany,
   isReadOnly = false
 }: BiddingCompanyListProps) {
@@ -61,14 +63,19 @@ export function BiddingCompanyList({
   const handleFileUpload = (companyId: string) => {
     const input = document.createElement('input');
     input.type = 'file';
+    input.multiple = true;
     input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
     input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        onUploadProposal(biddingItemId, companyId, file);
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length > 0) {
+        onUploadProposal(biddingItemId, companyId, files);
       }
     };
     input.click();
+  };
+
+  const handleFileDelete = (companyId: string, fileName: string) => {
+    onDeleteProposal(biddingItemId, companyId, fileName);
   };
 
   const handlePriceChange = (companyId: string, value: string) => {
@@ -111,6 +118,7 @@ export function BiddingCompanyList({
           onUpdateDueDate={onUpdateDueDate}
           onUpdateReminderDate={onUpdateReminderDate}
           onFileUpload={handleFileUpload}
+          onFileDelete={handleFileDelete}
           onDeleteCompany={onDeleteCompany}
           isReadOnly={isReadOnly}
         />

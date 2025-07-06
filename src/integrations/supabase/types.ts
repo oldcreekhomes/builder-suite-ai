@@ -457,7 +457,7 @@ export type Database = {
           id: string
           price: number | null
           project_bidding_id: string
-          proposals: string | null
+          proposals: string[] | null
           reminder_date: string | null
           updated_at: string
         }
@@ -469,7 +469,7 @@ export type Database = {
           id?: string
           price?: number | null
           project_bidding_id: string
-          proposals?: string | null
+          proposals?: string[] | null
           reminder_date?: string | null
           updated_at?: string
         }
@@ -481,7 +481,7 @@ export type Database = {
           id?: string
           price?: number | null
           project_bidding_id?: string
-          proposals?: string | null
+          proposals?: string[] | null
           reminder_date?: string | null
           updated_at?: string
         }
