@@ -79,15 +79,58 @@ const Settings = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // First, get cost codes that have specifications enabled
+      const { data: costCodesWithSpecs, error: costCodesError } = await supabase
+        .from('cost_codes')
+        .select('*')
+        .eq('has_specifications', true);
+
+      if (costCodesError) throw costCodesError;
+
+      if (!costCodesWithSpecs || costCodesWithSpecs.length === 0) {
+        setSpecifications([]);
+        setSpecificationsLoading(false);
+        return;
+      }
+
+      // Get existing specification records
+      const { data: existingSpecs, error: specsError } = await supabase
+        .from('cost_code_specifications')
+        .select('*')
+        .in('cost_code_id', costCodesWithSpecs.map(cc => cc.id));
+
+      if (specsError) throw specsError;
+
+      // Create missing specification records
+      const existingSpecCostCodeIds = new Set(existingSpecs?.map(spec => spec.cost_code_id) || []);
+      const missingSpecs = costCodesWithSpecs
+        .filter(cc => !existingSpecCostCodeIds.has(cc.id))
+        .map(cc => ({
+          cost_code_id: cc.id,
+          description: null,
+          files: []
+        }));
+
+      if (missingSpecs.length > 0) {
+        const { error: insertError } = await supabase
+          .from('cost_code_specifications')
+          .insert(missingSpecs);
+
+        if (insertError) throw insertError;
+      }
+
+      // Now fetch all specifications with cost code data
+      const { data: allSpecs, error: finalError } = await supabase
         .from('cost_code_specifications')
         .select(`
           *,
           cost_code:cost_codes(*)
-        `);
+        `)
+        .in('cost_code_id', costCodesWithSpecs.map(cc => cc.id));
 
-      if (error) throw error;
-      setSpecifications(data || []);
+      if (finalError) throw finalError;
+
+      setSpecifications(allSpecs || []);
     } catch (error) {
       console.error('Error fetching specifications:', error);
       toast({
@@ -102,7 +145,7 @@ const Settings = () => {
 
   useEffect(() => {
     fetchSpecifications();
-  }, [user]);
+  }, [user, costCodes]); // Also refresh when costCodes change
 
   useEffect(() => {
     // Don't automatically collapse any groups - leave them all expanded by default
