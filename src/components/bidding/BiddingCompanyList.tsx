@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,16 @@ export function BiddingCompanyList({
   isReadOnly = false 
 }: BiddingCompanyListProps) {
   const [fileInputs, setFileInputs] = useState<Record<string, HTMLInputElement | null>>({});
+  const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
+
+  // Initialize local prices from companies data
+  useEffect(() => {
+    const prices: Record<string, string> = {};
+    companies.forEach(company => {
+      prices[company.company_id] = company.price?.toString() || '';
+    });
+    setLocalPrices(prices);
+  }, [companies]);
   
   const handleBidStatusChange = (companyId: string, newStatus: string) => {
     onToggleBidStatus(biddingItemId, companyId, newStatus);
@@ -70,6 +80,15 @@ export function BiddingCompanyList({
   };
 
   const handlePriceChange = (companyId: string, value: string) => {
+    // Update local state immediately for responsive UI
+    setLocalPrices(prev => ({
+      ...prev,
+      [companyId]: value
+    }));
+  };
+
+  const handlePriceBlur = (companyId: string, value: string) => {
+    // Only save to database when user finishes editing
     const price = value === '' ? null : parseFloat(value);
     if (!isNaN(price) || price === null) {
       onUpdatePrice(biddingItemId, companyId, price);
@@ -169,8 +188,9 @@ export function BiddingCompanyList({
             <Input
               type="text"
               placeholder="$0.00"
-              value={biddingCompany.price || ''}
+              value={localPrices[biddingCompany.company_id] || ''}
               onChange={(e) => handlePriceChange(biddingCompany.company_id, e.target.value)}
+              onBlur={(e) => handlePriceBlur(biddingCompany.company_id, e.target.value)}
               className="w-24 h-8 text-sm"
               disabled={isReadOnly}
             />
