@@ -74,6 +74,11 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
       return acc;
     }, {} as Record<string, CostCode[]>);
 
+    // Sort each group chronologically by created_at
+    Object.keys(grouped).forEach(group => {
+      grouped[group].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    });
+
     setGroupedCostCodes(grouped);
   }, [costCodes]);
 
