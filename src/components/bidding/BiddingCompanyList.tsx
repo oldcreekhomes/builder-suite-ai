@@ -158,7 +158,7 @@ export function BiddingCompanyList({
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-3 w-3" />
-            {date ? format(date, "MM/dd/yyyy") : <span>{placeholder}</span>}
+            {date ? format(date, "MM/dd/yyyy") : placeholder}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -223,17 +223,16 @@ export function BiddingCompanyList({
           <TableCell className="py-1">
             <div className="flex items-center space-x-2">
               {biddingCompany.proposals ? (
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center justify-center">
                   {(() => {
                     const IconComponent = getFileIcon(biddingCompany.proposals);
                     return (
                       <button
                         onClick={() => handleFilePreview(biddingCompany.proposals!)}
-                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-blue-600 hover:text-blue-800 transition-colors p-1"
                         disabled={isReadOnly}
                       >
                         <IconComponent className="h-4 w-4" />
-                        <span className="text-sm truncate max-w-20">{biddingCompany.proposals}</span>
                       </button>
                     );
                   })()}
