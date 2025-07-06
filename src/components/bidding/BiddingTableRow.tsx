@@ -13,6 +13,10 @@ interface BiddingTableRowProps {
   item: any; // Project bidding item with cost_codes relation and companies
   onDelete: (itemId: string) => void;
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
+  onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
+  onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
+  onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
+  onUploadProposal: (biddingItemId: string, companyId: string, file: File) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
@@ -24,6 +28,10 @@ export function BiddingTableRow({
   item, 
   onDelete,
   onToggleBidStatus,
+  onUpdatePrice,
+  onUpdateDueDate,
+  onUpdateReminderDate,
+  onUploadProposal,
   formatUnitOfMeasure,
   isSelected,
   onCheckboxChange,
@@ -82,6 +90,10 @@ export function BiddingTableRow({
           biddingItemId={item.id}
           companies={item.project_bidding_companies || []}
           onToggleBidStatus={onToggleBidStatus}
+          onUpdatePrice={onUpdatePrice}
+          onUpdateDueDate={onUpdateDueDate}
+          onUpdateReminderDate={onUpdateReminderDate}
+          onUploadProposal={onUploadProposal}
           isReadOnly={isReadOnly}
         />
       )}

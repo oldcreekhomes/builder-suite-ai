@@ -33,6 +33,10 @@ interface BiddingCompanyListProps {
   biddingItemId: string;
   companies: BiddingCompany[];
   onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
+  onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
+  onUpdateDueDate: (biddingItemId: string, companyId: string, dueDate: string | null) => void;
+  onUpdateReminderDate: (biddingItemId: string, companyId: string, reminderDate: string | null) => void;
+  onUploadProposal: (biddingItemId: string, companyId: string, file: File) => void;
   isReadOnly?: boolean;
 }
 
@@ -40,6 +44,10 @@ export function BiddingCompanyList({
   biddingItemId, 
   companies, 
   onToggleBidStatus, 
+  onUpdatePrice,
+  onUpdateDueDate,
+  onUpdateReminderDate,
+  onUploadProposal,
   isReadOnly = false 
 }: BiddingCompanyListProps) {
   const [fileInputs, setFileInputs] = useState<Record<string, HTMLInputElement | null>>({});
@@ -55,26 +63,44 @@ export function BiddingCompanyList({
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        // Handle file upload logic here
-        console.log('File selected:', file.name);
-        // TODO: Implement file upload to server
+        onUploadProposal(biddingItemId, companyId, file);
       }
     };
     input.click();
+  };
+
+  const handlePriceChange = (companyId: string, value: string) => {
+    const price = value === '' ? null : parseFloat(value);
+    if (!isNaN(price) || price === null) {
+      onUpdatePrice(biddingItemId, companyId, price);
+    }
   };
 
   const DatePicker = ({ 
     value, 
     onChange, 
     placeholder, 
-    disabled 
+    disabled,
+    companyId,
+    field
   }: { 
     value: string | null; 
     onChange: (date: Date | undefined) => void; 
     placeholder: string;
     disabled?: boolean;
+    companyId: string;
+    field: 'due_date' | 'reminder_date';
   }) => {
     const date = value ? new Date(value) : undefined;
+    
+    const handleDateChange = (newDate: Date | undefined) => {
+      const dateString = newDate ? newDate.toISOString() : null;
+      if (field === 'due_date') {
+        onUpdateDueDate(biddingItemId, companyId, dateString);
+      } else {
+        onUpdateReminderDate(biddingItemId, companyId, dateString);
+      }
+    };
     
     return (
       <Popover>
@@ -95,7 +121,7 @@ export function BiddingCompanyList({
           <Calendar
             mode="single"
             selected={date}
-            onSelect={onChange}
+            onSelect={handleDateChange}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
           />
@@ -144,6 +170,8 @@ export function BiddingCompanyList({
               type="number"
               placeholder="$0.00"
               value={biddingCompany.price || ''}
+              onChange={(e) => handlePriceChange(biddingCompany.company_id, e.target.value)}
+              onBlur={(e) => handlePriceChange(biddingCompany.company_id, e.target.value)}
               className="w-24 h-8 text-sm"
               disabled={isReadOnly}
             />
@@ -172,23 +200,21 @@ export function BiddingCompanyList({
           <TableCell className="py-1">
             <DatePicker
               value={biddingCompany.due_date}
-              onChange={(date) => {
-                // TODO: Implement date update logic
-                console.log('Due date changed:', date);
-              }}
+              onChange={() => {}}
               placeholder="mm/dd/yyyy"
               disabled={isReadOnly}
+              companyId={biddingCompany.company_id}
+              field="due_date"
             />
           </TableCell>
           <TableCell className="py-1">
             <DatePicker
               value={biddingCompany.reminder_date}
-              onChange={(date) => {
-                // TODO: Implement date update logic
-                console.log('Reminder date changed:', date);
-              }}
+              onChange={() => {}}
               placeholder="mm/dd/yyyy"
               disabled={isReadOnly}
+              companyId={biddingCompany.company_id}
+              field="reminder_date"
             />
           </TableCell>
           <TableCell className="py-1">
