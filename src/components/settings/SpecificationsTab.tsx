@@ -5,25 +5,28 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit } from 'lucide-react';
 import { BulkActionBar } from './BulkActionBar';
+import type { Tables } from '@/integrations/supabase/types';
+
+type CostCode = Tables<'cost_codes'>;
 
 interface SpecificationsTabProps {
+  specifications: CostCode[];
+  loading: boolean;
   selectedSpecifications: Set<string>;
   onSpecificationSelect: (specId: string, checked: boolean) => void;
   onSelectAllSpecifications: (checked: boolean) => void;
   onBulkDeleteSpecifications: () => void;
+  onEditSpecification: (costCode: CostCode) => void;
 }
 
-const mockSpecs = [
-  { id: '1', name: 'Concrete Mix Design', category: 'Foundation' },
-  { id: '2', name: 'Framing Lumber', category: 'Framing' },
-  { id: '3', name: 'Insulation', category: 'Insulation' }
-];
-
 export function SpecificationsTab({
+  specifications,
+  loading,
   selectedSpecifications,
   onSpecificationSelect,
   onSelectAllSpecifications,
-  onBulkDeleteSpecifications
+  onBulkDeleteSpecifications,
+  onEditSpecification
 }: SpecificationsTabProps) {
   return (
     <div className="space-y-4">
@@ -56,76 +59,62 @@ export function SpecificationsTab({
             <TableRow className="h-10">
               <TableHead className="font-bold py-2 text-sm w-12">
                 <Checkbox
-                  checked={selectedSpecifications.size === mockSpecs.length && mockSpecs.length > 0}
+                  checked={selectedSpecifications.size === specifications.length && specifications.length > 0}
                   onCheckedChange={onSelectAllSpecifications}
                   ref={(el) => {
                     if (el && 'indeterminate' in el) {
-                      (el as any).indeterminate = selectedSpecifications.size > 0 && selectedSpecifications.size < mockSpecs.length;
+                      (el as any).indeterminate = selectedSpecifications.size > 0 && selectedSpecifications.size < specifications.length;
                     }
                   }}
                 />
               </TableHead>
-              <TableHead className="font-bold py-2 text-sm">Specification</TableHead>
+              <TableHead className="font-bold py-2 text-sm">Code</TableHead>
+              <TableHead className="font-bold py-2 text-sm">Name</TableHead>
               <TableHead className="font-bold py-2 text-sm">Category</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Description</TableHead>
+              <TableHead className="font-bold py-2 text-sm">Unit of Measure</TableHead>
               <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow className="h-8">
-              <TableCell className="py-1">
-                <Checkbox
-                  checked={selectedSpecifications.has('1')}
-                  onCheckedChange={(checked) => 
-                    onSpecificationSelect('1', checked as boolean)
-                  }
-                />
-              </TableCell>
-              <TableCell className="font-medium py-1 text-sm">Concrete Mix Design</TableCell>
-              <TableCell className="py-1 text-sm">Foundation</TableCell>
-              <TableCell className="py-1 text-sm">3000 PSI concrete with air entrainment</TableCell>
-              <TableCell className="py-1">
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow className="h-8">
-              <TableCell className="py-1">
-                <Checkbox
-                  checked={selectedSpecifications.has('2')}
-                  onCheckedChange={(checked) => 
-                    onSpecificationSelect('2', checked as boolean)
-                  }
-                />
-              </TableCell>
-              <TableCell className="font-medium py-1 text-sm">Framing Lumber</TableCell>
-              <TableCell className="py-1 text-sm">Framing</TableCell>
-              <TableCell className="py-1 text-sm">Grade A Douglas Fir 2x4, 2x6, 2x8</TableCell>
-              <TableCell className="py-1">
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow className="h-8">
-              <TableCell className="py-1">
-                <Checkbox
-                  checked={selectedSpecifications.has('3')}
-                  onCheckedChange={(checked) => 
-                    onSpecificationSelect('3', checked as boolean)
-                  }
-                />
-              </TableCell>
-              <TableCell className="font-medium py-1 text-sm">Insulation</TableCell>
-              <TableCell className="py-1 text-sm">Insulation</TableCell>
-              <TableCell className="py-1 text-sm">R-15 fiberglass batt insulation</TableCell>
-              <TableCell className="py-1">
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  Loading specifications...
+                </TableCell>
+              </TableRow>
+            ) : specifications.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+                  No cost codes with specifications found. Enable specifications on cost codes to see them here.
+                </TableCell>
+              </TableRow>
+            ) : (
+              specifications.map((spec) => (
+                <TableRow key={spec.id} className="h-8">
+                  <TableCell className="py-1">
+                    <Checkbox
+                      checked={selectedSpecifications.has(spec.id)}
+                      onCheckedChange={(checked) => 
+                        onSpecificationSelect(spec.id, checked as boolean)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium py-1 text-sm">{spec.code}</TableCell>
+                  <TableCell className="py-1 text-sm">{spec.name}</TableCell>
+                  <TableCell className="py-1 text-sm">{spec.category || 'Uncategorized'}</TableCell>
+                  <TableCell className="py-1 text-sm">{spec.unit_of_measure || 'N/A'}</TableCell>
+                  <TableCell className="py-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onEditSpecification(spec)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

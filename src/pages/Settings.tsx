@@ -110,20 +110,30 @@ const Settings = () => {
     setSelectedSpecifications(newSelected);
   };
 
+  // Get cost codes that have specifications enabled
+  const specificationsEnabled = costCodes.filter(cc => cc.has_specifications);
+
   const handleSelectAllSpecifications = (checked: boolean) => {
     if (checked) {
-      const mockSpecs = ['1', '2', '3'];
-      const allIds = new Set(mockSpecs);
+      const allIds = new Set(specificationsEnabled.map(spec => spec.id));
       setSelectedSpecifications(allIds);
     } else {
       setSelectedSpecifications(new Set());
     }
   };
 
-  const handleBulkDeleteSpecifications = () => {
-    console.log('Bulk deleting specifications:', selectedSpecifications);
+  const handleBulkDeleteSpecifications = async () => {
+    // Disable specifications for selected cost codes
+    for (const id of selectedSpecifications) {
+      await updateCostCode(id, { has_specifications: false });
+    }
     setSelectedSpecifications(new Set());
     setBulkDeleteSpecsDialogOpen(false);
+  };
+
+  const handleEditSpecification = (costCode: CostCode) => {
+    setEditingCostCode(costCode);
+    setEditDialogOpen(true);
   };
 
   const handleAddCostCode = async (newCostCode: any) => {
@@ -197,10 +207,13 @@ const Settings = () => {
                 
                 <TabsContent value="specifications" className="mt-6">
                   <SpecificationsTab
+                    specifications={specificationsEnabled}
+                    loading={loading}
                     selectedSpecifications={selectedSpecifications}
                     onSpecificationSelect={handleSpecificationSelect}
                     onSelectAllSpecifications={handleSelectAllSpecifications}
                     onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
+                    onEditSpecification={handleEditSpecification}
                   />
                 </TabsContent>
               </Tabs>
