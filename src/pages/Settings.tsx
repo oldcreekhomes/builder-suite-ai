@@ -146,7 +146,7 @@ const Settings = () => {
                     onSpecificationSelect={handleSpecificationSelect}
                     onSelectAllSpecifications={handleSelectAllSpecifications}
                     onToggleGroupCollapse={toggleSpecificationGroupCollapse}
-                    onBulkDeleteSpecifications={handleBulkDeleteSpecifications}
+                    onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
                     onEditDescription={handleEditSpecificationDescription}
                     onUpdateSpecification={handleUpdateSpecification}
                     onDeleteSpecification={handleDeleteSpecificationClick}

@@ -98,7 +98,7 @@ export function SpecificationsTab({
         <div className="flex gap-2">
           <BulkActionBar
             selectedCount={selectedSpecifications.size}
-            onBulkDelete={onBulkDeleteSpecifications}
+            onBulkDelete={() => onBulkDeleteSpecifications()}
             label="specifications"
           />
         </div>
