@@ -206,25 +206,49 @@ export const useSpecifications = (costCodes: CostCode[]) => {
   };
 
   const handleBulkDeleteSpecifications = async () => {
-    for (const id of selectedSpecifications) {
-      try {
-        const { error } = await supabase
+    try {
+      for (const id of selectedSpecifications) {
+        // Find the specification to get the cost code ID
+        const spec = specifications.find(s => s.id === id);
+        if (!spec) continue;
+        
+        // First, set has_specifications to false on the cost code
+        const { error: costCodeError } = await supabase
+          .from('cost_codes')
+          .update({ has_specifications: false })
+          .eq('id', spec.cost_code.id);
+
+        if (costCodeError) {
+          console.error('Error updating cost code:', costCodeError);
+          throw costCodeError;
+        }
+        
+        // Then delete the specification record
+        const { error: specError } = await supabase
           .from('cost_code_specifications')
           .delete()
           .eq('id', id);
         
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error deleting specification:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete specification",
-          variant: "destructive",
-        });
+        if (specError) {
+          console.error('Error deleting specification:', specError);
+          throw specError;
+        }
       }
+      
+      setSelectedSpecifications(new Set());
+      fetchSpecifications();
+      toast({
+        title: "Success",
+        description: `Successfully deleted ${selectedSpecifications.size} specification${selectedSpecifications.size !== 1 ? 's' : ''}`,
+      });
+    } catch (error) {
+      console.error('Error deleting specifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete specifications",
+        variant: "destructive",
+      });
     }
-    setSelectedSpecifications(new Set());
-    fetchSpecifications();
   };
 
   const handleConfirmDeleteSpecification = async (specToDelete: SpecificationWithCostCode) => {
