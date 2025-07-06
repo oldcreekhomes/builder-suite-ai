@@ -9,6 +9,7 @@ import { ChevronDown, ChevronRight, Upload, Paperclip, Send } from 'lucide-react
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { EditBiddingSpecificationsModal } from './EditBiddingSpecificationsModal';
+import { SendBidPackageModal } from './SendBidPackageModal';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -55,6 +56,7 @@ export function BiddingTableRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
   const costCode = item.cost_codes as CostCode;
 
   const handleFileUpload = () => {
@@ -231,6 +233,7 @@ export function BiddingTableRow({
                   size="sm"
                   className="h-8 w-8 p-0"
                   title="Send Bid Package"
+                  onClick={() => setShowSendModal(true)}
                 >
                   <Send className="h-4 w-4 text-black" />
                 </Button>
@@ -272,6 +275,12 @@ export function BiddingTableRow({
         onUpdateSpecifications={async (specifications) => {
           await onUpdateSpecifications(item.id, specifications);
         }}
+      />
+      
+      <SendBidPackageModal
+        open={showSendModal}
+        onOpenChange={setShowSendModal}
+        bidPackage={item}
       />
     </>
   );
