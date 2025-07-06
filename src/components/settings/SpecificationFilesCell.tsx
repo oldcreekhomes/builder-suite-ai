@@ -27,14 +27,16 @@ export function SpecificationFilesCell({
         .getPublicUrl(`specifications/${fileName}`);
       
       if (data?.publicUrl) {
-        // Create a new window/tab for preview
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.location.href = data.publicUrl;
-        } else {
-          // Fallback if popup blocked
-          window.location.href = data.publicUrl;
-        }
+        // Create a link element and click it to ensure proper file handling
+        const link = document.createElement('a');
+        link.href = data.publicUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        
+        // Add the link to DOM temporarily
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     } catch (error) {
       console.error('Error opening file:', error);
