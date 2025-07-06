@@ -128,86 +128,79 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto space-y-6">
+        <div className="flex-1 overflow-auto space-y-4">
           {/* Cost Code Information */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-lg">{costCode?.code} - {costCode?.name}</h3>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-base">{costCode?.code} - {costCode?.name}</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              {bidPackage.due_date && (
+            <div className="grid grid-cols-1 gap-2 bg-muted p-3 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    <strong>Due Date:</strong> {format(new Date(bidPackage.due_date), 'MMM dd, yyyy')}
-                  </span>
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <span><strong>Status:</strong> {bidPackage.status || 'Draft'}</span>
                 </div>
-              )}
-              
-              {bidPackage.reminder_date && (
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    <strong>Reminder Date:</strong> {format(new Date(bidPackage.reminder_date), 'MMM dd, yyyy')}
-                  </span>
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <span><strong>Due Date:</strong> {bidPackage.due_date ? format(new Date(bidPackage.due_date), 'MMM dd, yyyy') : 'Not set'}</span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <span><strong>Reminder Date:</strong> {bidPackage.reminder_date ? format(new Date(bidPackage.reminder_date), 'MMM dd, yyyy') : 'Not set'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <span><strong>Bid Package Name:</strong> {bidPackage.name || 'N/A'}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <Separator />
-
           {/* Specifications */}
           {bidPackage.specifications && (
-            <>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <h4 className="font-medium">Specifications</h4>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <p className="text-sm whitespace-pre-wrap">{bidPackage.specifications}</p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                <h4 className="font-medium text-sm">Specifications</h4>
               </div>
-              <Separator />
-            </>
+              <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
+                <p className="text-xs whitespace-pre-wrap">{bidPackage.specifications}</p>
+              </div>
+            </div>
           )}
 
           {/* Files */}
           {bidPackage.files && bidPackage.files.length > 0 && (
-            <>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <h4 className="font-medium">Files</h4>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {bidPackage.files.map((fileName: string, index: number) => {
-                    const IconComponent = getFileIcon(fileName);
-                    const iconColorClass = getFileIconColor(fileName);
-                    return (
-                      <Badge key={index} variant="outline" className="flex items-center gap-2">
-                        <IconComponent className={`h-3 w-3 ${iconColorClass}`} />
-                        {fileName}
-                      </Badge>
-                    );
-                  })}
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                <h4 className="font-medium text-sm">Files ({bidPackage.files.length})</h4>
               </div>
-              <Separator />
-            </>
+              <div className="flex flex-wrap gap-1">
+                {bidPackage.files.map((fileName: string, index: number) => {
+                  const IconComponent = getFileIcon(fileName);
+                  const iconColorClass = getFileIconColor(fileName);
+                  return (
+                    <Badge key={index} variant="outline" className="flex items-center gap-1 text-xs py-1">
+                      <IconComponent className={`h-3 w-3 ${iconColorClass}`} />
+                      {fileName}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* Companies and Representatives */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <h4 className="font-medium">Recipients ({recipients} total)</h4>
+              <Building2 className="h-3 w-3" />
+              <h4 className="font-medium text-sm">Recipients ({recipients} total)</h4>
             </div>
 
             {isLoading ? (
-              <div className="text-center py-4 text-muted-foreground">Loading recipients...</div>
+              <div className="text-center py-2 text-muted-foreground text-sm">Loading recipients...</div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
                     (rep: any) => rep.receive_bid_notifications
@@ -216,24 +209,24 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                   if (notificationReps.length === 0) return null;
 
                   return (
-                    <div key={company.id} className="border rounded-lg p-4 space-y-3">
+                    <div key={company.id} className="border rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <h5 className="font-medium">{company.companies?.company_name}</h5>
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                        <h5 className="font-medium text-sm">{company.companies?.company_name}</h5>
                       </div>
                       
                       {company.companies?.address && (
-                        <p className="text-sm text-muted-foreground">{company.companies.address}</p>
+                        <p className="text-xs text-muted-foreground pl-5">{company.companies.address}</p>
                       )}
 
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm font-medium">Representatives:</span>
+                          <span className="text-xs font-medium">Representatives:</span>
                         </div>
                         <div className="pl-5 space-y-1">
                           {notificationReps.map((rep: any) => (
-                            <div key={rep.id} className="text-sm">
+                            <div key={rep.id} className="text-xs">
                               <span className="font-medium">{rep.first_name} {rep.last_name}</span>
                               {rep.title && <span className="text-muted-foreground"> - {rep.title}</span>}
                               {rep.email && (
@@ -250,7 +243,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
             )}
 
             {recipients === 0 && !isLoading && (
-              <div className="text-center py-4 text-muted-foreground">
+              <div className="text-center py-2 text-muted-foreground text-sm">
                 No recipients found with bid notifications enabled.
               </div>
             )}
