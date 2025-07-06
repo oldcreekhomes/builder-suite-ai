@@ -2,7 +2,8 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { SpecificationFilesCell } from './SpecificationFilesCell';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -18,9 +19,11 @@ interface SpecificationTableRowProps {
   isSelected: boolean;
   isGrouped: boolean;
   onSelect: (specId: string, checked: boolean) => void;
-  onEdit: (spec: SpecificationWithCostCode) => void;
+  onEditDescription: (spec: SpecificationWithCostCode) => void;
   onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
+  onFileUpload: (specId: string) => void;
+  onDeleteAllFiles: (specId: string) => void;
 }
 
 export function SpecificationTableRow({
@@ -28,9 +31,11 @@ export function SpecificationTableRow({
   isSelected,
   isGrouped,
   onSelect,
-  onEdit,
+  onEditDescription,
   onDelete,
-  onUpdate
+  onUpdate,
+  onFileUpload,
+  onDeleteAllFiles
 }: SpecificationTableRowProps) {
   return (
     <TableRow className="h-8">
@@ -47,21 +52,23 @@ export function SpecificationTableRow({
         {specification.cost_code.name}
       </TableCell>
       <TableCell className="py-1 text-sm">
-        {specification.description || 'No description'}
+        <button
+          onClick={() => onEditDescription(specification)}
+          className="text-left hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          {specification.description || 'Click to add description'}
+        </button>
       </TableCell>
-      <TableCell className="py-1 text-sm">
-        {specification.files ? (Array.isArray(specification.files) ? specification.files.length : JSON.parse(specification.files as string).length) : 0} files
+      <TableCell className="py-1">
+        <SpecificationFilesCell
+          files={specification.files ? (Array.isArray(specification.files) ? specification.files : JSON.parse(specification.files as string)) : null}
+          specificationId={specification.id}
+          onFileUpload={onFileUpload}
+          onDeleteAllFiles={onDeleteAllFiles}
+        />
       </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(specification)}
-            className="h-7 w-7 p-0"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
           <Button
             variant="ghost"
             size="sm"

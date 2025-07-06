@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
+import { EditSpecificationDescriptionDialog } from "@/components/settings/EditSpecificationDescriptionDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +51,9 @@ const Settings = () => {
   const [specificationsLoading, setSpecificationsLoading] = useState(true);
 
   const [editingCostCode, setEditingCostCode] = useState<CostCode | null>(null);
+  const [editingSpecification, setEditingSpecification] = useState<SpecificationWithCostCode | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -245,16 +248,129 @@ const Settings = () => {
     fetchSpecifications(); // Refresh data
   };
 
-  const handleEditSpecification = (spec: SpecificationWithCostCode) => {
-    // For now, edit the underlying cost code
-    setEditingCostCode(spec.cost_code);
-    setEditDialogOpen(true);
+  const handleEditSpecificationDescription = (spec: SpecificationWithCostCode) => {
+    setEditingSpecification(spec);
+    setDescriptionDialogOpen(true);
   };
 
-  const handleDeleteSpecification = (spec: SpecificationWithCostCode) => {
-    // For now, we'll delete the specification record
-    setCostCodeToDelete(spec.cost_code);
-    setDeleteDialogOpen(true);
+  const handleUpdateSpecificationDescription = async (specId: string, description: string) => {
+    try {
+      const { error } = await supabase
+        .from('cost_code_specifications')
+        .update({ description })
+        .eq('id', specId);
+
+      if (error) throw error;
+      
+      // Refresh specifications
+      fetchSpecifications();
+      toast({
+        title: "Success",
+        description: "Description updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating description:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update description",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSpecificationFileUpload = (specId: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
+    input.onchange = async (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      if (files.length > 0) {
+        // For now, just simulate the file upload
+        // In a real implementation, you'd upload to Supabase storage
+        const fileNames = files.map(file => file.name);
+        
+        try {
+          const { error } = await supabase
+            .from('cost_code_specifications')
+            .update({ files: fileNames })
+            .eq('id', specId);
+
+          if (error) throw error;
+          
+          fetchSpecifications();
+          toast({
+            title: "Success",
+            description: `Uploaded ${files.length} file(s)`,
+          });
+        } catch (error) {
+          console.error('Error uploading files:', error);
+          toast({
+            title: "Error",
+            description: "Failed to upload files",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleDeleteAllSpecificationFiles = async (specId: string) => {
+    try {
+      const { error } = await supabase
+        .from('cost_code_specifications')
+        .update({ files: [] })
+        .eq('id', specId);
+
+      if (error) throw error;
+      
+      fetchSpecifications();
+      toast({
+        title: "Success",
+        description: "All files deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete files",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSpecification = async (spec: SpecificationWithCostCode) => {
+    try {
+      // First, set has_specifications to false on the cost code
+      const { error: costCodeError } = await supabase
+        .from('cost_codes')
+        .update({ has_specifications: false })
+        .eq('id', spec.cost_code.id);
+
+      if (costCodeError) throw costCodeError;
+
+      // Then delete the specification record
+      const { error: specError } = await supabase
+        .from('cost_code_specifications')
+        .delete()
+        .eq('id', spec.id);
+
+      if (specError) throw specError;
+
+      fetchSpecifications();
+      toast({
+        title: "Success",
+        description: "Specification removed successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting specification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete specification",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUpdateSpecification = async (specId: string, updatedSpec: any) => {
@@ -340,9 +456,11 @@ const Settings = () => {
                     onSelectAllSpecifications={handleSelectAllSpecifications}
                     onToggleGroupCollapse={toggleSpecificationGroupCollapse}
                     onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
-                    onEditSpecification={handleEditSpecification}
+                    onEditDescription={handleEditSpecificationDescription}
                     onUpdateSpecification={handleUpdateSpecification}
                     onDeleteSpecification={handleDeleteSpecification}
+                    onFileUpload={handleSpecificationFileUpload}
+                    onDeleteAllFiles={handleDeleteAllSpecificationFiles}
                   />
                 </TabsContent>
               </Tabs>
@@ -356,6 +474,13 @@ const Settings = () => {
           onOpenChange={setEditDialogOpen}
           existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
           onUpdateCostCode={handleUpdateCostCode}
+        />
+
+        <EditSpecificationDescriptionDialog
+          specification={editingSpecification}
+          open={descriptionDialogOpen}
+          onOpenChange={setDescriptionDialogOpen}
+          onUpdateDescription={handleUpdateSpecificationDescription}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

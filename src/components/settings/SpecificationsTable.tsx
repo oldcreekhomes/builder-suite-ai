@@ -24,8 +24,10 @@ interface SpecificationsTableProps {
   onSelectAllSpecifications: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
   onUpdateSpecification: (specId: string, updatedSpec: any) => void;
-  onEditSpecification: (spec: SpecificationWithCostCode) => void;
+  onEditDescription: (spec: SpecificationWithCostCode) => void;
   onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
+  onFileUpload: (specId: string) => void;
+  onDeleteAllFiles: (specId: string) => void;
   getParentCostCode: (parentGroupCode: string) => SpecificationWithCostCode | undefined;
 }
 
@@ -40,8 +42,10 @@ export function SpecificationsTable({
   onSelectAllSpecifications,
   onToggleGroupCollapse,
   onUpdateSpecification,
-  onEditSpecification,
+  onEditDescription,
   onDeleteSpecification,
+  onFileUpload,
+  onDeleteAllFiles,
   getParentCostCode
 }: SpecificationsTableProps) {
   return (
@@ -98,9 +102,11 @@ export function SpecificationsTable({
                       isSelected={getParentCostCode(groupKey) ? selectedSpecifications.has(getParentCostCode(groupKey)!.id) : false}
                       onToggleCollapse={onToggleGroupCollapse}
                       onSelect={onSpecificationSelect}
-                      onEdit={onEditSpecification}
+                      onEditDescription={onEditDescription}
                       onDelete={onDeleteSpecification}
                       onUpdate={onUpdateSpecification}
+                      onFileUpload={onFileUpload}
+                      onDeleteAllFiles={onDeleteAllFiles}
                     />
                   )}
                   {/* Show child specifications when group is expanded or ungrouped */}
@@ -110,15 +116,18 @@ export function SpecificationsTable({
                         // Only show child codes (not the parent code itself in the child list)
                         return !parentCodes.has(spec.cost_code.code);
                       })
+                      .sort((a, b) => a.cost_code.code.localeCompare(b.cost_code.code)) // Sort chronologically by code
                       .map((spec) => (
                         <SpecificationTableRow
                           key={`row-${spec.id}`}
                           specification={spec}
                           isSelected={selectedSpecifications.has(spec.id)}
                           onSelect={onSpecificationSelect}
-                          onEdit={onEditSpecification}
+                          onEditDescription={onEditDescription}
                           onDelete={onDeleteSpecification}
                           onUpdate={onUpdateSpecification}
+                          onFileUpload={onFileUpload}
+                          onDeleteAllFiles={onDeleteAllFiles}
                           isGrouped={groupKey !== 'ungrouped'}
                         />
                       ))

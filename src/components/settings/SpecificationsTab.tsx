@@ -24,9 +24,11 @@ interface SpecificationsTabProps {
   onSelectAllSpecifications: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
   onBulkDeleteSpecifications: () => void;
-  onEditSpecification: (spec: SpecificationWithCostCode) => void;
+  onEditDescription: (spec: SpecificationWithCostCode) => void;
   onUpdateSpecification: (specId: string, updatedSpec: any) => void;
   onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
+  onFileUpload: (specId: string) => void;
+  onDeleteAllFiles: (specId: string) => void;
 }
 
 export function SpecificationsTab({
@@ -38,9 +40,11 @@ export function SpecificationsTab({
   onSelectAllSpecifications,
   onToggleGroupCollapse,
   onBulkDeleteSpecifications,
-  onEditSpecification,
+  onEditDescription,
   onUpdateSpecification,
-  onDeleteSpecification
+  onDeleteSpecification,
+  onFileUpload,
+  onDeleteAllFiles
 }: SpecificationsTabProps) {
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(
     specifications.map(spec => spec.cost_code)
@@ -95,8 +99,10 @@ export function SpecificationsTab({
         onSelectAllSpecifications={onSelectAllSpecifications}
         onToggleGroupCollapse={onToggleGroupCollapse}
         onUpdateSpecification={onUpdateSpecification}
-        onEditSpecification={onEditSpecification}
+        onEditDescription={onEditDescription}
         onDeleteSpecification={onDeleteSpecification}
+        onFileUpload={onFileUpload}
+        onDeleteAllFiles={onDeleteAllFiles}
         getParentCostCode={getParentSpecification}
       />
     </div>

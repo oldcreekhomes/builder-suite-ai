@@ -20,9 +20,11 @@ interface SpecificationGroupRowProps {
   isSelected: boolean;
   onToggleCollapse: (groupKey: string) => void;
   onSelect: (specId: string, checked: boolean) => void;
-  onEdit: (spec: SpecificationWithCostCode) => void;
+  onEditDescription: (spec: SpecificationWithCostCode) => void;
   onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
+  onFileUpload: (specId: string) => void;
+  onDeleteAllFiles: (specId: string) => void;
 }
 
 export function SpecificationGroupRow({
@@ -32,9 +34,11 @@ export function SpecificationGroupRow({
   isSelected,
   onToggleCollapse,
   onSelect,
-  onEdit,
+  onEditDescription,
   onDelete,
-  onUpdate
+  onUpdate,
+  onFileUpload,
+  onDeleteAllFiles
 }: SpecificationGroupRowProps) {
   return (
     <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">
@@ -78,7 +82,7 @@ export function SpecificationGroupRow({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onEdit(parentCostCode)}
+              onClick={() => onEditDescription(parentCostCode)}
               className="h-7 w-7 p-0"
             >
               <Edit className="h-3 w-3" />
