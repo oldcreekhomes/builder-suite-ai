@@ -251,7 +251,7 @@ export function BiddingCompanyList({
               )}
             </div>
           </TableCell>
-          <TableCell className="py-1">
+          <TableCell className="py-1 w-32">
             <DatePicker
               value={biddingCompany.due_date}
               onChange={() => {}}
@@ -261,7 +261,7 @@ export function BiddingCompanyList({
               field="due_date"
             />
           </TableCell>
-          <TableCell className="py-1">
+          <TableCell className="py-1 w-32">
             <DatePicker
               value={biddingCompany.reminder_date}
               onChange={() => {}}
