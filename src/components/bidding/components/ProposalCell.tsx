@@ -36,23 +36,20 @@ export function ProposalCell({
   return (
     <div className="flex items-center space-x-2">
       {proposals && proposals.length > 0 ? (
-        <div className="flex flex-col space-y-1 w-full">
+        <div className="flex items-center space-x-2">
           {proposals.map((fileName, index) => {
             const IconComponent = getFileIcon(fileName);
             const iconColorClass = getFileIconColor(fileName);
             return (
-              <div key={index} className="flex items-center space-x-1 bg-gray-50 rounded px-2 py-1">
+              <div key={index} className="flex items-center space-x-1">
                 <button
                   onClick={() => handleFilePreview(fileName)}
                   className={`${iconColorClass} transition-colors p-1`}
                   disabled={isReadOnly}
                   title={fileName}
                 >
-                  <IconComponent className="h-3 w-3" />
+                  <IconComponent className="h-4 w-4" />
                 </button>
-                <span className="text-xs text-gray-600 truncate max-w-[80px]" title={fileName}>
-                  {fileName.split('-').slice(-1)[0] || fileName}
-                </span>
                 {!isReadOnly && (
                   <button
                     onClick={() => onFileDelete(companyId, fileName)}
@@ -65,17 +62,6 @@ export function ProposalCell({
               </div>
             );
           })}
-          {!isReadOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 text-xs px-2 mt-1"
-              onClick={() => onFileUpload(companyId)}
-            >
-              <Upload className="h-3 w-3 mr-1" />
-              Add More
-            </Button>
-          )}
         </div>
       ) : (
         <Button
