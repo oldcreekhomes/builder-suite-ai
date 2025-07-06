@@ -176,29 +176,39 @@ export function BiddingTableRow({
           </div>
         </TableCell>
         <TableCell className="py-1">
-          <div className="flex items-center justify-end space-x-2">
+          <div className="flex items-center space-x-2">
             {/* Show specification files if they exist */}
-            {item.files && item.files.length > 0 && (
-              <div className="flex items-center space-x-1">
-                {item.files.map((fileName: string, index: number) => {
-                  const IconComponent = getFileIcon(fileName);
-                  const iconColorClass = getFileIconColor(fileName);
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleFilePreview(fileName)}
-                      className={`${iconColorClass} transition-colors p-1`}
-                      title={fileName}
-                    >
-                      <IconComponent className="h-4 w-4" />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            
-            {!isReadOnly && (
+            {item.files && item.files.length > 0 ? (
               <>
+                <div className="flex items-center space-x-1">
+                  {item.files.map((fileName: string, index: number) => {
+                    const IconComponent = getFileIcon(fileName);
+                    const iconColorClass = getFileIconColor(fileName);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleFilePreview(fileName)}
+                        className={`${iconColorClass} transition-colors p-1`}
+                        title={fileName}
+                      >
+                        <IconComponent className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+                {!isReadOnly && (
+                  <DeleteButton
+                    onDelete={handleFileUpload} // This would be delete all files function
+                    title="Delete All Files"
+                    description="Are you sure you want to delete all files? This action cannot be undone."
+                    size="sm"
+                    variant="ghost"
+                    showIcon={true}
+                  />
+                )}
+              </>
+            ) : (
+              !isReadOnly && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -208,16 +218,22 @@ export function BiddingTableRow({
                   <Upload className="h-3 w-3 mr-1" />
                   Files
                 </Button>
-                <DeleteButton
-                  onDelete={() => onDelete(item.id)}
-                  title="Delete Bidding Item"
-                  description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-                  size="sm"
-                  variant="ghost"
-                  isLoading={isDeleting}
-                  showIcon={true}
-                />
-              </>
+              )
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="py-1">
+          <div className="flex items-center justify-end space-x-2">            
+            {!isReadOnly && (
+              <DeleteButton
+                onDelete={() => onDelete(item.id)}
+                title="Delete Bidding Item"
+                description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={isDeleting}
+                showIcon={true}
+              />
             )}
           </div>
         </TableCell>

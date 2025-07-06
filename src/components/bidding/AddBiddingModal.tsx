@@ -48,7 +48,7 @@ export function AddBiddingModal({ projectId, open, onOpenChange, existingCostCod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Load Bid Package</DialogTitle>
+          <DialogTitle>Load Bid Packages</DialogTitle>
         </DialogHeader>
         
         <div className="flex-1 overflow-auto">

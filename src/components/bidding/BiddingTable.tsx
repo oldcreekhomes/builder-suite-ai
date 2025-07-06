@@ -75,7 +75,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   };
 
   const getLoadButtonText = () => {
-    return status === 'draft' ? 'Load Bid Package' : 'View Bid Packages';
+    return status === 'draft' ? 'Load Bid Packages' : 'View Bid Packages';
   };
 
   const isReadOnly = status !== 'draft';
