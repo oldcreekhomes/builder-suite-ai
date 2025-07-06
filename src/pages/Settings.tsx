@@ -55,10 +55,16 @@ const Settings = () => {
       .filter(Boolean)
   );
 
-  // Initialize collapsed state - now empty by default (all groups expanded)
+  // Initialize collapsed state for specifications - now empty by default (all groups expanded)
+  const [collapsedSpecGroups, setCollapsedSpecGroups] = useState<Set<string>>(new Set());
+
+  // Get cost codes that have specifications enabled
+  const specificationsEnabled = costCodes.filter(cc => cc.has_specifications);
+
   useEffect(() => {
     // Don't automatically collapse any groups - leave them all expanded by default
     setCollapsedGroups(new Set());
+    setCollapsedSpecGroups(new Set());
   }, [costCodes]);
 
   const toggleGroupCollapse = (groupKey: string) => {
@@ -69,6 +75,16 @@ const Settings = () => {
       newCollapsed.add(groupKey);
     }
     setCollapsedGroups(newCollapsed);
+  };
+
+  const toggleSpecificationGroupCollapse = (groupKey: string) => {
+    const newCollapsed = new Set(collapsedSpecGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    setCollapsedSpecGroups(newCollapsed);
   };
 
   // Cost code selection handlers
@@ -110,9 +126,6 @@ const Settings = () => {
     setSelectedSpecifications(newSelected);
   };
 
-  // Get cost codes that have specifications enabled
-  const specificationsEnabled = costCodes.filter(cc => cc.has_specifications);
-
   const handleSelectAllSpecifications = (checked: boolean) => {
     if (checked) {
       const allIds = new Set(specificationsEnabled.map(spec => spec.id));
@@ -134,6 +147,15 @@ const Settings = () => {
   const handleEditSpecification = (costCode: CostCode) => {
     setEditingCostCode(costCode);
     setEditDialogOpen(true);
+  };
+
+  const handleDeleteSpecification = (costCode: CostCode) => {
+    setCostCodeToDelete(costCode);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleUpdateSpecification = async (specId: string, updatedSpec: any) => {
+    await updateCostCode(specId, updatedSpec);
   };
 
   const handleAddCostCode = async (newCostCode: any) => {
@@ -210,10 +232,14 @@ const Settings = () => {
                     specifications={specificationsEnabled}
                     loading={loading}
                     selectedSpecifications={selectedSpecifications}
+                    collapsedGroups={collapsedSpecGroups}
                     onSpecificationSelect={handleSpecificationSelect}
                     onSelectAllSpecifications={handleSelectAllSpecifications}
+                    onToggleGroupCollapse={toggleSpecificationGroupCollapse}
                     onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
                     onEditSpecification={handleEditSpecification}
+                    onUpdateSpecification={handleUpdateSpecification}
+                    onDeleteSpecification={handleDeleteSpecification}
                   />
                 </TabsContent>
               </Tabs>
