@@ -55,7 +55,7 @@ export function ProposalCell({
             })}
           </div>
           {!isReadOnly && (
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 pr-2">
               {proposals.map((fileName, index) => (
                 <button
                   key={index}
