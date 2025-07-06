@@ -60,25 +60,52 @@ export function SpecificationsTab({
 
   const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
     const parentCostCode = getParentCostCode(parentGroupCode);
-    if (!parentCostCode) return undefined;
     
-    // Find the specification that matches this parent cost code
-    let parentSpec = specifications.find(spec => spec.cost_code.id === parentCostCode.id);
+    // If we found an actual parent cost code, use it
+    if (parentCostCode) {
+      let parentSpec = specifications.find(spec => spec.cost_code.id === parentCostCode.id);
+      
+      if (!parentSpec) {
+        parentSpec = {
+          id: parentCostCode.id,
+          cost_code_id: parentCostCode.id,
+          description: null,
+          files: null,
+          created_at: '',
+          updated_at: '',
+          cost_code: parentCostCode
+        } as SpecificationWithCostCode;
+      }
+      
+      return parentSpec;
+    }
     
-    // If no specification exists for the parent cost code, create a virtual one with the cost code data
-    if (!parentSpec) {
-      parentSpec = {
-        id: parentCostCode.id,
-        cost_code_id: parentCostCode.id,
+    // If no parent cost code exists, derive info from child cost codes
+    const childSpecs = specifications.filter(spec => 
+      spec.cost_code.parent_group === parentGroupCode || 
+      spec.cost_code.code.startsWith(parentGroupCode)
+    );
+    
+    if (childSpecs.length > 0) {
+      // Use the first child's data to create a virtual parent
+      const firstChild = childSpecs[0];
+      return {
+        id: `virtual-${parentGroupCode}`,
+        cost_code_id: `virtual-${parentGroupCode}`,
         description: null,
         files: null,
         created_at: '',
         updated_at: '',
-        cost_code: parentCostCode
+        cost_code: {
+          ...firstChild.cost_code,
+          id: `virtual-${parentGroupCode}`,
+          code: parentGroupCode,
+          name: firstChild.cost_code.name // Use the child's name as the base for the group
+        }
       } as SpecificationWithCostCode;
     }
     
-    return parentSpec;
+    return undefined;
   };
   return (
     <div className="space-y-4">
