@@ -93,7 +93,7 @@ export function BiddingCompanyList({
   if (companies.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={6} className="text-sm text-gray-500 italic text-center py-4">
+        <TableCell colSpan={7} className="text-sm text-gray-500 italic text-center py-4">
           No companies associated with this cost code
         </TableCell>
       </TableRow>

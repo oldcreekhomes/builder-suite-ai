@@ -112,7 +112,7 @@ export function BiddingTableRow({
         <TableCell className="py-1 w-32">
           <BiddingDatePicker
             value={item.due_date}
-            onChange={onUpdateDueDate}
+            onChange={(biddingItemId, companyId, date) => onUpdateDueDate(biddingItemId, date)}
             placeholder="mm/dd/yyyy"
             disabled={isReadOnly}
             companyId=""
@@ -123,7 +123,7 @@ export function BiddingTableRow({
         <TableCell className="py-1 w-32">
           <BiddingDatePicker
             value={item.reminder_date}
-            onChange={onUpdateReminderDate}
+            onChange={(biddingItemId, companyId, date) => onUpdateReminderDate(biddingItemId, date)}
             placeholder="mm/dd/yyyy"
             disabled={isReadOnly}
             companyId=""
@@ -133,17 +133,20 @@ export function BiddingTableRow({
           />
         </TableCell>
         <TableCell className="py-1">
-          <div className="flex items-center space-x-2">
+          <div className="max-w-[200px]">
+            <Textarea
+              value={item.specifications || ''}
+              onChange={(e) => onUpdateSpecifications(item.id, e.target.value)}
+              placeholder="Specifications..."
+              className="min-h-[32px] h-8 text-sm resize-none"
+              disabled={isReadOnly}
+            />
+          </div>
+        </TableCell>
+        <TableCell className="py-1">
+          <div className="flex items-center justify-end space-x-2">
             {!isReadOnly && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm" 
-                  onClick={() => setShowDetails(!showDetails)}
-                  className="h-8 text-xs"
-                >
-                  Details
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -153,49 +156,21 @@ export function BiddingTableRow({
                   <Upload className="h-3 w-3 mr-1" />
                   Files
                 </Button>
+                <DeleteButton
+                  onDelete={() => onDelete(item.id)}
+                  title="Delete Bidding Item"
+                  description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+                  size="sm"
+                  variant="ghost"
+                  isLoading={isDeleting}
+                  showIcon={true}
+                />
               </>
-            )}
-            {!isReadOnly && (
-              <DeleteButton
-                onDelete={() => onDelete(item.id)}
-                title="Delete Bidding Item"
-                description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={isDeleting}
-                showIcon={true}
-              />
             )}
           </div>
         </TableCell>
       </TableRow>
       
-      {/* Specifications and Files Details Row */}
-      {showDetails && (
-        <TableRow>
-          <TableCell></TableCell>
-          <TableCell colSpan={5} className="py-4">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Specifications</label>
-                <Textarea
-                  value={item.specifications || ''}
-                  onChange={(e) => onUpdateSpecifications(item.id, e.target.value)}
-                  placeholder="Enter bid package specifications..."
-                  className="min-h-[100px]"
-                  disabled={isReadOnly}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Files</label>
-                <div className="text-sm text-gray-500">
-                  File management coming soon...
-                </div>
-              </div>
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
       
       {isExpanded && (
         <BiddingCompanyList

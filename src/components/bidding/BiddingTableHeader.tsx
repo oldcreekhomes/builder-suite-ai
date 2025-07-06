@@ -11,6 +11,7 @@ export function BiddingTableHeader() {
         <TableHead className="font-bold py-2 text-sm">Status</TableHead>
         <TableHead className="font-bold py-2 text-sm w-32">Due Date</TableHead>
         <TableHead className="font-bold py-2 text-sm w-32">Reminder Date</TableHead>
+        <TableHead className="font-bold py-2 text-sm">Specifications</TableHead>
         <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
       </TableRow>
     </TableHeader>
