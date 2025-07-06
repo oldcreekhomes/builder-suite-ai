@@ -35,7 +35,7 @@ export function SpecificationFilesCell({
   };
 
   return (
-    <div className="flex items-center w-full">
+    <div className="flex items-center justify-between w-full">
       {files && files.length > 0 ? (
         <>
           <div className="flex items-center space-x-2">
@@ -46,15 +46,17 @@ export function SpecificationFilesCell({
                 <button
                   key={index}
                   onClick={() => handleFilePreview(fileName)}
-                  className={`${iconColorClass} hover:scale-110 transition-all p-1`}
+                  className={`${iconColorClass} transition-colors p-1`}
                   disabled={isReadOnly}
-                  title={fileName.includes('-') && /^\d{13}-/.test(fileName) ? fileName.split('-').slice(1).join('-') : fileName}
+                  title={fileName}
                 >
                   <IconComponent className="h-4 w-4" />
                 </button>
               );
             })}
-            {!isReadOnly && (
+          </div>
+          {!isReadOnly && (
+            <div className="flex items-center pr-2">
               <DeleteButton
                 onDelete={() => onDeleteAllFiles(specificationId)}
                 title="Delete All Files"
@@ -63,22 +65,20 @@ export function SpecificationFilesCell({
                 variant="ghost"
                 showIcon={true}
               />
-            )}
-          </div>
+            </div>
+          )}
         </>
       ) : (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs"
-            disabled={isReadOnly}
-            onClick={() => onFileUpload(specificationId)}
-          >
-            <Upload className="h-3 w-3 mr-1" />
-            Upload
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={isReadOnly}
+          onClick={() => onFileUpload(specificationId)}
+        >
+          <Upload className="h-3 w-3 mr-1" />
+          Upload
+        </Button>
       )}
     </div>
   );
