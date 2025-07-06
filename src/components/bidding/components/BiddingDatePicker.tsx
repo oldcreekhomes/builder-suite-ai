@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface BiddingDatePickerProps {
   value: string | null;
@@ -12,6 +13,8 @@ interface BiddingDatePickerProps {
   disabled?: boolean;
   companyId: string;
   biddingItemId: string;
+  field: 'due_date' | 'reminder_date';
+  dueDate?: string | null;
 }
 
 export function BiddingDatePicker({ 
@@ -20,12 +23,36 @@ export function BiddingDatePicker({
   placeholder, 
   disabled,
   companyId,
-  biddingItemId
+  biddingItemId,
+  field,
+  dueDate
 }: BiddingDatePickerProps) {
+  const { toast } = useToast();
   const date = value ? new Date(value) : undefined;
   
   const handleDateChange = (newDate: Date | undefined) => {
-    const dateString = newDate ? newDate.toISOString() : null;
+    if (!newDate) {
+      onChange(biddingItemId, companyId, null);
+      return;
+    }
+
+    // Validation for reminder date
+    if (field === 'reminder_date' && dueDate) {
+      const dueDateObj = new Date(dueDate);
+      const oneDayBeforeDue = new Date(dueDateObj);
+      oneDayBeforeDue.setDate(dueDateObj.getDate() - 1);
+      
+      if (newDate >= dueDateObj) {
+        toast({
+          title: "Invalid Reminder Date",
+          description: "Reminder date must be at least 1 day before the due date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const dateString = newDate.toISOString();
     onChange(biddingItemId, companyId, dateString);
   };
   

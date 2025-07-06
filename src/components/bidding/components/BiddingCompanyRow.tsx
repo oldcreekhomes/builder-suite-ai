@@ -103,6 +103,7 @@ export function BiddingCompanyRow({
           disabled={isReadOnly}
           companyId={biddingCompany.company_id}
           biddingItemId={biddingItemId}
+          field="due_date"
         />
       </TableCell>
       <TableCell className="py-1 w-32">
@@ -113,6 +114,8 @@ export function BiddingCompanyRow({
           disabled={isReadOnly}
           companyId={biddingCompany.company_id}
           biddingItemId={biddingItemId}
+          field="reminder_date"
+          dueDate={biddingCompany.due_date}
         />
       </TableCell>
       <TableCell className="py-1">
