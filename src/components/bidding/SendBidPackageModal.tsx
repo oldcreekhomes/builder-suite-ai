@@ -147,37 +147,50 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
             </div>
           </div>
 
-          {/* Specifications */}
-          {bidPackage.specifications && (
+          {/* Specifications and Files */}
+          {(bidPackage.specifications || (bidPackage.files && bidPackage.files.length > 0)) && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <FileText className="h-3 w-3" />
-                <h4 className="font-medium text-sm">Specifications</h4>
+                <h4 className="font-medium text-sm">Specifications & Files</h4>
               </div>
-              <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
-                <p className="text-xs whitespace-pre-wrap">{bidPackage.specifications}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Files */}
-          {bidPackage.files && bidPackage.files.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <FileText className="h-3 w-3" />
-                <h4 className="font-medium text-sm">Files ({bidPackage.files.length})</h4>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {bidPackage.files.map((fileName: string, index: number) => {
-                  const IconComponent = getFileIcon(fileName);
-                  const iconColorClass = getFileIconColor(fileName);
-                  return (
-                    <Badge key={index} variant="outline" className="flex items-center gap-1 text-xs py-1">
-                      <IconComponent className={`h-3 w-3 ${iconColorClass}`} />
-                      {fileName}
-                    </Badge>
-                  );
-                })}
+              <div className="grid grid-cols-3 gap-3">
+                {/* Specifications - 2/3 width */}
+                <div className="col-span-2">
+                  {bidPackage.specifications ? (
+                    <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
+                      <p className="text-xs whitespace-pre-wrap">{bidPackage.specifications}</p>
+                    </div>
+                  ) : (
+                    <div className="bg-muted p-3 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">No specifications</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Files - 1/3 width */}
+                <div className="col-span-1">
+                  {bidPackage.files && bidPackage.files.length > 0 ? (
+                    <div className="bg-muted p-2 rounded-lg max-h-32 overflow-y-auto">
+                      <div className="space-y-1">
+                        {bidPackage.files.map((fileName: string, index: number) => {
+                          const IconComponent = getFileIcon(fileName);
+                          const iconColorClass = getFileIconColor(fileName);
+                          return (
+                            <div key={index} className="flex items-center gap-1 text-xs">
+                              <IconComponent className={`h-3 w-3 ${iconColorClass} flex-shrink-0`} />
+                              <span className="truncate">{fileName}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-muted p-2 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">No files</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -211,23 +224,22 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                         <p className="text-xs text-muted-foreground pl-5">{company.companies.address}</p>
                       )}
 
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-medium">Representatives:</span>
-                        </div>
-                        <div className="pl-5 space-y-1">
-                          {notificationReps.map((rep: any) => (
-                            <div key={rep.id} className="text-xs">
-                              <span className="font-medium">{rep.first_name} {rep.last_name}</span>
-                              {rep.title && <span className="text-muted-foreground"> - {rep.title}</span>}
-                              {rep.email && (
-                                <div className="text-muted-foreground">{rep.email}</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                       <div className="space-y-1">
+                         <div className="flex items-center gap-2">
+                           <Users className="h-3 w-3 text-muted-foreground" />
+                           <span className="text-xs font-medium">Representatives:</span>
+                         </div>
+                         <div className="grid grid-cols-5 gap-2">
+                           {notificationReps.map((rep: any) => (
+                             <div key={rep.id} className="text-xs bg-muted p-2 rounded">
+                               <div className="font-medium">{rep.first_name} {rep.last_name}</div>
+                               {rep.email && (
+                                 <div className="text-muted-foreground truncate">{rep.email}</div>
+                               )}
+                             </div>
+                           ))}
+                         </div>
+                       </div>
                     </div>
                   );
                 })}
