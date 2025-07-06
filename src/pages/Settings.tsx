@@ -55,7 +55,9 @@ const Settings = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteSpecDialogOpen, setDeleteSpecDialogOpen] = useState(false);
   const [costCodeToDelete, setCostCodeToDelete] = useState<CostCode | null>(null);
+  const [specToDelete, setSpecToDelete] = useState<SpecificationWithCostCode | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   
   // Bulk selection state for cost codes
@@ -340,13 +342,20 @@ const Settings = () => {
     }
   };
 
-  const handleDeleteSpecification = async (spec: SpecificationWithCostCode) => {
+  const handleDeleteSpecificationClick = (spec: SpecificationWithCostCode) => {
+    setSpecToDelete(spec);
+    setDeleteSpecDialogOpen(true);
+  };
+
+  const handleConfirmDeleteSpecification = async () => {
+    if (!specToDelete) return;
+    
     try {
       // First, set has_specifications to false on the cost code
       const { error: costCodeError } = await supabase
         .from('cost_codes')
         .update({ has_specifications: false })
-        .eq('id', spec.cost_code.id);
+        .eq('id', specToDelete.cost_code.id);
 
       if (costCodeError) throw costCodeError;
 
@@ -354,11 +363,13 @@ const Settings = () => {
       const { error: specError } = await supabase
         .from('cost_code_specifications')
         .delete()
-        .eq('id', spec.id);
+        .eq('id', specToDelete.id);
 
       if (specError) throw specError;
 
       fetchSpecifications();
+      setDeleteSpecDialogOpen(false);
+      setSpecToDelete(null);
       toast({
         title: "Success",
         description: "Specification removed successfully",
@@ -458,7 +469,7 @@ const Settings = () => {
                     onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
                     onEditDescription={handleEditSpecificationDescription}
                     onUpdateSpecification={handleUpdateSpecification}
-                    onDeleteSpecification={handleDeleteSpecification}
+                    onDeleteSpecification={handleDeleteSpecificationClick}
                     onFileUpload={handleSpecificationFileUpload}
                     onDeleteAllFiles={handleDeleteAllSpecificationFiles}
                   />
@@ -512,6 +523,23 @@ const Settings = () => {
               <AlertDialogCancel onClick={() => setBulkDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleBulkDeleteCostCodes} className="bg-red-600 hover:bg-red-700">
                 Delete Selected
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={deleteSpecDialogOpen} onOpenChange={setDeleteSpecDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Specification</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove specifications for "{specToDelete?.cost_code.code} - {specToDelete?.cost_code.name}"? This will disable specifications for this cost code.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDeleteSpecification} className="bg-red-600 hover:bg-red-700">
+                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
