@@ -27,7 +27,14 @@ export function SpecificationFilesCell({
         .getPublicUrl(`specifications/${fileName}`);
       
       if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
+        // Create a new window/tab for preview
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.location.href = data.publicUrl;
+        } else {
+          // Fallback if popup blocked
+          window.location.href = data.publicUrl;
+        }
       }
     } catch (error) {
       console.error('Error opening file:', error);
