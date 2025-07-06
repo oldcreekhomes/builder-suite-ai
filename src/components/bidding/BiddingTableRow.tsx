@@ -58,7 +58,7 @@ export function BiddingTableRow({
           <div className="flex items-center">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="mr-2 hover:bg-gray-100 rounded p-1"
+              className="hover:bg-gray-100 rounded mr-2"
             >
               {isExpanded ? (
                 <ChevronDown className="h-4 w-4" />
