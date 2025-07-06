@@ -34,15 +34,16 @@ export function ProposalCell({
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center justify-between w-full">
       {proposals && proposals.length > 0 ? (
-        <div className="flex items-center space-x-2">
-          {proposals.map((fileName, index) => {
-            const IconComponent = getFileIcon(fileName);
-            const iconColorClass = getFileIconColor(fileName);
-            return (
-              <div key={index} className="flex items-center space-x-1">
+        <>
+          <div className="flex items-center space-x-2">
+            {proposals.map((fileName, index) => {
+              const IconComponent = getFileIcon(fileName);
+              const iconColorClass = getFileIconColor(fileName);
+              return (
                 <button
+                  key={index}
                   onClick={() => handleFilePreview(fileName)}
                   className={`${iconColorClass} transition-colors p-1`}
                   disabled={isReadOnly}
@@ -50,19 +51,24 @@ export function ProposalCell({
                 >
                   <IconComponent className="h-4 w-4" />
                 </button>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => onFileDelete(companyId, fileName)}
-                    className="text-red-500 hover:text-red-700 transition-colors p-1"
-                    title="Delete file"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          {!isReadOnly && (
+            <div className="flex items-center space-x-1">
+              {proposals.map((fileName, index) => (
+                <button
+                  key={index}
+                  onClick={() => onFileDelete(companyId, fileName)}
+                  className="text-red-500 hover:text-red-700 transition-colors p-1"
+                  title="Delete file"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <Button
           variant="outline"
