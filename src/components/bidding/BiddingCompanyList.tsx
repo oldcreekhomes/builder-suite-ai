@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Building2, Upload, FileText, CalendarIcon } from 'lucide-react';
+import { FileSpreadsheet, FileType, File } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { FilePreviewModal } from './FilePreviewModal';
 
 interface Company {
   id: string;
@@ -52,6 +54,7 @@ export function BiddingCompanyList({
 }: BiddingCompanyListProps) {
   const [fileInputs, setFileInputs] = useState<Record<string, HTMLInputElement | null>>({});
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   // Initialize local prices from companies data
   useEffect(() => {
@@ -93,6 +96,26 @@ export function BiddingCompanyList({
     if (!isNaN(price) || price === null) {
       onUpdatePrice(biddingItemId, companyId, price);
     }
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'xlsx':
+      case 'xls':
+        return FileSpreadsheet;
+      case 'docx':
+      case 'doc':
+        return FileType;
+      case 'pdf':
+        return File;
+      default:
+        return FileText;
+    }
+  };
+
+  const handleFilePreview = (fileName: string) => {
+    setPreviewFile(fileName);
   };
 
   const DatePicker = ({ 
@@ -199,8 +222,19 @@ export function BiddingCompanyList({
             <div className="flex items-center space-x-2">
               {biddingCompany.proposals ? (
                 <div className="flex items-center space-x-1">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-blue-600">{biddingCompany.proposals}</span>
+                  {(() => {
+                    const IconComponent = getFileIcon(biddingCompany.proposals);
+                    return (
+                      <button
+                        onClick={() => handleFilePreview(biddingCompany.proposals!)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors"
+                        disabled={isReadOnly}
+                      >
+                        <IconComponent className="h-4 w-4" />
+                        <span className="text-sm truncate max-w-20">{biddingCompany.proposals}</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               ) : (
                 <Button
@@ -250,6 +284,12 @@ export function BiddingCompanyList({
           </TableCell>
         </TableRow>
       ))}
+      
+      <FilePreviewModal
+        isOpen={previewFile !== null}
+        onClose={() => setPreviewFile(null)}
+        fileName={previewFile}
+      />
     </>
   );
 }
