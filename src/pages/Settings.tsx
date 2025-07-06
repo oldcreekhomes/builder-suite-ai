@@ -351,13 +351,20 @@ const Settings = () => {
     if (!specToDelete) return;
     
     try {
+      console.log('Deleting specification for cost code:', specToDelete.cost_code.id, specToDelete.cost_code.code);
+      
       // First, set has_specifications to false on the cost code
       const { error: costCodeError } = await supabase
         .from('cost_codes')
         .update({ has_specifications: false })
         .eq('id', specToDelete.cost_code.id);
 
-      if (costCodeError) throw costCodeError;
+      if (costCodeError) {
+        console.error('Error updating cost code:', costCodeError);
+        throw costCodeError;
+      }
+      
+      console.log('Cost code updated successfully, now deleting specification record');
 
       // Then delete the specification record
       const { error: specError } = await supabase
@@ -365,14 +372,18 @@ const Settings = () => {
         .delete()
         .eq('id', specToDelete.id);
 
-      if (specError) throw specError;
+      if (specError) {
+        console.error('Error deleting specification:', specError);
+        throw specError;
+      }
 
+      console.log('Specification deleted successfully');
       fetchSpecifications();
       setDeleteSpecDialogOpen(false);
       setSpecToDelete(null);
       toast({
         title: "Success",
-        description: "Specification removed successfully",
+        description: "Specification removed and cost code updated successfully",
       });
     } catch (error) {
       console.error('Error deleting specification:', error);
