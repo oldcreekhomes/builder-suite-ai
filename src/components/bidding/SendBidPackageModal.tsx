@@ -236,9 +236,6 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                            {notificationReps.map((rep: any) => (
                              <div key={rep.id} className="inline-flex items-center text-xs bg-muted px-2 py-1 rounded">
                                <span className="font-medium">{rep.first_name} {rep.last_name}</span>
-                               {rep.email && (
-                                 <span className="text-muted-foreground ml-1">({rep.email})</span>
-                               )}
                              </div>
                            ))}
                          </div>
