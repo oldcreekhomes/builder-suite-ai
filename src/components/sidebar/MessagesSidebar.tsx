@@ -262,47 +262,54 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               <div className="p-4 text-center text-gray-500">Loading...</div>
             ) : (
               <>
-                {/* Existing Chat Rooms */}
-                {filteredRooms.map((room) => (
-                  <div
-                    key={room.id}
-                    onClick={() => onRoomSelect(room)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
-                      selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={room.otherUser?.avatar_url || ""} />
-                          <AvatarFallback className="bg-gray-200 text-gray-600">
-                            {room.otherUser 
-                              ? getInitials(room.otherUser.first_name, room.otherUser.last_name)
-                              : 'GC'
-                            }
-                          </AvatarFallback>
-                        </Avatar>
-                        {room.unreadCount && (
-                          <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full"></div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {room.otherUser ? getDisplayName(room.otherUser) : room.name}
-                        </h3>
-                        <span className="text-xs text-gray-500">
-                          {new Date(room.updated_at).toLocaleDateString()}
-                        </span>
-                        {room.lastMessage && (
-                          <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
-                        )}
-                      </div>
+                {/* Recent Conversations - Always visible */}
+                {filteredRooms.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 bg-gray-50 border-b">
+                      <h3 className="text-sm font-medium text-gray-700">Recent Conversations</h3>
                     </div>
-                  </div>
-                ))}
+                    {filteredRooms.map((room) => (
+                      <div
+                        key={room.id}
+                        onClick={() => onRoomSelect(room)}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
+                          selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="relative">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={room.otherUser?.avatar_url || ""} />
+                              <AvatarFallback className="bg-gray-200 text-gray-600">
+                                {room.otherUser 
+                                  ? getInitials(room.otherUser.first_name, room.otherUser.last_name)
+                                  : 'GC'
+                                }
+                              </AvatarFallback>
+                            </Avatar>
+                            {room.unreadCount && (
+                              <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full"></div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">
+                              {room.otherUser ? getDisplayName(room.otherUser) : room.name}
+                            </h3>
+                            <span className="text-xs text-gray-500">
+                              {new Date(room.updated_at).toLocaleDateString()}
+                            </span>
+                            {room.lastMessage && (
+                              <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
 
-                {/* Available Employees */}
+                {/* Available Employees for New Conversations */}
                 {searchQuery && (
                   <>
                     <div className="px-4 py-2 bg-gray-50 border-b">
@@ -335,9 +342,18 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                   </>
                 )}
 
+                {/* Empty State */}
                 {!loading && filteredRooms.length === 0 && !searchQuery && (
                   <div className="p-4 text-center text-gray-500">
-                    No conversations yet. Search for employees to start chatting!
+                    <p className="mb-2">No conversations yet.</p>
+                    <p className="text-sm">Search for employees above to start chatting!</p>
+                  </div>
+                )}
+
+                {/* No Search Results */}
+                {searchQuery && filteredRooms.length === 0 && filteredEmployees.filter(emp => !filteredRooms.some(room => room.otherUser?.id === emp.id)).length === 0 && (
+                  <div className="p-4 text-center text-gray-500">
+                    No results found for "{searchQuery}"
                   </div>
                 )}
               </>
