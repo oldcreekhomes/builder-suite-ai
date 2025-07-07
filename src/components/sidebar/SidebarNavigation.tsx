@@ -1,14 +1,11 @@
 
-import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { 
-  Calendar, 
   DollarSign, 
   FileText, 
   Home, 
   File,
   Image,
-  ChevronDown,
   Clock,
   HelpCircle
 } from "lucide-react";
@@ -19,11 +16,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigationItems = [
@@ -33,20 +26,14 @@ const navigationItems = [
     icon: Home,
   },
   {
-    title: "Documents",
-    icon: FileText,
-    submenu: [
-      {
-        title: "Files",
-        url: "/files",
-        icon: File,
-      },
-      {
-        title: "Photos",
-        url: "/photos", 
-        icon: Image,
-      }
-    ]
+    title: "Files",
+    url: "/files",
+    icon: File,
+  },
+  {
+    title: "Photos",
+    url: "/photos", 
+    icon: Image,
   },
   {
     title: "Budget",
@@ -67,7 +54,6 @@ const navigationItems = [
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   // Get current project ID from URL
   const getProjectId = () => {
@@ -103,34 +89,7 @@ export function SidebarNavigation() {
             <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  {item.submenu ? (
-                    <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
-                      <CollapsibleTrigger asChild>
-                        <button className="flex items-center w-full space-x-3 p-3 rounded-lg hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
-                          <item.icon className="h-5 w-5" />
-                          <span className="font-medium flex-1 text-left">{item.title}</span>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub className="ml-8 mt-3">
-                          {item.submenu.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild>
-                                <a 
-                                  href={`/project/${projectId}${subItem.url}`}
-                                  className="flex items-center space-x-3 p-4 rounded-lg"
-                                >
-                                  <subItem.icon className="h-4 w-4" />
-                                  <span>{subItem.title}</span>
-                                </a>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : item.comingSoon ? (
+                  {item.comingSoon ? (
                     <div className="flex items-center w-full space-x-3 p-3 rounded-lg text-gray-700 cursor-not-allowed">
                       <item.icon className="h-5 w-5" />
                       <span className="font-medium flex-1">{item.title}</span>
