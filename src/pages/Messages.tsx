@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { Search, Paperclip, Smile, Send } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Paperclip, Smile, Send, Download, FileText, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +30,7 @@ interface ChatRoom {
 interface ChatMessage {
   id: string;
   message_text: string | null;
+  file_urls: string[] | null;
   created_at: string;
   sender: Employee;
 }
@@ -41,7 +43,12 @@ export default function Messages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Common emojis for quick access
+  const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '🔥', '💯', '🎉', '👀', '😍', '🤔', '😢', '😡', '🙏', '💪', '✅', '❌', '⭐', '🚀', '💡'];
 
   // Fetch employees for search
   const fetchEmployees = async () => {
@@ -200,6 +207,7 @@ export default function Messages() {
         .select(`
           id,
           message_text,
+          file_urls,
           created_at,
           sender_id
         `)
@@ -242,26 +250,70 @@ export default function Messages() {
     }
   };
 
+  // Upload files to Supabase Storage
+  const uploadFiles = async (files: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (const file of files) {
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file);
+      
+      if (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+      
+      uploadedUrls.push(publicUrl);
+    }
+    
+    return uploadedUrls;
+  };
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+  };
+
   // Send a message
   const sendMessage = async () => {
-    if (!messageInput.trim() || !selectedRoom) return;
+    if (!messageInput.trim() && selectedFiles.length === 0) return;
+    if (!selectedRoom) return;
 
     try {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
+
+      let fileUrls: string[] = [];
+      
+      // Upload files if any are selected
+      if (selectedFiles.length > 0) {
+        fileUrls = await uploadFiles(selectedFiles);
+      }
 
       const { error } = await supabase
         .from('employee_chat_messages')
         .insert({
           room_id: selectedRoom.id,
           sender_id: currentUser.user.id,
-          message_text: messageInput.trim()
+          message_text: messageInput.trim() || null,
+          file_urls: fileUrls.length > 0 ? fileUrls : null
         });
 
       if (error) throw error;
 
-      // Clear the input
+      // Clear the input and files
       setMessageInput("");
+      setSelectedFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       
       // Refresh messages
       await fetchMessages(selectedRoom.id);
@@ -274,6 +326,11 @@ export default function Messages() {
         variant: "destructive",
       });
     }
+  };
+
+  // Insert emoji into message
+  const insertEmoji = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
   };
 
   // Handle Enter key press
@@ -485,9 +542,67 @@ export default function Messages() {
                         })}
                       </span>
                     </div>
-                    <div className="bg-gray-100 rounded-lg px-3 py-2 inline-block max-w-xs">
-                      <p className="text-sm text-gray-900">{message.message_text}</p>
-                    </div>
+                    
+                    {/* Text Message */}
+                    {message.message_text && (
+                      <div className="bg-gray-100 rounded-lg px-3 py-2 inline-block max-w-xs mb-2">
+                        <p className="text-sm text-gray-900">{message.message_text}</p>
+                      </div>
+                    )}
+                    
+                    {/* File Attachments */}
+                    {message.file_urls && message.file_urls.length > 0 && (
+                      <div className="space-y-2 max-w-xs">
+                        {message.file_urls.map((fileUrl, index) => {
+                          const fileName = fileUrl.split('/').pop() || 'file';
+                          const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+                          
+                          return (
+                            <div key={index} className="border rounded-lg p-2 bg-white">
+                              {isImage ? (
+                                <div className="space-y-2">
+                                  <img 
+                                    src={fileUrl} 
+                                    alt={fileName}
+                                    className="max-w-full h-auto rounded cursor-pointer"
+                                    onClick={() => window.open(fileUrl, '_blank')}
+                                  />
+                                  <div className="flex items-center justify-between text-xs text-gray-500">
+                                    <div className="flex items-center space-x-1">
+                                      <ImageIcon className="h-3 w-3" />
+                                      <span>{fileName}</span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => window.open(fileUrl, '_blank')}
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <FileText className="h-4 w-4 text-blue-500" />
+                                    <span className="text-sm font-medium truncate">{fileName}</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => window.open(fileUrl, '_blank')}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -500,6 +615,30 @@ export default function Messages() {
 
             {/* Message Input Area */}
             <div className="p-4 border-t border-gray-200 bg-white">
+              {/* Show selected files preview */}
+              {selectedFiles.length > 0 && (
+                <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-2">Selected files:</div>
+                  <div className="space-y-1">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between text-sm">
+                        <span className="truncate">{file.name}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 w-5 p-0 text-red-500"
+                          onClick={() => {
+                            setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                          }}
+                        >
+                          ❌
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center space-x-2">
                 <div className="flex-1 relative">
                   <Input
@@ -510,18 +649,55 @@ export default function Messages() {
                     className="pr-20"
                   />
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    {/* File Attachment Button */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <Paperclip className="h-4 w-4 text-gray-400" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <Smile className="h-4 w-4 text-gray-400" />
-                    </Button>
+                    
+                    {/* Emoji Button */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Smile className="h-4 w-4 text-gray-400" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2" side="top">
+                        <div className="grid grid-cols-10 gap-1">
+                          {commonEmojis.map((emoji, index) => (
+                            <Button
+                              key={index}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-lg hover:bg-gray-100"
+                              onClick={() => insertEmoji(emoji)}
+                            >
+                              {emoji}
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 <Button size="sm" className="h-8 w-8 p-0" onClick={sendMessage}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              />
             </div>
           </>
         ) : (
