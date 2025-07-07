@@ -1,7 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+console.log('🔧 Edge function starting...');
+const resendApiKey = Deno.env.get("RESEND_API_KEY");
+console.log('🔑 RESEND_API_KEY available:', !!resendApiKey);
+
+if (!resendApiKey) {
+  console.error('❌ RESEND_API_KEY is not set');
+}
+
+const resend = new Resend(resendApiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -165,9 +173,21 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    if (!resendApiKey) {
+      console.error('❌ RESEND_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const emailHTML = generateEmailHTML(requestData);
     const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
 
+    console.log('📬 About to send email via Resend...');
     // Send email to all recipients
     const emailResponse = await resend.emails.send({
       from: "Bid Packages <onboarding@resend.dev>",
@@ -176,7 +196,7 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHTML
     });
 
-    console.log("Bid package email sent successfully:", emailResponse);
+    console.log("📧 Resend API response:", JSON.stringify(emailResponse, null, 2));
 
     return new Response(
       JSON.stringify({ 
