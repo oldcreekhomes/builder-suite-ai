@@ -7,7 +7,8 @@ import {
   File,
   Image,
   Clock,
-  HelpCircle
+  HelpCircle,
+  MessageSquare
 } from "lucide-react";
 import {
   SidebarContent,
@@ -24,6 +25,11 @@ const navigationItems = [
     title: "Company Dashboard",
     url: "/",
     icon: Home,
+  },
+  {
+    title: "Messages",
+    url: "/messages",
+    icon: MessageSquare,
   },
   {
     title: "Files",
@@ -66,8 +72,18 @@ export function SidebarNavigation() {
 
   const projectId = getProjectId();
 
-  // Don't show navigation items if no project is selected
-  if (!projectId) {
+  // Check if we're on the Company Dashboard
+  const isCompanyDashboard = location.pathname === '/';
+  
+  // Filter navigation items based on current route
+  const filteredItems = isCompanyDashboard 
+    ? navigationItems.filter(item => item.title === "Messages")
+    : projectId 
+      ? navigationItems 
+      : [];
+
+  // Don't show navigation items if no project is selected and not on dashboard
+  if (!projectId && !isCompanyDashboard) {
     return (
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
@@ -87,7 +103,7 @@ export function SidebarNavigation() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.comingSoon ? (
                     <div className="flex items-center w-full space-x-3 p-3 rounded-lg text-gray-700 cursor-not-allowed">
