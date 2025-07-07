@@ -36,10 +36,29 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    console.log("Environment check:", {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasResendKey: !!Deno.env.get("RESEND_API_KEY")
+    });
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    console.log("Generating password reset link for:", email);
 
     // Generate password reset for this user
     const { data, error } = await supabase.auth.admin.generateLink({
@@ -61,28 +80,68 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email with reset link
-    const emailResponse = await resend.emails.send({
-      from: "BuildCore <onboarding@resend.dev>",
-      to: [email],
-      subject: "Reset Your Password - BuildCore",
-      html: `
-        <h1>Reset Your Password</h1>
-        <p>You requested to reset your password for your BuildCore account.</p>
-        <p>Click the link below to reset your password:</p>
-        <p>
-          <a href="${data.properties.action_link}" 
-             style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Reset Password
-          </a>
-        </p>
-        <p>If you didn't request this password reset, you can safely ignore this email.</p>
-        <p>This link will expire in 1 hour for security reasons.</p>
-        <p>Best regards,<br>The BuildCore Team</p>
-      `,
-    });
+    console.log("Generated reset link successfully, now sending email");
 
-    console.log("Password reset email sent successfully:", emailResponse);
+    // Check if we have Resend API key
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not found in environment");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Send email with reset link
+    try {
+      console.log("Attempting to send email via Resend...");
+      const emailResponse = await resend.emails.send({
+        from: "BuildCore <onboarding@resend.dev>",
+        to: [email],
+        subject: "Reset Your Password - BuildCore",
+        html: `
+          <h1>Reset Your Password</h1>
+          <p>You requested to reset your password for your BuildCore account.</p>
+          <p>Click the link below to reset your password:</p>
+          <p>
+            <a href="${data.properties.action_link}" 
+               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              Reset Password
+            </a>
+          </p>
+          <p>If you didn't request this password reset, you can safely ignore this email.</p>
+          <p>This link will expire in 1 hour for security reasons.</p>
+          <p>Best regards,<br>The BuildCore Team</p>
+        `,
+      });
+
+      console.log("Resend API response:", emailResponse);
+
+      if (emailResponse.error) {
+        console.error("Resend API error:", emailResponse.error);
+        return new Response(
+          JSON.stringify({ error: `Email sending failed: ${emailResponse.error.message}` }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      console.log("Password reset email sent successfully!");
+    } catch (emailError) {
+      console.error("Error sending email:", emailError);
+      return new Response(
+        JSON.stringify({ error: `Email sending failed: ${emailError.message}` }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify({ 
