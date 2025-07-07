@@ -101,6 +101,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       });
 
       console.log('📬 Edge function result:', { emailResult, error });
+      console.log('📧 Email result details:', JSON.stringify(emailResult, null, 2));
+      console.log('🔍 Error details:', JSON.stringify(error, null, 2));
       
       if (error) {
         console.error('❌ Edge function invocation error:', error);
