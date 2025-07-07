@@ -19,7 +19,7 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
-import ConfirmInvitation from "./pages/ConfirmInvitation";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,8 +37,6 @@ const App = () => (
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
           
-          {/* Invitation confirmation route - no authentication required */}
-          <Route path="/confirm-invitation" element={<ConfirmInvitation />} />
           
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
