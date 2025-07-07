@@ -13,7 +13,6 @@ interface Employee {
   first_name: string | null;
   last_name: string | null;
   role?: string | null;
-  user_type?: "home_builder" | "employee";
   avatar_url: string | null;
   email: string;
 }
@@ -58,7 +57,7 @@ export default function Messages() {
       if (!currentUser.user) return;
 
       const { data, error } = await supabase
-        .from('users')
+        .from('employees')
         .select('id, first_name, last_name, role, avatar_url, email')
         .eq('home_builder_id', currentUser.user.id)
         .eq('confirmed', true); // Only show confirmed employees
@@ -112,14 +111,14 @@ export default function Messages() {
               .single();
 
             if (otherParticipant) {
-              // Try to find the user in home_builders first
+              // Try to find the user in users table first (home builders)
               let { data: userProfile } = await supabase
                 .from('users')
-                .select('id, first_name, last_name, user_type, avatar_url, email')
+                .select('id, first_name, last_name, avatar_url, email')
                 .eq('id', otherParticipant.user_id)
                 .single();
 
-              // If not found in home_builders, try employees table
+              // If not found in users, try employees table
               if (!userProfile) {
                 const { data: employeeProfile } = await supabase
                   .from('employees')
@@ -127,7 +126,7 @@ export default function Messages() {
                   .eq('id', otherParticipant.user_id)
                   .single();
                 if (employeeProfile) {
-                  userProfile = { ...employeeProfile, user_type: 'employee' as const };
+                  userProfile = { ...employeeProfile };
                 }
               }
 
@@ -223,14 +222,14 @@ export default function Messages() {
       // For each message, get the sender details from either profiles or employees table
       const messagesWithSenders = await Promise.all(
         (data || []).map(async (message: any) => {
-          // Try to find sender in home_builders first
+          // Try to find sender in users table first (home builders)
           let { data: senderProfile } = await supabase
             .from('users')
-            .select('id, first_name, last_name, user_type, avatar_url, email')
+            .select('id, first_name, last_name, avatar_url, email')
             .eq('id', message.sender_id)
             .single();
 
-          // If not found in home_builders, try employees table
+          // If not found in users, try employees table
           if (!senderProfile) {
             const { data: employeeSender } = await supabase
               .from('employees')
@@ -238,7 +237,7 @@ export default function Messages() {
               .eq('id', message.sender_id)
               .single();
             if (employeeSender) {
-              senderProfile = { ...employeeSender, user_type: 'employee' as const };
+              senderProfile = { ...employeeSender };
             }
           }
 

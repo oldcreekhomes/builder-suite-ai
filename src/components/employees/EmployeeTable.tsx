@@ -46,28 +46,34 @@ export function EmployeeTable() {
       // First check if user is a home builder
       const { data: homeBuilderData } = await supabase
         .from('users')
-        .select('user_type, home_builder_id')
+        .select('*')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
-      if (homeBuilderData?.user_type === 'home_builder') {
+      let homeBuilderIdToQuery = null;
+
+      if (homeBuilderData) {
         // User is a home builder - get their employees
+        homeBuilderIdToQuery = currentUser.user.id;
+      } else {
+        // Check if user is an employee
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('home_builder_id')
+          .eq('id', currentUser.user.id)
+          .maybeSingle();
+          
+        if (employeeData?.home_builder_id) {
+          // User is an employee - get all employees from same company
+          homeBuilderIdToQuery = employeeData.home_builder_id;
+        }
+      }
+
+      if (homeBuilderIdToQuery) {
         const { data, error } = await supabase
-          .from('users')
+          .from('employees')
           .select('*')
-          .eq('home_builder_id', currentUser.user.id)
-          .eq('user_type', 'employee')
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        return data as Employee[];
-      } else if (homeBuilderData?.user_type === 'employee' && homeBuilderData.home_builder_id) {
-        // User is an employee - get all employees from same company
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('home_builder_id', homeBuilderData.home_builder_id)
-          .eq('user_type', 'employee')
+          .eq('home_builder_id', homeBuilderIdToQuery)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
