@@ -338,65 +338,6 @@ export type Database = {
           },
         ]
       }
-      employee_invitations: {
-        Row: {
-          accepted_at: string | null
-          confirmed_at: string | null
-          email: string
-          expires_at: string | null
-          first_name: string
-          home_builder_id: string | null
-          id: string
-          invitation_token: string | null
-          invited_at: string
-          invited_by: string
-          last_name: string
-          phone_number: string | null
-          role: string
-          status: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          confirmed_at?: string | null
-          email: string
-          expires_at?: string | null
-          first_name: string
-          home_builder_id?: string | null
-          id?: string
-          invitation_token?: string | null
-          invited_at?: string
-          invited_by: string
-          last_name: string
-          phone_number?: string | null
-          role?: string
-          status?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          confirmed_at?: string | null
-          email?: string
-          expires_at?: string | null
-          first_name?: string
-          home_builder_id?: string | null
-          id?: string
-          invitation_token?: string | null
-          invited_at?: string
-          invited_by?: string
-          last_name?: string
-          phone_number?: string | null
-          role?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_invitations_home_builder_id_fkey"
-            columns: ["home_builder_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       employees: {
         Row: {
           avatar_url: string | null
@@ -910,14 +851,6 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
-      confirm_invitation: {
-        Args: { token: string }
-        Returns: Json
-      }
-      create_user_from_invitation: {
-        Args: { p_invitation_id: string; p_password: string }
-        Returns: Json
-      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -937,16 +870,6 @@ export type Database = {
           company_name: string
           created_at: string
         }[]
-      }
-      invite_employee: {
-        Args: {
-          p_email: string
-          p_first_name: string
-          p_last_name: string
-          p_phone_number?: string
-          p_role?: string
-        }
-        Returns: string
       }
     }
     Enums: {
