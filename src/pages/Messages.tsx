@@ -140,11 +140,18 @@ export default function Messages() {
   // Start a new chat with an employee
   const startChatWithEmployee = async (employee: Employee) => {
     try {
+      console.log('Starting chat with employee:', employee);
+      
       const { data, error } = await supabase.rpc('get_or_create_dm_room', {
         other_user_id: employee.id
       });
 
-      if (error) throw error;
+      console.log('get_or_create_dm_room result:', { data, error });
+
+      if (error) {
+        console.error('RPC error:', error);
+        throw error;
+      }
 
       // Fetch the room details
       const { data: room, error: roomError } = await supabase
@@ -153,7 +160,12 @@ export default function Messages() {
         .eq('id', data)
         .single();
 
-      if (roomError) throw roomError;
+      console.log('Room fetch result:', { room, roomError });
+
+      if (roomError) {
+        console.error('Room fetch error:', roomError);
+        throw roomError;
+      }
 
       const newRoom = {
         ...room,
@@ -168,6 +180,8 @@ export default function Messages() {
       }
 
       await fetchMessages(data);
+      
+      console.log('Chat started successfully');
     } catch (error) {
       console.error('Error starting chat:', error);
       toast({
