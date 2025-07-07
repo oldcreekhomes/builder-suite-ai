@@ -83,22 +83,28 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         })).filter(company => company.representatives.length > 0)
       };
 
-      const { error } = await supabase.functions.invoke('send-bid-package-email', {
+      const { data: emailResult, error } = await supabase.functions.invoke('send-bid-package-email', {
         body: emailData
       });
 
       if (error) {
-        throw error;
+        console.error('Edge function error:', error);
+        throw new Error(`Failed to send email: ${error.message}`);
       }
 
-      // Update bid package status to 'sent'
-      const { error: updateError } = await supabase
-        .from('project_bid_packages')
-        .update({ status: 'sent' })
-        .eq('id', bidPackage.id);
+      // Only update status to 'sent' if email was successfully sent
+      if (emailResult?.success) {
+        const { error: updateError } = await supabase
+          .from('project_bid_packages')
+          .update({ status: 'sent' })
+          .eq('id', bidPackage.id);
 
-      if (updateError) {
-        console.error('Error updating bid package status:', updateError);
+        if (updateError) {
+          console.error('Error updating bid package status:', updateError);
+          // Don't throw here as email was sent, just log the issue
+        }
+      } else {
+        throw new Error('Email was not sent successfully');
       }
 
       // Invalidate bidding queries to refresh the table
