@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       console.log("Attempting to send email via Resend...");
       const emailResponse = await resend.emails.send({
-        from: "BuildCore <onboarding@resend.dev>",
+        from: "BuilderSuite AI <noreply@resend.dev>",
         to: [email],
         subject: "Reset Your Password - BuildCore",
         html: `
