@@ -1,0 +1,234 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Employee {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role?: string | null;
+  avatar_url: string | null;
+  email: string;
+}
+
+interface ChatRoom {
+  id: string;
+  name: string | null;
+  is_direct_message: boolean;
+  updated_at: string;
+  otherUser?: Employee;
+  lastMessage?: string;
+  unreadCount?: number;
+}
+
+interface ChatMessage {
+  id: string;
+  message_text: string | null;
+  file_urls: string[] | null;
+  created_at: string;
+  sender: Employee;
+}
+
+export function useChat() {
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  // Fetch messages for a room
+  const fetchMessages = async (roomId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('employee_chat_messages')
+        .select(`
+          id,
+          message_text,
+          file_urls,
+          created_at,
+          sender_id
+        `)
+        .eq('room_id', roomId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // For each message, get the sender details from either profiles or employees table
+      const messagesWithSenders = await Promise.all(
+        (data || []).map(async (message: any) => {
+          // Try to find sender in users table first (home builders)
+          let { data: senderProfile } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, avatar_url, email')
+            .eq('id', message.sender_id)
+            .single();
+
+          // If not found in users, try employees table
+          if (!senderProfile) {
+            const { data: employeeSender } = await supabase
+              .from('employees')
+              .select('id, first_name, last_name, role, avatar_url, email')
+              .eq('id', message.sender_id)
+              .single();
+            if (employeeSender) {
+              senderProfile = { ...employeeSender };
+            }
+          }
+
+          return {
+            ...message,
+            sender: senderProfile || { id: message.sender_id, first_name: 'Unknown', last_name: 'User', role: '', avatar_url: '', email: '' }
+          };
+        })
+      );
+
+      setMessages(messagesWithSenders);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  // Start a new chat with an employee
+  const startChatWithEmployee = async (employee: Employee) => {
+    try {
+      console.log('Starting chat with employee:', employee);
+      
+      const { data, error } = await supabase.rpc('get_or_create_dm_room', {
+        other_user_id: employee.id
+      });
+
+      console.log('get_or_create_dm_room result:', { data, error });
+
+      if (error) {
+        console.error('RPC error:', error);
+        throw error;
+      }
+
+      // Fetch the room details
+      const { data: room, error: roomError } = await supabase
+        .from('employee_chat_rooms')
+        .select('*')
+        .eq('id', data)
+        .single();
+
+      console.log('Room fetch result:', { room, roomError });
+
+      if (roomError) {
+        console.error('Room fetch error:', roomError);
+        throw roomError;
+      }
+
+      const newRoom = {
+        ...room,
+        otherUser: employee
+      };
+
+      setSelectedRoom(newRoom);
+      await fetchMessages(data);
+      
+      console.log('Chat started successfully');
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start chat",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Upload files to Supabase Storage
+  const uploadFiles = async (files: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (const file of files) {
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file);
+      
+      if (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+      
+      uploadedUrls.push(publicUrl);
+    }
+    
+    return uploadedUrls;
+  };
+
+  // Send a message
+  const sendMessage = async (messageText: string, files: File[] = []) => {
+    if (!messageText.trim() && files.length === 0) return;
+    if (!selectedRoom) return;
+
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return;
+
+      let fileUrls: string[] = [];
+      
+      // Upload files if any are selected
+      if (files.length > 0) {
+        fileUrls = await uploadFiles(files);
+      }
+
+      const { error } = await supabase
+        .from('employee_chat_messages')
+        .insert({
+          room_id: selectedRoom.id,
+          sender_id: currentUser.user.id,
+          message_text: messageText.trim() || null,
+          file_urls: fileUrls.length > 0 ? fileUrls : null
+        });
+
+      if (error) throw error;
+      
+      // Refresh messages
+      await fetchMessages(selectedRoom.id);
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fetch messages when room changes
+  useEffect(() => {
+    if (selectedRoom) {
+      fetchMessages(selectedRoom.id);
+    }
+  }, [selectedRoom]);
+
+  return {
+    selectedRoom,
+    setSelectedRoom,
+    messages,
+    currentUserId,
+    startChatWithEmployee,
+    sendMessage,
+    fetchMessages
+  };
+}
+
+export type { Employee, ChatRoom, ChatMessage };
