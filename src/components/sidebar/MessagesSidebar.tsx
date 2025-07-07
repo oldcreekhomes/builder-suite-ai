@@ -296,9 +296,6 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                             {new Date(room.updated_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
-                          {room.otherUser?.role || 'Group Chat'}
-                        </p>
                         {room.lastMessage && (
                           <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
                         )}
@@ -333,7 +330,6 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                             <h3 className="font-medium text-gray-900 truncate">
                               {getDisplayName(employee)}
                             </h3>
-                            <p className="text-sm text-gray-500 truncate">{employee.role}</p>
                           </div>
                         </div>
                       </div>
