@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       console.log("Attempting to send email via Resend...");
       const emailResponse = await resend.emails.send({
-        from: "Bid Packages <noreply@transactional.buildersuiteai.com>",
+        from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
         to: [email],
         subject: "Reset Your Password - BuilderSuite AI",
         html: `
