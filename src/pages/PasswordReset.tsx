@@ -11,40 +11,47 @@ const PasswordReset = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have the recovery tokens in the URL from Supabase
-    const type = searchParams.get('type');
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
+    // Check if we have a custom reset token
+    const token = searchParams.get('token');
     
-    console.log("Password reset page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    console.log("Password reset page loaded with token:", !!token);
     
-    if (type === 'recovery' && accessToken && refreshToken) {
-      console.log("Setting recovery session...");
-      // Set the session with the recovery tokens
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      }).then(({ error }) => {
-        if (error) {
-          console.error("Error setting recovery session:", error);
+    if (token) {
+      try {
+        const resetData = JSON.parse(atob(token));
+        console.log("Decoded reset data:", { email: resetData.email, expires: new Date(resetData.expires) });
+        
+        // Check if token is expired
+        if (Date.now() > resetData.expires) {
           toast({
             title: "Error",
-            description: "Invalid or expired reset link. Please request a new password reset.",
+            description: "Reset link has expired. Please request a new password reset.",
             variant: "destructive",
           });
           navigate('/auth');
-        } else {
-          console.log("Recovery session set successfully");
+          return;
         }
-      });
-    } else if (!type) {
-      // If no recovery type, redirect to auth page
-      console.log("No recovery type found, redirecting to auth");
+        
+        // Set the email from the token
+        setEmail(resetData.email);
+      } catch (error) {
+        console.error("Error decoding reset token:", error);
+        toast({
+          title: "Error",
+          description: "Invalid reset link. Please request a new password reset.",
+          variant: "destructive",
+        });
+        navigate('/auth');
+      }
+    } else {
+      // If no token, redirect to auth page
+      console.log("No token found, redirecting to auth");
       navigate('/auth');
     }
   }, [searchParams, navigate, toast]);
@@ -82,23 +89,34 @@ const PasswordReset = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
+      // First sign in the user with their current credentials would be complex
+      // Instead, let's use the admin API to update their password directly
+      const token = searchParams.get('token');
+      const resetData = JSON.parse(atob(token!));
+      
+      // Call our edge function to reset the password
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: JSON.stringify({ 
+          email: resetData.email, 
+          newPassword: password,
+          resetToken: token 
+        })
       });
 
       if (error) {
+        console.error("Password reset error:", error);
         toast({
           title: "Error",
-          description: error.message,
+          description: "Failed to reset password. Please try again.",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Success",
-          description: "Your password has been updated successfully!",
+          description: "Your password has been updated successfully! Please sign in with your new password.",
         });
-        // Redirect to dashboard after successful password reset
-        navigate("/");
+        // Redirect to auth page for sign in
+        navigate("/auth");
       }
     } catch (error) {
       console.error("Password update error:", error);

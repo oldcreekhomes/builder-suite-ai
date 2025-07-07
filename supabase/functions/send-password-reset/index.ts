@@ -60,27 +60,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Generating password reset link for:", email);
 
-    // Generate password reset for this user
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
+    // Instead of using Supabase's recovery link (which auto-signs users in), 
+    // let's create a custom reset token and store it temporarily
+    const resetToken = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    
+    // Store the reset token temporarily (you could use a database table for this)
+    // For now, we'll encode the email and expiry in the token itself
+    const resetData = {
       email: email,
-      options: {
-        redirectTo: `${req.headers.get('origin') || 'https://7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovableproject.com'}/auth?type=recovery`,
-      }
-    });
+      expires: expiresAt.getTime(),
+      token: resetToken
+    };
+    
+    const encodedToken = btoa(JSON.stringify(resetData));
+    const resetUrl = `${req.headers.get('origin') || 'https://7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovableproject.com'}/reset-password?token=${encodedToken}`;
 
-    if (error) {
-      console.error("Error generating reset link:", error);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate reset link" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    console.log("Generated reset link successfully, now sending email");
+    console.log("Generated custom reset URL:", resetUrl);
 
     // Check if we have Resend API key
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -126,23 +122,23 @@ const handler = async (req: Request): Promise<Response> => {
                   We received a request to reset your password for your BuilderSuite AI account. Click the button below to create a new password:
                 </p>
                 
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${data.properties.action_link}" 
-                     style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                    Reset Your Password
-                  </a>
-                </div>
-                
-                <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                  <p style="color: #475569; font-size: 14px; margin: 0; line-height: 1.4;">
-                    <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, you can safely ignore this email.
-                  </p>
-                </div>
-                
-                <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
-                  If the button doesn't work, you can copy and paste this link into your browser:<br>
-                  <a href="${data.properties.action_link}" style="color: #3b82f6; word-break: break-all;">${data.properties.action_link}</a>
-                </p>
+                 <div style="text-align: center; margin: 30px 0;">
+                   <a href="${resetUrl}" 
+                      style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                     Reset Your Password
+                   </a>
+                 </div>
+                 
+                 <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 30px 0;">
+                   <p style="color: #475569; font-size: 14px; margin: 0; line-height: 1.4;">
+                     <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, you can safely ignore this email.
+                   </p>
+                 </div>
+                 
+                 <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
+                   If the button doesn't work, you can copy and paste this link into your browser:<br>
+                   <a href="${resetUrl}" style="color: #3b82f6; word-break: break-all;">${resetUrl}</a>
+                 </p>
               </div>
               
               <!-- Footer -->
