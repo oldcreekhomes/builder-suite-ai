@@ -147,52 +147,54 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
             </div>
           </div>
 
-          {/* Specifications and Files */}
-          {(bidPackage.specifications || (bidPackage.files && bidPackage.files.length > 0)) && (
+          {/* Files */}
+          {bidPackage.files && bidPackage.files.length > 0 && (
             <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-3">
-                {/* Specifications - 2/3 width */}
-                <div className="col-span-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-3 w-3" />
-                    <h4 className="font-medium text-sm">Specifications</h4>
-                  </div>
-                  {bidPackage.specifications ? (
-                    <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
-                      <p className="text-xs whitespace-pre-wrap">{bidPackage.specifications}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-muted p-3 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">No specifications</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Files - 1/3 width */}
-                <div className="col-span-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-3 w-3" />
-                    <h4 className="font-medium text-sm">Files</h4>
-                  </div>
-                  {bidPackage.files && bidPackage.files.length > 0 ? (
-                    <div className="bg-muted p-2 rounded-lg max-h-32 overflow-y-auto">
-                      <div className="flex flex-wrap gap-1">
-                        {bidPackage.files.map((fileName: string, index: number) => {
-                          const IconComponent = getFileIcon(fileName);
-                          const iconColorClass = getFileIconColor(fileName);
-                          return (
-                            <div key={index} className="flex items-center justify-center p-1" title={fileName}>
-                              <IconComponent className={`h-4 w-4 ${iconColorClass}`} />
-                            </div>
-                          );
-                        })}
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                <h4 className="font-medium text-sm">Files</h4>
+              </div>
+              <div className="bg-muted p-2 rounded-lg">
+                <div className="flex flex-wrap gap-1">
+                  {bidPackage.files.map((fileName: string, index: number) => {
+                    const IconComponent = getFileIcon(fileName);
+                    const iconColorClass = getFileIconColor(fileName);
+                    return (
+                      <div key={index} className="flex items-center justify-center p-1" title={fileName}>
+                        <IconComponent className={`h-4 w-4 ${iconColorClass}`} />
                       </div>
-                    </div>
-                  ) : (
-                    <div className="bg-muted p-2 rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground">No files</p>
-                    </div>
-                  )}
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Specifications */}
+          {bidPackage.specifications && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                <h4 className="font-medium text-sm">Specifications</h4>
+              </div>
+              <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
+                <div className="text-xs space-y-1">
+                  {bidPackage.specifications.split('\n').map((line: string, index: number) => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return <br key={index} />;
+                    
+                    // Handle bullet points (•, -, *, or numbered)
+                    if (trimmedLine.match(/^[•\-\*]\s+/) || trimmedLine.match(/^\d+\.\s+/)) {
+                      return (
+                        <div key={index} className="flex items-start gap-1">
+                          <span className="text-muted-foreground mt-0.5">•</span>
+                          <span>{trimmedLine.replace(/^[•\-\*]\s+/, '').replace(/^\d+\.\s+/, '')}</span>
+                        </div>
+                      );
+                    }
+                    
+                    return <div key={index}>{trimmedLine}</div>;
+                  })}
                 </div>
               </div>
             </div>
