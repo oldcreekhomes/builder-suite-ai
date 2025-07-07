@@ -135,21 +135,27 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const requestData: BidPackageEmailRequest = await req.json();
-    console.log('Received bid package email request:', requestData);
+    console.log('📧 Received bid package email request:', JSON.stringify(requestData, null, 2));
 
     const { bidPackage, companies } = requestData;
 
     // Collect all recipient emails
     const recipients: string[] = [];
     companies.forEach(company => {
+      console.log(`🏢 Processing company: ${company.name}`);
       company.representatives.forEach(rep => {
+        console.log(`👤 Processing representative: ${rep.first_name} ${rep.last_name}, email: ${rep.email}`);
         if (rep.email) {
           recipients.push(rep.email);
         }
       });
     });
 
+    console.log(`📮 Total recipients: ${recipients.length}`);
+    console.log(`📮 Recipients list: ${JSON.stringify(recipients)}`);
+
     if (recipients.length === 0) {
+      console.log('❌ No recipients found with valid email addresses');
       return new Response(
         JSON.stringify({ error: "No recipients found with valid email addresses" }),
         {

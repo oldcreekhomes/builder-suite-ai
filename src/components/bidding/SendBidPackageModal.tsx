@@ -60,8 +60,14 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
   });
 
   const handleSendEmail = async () => {
-    if (!bidPackage || !companiesData) return;
+    console.log('🚀 handleSendEmail called', { bidPackage, companiesData });
+    
+    if (!bidPackage || !companiesData) {
+      console.log('❌ Missing data:', { bidPackage: !!bidPackage, companiesData: !!companiesData });
+      return;
+    }
 
+    console.log('📧 Starting email send process...');
     setIsSending(true);
     try {
       // Prepare email data
@@ -83,9 +89,14 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         })).filter(company => company.representatives.length > 0)
       };
 
+      console.log('📋 Prepared email data:', JSON.stringify(emailData, null, 2));
+      console.log('🎯 Companies with recipients:', emailData.companies.length);
+
       const { data: emailResult, error } = await supabase.functions.invoke('send-bid-package-email', {
         body: emailData
       });
+
+      console.log('📬 Edge function result:', { emailResult, error });
 
       if (error) {
         console.error('Edge function error:', error);
