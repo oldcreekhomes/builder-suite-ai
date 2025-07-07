@@ -1,11 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Camera, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,6 +46,7 @@ interface EditEmployeeDialogProps {
 export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }: EditEmployeeDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -52,6 +55,9 @@ export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }:
     phoneNumber: "",
     role: "accountant",
   });
+
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (employee) {
@@ -62,6 +68,7 @@ export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }:
         phoneNumber: employee.phone_number || "",
         role: employee.role || "accountant",
       });
+      setAvatarUrl(employee.avatar_url || "");
     } else if (invitation) {
       setFormData({
         firstName: invitation.first_name || "",
@@ -70,8 +77,77 @@ export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }:
         phoneNumber: invitation.phone_number || "",
         role: invitation.role || "accountant",
       });
+      setAvatarUrl(""); // Invitations don't have avatars
     }
   }, [employee, invitation]);
+
+  const uploadAvatar = async (file: File) => {
+    if (!employee) return null; // Only employees can have avatars
+
+    try {
+      setUploadingAvatar(true);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${employee.id}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const newAvatarUrl = data.publicUrl;
+      
+      // Update the profile with the new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', employee.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(newAvatarUrl);
+      
+      toast({
+        title: "Success",
+        description: "Profile photo updated successfully",
+      });
+      
+      return newAvatarUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload photo",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (employee && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && employee) {
+      await uploadAvatar(file);
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
 
   const updateEmployeeMutation = useMutation({
     mutationFn: async () => {
@@ -148,6 +224,59 @@ export function EditEmployeeDialog({ employee, invitation, open, onOpenChange }:
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Profile Photo Section - Only for employees */}
+          {employee && (
+            <div className="flex flex-col items-center space-y-2 pb-4 border-b">
+              <Label>Profile Photo</Label>
+              <div className="relative group">
+                <Avatar 
+                  className="h-20 w-20 cursor-pointer transition-all group-hover:opacity-80"
+                  onClick={handleAvatarClick}
+                >
+                  <AvatarImage src={avatarUrl} />
+                  <AvatarFallback className="bg-gray-200 text-gray-600 text-lg">
+                    {formData.firstName && formData.lastName 
+                      ? getInitials(formData.firstName, formData.lastName)
+                      : 'NA'
+                    }
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full">
+                  <Camera className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAvatarClick}
+                disabled={uploadingAvatar}
+                className="text-xs"
+              >
+                {uploadingAvatar ? (
+                  <>
+                    <Upload className="h-3 w-3 mr-1 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload Photo
+                  </>
+                )}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-500 text-center">
+                Click the photo or upload button to change
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name *</Label>
