@@ -328,15 +328,7 @@ export type Database = {
           name?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "employee_chat_rooms_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       employees: {
         Row: {
