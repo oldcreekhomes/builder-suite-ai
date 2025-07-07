@@ -382,7 +382,6 @@ export type Database = {
       }
       home_builders: {
         Row: {
-          approved_by_home_builder: boolean
           avatar_url: string | null
           company_name: string | null
           created_at: string
@@ -396,7 +395,6 @@ export type Database = {
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
-          approved_by_home_builder?: boolean
           avatar_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -410,7 +408,6 @@ export type Database = {
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Update: {
-          approved_by_home_builder?: boolean
           avatar_url?: string | null
           company_name?: string | null
           created_at?: string
