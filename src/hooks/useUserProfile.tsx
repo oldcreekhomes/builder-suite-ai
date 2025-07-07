@@ -27,9 +27,17 @@ export const useUserProfile = () => {
       // If not found in home_builders, try employees table
       if (!data) {
         console.log("Checking employees table for user:", user.id);
+        
+        // First check if we can see ANY employees (debugging)
+        const allEmployeesResult = await supabase
+          .from('employees')
+          .select('id, email, confirmed')
+          .limit(5);
+        console.log("Can see any employees?", allEmployeesResult);
+        
         const result = await supabase
           .from('employees')
-          .select('*, user_type:role, company_name:home_builder_id')
+          .select('*')
           .eq('id', user.id)
           .maybeSingle();
         
@@ -37,7 +45,6 @@ export const useUserProfile = () => {
         
         if (result.error) {
           console.error('Error fetching from employees:', result.error);
-          throw result.error;
         }
         
         if (result.data) {
@@ -49,7 +56,7 @@ export const useUserProfile = () => {
             company_name: null // We'll get this from the home_builder later if needed
           };
         } else {
-          console.log("No employee data found");
+          console.log("No employee data found for user:", user.id);
         }
       }
 
