@@ -288,14 +288,12 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {room.otherUser ? getDisplayName(room.otherUser) : room.name}
-                          </h3>
-                          <span className="text-xs text-gray-500">
-                            {new Date(room.updated_at).toLocaleDateString()}
-                          </span>
-                        </div>
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {room.otherUser ? getDisplayName(room.otherUser) : room.name}
+                        </h3>
+                        <span className="text-xs text-gray-500">
+                          {new Date(room.updated_at).toLocaleDateString()}
+                        </span>
                         {room.lastMessage && (
                           <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
                         )}
