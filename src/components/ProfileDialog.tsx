@@ -69,7 +69,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
       // Update the profile in the database immediately
       // Try home_builders first
       let { error: updateError } = await supabase
-        .from('home_builders')
+        .from('users')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
@@ -118,7 +118,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     try {
       // Try updating home_builders first
       let { error } = await supabase
-        .from('home_builders')
+        .from('users')
         .update({
           first_name: firstName,
           last_name: lastName,
