@@ -38,7 +38,7 @@ const App = () => (
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
           
-          {/* Password Reset route */}
+          {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
           
           
