@@ -50,11 +50,10 @@ export default function Messages() {
       if (!currentUser.user) return;
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('employees')
         .select('id, first_name, last_name, role, avatar_url, email')
-        .eq('user_type', 'employee')
-        .eq('approved_by_home_builder', true)
-        .eq('home_builder_id', currentUser.user.id); // Filter by current user's employees
+        .eq('home_builder_id', currentUser.user.id)
+        .eq('confirmed', true); // Only show confirmed employees
 
       if (error) throw error;
       console.log('Found employees:', data);
