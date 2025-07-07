@@ -131,7 +131,7 @@ export function SidebarNavigation() {
                       </CollapsibleContent>
                     </Collapsible>
                   ) : item.comingSoon ? (
-                    <div className="flex items-center w-full space-x-3 p-3 rounded-lg text-gray-400 cursor-not-allowed">
+                    <div className="flex items-center w-full space-x-3 p-3 rounded-lg text-gray-700 cursor-not-allowed">
                       <item.icon className="h-5 w-5" />
                       <span className="font-medium flex-1">{item.title}</span>
                       <Tooltip>
