@@ -16,6 +16,7 @@ import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
+import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import ConfirmInvitation from "./pages/ConfirmInvitation";
@@ -60,6 +61,10 @@ const App = () => (
           
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedules" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
+          
+          {/* Messages route - both global and project-specific */}
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/project/:projectId/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
