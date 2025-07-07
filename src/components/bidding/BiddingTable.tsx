@@ -78,12 +78,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     return status === 'draft' ? 'Load Bid Packages' : 'View Bid Packages';
   };
 
-  // Allow editing until due date is past or status is closed
-  const isReadOnly = (status: 'draft' | 'sent' | 'closed', dueDate?: string | null) => {
-    if (status === 'closed') return true;
-    if (dueDate && new Date(dueDate) < new Date()) return true;
-    return false;
-  };
+  const isReadOnly = status !== 'draft';
 
   return (
     <div className="space-y-4">
@@ -139,7 +134,8 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
                         isDeleting={deletingItems.has(item.id)}
-                        isReadOnly={isReadOnly(status, item.due_date)}
+                        isReadOnly={isReadOnly}
+                        isCompanyReadOnly={status === 'closed'}
                       />
                     ))}
                   </React.Fragment>

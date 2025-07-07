@@ -24,6 +24,7 @@ interface BiddingTableRowProps {
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   isDeleting?: boolean;
   isReadOnly?: boolean;
+  isCompanyReadOnly?: boolean;
 }
 
 export function BiddingTableRow({ 
@@ -42,7 +43,8 @@ export function BiddingTableRow({
   isSelected,
   onCheckboxChange,
   isDeleting = false,
-  isReadOnly = false
+  isReadOnly = false,
+  isCompanyReadOnly = false
 }: BiddingTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -76,7 +78,7 @@ export function BiddingTableRow({
           onUploadProposal={onUploadProposal}
           onDeleteAllProposals={onDeleteAllProposals}
           onDeleteCompany={onDeleteCompany}
-          isReadOnly={isReadOnly}
+          isReadOnly={isCompanyReadOnly}
         />
       )}
       
