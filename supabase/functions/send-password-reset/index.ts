@@ -65,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: `${req.headers.get('origin') || 'http://localhost:5173'}/auth?type=recovery`,
+        redirectTo: `${req.headers.get('origin') || 'https://7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovableproject.com'}/reset-password`,
       }
     });
 

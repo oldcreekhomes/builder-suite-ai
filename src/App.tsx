@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import PasswordReset from "./pages/PasswordReset";
 
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,9 @@ const App = () => (
           
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
+          
+          {/* Password Reset route */}
+          <Route path="/reset-password" element={<PasswordReset />} />
           
           
           {/* Shared routes - no authentication required */}
