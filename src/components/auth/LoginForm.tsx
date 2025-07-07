@@ -31,15 +31,19 @@ const LoginForm = () => {
     setIsResettingPassword(true);
 
     try {
+      console.log("Calling password reset function for:", email);
+      
       const { data, error } = await supabase.functions.invoke('send-password-reset', {
-        body: { email: email.trim() }
+        body: JSON.stringify({ email: email.trim() })
       });
+
+      console.log("Function response:", { data, error });
 
       if (error) {
         console.error("Password reset error:", error);
         toast({
           title: "Error",
-          description: "Failed to send reset email. Please try again.",
+          description: `Failed to send reset email: ${error.message || 'Please try again.'}`,
           variant: "destructive",
         });
       } else {
