@@ -60,6 +60,7 @@ export function EmployeeTable() {
         .eq('approved_by_home_builder', true);
       
       if (error) throw error;
+      console.log('Employees from profiles table:', data);
       return data as Employee[];
     },
   });
@@ -82,6 +83,12 @@ export function EmployeeTable() {
   const invitations = allInvitations.filter(invitation => 
     !employees.some(employee => employee.email === invitation.email)
   );
+
+  console.log('Employees length:', employees.length);
+  console.log('All invitations length:', allInvitations.length);
+  console.log('Filtered invitations length:', invitations.length);
+  console.log('Employees emails:', employees.map(e => e.email));
+  console.log('Invitation emails:', allInvitations.map(i => i.email));
 
   // Delete employee mutation
   const deleteEmployeeMutation = useMutation({
