@@ -19,11 +19,11 @@ export function AppSidebar({ selectedRoom, onRoomSelect, onStartChat }: AppSideb
   return (
     <Sidebar className="border-r border-gray-200">
       <SidebarBranding />
-      {isMessagesPage && selectedRoom !== undefined && onRoomSelect && onStartChat ? (
+      {isMessagesPage ? (
         <MessagesSidebar 
-          selectedRoom={selectedRoom}
-          onRoomSelect={onRoomSelect}
-          onStartChat={onStartChat}
+          selectedRoom={selectedRoom || null}
+          onRoomSelect={onRoomSelect || (() => {})}
+          onStartChat={onStartChat || (() => {})}
         />
       ) : (
         <SidebarNavigation />
