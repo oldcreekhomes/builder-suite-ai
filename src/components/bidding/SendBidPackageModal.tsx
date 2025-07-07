@@ -208,7 +208,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
             {isLoading ? (
               <div className="text-center py-2 text-muted-foreground text-sm">Loading recipients...</div>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
                     (rep: any) => rep.receive_bid_notifications
@@ -217,7 +217,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                   if (notificationReps.length === 0) return null;
 
                   return (
-                    <div key={company.id} className="border rounded-lg p-3 space-y-2">
+                    <div key={company.id} className="border rounded-lg p-2 space-y-1">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3 w-3 text-muted-foreground" />
                         <h5 className="font-medium text-sm">{company.companies?.company_name}</h5>
