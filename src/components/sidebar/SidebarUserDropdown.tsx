@@ -25,18 +25,29 @@ export function SidebarUserDropdown() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    console.log("Logout initiated...");
+    try {
+      const { error } = await supabase.auth.signOut();
+      console.log("Logout result:", { error });
+      
+      if (error) {
+        console.error("Logout error:", error);
+        toast({
+          title: "Error", 
+          description: "Failed to sign out. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Logout successful, redirecting to auth page");
+        // Clear any cached data and redirect
+        window.location.href = "/auth";
+      }
+    } catch (err) {
+      console.error("Logout exception:", err);
       toast({
         title: "Error",
-        description: "Failed to sign out. Please try again.",
+        description: "Failed to sign out. Please try again.", 
         variant: "destructive",
-      });
-    } else {
-      navigate("/auth");
-      toast({
-        title: "Success",
-        description: "You have been signed out successfully.",
       });
     }
   };
