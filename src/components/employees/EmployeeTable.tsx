@@ -65,20 +65,23 @@ export function EmployeeTable() {
   });
 
   // Fetch pending invitations (exclude those that are already converted to employee profiles)
-  const { data: invitations = [], isLoading: invitationsLoading } = useQuery({
-    queryKey: ['employee-invitations'],
+  const { data: allInvitations = [], isLoading: invitationsLoading } = useQuery({
+    queryKey: ['all-employee-invitations'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employee_invitations')
         .select('*')
-        .not('email', 'in', `(${employees.map(emp => `"${emp.email}"`).join(',')})`)
         .order('invited_at', { ascending: false });
       
       if (error) throw error;
       return data as EmployeeInvitation[];
     },
-    enabled: employees.length >= 0, // Only run after employees are loaded
   });
+
+  // Filter out invitations that have corresponding employee profiles
+  const invitations = allInvitations.filter(invitation => 
+    !employees.some(employee => employee.email === invitation.email)
+  );
 
   // Delete employee mutation
   const deleteEmployeeMutation = useMutation({
