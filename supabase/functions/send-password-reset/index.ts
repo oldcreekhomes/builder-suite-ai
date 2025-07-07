@@ -14,12 +14,16 @@ interface PasswordResetRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("Password reset function called");
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log("Processing password reset request");
     const { email }: PasswordResetRequest = await req.json();
+    console.log("Email received:", email);
 
     if (!email) {
       return new Response(
