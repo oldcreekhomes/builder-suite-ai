@@ -164,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to all recipients
     const emailResponse = await resend.emails.send({
-      from: "Bid Packages <noreply@yourdomain.com>",
+      from: "Bid Packages <onboarding@resend.dev>",
       to: recipients,
       subject: subject,
       html: emailHTML
