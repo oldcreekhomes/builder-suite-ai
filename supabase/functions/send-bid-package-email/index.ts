@@ -187,17 +187,11 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHTML = generateEmailHTML(requestData);
     const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
 
-    // For testing purposes, send to the account owner's email if domain not verified
-    // In production, you should verify your domain at resend.com/domains
-    const testEmail = "mgray@oldcreekhomes.com";
-    const finalRecipients = [testEmail]; // Use your email for testing
-
     console.log('📬 About to send email via Resend...');
-    console.log('🎯 Sending test email to:', testEmail);
     // Send email to all recipients
     const emailResponse = await resend.emails.send({
-      from: "Bid Packages <onboarding@resend.dev>",
-      to: finalRecipients,
+      from: "Bid Packages <noreply@transactional.buildersuiteai.com>",
+      to: recipients,
       subject: subject,
       html: emailHTML
     });
