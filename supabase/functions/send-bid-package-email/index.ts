@@ -162,31 +162,15 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHTML = generateEmailHTML(requestData);
     const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
 
-    // Send email to all recipients - DISABLED FOR TESTING
-    // const emailResponse = await resend.emails.send({
-    //   from: "Bid Packages <noreply@yourdomain.com>",
-    //   to: recipients,
-    //   subject: subject,
-    //   html: emailHTML
-    // });
+    // Send email to all recipients
+    const emailResponse = await resend.emails.send({
+      from: "Bid Packages <noreply@yourdomain.com>",
+      to: recipients,
+      subject: subject,
+      html: emailHTML
+    });
 
-    // console.log("Bid package email sent successfully:", emailResponse);
-    console.log("Regular email sending disabled for testing");
-
-    // Send test copy to mgray@oldcreekhomes.com
-    let emailResponse;
-    try {
-      emailResponse = await resend.emails.send({
-        from: "Bid Packages <noreply@yourdomain.com>",
-        to: ["mgray@oldcreekhomes.com"],
-        subject: `[TEST COPY] ${subject}`,
-        html: emailHTML
-      });
-      console.log("Test copy sent to mgray@oldcreekhomes.com");
-    } catch (testEmailError) {
-      console.error("Error sending test copy:", testEmailError);
-      throw testEmailError; // Fail the request if test email fails during testing
-    }
+    console.log("Bid package email sent successfully:", emailResponse);
 
     return new Response(
       JSON.stringify({ 
