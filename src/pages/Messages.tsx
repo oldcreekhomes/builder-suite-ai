@@ -95,28 +95,37 @@ export default function Messages() {
       const roomsWithDetails = await Promise.all(
         rooms.map(async (room: any) => {
           if (room.is_direct_message) {
-            // Get the other participant
+            // Get the other participant ID
             const { data: otherParticipant } = await supabase
               .from('employee_chat_participants')
-              .select(`
-                user_id,
-                profiles (
-                  id,
-                  first_name,
-                  last_name,
-                  role,
-                  avatar_url,
-                  email
-                )
-              `)
+              .select('user_id')
               .eq('room_id', room.id)
               .neq('user_id', currentUser.user.id)
               .single();
 
-            return {
-              ...room,
-              otherUser: otherParticipant?.profiles || null
-            };
+            if (otherParticipant) {
+              // Try to find the user in profiles first (home builders)
+              let { data: userProfile } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, role, avatar_url, email')
+                .eq('id', otherParticipant.user_id)
+                .single();
+
+              // If not found in profiles, try employees table
+              if (!userProfile) {
+                const { data: employeeProfile } = await supabase
+                  .from('employees')
+                  .select('id, first_name, last_name, role, avatar_url, email')
+                  .eq('id', otherParticipant.user_id)
+                  .single();
+                userProfile = employeeProfile;
+              }
+
+              return {
+                ...room,
+                otherUser: userProfile || null
+              };
+            }
           }
           return room;
         })
@@ -178,21 +187,42 @@ export default function Messages() {
           id,
           message_text,
           created_at,
-          sender:profiles(
-            id,
-            first_name,
-            last_name,
-            role,
-            avatar_url,
-            email
-          )
+          sender_id
         `)
         .eq('room_id', roomId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+
+      // For each message, get the sender details from either profiles or employees table
+      const messagesWithSenders = await Promise.all(
+        (data || []).map(async (message: any) => {
+          // Try to find sender in profiles first (home builders)
+          let { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, role, avatar_url, email')
+            .eq('id', message.sender_id)
+            .single();
+
+          // If not found in profiles, try employees table
+          if (!senderProfile) {
+            const { data: employeeSender } = await supabase
+              .from('employees')
+              .select('id, first_name, last_name, role, avatar_url, email')
+              .eq('id', message.sender_id)
+              .single();
+            senderProfile = employeeSender;
+          }
+
+          return {
+            ...message,
+            sender: senderProfile || { id: message.sender_id, first_name: 'Unknown', last_name: 'User', role: '', avatar_url: '', email: '' }
+          };
+        })
+      );
+
+      setMessages(messagesWithSenders);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
