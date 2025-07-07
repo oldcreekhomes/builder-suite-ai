@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, FileText, Building2, Users, Send } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
@@ -19,6 +19,7 @@ interface SendBidPackageModalProps {
 export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidPackageModalProps) {
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch companies and representatives for this bid package
   const { data: companiesData, isLoading } = useQuery({
@@ -89,6 +90,19 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       if (error) {
         throw error;
       }
+
+      // Update bid package status to 'sent'
+      const { error: updateError } = await supabase
+        .from('project_bid_packages')
+        .update({ status: 'sent' })
+        .eq('id', bidPackage.id);
+
+      if (updateError) {
+        console.error('Error updating bid package status:', updateError);
+      }
+
+      // Invalidate bidding queries to refresh the table
+      queryClient.invalidateQueries({ queryKey: ['project-bidding'] });
 
       toast({
         title: "Bid Package Sent",
