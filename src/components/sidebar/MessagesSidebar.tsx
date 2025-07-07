@@ -59,6 +59,8 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
 
       if (homeBuilderData) {
         // User is a home builder - get their employees AND other home builders
+        
+        // Get employees of this home builder
         const { data: employees, error: empError } = await supabase
           .from('employees')
           .select('id, first_name, last_name, role, avatar_url, email')
@@ -66,16 +68,23 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
           .eq('confirmed', true);
 
         if (empError) throw empError;
-        allUsers = employees || [];
+        if (employees) allUsers = [...allUsers, ...employees];
 
-        // Also add other home builders for potential collaboration
+        // Get other home builders for collaboration
         const { data: otherHomeBuilders, error: hbError } = await supabase
           .from('users')
-          .select('id, first_name, last_name, role, avatar_url, email')
+          .select('id, first_name, last_name, avatar_url, email')
           .neq('id', currentUser.user.id);
 
         if (hbError) throw hbError;
-        allUsers = [...allUsers, ...(otherHomeBuilders || [])];
+        if (otherHomeBuilders) {
+          // Convert home builders to Employee interface format
+          const formattedHomeBuilders = otherHomeBuilders.map(hb => ({
+            ...hb,
+            role: 'Home Builder'
+          }));
+          allUsers = [...allUsers, ...formattedHomeBuilders];
+        }
       } else {
         // User is an employee - get their home builder and other employees in the company
         const { data: employeeData } = await supabase
@@ -88,12 +97,17 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
           // Get the home builder
           const { data: homeBuilder, error: hbError } = await supabase
             .from('users')
-            .select('id, first_name, last_name, role, avatar_url, email')
+            .select('id, first_name, last_name, avatar_url, email')
             .eq('id', employeeData.home_builder_id)
             .single();
 
           if (hbError) throw hbError;
-          if (homeBuilder) allUsers.push(homeBuilder);
+          if (homeBuilder) {
+            allUsers.push({
+              ...homeBuilder,
+              role: 'Home Builder'
+            });
+          }
 
           // Get other employees in the same company
           const { data: coworkers, error: empError } = await supabase
@@ -104,10 +118,11 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
             .eq('confirmed', true);
 
           if (empError) throw empError;
-          allUsers = [...allUsers, ...(coworkers || [])];
+          if (coworkers) allUsers = [...allUsers, ...coworkers];
         }
       }
 
+      console.log('Found users for chat:', allUsers);
       setEmployees(allUsers);
     } catch (error) {
       console.error('Error fetching employees:', error);
