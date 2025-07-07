@@ -46,13 +46,18 @@ export default function Messages() {
   // Fetch employees for search
   const fetchEmployees = async () => {
     try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return;
+
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, role, avatar_url, email')
         .eq('user_type', 'employee')
-        .eq('approved_by_home_builder', true);
+        .eq('approved_by_home_builder', true)
+        .eq('home_builder_id', currentUser.user.id); // Filter by current user's employees
 
       if (error) throw error;
+      console.log('Found employees:', data);
       setEmployees(data || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
