@@ -12,7 +12,8 @@ export const useUserProfile = () => {
       if (!user?.id) return null;
       
       console.log("Fetching profile for user:", user.id);
-      // All users are now in the users table
+      
+      // First check if user is a home builder in users table
       let { data, error } = await supabase
         .from('users')
         .select('*')
@@ -24,13 +25,29 @@ export const useUserProfile = () => {
       }
 
       if (data) {
-        console.log("Found user profile:", data);
-      } else {
-        console.log("User profile not found for:", user.id);
+        console.log("Found home builder profile:", data);
+        return data;
       }
 
-      console.log("Profile data:", data);
-      return data;
+      // If not found in users table, check employees table
+      console.log("Not found in users table, checking employees table...");
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (employeeError) {
+        console.error('Error fetching from employees:', employeeError);
+      }
+
+      if (employeeData) {
+        console.log("Found employee profile:", employeeData);
+        return employeeData;
+      }
+
+      console.log("User profile not found in either table for:", user.id);
+      return null;
     },
     enabled: !!user?.id,
   });

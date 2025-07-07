@@ -62,8 +62,20 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
     }, 200);
   };
 
-  // Get company name from profile, fallback to "Company"
-  const companyName = profile?.company_name || "Company";
+  // Get company name - handle both home builders and employees
+  const getCompanyName = () => {
+    if (profile && 'company_name' in profile && profile.company_name) {
+      // User is a home builder
+      return profile.company_name;
+    } else if (profile && 'home_builder_id' in profile && profile.home_builder_id) {
+      // User is an employee - we'd need to fetch the home builder's company name
+      // For now, use a generic fallback
+      return "Company Dashboard";
+    }
+    return "Company";
+  };
+  
+  const companyName = getCompanyName();
   
   // Use provided title or fallback to company name
   const displayTitle = title || companyName;

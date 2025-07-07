@@ -41,63 +41,45 @@ export function EmployeeTable() {
     queryKey: ['employees'],
     queryFn: async () => {
       const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) {
-        console.log('No current user found');
-        return [];
-      }
-
-      console.log('Current user ID:', currentUser.user.id);
+      if (!currentUser.user) return [];
 
       // First check if user is a home builder
-      const { data: homeBuilderData, error: homeBuilderError } = await supabase
+      const { data: homeBuilderData } = await supabase
         .from('users')
         .select('*')
         .eq('id', currentUser.user.id)
         .maybeSingle();
-
-      console.log('Home builder check:', { homeBuilderData, homeBuilderError });
 
       let homeBuilderIdToQuery = null;
 
       if (homeBuilderData) {
         // User is a home builder - get their employees
         homeBuilderIdToQuery = currentUser.user.id;
-        console.log('User is home builder, querying employees for ID:', homeBuilderIdToQuery);
       } else {
         // Check if user is an employee
-        const { data: employeeData, error: employeeError } = await supabase
+        const { data: employeeData } = await supabase
           .from('employees')
           .select('home_builder_id')
           .eq('id', currentUser.user.id)
           .maybeSingle();
           
-        console.log('Employee check:', { employeeData, employeeError });
-          
         if (employeeData?.home_builder_id) {
           // User is an employee - get all employees from same company
           homeBuilderIdToQuery = employeeData.home_builder_id;
-          console.log('User is employee, querying employees for home builder ID:', homeBuilderIdToQuery);
         }
       }
 
       if (homeBuilderIdToQuery) {
-        console.log('Fetching employees for home builder ID:', homeBuilderIdToQuery);
         const { data, error } = await supabase
           .from('employees')
           .select('*')
           .eq('home_builder_id', homeBuilderIdToQuery)
           .order('created_at', { ascending: false });
         
-        console.log('Employee query result:', { data, error });
-        
-        if (error) {
-          console.error('Error fetching employees:', error);
-          throw error;
-        }
+        if (error) throw error;
         return data as Employee[];
       }
       
-      console.log('No home builder ID found, returning empty array');
       return [];
     },
   });
