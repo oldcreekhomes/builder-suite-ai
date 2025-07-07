@@ -24,7 +24,7 @@ const SignupForm = () => {
     try {
       // Get home builder email
       const { data: homeBuilderProfile, error } = await supabase
-        .from('profiles')
+        .from('home_builders')
         .select('email')
         .eq('id', homeBuilderData.id)
         .single();

@@ -31,7 +31,7 @@ export const useProjectFiles = (projectId: string) => {
         .from('project_files')
         .select(`
           *,
-          uploaded_by_profile:profiles!project_files_uploaded_by_fkey(email)
+          uploaded_by_profile:home_builders!project_files_uploaded_by_fkey(email)
         `)
         .eq('project_id', projectId)
         .eq('is_deleted', false)
