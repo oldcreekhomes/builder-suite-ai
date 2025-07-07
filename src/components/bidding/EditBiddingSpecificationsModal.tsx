@@ -29,6 +29,7 @@ interface EditBiddingSpecificationsModalProps {
   costCodeCode: string;
   specifications: string;
   onUpdateSpecifications: (specifications: string) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
 export function EditBiddingSpecificationsModal({
@@ -37,16 +38,23 @@ export function EditBiddingSpecificationsModal({
   costCodeName,
   costCodeCode,
   specifications,
-  onUpdateSpecifications
+  onUpdateSpecifications,
+  isReadOnly = false
 }: EditBiddingSpecificationsModalProps) {
   const [description, setDescription] = useState(specifications || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(isReadOnly);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     setDescription(specifications || '');
   }, [specifications]);
+
+  React.useEffect(() => {
+    if (isReadOnly) {
+      setShowPreview(true);
+    }
+  }, [isReadOnly]);
 
   const insertText = (before: string, after: string = '', placeholder: string = '') => {
     const textarea = textareaRef.current;
@@ -157,7 +165,7 @@ export function EditBiddingSpecificationsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Edit Specifications</DialogTitle>
+          <DialogTitle>{isReadOnly ? 'View Specifications' : 'Edit Specifications'}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
@@ -170,18 +178,20 @@ export function EditBiddingSpecificationsModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="description">Specifications</Label>
-              <div className="flex items-center space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="flex items-center space-x-1"
-                >
-                  {showPreview ? <Edit3 className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  <span>{showPreview ? 'Edit' : 'Preview'}</span>
-                </Button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPreview(!showPreview)}
+                    className="flex items-center space-x-1"
+                  >
+                    {showPreview ? <Edit3 className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    <span>{showPreview ? 'Edit' : 'Preview'}</span>
+                  </Button>
+                </div>
+              )}
             </div>
             
             {!showPreview && (
@@ -282,20 +292,33 @@ export function EditBiddingSpecificationsModal({
             )}
             
             {showPreview && (
-              <div 
-                className="border rounded-md p-3 min-h-[200px] bg-white"
-                dangerouslySetInnerHTML={{ __html: formatText(description) }}
-              />
+              <div className="border rounded-md p-3 min-h-[200px] bg-white">
+                {description.trim() ? (
+                  <div dangerouslySetInnerHTML={{ __html: formatText(description) }} />
+                ) : (
+                  <div className="text-gray-500 text-center py-8">
+                    {isReadOnly ? 'No specifications added yet.' : 'No content to preview. Start typing to see a preview.'}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? 'Saving...' : 'Save'}
-          </Button>
+          {isReadOnly ? (
+            <Button onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -29,8 +29,7 @@ export function BiddingTableRowSpecs({
               size="sm"
               onClick={() => setShowSpecsModal(true)}
               className="h-8 w-8 p-0"
-              title="View/Edit Specifications"
-              disabled={isReadOnly}
+              title={isReadOnly ? "View Specifications" : "View/Edit Specifications"}
             >
               <Paperclip className="h-4 w-4 text-blue-600" />
             </Button>
@@ -40,9 +39,9 @@ export function BiddingTableRowSpecs({
               size="sm"
               onClick={() => setShowSpecsModal(true)}
               className="h-8 text-xs px-2"
-              disabled={isReadOnly}
+              title={isReadOnly ? "View Specifications" : "Add Specifications"}
             >
-              Add Specs
+              {isReadOnly ? 'View Specs' : 'Add Specs'}
             </Button>
           )}
         </div>
@@ -57,6 +56,7 @@ export function BiddingTableRowSpecs({
         onUpdateSpecifications={async (specifications) => {
           await onUpdateSpecifications(item.id, specifications);
         }}
+        isReadOnly={isReadOnly}
       />
     </>
   );
