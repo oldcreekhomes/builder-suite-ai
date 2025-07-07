@@ -56,20 +56,73 @@ export default function Messages() {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
 
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, first_name, last_name, role, avatar_url, email')
-        .eq('home_builder_id', currentUser.user.id)
-        .eq('confirmed', true); // Only show confirmed employees
+      let allUsers: Employee[] = [];
 
-      if (error) throw error;
-      console.log('Found employees:', data);
-      setEmployees(data || []);
+      // First check if current user is a home builder
+      const { data: homeBuilderData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.user.id)
+        .maybeSingle();
+
+      if (homeBuilderData) {
+        // User is a home builder - get their employees AND other home builders
+        const { data: employees, error: empError } = await supabase
+          .from('employees')
+          .select('id, first_name, last_name, role, avatar_url, email')
+          .eq('home_builder_id', currentUser.user.id)
+          .eq('confirmed', true);
+
+        if (empError) throw empError;
+        allUsers = employees || [];
+
+        // Also add other home builders for potential collaboration
+        const { data: otherHomeBuilders, error: hbError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, role, avatar_url, email')
+          .neq('id', currentUser.user.id);
+
+        if (hbError) throw hbError;
+        allUsers = [...allUsers, ...(otherHomeBuilders || [])];
+      } else {
+        // User is an employee - get their home builder and other employees in the company
+        const { data: employeeData } = await supabase
+          .from('employees')
+          .select('home_builder_id')
+          .eq('id', currentUser.user.id)
+          .maybeSingle();
+
+        if (employeeData?.home_builder_id) {
+          // Get the home builder
+          const { data: homeBuilder, error: hbError } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, role, avatar_url, email')
+            .eq('id', employeeData.home_builder_id)
+            .single();
+
+          if (hbError) throw hbError;
+          if (homeBuilder) allUsers.push(homeBuilder);
+
+          // Get other employees in the same company
+          const { data: coworkers, error: empError } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name, role, avatar_url, email')
+            .eq('home_builder_id', employeeData.home_builder_id)
+            .neq('id', currentUser.user.id)
+            .eq('confirmed', true);
+
+          if (empError) throw empError;
+          allUsers = [...allUsers, ...(coworkers || [])];
+        }
+      }
+
+      console.log('Found users for chat:', allUsers);
+      setEmployees(allUsers);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast({
         title: "Error",
-        description: "Failed to load employees",
+        description: "Failed to load contacts",
         variant: "destructive",
       });
     }
