@@ -14,7 +14,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ selectedRoom, onRoomSelect, onStartChat }: AppSidebarProps) {
   const location = useLocation();
-  const isMessagesPage = location.pathname === '/messages';
+  const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
 
   return (
     <Sidebar className="border-r border-gray-200">

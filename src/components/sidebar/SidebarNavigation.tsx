@@ -74,7 +74,7 @@ export function SidebarNavigation() {
 
   // Check if we're on the Company Dashboard or Messages page
   const isCompanyDashboard = location.pathname === '/';
-  const isMessagesPage = location.pathname === '/messages';
+  const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
