@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { FileAttachment } from "./FileAttachment";
 import type { ChatMessage } from "@/hooks/useChat";
 
@@ -17,6 +18,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.message_text || "");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const getInitials = (firstName: string | null, lastName: string | null) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
@@ -38,10 +40,11 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    if (onDelete && confirm("Are you sure you want to delete this message?")) {
+  const handleDeleteConfirm = () => {
+    if (onDelete) {
       onDelete(message.id);
     }
+    setShowDeleteDialog(false);
   };
 
   return (
@@ -78,7 +81,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
                     <Edit2 className="h-3 w-3 mr-2" />
                     Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                  <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
                     <Trash2 className="h-3 w-3 mr-2" />
                     Delete
                   </DropdownMenuItem>
@@ -135,6 +138,24 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Message</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this message? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
