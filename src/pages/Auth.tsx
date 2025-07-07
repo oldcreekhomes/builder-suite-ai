@@ -1,10 +1,27 @@
 
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    // Check if this is a password recovery flow
+    const type = searchParams.get('type');
+    if (type === 'recovery') {
+      // Redirect to password reset page with all the recovery parameters
+      const params = new URLSearchParams();
+      searchParams.forEach((value, key) => {
+        params.append(key, value);
+      });
+      navigate(`/reset-password?${params.toString()}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
