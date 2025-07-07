@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarContent,
@@ -38,11 +36,10 @@ interface MessagesSidebarProps {
 export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: MessagesSidebarProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch employees for search
+  // Fetch employees for display
   const fetchEmployees = async () => {
     try {
       const { data: currentUser } = await supabase.auth.getUser();
@@ -222,21 +219,24 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
     return `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email;
   };
 
-  // Filter employees and rooms based on search
-  const filteredEmployees = employees.filter(employee => {
-    const name = getDisplayName(employee);
-    const role = employee.role || '';
-    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           role.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Combine chat rooms with employees for display
+  const getCombinedUserList = () => {
+    const usersWithChats: Employee[] = [];
+    const usersWithoutChats: Employee[] = [];
 
-  const filteredRooms = chatRooms.filter(room => {
-    if (room.is_direct_message && room.otherUser) {
-      const name = getDisplayName(room.otherUser);
-      return name.toLowerCase().includes(searchQuery.toLowerCase());
-    }
-    return room.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
-  });
+    employees.forEach(employee => {
+      const hasExistingChat = chatRooms.some(room => room.otherUser?.id === employee.id);
+      if (hasExistingChat) {
+        usersWithChats.push(employee);
+      } else {
+        usersWithoutChats.push(employee);
+      }
+    });
+
+    return { usersWithChats, usersWithoutChats };
+  };
+
+  const { usersWithChats, usersWithoutChats } = getCombinedUserList();
 
   return (
     <SidebarContent className="px-3 py-4">
@@ -244,16 +244,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
         <SidebarGroupContent>
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
-            <h1 className="text-xl font-semibold text-gray-900 mb-3">Messages</h1>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search employees..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
           </div>
 
           {/* User List */}
@@ -262,13 +253,13 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               <div className="p-4 text-center text-gray-500">Loading...</div>
             ) : (
               <>
-                {/* Recent Conversations - Always visible */}
-                {filteredRooms.length > 0 && (
+                {/* Recent Conversations */}
+                {chatRooms.length > 0 && (
                   <>
                     <div className="px-4 py-2 bg-gray-50 border-b">
                       <h3 className="text-sm font-medium text-gray-700">Recent Conversations</h3>
                     </div>
-                    {filteredRooms.map((room) => (
+                    {chatRooms.map((room) => (
                       <div
                         key={room.id}
                         onClick={() => onRoomSelect(room)}
@@ -309,51 +300,48 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                   </>
                 )}
 
-                {/* Available Employees for New Conversations */}
-                {searchQuery && (
+                {/* All Available Users */}
+                {employees.length > 0 && (
                   <>
                     <div className="px-4 py-2 bg-gray-50 border-b">
-                      <h3 className="text-sm font-medium text-gray-700">Start new chat with:</h3>
+                      <h3 className="text-sm font-medium text-gray-700">Company Members</h3>
                     </div>
-                    {filteredEmployees
-                      .filter(emp => !filteredRooms.some(room => room.otherUser?.id === emp.id))
-                      .map((employee) => (
-                      <div
-                        key={employee.id}
-                        onClick={() => onStartChat(employee)}
-                        className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={employee.avatar_url || ""} />
-                            <AvatarFallback className="bg-gray-200 text-gray-600">
-                              {getInitials(employee.first_name, employee.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 truncate">
-                              {getDisplayName(employee)}
-                            </h3>
+                    {employees.map((employee) => {
+                      // Skip if user already has a recent conversation
+                      const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
+                      if (hasRecentChat) return null;
+
+                      return (
+                        <div
+                          key={employee.id}
+                          onClick={() => onStartChat(employee)}
+                          className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={employee.avatar_url || ""} />
+                              <AvatarFallback className="bg-gray-200 text-gray-600">
+                                {getInitials(employee.first_name, employee.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 truncate">
+                                {getDisplayName(employee)}
+                              </h3>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </>
                 )}
 
                 {/* Empty State */}
-                {!loading && filteredRooms.length === 0 && !searchQuery && (
+                {!loading && employees.length === 0 && chatRooms.length === 0 && (
                   <div className="p-4 text-center text-gray-500">
-                    <p className="mb-2">No conversations yet.</p>
-                    <p className="text-sm">Search for employees above to start chatting!</p>
-                  </div>
-                )}
-
-                {/* No Search Results */}
-                {searchQuery && filteredRooms.length === 0 && filteredEmployees.filter(emp => !filteredRooms.some(room => room.otherUser?.id === emp.id)).length === 0 && (
-                  <div className="p-4 text-center text-gray-500">
-                    No results found for "{searchQuery}"
+                    <p className="mb-2">No company members found.</p>
+                    <p className="text-sm">Add employees to your company to start chatting!</p>
                   </div>
                 )}
               </>
