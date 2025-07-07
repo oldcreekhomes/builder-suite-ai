@@ -242,6 +242,48 @@ export default function Messages() {
     }
   };
 
+  // Send a message
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !selectedRoom) return;
+
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return;
+
+      const { error } = await supabase
+        .from('employee_chat_messages')
+        .insert({
+          room_id: selectedRoom.id,
+          sender_id: currentUser.user.id,
+          message_text: messageInput.trim()
+        });
+
+      if (error) throw error;
+
+      // Clear the input
+      setMessageInput("");
+      
+      // Refresh messages
+      await fetchMessages(selectedRoom.id);
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -464,6 +506,7 @@ export default function Messages() {
                     placeholder="Send a message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="pr-20"
                   />
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
@@ -475,7 +518,7 @@ export default function Messages() {
                     </Button>
                   </div>
                 </div>
-                <Button size="sm" className="h-8 w-8 p-0">
+                <Button size="sm" className="h-8 w-8 p-0" onClick={sendMessage}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
