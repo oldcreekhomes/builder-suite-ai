@@ -854,10 +854,6 @@ export type Database = {
           created_at: string
         }[]
       }
-      get_user_home_builder_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       is_room_participant: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
