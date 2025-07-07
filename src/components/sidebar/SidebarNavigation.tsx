@@ -3,14 +3,14 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { 
   Calendar, 
-  Calculator, 
   DollarSign, 
   FileText, 
   Home, 
   File,
   Image,
   ChevronDown,
-  Clock
+  Clock,
+  HelpCircle
 } from "lucide-react";
 import {
   SidebarContent,
@@ -24,6 +24,7 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigationItems = [
   {
@@ -58,14 +59,9 @@ const navigationItems = [
     icon: FileText,
   },
   {
-    title: "AI Estimating",
-    url: "/estimating",
-    icon: Calculator,
-  },
-  {
     title: "Schedule",
-    url: "/schedules",
     icon: Clock,
+    comingSoon: true,
   },
 ];
 
@@ -100,55 +96,70 @@ export function SidebarNavigation() {
   }
 
   return (
-    <SidebarContent className="px-3 py-4">
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {navigationItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                {item.submenu ? (
-                  <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
-                    <CollapsibleTrigger asChild>
-                      <button className="flex items-center w-full space-x-3 p-3 rounded-lg hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
-                        <item.icon className="h-5 w-5" />
-                        <span className="font-medium flex-1 text-left">{item.title}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
-                      </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub className="ml-8 mt-3">
-                        {item.submenu.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
-                              <a 
-                                href={`/project/${projectId}${subItem.url}`}
-                                className="flex items-center space-x-3 p-4 rounded-lg"
-                              >
-                                <subItem.icon className="h-4 w-4" />
-                                <span>{subItem.title}</span>
-                              </a>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuButton 
-                    asChild 
-                    className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                  >
-                    <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
+    <TooltipProvider>
+      <SidebarContent className="px-3 py-4">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  {item.submenu ? (
+                    <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
+                      <CollapsibleTrigger asChild>
+                        <button className="flex items-center w-full space-x-3 p-3 rounded-lg hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
+                          <item.icon className="h-5 w-5" />
+                          <span className="font-medium flex-1 text-left">{item.title}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${documentsOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub className="ml-8 mt-3">
+                          {item.submenu.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild>
+                                <a 
+                                  href={`/project/${projectId}${subItem.url}`}
+                                  className="flex items-center space-x-3 p-4 rounded-lg"
+                                >
+                                  <subItem.icon className="h-4 w-4" />
+                                  <span>{subItem.title}</span>
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : item.comingSoon ? (
+                    <div className="flex items-center w-full space-x-3 p-3 rounded-lg text-gray-400 cursor-not-allowed">
                       <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
+                      <span className="font-medium flex-1">{item.title}</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <HelpCircle className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Coming Soon</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild 
+                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                    >
+                      <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </TooltipProvider>
   );
 }
