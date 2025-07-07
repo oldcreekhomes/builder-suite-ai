@@ -384,40 +384,57 @@ export type Database = {
         Row: {
           avatar_url: string | null
           company_name: string | null
+          confirmed: boolean | null
           created_at: string
           email: string
           first_name: string | null
+          home_builder_id: string | null
           id: string
           last_name: string | null
           phone_number: string | null
+          role: string | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
           avatar_url?: string | null
           company_name?: string | null
+          confirmed?: boolean | null
           created_at?: string
           email: string
           first_name?: string | null
+          home_builder_id?: string | null
           id: string
           last_name?: string | null
           phone_number?: string | null
+          role?: string | null
           updated_at?: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Update: {
           avatar_url?: string | null
           company_name?: string | null
+          confirmed?: boolean | null
           created_at?: string
           email?: string
           first_name?: string | null
+          home_builder_id?: string | null
           id?: string
           last_name?: string | null
           phone_number?: string | null
+          role?: string | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "home_builders_home_builder_id_fkey"
+            columns: ["home_builder_id"]
+            isOneToOne: false
+            referencedRelation: "home_builders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_companies: {
         Row: {
