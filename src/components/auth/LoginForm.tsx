@@ -136,12 +136,12 @@ const LoginForm = () => {
         {isLoading ? "Signing in..." : "Sign In"}
       </Button>
       
-      <div className="text-center">
+      <div className="text-center pt-2">
         <button
           type="button"
           onClick={handleResetPassword}
           disabled={isResettingPassword}
-          className="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
+          className="text-sm text-primary hover:text-primary/80 underline disabled:opacity-50 font-medium"
         >
           {isResettingPassword ? "Sending reset email..." : "Forgot your password?"}
         </button>
