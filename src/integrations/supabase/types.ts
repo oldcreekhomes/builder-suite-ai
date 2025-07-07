@@ -225,7 +225,7 @@ export type Database = {
             foreignKeyName: "cost_codes_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "home_builders"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -333,7 +333,7 @@ export type Database = {
             foreignKeyName: "employee_chat_rooms_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "home_builders"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -379,62 +379,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      home_builders: {
-        Row: {
-          avatar_url: string | null
-          company_name: string | null
-          confirmed: boolean | null
-          created_at: string
-          email: string
-          first_name: string | null
-          home_builder_id: string | null
-          id: string
-          last_name: string | null
-          phone_number: string | null
-          role: string | null
-          updated_at: string
-          user_type: Database["public"]["Enums"]["user_type"]
-        }
-        Insert: {
-          avatar_url?: string | null
-          company_name?: string | null
-          confirmed?: boolean | null
-          created_at?: string
-          email: string
-          first_name?: string | null
-          home_builder_id?: string | null
-          id: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-          user_type: Database["public"]["Enums"]["user_type"]
-        }
-        Update: {
-          avatar_url?: string | null
-          company_name?: string | null
-          confirmed?: boolean | null
-          created_at?: string
-          email?: string
-          first_name?: string | null
-          home_builder_id?: string | null
-          id?: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-          user_type?: Database["public"]["Enums"]["user_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "home_builders_home_builder_id_fkey"
-            columns: ["home_builder_id"]
-            isOneToOne: false
-            referencedRelation: "home_builders"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       marketplace_companies: {
         Row: {
@@ -754,7 +698,7 @@ export type Database = {
             foreignKeyName: "project_files_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "home_builders"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -796,7 +740,7 @@ export type Database = {
             foreignKeyName: "project_photos_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "home_builders"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -837,7 +781,63 @@ export type Database = {
             foreignKeyName: "projects_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "home_builders"
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          confirmed: boolean | null
+          created_at: string
+          email: string
+          first_name: string | null
+          home_builder_id: string | null
+          id: string
+          last_name: string | null
+          phone_number: string | null
+          role: string | null
+          updated_at: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          home_builder_id?: string | null
+          id: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
+          updated_at?: string
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          home_builder_id?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
+          updated_at?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_builders_home_builder_id_fkey"
+            columns: ["home_builder_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

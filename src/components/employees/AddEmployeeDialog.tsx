@@ -32,10 +32,12 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) throw new Error("User not authenticated");
 
-      // Create the employee directly in the employees table
+      // Create the employee directly in the users table
       const { data, error } = await supabase
-        .from('employees')
+        .from('users')
         .insert({
+          id: crypto.randomUUID(), // Generate a UUID for non-auth employees
+          user_type: 'employee',
           home_builder_id: currentUser.user.id,
           email: formData.email,
           first_name: formData.firstName,
