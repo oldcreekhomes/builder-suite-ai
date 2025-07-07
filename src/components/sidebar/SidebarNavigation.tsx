@@ -72,18 +72,21 @@ export function SidebarNavigation() {
 
   const projectId = getProjectId();
 
-  // Check if we're on the Company Dashboard
+  // Check if we're on the Company Dashboard or Messages page
   const isCompanyDashboard = location.pathname === '/';
+  const isMessagesPage = location.pathname === '/messages';
   
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
     ? navigationItems.filter(item => item.title === "Messages")
-    : projectId 
-      ? navigationItems 
-      : [];
+    : isMessagesPage
+      ? [] // No navigation items on messages page
+      : projectId 
+        ? navigationItems 
+        : [];
 
-  // Don't show navigation items if no project is selected and not on dashboard
-  if (!projectId && !isCompanyDashboard) {
+  // Don't show navigation items if no project is selected and not on dashboard or messages
+  if (!projectId && !isCompanyDashboard && !isMessagesPage) {
     return (
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
@@ -95,6 +98,11 @@ export function SidebarNavigation() {
         </SidebarGroup>
       </SidebarContent>
     );
+  }
+  
+  // On messages page, don't show any navigation items - the page handles its own sidebar content
+  if (isMessagesPage) {
+    return null;
   }
 
   return (
