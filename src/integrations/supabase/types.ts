@@ -230,6 +230,128 @@ export type Database = {
           },
         ]
       }
+      employee_chat_messages: {
+        Row: {
+          created_at: string
+          file_urls: string[] | null
+          id: string
+          is_deleted: boolean
+          message_text: string | null
+          room_id: string
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_deleted?: boolean
+          message_text?: string | null
+          room_id: string
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_deleted?: boolean
+          message_text?: string | null
+          room_id?: string
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "employee_chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_chat_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_chat_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "employee_chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_chat_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_chat_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_direct_message: boolean
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_direct_message?: boolean
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_direct_message?: boolean
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_chat_rooms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_invitations: {
         Row: {
           accepted_at: string | null
@@ -774,6 +896,10 @@ export type Database = {
           id: string
           company_name: string
         }[]
+      }
+      get_or_create_dm_room: {
+        Args: { other_user_id: string }
+        Returns: string
       }
       get_pending_employee_approvals: {
         Args: Record<PropertyKey, never>
