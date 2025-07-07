@@ -36,22 +36,51 @@ export function EmployeeTable() {
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  // Fetch employees - works for both home builders and employees
+  // Fetch employees - handle both home builders and employees
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return [];
 
-      // The RLS policy will automatically filter based on user access
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // First check if user is a home builder
+      const { data: homeBuilderData } = await supabase
+        .from('home_builders')
+        .select('id')
+        .eq('id', currentUser.user.id)
+        .maybeSingle();
+
+      if (homeBuilderData) {
+        // User is a home builder - get their employees
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('home_builder_id', currentUser.user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data as Employee[];
+      } else {
+        // User is an employee - get all employees from same company
+        const { data: currentEmployee } = await supabase
+          .from('employees')
+          .select('home_builder_id')
+          .eq('id', currentUser.user.id)
+          .maybeSingle();
+
+        if (currentEmployee) {
+          const { data, error } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('home_builder_id', currentEmployee.home_builder_id)
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          return data as Employee[];
+        }
+      }
       
-      if (error) throw error;
-      console.log('Found employees:', data);
-      return data as Employee[];
+      return [];
     },
   });
 
