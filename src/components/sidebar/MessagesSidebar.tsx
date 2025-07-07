@@ -99,9 +99,9 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
             .from('users')
             .select('id, first_name, last_name, avatar_url, email')
             .eq('id', employeeData.home_builder_id)
-            .single();
+            .maybeSingle();
 
-          if (hbError) throw hbError;
+          if (hbError && hbError.code !== 'PGRST116') throw hbError;
           if (homeBuilder) {
             allUsers.push({
               ...homeBuilder,
@@ -175,7 +175,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                 .from('users')
                 .select('id, first_name, last_name, avatar_url, email')
                 .eq('id', otherParticipant.user_id)
-                .single();
+                .maybeSingle();
 
               // If not found in users, try employees table
               if (!userProfile) {
@@ -183,7 +183,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                   .from('employees')
                   .select('id, first_name, last_name, role, avatar_url, email')
                   .eq('id', otherParticipant.user_id)
-                  .single();
+                  .maybeSingle();
                 if (employeeProfile) {
                   userProfile = { ...employeeProfile };
                 }
