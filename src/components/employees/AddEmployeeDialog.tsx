@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -18,106 +17,77 @@ interface AddEmployeeDialogProps {
 export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phoneNumber: "",
-    role: "accountant",
+    role: "employee",
+    confirmed: false,
   });
 
-  const inviteEmployeeMutation = useMutation({
+  const addEmployeeMutation = useMutation({
     mutationFn: async () => {
-      console.log("Starting employee invitation process...");
-      
-      // Create the invitation
-      const { data: invitationId, error } = await supabase.rpc('invite_employee', {
-        p_email: formData.email,
-        p_first_name: formData.firstName,
-        p_last_name: formData.lastName,
-        p_phone_number: formData.phoneNumber || null,
-        p_role: formData.role,
-      });
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) throw new Error("User not authenticated");
+
+      // Create the employee directly in the employees table
+      const { data, error } = await supabase
+        .from('employees')
+        .insert({
+          home_builder_id: currentUser.user.id,
+          email: formData.email,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone_number: formData.phoneNumber || null,
+          role: formData.role,
+          confirmed: formData.confirmed,
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error creating invitation:', error);
+        console.error('Error creating employee:', error);
         throw error;
       }
 
-      console.log("Invitation created with ID:", invitationId);
-
-      // Get the invitation details including token
-      const { data: invitation, error: invitationError } = await supabase
-        .from('employee_invitations')
-        .select('*, invitation_token, home_builder_id')
-        .eq('id', invitationId)
-        .single();
-
-      if (invitationError) {
-        console.error('Error fetching invitation:', invitationError);
-        throw invitationError;
-      }
-
-      console.log("Retrieved invitation:", invitation);
-
-      // Get company name for the email
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('company_name')
-        .eq('id', invitation.home_builder_id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw profileError;
-      }
-
-      console.log("Company profile:", profile);
-
-      // Send invitation email
-      console.log("Sending invitation email...");
-      const { data: emailResponse, error: emailError } = await supabase.functions.invoke('send-employee-invitation', {
-        body: {
-          email: formData.email,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          companyName: profile.company_name,
-          invitationToken: invitation.invitation_token,
-        }
-      });
-
-      if (emailError) {
-        console.error('Email sending error:', emailError);
-        throw new Error(`Failed to send invitation email: ${emailError.message}`);
-      }
-
-      console.log("Email sent successfully:", emailResponse);
-      return { invitationId, emailSent: true };
+      console.log("Employee created:", data);
+      return data;
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['employee-invitations'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast({
         title: "Success",
-        description: "Employee invitation sent successfully via email",
+        description: "Employee added successfully",
       });
       setFormData({
         firstName: "",
         lastName: "",
         email: "",
         phoneNumber: "",
-        role: "accountant",
+        role: "employee",
+        confirmed: false,
       });
       onOpenChange(false);
     },
     onError: (error: any) => {
-      console.error('Invitation error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send invitation",
-        variant: "destructive",
-      });
+      console.error('Add employee error:', error);
+      
+      // Handle unique constraint violation (duplicate email)
+      if (error.code === '23505') {
+        toast({
+          title: "Error",
+          description: "An employee with this email already exists",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add employee",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -131,14 +101,14 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
       return;
     }
-    inviteEmployeeMutation.mutate();
+    addEmployeeMutation.mutate();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Invite New Employee</DialogTitle>
+          <DialogTitle>Add New Employee</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -194,12 +164,25 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
                 <SelectItem value="accountant">Accountant</SelectItem>
                 <SelectItem value="construction_manager">Construction Manager</SelectItem>
                 <SelectItem value="project_manager">Project Manager</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="confirmed"
+              checked={formData.confirmed}
+              onCheckedChange={(checked) => setFormData({ ...formData, confirmed: checked })}
+            />
+            <Label htmlFor="confirmed">Mark as Confirmed</Label>
+          </div>
+          <p className="text-sm text-gray-500">
+            You can confirm employees later when they join your team
+          </p>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
@@ -211,9 +194,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
             </Button>
             <Button
               type="submit"
-              disabled={inviteEmployeeMutation.isPending}
+              disabled={addEmployeeMutation.isPending}
             >
-              {inviteEmployeeMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
+              {addEmployeeMutation.isPending ? "Adding Employee..." : "Add Employee"}
             </Button>
           </div>
         </form>

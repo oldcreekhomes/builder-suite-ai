@@ -411,6 +411,48 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          avatar_url: string | null
+          confirmed: boolean
+          created_at: string
+          email: string
+          first_name: string
+          home_builder_id: string
+          id: string
+          last_name: string
+          phone_number: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          confirmed?: boolean
+          created_at?: string
+          email: string
+          first_name: string
+          home_builder_id: string
+          id?: string
+          last_name: string
+          phone_number?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          confirmed?: boolean
+          created_at?: string
+          email?: string
+          first_name?: string
+          home_builder_id?: string
+          id?: string
+          last_name?: string
+          phone_number?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       marketplace_companies: {
         Row: {
           address: string | null
