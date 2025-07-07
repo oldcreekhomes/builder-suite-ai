@@ -388,7 +388,6 @@ export type Database = {
           created_at: string
           email: string
           first_name: string | null
-          home_builder_id: string | null
           id: string
           last_name: string | null
           phone_number: string | null
@@ -403,7 +402,6 @@ export type Database = {
           created_at?: string
           email: string
           first_name?: string | null
-          home_builder_id?: string | null
           id: string
           last_name?: string | null
           phone_number?: string | null
@@ -418,7 +416,6 @@ export type Database = {
           created_at?: string
           email?: string
           first_name?: string | null
-          home_builder_id?: string | null
           id?: string
           last_name?: string | null
           phone_number?: string | null
@@ -426,15 +423,7 @@ export type Database = {
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_home_builder_id_fkey"
-            columns: ["home_builder_id"]
-            isOneToOne: false
-            referencedRelation: "home_builders"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       marketplace_companies: {
         Row: {
