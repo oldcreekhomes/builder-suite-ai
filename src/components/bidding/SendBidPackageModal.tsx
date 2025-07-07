@@ -93,6 +93,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       console.log('🎯 Companies with recipients:', emailData.companies.length);
 
       console.log('🔄 About to invoke edge function...');
+      console.log('🔍 Supabase client check:', !!supabase);
+      console.log('🔍 Functions available:', !!supabase.functions);
+      
       const { data: emailResult, error } = await supabase.functions.invoke('send-bid-package-email', {
         body: emailData
       });
