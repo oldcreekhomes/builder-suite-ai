@@ -36,17 +36,17 @@ export function EmployeeTable() {
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  // Fetch employees from the new simple employees table
+  // Fetch employees - works for both home builders and employees
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return [];
 
+      // The RLS policy will automatically filter based on user access
       const { data, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('home_builder_id', currentUser.user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
