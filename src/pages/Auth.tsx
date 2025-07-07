@@ -13,13 +13,15 @@ const Auth = () => {
   useEffect(() => {
     // Check if this is a password recovery flow
     const type = searchParams.get('type');
-    if (type === 'recovery') {
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    
+    console.log("Auth page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    
+    if (type === 'recovery' && accessToken && refreshToken) {
+      console.log("Redirecting to password reset page...");
       // Redirect to password reset page with all the recovery parameters
-      const params = new URLSearchParams();
-      searchParams.forEach((value, key) => {
-        params.append(key, value);
-      });
-      navigate(`/reset-password?${params.toString()}`, { replace: true });
+      navigate(`/reset-password?${searchParams.toString()}`, { replace: true });
     }
   }, [searchParams, navigate]);
   return (

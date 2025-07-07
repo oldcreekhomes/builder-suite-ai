@@ -16,18 +16,38 @@ const PasswordReset = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have the recovery tokens in the URL
+    // Check if we have the recovery tokens in the URL from Supabase
+    const type = searchParams.get('type');
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     
-    if (accessToken && refreshToken) {
+    console.log("Password reset page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    
+    if (type === 'recovery' && accessToken && refreshToken) {
+      console.log("Setting recovery session...");
       // Set the session with the recovery tokens
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
+      }).then(({ error }) => {
+        if (error) {
+          console.error("Error setting recovery session:", error);
+          toast({
+            title: "Error",
+            description: "Invalid or expired reset link. Please request a new password reset.",
+            variant: "destructive",
+          });
+          navigate('/auth');
+        } else {
+          console.log("Recovery session set successfully");
+        }
       });
+    } else if (!type) {
+      // If no recovery type, redirect to auth page
+      console.log("No recovery type found, redirecting to auth");
+      navigate('/auth');
     }
-  }, [searchParams]);
+  }, [searchParams, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
