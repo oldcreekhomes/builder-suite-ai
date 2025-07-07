@@ -19,8 +19,12 @@ export const useProjects = () => {
   return useQuery({
     queryKey: ['projects', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) {
+        console.log("useProjects: No user found");
+        return [];
+      }
 
+      console.log("useProjects: Fetching projects for user", user.id);
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -31,6 +35,7 @@ export const useProjects = () => {
         throw error;
       }
 
+      console.log("useProjects: Found projects:", data?.length || 0);
       return data as Project[];
     },
     enabled: !!user,
