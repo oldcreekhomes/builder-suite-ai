@@ -114,7 +114,7 @@ export default function Messages() {
             if (otherParticipant) {
               // Try to find the user in home_builders first
               let { data: userProfile } = await supabase
-                .from('home_builders')
+                .from('users')
                 .select('id, first_name, last_name, user_type, avatar_url, email')
                 .eq('id', otherParticipant.user_id)
                 .single();
@@ -225,7 +225,7 @@ export default function Messages() {
         (data || []).map(async (message: any) => {
           // Try to find sender in home_builders first
           let { data: senderProfile } = await supabase
-            .from('home_builders')
+            .from('users')
             .select('id, first_name, last_name, user_type, avatar_url, email')
             .eq('id', message.sender_id)
             .single();

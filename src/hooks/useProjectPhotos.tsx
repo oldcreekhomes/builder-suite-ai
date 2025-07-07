@@ -25,7 +25,7 @@ export const useProjectPhotos = (projectId: string) => {
         .from('project_photos')
         .select(`
           *,
-          uploaded_by_profile:home_builders!project_photos_uploaded_by_fkey(email)
+          uploaded_by_profile:users!project_photos_uploaded_by_fkey(email)
         `)
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false });
