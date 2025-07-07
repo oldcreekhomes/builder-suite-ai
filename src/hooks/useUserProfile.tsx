@@ -26,11 +26,14 @@ export const useUserProfile = () => {
 
       // If not found in home_builders, try employees table
       if (!data) {
+        console.log("Checking employees table for user:", user.id);
         const result = await supabase
           .from('employees')
           .select('*, user_type:role, company_name:home_builder_id')
           .eq('id', user.id)
           .maybeSingle();
+        
+        console.log("Employee query result:", result);
         
         if (result.error) {
           console.error('Error fetching from employees:', result.error);
@@ -38,12 +41,15 @@ export const useUserProfile = () => {
         }
         
         if (result.data) {
+          console.log("Found employee data:", result.data);
           // Transform employee data to match home_builder structure
           data = {
             ...result.data,
             user_type: 'employee' as const,
             company_name: null // We'll get this from the home_builder later if needed
           };
+        } else {
+          console.log("No employee data found");
         }
       }
 
