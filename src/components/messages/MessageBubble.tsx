@@ -1,13 +1,23 @@
+import { useState } from "react";
+import { MoreHorizontal, Edit2, Trash2, Check, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FileAttachment } from "./FileAttachment";
 import type { ChatMessage } from "@/hooks/useChat";
 
 interface MessageBubbleProps {
   message: ChatMessage;
   isCurrentUser: boolean;
+  onEdit?: (messageId: string, newText: string) => void;
+  onDelete?: (messageId: string) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: MessageBubbleProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.message_text || "");
+
   const getInitials = (firstName: string | null, lastName: string | null) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
@@ -16,8 +26,26 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
     return `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email;
   };
 
+  const handleEditSave = () => {
+    if (onEdit && editText.trim()) {
+      onEdit(message.id, editText.trim());
+      setIsEditing(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditText(message.message_text || "");
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (onDelete && confirm("Are you sure you want to delete this message?")) {
+      onDelete(message.id);
+    }
+  };
+
   return (
-    <div className={`flex items-start space-x-3 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+    <div className={`flex items-start space-x-3 group ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
       <Avatar className="h-8 w-8">
         <AvatarImage src={message.sender.avatar_url || ""} />
         <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
@@ -35,6 +63,29 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               minute: '2-digit' 
             })}
           </span>
+          
+          {/* Edit/Delete Menu for Current User */}
+          {isCurrentUser && message.message_text && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <MoreHorizontal className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                    <Edit2 className="h-3 w-3 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
         
         {/* Text Message */}
@@ -44,7 +95,34 @@ export function MessageBubble({ message, isCurrentUser }: MessageBubbleProps) {
               ? 'bg-blue-500 text-white' 
               : 'bg-gray-100 text-gray-900'
           }`}>
-            <p className="text-sm">{message.message_text}</p>
+            {isEditing ? (
+              <div className="space-y-2">
+                <Input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="text-sm bg-white text-gray-900"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleEditSave();
+                    } else if (e.key === 'Escape') {
+                      handleEditCancel();
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className="flex space-x-1">
+                  <Button size="sm" variant="ghost" onClick={handleEditSave} className="h-6 w-6 p-0">
+                    <Check className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleEditCancel} className="h-6 w-6 p-0">
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm">{message.message_text}</p>
+            )}
           </div>
         )}
         

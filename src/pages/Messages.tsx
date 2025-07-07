@@ -13,7 +13,9 @@ export default function Messages() {
     messages,
     currentUserId,
     startChatWithEmployee,
-    sendMessage
+    sendMessage,
+    editMessage,
+    deleteMessage
   } = useChat();
 
   return (
@@ -33,7 +35,12 @@ export default function Messages() {
               {selectedRoom ? (
                 <>
                   <ChatHeader selectedRoom={selectedRoom} />
-                  <MessagesList messages={messages} currentUserId={currentUserId} />
+                  <MessagesList 
+                    messages={messages} 
+                    currentUserId={currentUserId} 
+                    onEditMessage={editMessage}
+                    onDeleteMessage={deleteMessage}
+                  />
                   <MessageInput onSendMessage={sendMessage} />
                 </>
               ) : (

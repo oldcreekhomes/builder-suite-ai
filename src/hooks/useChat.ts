@@ -213,6 +213,56 @@ export function useChat() {
     }
   };
 
+  // Edit a message
+  const editMessage = async (messageId: string, newText: string) => {
+    try {
+      const { error } = await supabase
+        .from('employee_chat_messages')
+        .update({ message_text: newText, updated_at: new Date().toISOString() })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      
+      // Refresh messages
+      if (selectedRoom) {
+        await fetchMessages(selectedRoom.id);
+      }
+      
+    } catch (error) {
+      console.error('Error editing message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to edit message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Delete a message
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('employee_chat_messages')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      
+      // Refresh messages
+      if (selectedRoom) {
+        await fetchMessages(selectedRoom.id);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fetch messages when room changes
   useEffect(() => {
     if (selectedRoom) {
@@ -227,6 +277,8 @@ export function useChat() {
     currentUserId,
     startChatWithEmployee,
     sendMessage,
+    editMessage,
+    deleteMessage,
     fetchMessages
   };
 }
