@@ -53,14 +53,18 @@ export function EmployeeTable() {
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return [];
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_type', 'employee')
-        .eq('approved_by_home_builder', true);
+        .eq('approved_by_home_builder', true)
+        .eq('home_builder_id', currentUser.user.id);
       
       if (error) throw error;
-      console.log('Employees from profiles table:', data);
+      console.log('Found employees:', data);
       return data as Employee[];
     },
   });
