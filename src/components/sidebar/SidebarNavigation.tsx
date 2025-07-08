@@ -124,34 +124,38 @@ export function SidebarNavigation() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {item.enabled === false ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center space-x-3 p-3 rounded-lg cursor-not-allowed opacity-50">
-                          <item.icon className="h-5 w-5" />
-                          <span className="font-medium">{item.title}</span>
-                          <HelpCircle className="h-4 w-4" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{item.tooltip}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <SidebarMenuButton 
-                      asChild 
-                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                    >
-                      <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
-                        <item.icon className="h-5 w-5" />
-                        <span className="font-medium">{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
+               {filteredItems.map((item) => (
+                 <SidebarMenuItem key={item.title}>
+                   {item.enabled === false ? (
+                     <Tooltip>
+                       <TooltipTrigger asChild>
+                         <SidebarMenuButton 
+                           className="w-full justify-start text-gray-700 opacity-50 cursor-not-allowed"
+                           onClick={(e) => e.preventDefault()}
+                         >
+                           <div className="flex items-center space-x-3 p-3 rounded-lg">
+                             <item.icon className="h-5 w-5" />
+                             <span className="font-medium">{item.title}</span>
+                           </div>
+                         </SidebarMenuButton>
+                       </TooltipTrigger>
+                       <TooltipContent>
+                         <p>{item.tooltip}</p>
+                       </TooltipContent>
+                     </Tooltip>
+                   ) : (
+                     <SidebarMenuButton 
+                       asChild 
+                       className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                     >
+                       <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
+                         <item.icon className="h-5 w-5" />
+                         <span className="font-medium">{item.title}</span>
+                       </a>
+                     </SidebarMenuButton>
+                   )}
+                 </SidebarMenuItem>
+               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
