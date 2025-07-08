@@ -105,23 +105,18 @@ export function ProjectsOverview() {
     return (
       <div 
         key={project.id} 
-        className="p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
+        className="p-3 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
         onClick={() => handleProjectClick(project.id)}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-black text-lg">{project.name}</h3>
-            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1" />
-                {project.address}
-              </div>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-black text-base truncate">{project.name}</h3>
+            <div className="flex items-center mt-1 text-sm text-gray-600">
+              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">{project.address}</span>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Badge className={getStatusColor(project.status)}>
-              {project.status}
-            </Badge>
+          <div className="flex items-center space-x-1 ml-2">
             <Button 
               variant="ghost" 
               size="sm"
@@ -144,23 +139,17 @@ export function ProjectsOverview() {
           </div>
         </div>
         
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+        <div className="space-y-1 mb-2">
+          <div className="flex justify-between text-xs">
             <span className="text-gray-600">Progress</span>
             <span className="font-medium text-black">{progress}%</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-1.5" />
         </div>
         
-        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-          <div className="text-sm">
-            <span className="text-gray-600">Manager: </span>
-            <span className="font-medium text-black">{project.manager}</span>
-          </div>
-          <div className="text-sm">
-            <span className="text-gray-600">Created: </span>
-            <span className="font-medium text-black">{formatDateWithOrdinal(project.created_at)}</span>
-          </div>
+        <div className="flex justify-between items-center text-xs text-gray-600">
+          <span>Manager: <span className="font-medium text-black">{project.manager}</span></span>
+          <span>{formatDateWithOrdinal(project.created_at)}</span>
         </div>
       </div>
     );
