@@ -1,12 +1,26 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openWeatherApiKey = Deno.env.get('OPENWEATHER_API_KEY');
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Map NWS weather descriptions to icon codes compatible with our UI
+function mapNWSToIcon(description: string): string {
+  const desc = description.toLowerCase();
+  
+  if (desc.includes('sunny') || desc.includes('clear')) return '01d';
+  if (desc.includes('partly cloudy') || desc.includes('few clouds')) return '02d';
+  if (desc.includes('mostly cloudy') || desc.includes('scattered clouds')) return '03d';
+  if (desc.includes('cloudy') || desc.includes('overcast')) return '04d';
+  if (desc.includes('rain') || desc.includes('drizzle')) return '10d';
+  if (desc.includes('thunderstorm') || desc.includes('storm')) return '11d';
+  if (desc.includes('snow')) return '13d';
+  if (desc.includes('fog') || desc.includes('mist')) return '50d';
+  
+  return '02d'; // Default to partly cloudy
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -24,51 +38,63 @@ serve(async (req) => {
       });
     }
 
-    // First, get coordinates from the address using OpenWeather's Geocoding API
+    // First, get coordinates from the address using free geocoding service
     const geocodeResponse = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(address)}&limit=1&appid=${openWeatherApiKey}`
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=en&format=json`
     );
     
     const geocodeData = await geocodeResponse.json();
     
-    if (!geocodeData || geocodeData.length === 0) {
+    if (!geocodeData || !geocodeData.results || geocodeData.results.length === 0) {
       return new Response(JSON.stringify({ error: 'Address not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { lat, lon } = geocodeData[0];
+    const { latitude: lat, longitude: lon, name: locationName } = geocodeData.results[0];
 
-    // Get 7-day weather forecast
-    const weatherResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openWeatherApiKey}&units=imperial`
+    // Get NWS forecast office and grid coordinates
+    const pointsResponse = await fetch(
+      `https://api.weather.gov/points/${lat},${lon}`
     );
+
+    if (!pointsResponse.ok) {
+      return new Response(JSON.stringify({ error: 'Location not supported by National Weather Service' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const pointsData = await pointsResponse.json();
+    const forecastUrl = pointsData.properties.forecast;
+
+    // Get the 7-day forecast from NWS
+    const weatherResponse = await fetch(forecastUrl, {
+      headers: {
+        'User-Agent': 'BuilderSuiteAI Weather App (contact@example.com)'
+      }
+    });
 
     const weatherData = await weatherResponse.json();
 
-    // Process the forecast data to get daily forecasts (API returns 3-hour intervals)
-    const dailyForecasts = [];
-    const processedDates = new Set();
-
-    for (const item of weatherData.list) {
-      const date = new Date(item.dt * 1000).toDateString();
+    // Process NWS forecast data
+    const dailyForecasts = weatherData.properties.periods.slice(0, 7).map((period: any) => {
+      // Extract temperature (NWS provides as "85°F" format)
+      const tempMatch = period.temperature;
       
-      if (!processedDates.has(date) && dailyForecasts.length < 7) {
-        dailyForecasts.push({
-          date: date,
-          temperature: Math.round(item.main.temp),
-          description: item.weather[0].description,
-          icon: item.weather[0].icon,
-          humidity: item.main.humidity,
-          windSpeed: Math.round(item.wind.speed)
-        });
-        processedDates.add(date);
-      }
-    }
+      return {
+        date: period.name,
+        temperature: tempMatch,
+        description: period.shortForecast,
+        icon: mapNWSToIcon(period.shortForecast),
+        humidity: 'N/A', // NWS doesn't provide humidity in basic forecast
+        windSpeed: period.windSpeed || 'N/A'
+      };
+    });
 
     return new Response(JSON.stringify({ 
-      location: geocodeData[0].name,
+      location: locationName,
       forecast: dailyForecasts 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
