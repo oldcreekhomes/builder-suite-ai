@@ -106,13 +106,10 @@ export function ProjectsOverview() {
         className="p-3 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
         onClick={() => handleProjectClick(project.id)}
       >
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-black text-base truncate">{project.name}</h3>
-            <div className="flex items-center mt-1 text-sm text-gray-600">
-              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span className="truncate">{project.address}</span>
-            </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-600 flex-1 min-w-0">
+            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="truncate">{project.address}</span>
           </div>
           <div className="flex items-center space-x-1 ml-2">
             <Button 
@@ -135,10 +132,6 @@ export function ProjectsOverview() {
               />
             </div>
           </div>
-        </div>
-        
-        <div className="text-xs text-gray-600">
-          Manager: <span className="font-medium text-black">{project.manager}</span>
         </div>
       </div>
     );
