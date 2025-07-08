@@ -6,9 +6,19 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Calendar, List } from "lucide-react";
+import { useState } from "react";
+import { GanttChart } from "@/components/schedule/GanttChart";
+import { TaskList } from "@/components/schedule/TaskList";
+import { AddTaskModal } from "@/components/schedule/AddTaskModal";
+import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -32,6 +42,40 @@ export default function ProjectSchedule() {
     enabled: !!projectId,
   });
 
+  const {
+    tasks,
+    isLoading: tasksLoading,
+    createTask,
+    updateTask,
+    deleteTask,
+    isCreating
+  } = useProjectSchedule(projectId || '');
+
+  const handleCreateTask = (taskData: any) => {
+    if (!projectId) return;
+    
+    createTask({
+      ...taskData,
+      project_id: projectId
+    });
+    setIsAddTaskOpen(false);
+  };
+
+  const handleTaskClick = (task: any) => {
+    setSelectedTask(task);
+  };
+
+  const handleEditTask = (task: any) => {
+    // TODO: Implement edit modal
+    console.log('Edit task:', task);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    if (confirm('Are you sure you want to delete this task?')) {
+      deleteTask(taskId);
+    }
+  };
+
   if (!projectId) {
     return <div>Project not found</div>;
   }
@@ -48,13 +92,61 @@ export default function ProjectSchedule() {
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
+              <Button onClick={() => setIsAddTaskOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
+              </Button>
             </div>
 
-            <div className="border rounded-lg p-8 text-center text-gray-500">
-              <h3 className="text-lg font-medium mb-2">Schedule Coming Soon</h3>
-              <p>Project scheduling features will be available here.</p>
-            </div>
+            <Tabs defaultValue="gantt" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="gantt" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Gantt Chart
+                </TabsTrigger>
+                <TabsTrigger value="list" className="flex items-center gap-2">
+                  <List className="h-4 w-4" />
+                  Task List
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="gantt" className="mt-6">
+                {tasksLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-muted-foreground">Loading schedule...</div>
+                  </div>
+                ) : (
+                  <GanttChart
+                    tasks={tasks}
+                    onTaskClick={handleTaskClick}
+                    onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="list" className="mt-6">
+                {tasksLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-muted-foreground">Loading tasks...</div>
+                  </div>
+                ) : (
+                  <TaskList
+                    tasks={tasks}
+                    onTaskClick={handleTaskClick}
+                    onEditTask={handleEditTask}
+                    onDeleteTask={handleDeleteTask}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
+
+          <AddTaskModal
+            open={isAddTaskOpen}
+            onOpenChange={setIsAddTaskOpen}
+            onSubmit={handleCreateTask}
+            isLoading={isCreating}
+          />
         </SidebarInset>
       </div>
     </SidebarProvider>
