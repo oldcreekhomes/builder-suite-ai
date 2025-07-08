@@ -909,9 +909,21 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_total_unread_count: {
+        Args: { user_id_param: string }
+        Returns: number
+      }
+      get_unread_message_count: {
+        Args: { room_id_param: string; user_id_param: string }
+        Returns: number
+      }
       is_room_participant: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
+      }
+      mark_room_as_read: {
+        Args: { room_id_param: string }
+        Returns: undefined
       }
     }
     Enums: {

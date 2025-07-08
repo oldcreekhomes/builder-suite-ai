@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   SidebarContent,
   SidebarGroup,
@@ -7,6 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useChatNotifications } from "@/hooks/useChatNotifications";
 
 interface Employee {
   id: string;
@@ -38,6 +40,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { unreadCounts } = useChatNotifications();
 
   // Fetch employees for display
   const fetchEmployees = async () => {
@@ -280,8 +283,13 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                             }
                           </AvatarFallback>
                         </Avatar>
-                        {room.unreadCount && (
-                          <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full"></div>
+                        {unreadCounts[room.id] > 0 && (
+                          <Badge 
+                            variant="destructive" 
+                            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                          >
+                            {unreadCounts[room.id]}
+                          </Badge>
                         )}
                       </div>
                       

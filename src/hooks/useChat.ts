@@ -263,10 +263,22 @@ export function useChat() {
     }
   };
 
+  // Mark room as read when selected
+  const markSelectedRoomAsRead = async (roomId: string) => {
+    try {
+      await supabase.rpc('mark_room_as_read', {
+        room_id_param: roomId
+      });
+    } catch (error) {
+      console.error('Error marking room as read:', error);
+    }
+  };
+
   // Fetch messages when room changes
   useEffect(() => {
     if (selectedRoom) {
       fetchMessages(selectedRoom.id);
+      markSelectedRoomAsRead(selectedRoom.id);
     }
   }, [selectedRoom]);
 
@@ -279,7 +291,8 @@ export function useChat() {
     sendMessage,
     editMessage,
     deleteMessage,
-    fetchMessages
+    fetchMessages,
+    markSelectedRoomAsRead
   };
 }
 
