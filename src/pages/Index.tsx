@@ -19,10 +19,10 @@ const Index = () => {
             </div>
             
             <div className="flex flex-col lg:flex-row gap-6 lg:items-end">
-              <div className="lg:flex-grow">
+              <div className="lg:w-3/5">
                 <ProjectsOverview />
               </div>
-              <div className="lg:w-64">
+              <div className="lg:w-2/5">
                 <RecentPhotos />
               </div>
             </div>
