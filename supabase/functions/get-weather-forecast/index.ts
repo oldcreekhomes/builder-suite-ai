@@ -65,64 +65,31 @@ serve(async (req) => {
     const requestBody = await req.text();
     console.log('Raw request body:', requestBody);
     
-    const { address } = JSON.parse(requestBody);
-    console.log('Received address:', address);
+    // For now, hardcode to zip code 22314 (Alexandria, VA) for all projects
+    const zipCode = '22314';
+    console.log('Using zip code:', zipCode);
 
-    if (!address) {
-      return new Response(JSON.stringify({ error: 'Address is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // First, get coordinates from the address using multiple geocoding approaches
-    console.log('Fetching coordinates for:', address);
+    // Get coordinates for zip code 22314 using geocoding service
+    console.log('Fetching coordinates for zip code:', zipCode);
     
-    // Try multiple address variations for better geocoding results
-    const addressVariations = [
-      address, // Original address
-      address.replace(/\s+/g, ' ').trim(), // Clean up spaces
-      `${address}, US`, // Add country
-      // Extract city and state for fallback
-      address.split(',').slice(-2).join(',').trim() // Just "Alexandria, Virginia" or "Virginia, 22314"
-    ];
+    const geocodeResponse = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${zipCode}&count=1&language=en&format=json`
+    );
     
-    let geocodeData = null;
-    let usedAddress = '';
-    
-    // Try each address variation
-    for (const addrVariation of addressVariations) {
-      console.log('Trying address variation:', addrVariation);
-      
-      const geocodeResponse = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(addrVariation)}&count=5&language=en&format=json`
-      );
-      
-      const tempData = await geocodeResponse.json();
-      console.log('Geocoding response for', addrVariation, ':', tempData);
-      
-      if (tempData && tempData.results && tempData.results.length > 0) {
-        geocodeData = tempData;
-        usedAddress = addrVariation;
-        break;
-      }
-    }
+    const geocodeData = await geocodeResponse.json();
+    console.log('Geocoding response:', geocodeData);
     
     if (!geocodeData || !geocodeData.results || geocodeData.results.length === 0) {
-      console.log('No geocoding results found for any address variation, using fallback coordinates for Alexandria, VA');
-      // Fallback to Alexandria, VA coordinates if geocoding fails
-      geocodeData = {
-        results: [{
-          latitude: 38.8048,
-          longitude: -77.0469,
-          name: "Alexandria, Virginia"
-        }]
-      };
-      usedAddress = "Alexandria, Virginia (fallback)";
+      console.log('No geocoding results found for zip code, using hardcoded Alexandria coordinates');
+      // Fallback to hardcoded Alexandria, VA coordinates
+      var lat = 38.8048;
+      var lon = -77.0469;
+      var locationName = "Alexandria, Virginia";
+    } else {
+      var { latitude: lat, longitude: lon, name: locationName } = geocodeData.results[0];
     }
-
-    const { latitude: lat, longitude: lon, name: locationName } = geocodeData.results[0];
-    console.log('Using address:', usedAddress, 'with coordinates:', { lat, lon, locationName });
+    
+    console.log('Using coordinates:', { lat, lon, locationName });
 
     // Get NWS forecast office and grid coordinates
     console.log('Fetching NWS points data...');
