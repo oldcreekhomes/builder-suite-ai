@@ -37,7 +37,7 @@ export function RecentPhotos() {
         
         <div className="grid grid-cols-2 gap-1">
           {recentPhotosSlice.slice(0, 3).map((photo, index) => (
-            <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity">
+            <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity h-16">
               <img
                 src={photo.url}
                 alt={photo.description || 'Recent photo'}
@@ -47,9 +47,9 @@ export function RecentPhotos() {
           ))}
           
           {allPhotos.length > 3 && (
-            <div className="aspect-square rounded-sm bg-gray-100 flex items-center justify-center">
+            <div className="aspect-square rounded-sm bg-gray-100 flex items-center justify-center h-16">
               <div className="text-center">
-                <Plus className="h-3 w-3 text-gray-500 mx-auto mb-0.5" />
+                <Plus className="h-2 w-2 text-gray-500 mx-auto mb-0.5" />
                 <span className="text-xs text-gray-500">+{allPhotos.length - 3}</span>
               </div>
             </div>
