@@ -30,6 +30,7 @@ serve(async (req) => {
 
   try {
     const { address } = await req.json();
+    console.log('Received address:', address);
 
     if (!address) {
       return new Response(JSON.stringify({ error: 'Address is required' }), {
@@ -39,13 +40,16 @@ serve(async (req) => {
     }
 
     // First, get coordinates from the address using free geocoding service
+    console.log('Fetching coordinates for:', address);
     const geocodeResponse = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=en&format=json`
     );
     
     const geocodeData = await geocodeResponse.json();
+    console.log('Geocoding response:', geocodeData);
     
     if (!geocodeData || !geocodeData.results || geocodeData.results.length === 0) {
+      console.log('No geocoding results found');
       return new Response(JSON.stringify({ error: 'Address not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -53,13 +57,24 @@ serve(async (req) => {
     }
 
     const { latitude: lat, longitude: lon, name: locationName } = geocodeData.results[0];
+    console.log('Coordinates found:', { lat, lon, locationName });
 
     // Get NWS forecast office and grid coordinates
+    console.log('Fetching NWS points data...');
     const pointsResponse = await fetch(
-      `https://api.weather.gov/points/${lat},${lon}`
+      `https://api.weather.gov/points/${lat},${lon}`,
+      {
+        headers: {
+          'User-Agent': 'BuilderSuiteAI Weather App (contact@example.com)'
+        }
+      }
     );
 
+    console.log('NWS points response status:', pointsResponse.status);
+    
     if (!pointsResponse.ok) {
+      const errorText = await pointsResponse.text();
+      console.log('NWS points error:', errorText);
       return new Response(JSON.stringify({ error: 'Location not supported by National Weather Service' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,31 +82,35 @@ serve(async (req) => {
     }
 
     const pointsData = await pointsResponse.json();
+    console.log('NWS points data:', pointsData);
     const forecastUrl = pointsData.properties.forecast;
+    console.log('Forecast URL:', forecastUrl);
 
     // Get the 7-day forecast from NWS
+    console.log('Fetching forecast...');
     const weatherResponse = await fetch(forecastUrl, {
       headers: {
         'User-Agent': 'BuilderSuiteAI Weather App (contact@example.com)'
       }
     });
 
+    console.log('Weather response status:', weatherResponse.status);
     const weatherData = await weatherResponse.json();
+    console.log('Weather data received');
 
     // Process NWS forecast data
     const dailyForecasts = weatherData.properties.periods.slice(0, 7).map((period: any) => {
-      // Extract temperature (NWS provides as "85°F" format)
-      const tempMatch = period.temperature;
-      
       return {
         date: period.name,
-        temperature: tempMatch,
+        temperature: period.temperature,
         description: period.shortForecast,
         icon: mapNWSToIcon(period.shortForecast),
         humidity: 'N/A', // NWS doesn't provide humidity in basic forecast
         windSpeed: period.windSpeed || 'N/A'
       };
     });
+
+    console.log('Processed forecasts:', dailyForecasts);
 
     return new Response(JSON.stringify({ 
       location: locationName,
