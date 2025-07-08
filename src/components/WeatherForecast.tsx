@@ -56,6 +56,9 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
         console.log('WeatherForecast: Successfully received weather data:', data);
         console.log('WeatherForecast: Data location:', data?.location);
         console.log('WeatherForecast: Data forecast length:', data?.forecast?.length);
+        
+        // Clear any previous errors and set the data
+        setError(null);
         setWeatherData(data);
       } catch (err) {
         console.error('WeatherForecast: Error in fetchWeather:', err);
