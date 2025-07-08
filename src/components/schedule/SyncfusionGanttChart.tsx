@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { GanttComponent, Inject, Edit, Selection, Toolbar, DayMarkers, ContextMenu, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Task {
   id: string;
@@ -32,34 +33,30 @@ export function SyncfusionGanttChart({
     // Register Syncfusion license from Supabase secrets
     const fetchLicenseKey = async () => {
       try {
-        const response = await fetch('https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/get-syncfusion-key', {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbW53bHZtbWtuZ3JnYXRuemtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDU3OTgsImV4cCI6MjA2NjE4MTc5OH0.gleBmte9X1uQWYaTxX-dLWVqk6Hpvb_qjseN_aG6xM0'}`,
-          },
-        });
+        const { data, error } = await supabase.functions.invoke('get-syncfusion-key');
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.key) {
-            registerLicense(data.key);
-          }
+        if (!error && data?.key) {
+          registerLicense(data.key);
+          console.log('Syncfusion license registered successfully');
+        } else {
+          console.warn('Could not fetch Syncfusion license key:', error);
         }
       } catch (error) {
-        console.warn('Could not fetch Syncfusion license key:', error);
+        console.warn('Error fetching Syncfusion license key:', error);
       }
     };
     
     fetchLicenseKey();
   }, []);
 
-  // Transform tasks for Syncfusion format
+  // Transform tasks for Syncfusion format  
   const syncfusionTasks = tasks.map(task => ({
     TaskID: task.id,
     TaskName: task.task_name,
     StartDate: new Date(task.start_date),
     EndDate: new Date(task.end_date),
     Duration: task.duration || 1,
-    Progress: task.progress,
+    Progress: task.progress || 0,
     ResourceNames: task.assigned_to || '',
     Color: task.color
   }));
