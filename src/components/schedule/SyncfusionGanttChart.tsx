@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { GanttComponent, Inject, Edit, Selection, Toolbar, DayMarkers, ContextMenu } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Edit, Selection, Toolbar, DayMarkers, ContextMenu, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 
 interface Task {
@@ -84,8 +84,7 @@ export function SyncfusionGanttChart({
   };
 
   const toolbarOptions = [
-    'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
-    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PrevTimeSpan', 'NextTimeSpan'
+    'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'
   ];
 
   const splitterSettings = {
@@ -161,14 +160,11 @@ export function SyncfusionGanttChart({
         allowSelection={true}
         allowResizing={true}
         allowSorting={true}
-        allowReordering={true}
-        showColumnMenu={true}
-        highlightWeekends={true}
         actionBegin={handleActionBegin}
         gridLines="Both"
         treeColumnIndex={1}
       >
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers, ContextMenu]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, ContextMenu, ColumnMenu]} />
       </GanttComponent>
     </div>
   );
