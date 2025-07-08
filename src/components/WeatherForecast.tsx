@@ -137,9 +137,9 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
         </h3>
       </div>
       
-      <div className="flex gap-2 pb-4">
+      <div className="flex gap-3 overflow-x-auto pb-4">
         {weatherData.forecast.map((day, index) => (
-          <Card key={index} className="flex-shrink-0 w-24 p-3 text-center hover:shadow-md transition-shadow">
+          <Card key={index} className="flex-shrink-0 w-32 p-4 text-center hover:shadow-md transition-shadow">
             <div className="space-y-3">
               {/* Day */}
                <p className="text-sm font-medium text-black">
