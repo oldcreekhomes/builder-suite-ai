@@ -144,6 +144,11 @@ export default function ProjectDashboard() {
 
           
           <div className="flex-1 p-6">
+            {/* Weather Forecast Section */}
+            <div className="mb-8">
+              <WeatherForecast address={currentProject.address} />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {dashboardCards.map((card, index) => (
                 <Card 
@@ -166,12 +171,6 @@ export default function ProjectDashboard() {
                   </div>
                 </Card>
               ))}
-            </div>
-
-            {/* Weather Forecast Section */}
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold text-black mb-4">Weather Forecast</h2>
-              <WeatherForecast address={currentProject.address} />
             </div>
           </div>
         </main>
