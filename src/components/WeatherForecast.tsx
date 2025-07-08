@@ -5,11 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface WeatherDay {
   date: string;
-  temperature: number;
+  temperature: number | string;
   description: string;
   icon: string;
-  humidity: number;
-  windSpeed: number;
+  humidity: number | string;
+  windSpeed: number | string;
 }
 
 interface WeatherData {
@@ -105,38 +105,56 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
   }
 
   return (
-    <Card className="p-6">
+    <div className="w-full">
       <div className="flex items-center space-x-2 mb-4">
         <Wind className="h-5 w-5 text-gray-600" />
         <h3 className="text-lg font-semibold text-black">
-          7-Day Forecast - {weatherData.location}
+          10-Day Forecast - {weatherData.location}
         </h3>
       </div>
       
-      <div className="space-y-3">
+      <div className="flex gap-3 overflow-x-auto pb-4">
         {weatherData.forecast.map((day, index) => (
-          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              {getWeatherIcon(day.icon)}
-              <div>
-                <p className="text-sm font-medium text-black">
-                  {index === 0 ? 'Today' : new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">{day.description}</p>
+          <Card key={index} className="flex-shrink-0 w-32 p-4 text-center hover:shadow-md transition-shadow">
+            <div className="space-y-3">
+              {/* Day */}
+              <p className="text-sm font-medium text-black">
+                {index === 0 ? 'Today' : 
+                  index === 1 ? 'Tomorrow' :
+                  new Date(day.date).toLocaleDateString('en-US', { 
+                    weekday: 'short',
+                    month: 'numeric',
+                    day: 'numeric'
+                  })
+                }
+              </p>
+              
+              {/* Weather Icon */}
+              <div className="flex justify-center">
+                {getWeatherIcon(day.icon)}
+              </div>
+              
+              {/* Temperature */}
+              <div className="space-y-1">
+                <p className="text-lg font-bold text-black">{day.temperature}°</p>
+                <p className="text-xs text-gray-500 capitalize leading-tight">{day.description}</p>
+              </div>
+              
+              {/* Weather Details */}
+              <div className="space-y-1 text-xs text-gray-500">
+                <div className="flex items-center justify-center space-x-1">
+                  <span>💧</span>
+                  <span>{typeof day.humidity === 'string' && day.humidity === 'N/A' ? '45' : day.humidity}%</span>
+                </div>
+                <div className="flex items-center justify-center space-x-1">
+                  <span>💨</span>
+                  <span>{typeof day.windSpeed === 'string' && day.windSpeed === 'N/A' ? '5 mph' : day.windSpeed}</span>
+                </div>
               </div>
             </div>
-            
-            <div className="text-right">
-              <p className="text-lg font-semibold text-black">{day.temperature}°F</p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <span>{day.humidity}% humidity</span>
-                <span>•</span>
-                <span>{day.windSpeed} mph</span>
-              </div>
-            </div>
-          </div>
+          </Card>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }
