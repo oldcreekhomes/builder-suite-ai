@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, List } from "lucide-react";
 import { useState } from "react";
-import { GanttChart } from "@/components/schedule/GanttChart";
+import { SyncfusionGanttChart } from "@/components/schedule/SyncfusionGanttChart";
 import { TaskList } from "@/components/schedule/TaskList";
-import { AddTaskModal } from "@/components/schedule/AddTaskModal";
+import { SyncfusionAddTaskModal } from "@/components/schedule/SyncfusionAddTaskModal";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
 
 export default function ProjectSchedule() {
@@ -116,10 +116,11 @@ export default function ProjectSchedule() {
                     <div className="text-muted-foreground">Loading schedule...</div>
                   </div>
                 ) : (
-                  <GanttChart
+                  <SyncfusionGanttChart
                     tasks={tasks}
-                    onTaskClick={handleTaskClick}
                     onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
+                    onTaskAdd={handleCreateTask}
+                    onTaskDelete={handleDeleteTask}
                   />
                 )}
               </TabsContent>
@@ -141,7 +142,7 @@ export default function ProjectSchedule() {
             </Tabs>
           </div>
 
-          <AddTaskModal
+          <SyncfusionAddTaskModal
             open={isAddTaskOpen}
             onOpenChange={setIsAddTaskOpen}
             onSubmit={handleCreateTask}
