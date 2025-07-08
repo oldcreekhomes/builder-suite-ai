@@ -14,12 +14,14 @@ export function RecentPhotos() {
 
   if (allPhotos.length === 0) {
     return (
-      <Card className="p-3 h-full flex flex-col">
-        <div className="flex items-center space-x-2 mb-2">
-          <Image className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
+      <Card className="h-full flex flex-col">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <Image className="h-5 w-5 text-gray-600" />
+            <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
+          </div>
         </div>
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-3">
           <div className="text-center py-3">
             <Image className="h-6 w-6 text-gray-400 mx-auto mb-1.5" />
             <p className="text-xs text-gray-500">No photos yet</p>
@@ -31,13 +33,15 @@ export function RecentPhotos() {
 
   return (
     <>
-      <Card className="p-3 cursor-pointer hover:shadow-md transition-shadow h-full flex flex-col w-full" onClick={() => setShowPhotoViewer(true)}>
-        <div className="flex items-center space-x-2 mb-2">
-          <Image className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
+      <Card className="cursor-pointer hover:shadow-md transition-shadow h-full flex flex-col w-full" onClick={() => setShowPhotoViewer(true)}>
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <Image className="h-5 w-5 text-gray-600" />
+            <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
+          </div>
         </div>
         
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex-1 flex flex-col justify-center p-6">
           <div className="grid grid-cols-2 gap-1">
             {recentPhotosSlice.slice(0, 3).map((photo, index) => (
               <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity h-16">
