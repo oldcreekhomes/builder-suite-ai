@@ -110,6 +110,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
           }
 
           // Get all employees in the same company (excluding current user)
+          console.log('Fetching employees for home_builder_id:', employeeData.home_builder_id);
           const { data: coworkers, error: empError } = await supabase
             .from('employees')
             .select('id, first_name, last_name, role, avatar_url, email')
@@ -117,6 +118,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
             .neq('id', currentUser.user.id)
             .eq('confirmed', true);
 
+          console.log('Employees query result:', { coworkers, empError });
           if (empError) throw empError;
           if (coworkers) allUsers = [...allUsers, ...coworkers];
         }
