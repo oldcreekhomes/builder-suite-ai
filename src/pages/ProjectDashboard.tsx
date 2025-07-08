@@ -125,28 +125,26 @@ export default function ProjectDashboard() {
               <WeatherForecast address={currentProject.address} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dashboardCards.map((card, index) => (
-                <Card 
-                  key={index} 
-                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer group"
-                  onClick={card.onClick}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="bg-gray-100 p-2 rounded-lg">
-                          <card.icon className="h-5 w-5 text-gray-700" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-black">{card.title}</h3>
+            {/* Project Photos Section */}
+            <div className="mb-8">
+              <Card 
+                className="p-6 hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={dashboardCards[0].onClick}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="bg-gray-100 p-2 rounded-lg">
+                        <Image className="h-5 w-5 text-gray-700" />
                       </div>
-                      <p className="text-gray-600 text-sm mb-4">{card.description}</p>
-                      {card.content}
+                      <h3 className="text-lg font-semibold text-black">{dashboardCards[0].title}</h3>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                    <p className="text-gray-600 text-sm mb-4">{dashboardCards[0].description}</p>
+                    {dashboardCards[0].content}
                   </div>
-                </Card>
-              ))}
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                </div>
+              </Card>
             </div>
           </div>
         </main>
