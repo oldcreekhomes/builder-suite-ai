@@ -7,7 +7,8 @@ import {
   File,
   Image,
   Clock,
-  MessageSquare
+  MessageSquare,
+  HelpCircle
 } from "lucide-react";
 import {
   SidebarContent,
@@ -17,42 +18,56 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navigationItems = [
   {
     title: "Company Dashboard",
     url: "/",
     icon: Home,
+    enabled: true,
   },
   {
     title: "Messages",
     url: "/messages",
     icon: MessageSquare,
+    enabled: true,
   },
   {
     title: "Files",
     url: "/files",
     icon: File,
+    enabled: true,
   },
   {
     title: "Photos",
     url: "/photos", 
     icon: Image,
+    enabled: true,
   },
   {
     title: "Budget",
     url: "/budget",
     icon: DollarSign,
+    enabled: true,
   },
   {
     title: "Bidding",
     url: "/bidding",
     icon: FileText,
+    enabled: true,
   },
   {
     title: "Schedule",
     url: "/schedule",
-    icon: Clock,
+    icon: HelpCircle,
+    enabled: false,
+    tooltip: "Coming Soon...",
   },
 ];
 
@@ -104,26 +119,42 @@ export function SidebarNavigation() {
   }
 
   return (
-    <SidebarContent className="px-3 py-4">
+    <TooltipProvider>
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                  >
-                    <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
+                  {item.enabled === false ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg cursor-not-allowed opacity-50">
+                          <item.icon className="h-5 w-5" />
+                          <span className="font-medium">{item.title}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{item.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild 
+                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                    >
+                      <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg">
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-    );
+    </TooltipProvider>
+  );
   }
