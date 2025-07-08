@@ -19,6 +19,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { formatDistanceToNow } from "date-fns";
+import { WeatherForecast } from "@/components/WeatherForecast";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -167,50 +168,10 @@ export default function ProjectDashboard() {
               ))}
             </div>
 
-            {/* Recent Activity Section */}
+            {/* Weather Forecast Section */}
             <div className="mt-8">
-              <h2 className="text-xl font-semibold text-black mb-4">Recent Activity</h2>
-              <Card className="p-6">
-                {photos.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentPhotos.slice(0, 3).map((photo) => (
-                      <div key={photo.id} className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                          <img
-                            src={photo.url}
-                            alt={photo.description || 'Project photo'}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-black">
-                            {photo.description || 'Photo uploaded'}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {photos.length > 3 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={handlePhotosClick}
-                        className="w-full"
-                      >
-                        View all {photos.length} photos
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No recent activity</p>
-                    <p className="text-gray-400 text-sm">Upload photos or documents to see activity here</p>
-                  </div>
-                )}
-              </Card>
+              <h2 className="text-xl font-semibold text-black mb-4">Weather Forecast</h2>
+              <WeatherForecast address={currentProject.address} />
             </div>
           </div>
         </main>
