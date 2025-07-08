@@ -32,7 +32,7 @@ function generateMockWeatherData() {
     { desc: 'Scattered Thunderstorms', icon: '11d' }
   ];
 
-  return Array.from({ length: 7 }, (_, i) => {
+  return Array.from({ length: 10 }, (_, i) => {
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + i);
     const weather = weatherTypes[i % weatherTypes.length];
@@ -144,11 +144,11 @@ function processWeatherForecast(weatherData: any) {
   // Process NWS forecast data - NWS provides periods in chronological order
   const nwsPeriods = weatherData.properties.periods;
   
-  // Create 7 days of forecast
+  // Create 10 days of forecast
   const dailyForecasts = [];
   const localToday = getEasternTimeDate();
   
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 10; i++) {
     const currentDate = new Date(localToday);
     currentDate.setDate(localToday.getDate() + i);
     

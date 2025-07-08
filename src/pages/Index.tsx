@@ -3,7 +3,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
-import { QuickStats } from "@/components/QuickStats";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { RecentPhotos } from "@/components/RecentPhotos";
 
@@ -18,7 +17,6 @@ const Index = () => {
             <div>
               <WeatherForecast address="22314" />
             </div>
-            <QuickStats />
             
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="lg:flex-grow">
