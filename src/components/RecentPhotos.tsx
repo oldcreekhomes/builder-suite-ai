@@ -14,14 +14,14 @@ export function RecentPhotos() {
 
   if (allPhotos.length === 0) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Image className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
+      <Card className="p-4 h-fit">
+        <div className="flex items-center space-x-2 mb-3">
+          <Image className="h-4 w-4 text-gray-600" />
+          <h3 className="text-base font-semibold text-black">Recent Photos</h3>
         </div>
-        <div className="text-center py-8">
-          <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No photos yet</p>
+        <div className="text-center py-4">
+          <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">No photos yet</p>
         </div>
       </Card>
     );
@@ -29,16 +29,15 @@ export function RecentPhotos() {
 
   return (
     <>
-      <Card className="p-6 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowPhotoViewer(true)}>
-        <div className="flex items-center space-x-2 mb-4">
-          <Image className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
-          <span className="text-sm text-gray-500">({allPhotos.length} total)</span>
+      <Card className="p-4 cursor-pointer hover:shadow-md transition-shadow h-fit" onClick={() => setShowPhotoViewer(true)}>
+        <div className="flex items-center space-x-2 mb-3">
+          <Image className="h-4 w-4 text-gray-600" />
+          <h3 className="text-base font-semibold text-black">Recent Photos</h3>
         </div>
         
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {recentPhotosSlice.slice(0, 3).map((photo, index) => (
-            <div key={photo.id} className="aspect-square rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
+            <div key={photo.id} className="aspect-square rounded-md overflow-hidden hover:opacity-80 transition-opacity">
               <img
                 src={photo.url}
                 alt={photo.description || 'Recent photo'}
@@ -48,16 +47,16 @@ export function RecentPhotos() {
           ))}
           
           {allPhotos.length > 3 && (
-            <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="aspect-square rounded-md bg-gray-100 flex items-center justify-center">
               <div className="text-center">
-                <Plus className="h-6 w-6 text-gray-500 mx-auto mb-1" />
+                <Plus className="h-4 w-4 text-gray-500 mx-auto mb-1" />
                 <span className="text-xs text-gray-500">+{allPhotos.length - 3}</span>
               </div>
             </div>
           )}
         </div>
         
-        <p className="text-sm text-gray-500 mt-3">Click to view all photos</p>
+        <p className="text-xs text-gray-500 mt-2">({allPhotos.length} total)</p>
       </Card>
 
       {showPhotoViewer && recentPhoto && (
