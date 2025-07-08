@@ -29,11 +29,27 @@ export function SyncfusionGanttChart({
 }: SyncfusionGanttChartProps) {
   
   useEffect(() => {
-    // Register Syncfusion license
-    const licenseKey = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY;
-    if (licenseKey) {
-      registerLicense(licenseKey);
-    }
+    // Register Syncfusion license from Supabase secrets
+    const fetchLicenseKey = async () => {
+      try {
+        const response = await fetch('https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/get-syncfusion-key', {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbW53bHZtbWtuZ3JnYXRuemtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDU3OTgsImV4cCI6MjA2NjE4MTc5OH0.gleBmte9X1uQWYaTxX-dLWVqk6Hpvb_qjseN_aG6xM0'}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.key) {
+            registerLicense(data.key);
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch Syncfusion license key:', error);
+      }
+    };
+    
+    fetchLicenseKey();
   }, []);
 
   // Transform tasks for Syncfusion format
