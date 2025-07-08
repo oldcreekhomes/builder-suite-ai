@@ -10,7 +10,7 @@ export function RecentPhotos() {
   const { data: allPhotos = [] } = useAllPhotos();
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
 
-  const recentPhotosSlice = allPhotos.slice(0, 6); // Show 6 most recent photos
+  const recentPhotosSlice = allPhotos.slice(0, 4); // Show 4 most recent photos in 2x2 grid
 
   if (allPhotos.length === 0) {
     return (
@@ -36,8 +36,8 @@ export function RecentPhotos() {
           <span className="text-sm text-gray-500">({allPhotos.length} total)</span>
         </div>
         
-        <div className="grid grid-cols-3 gap-2">
-          {recentPhotosSlice.slice(0, 5).map((photo, index) => (
+        <div className="grid grid-cols-2 gap-2">
+          {recentPhotosSlice.slice(0, 3).map((photo, index) => (
             <div key={photo.id} className="aspect-square rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
               <img
                 src={photo.url}
@@ -47,11 +47,11 @@ export function RecentPhotos() {
             </div>
           ))}
           
-          {allPhotos.length > 5 && (
+          {allPhotos.length > 3 && (
             <div className="aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
               <div className="text-center">
                 <Plus className="h-6 w-6 text-gray-500 mx-auto mb-1" />
-                <span className="text-xs text-gray-500">+{allPhotos.length - 5}</span>
+                <span className="text-xs text-gray-500">+{allPhotos.length - 3}</span>
               </div>
             </div>
           )}
