@@ -133,12 +133,12 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
       <div className="flex items-center space-x-2 mb-4">
         <Wind className="h-5 w-5 text-gray-600" />
         <h3 className="text-lg font-semibold text-black">
-          10-Day Forecast - {weatherData.location}
+          7-Day Forecast - {weatherData.location}
         </h3>
       </div>
       
       <div className="flex gap-3 overflow-x-auto pb-4">
-        {weatherData.forecast.map((day, index) => (
+        {weatherData.forecast.slice(0, 7).map((day, index) => (
           <Card key={index} className="flex-shrink-0 w-32 p-4 text-center hover:shadow-md transition-shadow">
             <div className="space-y-3">
               {/* Day */}

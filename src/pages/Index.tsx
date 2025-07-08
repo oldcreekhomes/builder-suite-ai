@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { QuickStats } from "@/components/QuickStats";
 import { WeatherForecast } from "@/components/WeatherForecast";
+import { RecentPhotos } from "@/components/RecentPhotos";
 
 const Index = () => {
   return (
@@ -14,7 +15,10 @@ const Index = () => {
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">
-            <WeatherForecast address="22314" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RecentPhotos />
+              <WeatherForecast address="22314" />
+            </div>
             <QuickStats />
             
             <div className="w-full">
