@@ -32,7 +32,7 @@ const Auth = () => {
             Welcome to BuilderSuite AI
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account or create a new one
+            Currently, this is an invitation only platform built for Old Creek Homes, LLC.
           </p>
         </div>
         
