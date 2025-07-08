@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MoreHorizontal, MapPin, Calendar, Plus, Edit } from "lucide-react";
+import { MoreHorizontal, MapPin, Calendar, Plus, Edit, Building } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -182,7 +182,8 @@ export function ProjectsOverview() {
     <>
       <Card className="bg-white border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Building className="h-5 w-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-black">Projects</h2>
           </div>
         </div>
