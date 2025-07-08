@@ -10,7 +10,7 @@ export function RecentPhotos() {
   const { data: allPhotos = [] } = useAllPhotos();
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
 
-  const recentPhotosSlice = allPhotos.slice(0, 4); // Show 4 most recent photos in 2x2 grid
+  const recentPhotosSlice = allPhotos.slice(0, 9); // Show 9 photos in 3x3 grid, reserve 1 spot for "+X more"
 
   if (allPhotos.length === 0) {
     return (
@@ -42,9 +42,9 @@ export function RecentPhotos() {
         </div>
         
         <div className="flex-1 flex flex-col justify-center p-6">
-          <div className="grid grid-cols-2 gap-1">
-            {recentPhotosSlice.slice(0, 3).map((photo, index) => (
-              <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity h-16">
+          <div className="grid grid-cols-5 gap-2">
+            {recentPhotosSlice.slice(0, 9).map((photo, index) => (
+              <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity">
                 <img
                   src={photo.url}
                   alt={photo.description || 'Recent photo'}
@@ -53,17 +53,17 @@ export function RecentPhotos() {
               </div>
             ))}
             
-            {allPhotos.length > 3 && (
-              <div className="aspect-square rounded-sm bg-gray-100 flex items-center justify-center h-16">
+            {allPhotos.length > 9 && (
+              <div className="aspect-square rounded-sm bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
-                  <Plus className="h-2 w-2 text-gray-500 mx-auto mb-0.5" />
-                  <span className="text-xs text-gray-500">+{allPhotos.length - 3}</span>
+                  <Plus className="h-3 w-3 text-gray-500 mx-auto mb-1" />
+                  <span className="text-xs text-gray-500">+{allPhotos.length - 9}</span>
                 </div>
               </div>
             )}
           </div>
           
-          <p className="text-xs text-gray-500 mt-1.5">({allPhotos.length} total)</p>
+          <p className="text-xs text-gray-500 mt-3 text-center">({allPhotos.length} total)</p>
         </div>
       </Card>
 
