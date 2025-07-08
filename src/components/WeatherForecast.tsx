@@ -144,11 +144,9 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
                <p className="text-sm font-medium text-black">
                  {(() => {
                    if (index === 0) return 'Today';
-                   if (index === 1) return 'Tomorrow';
                    
                    const date = new Date(day.date);
-                   const today = new Date();
-                   const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                   const diffDays = index;
                    
                    if (diffDays <= 6) {
                      return date.toLocaleDateString('en-US', { weekday: 'short' });
