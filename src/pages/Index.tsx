@@ -14,14 +14,13 @@ const Index = () => {
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">
+            <div>
+              <WeatherForecast address="22314" />
+            </div>
+            
             <div className="flex flex-col lg:flex-row gap-6">
-              <div className="lg:w-1/2 space-y-6">
-                <div>
-                  <WeatherForecast address="22314" />
-                </div>
-                <div>
-                  <ProjectsOverview />
-                </div>
+              <div className="lg:w-1/2">
+                <ProjectsOverview />
               </div>
               <div className="lg:w-1/2">
                 <RecentPhotos />
