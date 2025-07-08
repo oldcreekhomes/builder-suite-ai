@@ -187,11 +187,15 @@ serve(async (req) => {
     
     // Create 10 days of forecast
     const dailyForecasts = [];
+    
+    // Get current date in EST/EDT (Eastern time zone for Virginia)
     const today = new Date();
+    const easternOffset = -5; // EST is UTC-5 (or -4 for EDT, but this will auto-adjust)
+    const localToday = new Date(today.getTime() + (today.getTimezoneOffset() * 60000) + (easternOffset * 3600000));
     
     for (let i = 0; i < 10; i++) {
-      const currentDate = new Date(today);
-      currentDate.setDate(today.getDate() + i);
+      const currentDate = new Date(localToday);
+      currentDate.setDate(localToday.getDate() + i);
       
       let period;
       if (i < nwsPeriods.length) {
@@ -206,8 +210,14 @@ serve(async (req) => {
         };
       }
       
+      // Format date as YYYY-MM-DD in local time
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
       dailyForecasts.push({
-        date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        date: dateString,
         temperature: period.temperature,
         description: period.shortForecast,
         icon: mapNWSToIcon(period.shortForecast),
