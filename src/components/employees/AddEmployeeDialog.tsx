@@ -37,7 +37,6 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         .from('employees')
         .insert({
           id: crypto.randomUUID(), // Generate a UUID for non-auth employees
-          user_type: 'employee',
           home_builder_id: currentUser.user.id,
           email: formData.email,
           first_name: formData.firstName,
