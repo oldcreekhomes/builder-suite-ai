@@ -62,7 +62,7 @@ const App = () => (
           <Route path="/project/:projectId/bidding" element={<ProtectedRoute><ProjectBidding /></ProtectedRoute>} />
           
           {/* Project Schedule route */}
-          <Route path="/project/:projectId/schedules" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
+          <Route path="/project/:projectId/schedule" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
           
           {/* Messages route - both global and project-specific */}
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
