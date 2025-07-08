@@ -885,6 +885,18 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
+      debug_auth_uid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      debug_employee_access: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          employee_id: string
+          home_builder_id: string
+          confirmed: boolean
+        }[]
+      }
       get_current_user_home_builder_id: {
         Args: Record<PropertyKey, never>
         Returns: string
