@@ -85,6 +85,8 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
     return <Cloud className="h-6 w-6 text-gray-500" />;
   };
 
+  console.log('WeatherForecast RENDER:', { loading, error: !!error, hasWeatherData: !!weatherData, weatherDataLocation: weatherData?.location });
+
   if (loading) {
     return (
       <Card className="p-6">
