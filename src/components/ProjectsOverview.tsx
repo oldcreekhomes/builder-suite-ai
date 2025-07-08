@@ -183,7 +183,7 @@ export function ProjectsOverview() {
       <Card className="bg-white border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-black">Projects</h2>
+            <h2 className="text-lg font-semibold text-black">Projects</h2>
           </div>
         </div>
         

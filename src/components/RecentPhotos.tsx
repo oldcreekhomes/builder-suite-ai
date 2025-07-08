@@ -15,9 +15,9 @@ export function RecentPhotos() {
   if (allPhotos.length === 0) {
     return (
       <Card className="p-3 h-full flex flex-col">
-        <div className="flex items-center space-x-1.5 mb-2">
-          <Image className="h-3.5 w-3.5 text-gray-600" />
-          <h3 className="text-sm font-semibold text-black">Recent Photos</h3>
+        <div className="flex items-center space-x-2 mb-2">
+          <Image className="h-5 w-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-3">
@@ -32,9 +32,9 @@ export function RecentPhotos() {
   return (
     <>
       <Card className="p-3 cursor-pointer hover:shadow-md transition-shadow h-full flex flex-col w-full" onClick={() => setShowPhotoViewer(true)}>
-        <div className="flex items-center space-x-1.5 mb-2">
-          <Image className="h-3.5 w-3.5 text-gray-600" />
-          <h3 className="text-sm font-semibold text-black">Recent Photos</h3>
+        <div className="flex items-center space-x-2 mb-2">
+          <Image className="h-5 w-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
         </div>
         
         <div className="flex-1 flex flex-col justify-center">
