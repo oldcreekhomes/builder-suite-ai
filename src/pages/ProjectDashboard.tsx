@@ -32,8 +32,8 @@ export default function ProjectDashboard() {
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
   
-  // Get most recent photos (already ordered by uploaded_at desc)
-  const recentPhotos = photos.slice(0, 6);
+  // Get more recent photos for the wider layout (already ordered by uploaded_at desc)
+  const recentPhotos = photos.slice(0, 12);
 
   const handlePhotosClick = () => {
     if (photos.length > 0) {
@@ -63,7 +63,7 @@ export default function ProjectDashboard() {
       content: (
         <div className="mt-4">
           {recentPhotos.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {recentPhotos.map((photo) => (
                 <div key={photo.id} className="aspect-square rounded-md overflow-hidden bg-gray-100">
                   <img
@@ -77,9 +77,9 @@ export default function ProjectDashboard() {
           ) : (
             <p className="text-gray-500 text-sm">No photos yet</p>
           )}
-          {photos.length > 6 && (
+          {photos.length > 12 && (
             <p className="text-xs text-gray-400 mt-2">
-              +{photos.length - 6} more photos
+              +{photos.length - 12} more photos
             </p>
           )}
         </div>
