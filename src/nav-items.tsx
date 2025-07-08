@@ -1,6 +1,7 @@
 
-import { Home, Building2, Settings } from "lucide-react";
+import { Home, Users, Building2, Settings } from "lucide-react";
 import Index from "./pages/Index";
+import Employees from "./pages/Employees";
 import Companies from "./pages/Companies";
 import SettingsPage from "./pages/Settings";
 import Landing from "./pages/Landing";
@@ -17,6 +18,12 @@ export const navItems = [
     to: "/",
     icon: Home,
     page: <RootHandler />,
+  },
+  {
+    title: "Employees", 
+    to: "/employees",
+    icon: Users,
+    page: <Employees />,
   },
   {
     title: "Companies", 
