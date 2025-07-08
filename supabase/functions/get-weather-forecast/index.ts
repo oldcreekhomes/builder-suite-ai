@@ -155,10 +155,10 @@ serve(async (req) => {
     // Create 10 days of forecast
     const dailyForecasts = [];
     
-    // Get current date in EST/EDT (Eastern time zone for Virginia)
+    // Get current date in Eastern time zone
     const today = new Date();
-    const easternOffset = -5; // EST is UTC-5 (or -4 for EDT, but this will auto-adjust)
-    const localToday = new Date(today.getTime() + (today.getTimezoneOffset() * 60000) + (easternOffset * 3600000));
+    // Convert to Eastern time (EST/EDT) - Virginia is in Eastern time
+    const localToday = new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
     
     for (let i = 0; i < 10; i++) {
       const currentDate = new Date(localToday);
