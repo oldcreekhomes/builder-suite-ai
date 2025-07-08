@@ -54,8 +54,8 @@ export function QuickStats() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, index) => (
           <Card key={index} className="p-6 bg-white border border-gray-200 animate-pulse">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -75,8 +75,8 @@ export function QuickStats() {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {stats.slice(0, 3).map((stat, index) => (
           <Card 
             key={index} 
             className={`p-6 bg-white border border-gray-200 hover:shadow-md transition-shadow ${
