@@ -34,14 +34,39 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
 
     setIsGeneratingLink(true);
     try {
-      // Create a shorter shareable link using the file ID
-      const shortId = Math.random().toString(36).substring(2, 8);
-      const link = `${window.location.origin}/s/f/${shortId}`;
+      console.log('Generating share link for file:', file);
+      
+      // Create a unique share ID
+      const shareId = Math.random().toString(36).substring(2, 15);
+      
+      // Store the share data in localStorage for this demo
+      // In production, this would be stored in a database
+      const shareData = {
+        shareId,
+        folderPath: 'Single File',
+        files: [{
+          id: file.id,
+          original_filename: file.original_filename,
+          file_size: file.file_size,
+          file_type: file.file_type,
+          storage_path: file.storage_path,
+          project_id: file.project_id,
+          uploaded_by: file.uploaded_by,
+          uploaded_at: file.uploaded_at
+        }],
+        projectId: file.project_id,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+      };
+      
+      localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
+      
+      const link = `${window.location.origin}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
         title: "Link Generated",
-        description: "Shareable link has been created",
+        description: "Shareable file link has been created",
       });
     } catch (error) {
       console.error('Error generating share link:', error);
