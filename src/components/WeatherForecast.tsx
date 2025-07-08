@@ -143,12 +143,14 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
               {/* Day */}
                <p className="text-sm font-medium text-black">
                  {(() => {
-                   if (index === 0) return 'Today';
-                   
                    const date = new Date(day.date);
                    
                    if (index <= 6) {
-                     return date.toLocaleDateString('en-US', { weekday: 'short' });
+                     return date.toLocaleDateString('en-US', { 
+                       weekday: 'short',
+                       month: 'numeric',
+                       day: 'numeric'
+                     });
                    } else {
                      return date.toLocaleDateString('en-US', { 
                        weekday: 'short',
