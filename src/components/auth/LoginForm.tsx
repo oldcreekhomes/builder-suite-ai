@@ -16,7 +16,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const from = (location.state as any)?.from?.pathname || "/";
 
   const handleResetPassword = async () => {
     if (!email) {

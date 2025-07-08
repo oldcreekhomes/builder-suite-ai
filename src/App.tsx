@@ -39,8 +39,7 @@ const App = () => (
           {/* Landing page route */}
           <Route path="/landing" element={<Landing />} />
           
-          {/* Root route - redirect to auth */}
-          <Route path="/" element={<Navigate to="/auth" replace />} />
+          {/* Root route - show Index for authenticated users, redirect to auth for unauthenticated */}
           
           
           {/* Password Reset route - MUST be accessible without authentication */}
