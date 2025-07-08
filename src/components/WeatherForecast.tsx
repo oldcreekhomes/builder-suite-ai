@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface WeatherDay {
   date: string;
-  temperature: number | string;
+  highTemp: number;
+  lowTemp: number;
   description: string;
   icon: string;
   humidity: number | string;
@@ -168,7 +169,10 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
               
               {/* Temperature */}
               <div className="space-y-1">
-                <p className="text-lg font-bold text-black">{day.temperature}°</p>
+                <div className="flex items-center justify-center space-x-1">
+                  <span className="text-lg font-bold text-black">{day.highTemp}°</span>
+                  <span className="text-sm text-gray-500">{day.lowTemp}°</span>
+                </div>
                 <p className="text-xs text-gray-500 capitalize leading-tight">{day.description}</p>
               </div>
               

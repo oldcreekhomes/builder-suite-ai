@@ -37,10 +37,12 @@ function generateMockWeatherData() {
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + i);
     const weather = weatherTypes[i % weatherTypes.length];
+    const baseTemp = Math.floor(Math.random() * 20) + 70; // 70-90°F
     
     return {
       date: currentDate.toISOString().split('T')[0],
-      temperature: Math.floor(Math.random() * 25) + 70, // 70-95°F
+      highTemp: baseTemp + Math.floor(Math.random() * 10), // High temp
+      lowTemp: baseTemp - Math.floor(Math.random() * 10), // Low temp
       description: weather.desc,
       icon: weather.icon,
       humidity: Math.floor(Math.random() * 40) + 30, // 30-70%
@@ -141,10 +143,9 @@ function getEasternTimeDate() {
 // Process weather forecast data into daily forecasts
 function processWeatherForecast(weatherData: any) {
   // Process NWS forecast data - NWS provides up to 14 periods (7 days, day/night)
-  // We'll take the first 10 periods to get about 5 days, then extend with mock data
-  const nwsPeriods = weatherData.properties.periods.slice(0, 10);
+  const nwsPeriods = weatherData.properties.periods;
   
-  // Create 10 days of forecast
+  // Create 10 days of forecast - group day/night periods into daily forecasts
   const dailyForecasts = [];
   const localToday = getEasternTimeDate();
   
@@ -152,17 +153,41 @@ function processWeatherForecast(weatherData: any) {
     const currentDate = new Date(localToday);
     currentDate.setDate(localToday.getDate() + i);
     
-    let period;
-    if (i < nwsPeriods.length) {
-      period = nwsPeriods[i];
+    // Try to find day and night periods for this date
+    const dayPeriod = nwsPeriods.find((p: any, idx: number) => 
+      idx < nwsPeriods.length && p.isDaytime === true && idx <= i * 2
+    );
+    const nightPeriod = nwsPeriods.find((p: any, idx: number) => 
+      idx < nwsPeriods.length && p.isDaytime === false && idx <= i * 2 + 1
+    );
+    
+    let highTemp, lowTemp, description, windSpeed;
+    
+    if (dayPeriod || nightPeriod) {
+      // Use NWS data if available
+      if (dayPeriod && nightPeriod) {
+        highTemp = Math.max(dayPeriod.temperature, nightPeriod.temperature);
+        lowTemp = Math.min(dayPeriod.temperature, nightPeriod.temperature);
+        description = dayPeriod.shortForecast;
+        windSpeed = dayPeriod.windSpeed;
+      } else if (dayPeriod) {
+        highTemp = dayPeriod.temperature;
+        lowTemp = dayPeriod.temperature - 15; // Estimate low temp
+        description = dayPeriod.shortForecast;
+        windSpeed = dayPeriod.windSpeed;
+      } else {
+        highTemp = nightPeriod.temperature + 15; // Estimate high temp
+        lowTemp = nightPeriod.temperature;
+        description = nightPeriod.shortForecast;
+        windSpeed = nightPeriod.windSpeed;
+      }
     } else {
       // Mock data for days beyond NWS forecast
-      period = {
-        name: currentDate.toLocaleDateString('en-US', { weekday: 'long' }),
-        temperature: Math.floor(Math.random() * 20) + 70, // Random temp between 70-90
-        shortForecast: i % 2 === 0 ? 'Partly Cloudy' : 'Sunny',
-        windSpeed: `${Math.floor(Math.random() * 10) + 5} mph`
-      };
+      const baseTemp = Math.floor(Math.random() * 20) + 70;
+      highTemp = baseTemp + Math.floor(Math.random() * 10);
+      lowTemp = baseTemp - Math.floor(Math.random() * 10);
+      description = i % 2 === 0 ? 'Partly Cloudy' : 'Sunny';
+      windSpeed = `${Math.floor(Math.random() * 10) + 5} mph`;
     }
     
     // Format date as YYYY-MM-DD in local time
@@ -173,11 +198,12 @@ function processWeatherForecast(weatherData: any) {
     
     dailyForecasts.push({
       date: dateString,
-      temperature: period.temperature,
-      description: period.shortForecast,
-      icon: mapNWSToIcon(period.shortForecast),
+      highTemp: Math.round(highTemp),
+      lowTemp: Math.round(lowTemp),
+      description: description,
+      icon: mapNWSToIcon(description),
       humidity: 'N/A', // NWS doesn't provide humidity in basic forecast
-      windSpeed: period.windSpeed || 'N/A'
+      windSpeed: windSpeed || 'N/A'
     });
   }
 
