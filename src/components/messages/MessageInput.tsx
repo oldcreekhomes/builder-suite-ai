@@ -11,6 +11,7 @@ interface MessageInputProps {
 export function MessageInput({ onSendMessage }: MessageInputProps) {
   const [messageInput, setMessageInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Common emojis for quick access
@@ -41,6 +42,27 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
     setMessageInput(prev => prev + emoji);
   };
 
+  // Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
+    }
+  };
+
   // Handle Enter key press
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -50,7 +72,12 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   };
 
   return (
-    <div className="p-4 border-t border-gray-200 bg-white">
+    <div 
+      className={`p-4 border-t border-gray-200 bg-white ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Show selected files preview */}
       {selectedFiles.length > 0 && (
         <div className="mb-3 p-2 bg-gray-50 rounded-lg">
