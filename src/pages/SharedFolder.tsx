@@ -1,10 +1,11 @@
 
-import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Download, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import JSZip from "jszip";
+import { Download, Folder } from "lucide-react";
+import JSZip from 'jszip';
+import { supabase } from "@/integrations/supabase/client";
 
 interface SharedPhoto {
   id: string;
@@ -220,13 +221,58 @@ export default function SharedFolder() {
   };
 
   const handleFileDownload = async (file: SharedFile) => {
-    // For file downloads from shared links, we would need signed URLs
-    // This is a placeholder for now
-    toast({
-      title: "Download Not Available",
-      description: "File downloads from shared links are not yet supported",
-      variant: "destructive",
-    });
+    try {
+      console.log('Downloading file:', file);
+      
+      // Get a signed URL from Supabase storage
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(file.storage_path, 7200); // 2 hours expiry
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        throw error;
+      }
+
+      if (!data?.signedUrl) {
+        throw new Error('No signed URL returned');
+      }
+
+      // Download the file
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Use the original filename
+      let fileName = file.original_filename;
+      if (fileName.includes('/')) {
+        fileName = fileName.split('/').pop() || fileName;
+      }
+      a.download = fileName;
+      
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Download Complete",
+        description: `${fileName} has been downloaded`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Error",
+        description: "Failed to download file. The file may no longer be available.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePhotoDownload = async (photo: SharedPhoto) => {
@@ -337,18 +383,18 @@ export default function SharedFolder() {
         </div>
       </header>
 
-      <div className="flex justify-center py-4">
-        <Button 
-          onClick={handleDownloadAll}
-          disabled={isDownloading || (shareType === 'files')}
-          size="lg"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          {isDownloading ? 'Preparing Download...' : 
-           shareType === 'files' ? 'Download Not Available' :
-           `Download All (${itemCount} ${itemType}s)`}
-        </Button>
-      </div>
+      {shareType === 'photos' && (
+        <div className="flex justify-center py-4">
+          <Button 
+            onClick={handleDownloadAll}
+            disabled={isDownloading}
+            size="lg"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isDownloading ? 'Preparing Download...' : `Download All (${itemCount} ${itemType}s)`}
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 p-6">
         {shareType === 'files' ? (
@@ -368,7 +414,6 @@ export default function SharedFolder() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleFileDownload(file)}
-                  disabled
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download
