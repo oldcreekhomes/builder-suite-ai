@@ -146,9 +146,8 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
                    if (index === 0) return 'Today';
                    
                    const date = new Date(day.date);
-                   const diffDays = index;
                    
-                   if (diffDays <= 6) {
+                   if (index <= 6) {
                      return date.toLocaleDateString('en-US', { weekday: 'short' });
                    } else {
                      return date.toLocaleDateString('en-US', { 
