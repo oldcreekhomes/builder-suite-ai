@@ -39,25 +39,49 @@ serve(async (req) => {
       });
     }
 
-    // First, get coordinates from the address using free geocoding service
+    // First, get coordinates from the address using multiple geocoding approaches
     console.log('Fetching coordinates for:', address);
-    const geocodeResponse = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=en&format=json`
-    );
     
-    const geocodeData = await geocodeResponse.json();
-    console.log('Geocoding response:', geocodeData);
+    // Try multiple address variations for better geocoding results
+    const addressVariations = [
+      address, // Original address
+      address.replace(/\s+/g, ' ').trim(), // Clean up spaces
+      `${address}, US`, // Add country
+      // Extract city and state for fallback
+      address.split(',').slice(-2).join(',').trim() // Just "Alexandria, Virginia" or "Virginia, 22314"
+    ];
+    
+    let geocodeData = null;
+    let usedAddress = '';
+    
+    // Try each address variation
+    for (const addrVariation of addressVariations) {
+      console.log('Trying address variation:', addrVariation);
+      
+      const geocodeResponse = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(addrVariation)}&count=5&language=en&format=json`
+      );
+      
+      const tempData = await geocodeResponse.json();
+      console.log('Geocoding response for', addrVariation, ':', tempData);
+      
+      if (tempData && tempData.results && tempData.results.length > 0) {
+        geocodeData = tempData;
+        usedAddress = addrVariation;
+        break;
+      }
+    }
     
     if (!geocodeData || !geocodeData.results || geocodeData.results.length === 0) {
-      console.log('No geocoding results found');
-      return new Response(JSON.stringify({ error: 'Address not found' }), {
+      console.log('No geocoding results found for any address variation');
+      return new Response(JSON.stringify({ error: 'Address not found in geocoding service' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const { latitude: lat, longitude: lon, name: locationName } = geocodeData.results[0];
-    console.log('Coordinates found:', { lat, lon, locationName });
+    console.log('Using address:', usedAddress, 'with coordinates:', { lat, lon, locationName });
 
     // Get NWS forecast office and grid coordinates
     console.log('Fetching NWS points data...');
