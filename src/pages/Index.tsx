@@ -14,10 +14,6 @@ const Index = () => {
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">
-            <div>
-              <WeatherForecast address="22314" />
-            </div>
-            
             <div className="flex flex-col lg:flex-row gap-6 lg:items-stretch">
               <div className="lg:w-1/2">
                 <ProjectsOverview />
@@ -25,6 +21,10 @@ const Index = () => {
               <div className="lg:w-1/2 flex">
                 <RecentPhotos />
               </div>
+            </div>
+            
+            <div>
+              <WeatherForecast address="22314" />
             </div>
           </div>
         </main>
