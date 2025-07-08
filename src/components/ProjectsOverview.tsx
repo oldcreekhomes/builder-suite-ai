@@ -103,22 +103,22 @@ export function ProjectsOverview() {
     return (
       <div 
         key={project.id} 
-        className="px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100"
+        className="px-4 py-3 hover:bg-gray-100 transition-colors cursor-pointer border-b border-gray-200 bg-white"
         onClick={() => handleProjectClick(project.id)}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center text-sm text-gray-600 flex-1 min-w-0">
-            <MapPin className="h-3 w-3 mr-2 flex-shrink-0" />
-            <span className="truncate">{project.address}</span>
+          <div className="flex items-center flex-1 min-w-0">
+            <MapPin className="h-4 w-4 mr-3 text-gray-700 flex-shrink-0" />
+            <span className="truncate text-black font-medium">{project.address}</span>
           </div>
           <div className="flex items-center space-x-1">
             <Button 
               variant="ghost" 
               size="sm"
               onClick={(e) => handleEditClick(e, project)}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
+              className="h-7 w-7 p-0 hover:bg-gray-200"
             >
-              <Edit className="h-3 w-3" />
+              <Edit className="h-3 w-3 text-gray-600" />
             </Button>
             <div onClick={(e) => e.stopPropagation()}>
               <DeleteButton
@@ -127,7 +127,7 @@ export function ProjectsOverview() {
                 description={`Are you sure you want to delete ${project.name}? This action cannot be undone and will also delete all associated data.`}
                 isLoading={deleteProjectMutation.isPending}
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0"
                 showIcon={true}
               />
             </div>
