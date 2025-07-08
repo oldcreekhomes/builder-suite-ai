@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -39,8 +39,8 @@ const App = () => (
           {/* Landing page route */}
           <Route path="/landing" element={<Landing />} />
           
-          {/* Root route - protected dashboard */}
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          {/* Root route - redirect to auth */}
+          <Route path="/" element={<Navigate to="/auth" replace />} />
           
           
           {/* Password Reset route - MUST be accessible without authentication */}
