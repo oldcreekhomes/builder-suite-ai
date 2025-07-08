@@ -131,9 +131,9 @@ export function useChatNotifications() {
           try {
             let senderName = 'Someone';
             
-            // Try users table first
+            // Try owners table first
             const { data: userSender } = await supabase
-              .from('users')
+              .from('owners')
               .select('first_name, last_name')
               .eq('id', newMessage.sender_id)
               .single();

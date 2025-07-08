@@ -67,9 +67,9 @@ export function useChat() {
       // For each message, get the sender details from either profiles or employees table
       const messagesWithSenders = await Promise.all(
         (data || []).map(async (message: any) => {
-          // Try to find sender in users table first (home builders)
+          // Try to find sender in owners table first (home builders)
           let { data: senderProfile } = await supabase
-            .from('users')
+            .from('owners')
             .select('id, first_name, last_name, avatar_url, email')
             .eq('id', message.sender_id)
             .single();

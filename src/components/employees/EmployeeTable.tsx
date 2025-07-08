@@ -43,16 +43,16 @@ export function EmployeeTable() {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return [];
 
-      // First check if user is a home builder
-      const { data: homeBuilderData } = await supabase
-        .from('users')
+      // First check if user is a home builder (owner)
+      const { data: ownerData } = await supabase
+        .from('owners')
         .select('*')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
       let homeBuilderIdToQuery = null;
 
-      if (homeBuilderData) {
+      if (ownerData) {
         // User is a home builder - get their employees
         homeBuilderIdToQuery = currentUser.user.id;
       } else {

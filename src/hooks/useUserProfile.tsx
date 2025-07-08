@@ -15,7 +15,7 @@ export const useUserProfile = () => {
       
       // First check if user is a home builder in users table
       let { data, error } = await supabase
-        .from('users')
+        .from('owners')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();

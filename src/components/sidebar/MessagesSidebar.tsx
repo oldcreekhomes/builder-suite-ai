@@ -50,14 +50,14 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
 
       let allUsers: Employee[] = [];
 
-      // First check if current user is a home builder
-      const { data: homeBuilderData } = await supabase
-        .from('users')
+      // First check if current user is a home builder (owner)
+      const { data: ownerData } = await supabase
+        .from('owners')
         .select('*')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
-      if (homeBuilderData) {
+      if (ownerData) {
         // User is a home builder - get their employees AND other home builders
         
         // Get employees of this home builder
@@ -71,19 +71,19 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
         if (employees) allUsers = [...allUsers, ...employees];
 
         // Get other home builders for collaboration
-        const { data: otherHomeBuilders, error: hbError } = await supabase
-          .from('users')
+        const { data: otherOwners, error: hbError } = await supabase
+          .from('owners')
           .select('id, first_name, last_name, avatar_url, email')
           .neq('id', currentUser.user.id);
 
         if (hbError) throw hbError;
-        if (otherHomeBuilders) {
-          // Convert home builders to Employee interface format
-          const formattedHomeBuilders = otherHomeBuilders.map(hb => ({
+        if (otherOwners) {
+          // Convert owners to Employee interface format
+          const formattedOwners = otherOwners.map(hb => ({
             ...hb,
-            role: 'Home Builder'
+            role: 'Owner'
           }));
-          allUsers = [...allUsers, ...formattedHomeBuilders];
+          allUsers = [...allUsers, ...formattedOwners];
         }
       } else {
         // User is an employee - get their home builder and other employees in the company
@@ -94,18 +94,18 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
           .maybeSingle();
 
         if (employeeData?.home_builder_id) {
-          // Get the home builder
-          const { data: homeBuilder, error: hbError } = await supabase
-            .from('users')
+          // Get the owner
+          const { data: owner, error: hbError } = await supabase
+            .from('owners')
             .select('id, first_name, last_name, avatar_url, email')
             .eq('id', employeeData.home_builder_id)
             .maybeSingle();
 
           if (hbError && hbError.code !== 'PGRST116') throw hbError;
-          if (homeBuilder) {
+          if (owner) {
             allUsers.push({
-              ...homeBuilder,
-              role: 'Home Builder'
+              ...owner,
+              role: 'Owner'
             });
           }
 
@@ -172,9 +172,9 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               .single();
 
             if (otherParticipant) {
-              // Try to find the user in users table first (home builders)
+              // Try to find the user in owners table first (owners)
               let { data: userProfile } = await supabase
-                .from('users')
+                .from('owners')
                 .select('id, first_name, last_name, avatar_url, email')
                 .eq('id', otherParticipant.user_id)
                 .maybeSingle();

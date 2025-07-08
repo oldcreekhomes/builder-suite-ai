@@ -50,7 +50,7 @@ export const useProjectFiles = (projectId: string) => {
       // Get uploader info from both users and employees tables
       const [usersData, employeesData] = await Promise.all([
         supabase
-          .from('users')
+          .from('owners')
           .select('id, email')
           .in('id', uploaderIds),
         supabase

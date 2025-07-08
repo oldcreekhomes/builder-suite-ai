@@ -225,7 +225,7 @@ export type Database = {
             foreignKeyName: "cost_codes_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "owners"
             referencedColumns: ["id"]
           },
         ]
@@ -472,6 +472,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      owners: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone_number: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_bid_package_companies: {
         Row: {
@@ -725,7 +764,7 @@ export type Database = {
             foreignKeyName: "project_photos_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "owners"
             referencedColumns: ["id"]
           },
         ]
@@ -832,49 +871,10 @@ export type Database = {
             foreignKeyName: "projects_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "owners"
             referencedColumns: ["id"]
           },
         ]
-      }
-      users: {
-        Row: {
-          avatar_url: string | null
-          company_name: string | null
-          created_at: string
-          email: string
-          first_name: string | null
-          id: string
-          last_name: string | null
-          phone_number: string | null
-          role: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          company_name?: string | null
-          created_at?: string
-          email: string
-          first_name?: string | null
-          id: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          company_name?: string | null
-          created_at?: string
-          email?: string
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-        }
-        Relationships: []
       }
     }
     Views: {
