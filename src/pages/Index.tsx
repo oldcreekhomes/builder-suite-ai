@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { QuickStats } from "@/components/QuickStats";
+import { WeatherForecast } from "@/components/WeatherForecast";
 
 const Index = () => {
   return (
@@ -13,6 +14,7 @@ const Index = () => {
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">
+            <WeatherForecast address="22314" />
             <QuickStats />
             
             <div className="w-full">
