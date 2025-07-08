@@ -129,14 +129,11 @@ export function SidebarNavigation() {
                    {item.enabled === false ? (
                      <Tooltip>
                        <TooltipTrigger asChild>
-                         <SidebarMenuButton 
-                           className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors cursor-pointer"
-                           onClick={(e) => e.preventDefault()}
-                         >
+                         <div className="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-black transition-colors cursor-pointer">
                            <item.icon className="h-5 w-5" />
                            <span className="font-medium">{item.title}</span>
                            <HelpCircle className="h-4 w-4 ml-auto" />
-                         </SidebarMenuButton>
+                         </div>
                        </TooltipTrigger>
                        <TooltipContent>
                          <p>{item.tooltip}</p>
