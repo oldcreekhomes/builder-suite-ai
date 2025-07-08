@@ -133,11 +133,9 @@ export function SidebarNavigation() {
                            className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors cursor-pointer"
                            onClick={(e) => e.preventDefault()}
                          >
-                           <div className="flex items-center space-x-3 p-3 rounded-lg">
-                             <item.icon className="h-5 w-5" />
-                             <span className="font-medium">{item.title}</span>
-                             <HelpCircle className="h-4 w-4 ml-auto" />
-                           </div>
+                           <item.icon className="h-5 w-5" />
+                           <span className="font-medium">{item.title}</span>
+                           <HelpCircle className="h-4 w-4 ml-auto" />
                          </SidebarMenuButton>
                        </TooltipTrigger>
                        <TooltipContent>
