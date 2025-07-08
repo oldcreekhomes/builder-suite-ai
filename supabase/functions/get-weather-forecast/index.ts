@@ -142,10 +142,10 @@ function getEasternTimeDate() {
 
 // Process weather forecast data into daily forecasts
 function processWeatherForecast(weatherData: any) {
-  // Process NWS forecast data - NWS provides up to 14 periods (7 days, day/night)
+  // Process NWS forecast data - NWS provides periods in chronological order
   const nwsPeriods = weatherData.properties.periods;
   
-  // Create 10 days of forecast - group day/night periods into daily forecasts
+  // Create 10 days of forecast
   const dailyForecasts = [];
   const localToday = getEasternTimeDate();
   
@@ -153,34 +153,29 @@ function processWeatherForecast(weatherData: any) {
     const currentDate = new Date(localToday);
     currentDate.setDate(localToday.getDate() + i);
     
-    // Try to find day and night periods for this date
-    const dayPeriod = nwsPeriods.find((p: any, idx: number) => 
-      idx < nwsPeriods.length && p.isDaytime === true && idx <= i * 2
-    );
-    const nightPeriod = nwsPeriods.find((p: any, idx: number) => 
-      idx < nwsPeriods.length && p.isDaytime === false && idx <= i * 2 + 1
-    );
-    
     let highTemp, lowTemp, description, windSpeed;
     
-    if (dayPeriod || nightPeriod) {
-      // Use NWS data if available
-      if (dayPeriod && nightPeriod) {
-        highTemp = Math.max(dayPeriod.temperature, nightPeriod.temperature);
-        lowTemp = Math.min(dayPeriod.temperature, nightPeriod.temperature);
-        description = dayPeriod.shortForecast;
-        windSpeed = dayPeriod.windSpeed;
-      } else if (dayPeriod) {
-        highTemp = dayPeriod.temperature;
-        lowTemp = dayPeriod.temperature - 15; // Estimate low temp
-        description = dayPeriod.shortForecast;
-        windSpeed = dayPeriod.windSpeed;
+    // For the first few days, try to use NWS data
+    if (i < nwsPeriods.length) {
+      const period = nwsPeriods[i];
+      
+      // Use the temperature from this period as a base
+      const baseTemp = period.temperature;
+      
+      // If this is a daytime period, it's likely the high temp
+      if (period.isDaytime) {
+        highTemp = baseTemp;
+        // Estimate low temp (typically 15-20 degrees lower)
+        lowTemp = baseTemp - 18;
       } else {
-        highTemp = nightPeriod.temperature + 15; // Estimate high temp
-        lowTemp = nightPeriod.temperature;
-        description = nightPeriod.shortForecast;
-        windSpeed = nightPeriod.windSpeed;
+        // If this is a nighttime period, it's likely the low temp
+        lowTemp = baseTemp;
+        // Estimate high temp (typically 15-20 degrees higher)
+        highTemp = baseTemp + 18;
       }
+      
+      description = period.shortForecast;
+      windSpeed = period.windSpeed;
     } else {
       // Mock data for days beyond NWS forecast
       const baseTemp = Math.floor(Math.random() * 20) + 70;
