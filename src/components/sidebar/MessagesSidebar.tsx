@@ -109,12 +109,11 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
             });
           }
 
-          // Get other employees in the same company
+          // Get all employees in the same company (including current user)
           const { data: coworkers, error: empError } = await supabase
             .from('employees')
             .select('id, first_name, last_name, role, avatar_url, email')
             .eq('home_builder_id', employeeData.home_builder_id)
-            .neq('id', currentUser.user.id)
             .eq('confirmed', true);
 
           if (empError) throw empError;
