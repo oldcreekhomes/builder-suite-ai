@@ -68,7 +68,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
           </span>
           
           {/* Edit/Delete Menu for Current User */}
-          {isCurrentUser && message.message_text && (
+          {isCurrentUser && (message.message_text || (message.file_urls && message.file_urls.length > 0)) && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -76,15 +76,17 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                    <Edit2 className="h-3 w-3 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
+                 <DropdownMenuContent align="end">
+                   {message.message_text && (
+                     <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                       <Edit2 className="h-3 w-3 mr-2" />
+                       Edit
+                     </DropdownMenuItem>
+                   )}
+                   <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
+                     <Trash2 className="h-3 w-3 mr-2" />
+                     Delete
+                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
