@@ -65,7 +65,7 @@ const navigationItems = [
   {
     title: "Schedule",
     url: "/schedule",
-    icon: HelpCircle,
+    icon: Clock,
     enabled: false,
     tooltip: "Coming Soon...",
   },
@@ -132,6 +132,7 @@ export function SidebarNavigation() {
                         <div className="flex items-center space-x-3 p-3 rounded-lg cursor-not-allowed opacity-50">
                           <item.icon className="h-5 w-5" />
                           <span className="font-medium">{item.title}</span>
+                          <HelpCircle className="h-4 w-4" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
