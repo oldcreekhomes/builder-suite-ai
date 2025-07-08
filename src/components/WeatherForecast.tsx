@@ -29,9 +29,11 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
   useEffect(() => {
     const fetchWeather = async () => {
       try {
+        console.log('WeatherForecast: Starting to fetch weather for address:', address);
         setLoading(true);
         setError(null);
 
+        console.log('WeatherForecast: Invoking supabase function...');
         const { data, error: functionError } = await supabase.functions.invoke(
           'get-weather-forecast',
           {
@@ -39,21 +41,35 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
           }
         );
 
+        console.log('WeatherForecast: Function response:', { data, functionError });
+
         if (functionError) {
+          console.error('WeatherForecast: Function error:', functionError);
           throw functionError;
         }
 
+        if (!data) {
+          console.error('WeatherForecast: No data returned from function');
+          throw new Error('No data returned from weather function');
+        }
+
+        console.log('WeatherForecast: Successfully received weather data:', data);
         setWeatherData(data);
       } catch (err) {
-        console.error('Error fetching weather:', err);
+        console.error('WeatherForecast: Error in fetchWeather:', err);
+        console.error('WeatherForecast: Error details:', JSON.stringify(err, null, 2));
         setError('Failed to load weather data');
       } finally {
+        console.log('WeatherForecast: Setting loading to false');
         setLoading(false);
       }
     };
 
     if (address) {
+      console.log('WeatherForecast: Address provided, fetching weather:', address);
       fetchWeather();
+    } else {
+      console.log('WeatherForecast: No address provided');
     }
   }, [address]);
 
