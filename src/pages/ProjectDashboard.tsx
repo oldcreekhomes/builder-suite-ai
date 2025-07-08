@@ -85,13 +85,6 @@ export default function ProjectDashboard() {
         </div>
       )
     },
-    {
-      title: "Schedules",
-      description: "Coming soon",
-      icon: Calendar,
-      onClick: undefined,
-      isComingSoon: true,
-    },
   ];
 
   return (
@@ -152,35 +145,6 @@ export default function ProjectDashboard() {
                   <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
                 </div>
               </Card>
-            </div>
-
-            {/* Other Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dashboardCards.slice(1).map((card, index) => (
-                <Card 
-                  key={index} 
-                  className={`p-6 transition-shadow ${card.isComingSoon ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg cursor-pointer group'}`}
-                  onClick={card.onClick}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="bg-gray-100 p-2 rounded-lg">
-                          <card.icon className="h-5 w-5 text-gray-700" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-black">{card.title}</h3>
-                      </div>
-                      <p className="text-gray-600 text-sm mb-4">{card.description}</p>
-                      {card.content}
-                    </div>
-                    {card.isComingSoon ? (
-                      <span className="text-2xl">❓</span>
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                    )}
-                  </div>
-                </Card>
-              ))}
             </div>
           </div>
         </main>
