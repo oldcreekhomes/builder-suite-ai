@@ -157,8 +157,19 @@ serve(async (req) => {
     
     // Get current date in Eastern time zone
     const today = new Date();
-    // Convert to Eastern time (EST/EDT) - Virginia is in Eastern time
-    const localToday = new Date(today.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    // Get Eastern time offset (this handles EST/EDT automatically)
+    const easternTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(today);
+    
+    const year = parseInt(easternTime.find(part => part.type === 'year')?.value || '');
+    const month = parseInt(easternTime.find(part => part.type === 'month')?.value || '') - 1; // Month is 0-indexed
+    const day = parseInt(easternTime.find(part => part.type === 'day')?.value || '');
+    
+    const localToday = new Date(year, month, day);
     
     for (let i = 0; i < 10; i++) {
       const currentDate = new Date(localToday);
