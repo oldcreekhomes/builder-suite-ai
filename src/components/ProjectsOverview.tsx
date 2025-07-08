@@ -103,15 +103,15 @@ export function ProjectsOverview() {
     return (
       <div 
         key={project.id} 
-        className="p-3 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow cursor-pointer"
+        className="px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100"
         onClick={() => handleProjectClick(project.id)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center text-sm text-gray-600 flex-1 min-w-0">
-            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+            <MapPin className="h-3 w-3 mr-2 flex-shrink-0" />
             <span className="truncate">{project.address}</span>
           </div>
-          <div className="flex items-center space-x-1 ml-2">
+          <div className="flex items-center space-x-1">
             <Button 
               variant="ghost" 
               size="sm"
@@ -199,7 +199,7 @@ export function ProjectsOverview() {
             
             {statusTabs.map((status) => (
               <TabsContent key={status} value={status} className="mt-6">
-                <div className="space-y-4">
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {(() => {
                     const statusProjects = filterProjectsByStatus(status);
                     return statusProjects.length > 0 
