@@ -20,6 +20,7 @@ import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import PasswordReset from "./pages/PasswordReset";
+import Index from "./pages/Index";
 
 import NotFound from "./pages/NotFound";
 
@@ -32,14 +33,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Root route - direct to auth */}
-          <Route path="/" element={<Auth />} />
+          {/* Auth route */}
+          <Route path="/auth" element={<Auth />} />
           
           {/* Landing page route */}
           <Route path="/landing" element={<Landing />} />
           
-          {/* Auth route */}
-          <Route path="/auth" element={<Auth />} />
+          {/* Root route - protected dashboard */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
