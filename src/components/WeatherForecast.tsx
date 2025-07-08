@@ -143,7 +143,7 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
               {/* Day */}
                <p className="text-sm font-medium text-black">
                  {(() => {
-                   const date = new Date(day.date);
+                   const date = new Date(day.date + 'T00:00:00');
                    
                    if (index <= 6) {
                      return date.toLocaleDateString('en-US', { 
