@@ -27,28 +27,15 @@ export function SidebarUserDropdown() {
   const handleLogout = async () => {
     console.log("Logout initiated...");
     try {
-      const { error } = await supabase.auth.signOut();
-      console.log("Logout result:", { error });
-      
-      if (error) {
-        console.error("Logout error:", error);
-        toast({
-          title: "Error", 
-          description: "Failed to sign out. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        console.log("Logout successful, redirecting to auth page");
-        // Clear any cached data and redirect
-        window.location.href = "/auth";
-      }
+      // Always clear local session and redirect, regardless of server response
+      await supabase.auth.signOut();
+      console.log("Logout successful, redirecting to auth page");
+      // Clear any cached data and redirect
+      window.location.href = "/auth";
     } catch (err) {
       console.error("Logout exception:", err);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.", 
-        variant: "destructive",
-      });
+      // Still redirect even if there's an error
+      window.location.href = "/auth";
     }
   };
 
