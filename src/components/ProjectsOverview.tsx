@@ -180,7 +180,7 @@ export function ProjectsOverview() {
 
   return (
     <>
-      <Card className="bg-white border border-gray-200">
+      <Card className="bg-white border border-gray-200 h-full flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <Building className="h-5 w-5 text-gray-600" />
@@ -188,8 +188,8 @@ export function ProjectsOverview() {
           </div>
         </div>
         
-        <div className="p-6">
-          <Tabs defaultValue="In Design" className="w-full">
+        <div className="flex-1 p-6">
+          <Tabs defaultValue="In Design" className="w-full h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-5">
               {statusTabs.map((status) => (
                 <TabsTrigger key={status} value={status} className="text-xs">
@@ -199,7 +199,7 @@ export function ProjectsOverview() {
             </TabsList>
             
             {statusTabs.map((status) => (
-              <TabsContent key={status} value={status} className="mt-6">
+              <TabsContent key={status} value={status} className="mt-6 flex-1">
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {(() => {
                     const statusProjects = filterProjectsByStatus(status);
