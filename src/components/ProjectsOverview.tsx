@@ -100,8 +100,6 @@ export function ProjectsOverview() {
   };
 
   const renderProjectCard = (project: any) => {
-    const progress = getProgressValue(project.status);
-    
     return (
       <div 
         key={project.id} 
@@ -139,17 +137,8 @@ export function ProjectsOverview() {
           </div>
         </div>
         
-        <div className="space-y-1 mb-2">
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-600">Progress</span>
-            <span className="font-medium text-black">{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-1.5" />
-        </div>
-        
-        <div className="flex justify-between items-center text-xs text-gray-600">
-          <span>Manager: <span className="font-medium text-black">{project.manager}</span></span>
-          <span>{formatDateWithOrdinal(project.created_at)}</span>
+        <div className="text-xs text-gray-600">
+          Manager: <span className="font-medium text-black">{project.manager}</span>
         </div>
       </div>
     );
