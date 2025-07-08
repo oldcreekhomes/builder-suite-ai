@@ -85,30 +85,6 @@ export default function ProjectDashboard() {
         </div>
       )
     },
-    {
-      title: "Documents",
-      description: "Files and documentation",
-      icon: FileText,
-      onClick: () => navigate(`/project/${projectId}/files`),
-    },
-    {
-      title: "Budget",
-      description: "Project budget and costs",
-      icon: DollarSign,
-      onClick: () => navigate(`/project/${projectId}/budget`),
-    },
-    {
-      title: "Schedules",
-      description: "Timeline and milestones",
-      icon: Calendar,
-      onClick: () => navigate(`/project/${projectId}/schedules`),
-    },
-    {
-      title: "Companies",
-      description: "Contractors and vendors",
-      icon: Users,
-      onClick: () => navigate(`/project/${projectId}/companies`),
-    },
   ];
 
   return (
