@@ -141,16 +141,26 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
           <Card key={index} className="flex-shrink-0 w-32 p-4 text-center hover:shadow-md transition-shadow">
             <div className="space-y-3">
               {/* Day */}
-              <p className="text-sm font-medium text-black">
-                {index === 0 ? 'Today' : 
-                  index === 1 ? 'Tomorrow' :
-                  new Date(day.date).toLocaleDateString('en-US', { 
-                    weekday: 'short',
-                    month: 'numeric',
-                    day: 'numeric'
-                  })
-                }
-              </p>
+               <p className="text-sm font-medium text-black">
+                 {(() => {
+                   if (index === 0) return 'Today';
+                   if (index === 1) return 'Tomorrow';
+                   
+                   const date = new Date(day.date);
+                   const today = new Date();
+                   const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                   
+                   if (diffDays <= 6) {
+                     return date.toLocaleDateString('en-US', { weekday: 'short' });
+                   } else {
+                     return date.toLocaleDateString('en-US', { 
+                       weekday: 'short',
+                       month: 'numeric',
+                       day: 'numeric'
+                     });
+                   }
+                 })()}
+               </p>
               
               {/* Weather Icon */}
               <div className="flex justify-center">
