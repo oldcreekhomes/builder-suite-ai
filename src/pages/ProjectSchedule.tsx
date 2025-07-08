@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, List } from "lucide-react";
 import { useState } from "react";
-import { SimpleGanttChart } from "@/components/schedule/SimpleGanttChart";
+import { ReactGanttChart } from "@/components/schedule/ReactGanttChart";
 import { TaskList } from "@/components/schedule/TaskList";
 import { AddTaskModal } from "@/components/schedule/AddTaskModal";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -116,7 +116,7 @@ export default function ProjectSchedule() {
                     <div className="text-muted-foreground">Loading schedule...</div>
                   </div>
                 ) : (
-                  <SimpleGanttChart
+                  <ReactGanttChart
                     tasks={tasks}
                     onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
                     onTaskDelete={handleDeleteTask}
