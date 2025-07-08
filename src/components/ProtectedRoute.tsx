@@ -19,8 +19,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    // Redirect to landing page instead of auth page
-    return <Navigate to="/landing" state={{ from: location }} replace />;
+    // Redirect to auth page for sign in
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

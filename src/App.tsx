@@ -32,6 +32,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Root route - direct to auth */}
+          <Route path="/" element={<Auth />} />
+          
           {/* Landing page route */}
           <Route path="/landing" element={<Landing />} />
           
