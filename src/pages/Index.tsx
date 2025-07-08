@@ -18,11 +18,11 @@ const Index = () => {
               <WeatherForecast address="22314" />
             </div>
             
-            <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
               <div className="lg:flex-grow">
                 <ProjectsOverview />
               </div>
-              <div className="lg:w-64">
+              <div className="lg:w-64 lg:h-fit">
                 <RecentPhotos />
               </div>
             </div>
