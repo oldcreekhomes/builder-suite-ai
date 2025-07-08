@@ -129,7 +129,7 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
   }
 
   return (
-    <div className="w-full">
+    <Card className="p-6">
       <div className="flex items-center space-x-2 mb-4">
         <Wind className="h-5 w-5 text-gray-600" />
         <h3 className="text-lg font-semibold text-black">
@@ -191,6 +191,6 @@ export function WeatherForecast({ address }: WeatherForecastProps) {
           </Card>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
