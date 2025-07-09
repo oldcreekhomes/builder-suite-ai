@@ -244,11 +244,11 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
   const { usersWithChats, usersWithoutChats } = getCombinedUserList();
 
   return (
-    <SidebarContent className="px-3 py-4">
+    <SidebarContent className="px-3 py-2">
       <SidebarGroup>
         <SidebarGroupContent>
-          {/* Header */}
-          <div className="p-3 border-b border-gray-200">
+          {/* Messages title moved higher */}
+          <div className="px-2 py-1 mb-2">
             <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
           </div>
 
