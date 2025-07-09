@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 
@@ -41,6 +42,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +68,13 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     setIsLoading(true);
 
     try {
+      // Determine the correct owner_id based on user type
+      let owner_id = user.id;
+      if (profile && 'home_builder_id' in profile) {
+        // User is an employee, use their home_builder_id
+        owner_id = profile.home_builder_id;
+      }
+
       const { data: project, error } = await supabase
         .from('projects')
         .insert({
@@ -73,7 +82,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           address,
           status,
           manager,
-          owner_id: user.id,
+          owner_id,
         })
         .select()
         .single();
