@@ -248,8 +248,8 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
       <SidebarGroup>
         <SidebarGroupContent>
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
-            <h1 className="text-xl font-semibold text-gray-900">Messages</h1>
+          <div className="p-3 border-b border-gray-200">
+            <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
           </div>
 
           {/* User List */}
@@ -258,10 +258,6 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               <div className="p-4 text-center text-gray-500">Loading...</div>
             ) : (
               <>
-                {/* Company Members - Now at the top */}
-                <div className="px-4 py-2 bg-gray-50 border-b">
-                  <h3 className="text-sm font-medium text-gray-700">Company Members</h3>
-                </div>
 
                 {/* Users with existing conversations first */}
                 {chatRooms
