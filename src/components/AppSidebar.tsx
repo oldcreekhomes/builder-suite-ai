@@ -15,11 +15,12 @@ interface AppSidebarProps {
 export function AppSidebar({ selectedRoom, onRoomSelect, onStartChat }: AppSidebarProps) {
   const location = useLocation();
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
+  const isCompanyDashboard = location.pathname === '/';
 
   return (
     <Sidebar className="border-r border-gray-200">
       <SidebarBranding />
-      {isMessagesPage ? (
+      {(isMessagesPage || isCompanyDashboard) ? (
         <MessagesSidebar 
           selectedRoom={selectedRoom || null}
           onRoomSelect={onRoomSelect || (() => {})}
