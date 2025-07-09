@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,6 +35,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Get current user ID
   useEffect(() => {
@@ -136,6 +138,11 @@ export function useChat() {
 
       setSelectedRoom(newRoom);
       await fetchMessages(data);
+      
+      // Navigate to messages page if not already there
+      if (window.location.pathname !== '/messages') {
+        navigate('/messages');
+      }
       
       console.log('Chat started successfully');
     } catch (error) {
