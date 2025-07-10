@@ -22,6 +22,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    console.log('Files selected:', files.length, files.map(f => f.name));
     setSelectedFiles(files);
   };
 

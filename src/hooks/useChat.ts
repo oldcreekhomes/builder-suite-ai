@@ -170,9 +170,16 @@ export function useChat() {
   // Upload files to Supabase Storage
   const uploadFiles = async (files: File[]): Promise<string[]> => {
     const uploadedUrls: string[] = [];
+    console.log('Starting file upload for files:', files.length);
+    
+    // Check current user
+    const { data: currentUser } = await supabase.auth.getUser();
+    console.log('Current user during upload:', currentUser.user?.id);
     
     for (const file of files) {
       const fileName = `${Date.now()}_${file.name}`;
+      console.log('Uploading file:', fileName);
+      
       const { data, error } = await supabase.storage
         .from('chat-attachments')
         .upload(fileName, file);
@@ -182,6 +189,8 @@ export function useChat() {
         throw error;
       }
       
+      console.log('File uploaded successfully:', data);
+      
       const { data: { publicUrl } } = supabase.storage
         .from('chat-attachments')
         .getPublicUrl(fileName);
@@ -189,6 +198,7 @@ export function useChat() {
       uploadedUrls.push(publicUrl);
     }
     
+    console.log('All files uploaded, URLs:', uploadedUrls);
     return uploadedUrls;
   };
 
