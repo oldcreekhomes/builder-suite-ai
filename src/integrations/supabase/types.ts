@@ -876,6 +876,54 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          browser_notifications_enabled: boolean
+          created_at: string
+          direct_message_notifications: boolean
+          do_not_disturb_end: string | null
+          do_not_disturb_start: string | null
+          group_message_notifications: boolean
+          id: string
+          notification_sound: string
+          sound_notifications_enabled: boolean
+          toast_duration: number
+          toast_notifications_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          browser_notifications_enabled?: boolean
+          created_at?: string
+          direct_message_notifications?: boolean
+          do_not_disturb_end?: string | null
+          do_not_disturb_start?: string | null
+          group_message_notifications?: boolean
+          id?: string
+          notification_sound?: string
+          sound_notifications_enabled?: boolean
+          toast_duration?: number
+          toast_notifications_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          browser_notifications_enabled?: boolean
+          created_at?: string
+          direct_message_notifications?: boolean
+          do_not_disturb_end?: string | null
+          do_not_disturb_start?: string | null
+          group_message_notifications?: boolean
+          id?: string
+          notification_sound?: string
+          sound_notifications_enabled?: boolean
+          toast_duration?: number
+          toast_notifications_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

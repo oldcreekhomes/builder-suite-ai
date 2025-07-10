@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
+import { useNotificationPreferences } from './useNotificationPreferences';
 
 interface UnreadCounts {
   [roomId: string]: number;
@@ -18,6 +20,7 @@ export function useChatNotifications() {
   const [totalUnread, setTotalUnread] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { preferences } = useNotificationPreferences();
 
   // Get current user ID
   useEffect(() => {
@@ -119,6 +122,22 @@ export function useChatNotifications() {
 
           if (!isParticipant) return;
 
+          // Check if user wants notifications and respects Do Not Disturb
+          if (!shouldShowNotification()) return;
+
+          // Get room info to determine message type
+          const { data: roomData } = await supabase
+            .from('employee_chat_rooms')
+            .select('is_direct_message')
+            .eq('id', newMessage.room_id)
+            .single();
+            
+          const isDirectMessage = roomData?.is_direct_message || false;
+
+          // Check message type preferences
+          if (isDirectMessage && !preferences.direct_message_notifications) return;
+          if (!isDirectMessage && !preferences.group_message_notifications) return;
+
           // Update unread count for this room
           setUnreadCounts(prev => ({
             ...prev,
@@ -153,11 +172,8 @@ export function useChatNotifications() {
               }
             }
 
-            // Show toast notification
-            toast({
-              title: `New message from ${senderName}`,
-              description: newMessage.message_text || 'File attachment',
-            });
+            // Show notifications based on preferences
+            showNotifications(senderName, newMessage.message_text, isDirectMessage);
 
           } catch (error) {
             console.error('Error getting sender info:', error);
@@ -169,7 +185,104 @@ export function useChatNotifications() {
     return () => {
       supabase.removeChannel(messageChannel);
     };
-  }, [currentUserId, loadUnreadCounts, toast]);
+  }, [currentUserId, loadUnreadCounts, toast, preferences]);
+
+  const isInDoNotDisturbTime = useCallback(() => {
+    if (!preferences.do_not_disturb_start || !preferences.do_not_disturb_end) {
+      return false;
+    }
+
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const [startHour, startMinute] = preferences.do_not_disturb_start.split(':').map(Number);
+    const [endHour, endMinute] = preferences.do_not_disturb_end.split(':').map(Number);
+    
+    const startTime = startHour * 60 + startMinute;
+    const endTime = endHour * 60 + endMinute;
+    
+    if (startTime <= endTime) {
+      return currentTime >= startTime && currentTime <= endTime;
+    } else {
+      // Crosses midnight
+      return currentTime >= startTime || currentTime <= endTime;
+    }
+  }, [preferences.do_not_disturb_start, preferences.do_not_disturb_end]);
+
+  const shouldShowNotification = useCallback(() => {
+    return !isInDoNotDisturbTime();
+  }, [isInDoNotDisturbTime]);
+
+  const playNotificationSound = useCallback(() => {
+    if (!preferences.sound_notifications_enabled) return;
+    
+    try {
+      // Create a simple audio context for notification sound
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Different sounds based on preference
+      switch (preferences.notification_sound) {
+        case 'bell':
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+          break;
+        case 'notification':
+          oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.15);
+          break;
+        case 'subtle':
+          oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+          break;
+        default: // chime
+          oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+          oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E5
+      }
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log('Could not play notification sound:', error);
+    }
+  }, [preferences.sound_notifications_enabled, preferences.notification_sound]);
+
+  const showNotifications = useCallback((senderName: string, messageText: string | null, isDirectMessage: boolean) => {
+    const messagePreview = messageText || 'Sent an attachment';
+    const title = `New ${isDirectMessage ? 'direct message' : 'group message'} from ${senderName}`;
+
+    // Show toast notification with Sonner for better visibility
+    if (preferences.toast_notifications_enabled) {
+      sonnerToast(title, {
+        description: messagePreview,
+        duration: preferences.toast_duration * 1000,
+        action: {
+          label: "View",
+          onClick: () => {
+            // Navigate to messages - you might want to add navigation logic here
+            console.log('Navigate to messages');
+          },
+        },
+      });
+    }
+
+    // Show browser notification
+    if (preferences.browser_notifications_enabled && "Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {
+        body: messagePreview,
+        icon: "/favicon.ico",
+      });
+    }
+
+    // Play sound notification
+    playNotificationSound();
+  }, [preferences.toast_notifications_enabled, preferences.browser_notifications_enabled, preferences.toast_duration, playNotificationSound]);
 
   return {
     unreadCounts,
