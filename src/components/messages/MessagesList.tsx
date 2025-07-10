@@ -7,9 +7,10 @@ interface MessagesListProps {
   currentUserId: string | null;
   onEditMessage?: (messageId: string, newText: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  onReplyToMessage?: (messageId: string, messageText: string, senderName: string) => void;
 }
 
-export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteMessage }: MessagesListProps) {
+export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteMessage, onReplyToMessage }: MessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -29,6 +30,7 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
             isCurrentUser={isCurrentUser}
             onEdit={onEditMessage}
             onDelete={onDeleteMessage}
+            onReply={onReplyToMessage}
           />
         );
       })}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, Edit2, Trash2, Check, X } from "lucide-react";
+import { MoreHorizontal, Edit2, Trash2, Check, X, Reply } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,10 @@ interface MessageBubbleProps {
   isCurrentUser: boolean;
   onEdit?: (messageId: string, newText: string) => void;
   onDelete?: (messageId: string) => void;
+  onReply?: (messageId: string, messageText: string, senderName: string) => void;
 }
 
-export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: MessageBubbleProps) {
+export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onReply }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.message_text || "");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -47,6 +48,13 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
     setShowDeleteDialog(false);
   };
 
+  const handleReply = () => {
+    if (onReply && message.message_text) {
+      const senderName = getDisplayName(message.sender);
+      onReply(message.id, message.message_text, senderName);
+    }
+  };
+
   return (
     <div className={`flex items-start space-x-3 group ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
       <Avatar className="h-8 w-8">
@@ -67,8 +75,8 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
             })}
           </span>
           
-          {/* Edit/Delete Menu for Current User */}
-          {isCurrentUser && (message.message_text || (message.file_urls && message.file_urls.length > 0)) && (
+          {/* Actions Menu */}
+          {(message.message_text || (message.file_urls && message.file_urls.length > 0)) && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -77,16 +85,22 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
                   </Button>
                 </DropdownMenuTrigger>
                  <DropdownMenuContent align="end">
-                   {message.message_text && (
+                   <DropdownMenuItem onClick={handleReply}>
+                     <Reply className="h-3 w-3 mr-2" />
+                     Reply
+                   </DropdownMenuItem>
+                   {isCurrentUser && message.message_text && (
                      <DropdownMenuItem onClick={() => setIsEditing(true)}>
                        <Edit2 className="h-3 w-3 mr-2" />
                        Edit
                      </DropdownMenuItem>
                    )}
-                   <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
-                     <Trash2 className="h-3 w-3 mr-2" />
-                     Delete
-                   </DropdownMenuItem>
+                   {isCurrentUser && (
+                     <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
+                       <Trash2 className="h-3 w-3 mr-2" />
+                       Delete
+                     </DropdownMenuItem>
+                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -100,6 +114,20 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete }: Mess
               ? 'bg-blue-500 text-white' 
               : 'bg-gray-100 text-gray-900'
           }`}>
+            {/* Replied Message Context */}
+            {message.replied_message && (
+              <div className={`mb-2 p-2 rounded border-l-2 ${
+                isCurrentUser ? 'border-blue-300 bg-blue-400/20' : 'border-gray-300 bg-gray-200'
+              }`}>
+                <p className={`text-xs font-medium ${isCurrentUser ? 'text-blue-100' : 'text-gray-600'}`}>
+                  {getDisplayName(message.replied_message.sender)}
+                </p>
+                <p className={`text-xs ${isCurrentUser ? 'text-blue-100' : 'text-gray-600'} truncate`}>
+                  {message.replied_message.message_text}
+                </p>
+              </div>
+            )}
+
             {isEditing ? (
               <div className="space-y-2">
                 <Input

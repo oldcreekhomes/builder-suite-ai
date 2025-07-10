@@ -1,14 +1,16 @@
 import { useState, useRef } from "react";
-import { Paperclip, Smile, Send } from "lucide-react";
+import { Paperclip, Smile, Send, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MessageInputProps {
-  onSendMessage: (message: string, files: File[]) => Promise<void>;
+  onSendMessage: (message: string, files: File[], replyToMessageId?: string) => Promise<void>;
+  replyingTo?: { id: string; text: string; sender: string } | null;
+  onCancelReply?: () => void;
 }
 
-export function MessageInput({ onSendMessage }: MessageInputProps) {
+export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: MessageInputProps) {
   const [messageInput, setMessageInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -27,11 +29,12 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
   const sendMessage = async () => {
     if (!messageInput.trim() && selectedFiles.length === 0) return;
 
-    await onSendMessage(messageInput, selectedFiles);
+    await onSendMessage(messageInput, selectedFiles, replyingTo?.id);
     
     // Clear the input and files
     setMessageInput("");
     setSelectedFiles([]);
+    onCancelReply?.();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -78,6 +81,26 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {/* Reply Preview */}
+      {replyingTo && (
+        <div className="mb-3 bg-gray-50 rounded-lg p-3 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-gray-700">
+              Replying to {replyingTo.sender}
+            </span>
+            <button
+              onClick={onCancelReply}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 truncate">
+            {replyingTo.text}
+          </p>
+        </div>
+      )}
+
       {/* Show selected files preview */}
       {selectedFiles.length > 0 && (
         <div className="mb-3 p-2 bg-gray-50 rounded-lg">

@@ -237,6 +237,7 @@ export type Database = {
           id: string
           is_deleted: boolean
           message_text: string | null
+          reply_to_message_id: string | null
           room_id: string
           sender_id: string
           updated_at: string
@@ -247,6 +248,7 @@ export type Database = {
           id?: string
           is_deleted?: boolean
           message_text?: string | null
+          reply_to_message_id?: string | null
           room_id: string
           sender_id: string
           updated_at?: string
@@ -257,11 +259,19 @@ export type Database = {
           id?: string
           is_deleted?: boolean
           message_text?: string | null
+          reply_to_message_id?: string | null
           room_id?: string
           sender_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_chat_messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "employee_chat_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employee_chat_messages_room_id_fkey"
             columns: ["room_id"]

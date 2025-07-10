@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -17,6 +18,16 @@ export default function Messages() {
     editMessage,
     deleteMessage
   } = useChat();
+
+  const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
+
+  const handleReplyToMessage = (messageId: string, messageText: string, senderName: string) => {
+    setReplyingTo({ id: messageId, text: messageText, sender: senderName });
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
 
   return (
     <SidebarProvider>
@@ -40,8 +51,13 @@ export default function Messages() {
                     currentUserId={currentUserId} 
                     onEditMessage={editMessage}
                     onDeleteMessage={deleteMessage}
+                    onReplyToMessage={handleReplyToMessage}
                   />
-                  <MessageInput onSendMessage={sendMessage} />
+                  <MessageInput 
+                    onSendMessage={sendMessage}
+                    replyingTo={replyingTo}
+                    onCancelReply={handleCancelReply}
+                  />
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center bg-gray-50">

@@ -27,6 +27,8 @@ interface ChatMessage {
   message_text: string | null;
   file_urls: string[] | null;
   created_at: string;
+  reply_to_message_id: string | null;
+  replied_message?: ChatMessage | null;
   sender: Employee;
 }
 
@@ -58,7 +60,8 @@ export function useChat() {
           message_text,
           file_urls,
           created_at,
-          sender_id
+          sender_id,
+          reply_to_message_id
         `)
         .eq('room_id', roomId)
         .eq('is_deleted', false)
@@ -95,7 +98,16 @@ export function useChat() {
         })
       );
 
-      setMessages(messagesWithSenders);
+      // Create a map for quick lookup
+      const messagesMap = new Map(messagesWithSenders.map(msg => [msg.id, msg]));
+      
+      // Add replied_message references
+      const messagesWithReplies = messagesWithSenders.map(msg => ({
+        ...msg,
+        replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
+      }));
+
+      setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
@@ -181,7 +193,7 @@ export function useChat() {
   };
 
   // Send a message
-  const sendMessage = async (messageText: string, files: File[] = []) => {
+  const sendMessage = async (messageText: string, files: File[] = [], replyToMessageId?: string) => {
     if (!messageText.trim() && files.length === 0) return;
     if (!selectedRoom) return;
 
@@ -202,7 +214,8 @@ export function useChat() {
           room_id: selectedRoom.id,
           sender_id: currentUser.user.id,
           message_text: messageText.trim() || null,
-          file_urls: fileUrls.length > 0 ? fileUrls : null
+          file_urls: fileUrls.length > 0 ? fileUrls : null,
+          reply_to_message_id: replyToMessageId || null
         });
 
       if (error) throw error;
