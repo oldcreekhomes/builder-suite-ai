@@ -183,7 +183,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
         multiple
         onChange={handleFileSelect}
         className="hidden"
-        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,.heic,.heif"
       />
     </div>
   );
