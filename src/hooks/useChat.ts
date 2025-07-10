@@ -213,14 +213,44 @@ export function useChat() {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
 
+      // Create optimistic message for immediate UI update
+      const optimisticMessage: ChatMessage = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        message_text: messageText.trim() || null,
+        file_urls: [],
+        reply_to_message_id: replyToMessageId || null,
+        created_at: new Date().toISOString(),
+        replied_message: null,
+        sender: {
+          id: currentUser.user.id,
+          first_name: 'You',
+          last_name: '',
+          email: currentUser.user.email || '',
+          role: 'employee',
+          avatar_url: null
+        }
+      };
+
+      // Immediately add to messages for instant UI feedback
+      setMessages(prev => [...prev, optimisticMessage]);
+
       let fileUrls: string[] = [];
       
       // Upload files if any are selected
       if (files.length > 0) {
         fileUrls = await uploadFiles(files);
+        // Update the optimistic message with file URLs
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === optimisticMessage.id 
+              ? { ...msg, file_urls: fileUrls }
+              : msg
+          )
+        );
       }
 
-      const { error } = await supabase
+      // Send actual message to database
+      const { data, error } = await supabase
         .from('employee_chat_messages')
         .insert({
           room_id: selectedRoom.id,
@@ -228,15 +258,24 @@ export function useChat() {
           message_text: messageText.trim() || null,
           file_urls: fileUrls.length > 0 ? fileUrls : null,
           reply_to_message_id: replyToMessageId || null
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       
-      // Refresh messages
-      await fetchMessages(selectedRoom.id);
+      // Replace optimistic message with real message
+      if (data) {
+        // Fetch the complete message with sender details
+        await fetchMessages(selectedRoom.id);
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove the optimistic message on error
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
+      
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
