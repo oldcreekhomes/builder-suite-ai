@@ -177,7 +177,9 @@ export function useChat() {
     console.log('Current user during upload:', currentUser.user?.id);
     
     for (const file of files) {
-      const fileName = `${Date.now()}_${file.name}`;
+      // Sanitize filename by removing spaces and special characters
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileName = `${Date.now()}_${sanitizedName}`;
       console.log('Uploading file:', fileName);
       
       const { data, error } = await supabase.storage
