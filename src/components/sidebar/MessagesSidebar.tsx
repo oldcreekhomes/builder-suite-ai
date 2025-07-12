@@ -46,13 +46,17 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
 
   // Combine all users and sort them alphabetically by first name
   const allSortedUsers = useMemo(() => {
-    const allUsers = [];
+    const allUsers: Array<{
+      type: 'chat' | 'employee';
+      user: Employee;
+      room: ChatRoom | null;
+    }> = [];
     
     // Add users from existing chat rooms
     chatRooms.forEach(room => {
       if (room.otherUser && room.otherUser.first_name && room.otherUser.last_name) {
         allUsers.push({
-          type: 'chat',
+          type: 'chat' as const,
           user: room.otherUser,
           room: room
         });
@@ -64,7 +68,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
       const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
       if (!hasRecentChat) {
         allUsers.push({
-          type: 'employee',
+          type: 'employee' as const,
           user: employee,
           room: null
         });
