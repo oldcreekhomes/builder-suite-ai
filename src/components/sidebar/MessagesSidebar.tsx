@@ -264,6 +264,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                 {/* Users with existing conversations first */}
                 {chatRooms
                   .filter(room => room.otherUser && room.otherUser.first_name && room.otherUser.last_name) // Filter out GC entries
+                  .sort((a, b) => (a.otherUser?.first_name || '').localeCompare(b.otherUser?.first_name || '')) // Sort by first name alphabetically
                   .map((room) => (
                   <div
                     key={room.id}
@@ -319,37 +320,40 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                 ))}
 
                 {/* Users without conversations */}
-                {employees.map((employee) => {
-                  // Skip if user already has a recent conversation
-                  const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
-                  if (hasRecentChat) return null;
-
-                  return (
-                    <div
-                      key={employee.id}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onStartChat(employee);
-                      }}
-                      className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={employee.avatar_url || ""} />
-                          <AvatarFallback className="bg-gray-200 text-gray-600">
-                            {getInitials(employee.first_name, employee.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 truncate">
-                            {getDisplayName(employee)}
-                          </h3>
+                {employees
+                  .filter((employee) => {
+                    // Skip if user already has a recent conversation
+                    const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
+                    return !hasRecentChat;
+                  })
+                  .sort((a, b) => (a.first_name || '').localeCompare(b.first_name || '')) // Sort by first name alphabetically
+                  .map((employee) => {
+                    return (
+                      <div
+                        key={employee.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onStartChat(employee);
+                        }}
+                        className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={employee.avatar_url || ""} />
+                            <AvatarFallback className="bg-gray-200 text-gray-600">
+                              {getInitials(employee.first_name, employee.last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">
+                              {getDisplayName(employee)}
+                            </h3>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
+                    );
                 })}
 
                 {/* Empty State */}
