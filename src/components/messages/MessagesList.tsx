@@ -12,14 +12,30 @@ interface MessagesListProps {
 
 export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteMessage, onReplyToMessage }: MessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current && scrollContainerRef.current) {
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
   }, [messages]);
 
+  // Also scroll immediately on component mount if messages exist
+  useEffect(() => {
+    if (messages.length > 0 && messagesEndRef.current) {
+      // Immediate scroll on mount without animation for faster initial load
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      }, 100);
+    }
+  }, []);
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => {
         const isCurrentUser = currentUserId === message.sender.id;
         
