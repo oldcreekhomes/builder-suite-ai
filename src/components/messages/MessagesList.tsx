@@ -27,11 +27,28 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
+      console.log("MessagesList - Rendering messages:", messages.length);
+      console.log("MessagesList - Last message:", messages[messages.length - 1]);
+      console.log("MessagesList - Last message timestamp:", messages[messages.length - 1]?.created_at);
+      
       // Immediate scroll
       scrollToBottom();
       
       // Additional scroll after a short delay to handle any async rendering
-      const timeoutId = setTimeout(scrollToBottom, 100);
+      const timeoutId = setTimeout(() => {
+        scrollToBottom();
+        
+        // Log scroll position after scrolling
+        if (scrollContainerRef.current) {
+          const container = scrollContainerRef.current;
+          console.log("MessagesList - Scroll position:", {
+            scrollTop: container.scrollTop,
+            scrollHeight: container.scrollHeight,
+            clientHeight: container.clientHeight,
+            isAtBottom: container.scrollTop + container.clientHeight >= container.scrollHeight - 10
+          });
+        }
+      }, 100);
       
       return () => clearTimeout(timeoutId);
     }
