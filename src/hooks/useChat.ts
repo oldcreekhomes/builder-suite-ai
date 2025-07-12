@@ -51,11 +51,24 @@ export function useChat() {
     getCurrentUser();
   }, []);
 
+  // Track AbortController for cancelling requests
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
     try {
+      // Cancel any previous request
+      if (abortController) {
+        abortController.abort();
+      }
+
+      // Create new AbortController for this request
+      const newAbortController = new AbortController();
+      setAbortController(newAbortController);
+
       setIsLoadingMessages(true);
       console.log('Fetching messages for room:', roomId);
+      
       const { data, error } = await supabase
         .from('employee_chat_messages')
         .select(`
@@ -68,60 +81,120 @@ export function useChat() {
         `)
         .eq('room_id', roomId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(1000); // Explicitly set a high limit to ensure all messages are fetched
+        .order('created_at', { ascending: true });
 
       console.log('Messages query result:', { data, error, count: data?.length });
       if (error) throw error;
 
-      // For each message, get the sender details from either profiles or employees table
-      const messagesWithSenders = await Promise.all(
-        (data || []).map(async (message: any) => {
-          // Try to find sender in owners table first (home builders)
-          let { data: senderProfile } = await supabase
-            .from('owners')
-            .select('id, first_name, last_name, avatar_url, email')
-            .eq('id', message.sender_id)
-            .maybeSingle();
+      if (!data || data.length === 0) {
+        console.log('No messages found for room:', roomId);
+        setMessages([]);
+        return;
+      }
 
-          // If not found in users, try employees table
-          if (!senderProfile) {
-            const { data: employeeSender } = await supabase
-              .from('employees')
-              .select('id, first_name, last_name, role, avatar_url, email')
+      console.log('Processing', data.length, 'messages...');
+
+      // For each message, get the sender details with improved error handling
+      const messagesWithSenders = await Promise.allSettled(
+        data.map(async (message: any) => {
+          try {
+            // Try to find sender in owners table first (home builders)
+            let { data: senderProfile, error: ownerError } = await supabase
+              .from('owners')
+              .select('id, first_name, last_name, avatar_url, email, role')
               .eq('id', message.sender_id)
               .maybeSingle();
-            if (employeeSender) {
-              senderProfile = { ...employeeSender };
-            }
-          }
 
-          return {
-            ...message,
-            sender: senderProfile || { id: message.sender_id, first_name: 'Unknown', last_name: 'User', role: '', avatar_url: '', email: '' }
-          };
+            if (ownerError) {
+              console.warn('Error fetching owner:', ownerError);
+            }
+
+            // If not found in owners, try employees table
+            if (!senderProfile) {
+              const { data: employeeSender, error: employeeError } = await supabase
+                .from('employees')
+                .select('id, first_name, last_name, role, avatar_url, email')
+                .eq('id', message.sender_id)
+                .maybeSingle();
+              
+              if (employeeError) {
+                console.warn('Error fetching employee:', employeeError);
+              } else if (employeeSender) {
+                senderProfile = { ...employeeSender };
+              }
+            }
+
+            // Return message with sender info
+            return {
+              ...message,
+              sender: senderProfile || { 
+                id: message.sender_id, 
+                first_name: 'Unknown', 
+                last_name: 'User', 
+                role: 'user', 
+                avatar_url: null, 
+                email: '' 
+              }
+            };
+          } catch (senderError) {
+            console.error('Error processing message sender:', senderError);
+            // Return message with fallback sender info
+            return {
+              ...message,
+              sender: { 
+                id: message.sender_id, 
+                first_name: 'Unknown', 
+                last_name: 'User', 
+                role: 'user', 
+                avatar_url: null, 
+                email: '' 
+              }
+            };
+          }
         })
       );
 
+      // Filter out failed promises and extract successful results
+      const successfulMessages = messagesWithSenders
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value);
+
+      if (messagesWithSenders.some(result => result.status === 'rejected')) {
+        const rejectedCount = messagesWithSenders.filter(result => result.status === 'rejected').length;
+        console.warn(`${rejectedCount} messages failed to process senders`);
+      }
+
+      console.log('Successfully processed', successfulMessages.length, 'messages');
+
       // Create a map for quick lookup
-      const messagesMap = new Map(messagesWithSenders.map(msg => [msg.id, msg]));
+      const messagesMap = new Map(successfulMessages.map(msg => [msg.id, msg]));
       
       // Add replied_message references
-      const messagesWithReplies = messagesWithSenders.map(msg => ({
+      const messagesWithReplies = successfulMessages.map(msg => ({
         ...msg,
         replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
       }));
 
+      // Check if request was cancelled
+      if (newAbortController.signal.aborted) {
+        console.log('Request was cancelled');
+        return;
+      }
+
+      console.log('Setting messages, final count:', messagesWithReplies.length);
       setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive",
-      });
+      if (error.name !== 'AbortError') {
+        toast({
+          title: "Error",
+          description: "Failed to load messages",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingMessages(false);
+      setAbortController(null);
     }
   };
 
