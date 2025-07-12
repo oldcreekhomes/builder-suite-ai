@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,6 +9,7 @@ import { MessagesList } from "@/components/messages/MessagesList";
 import { MessageInput } from "@/components/messages/MessageInput";
 
 export default function Messages() {
+  const location = useLocation();
   const {
     selectedRoom,
     setSelectedRoom,
@@ -20,6 +22,14 @@ export default function Messages() {
   } = useChat();
 
   const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
+
+  // Handle navigation state from direct room navigation
+  useEffect(() => {
+    const navigationState = location.state as { selectedRoom?: any } | null;
+    if (navigationState?.selectedRoom && !selectedRoom) {
+      setSelectedRoom(navigationState.selectedRoom);
+    }
+  }, [location.state, selectedRoom, setSelectedRoom]);
 
   const handleReplyToMessage = (messageId: string, messageText: string, senderName: string) => {
     setReplyingTo({ id: messageId, text: messageText, sender: senderName });

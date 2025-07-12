@@ -151,9 +151,11 @@ export function useChat() {
       setSelectedRoom(newRoom);
       await fetchMessages(data);
       
-      // Navigate to messages page if not already there
+      // Navigate to messages page if not already there, passing the room state
       if (window.location.pathname !== '/messages') {
-        navigate('/messages');
+        navigate('/messages', { 
+          state: { selectedRoom: newRoom } 
+        });
       }
       
       console.log('Chat started successfully');
