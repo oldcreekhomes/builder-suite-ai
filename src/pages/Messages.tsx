@@ -52,7 +52,7 @@ export default function Messages() {
           
           <div className="flex-1 flex bg-background">
             {/* Right Side - Chat Interface */}
-            <div className="flex-1 flex flex-col bg-white min-h-0">
+            <div className="flex-1 flex flex-col bg-white min-h-0 border-l border-gray-200">
               {selectedRoom ? (
                 <>
                   <ChatHeader selectedRoom={selectedRoom} />
