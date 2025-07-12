@@ -16,11 +16,14 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   const previousMessagesLength = useRef(messages.length);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Simplified scroll to bottom function
-  const scrollToBottom = useCallback(() => {
+  // Scroll to bottom function with instant scrolling
+  const scrollToBottom = useCallback((smooth = false) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      container.scrollTop = container.scrollHeight;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: smooth ? 'smooth' : 'instant'
+      });
     }
   }, []);
 
@@ -67,7 +70,6 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
     <div 
       ref={scrollContainerRef} 
       className="flex-1 overflow-y-auto p-4 space-y-4"
-      style={{ scrollBehavior: 'smooth' }}
     >
       {messages.map((message) => {
         const isCurrentUser = currentUserId === message.sender.id;
