@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,30 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { unreadCounts } = useChatNotifications();
+
+  // Create sorted versions using useMemo to ensure they update when data changes
+  const sortedChatRooms = useMemo(() => {
+    return chatRooms
+      .filter(room => room.otherUser && room.otherUser.first_name && room.otherUser.last_name)
+      .sort((a, b) => {
+        const nameA = (a.otherUser?.first_name || '').toLowerCase();
+        const nameB = (b.otherUser?.first_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+  }, [chatRooms]);
+
+  const sortedEmployeesWithoutChats = useMemo(() => {
+    return employees
+      .filter((employee) => {
+        const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
+        return !hasRecentChat;
+      })
+      .sort((a, b) => {
+        const nameA = (a.first_name || '').toLowerCase();
+        const nameB = (b.first_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+  }, [employees, chatRooms]);
 
   // Fetch employees for display
   const fetchEmployees = async () => {
@@ -274,15 +298,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               <>
 
                 {/* Users with existing conversations first */}
-                {/* Users with existing conversations first */}
-                {chatRooms
-                  .filter(room => room.otherUser && room.otherUser.first_name && room.otherUser.last_name) // Filter out GC entries
-                  .sort((a, b) => {
-                    const nameA = (a.otherUser?.first_name || '').toLowerCase();
-                    const nameB = (b.otherUser?.first_name || '').toLowerCase();
-                    return nameA.localeCompare(nameB);
-                  }) // Sort by first name alphabetically
-                  .map((room) => (
+                {sortedChatRooms.map((room) => (
                   <div
                     key={room.id}
                     onClick={(e) => {
@@ -337,14 +353,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                 ))}
 
                 {/* Users without conversations */}
-                {employees
-                  .filter((employee) => {
-                    // Skip if user already has a recent conversation
-                    const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
-                    return !hasRecentChat;
-                  })
-                  .sort((a, b) => (a.first_name || '').localeCompare(b.first_name || '')) // Sort by first name alphabetically
-                  .map((employee) => {
+                {sortedEmployeesWithoutChats.map((employee) => {
                     return (
                       <div
                         key={employee.id}
