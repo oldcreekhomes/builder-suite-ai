@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,6 +37,7 @@ interface MessagesSidebarProps {
 }
 
 export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: MessagesSidebarProps) {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,6 +271,10 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                       e.preventDefault();
                       e.stopPropagation();
                       onRoomSelect(room);
+                      // Navigate to messages if not already there (same behavior as new chats)
+                      if (window.location.pathname !== '/messages') {
+                        navigate('/messages');
+                      }
                     }}
                     className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                       selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
