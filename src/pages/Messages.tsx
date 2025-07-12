@@ -52,22 +52,24 @@ export default function Messages() {
           
           <div className="flex-1 flex bg-background">
             {/* Right Side - Chat Interface */}
-            <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 flex flex-col bg-white min-h-0">
               {selectedRoom ? (
                 <>
                   <ChatHeader selectedRoom={selectedRoom} />
-                  <MessagesList 
-                    messages={messages} 
-                    currentUserId={currentUserId} 
-                    onEditMessage={editMessage}
-                    onDeleteMessage={deleteMessage}
-                    onReplyToMessage={handleReplyToMessage}
-                  />
-                  <MessageInput 
-                    onSendMessage={sendMessage}
-                    replyingTo={replyingTo}
-                    onCancelReply={handleCancelReply}
-                  />
+                  <div className="flex-1 flex flex-col min-h-0">
+                    <MessagesList 
+                      messages={messages} 
+                      currentUserId={currentUserId} 
+                      onEditMessage={editMessage}
+                      onDeleteMessage={deleteMessage}
+                      onReplyToMessage={handleReplyToMessage}
+                    />
+                    <MessageInput 
+                      onSendMessage={sendMessage}
+                      replyingTo={replyingTo}
+                      onCancelReply={handleCancelReply}
+                    />
+                  </div>
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center bg-gray-50">
