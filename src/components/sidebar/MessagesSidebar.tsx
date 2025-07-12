@@ -216,7 +216,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               .select('user_id')
               .eq('room_id', room.id)
               .neq('user_id', currentUser.user.id)
-              .single();
+              .maybeSingle();
 
             if (otherParticipant) {
               // Try to find the user in owners table first (owners)
