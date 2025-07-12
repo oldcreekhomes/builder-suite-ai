@@ -182,8 +182,11 @@ export function useChat() {
       }
 
       console.log('Setting messages, final count:', messagesWithReplies.length);
+      console.log('First message:', messagesWithReplies[0]);
+      console.log('Last message:', messagesWithReplies[messagesWithReplies.length - 1]);
       if (mountedRef.current) {
         setMessages(messagesWithReplies);
+        console.log('Messages state updated');
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
