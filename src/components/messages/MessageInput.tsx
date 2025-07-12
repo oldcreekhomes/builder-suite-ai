@@ -77,10 +77,11 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
 
   return (
     <div 
-      className={`p-4 border-t border-gray-200 bg-white ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={{ minHeight: '80px' }}
     >
       {/* Reply Preview */}
       {replyingTo && (

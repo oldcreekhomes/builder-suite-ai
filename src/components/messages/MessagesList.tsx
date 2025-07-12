@@ -71,7 +71,8 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   return (
     <div 
       ref={scrollContainerRef} 
-      className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
+      className="flex-1 overflow-y-auto p-4 space-y-4"
+      style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       {messages.map((message) => {
         const isCurrentUser = currentUserId === message.sender.id;
