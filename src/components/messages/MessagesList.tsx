@@ -13,6 +13,7 @@ interface MessagesListProps {
 export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteMessage, onReplyToMessage }: MessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const previousMessagesLength = useRef(messages.length);
 
   // Function to scroll to bottom
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
@@ -25,29 +26,36 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
     }
   };
 
-  // Auto-scroll to bottom when messages change
+  // Scroll to bottom when messages change (new messages or room switch)
   useEffect(() => {
-    // Use multiple timeouts to handle async content loading
-    const timeouts = [0, 100, 300, 500]; // Progressive delays
+    const currentLength = messages.length;
+    const previousLength = previousMessagesLength.current;
     
-    timeouts.forEach((delay, index) => {
-      setTimeout(() => {
-        scrollToBottom(index === 0 ? 'auto' : 'smooth');
-      }, delay);
-    });
-
-    // Cleanup function to clear any pending timeouts
-    return () => {
-      timeouts.forEach((_, index) => {
-        clearTimeout(index);
+    // Always scroll to bottom when room changes (messages array changes significantly)
+    // or when new messages are added
+    if (currentLength !== previousLength || currentLength > 0) {
+      // Use immediate scroll for room changes, smooth for new messages
+      const scrollBehavior = (currentLength > 0 && previousLength === 0) ? 'auto' : 'smooth';
+      
+      // Multiple attempts to ensure scrolling works with async content
+      const scrollAttempts = [0, 50, 150, 300, 500];
+      
+      scrollAttempts.forEach((delay, index) => {
+        setTimeout(() => {
+          scrollToBottom(index === 0 ? 'auto' : scrollBehavior);
+        }, delay);
       });
-    };
+    }
+    
+    previousMessagesLength.current = currentLength;
   }, [messages]);
 
-  // Also scroll on component mount if messages exist
+  // Force scroll to bottom on component mount
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => scrollToBottom('auto'), 50);
+      // Immediate scroll on mount
+      setTimeout(() => scrollToBottom('auto'), 0);
+      setTimeout(() => scrollToBottom('auto'), 100);
     }
   }, []);
 
