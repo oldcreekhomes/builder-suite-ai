@@ -265,8 +265,12 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                   .map((room) => (
                   <div
                     key={room.id}
-                    onClick={() => onRoomSelect(room)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onRoomSelect(room);
+                    }}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                       selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                     }`}
                   >
@@ -315,8 +319,12 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                   return (
                     <div
                       key={employee.id}
-                      onClick={() => onStartChat(employee)}
-                      className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onStartChat(employee);
+                      }}
+                      className="p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-12 w-12">
