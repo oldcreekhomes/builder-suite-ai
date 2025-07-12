@@ -14,23 +14,40 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current && scrollContainerRef.current) {
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Function to scroll to bottom
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: behavior
       });
     }
+  };
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    // Use multiple timeouts to handle async content loading
+    const timeouts = [0, 100, 300, 500]; // Progressive delays
+    
+    timeouts.forEach((delay, index) => {
+      setTimeout(() => {
+        scrollToBottom(index === 0 ? 'auto' : 'smooth');
+      }, delay);
+    });
+
+    // Cleanup function to clear any pending timeouts
+    return () => {
+      timeouts.forEach((_, index) => {
+        clearTimeout(index);
+      });
+    };
   }, [messages]);
 
-  // Also scroll immediately on component mount if messages exist
+  // Also scroll on component mount if messages exist
   useEffect(() => {
-    if (messages.length > 0 && messagesEndRef.current) {
-      // Immediate scroll on mount without animation for faster initial load
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-      }, 100);
+    if (messages.length > 0) {
+      setTimeout(() => scrollToBottom('auto'), 50);
     }
   }, []);
 
