@@ -32,28 +32,27 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
     if (messages.length > 0) {
       console.log("MessagesList - Rendering messages:", messages.length);
       console.log("MessagesList - Last message:", messages[messages.length - 1]);
-      console.log("MessagesList - Last message timestamp:", messages[messages.length - 1]?.created_at);
       
-      // Immediate scroll
-      scrollToBottom();
-      
-      // Additional scroll after a short delay to handle any async rendering
-      const timeoutId = setTimeout(() => {
-        scrollToBottom();
+      // Use requestAnimationFrame to ensure DOM has updated, then scroll
+      requestAnimationFrame(() => {
+        scrollToBottom(false); // Instant scroll first
         
-        // Log scroll position after scrolling
-        if (scrollContainerRef.current) {
-          const container = scrollContainerRef.current;
-          console.log("MessagesList - Scroll position:", {
-            scrollTop: container.scrollTop,
-            scrollHeight: container.scrollHeight,
-            clientHeight: container.clientHeight,
-            isAtBottom: container.scrollTop + container.clientHeight >= container.scrollHeight - 10
-          });
-        }
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
+        // Then a delayed scroll to handle any lazy-loaded content
+        setTimeout(() => {
+          scrollToBottom(false);
+          
+          // Log scroll position after scrolling
+          if (scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            console.log("MessagesList - Scroll position:", {
+              scrollTop: container.scrollTop,
+              scrollHeight: container.scrollHeight,
+              clientHeight: container.clientHeight,
+              isAtBottom: container.scrollTop + container.clientHeight >= container.scrollHeight - 10
+            });
+          }
+        }, 200); // Increased delay to ensure all content is rendered
+      });
     }
   }, [messages, scrollToBottom]);
 
