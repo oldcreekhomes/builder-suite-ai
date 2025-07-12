@@ -36,6 +36,7 @@ export function useChat() {
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -53,6 +54,7 @@ export function useChat() {
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
     try {
+      setIsLoadingMessages(true);
       console.log('Fetching messages for room:', roomId);
       const { data, error } = await supabase
         .from('employee_chat_messages')
@@ -113,6 +115,13 @@ export function useChat() {
       setMessages(messagesWithReplies);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingMessages(false);
     }
   };
 
@@ -353,6 +362,8 @@ export function useChat() {
   // Fetch messages when room changes
   useEffect(() => {
     if (selectedRoom) {
+      // Clear messages immediately when switching rooms
+      setMessages([]);
       fetchMessages(selectedRoom.id);
       markSelectedRoomAsRead(selectedRoom.id);
     }
@@ -363,6 +374,7 @@ export function useChat() {
     setSelectedRoom,
     messages,
     currentUserId,
+    isLoadingMessages,
     startChatWithEmployee,
     sendMessage,
     editMessage,
