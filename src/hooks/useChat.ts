@@ -175,9 +175,9 @@ export function useChat() {
         replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
       }));
 
-      // Check if request was cancelled or component unmounted
-      if (newAbortController.signal.aborted || !mountedRef.current) {
-        console.log('Request was cancelled or component unmounted');
+      // Check if request was cancelled
+      if (newAbortController.signal.aborted) {
+        console.log('Request was cancelled');
         return;
       }
 
