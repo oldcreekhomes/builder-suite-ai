@@ -262,9 +262,14 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
               <>
 
                 {/* Users with existing conversations first */}
+                {/* Users with existing conversations first */}
                 {chatRooms
                   .filter(room => room.otherUser && room.otherUser.first_name && room.otherUser.last_name) // Filter out GC entries
-                  .sort((a, b) => (a.otherUser?.first_name || '').localeCompare(b.otherUser?.first_name || '')) // Sort by first name alphabetically
+                  .sort((a, b) => {
+                    const nameA = (a.otherUser?.first_name || '').toLowerCase();
+                    const nameB = (b.otherUser?.first_name || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                  }) // Sort by first name alphabetically
                   .map((room) => (
                   <div
                     key={room.id}
