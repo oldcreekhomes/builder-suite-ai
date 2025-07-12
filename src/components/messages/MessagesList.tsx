@@ -16,88 +16,25 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   const previousMessagesLength = useRef(messages.length);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Enhanced scroll to bottom function
-  const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto', force = false) => {
+  // Simplified scroll to bottom function
+  const scrollToBottom = useCallback(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      
-      // Clear any existing scroll timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      
-      const doScroll = () => {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: behavior
-        });
-      };
-      
-      // Immediate scroll
-      doScroll();
-      
-      // Additional delayed scrolls to handle async content loading
-      if (force) {
-        [100, 300, 600, 1000].forEach((delay) => {
-          scrollTimeoutRef.current = setTimeout(doScroll, delay);
-        });
-      }
+      container.scrollTop = container.scrollHeight;
     }
   }, []);
 
-  // Scroll to bottom when messages change - especially important for room switches
+  // Scroll to bottom when messages change
   useEffect(() => {
-    const currentLength = messages.length;
-    const previousLength = previousMessagesLength.current;
-    
-    // If messages changed (new room loaded or new messages)
-    if (currentLength !== previousLength) {
-      if (currentLength > 0) {
-        // For room switches (when going from 0 to N messages or significant change)
-        const isRoomSwitch = previousLength === 0 && currentLength > 0;
-        
-        if (isRoomSwitch) {
-          // Force immediate scroll to bottom for room switches
-          scrollToBottom('auto', true);
-        } else {
-          // Smooth scroll for new messages
-          scrollToBottom('smooth');
-        }
-      }
+    if (messages.length > 0) {
+      // Immediate scroll
+      scrollToBottom();
+      
+      // Additional scroll after a short delay to handle any async rendering
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-    
-    previousMessagesLength.current = currentLength;
-  }, [messages, scrollToBottom]);
-
-  // Force scroll on mount and when container becomes available
-  useEffect(() => {
-    if (messages.length > 0 && scrollContainerRef.current) {
-      // Multiple immediate attempts to ensure scroll happens
-      scrollToBottom('auto', true);
-    }
-  }, [messages.length, scrollToBottom]);
-
-  // Add intersection observer to detect when images/files are loaded
-  useEffect(() => {
-    if (messages.length === 0) return;
-
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    // Wait a bit for initial render, then scroll
-    const initialScrollTimeout = setTimeout(() => {
-      scrollToBottom('auto', true);
-    }, 50);
-
-    // Also scroll after a longer delay to catch any slow-loading content
-    const finalScrollTimeout = setTimeout(() => {
-      scrollToBottom('auto');
-    }, 1500);
-
-    return () => {
-      clearTimeout(initialScrollTimeout);
-      clearTimeout(finalScrollTimeout);
-    };
   }, [messages, scrollToBottom]);
 
   // Cleanup timeouts on unmount
