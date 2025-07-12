@@ -16,13 +16,12 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
   const previousMessagesLength = useRef(messages.length);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Scroll to bottom function using the messagesEndRef
+  // Scroll to bottom function - scroll container to very bottom
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'instant',
-        block: 'end'
-      });
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      // Use scrollTop instead of scrollIntoView to ensure we go to the absolute bottom
+      container.scrollTop = container.scrollHeight;
     }
   }, []);
 
