@@ -127,7 +127,13 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
       }
 
       console.log('Found users for chat:', allUsers);
-      setEmployees(allUsers);
+      // Sort employees by first name before setting state
+      const sortedEmployees = allUsers.sort((a, b) => {
+        const nameA = (a.first_name || '').toLowerCase();
+        const nameB = (b.first_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setEmployees(sortedEmployees);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast({
@@ -203,7 +209,13 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
         })
       );
 
-      setChatRooms(roomsWithDetails);
+      // Sort rooms by other user's first name before setting state
+      const sortedRooms = roomsWithDetails.sort((a, b) => {
+        const nameA = (a.otherUser?.first_name || '').toLowerCase();
+        const nameB = (b.otherUser?.first_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      setChatRooms(sortedRooms);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
     }
