@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -51,22 +51,36 @@ export function useChat() {
     getCurrentUser();
   }, []);
 
-  // Track AbortController for cancelling requests
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  // Use ref for AbortController to avoid state updates after unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
     try {
       // Cancel any previous request
-      if (abortController) {
-        abortController.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
       // Create new AbortController for this request
       const newAbortController = new AbortController();
-      setAbortController(newAbortController);
+      abortControllerRef.current = newAbortController;
 
-      setIsLoadingMessages(true);
+      if (mountedRef.current) {
+        setIsLoadingMessages(true);
+      }
+      
       console.log('Fetching messages for room:', roomId);
       
       const { data, error } = await supabase
@@ -88,104 +102,92 @@ export function useChat() {
 
       if (!data || data.length === 0) {
         console.log('No messages found for room:', roomId);
-        setMessages([]);
+        if (mountedRef.current) {
+          setMessages([]);
+        }
         return;
       }
 
       console.log('Processing', data.length, 'messages...');
 
-      // For each message, get the sender details with improved error handling
-      const messagesWithSenders = await Promise.allSettled(
-        data.map(async (message: any) => {
-          try {
-            // Try to find sender in owners table first (home builders)
-            let { data: senderProfile, error: ownerError } = await supabase
-              .from('owners')
-              .select('id, first_name, last_name, avatar_url, email, role')
+      // Simplified sender lookup without Promise.allSettled to avoid complexity
+      const messagesWithSenders = [];
+      
+      for (const message of data) {
+        try {
+          // Try to find sender in owners table first (home builders)
+          let { data: senderProfile } = await supabase
+            .from('owners')
+            .select('id, first_name, last_name, avatar_url, email, role')
+            .eq('id', message.sender_id)
+            .maybeSingle();
+
+          // If not found in owners, try employees table
+          if (!senderProfile) {
+            const { data: employeeSender } = await supabase
+              .from('employees')
+              .select('id, first_name, last_name, role, avatar_url, email')
               .eq('id', message.sender_id)
               .maybeSingle();
-
-            if (ownerError) {
-              console.warn('Error fetching owner:', ownerError);
+            
+            if (employeeSender) {
+              senderProfile = { ...employeeSender };
             }
-
-            // If not found in owners, try employees table
-            if (!senderProfile) {
-              const { data: employeeSender, error: employeeError } = await supabase
-                .from('employees')
-                .select('id, first_name, last_name, role, avatar_url, email')
-                .eq('id', message.sender_id)
-                .maybeSingle();
-              
-              if (employeeError) {
-                console.warn('Error fetching employee:', employeeError);
-              } else if (employeeSender) {
-                senderProfile = { ...employeeSender };
-              }
-            }
-
-            // Return message with sender info
-            return {
-              ...message,
-              sender: senderProfile || { 
-                id: message.sender_id, 
-                first_name: 'Unknown', 
-                last_name: 'User', 
-                role: 'user', 
-                avatar_url: null, 
-                email: '' 
-              }
-            };
-          } catch (senderError) {
-            console.error('Error processing message sender:', senderError);
-            // Return message with fallback sender info
-            return {
-              ...message,
-              sender: { 
-                id: message.sender_id, 
-                first_name: 'Unknown', 
-                last_name: 'User', 
-                role: 'user', 
-                avatar_url: null, 
-                email: '' 
-              }
-            };
           }
-        })
-      );
 
-      // Filter out failed promises and extract successful results
-      const successfulMessages = messagesWithSenders
-        .filter(result => result.status === 'fulfilled')
-        .map(result => (result as PromiseFulfilledResult<any>).value);
-
-      if (messagesWithSenders.some(result => result.status === 'rejected')) {
-        const rejectedCount = messagesWithSenders.filter(result => result.status === 'rejected').length;
-        console.warn(`${rejectedCount} messages failed to process senders`);
+          // Add message with sender info
+          messagesWithSenders.push({
+            ...message,
+            sender: senderProfile || { 
+              id: message.sender_id, 
+              first_name: 'Unknown', 
+              last_name: 'User', 
+              role: 'user', 
+              avatar_url: null, 
+              email: '' 
+            }
+          });
+        } catch (senderError) {
+          console.error('Error processing message sender:', senderError);
+          // Add message with fallback sender info
+          messagesWithSenders.push({
+            ...message,
+            sender: { 
+              id: message.sender_id, 
+              first_name: 'Unknown', 
+              last_name: 'User', 
+              role: 'user', 
+              avatar_url: null, 
+              email: '' 
+            }
+          });
+        }
       }
 
-      console.log('Successfully processed', successfulMessages.length, 'messages');
+      console.log('Successfully processed', messagesWithSenders.length, 'messages');
 
       // Create a map for quick lookup
-      const messagesMap = new Map(successfulMessages.map(msg => [msg.id, msg]));
+      const messagesMap = new Map(messagesWithSenders.map(msg => [msg.id, msg]));
       
       // Add replied_message references
-      const messagesWithReplies = successfulMessages.map(msg => ({
+      const messagesWithReplies = messagesWithSenders.map(msg => ({
         ...msg,
         replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
       }));
 
-      // Check if request was cancelled
-      if (newAbortController.signal.aborted) {
-        console.log('Request was cancelled');
+      // Check if request was cancelled or component unmounted
+      if (newAbortController.signal.aborted || !mountedRef.current) {
+        console.log('Request was cancelled or component unmounted');
         return;
       }
 
       console.log('Setting messages, final count:', messagesWithReplies.length);
-      setMessages(messagesWithReplies);
+      if (mountedRef.current) {
+        setMessages(messagesWithReplies);
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && mountedRef.current) {
         toast({
           title: "Error",
           description: "Failed to load messages",
@@ -193,8 +195,10 @@ export function useChat() {
         });
       }
     } finally {
-      setIsLoadingMessages(false);
-      setAbortController(null);
+      if (mountedRef.current) {
+        setIsLoadingMessages(false);
+      }
+      abortControllerRef.current = null;
     }
   };
 
