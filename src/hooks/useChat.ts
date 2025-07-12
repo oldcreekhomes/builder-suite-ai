@@ -53,6 +53,7 @@ export function useChat() {
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
     try {
+      console.log('Fetching messages for room:', roomId);
       const { data, error } = await supabase
         .from('employee_chat_messages')
         .select(`
@@ -65,8 +66,10 @@ export function useChat() {
         `)
         .eq('room_id', roomId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(1000); // Explicitly set a high limit to ensure all messages are fetched
 
+      console.log('Messages query result:', { data, error, count: data?.length });
       if (error) throw error;
 
       // For each message, get the sender details from either profiles or employees table
