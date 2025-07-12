@@ -44,29 +44,40 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
   const { toast } = useToast();
   const { unreadCounts } = useChatNotifications();
 
-  // Create sorted versions using useMemo to ensure they update when data changes
-  const sortedChatRooms = useMemo(() => {
-    return chatRooms
-      .filter(room => room.otherUser && room.otherUser.first_name && room.otherUser.last_name)
-      .sort((a, b) => {
-        const nameA = (a.otherUser?.first_name || '').toLowerCase();
-        const nameB = (b.otherUser?.first_name || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-  }, [chatRooms]);
-
-  const sortedEmployeesWithoutChats = useMemo(() => {
-    return employees
-      .filter((employee) => {
-        const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
-        return !hasRecentChat;
-      })
-      .sort((a, b) => {
-        const nameA = (a.first_name || '').toLowerCase();
-        const nameB = (b.first_name || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-  }, [employees, chatRooms]);
+  // Combine all users and sort them alphabetically by first name
+  const allSortedUsers = useMemo(() => {
+    const allUsers = [];
+    
+    // Add users from existing chat rooms
+    chatRooms.forEach(room => {
+      if (room.otherUser && room.otherUser.first_name && room.otherUser.last_name) {
+        allUsers.push({
+          type: 'chat',
+          user: room.otherUser,
+          room: room
+        });
+      }
+    });
+    
+    // Add employees without existing chats
+    employees.forEach(employee => {
+      const hasRecentChat = chatRooms.some(room => room.otherUser?.id === employee.id);
+      if (!hasRecentChat) {
+        allUsers.push({
+          type: 'employee',
+          user: employee,
+          room: null
+        });
+      }
+    });
+    
+    // Sort all users alphabetically by first name
+    return allUsers.sort((a, b) => {
+      const nameA = (a.user.first_name || '').toLowerCase();
+      const nameB = (b.user.first_name || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [chatRooms, employees]);
 
   // Fetch employees for display
   const fetchEmployees = async () => {
@@ -262,24 +273,6 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
     return `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email;
   };
 
-  // Combine chat rooms with employees for display
-  const getCombinedUserList = () => {
-    const usersWithChats: Employee[] = [];
-    const usersWithoutChats: Employee[] = [];
-
-    employees.forEach(employee => {
-      const hasExistingChat = chatRooms.some(room => room.otherUser?.id === employee.id);
-      if (hasExistingChat) {
-        usersWithChats.push(employee);
-      } else {
-        usersWithoutChats.push(employee);
-      }
-    });
-
-    return { usersWithChats, usersWithoutChats };
-  };
-
-  const { usersWithChats, usersWithoutChats } = getCombinedUserList();
 
   return (
     <SidebarContent className="px-3 py-2">
@@ -297,63 +290,63 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
             ) : (
               <>
 
-                {/* Users with existing conversations first */}
-                {sortedChatRooms.map((room) => (
-                  <div
-                    key={room.id}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onRoomSelect(room);
-                      // Navigate to messages if not already there (same behavior as startChatWithEmployee)
-                      if (window.location.pathname !== '/messages') {
-                        navigate('/messages', {
-                          state: { selectedRoom: room }
-                        });
-                      }
-                    }}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
-                      selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={room.otherUser?.avatar_url || ""} />
-                          <AvatarFallback className="bg-gray-200 text-gray-600">
-                            {room.otherUser 
-                              ? getInitials(room.otherUser.first_name, room.otherUser.last_name)
-                              : 'GC'
-                            }
-                          </AvatarFallback>
-                        </Avatar>
-                        {unreadCounts[room.id] > 0 && (
-                          <Badge 
-                            variant="destructive" 
-                            className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                          >
-                            {unreadCounts[room.id]}
-                          </Badge>
-                        )}
+                {/* All users sorted alphabetically */}
+                {allSortedUsers.map((userItem) => {
+                  if (userItem.type === 'chat' && userItem.room) {
+                    const room = userItem.room;
+                    return (
+                      <div
+                        key={room.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onRoomSelect(room);
+                          // Navigate to messages if not already there
+                          if (window.location.pathname !== '/messages') {
+                            navigate('/messages', {
+                              state: { selectedRoom: room }
+                            });
+                          }
+                        }}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
+                          selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="relative">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={userItem.user.avatar_url || ""} />
+                              <AvatarFallback className="bg-gray-200 text-gray-600">
+                                {getInitials(userItem.user.first_name, userItem.user.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {unreadCounts[room.id] > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                              >
+                                {unreadCounts[room.id]}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">
+                              {getDisplayName(userItem.user)}
+                            </h3>
+                            <span className="text-xs text-gray-500">
+                              {new Date(room.updated_at).toLocaleDateString()}
+                            </span>
+                            {room.lastMessage && (
+                              <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {room.otherUser ? getDisplayName(room.otherUser) : room.name}
-                        </h3>
-                        <span className="text-xs text-gray-500">
-                          {new Date(room.updated_at).toLocaleDateString()}
-                        </span>
-                        {room.lastMessage && (
-                          <p className="text-sm text-gray-600 truncate mt-1">{room.lastMessage}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Users without conversations */}
-                {sortedEmployeesWithoutChats.map((employee) => {
+                    );
+                  } else {
+                    // Employee without existing chat
+                    const employee = userItem.user;
                     return (
                       <div
                         key={employee.id}
@@ -380,6 +373,7 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                         </div>
                       </div>
                     );
+                  }
                 })}
 
                 {/* Empty State */}
