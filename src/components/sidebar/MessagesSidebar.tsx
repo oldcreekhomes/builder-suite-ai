@@ -271,9 +271,11 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
                       e.preventDefault();
                       e.stopPropagation();
                       onRoomSelect(room);
-                      // Navigate to messages if not already there (same behavior as new chats)
+                      // Navigate to messages if not already there (same behavior as startChatWithEmployee)
                       if (window.location.pathname !== '/messages') {
-                        navigate('/messages');
+                        navigate('/messages', {
+                          state: { selectedRoom: room }
+                        });
                       }
                     }}
                     className={`p-4 cursor-pointer hover:bg-gray-50 border-b border-gray-100 transition-colors ${
