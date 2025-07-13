@@ -15,8 +15,8 @@ export function ChatHeader({ selectedRoom }: ChatHeaderProps) {
   };
 
   return (
-    <div className="pt-6 pb-4 px-4 border-b border-gray-200 bg-white flex-shrink-0">
-      <div className="flex items-center space-x-3">
+    <div className="pt-8 pb-6 px-6 border-b border-gray-200 bg-white flex-shrink-0">
+      <div className="flex items-center justify-center space-x-4">
         <Avatar className="h-10 w-10">
           <AvatarImage src={selectedRoom.avatar_url || ""} />
           <AvatarFallback className="bg-gray-200 text-gray-600">
