@@ -813,6 +813,13 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_user_role_and_home_builder: {
+        Args: { user_id: string }
+        Returns: {
+          user_role: string
+          user_home_builder_id: string
+        }[]
+      }
       mark_conversation_as_read: {
         Args: { other_user_id_param: string }
         Returns: undefined
