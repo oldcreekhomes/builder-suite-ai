@@ -35,10 +35,15 @@ export function MessagesList({
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'end'
+    if (messagesEndRef.current && scrollContainerRef.current) {
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ 
+            behavior: 'instant',
+            block: 'end'
+          });
+        }
       });
     }
   }, []);
@@ -84,10 +89,20 @@ export function MessagesList({
     const currentLength = messages.length;
     const previousLength = previousMessagesLength.current;
     
-    // Only scroll to bottom if this is the initial load or new messages were added
-    if (currentLength > 0 && (previousLength === 0 || (currentLength > previousLength && !isLoadingMore))) {
-      console.log("MessagesList - New messages, scrolling to bottom");
-      scrollToBottom();
+    // Scroll to bottom if:
+    // 1. This is the initial load (previousLength === 0 and we have messages)
+    // 2. New messages were added (not from loading more historical messages)
+    if (currentLength > 0) {
+      if (previousLength === 0) {
+        // Initial load - always scroll to bottom
+        console.log("MessagesList - Initial load, scrolling to bottom");
+        // Use a small delay to ensure DOM is rendered
+        setTimeout(() => scrollToBottom(), 100);
+      } else if (currentLength > previousLength && !isLoadingMore) {
+        // New messages added (not loading historical ones)
+        console.log("MessagesList - New messages, scrolling to bottom");
+        setTimeout(() => scrollToBottom(), 100);
+      }
     }
     
     previousMessagesLength.current = currentLength;
