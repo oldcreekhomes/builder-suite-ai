@@ -47,6 +47,9 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   };
 
   const handleUserClick = (user: CompanyUser) => {
+    console.log('User clicked:', user);
+    console.log('onUserSelect function:', onUserSelect);
+    console.log('onStartChat function:', onStartChat);
     onUserSelect(user);
     onStartChat(user);
   };
