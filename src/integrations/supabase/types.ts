@@ -886,6 +886,60 @@ export type Database = {
           },
         ]
       }
+      user_chat_messages: {
+        Row: {
+          created_at: string
+          file_urls: string[] | null
+          id: string
+          is_deleted: boolean
+          message_text: string | null
+          recipient_id: string
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_deleted?: boolean
+          message_text?: string | null
+          recipient_id: string
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_urls?: string[] | null
+          id?: string
+          is_deleted?: boolean
+          message_text?: string | null
+          recipient_id?: string
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_chat_read_status: {
+        Row: {
+          id: string
+          last_read_at: string
+          other_user_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_read_at?: string
+          other_user_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_read_at?: string
+          other_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notification_preferences: {
         Row: {
           created_at: string
@@ -922,6 +976,10 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
+      get_conversation_unread_count: {
+        Args: { other_user_id_param: string }
+        Returns: number
+      }
       get_current_user_home_builder_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -957,6 +1015,10 @@ export type Database = {
       is_room_participant: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
+      }
+      mark_conversation_as_read: {
+        Args: { other_user_id_param: string }
+        Returns: undefined
       }
       mark_room_as_read: {
         Args: { room_id_param: string }
