@@ -22,8 +22,8 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
       {(isMessagesPage || isCompanyDashboard) ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
-          onUserSelect={onUserSelect || (() => {})}
-          onStartChat={onStartChat || (() => {})}
+          onUserSelect={onUserSelect}
+          onStartChat={onStartChat}
         />
       ) : (
         <SidebarNavigation />
