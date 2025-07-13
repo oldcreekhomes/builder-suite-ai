@@ -29,6 +29,7 @@ export function useDocumentTitle() {
             user_id_param: currentUserId
           });
         
+        console.log('Loaded total unread count:', totalCount);
         setTotalUnread(totalCount || 0);
       } catch (error) {
         console.error('Error loading total unread count:', error);
@@ -49,9 +50,13 @@ export function useDocumentTitle() {
         },
         async (payload) => {
           const newMessage = payload.new as any;
+          console.log('Document title: New message received:', newMessage);
           
           // Only process if this message is not from current user
-          if (newMessage.sender_id === currentUserId) return;
+          if (newMessage.sender_id === currentUserId) {
+            console.log('Document title: Message from current user, ignoring');
+            return;
+          }
 
           // Check if current user is participant in this room
           const { data: isParticipant } = await supabase
@@ -60,10 +65,18 @@ export function useDocumentTitle() {
               _user_id: currentUserId
             });
 
-          if (!isParticipant) return;
+          if (!isParticipant) {
+            console.log('Document title: User not participant, ignoring');
+            return;
+          }
 
+          console.log('Document title: Incrementing unread count');
           // Update total unread count
-          setTotalUnread(current => current + 1);
+          setTotalUnread(current => {
+            const newCount = current + 1;
+            console.log('Document title: Unread count updated from', current, 'to', newCount);
+            return newCount;
+          });
         }
       )
       .subscribe();
@@ -76,12 +89,50 @@ export function useDocumentTitle() {
   // Update document title when unread count changes
 
   useEffect(() => {
+    console.log('Document title: Updating title with unread count:', totalUnread);
     if (totalUnread > 0) {
       document.title = `(${totalUnread}) ${BASE_TITLE}`;
     } else {
       document.title = BASE_TITLE;
     }
   }, [totalUnread]);
+
+  // Listen for when rooms are marked as read to decrease the count
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel('document_title_read_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'employee_chat_participants',
+          filter: `user_id=eq.${currentUserId}`
+        },
+        async () => {
+          console.log('Document title: Room marked as read, refreshing total count');
+          // Refresh total unread count when participant records are updated (last_read_at changes)
+          try {
+            const { data: totalCount } = await supabase
+              .rpc('get_total_unread_count', {
+                user_id_param: currentUserId
+              });
+            
+            console.log('Document title: Refreshed total unread count:', totalCount);
+            setTotalUnread(totalCount || 0);
+          } catch (error) {
+            console.error('Error refreshing total unread count:', error);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   return { totalUnread };
 }
