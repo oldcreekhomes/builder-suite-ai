@@ -601,14 +601,12 @@ export function useChat() {
     }
   }, [selectedRoom]);
 
-  // Set up real-time subscription for current room
+  // Set up real-time subscription for the current room
   useEffect(() => {
     if (!selectedRoom || !currentUserId) return;
 
-    console.log('Setting up real-time subscription for room:', selectedRoom.id);
-
     const channel = supabase
-      .channel(`room_${selectedRoom.id}`)
+      .channel(`messages_${selectedRoom.id}`)
       .on(
         'postgres_changes',
         {
@@ -618,41 +616,20 @@ export function useChat() {
           filter: `room_id=eq.${selectedRoom.id}`
         },
         async (payload) => {
-          console.log('Real-time message received:', payload);
-          
           const newMessage = payload.new as any;
           
-          // Don't add optimistic messages again
-          if (newMessage.id.startsWith('temp-')) return;
-          
-          // Only refresh if this message is not from current user (to avoid duplication)
-          // Since we already show optimistic messages for current user
-          if (newMessage.sender_id !== currentUserId) {
-            console.log('Message from other user, refreshing messages');
-            await refreshMessages(selectedRoom.id);
-          } else {
-            console.log('Message from current user, already handled optimistically');
+          // Don't add optimistic messages again or messages from current user (already handled)
+          if (newMessage.id.startsWith('temp-') || newMessage.sender_id === currentUserId) {
+            return;
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'employee_chat_messages',
-          filter: `room_id=eq.${selectedRoom.id}`
-        },
-        async (payload) => {
-          console.log('Real-time message update received:', payload);
-          // Refresh messages when a message is edited or deleted
+          
+          // Refresh messages for messages from other users
           await refreshMessages(selectedRoom.id);
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up real-time subscription for room:', selectedRoom.id);
       supabase.removeChannel(channel);
     };
   }, [selectedRoom, currentUserId]);
