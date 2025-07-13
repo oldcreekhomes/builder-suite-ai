@@ -134,9 +134,7 @@ export function useChatNotifications() {
             
           const isDirectMessage = roomData?.is_direct_message || false;
 
-          // Check message type preferences
-          if (isDirectMessage && !preferences.direct_message_notifications) return;
-          if (!isDirectMessage && !preferences.group_message_notifications) return;
+          // All messages are treated the same - no message type filtering needed
 
           // Update unread count for this room
           setUnreadCounts(prev => ({

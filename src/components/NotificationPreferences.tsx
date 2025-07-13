@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageSquare, TestTube } from "lucide-react";
+import { Bell, TestTube } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { toast } from "sonner";
 
@@ -88,41 +88,6 @@ export const NotificationPreferences = () => {
       </div>
 
 
-      {/* Message Type Filters */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          <h3 className="text-sm font-medium">Message Types</h3>
-        </div>
-        
-        <div className="space-y-3 pl-6">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="direct-messages" className="text-sm">
-              Direct messages
-            </Label>
-            <Switch
-              id="direct-messages"
-              checked={preferences.direct_message_notifications}
-              onCheckedChange={(checked) => 
-                updatePreferences({ direct_message_notifications: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="group-messages" className="text-sm">
-              Group messages
-            </Label>
-            <Switch
-              id="group-messages"
-              checked={preferences.group_message_notifications}
-              onCheckedChange={(checked) => 
-                updatePreferences({ group_message_notifications: checked })
-              }
-            />
-          </div>
-        </div>
-      </div>
 
 
       {/* Test Notification */}

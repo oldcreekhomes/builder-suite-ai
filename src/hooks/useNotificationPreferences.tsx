@@ -9,16 +9,12 @@ export interface NotificationPreferences {
   browser_notifications_enabled: boolean;
   sound_notifications_enabled: boolean;
   toast_notifications_enabled: boolean;
-  direct_message_notifications: boolean;
-  group_message_notifications: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   browser_notifications_enabled: true,
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
-  direct_message_notifications: true,
-  group_message_notifications: true,
 };
 
 export const useNotificationPreferences = () => {

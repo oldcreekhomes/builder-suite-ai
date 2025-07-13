@@ -890,8 +890,6 @@ export type Database = {
         Row: {
           browser_notifications_enabled: boolean
           created_at: string
-          direct_message_notifications: boolean
-          group_message_notifications: boolean
           id: string
           sound_notifications_enabled: boolean
           toast_notifications_enabled: boolean
@@ -901,8 +899,6 @@ export type Database = {
         Insert: {
           browser_notifications_enabled?: boolean
           created_at?: string
-          direct_message_notifications?: boolean
-          group_message_notifications?: boolean
           id?: string
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
@@ -912,8 +908,6 @@ export type Database = {
         Update: {
           browser_notifications_enabled?: boolean
           created_at?: string
-          direct_message_notifications?: boolean
-          group_message_notifications?: boolean
           id?: string
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
