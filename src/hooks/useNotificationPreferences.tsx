@@ -50,12 +50,26 @@ export const useNotificationPreferences = () => {
         throw error;
       }
 
-      // If no preferences exist, return defaults
+      // If no preferences exist, create them with defaults
       if (!data) {
-        return {
+        const defaultData = {
           ...defaultPreferences,
           user_id: user.id,
         };
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from('user_notification_preferences')
+          .insert(defaultData)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating default notification preferences:', insertError);
+          // Return defaults without saving if insert fails
+          return defaultData;
+        }
+
+        return insertedData;
       }
 
       return data;
