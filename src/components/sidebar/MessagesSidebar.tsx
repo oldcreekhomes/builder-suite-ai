@@ -79,7 +79,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
               filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className={`flex items-center space-x-4 p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 w-4/5 ${
                     selectedUser?.id === user.id ? 'bg-gray-100' : ''
                   }`}
                   onClick={() => handleUserClick(user)}
@@ -92,7 +92,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                   </Avatar>
                   
                   <div className="flex-1 min-w-0 ml-3">
-                    <p className="text-base font-medium text-gray-900 truncate">
+                    <p className="text-base font-medium text-gray-900">
                       {getDisplayName(user)}
                     </p>
                   </div>
