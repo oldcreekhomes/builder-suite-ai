@@ -47,14 +47,10 @@ export const useProjectFiles = (projectId: string) => {
       // Get unique uploaded_by IDs
       const uploaderIds = [...new Set(filesData.map(file => file.uploaded_by))];
       
-      // Get uploader info from both users and employees tables
-      const [usersData, employeesData] = await Promise.all([
+      // Get uploader info from unified users table
+      const [usersData] = await Promise.all([
         supabase
-          .from('owners')
-          .select('id, email')
-          .in('id', uploaderIds),
-        supabase
-          .from('employees')
+          .from('users')
           .select('id, email')
           .in('id', uploaderIds)
       ]);
@@ -62,7 +58,6 @@ export const useProjectFiles = (projectId: string) => {
       // Create a map of uploader info
       const uploaderMap = new Map();
       usersData.data?.forEach(user => uploaderMap.set(user.id, { email: user.email }));
-      employeesData.data?.forEach(employee => uploaderMap.set(employee.id, { email: employee.email }));
 
       // Combine files with uploader info
       const filesWithUploaders = filesData.map(file => ({

@@ -22,11 +22,12 @@ const SignupForm = () => {
 
   const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string}) => {
     try {
-      // Get home builder email
+      // Get home builder email from unified users table
       const { data: homeBuilderProfile, error } = await supabase
-        .from('owners')
+        .from('users')
         .select('email')
         .eq('id', homeBuilderData.id)
+        .eq('role', 'owner')
         .single();
 
       if (error || !homeBuilderProfile) {

@@ -43,37 +43,31 @@ export function EmployeeTable() {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return [];
 
-      // First check if user is a home builder (owner)
-      const { data: ownerData } = await supabase
-        .from('owners')
-        .select('*')
+      // Get current user's profile from unified users table
+      const { data: currentUserProfile } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
+      if (!currentUserProfile) return [];
+
       let homeBuilderIdToQuery = null;
 
-      if (ownerData) {
-        // User is a home builder - get their employees
+      if (currentUserProfile.role === 'owner') {
+        // User is an owner - get their employees
         homeBuilderIdToQuery = currentUser.user.id;
-      } else {
-        // Check if user is an employee
-        const { data: employeeData } = await supabase
-          .from('employees')
-          .select('home_builder_id')
-          .eq('id', currentUser.user.id)
-          .maybeSingle();
-          
-        if (employeeData?.home_builder_id) {
-          // User is an employee - get all employees from same company
-          homeBuilderIdToQuery = employeeData.home_builder_id;
-        }
+      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
+        // User is an employee - get all employees from same company
+        homeBuilderIdToQuery = currentUserProfile.home_builder_id;
       }
 
       if (homeBuilderIdToQuery) {
         const { data, error } = await supabase
-          .from('employees')
+          .from('users')
           .select('*')
           .eq('home_builder_id', homeBuilderIdToQuery)
+          .eq('role', 'employee')
           .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -89,7 +83,7 @@ export function EmployeeTable() {
     mutationFn: async (employeeId: string) => {
       console.log('Deleting employee with ID:', employeeId);
       const { error } = await supabase
-        .from('employees')
+        .from('users')
         .delete()
         .eq('id', employeeId);
       

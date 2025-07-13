@@ -23,10 +23,7 @@ export const useProjectPhotos = (projectId: string) => {
 
       const { data, error } = await supabase
         .from('project_photos')
-        .select(`
-          *,
-          uploaded_by_profile:owners!project_photos_uploaded_by_fkey(email)
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('uploaded_at', { ascending: false });
 

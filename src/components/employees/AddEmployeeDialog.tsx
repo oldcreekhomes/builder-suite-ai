@@ -32,9 +32,17 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) throw new Error("User not authenticated");
 
-      // Create the employee in the employees table
+      // Get the owner's company name
+      const { data: ownerData } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', currentUser.user.id)
+        .eq('role', 'owner')
+        .maybeSingle();
+
+      // Create the employee in the users table
       const { data, error } = await supabase
-        .from('employees')
+        .from('users')
         .insert({
           id: crypto.randomUUID(), // Generate a UUID for non-auth employees
           home_builder_id: currentUser.user.id,
@@ -42,7 +50,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone_number: formData.phoneNumber || null,
-          role: formData.role,
+          role: 'employee',
+          company_name: ownerData?.company_name || null,
           confirmed: formData.confirmed,
         })
         .select()

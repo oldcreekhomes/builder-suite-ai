@@ -68,21 +68,11 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
       console.log("Public URL:", publicUrl);
 
-      // Update the profile in the database immediately
-      // Try home_builders first
-      let { error: updateError } = await supabase
-        .from('owners')
+      // Update the profile in the unified users table
+      const { error: updateError } = await supabase
+        .from('users')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
-
-      // If no rows affected, try employees table
-      if (updateError?.code === 'PGRST116' || updateError?.message?.includes('0 rows')) {
-        const { error: employeeError } = await supabase
-          .from('employees')
-          .update({ avatar_url: publicUrl })
-          .eq('id', user.id);
-        updateError = employeeError;
-      }
 
       if (updateError) {
         console.error('Database update error:', updateError);
@@ -118,28 +108,15 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     setIsSaving(true);
     
     try {
-      // Try updating home_builders first
-      let { error } = await supabase
-        .from('owners')
+      // Update the profile in the unified users table
+      const { error } = await supabase
+        .from('users')
         .update({
           first_name: firstName,
           last_name: lastName,
           avatar_url: avatarUrl,
         })
         .eq('id', user.id);
-
-      // If no rows affected, try employees table
-      if (error?.code === 'PGRST116' || error?.message?.includes('0 rows')) {
-        const { error: employeeError } = await supabase
-          .from('employees')
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-            avatar_url: avatarUrl,
-          })
-          .eq('id', user.id);
-        error = employeeError;
-      }
 
       if (error) throw error;
 

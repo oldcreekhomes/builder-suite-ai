@@ -26,28 +26,16 @@ export const useSendMessage = () => {
       let currentUserName = 'You';
       let currentUserAvatar = null;
 
-      // Try owners first
-      const { data: owner } = await supabase
-        .from('owners')
+      // Get current user's profile info from unified users table
+      const { data: currentUserData } = await supabase
+        .from('users')
         .select('first_name, last_name, avatar_url')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
-      if (owner) {
-        currentUserName = `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || 'You';
-        currentUserAvatar = owner.avatar_url;
-      } else {
-        // Try employees
-        const { data: employee } = await supabase
-          .from('employees')
-          .select('first_name, last_name, avatar_url')
-          .eq('id', currentUser.user.id)
-          .maybeSingle();
-
-        if (employee) {
-          currentUserName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'You';
-          currentUserAvatar = employee.avatar_url;
-        }
+      if (currentUserData) {
+        currentUserName = `${currentUserData.first_name || ''} ${currentUserData.last_name || ''}`.trim() || 'You';
+        currentUserAvatar = currentUserData.avatar_url;
       }
 
       // Upload files if any

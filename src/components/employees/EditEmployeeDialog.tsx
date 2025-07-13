@@ -86,7 +86,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
       
       // Update the employee with the new avatar URL
       const { error: updateError } = await supabase
-        .from('employees')
+        .from('users')
         .update({ avatar_url: newAvatarUrl })
         .eq('id', employee.id);
 
@@ -135,12 +135,11 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
       if (!employee) return;
 
       const { error } = await supabase
-        .from('employees')
+        .from('users')
         .update({
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone_number: formData.phoneNumber || null,
-          role: formData.role,
           confirmed: formData.confirmed,
         })
         .eq('id', employee.id);

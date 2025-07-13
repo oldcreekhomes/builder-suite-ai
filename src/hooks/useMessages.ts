@@ -40,28 +40,16 @@ export const useMessages = () => {
           let senderName = 'Unknown';
           let senderAvatar = null;
 
-          // Try owners first
-          const { data: owner } = await supabase
-            .from('owners')
+          // Get sender info from unified users table
+          const { data: sender } = await supabase
+            .from('users')
             .select('first_name, last_name, avatar_url')
             .eq('id', msg.sender_id)
             .maybeSingle();
 
-          if (owner) {
-            senderName = `${owner.first_name || ''} ${owner.last_name || ''}`.trim();
-            senderAvatar = owner.avatar_url;
-          } else {
-            // Try employees
-            const { data: employee } = await supabase
-              .from('employees')
-              .select('first_name, last_name, avatar_url')
-              .eq('id', msg.sender_id)
-              .maybeSingle();
-
-            if (employee) {
-              senderName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
-              senderAvatar = employee.avatar_url;
-            }
+          if (sender) {
+            senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
+            senderAvatar = sender.avatar_url;
           }
 
           return {
