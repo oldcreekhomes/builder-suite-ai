@@ -230,116 +230,6 @@ export type Database = {
           },
         ]
       }
-      employee_chat_messages: {
-        Row: {
-          created_at: string
-          file_urls: string[] | null
-          id: string
-          is_deleted: boolean
-          message_text: string | null
-          reply_to_message_id: string | null
-          room_id: string
-          sender_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          file_urls?: string[] | null
-          id?: string
-          is_deleted?: boolean
-          message_text?: string | null
-          reply_to_message_id?: string | null
-          room_id: string
-          sender_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          file_urls?: string[] | null
-          id?: string
-          is_deleted?: boolean
-          message_text?: string | null
-          reply_to_message_id?: string | null
-          room_id?: string
-          sender_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_chat_messages_reply_to_message_id_fkey"
-            columns: ["reply_to_message_id"]
-            isOneToOne: false
-            referencedRelation: "employee_chat_messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employee_chat_messages_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "employee_chat_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employee_chat_participants: {
-        Row: {
-          id: string
-          joined_at: string
-          last_read_at: string | null
-          room_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          joined_at?: string
-          last_read_at?: string | null
-          room_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          joined_at?: string
-          last_read_at?: string | null
-          room_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employee_chat_participants_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "employee_chat_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employee_chat_rooms: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          is_direct_message: boolean
-          name: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          is_direct_message?: boolean
-          name?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          is_direct_message?: boolean
-          name?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       employees: {
         Row: {
           avatar_url: string | null
@@ -991,10 +881,6 @@ export type Database = {
           company_name: string
         }[]
       }
-      get_or_create_dm_room: {
-        Args: { other_user_id: string }
-        Returns: string
-      }
       get_pending_employee_approvals: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1004,24 +890,8 @@ export type Database = {
           created_at: string
         }[]
       }
-      get_total_unread_count: {
-        Args: { user_id_param: string }
-        Returns: number
-      }
-      get_unread_message_count: {
-        Args: { room_id_param: string; user_id_param: string }
-        Returns: number
-      }
-      is_room_participant: {
-        Args: { _room_id: string; _user_id: string }
-        Returns: boolean
-      }
       mark_conversation_as_read: {
         Args: { other_user_id_param: string }
-        Returns: undefined
-      }
-      mark_room_as_read: {
-        Args: { room_id_param: string }
         Returns: undefined
       }
     }
