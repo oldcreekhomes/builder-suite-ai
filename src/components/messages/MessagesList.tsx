@@ -84,29 +84,26 @@ export function MessagesList({
     }
   }, [hasMoreMessages, isLoadingMore, onLoadMoreMessages]);
 
-  // Auto-scroll to bottom only when new messages are added (not when loading more)
+  // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     const currentLength = messages.length;
     const previousLength = previousMessagesLength.current;
     
-    // Scroll to bottom if:
-    // 1. This is the initial load (previousLength === 0 and we have messages)
-    // 2. New messages were added (not from loading more historical messages)
-    if (currentLength > 0) {
+    // Always scroll to bottom when messages change, except when loading more historical messages
+    if (currentLength > 0 && !isLoadingMore) {
       if (previousLength === 0) {
         // Initial load - always scroll to bottom
         console.log("MessagesList - Initial load, scrolling to bottom");
-        // Use a small delay to ensure DOM is rendered
-        setTimeout(() => scrollToBottom(), 100);
-      } else if (currentLength > previousLength && !isLoadingMore) {
-        // New messages added (not loading historical ones)
-        console.log("MessagesList - New messages, scrolling to bottom");
-        setTimeout(() => scrollToBottom(), 100);
+        setTimeout(() => scrollToBottom(), 150);
+      } else if (currentLength !== previousLength) {
+        // Messages changed (new messages or refresh) - scroll to bottom
+        console.log("MessagesList - Messages changed, scrolling to bottom");
+        setTimeout(() => scrollToBottom(), 150);
       }
     }
     
     previousMessagesLength.current = currentLength;
-  }, [messages.length, isLoadingMore, scrollToBottom]);
+  }, [messages, isLoadingMore, scrollToBottom]);
 
   // Add scroll event listener
   useEffect(() => {
