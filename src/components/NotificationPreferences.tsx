@@ -11,46 +11,13 @@ export const NotificationPreferences = () => {
   const handleTestNotification = async () => {
     console.log('=== Testing Notifications ===');
     console.log('Preferences:', preferences);
-    console.log('Notification support:', "Notification" in window);
-    console.log('Current permission:', Notification.permission);
-
-    // Test browser notification
-    if (preferences.browser_notifications_enabled && "Notification" in window) {
-      console.log('Testing browser notification...');
-      
-      if (Notification.permission === "granted") {
-        console.log('Permission already granted, showing notification');
-        new Notification("Test Notification", {
-          body: "This is how your chat notifications will appear.",
-          icon: "/favicon.ico",
-        });
-      } else if (Notification.permission !== "denied") {
-        console.log('Requesting notification permission...');
-        const permission = await Notification.requestPermission();
-        console.log('Permission result:', permission);
-        
-        if (permission === "granted") {
-          console.log('Permission granted, showing notification');
-          new Notification("Test Notification", {
-            body: "This is how your chat notifications will appear.",
-            icon: "/favicon.ico",
-          });
-        } else {
-          console.log('Permission denied');
-        }
-      } else {
-        console.log('Notifications are blocked by user');
-      }
-    } else {
-      console.log('Browser notifications not enabled or not supported');
-    }
 
     // Test toast notification
     if (preferences.toast_notifications_enabled) {
       console.log('Showing toast notification');
       toast("Test Chat Message", {
         description: "John Doe: Hey there! This is a test message.",
-        duration: 5000, // Fixed 5 seconds
+        duration: 5000,
       });
     } else {
       console.log('Toast notifications not enabled');
@@ -93,19 +60,6 @@ export const NotificationPreferences = () => {
         </div>
         
         <div className="space-y-3 pl-6">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="browser-notifications" className="text-sm">
-              Browser notifications
-            </Label>
-            <Switch
-              id="browser-notifications"
-              checked={preferences.browser_notifications_enabled}
-              onCheckedChange={(checked) => 
-                updatePreferences({ browser_notifications_enabled: checked })
-              }
-            />
-          </div>
-
           <div className="flex items-center justify-between">
             <Label htmlFor="toast-notifications" className="text-sm">
               In-app toast notifications

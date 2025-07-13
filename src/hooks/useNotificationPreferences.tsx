@@ -6,13 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 export interface NotificationPreferences {
   id?: string;
   user_id: string;
-  browser_notifications_enabled: boolean;
   sound_notifications_enabled: boolean;
   toast_notifications_enabled: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
-  browser_notifications_enabled: true,
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
 };

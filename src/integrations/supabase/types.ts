@@ -888,7 +888,6 @@ export type Database = {
       }
       user_notification_preferences: {
         Row: {
-          browser_notifications_enabled: boolean
           created_at: string
           id: string
           sound_notifications_enabled: boolean
@@ -897,7 +896,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          browser_notifications_enabled?: boolean
           created_at?: string
           id?: string
           sound_notifications_enabled?: boolean
@@ -906,7 +904,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          browser_notifications_enabled?: boolean
           created_at?: string
           id?: string
           sound_notifications_enabled?: boolean

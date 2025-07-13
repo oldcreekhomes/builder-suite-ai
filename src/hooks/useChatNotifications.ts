@@ -271,36 +271,9 @@ export function useChatNotifications() {
       });
     }
 
-    // Show browser notification
-    if (preferences.browser_notifications_enabled && "Notification" in window) {
-      console.log('Browser notification permission status:', Notification.permission);
-      
-      if (Notification.permission === "granted") {
-        console.log('Showing browser notification');
-        new Notification(title, {
-          body: messagePreview,
-          icon: "/favicon.ico",
-        });
-      } else if (Notification.permission !== "denied") {
-        console.log('Requesting notification permission');
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-          console.log('Permission granted, showing notification');
-          new Notification(title, {
-            body: messagePreview,
-            icon: "/favicon.ico",
-          });
-        } else {
-          console.log('Permission denied for browser notifications');
-        }
-      } else {
-        console.log('Browser notifications are blocked by the user');
-      }
-    }
-
     // Play sound notification
     playNotificationSound();
-  }, [preferences.toast_notifications_enabled, preferences.browser_notifications_enabled, playNotificationSound]);
+  }, [preferences.toast_notifications_enabled, playNotificationSound]);
 
   return {
     unreadCounts,
