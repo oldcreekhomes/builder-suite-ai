@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const BASE_TITLE = 'BuilderSuite AI - Construction Management Platform';
+const BASE_TITLE = 'BuilderSuite AI';
 
 export function useDocumentTitle() {
   const [totalUnread, setTotalUnread] = useState(0);
