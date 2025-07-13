@@ -277,8 +277,7 @@ export const useSimpleChat = () => {
 
       console.log('Message sent successfully');
       
-      // Refresh messages
-      await fetchMessages(selectedRoom.id);
+      // Don't refresh here - let real-time subscription handle it
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -319,7 +318,7 @@ export const useSimpleChat = () => {
         },
         (payload) => {
           console.log('New message received via realtime:', payload);
-          // Refresh messages when new message arrives
+          // Always refresh messages to show new message
           fetchMessages(selectedRoom.id);
         }
       )
