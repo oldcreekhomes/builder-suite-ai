@@ -13,6 +13,7 @@ export const useRealtime = (
     const setupRealtime = async () => {
       if (!selectedUser) {
         if (channelRef.current) {
+          console.log('🧹 Cleaning up channel - no selected user');
           supabase.removeChannel(channelRef.current);
           channelRef.current = null;
         }
@@ -21,50 +22,110 @@ export const useRealtime = (
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      currentUserRef.current = user.id;
-
-      // Create a consistent channel name based on the two users
-      const channelName = [user.id, selectedUser.id].sort().join('_');
-      
-      console.log('Setting up real-time subscription for conversation:', channelName);
-
-      // Clean up existing channel
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+      if (!user) {
+        console.log('❌ No authenticated user found');
+        return;
       }
 
-      // Set up real-time subscription with proper filtering
+      currentUserRef.current = user.id;
+      console.log('👤 Current user:', user.id);
+      console.log('👤 Selected user:', selectedUser.id);
+
+      // Clean up existing channel first
+      if (channelRef.current) {
+        console.log('🧹 Cleaning up existing channel');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+
+      // Use simple channel name for debugging
+      const channelName = `chat_messages_${Date.now()}`;
+      console.log('📡 Setting up real-time subscription:', channelName);
+
+      // Subscribe to ALL user_chat_messages changes and filter client-side
+      // This is more reliable than complex database filtering
       channelRef.current = supabase
-        .channel(`conversation_${channelName}`)
+        .channel(channelName)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'user_chat_messages',
-            filter: `or(and(sender_id.eq.${user.id},recipient_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},recipient_id.eq.${user.id}))`
+            table: 'user_chat_messages'
+            // No filter - we'll filter on client side for reliability
           },
           async (payload) => {
-            console.log('Real-time message change:', payload.eventType, payload.new || payload.old);
+            console.log('📨 Real-time event received:', {
+              eventType: payload.eventType,
+              new: payload.new,
+              old: payload.old
+            });
+
+            const messageData = payload.new || payload.old;
             
-            // Only fetch messages if this is relevant to current conversation
-            if (selectedUser && currentUserRef.current) {
-              await fetchMessages(selectedUser.id);
+            // Client-side filtering - check if message is relevant to current conversation
+            if (messageData && selectedUser && currentUserRef.current) {
+              // Type guard to ensure messageData has the expected properties
+              const hasRequiredFields = 
+                typeof messageData === 'object' && 
+                'sender_id' in messageData && 
+                'recipient_id' in messageData;
+
+              if (!hasRequiredFields) {
+                console.log('⚠️ Message data missing required fields');
+                return;
+              }
+
+              const senderId = (messageData as any).sender_id;
+              const recipientId = (messageData as any).recipient_id;
+
+              const isRelevant = (
+                (senderId === currentUserRef.current && recipientId === selectedUser.id) ||
+                (senderId === selectedUser.id && recipientId === currentUserRef.current)
+              );
+
+              console.log('🔍 Message relevance check:', {
+                isRelevant,
+                messageSender: senderId,
+                messageRecipient: recipientId,
+                currentUser: currentUserRef.current,
+                selectedUser: selectedUser.id
+              });
+
+              if (isRelevant) {
+                console.log('✅ Relevant message detected - fetching messages');
+                await fetchMessages(selectedUser.id);
+              } else {
+                console.log('⏭️ Message not relevant to current conversation');
+              }
+            } else {
+              console.log('⚠️ Missing context for message filtering:', {
+                hasMessageData: !!messageData,
+                hasSelectedUser: !!selectedUser,
+                hasCurrentUser: !!currentUserRef.current
+              });
             }
           }
         )
         .subscribe((status) => {
-          console.log('Real-time subscription status:', status);
+          console.log('📡 Subscription status changed:', status);
+          
           if (status === 'SUBSCRIBED') {
-            console.log('✅ Real-time messaging active');
+            console.log('✅ Real-time messaging is now active!');
           } else if (status === 'TIMED_OUT') {
-            console.error('❌ Real-time subscription timed out - retrying...');
-            // Auto-retry after a brief delay
-            setTimeout(() => setupRealtime(), 1000);
+            console.error('❌ Real-time subscription timed out - retrying in 2 seconds...');
+            setTimeout(() => {
+              console.log('🔄 Retrying real-time setup...');
+              setupRealtime();
+            }, 2000);
           } else if (status === 'CLOSED') {
-            console.log('Real-time subscription closed');
+            console.log('🔒 Real-time subscription closed');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Channel error - retrying in 3 seconds...');
+            setTimeout(() => {
+              console.log('🔄 Retrying after channel error...');
+              setupRealtime();
+            }, 3000);
           }
         });
     };
@@ -73,7 +134,7 @@ export const useRealtime = (
 
     return () => {
       if (channelRef.current) {
-        console.log('Cleaning up real-time subscription');
+        console.log('🧹 Cleaning up real-time subscription on unmount');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
