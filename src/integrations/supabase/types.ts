@@ -220,56 +220,6 @@ export type Database = {
           unit_of_measure?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cost_codes_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "owners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employees: {
-        Row: {
-          avatar_url: string | null
-          confirmed: boolean
-          created_at: string
-          email: string
-          first_name: string
-          home_builder_id: string
-          id: string
-          last_name: string
-          phone_number: string | null
-          role: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          confirmed?: boolean
-          created_at?: string
-          email: string
-          first_name: string
-          home_builder_id: string
-          id?: string
-          last_name: string
-          phone_number?: string | null
-          role?: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          confirmed?: boolean
-          created_at?: string
-          email?: string
-          first_name?: string
-          home_builder_id?: string
-          id?: string
-          last_name?: string
-          phone_number?: string | null
-          role?: string
-          updated_at?: string
-        }
         Relationships: []
       }
       marketplace_companies: {
@@ -372,45 +322,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      owners: {
-        Row: {
-          avatar_url: string | null
-          company_name: string | null
-          created_at: string
-          email: string
-          first_name: string | null
-          id: string
-          last_name: string | null
-          phone_number: string | null
-          role: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          company_name?: string | null
-          created_at?: string
-          email: string
-          first_name?: string | null
-          id: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          company_name?: string | null
-          created_at?: string
-          email?: string
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          phone_number?: string | null
-          role?: string | null
-          updated_at?: string
-        }
-        Relationships: []
       }
       project_bid_package_companies: {
         Row: {
@@ -660,13 +571,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_photos_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "owners"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_schedule_tasks: {
@@ -766,15 +670,7 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "owners"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_chat_messages: {
         Row: {
