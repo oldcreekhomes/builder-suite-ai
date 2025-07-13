@@ -1,72 +1,115 @@
 import { useEffect, useRef, useCallback } from "react";
 import { MessageBubble } from "./MessageBubble";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import type { ChatMessage } from "@/hooks/useChat";
 
 interface MessagesListProps {
   messages: ChatMessage[];
   currentUserId: string | null;
+  isLoadingMessages?: boolean;
+  isLoadingMore?: boolean;
+  hasMoreMessages?: boolean;
+  onLoadMoreMessages?: () => Promise<void>;
   onEditMessage?: (messageId: string, newText: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onReplyToMessage?: (messageId: string, messageText: string, senderName: string) => void;
 }
 
-export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteMessage, onReplyToMessage }: MessagesListProps) {
+export function MessagesList({ 
+  messages, 
+  currentUserId, 
+  isLoadingMessages, 
+  isLoadingMore, 
+  hasMoreMessages, 
+  onLoadMoreMessages, 
+  onEditMessage, 
+  onDeleteMessage, 
+  onReplyToMessage 
+}: MessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(messages.length);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const isLoadingMoreRef = useRef(false);
+  const scrollPositionRef = useRef(0);
 
-  // Scroll to bottom function using the messagesEndRef with extra space
+  // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
-        behavior: 'instant',
+        behavior: 'smooth',
         block: 'end'
       });
-      // Add a bit more scroll to ensure message input is visible
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop += 100; // Extra scroll for message input
-      }
     }
   }, []);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      console.log("MessagesList - Rendering messages:", messages.length);
-      console.log("MessagesList - Last message:", messages[messages.length - 1]);
+  // Handle scroll event for infinite loading
+  const handleScroll = useCallback(async () => {
+    if (!scrollContainerRef.current || !onLoadMoreMessages || isLoadingMoreRef.current) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const { scrollTop } = container;
+
+    // If scrolled to near the top (within 100px) and we have more messages to load
+    if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+      console.log('Loading more messages...');
+      isLoadingMoreRef.current = true;
       
-      // Use requestAnimationFrame to ensure DOM has updated, then scroll
-      requestAnimationFrame(() => {
-        scrollToBottom(); // Instant scroll first
+      // Store current scroll height to maintain position after loading
+      const oldScrollHeight = container.scrollHeight;
+      
+      try {
+        await onLoadMoreMessages();
         
-        // Then a delayed scroll to handle any lazy-loaded content
-        setTimeout(() => {
-          scrollToBottom();
-          
-          // Log scroll position after scrolling
-          if (scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            console.log("MessagesList - Scroll position:", {
-              scrollTop: container.scrollTop,
-              scrollHeight: container.scrollHeight,
-              clientHeight: container.clientHeight,
-              isAtBottom: container.scrollTop + container.clientHeight >= container.scrollHeight - 10
-            });
+        // After loading, adjust scroll position to maintain the view
+        requestAnimationFrame(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            const scrollDiff = newScrollHeight - oldScrollHeight;
+            container.scrollTop = scrollTop + scrollDiff;
           }
-        }, 300); // Increased delay to ensure all content is rendered
-      });
-    }
-  }, [messages, scrollToBottom]);
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+          isLoadingMoreRef.current = false;
+        });
+      } catch (error) {
+        console.error('Error loading more messages:', error);
+        isLoadingMoreRef.current = false;
       }
-    };
-  }, []);
+    }
+  }, [hasMoreMessages, isLoadingMore, onLoadMoreMessages]);
+
+  // Auto-scroll to bottom only when new messages are added (not when loading more)
+  useEffect(() => {
+    const currentLength = messages.length;
+    const previousLength = previousMessagesLength.current;
+    
+    // Only scroll to bottom if this is the initial load or new messages were added
+    if (currentLength > 0 && (previousLength === 0 || (currentLength > previousLength && !isLoadingMore))) {
+      console.log("MessagesList - New messages, scrolling to bottom");
+      scrollToBottom();
+    }
+    
+    previousMessagesLength.current = currentLength;
+  }, [messages.length, isLoadingMore, scrollToBottom]);
+
+  // Add scroll event listener
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  if (isLoadingMessages) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading messages...</span>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -74,6 +117,29 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
       className="flex-1 overflow-y-auto p-4 space-y-4"
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
+      {/* Load More Button */}
+      {hasMoreMessages && (
+        <div className="flex justify-center pb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onLoadMoreMessages}
+            disabled={isLoadingMore}
+            className="text-xs"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                Loading more...
+              </>
+            ) : (
+              'Load more messages'
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Messages */}
       {messages.map((message) => {
         const isCurrentUser = currentUserId === message.sender.id;
         
@@ -88,11 +154,13 @@ export function MessagesList({ messages, currentUserId, onEditMessage, onDeleteM
           />
         );
       })}
-      {messages.length === 0 && (
+
+      {messages.length === 0 && !isLoadingMessages && (
         <div className="text-center text-gray-500 py-8">
           No messages yet. Start the conversation!
         </div>
       )}
+
       {/* Invisible element to scroll to */}
       <div ref={messagesEndRef} />
     </div>

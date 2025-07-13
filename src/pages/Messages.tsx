@@ -15,10 +15,14 @@ export default function Messages() {
     setSelectedRoom,
     messages,
     currentUserId,
+    isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     startChatWithEmployee,
     sendMessage,
     editMessage,
-    deleteMessage
+    deleteMessage,
+    loadMoreMessages
   } = useChat();
 
   const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
@@ -60,6 +64,10 @@ export default function Messages() {
                     <MessagesList 
                       messages={messages} 
                       currentUserId={currentUserId} 
+                      isLoadingMessages={isLoadingMessages}
+                      isLoadingMore={isLoadingMore}
+                      hasMoreMessages={hasMoreMessages}
+                      onLoadMoreMessages={loadMoreMessages}
                       onEditMessage={editMessage}
                       onDeleteMessage={deleteMessage}
                       onReplyToMessage={handleReplyToMessage}

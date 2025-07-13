@@ -37,6 +37,9 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState<boolean>(false);
+  const [oldestMessageDate, setOldestMessageDate] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -65,7 +68,72 @@ export function useChat() {
     };
   }, []);
 
-  // Fetch messages for a room
+  // Helper function to process messages with sender info
+  const processMessagesWithSenders = async (data: any[]) => {
+    const messagesWithSenders = [];
+    
+    for (const message of data) {
+      try {
+        // Try to find sender in owners table first (home builders)
+        let { data: senderProfile } = await supabase
+          .from('owners')
+          .select('id, first_name, last_name, avatar_url, email, role')
+          .eq('id', message.sender_id)
+          .maybeSingle();
+
+        // If not found in owners, try employees table
+        if (!senderProfile) {
+          const { data: employeeSender } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name, role, avatar_url, email')
+            .eq('id', message.sender_id)
+            .maybeSingle();
+          
+          if (employeeSender) {
+            senderProfile = { ...employeeSender };
+          }
+        }
+
+        // Add message with sender info
+        messagesWithSenders.push({
+          ...message,
+          sender: senderProfile || { 
+            id: message.sender_id, 
+            first_name: 'Unknown', 
+            last_name: 'User', 
+            role: 'user', 
+            avatar_url: null, 
+            email: '' 
+          }
+        });
+      } catch (senderError) {
+        console.error('Error processing message sender:', senderError);
+        // Add message with fallback sender info
+        messagesWithSenders.push({
+          ...message,
+          sender: { 
+            id: message.sender_id, 
+            first_name: 'Unknown', 
+            last_name: 'User', 
+            role: 'user', 
+            avatar_url: null, 
+            email: '' 
+          }
+        });
+      }
+    }
+
+    // Create a map for quick lookup
+    const messagesMap = new Map(messagesWithSenders.map(msg => [msg.id, msg]));
+    
+    // Add replied_message references
+    return messagesWithSenders.map(msg => ({
+      ...msg,
+      replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
+    }));
+  };
+
+  // Fetch initial messages for a room (last 20)
   const fetchMessages = async (roomId: string) => {
     try {
       // Cancel any previous request
@@ -81,7 +149,7 @@ export function useChat() {
         setIsLoadingMessages(true);
       }
       
-      console.log('Fetching messages for room:', roomId);
+      console.log('Fetching initial messages for room:', roomId);
       
       const { data, error } = await supabase
         .from('employee_chat_messages')
@@ -95,7 +163,8 @@ export function useChat() {
         `)
         .eq('room_id', roomId)
         .eq('is_deleted', false)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       console.log('Messages query result:', { data, error, count: data?.length });
       if (error) throw error;
@@ -104,76 +173,16 @@ export function useChat() {
         console.log('No messages found for room:', roomId);
         if (mountedRef.current) {
           setMessages([]);
+          setHasMoreMessages(false);
+          setOldestMessageDate(null);
         }
         return;
       }
 
       console.log('Processing', data.length, 'messages...');
 
-      // Simplified sender lookup without Promise.allSettled to avoid complexity
-      const messagesWithSenders = [];
-      
-      for (const message of data) {
-        try {
-          // Try to find sender in owners table first (home builders)
-          let { data: senderProfile } = await supabase
-            .from('owners')
-            .select('id, first_name, last_name, avatar_url, email, role')
-            .eq('id', message.sender_id)
-            .maybeSingle();
-
-          // If not found in owners, try employees table
-          if (!senderProfile) {
-            const { data: employeeSender } = await supabase
-              .from('employees')
-              .select('id, first_name, last_name, role, avatar_url, email')
-              .eq('id', message.sender_id)
-              .maybeSingle();
-            
-            if (employeeSender) {
-              senderProfile = { ...employeeSender };
-            }
-          }
-
-          // Add message with sender info
-          messagesWithSenders.push({
-            ...message,
-            sender: senderProfile || { 
-              id: message.sender_id, 
-              first_name: 'Unknown', 
-              last_name: 'User', 
-              role: 'user', 
-              avatar_url: null, 
-              email: '' 
-            }
-          });
-        } catch (senderError) {
-          console.error('Error processing message sender:', senderError);
-          // Add message with fallback sender info
-          messagesWithSenders.push({
-            ...message,
-            sender: { 
-              id: message.sender_id, 
-              first_name: 'Unknown', 
-              last_name: 'User', 
-              role: 'user', 
-              avatar_url: null, 
-              email: '' 
-            }
-          });
-        }
-      }
-
-      console.log('Successfully processed', messagesWithSenders.length, 'messages');
-
-      // Create a map for quick lookup
-      const messagesMap = new Map(messagesWithSenders.map(msg => [msg.id, msg]));
-      
-      // Add replied_message references
-      const messagesWithReplies = messagesWithSenders.map(msg => ({
-        ...msg,
-        replied_message: msg.reply_to_message_id ? messagesMap.get(msg.reply_to_message_id) || null : null
-      }));
+      // Process messages with sender info
+      const messagesWithReplies = await processMessagesWithSenders(data);
 
       // Check if request was cancelled
       if (newAbortController.signal.aborted) {
@@ -181,10 +190,16 @@ export function useChat() {
         return;
       }
 
-      console.log('Setting messages, final count:', messagesWithReplies.length);
-      console.log('First message:', messagesWithReplies[0]);
-      console.log('Last message:', messagesWithReplies[messagesWithReplies.length - 1]);
-      setMessages(messagesWithReplies);
+      // Reverse to show oldest to newest
+      const orderedMessages = messagesWithReplies.reverse();
+
+      console.log('Setting messages, final count:', orderedMessages.length);
+      setMessages(orderedMessages);
+      
+      // Set pagination state
+      setHasMoreMessages(data.length === 20); // If we got 20 messages, there might be more
+      setOldestMessageDate(data.length > 0 ? data[data.length - 1].created_at : null);
+      
       console.log('Messages state updated');
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -200,6 +215,67 @@ export function useChat() {
         setIsLoadingMessages(false);
       }
       abortControllerRef.current = null;
+    }
+  };
+
+  // Load more messages (for infinite scrolling)
+  const loadMoreMessages = async () => {
+    if (!selectedRoom || !oldestMessageDate || isLoadingMore || !hasMoreMessages) {
+      return;
+    }
+
+    try {
+      setIsLoadingMore(true);
+      console.log('Loading more messages before:', oldestMessageDate);
+      
+      const { data, error } = await supabase
+        .from('employee_chat_messages')
+        .select(`
+          id,
+          message_text,
+          file_urls,
+          created_at,
+          sender_id,
+          reply_to_message_id
+        `)
+        .eq('room_id', selectedRoom.id)
+        .eq('is_deleted', false)
+        .lt('created_at', oldestMessageDate)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        console.log('No more messages found');
+        setHasMoreMessages(false);
+        return;
+      }
+
+      console.log('Processing', data.length, 'additional messages...');
+
+      // Process messages with sender info
+      const messagesWithReplies = await processMessagesWithSenders(data);
+
+      // Reverse to show oldest to newest and prepend to existing messages
+      const orderedNewMessages = messagesWithReplies.reverse();
+      
+      setMessages(prev => [...orderedNewMessages, ...prev]);
+      
+      // Update pagination state
+      setHasMoreMessages(data.length === 20);
+      setOldestMessageDate(data.length > 0 ? data[data.length - 1].created_at : oldestMessageDate);
+      
+      console.log('Loaded', orderedNewMessages.length, 'more messages');
+    } catch (error) {
+      console.error('Error loading more messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load more messages",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -453,11 +529,14 @@ export function useChat() {
     messages,
     currentUserId,
     isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
     startChatWithEmployee,
     sendMessage,
     editMessage,
     deleteMessage,
     fetchMessages,
+    loadMoreMessages,
     markSelectedRoomAsRead
   };
 }
