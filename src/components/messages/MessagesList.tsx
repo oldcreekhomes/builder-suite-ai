@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import type { ChatMessage } from "@/hooks/useChat";
+import type { ChatMessage } from "@/hooks/useMessages";
 
 interface MessagesListProps {
   messages: ChatMessage[];
@@ -153,7 +153,7 @@ export function MessagesList({
 
       {/* Messages */}
       {messages.map((message) => {
-        const isCurrentUser = currentUserId === message.sender.id;
+        const isCurrentUser = currentUserId === message.sender_id;
         
         return (
           <MessageBubble 

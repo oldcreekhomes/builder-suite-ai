@@ -25,9 +25,19 @@ export const useSimpleChat = () => {
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {
-    const userId = await startChatWithUserHook(user);
-    if (userId) {
-      await fetchMessages(userId);
+    try {
+      console.log('Starting chat with user:', user);
+      const userId = await startChatWithUserHook(user);
+      console.log('Start chat returned userId:', userId);
+      if (userId) {
+        console.log('Fetching messages for userId:', userId);
+        await fetchMessages(userId);
+        console.log('Messages fetched successfully');
+      } else {
+        console.error('Failed to get userId from startChatWithUserHook');
+      }
+    } catch (error) {
+      console.error('Error in startChatWithUser:', error);
     }
   }, [startChatWithUserHook, fetchMessages]);
 

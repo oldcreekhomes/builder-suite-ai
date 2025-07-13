@@ -1,7 +1,7 @@
 
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { GlobalNotificationsProvider } from "./GlobalNotificationsProvider";
+
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -24,11 +24,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  return (
-    <GlobalNotificationsProvider>
-      {children}
-    </GlobalNotificationsProvider>
-  );
+  return children;
 };
 
 export default ProtectedRoute;

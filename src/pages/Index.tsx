@@ -5,23 +5,13 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { RecentPhotos } from "@/components/RecentPhotos";
-import { useChat } from "@/hooks/useChat";
+
 
 const Index = () => {
-  const {
-    selectedRoom,
-    setSelectedRoom,
-    startChatWithEmployee
-  } = useChat();
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar 
-          selectedRoom={selectedRoom}
-          onRoomSelect={setSelectedRoom}
-          onStartChat={startChatWithEmployee}
-        />
+        <AppSidebar />
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6 space-y-6">

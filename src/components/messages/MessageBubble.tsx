@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { FileAttachment } from "./FileAttachment";
-import type { ChatMessage } from "@/hooks/useChat";
+import type { ChatMessage } from "@/hooks/useMessages";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -25,8 +25,8 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
-  const getDisplayName = (employee: any) => {
-    return `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.email;
+  const getDisplayName = (name: string) => {
+    return name || 'Unknown User';
   };
 
   const handleEditSave = () => {
@@ -50,7 +50,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
 
   const handleReply = () => {
     if (onReply && message.message_text) {
-      const senderName = getDisplayName(message.sender);
+      const senderName = getDisplayName(message.sender_name);
       onReply(message.id, message.message_text, senderName);
     }
   };
@@ -58,15 +58,15 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
   return (
     <div className={`flex items-start space-x-3 group ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
       <Avatar className="h-8 w-8">
-        <AvatarImage src={message.sender.avatar_url || ""} />
+        <AvatarImage src={message.sender_avatar || ""} />
         <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
-          {getInitials(message.sender.first_name, message.sender.last_name)}
+          {message.sender_name.substring(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className={`flex-1 ${isCurrentUser ? 'flex flex-col items-end' : ''}`}>
         <div className={`flex items-center space-x-2 mb-1 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
           <span className="font-medium text-sm text-gray-900">
-            {getDisplayName(message.sender)}
+            {getDisplayName(message.sender_name)}
           </span>
           <span className="text-xs text-gray-500">
             {new Date(message.created_at).toLocaleTimeString([], { 
@@ -114,19 +114,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
               ? 'bg-blue-500 text-white' 
               : 'bg-gray-100 text-gray-900'
           }`}>
-            {/* Replied Message Context */}
-            {message.replied_message && (
-              <div className={`mb-2 p-2 rounded border-l-2 ${
-                isCurrentUser ? 'border-blue-300 bg-blue-400/20' : 'border-gray-300 bg-gray-200'
-              }`}>
-                <p className={`text-xs font-medium ${isCurrentUser ? 'text-blue-100' : 'text-gray-600'}`}>
-                  {getDisplayName(message.replied_message.sender)}
-                </p>
-                <p className={`text-xs ${isCurrentUser ? 'text-blue-100' : 'text-gray-600'} truncate`}>
-                  {message.replied_message.message_text}
-                </p>
-              </div>
-            )}
+            {/* TODO: Implement replied message context if needed */}
 
             {isEditing ? (
               <div className="space-y-2">
