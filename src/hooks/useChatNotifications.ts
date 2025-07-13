@@ -214,7 +214,12 @@ export function useChatNotifications() {
   }, [isInDoNotDisturbTime]);
 
   const playNotificationSound = useCallback(() => {
-    if (!preferences.sound_notifications_enabled) return;
+    if (!preferences.sound_notifications_enabled) {
+      console.log('Sound notifications disabled in preferences');
+      return;
+    }
+    
+    console.log('Attempting to play notification sound:', preferences.notification_sound);
     
     try {
       // Create audio element for better browser compatibility
@@ -245,12 +250,21 @@ export function useChatNotifications() {
           duration = 0.3;
       }
       
+      console.log('Creating audio context for sound notification');
+      
       // Create a simple beep sound using Web Audio API with better error handling
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
+      console.log('Audio context state:', audioContext.state);
+      
       // Resume audio context if suspended (required by browsers)
       if (audioContext.state === 'suspended') {
-        audioContext.resume();
+        console.log('Resuming suspended audio context');
+        audioContext.resume().then(() => {
+          console.log('Audio context resumed successfully');
+        }).catch((error) => {
+          console.error('Failed to resume audio context:', error);
+        });
       }
       
       const oscillator = audioContext.createOscillator();
@@ -269,16 +283,20 @@ export function useChatNotifications() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + duration);
       
+      console.log('Sound notification scheduled to play');
+      
       // Cleanup after playing
       oscillator.onended = () => {
+        console.log('Sound notification finished playing');
         audioContext.close();
       };
       
     } catch (error) {
-      console.log('Could not play notification sound:', error);
+      console.error('Could not play notification sound:', error);
       
       // Fallback: try to play a simple system beep
       try {
+        console.log('Trying fallback notification sound');
         // Some browsers support this simple beep
         const context = new AudioContext();
         const oscillator = context.createOscillator();
@@ -294,8 +312,9 @@ export function useChatNotifications() {
         oscillator.stop(context.currentTime + 0.2);
         
         setTimeout(() => context.close(), 300);
+        console.log('Fallback sound played');
       } catch (fallbackError) {
-        console.log('Fallback notification sound also failed:', fallbackError);
+        console.error('Fallback notification sound also failed:', fallbackError);
       }
     }
   }, [preferences.sound_notifications_enabled, preferences.notification_sound]);
