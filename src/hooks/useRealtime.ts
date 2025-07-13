@@ -6,75 +6,76 @@ export const useRealtime = (
   selectedUser: User | null,
   fetchMessages: (otherUserId: string) => Promise<void>
 ) => {
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const lastMessageCountRef = useRef<number>(0);
+  const channelRef = useRef<any>(null);
+  const currentUserRef = useRef<string | null>(null);
 
-  // Set up both real-time subscription AND polling as backup
   useEffect(() => {
-    if (!selectedUser) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      return;
-    }
-
-    console.log('Setting up real-time messaging for user:', selectedUser.id);
-
-    // Real-time subscription (primary method)
-    const channel = supabase
-      .channel(`messages_${Date.now()}`) // Unique channel name
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_chat_messages'
-        },
-        async (payload) => {
-          console.log('Real-time change detected:', payload.eventType);
-          await fetchMessages(selectedUser.id);
+    const setupRealtime = async () => {
+      if (!selectedUser) {
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
         }
-      )
-      .subscribe(async (status) => {
-        console.log('Subscription status:', status);
-      });
+        return;
+      }
 
-    // Polling backup (ensures messages always update)
-    const pollForMessages = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        const { data, error } = await supabase
-          .from('user_chat_messages')
-          .select('id')
-          .or(`and(sender_id.eq.${user.id},recipient_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},recipient_id.eq.${user.id})`)
-          .eq('is_deleted', false);
+      currentUserRef.current = user.id;
 
-        if (!error && data) {
-          const currentCount = data.length;
-          if (currentCount !== lastMessageCountRef.current) {
-            console.log('Message count changed, refreshing...');
-            lastMessageCountRef.current = currentCount;
-            await fetchMessages(selectedUser.id);
+      // Create a consistent channel name based on the two users
+      const channelName = [user.id, selectedUser.id].sort().join('_');
+      
+      console.log('Setting up real-time subscription for conversation:', channelName);
+
+      // Clean up existing channel
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+
+      // Set up real-time subscription with proper filtering
+      channelRef.current = supabase
+        .channel(`conversation_${channelName}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_chat_messages',
+            filter: `or(and(sender_id.eq.${user.id},recipient_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},recipient_id.eq.${user.id}))`
+          },
+          async (payload) => {
+            console.log('Real-time message change:', payload.eventType, payload.new || payload.old);
+            
+            // Only fetch messages if this is relevant to current conversation
+            if (selectedUser && currentUserRef.current) {
+              await fetchMessages(selectedUser.id);
+            }
           }
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
+        )
+        .subscribe((status) => {
+          console.log('Real-time subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Real-time messaging active');
+          } else if (status === 'TIMED_OUT') {
+            console.error('❌ Real-time subscription timed out - retrying...');
+            // Auto-retry after a brief delay
+            setTimeout(() => setupRealtime(), 1000);
+          } else if (status === 'CLOSED') {
+            console.log('Real-time subscription closed');
+          }
+        });
     };
 
-    // Poll every 2 seconds as backup
-    intervalRef.current = setInterval(pollForMessages, 2000);
-    
-    // Initial count
-    pollForMessages();
+    setupRealtime();
 
     return () => {
-      console.log('Cleaning up real-time subscription and polling');
-      supabase.removeChannel(channel);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (channelRef.current) {
+        console.log('Cleaning up real-time subscription');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, [selectedUser, fetchMessages]);
