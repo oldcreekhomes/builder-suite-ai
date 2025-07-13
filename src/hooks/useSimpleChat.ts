@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { useCompanyUsers, User } from './useCompanyUsers';
 import { useMessages, ChatMessage } from './useMessages';
 import { useSendMessage } from './useSendMessage';
-import { useChatRooms, ChatRoom } from './useChatRooms';
+import { useChatRooms } from './useChatRooms';
 import { useRealtime } from './useRealtime';
 
 // Re-export interfaces for backwards compatibility
-export type { User, ChatMessage, ChatRoom };
+export type { User, ChatMessage };
 
 export const useSimpleChat = () => {
   // Use focused hooks
@@ -14,42 +14,40 @@ export const useSimpleChat = () => {
   const { messages, isLoadingMessages, fetchMessages, setMessages } = useMessages();
   const { sendMessage: sendMessageHook } = useSendMessage();
   const { 
-    rooms, 
-    selectedRoom, 
-    setSelectedRoom, 
+    selectedUser, 
+    setSelectedUser, 
     startChatWithUser: startChatWithUserHook,
-    markRoomAsRead 
+    markConversationAsRead 
   } = useChatRooms();
 
   // Set up real-time subscription
-  useRealtime(selectedRoom, fetchMessages);
+  useRealtime(selectedUser, fetchMessages);
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {
-    const roomId = await startChatWithUserHook(user);
-    if (roomId) {
-      await fetchMessages(roomId);
+    const userId = await startChatWithUserHook(user);
+    if (userId) {
+      await fetchMessages(userId);
     }
   }, [startChatWithUserHook, fetchMessages]);
 
   // Enhanced send message function
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {
-    await sendMessageHook(messageText, selectedRoom, setMessages, files);
-  }, [sendMessageHook, selectedRoom, setMessages]);
+    await sendMessageHook(messageText, selectedUser, setMessages, files);
+  }, [sendMessageHook, selectedUser, setMessages]);
 
   return {
     users,
-    rooms,
     messages,
-    selectedRoom,
+    selectedRoom: selectedUser, // For backwards compatibility
     currentUserId,
     isLoading,
     isLoadingMessages,
-    setSelectedRoom,
+    setSelectedRoom: setSelectedUser, // For backwards compatibility
     startChatWithUser,
     startChatWithEmployee: startChatWithUser, // Alias for backwards compatibility
     sendMessage,
     fetchMessages,
-    markRoomAsRead
+    markRoomAsRead: markConversationAsRead // For backwards compatibility
   };
 };

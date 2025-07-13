@@ -3,43 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { User } from './useCompanyUsers';
 
-export interface ChatRoom {
-  id: string;
-  name?: string;
-  is_direct_message: boolean;
-  updated_at: string;
-  otherUser?: User;
-  lastMessage?: string;
-  unreadCount?: number;
-}
-
 export const useChatRooms = () => {
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // Start chat with user
+  // Start chat with user (simplified - just select the user)
   const startChatWithUser = async (user: User) => {
     try {
       console.log('Starting chat with user:', user.id);
-      
-      const { data: roomId, error } = await supabase.rpc('get_or_create_dm_room', {
-        other_user_id: user.id
-      });
-
-      if (error) throw error;
-
-      console.log('Room created/found:', roomId);
-
-      const newRoom: ChatRoom = {
-        id: roomId,
-        is_direct_message: true,
-        updated_at: new Date().toISOString(),
-        otherUser: user
-      };
-
-      setSelectedRoom(newRoom);
-      return roomId;
+      setSelectedUser(user);
+      return user.id; // Return user ID instead of room ID
     } catch (error) {
       console.error('Error starting chat:', error);
       toast({
@@ -51,22 +24,21 @@ export const useChatRooms = () => {
     }
   };
 
-  // Mark room as read
-  const markRoomAsRead = async (roomId: string) => {
+  // Mark conversation as read
+  const markConversationAsRead = async (otherUserId: string) => {
     try {
-      await supabase.rpc('mark_room_as_read', {
-        room_id_param: roomId
+      await supabase.rpc('mark_conversation_as_read', {
+        other_user_id_param: otherUserId
       });
     } catch (error) {
-      console.error('Error marking room as read:', error);
+      console.error('Error marking conversation as read:', error);
     }
   };
 
   return {
-    rooms,
-    selectedRoom,
-    setSelectedRoom,
+    selectedUser,
+    setSelectedUser,
     startChatWithUser,
-    markRoomAsRead
+    markConversationAsRead
   };
 };

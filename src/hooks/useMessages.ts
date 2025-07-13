@@ -15,16 +15,19 @@ export const useMessages = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
-  // Fetch messages for room
-  const fetchMessages = async (roomId: string) => {
+  // Fetch messages for conversation with other user
+  const fetchMessages = async (otherUserId: string) => {
     try {
       setIsLoadingMessages(true);
-      console.log('Fetching messages for room:', roomId);
+      console.log('Fetching messages for conversation with user:', otherUserId);
       
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return;
+
       const { data, error } = await supabase
-        .from('employee_chat_messages')
+        .from('user_chat_messages')
         .select('*')
-        .eq('room_id', roomId)
+        .or(`and(sender_id.eq.${currentUser.user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUser.user.id})`)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
         .limit(50);

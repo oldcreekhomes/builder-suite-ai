@@ -1,13 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from './useMessages';
-
-interface ChatRoom {
-  id: string;
-  name?: string;
-  is_direct_message: boolean;
-  updated_at: string;
-}
+import { User } from './useCompanyUsers';
 
 export const useSendMessage = () => {
   const { toast } = useToast();
@@ -15,14 +9,14 @@ export const useSendMessage = () => {
   // Send message
   const sendMessage = async (
     messageText: string, 
-    selectedRoom: ChatRoom | null,
+    otherUser: User | null,
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
     files: File[] = []
   ) => {
     console.log('Sending message:', messageText);
     
     if (!messageText.trim() && files.length === 0) return;
-    if (!selectedRoom) return;
+    if (!otherUser) return;
 
     try {
       const { data: currentUser } = await supabase.auth.getUser();
@@ -62,10 +56,10 @@ export const useSendMessage = () => {
 
       // Insert message to database
       const { error } = await supabase
-        .from('employee_chat_messages')
+        .from('user_chat_messages')
         .insert({
-          room_id: selectedRoom.id,
           sender_id: currentUser.user.id,
+          recipient_id: otherUser.id,
           message_text: messageText.trim() || null,
           file_urls: fileUrls.length > 0 ? fileUrls : null
         });
