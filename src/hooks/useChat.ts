@@ -618,13 +618,16 @@ export function useChat() {
         async (payload) => {
           const newMessage = payload.new as any;
           
-          // Don't add optimistic messages again or messages from current user (already handled)
-          if (newMessage.id.startsWith('temp-') || newMessage.sender_id === currentUserId) {
+          // Skip optimistic messages (they start with 'temp-')
+          if (newMessage.id.startsWith('temp-')) {
             return;
           }
           
-          // Refresh messages for messages from other users
-          await refreshMessages(selectedRoom.id);
+          // For messages from other users, refresh the message list
+          // For messages from current user, they're already handled by optimistic updates
+          if (newMessage.sender_id !== currentUserId) {
+            await refreshMessages(selectedRoom.id);
+          }
         }
       )
       .subscribe();
