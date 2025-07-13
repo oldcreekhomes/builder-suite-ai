@@ -87,10 +87,11 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
 
   return (
     <div 
-      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`px-4 py-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      style={{ height: '80px' }}
     >
       {/* Reply Preview */}
       {replyingTo && (
@@ -143,7 +144,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
             value={messageInput}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            className="min-h-[80px] resize-none pr-2"
+            className="resize-none pr-2 h-12"
             rows={1}
           />
         </div>
