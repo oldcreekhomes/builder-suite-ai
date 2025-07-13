@@ -217,39 +217,86 @@ export function useChatNotifications() {
     if (!preferences.sound_notifications_enabled) return;
     
     try {
-      // Create a simple audio context for notification sound
+      // Create audio element for better browser compatibility
+      const audio = new Audio();
+      
+      // Generate data URL for different notification sounds
+      let frequency1, frequency2, duration;
+      
+      switch (preferences.notification_sound) {
+        case 'bell':
+          frequency1 = 800;
+          frequency2 = 600;
+          duration = 0.3;
+          break;
+        case 'notification':
+          frequency1 = 1000;
+          frequency2 = 800;
+          duration = 0.4;
+          break;
+        case 'subtle':
+          frequency1 = 400;
+          frequency2 = 350;
+          duration = 0.2;
+          break;
+        default: // chime
+          frequency1 = 523; // C5
+          frequency2 = 659; // E5
+          duration = 0.3;
+      }
+      
+      // Create a simple beep sound using Web Audio API with better error handling
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume audio context if suspended (required by browsers)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Different sounds based on preference
-      switch (preferences.notification_sound) {
-        case 'bell':
-          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-          break;
-        case 'notification':
-          oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-          oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.15);
-          break;
-        case 'subtle':
-          oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-          break;
-        default: // chime
-          oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
-          oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E5
-      }
+      oscillator.frequency.setValueAtTime(frequency1, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(frequency2, audioContext.currentTime + duration / 2);
       
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
       
       oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      oscillator.stop(audioContext.currentTime + duration);
+      
+      // Cleanup after playing
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+      
     } catch (error) {
       console.log('Could not play notification sound:', error);
+      
+      // Fallback: try to play a simple system beep
+      try {
+        // Some browsers support this simple beep
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        
+        oscillator.frequency.value = 800;
+        gain.gain.value = 0.1;
+        
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.2);
+        
+        setTimeout(() => context.close(), 300);
+      } catch (fallbackError) {
+        console.log('Fallback notification sound also failed:', fallbackError);
+      }
     }
   }, [preferences.sound_notifications_enabled, preferences.notification_sound]);
 
