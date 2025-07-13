@@ -77,11 +77,10 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
 
   return (
     <div 
-      className={`px-4 py-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ height: '80px' }}
     >
       {/* Reply Preview */}
       {replyingTo && (
@@ -127,14 +126,14 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
         </div>
       )}
       
-      <div className="flex items-end space-x-2">
+      <div className="flex items-center space-x-2">
         <div className="flex-1">
           <Textarea
             placeholder="Send a message..."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none pr-2 h-12 overflow-hidden"
+            className="resize-none pr-2 py-2 min-h-[2.5rem] max-h-[2.5rem] overflow-hidden"
             rows={1}
           />
         </div>
