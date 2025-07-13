@@ -221,8 +221,9 @@ export const useSimpleChat = () => {
         })
       );
 
+      console.log('Messages with senders:', messagesWithSenders);
       setMessages(messagesWithSenders);
-      console.log('Messages loaded:', messagesWithSenders.length);
+      console.log('Messages state updated, length:', messagesWithSenders.length);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -260,7 +261,20 @@ export const useSimpleChat = () => {
         }
       }
 
-      // Insert message
+      // Add optimistic message immediately
+      const optimisticMessage: ChatMessage = {
+        id: 'temp-' + Date.now(),
+        message_text: messageText.trim(),
+        file_urls: fileUrls.length > 0 ? fileUrls : undefined,
+        created_at: new Date().toISOString(),
+        sender_id: currentUser.user.id,
+        sender_name: 'You',
+        sender_avatar: null
+      };
+      
+      setMessages(prev => [...prev, optimisticMessage]);
+
+      // Insert message to database
       const { error } = await supabase
         .from('employee_chat_messages')
         .insert({
@@ -272,12 +286,12 @@ export const useSimpleChat = () => {
 
       if (error) {
         console.error('Error inserting message:', error);
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         throw error;
       }
 
       console.log('Message sent successfully');
-      
-      // Don't refresh here - let real-time subscription handle it
       
     } catch (error) {
       console.error('Error sending message:', error);
