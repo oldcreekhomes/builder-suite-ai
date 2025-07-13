@@ -8,31 +8,78 @@ import { toast } from "sonner";
 export const NotificationPreferences = () => {
   const { preferences, updatePreferences, isUpdating } = useNotificationPreferences();
 
-  const handleTestNotification = () => {
+  const handleTestNotification = async () => {
+    console.log('=== Testing Notifications ===');
+    console.log('Preferences:', preferences);
+    console.log('Notification support:', "Notification" in window);
+    console.log('Current permission:', Notification.permission);
+
+    // Test browser notification
     if (preferences.browser_notifications_enabled && "Notification" in window) {
+      console.log('Testing browser notification...');
+      
       if (Notification.permission === "granted") {
+        console.log('Permission already granted, showing notification');
         new Notification("Test Notification", {
           body: "This is how your chat notifications will appear.",
           icon: "/favicon.ico",
         });
       } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            new Notification("Test Notification", {
-              body: "This is how your chat notifications will appear.",
-              icon: "/favicon.ico",
-            });
-          }
-        });
+        console.log('Requesting notification permission...');
+        const permission = await Notification.requestPermission();
+        console.log('Permission result:', permission);
+        
+        if (permission === "granted") {
+          console.log('Permission granted, showing notification');
+          new Notification("Test Notification", {
+            body: "This is how your chat notifications will appear.",
+            icon: "/favicon.ico",
+          });
+        } else {
+          console.log('Permission denied');
+        }
+      } else {
+        console.log('Notifications are blocked by user');
       }
+    } else {
+      console.log('Browser notifications not enabled or not supported');
     }
 
+    // Test toast notification
     if (preferences.toast_notifications_enabled) {
+      console.log('Showing toast notification');
       toast("Test Chat Message", {
         description: "John Doe: Hey there! This is a test message.",
         duration: 5000, // Fixed 5 seconds
       });
+    } else {
+      console.log('Toast notifications not enabled');
     }
+
+    // Test sound notification
+    if (preferences.sound_notifications_enabled) {
+      console.log('Playing test sound');
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (error) {
+        console.log('Sound notification failed:', error);
+      }
+    } else {
+      console.log('Sound notifications not enabled');
+    }
+
+    console.log('=== Notification test complete ===');
   };
 
 
