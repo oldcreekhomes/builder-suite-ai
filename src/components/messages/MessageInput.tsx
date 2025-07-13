@@ -77,7 +77,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
 
   return (
     <div 
-      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 h-20 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -126,14 +126,14 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
         </div>
       )}
       
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 h-10">
         <div className="flex-1">
           <Textarea
             placeholder="Send a message..."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none pr-2 py-2 min-h-[2.5rem] max-h-[2.5rem] overflow-hidden"
+            className="resize-none pr-2 h-10 overflow-hidden border-input"
             rows={1}
           />
         </div>
