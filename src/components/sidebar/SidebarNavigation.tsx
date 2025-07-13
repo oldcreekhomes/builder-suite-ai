@@ -1,5 +1,6 @@
 
 import { useLocation } from "react-router-dom";
+import { useGlobalNotifications } from "@/components/GlobalNotificationsProvider";
 import { 
   DollarSign, 
   FileText, 
@@ -76,8 +77,7 @@ const navigationItems = [
 
 export function SidebarNavigation() {
   const location = useLocation();
-  // Note: Total unread count will need to be passed down from global provider
-  const totalUnread = 0; // Placeholder for now
+  const { totalUnread } = useGlobalNotifications();
 
   // Get current project ID from URL
   const getProjectId = () => {

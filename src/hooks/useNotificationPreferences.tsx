@@ -99,7 +99,7 @@ export const useNotificationPreferences = () => {
         if (error) throw error;
         return data;
       } else {
-        // Insert new preferences
+        // Insert new preferences (this should rarely happen now due to auto-creation)
         const { data, error } = await supabase
           .from('user_notification_preferences')
           .insert({
