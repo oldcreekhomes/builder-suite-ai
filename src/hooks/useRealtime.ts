@@ -12,22 +12,40 @@ export const useRealtime = (
 
     console.log('Setting up real-time subscription for user:', selectedUser.id);
 
+    // Create a unique channel name for this conversation
     const channel = supabase
-      .channel(`user_messages_${selectedUser.id}`)
+      .channel(`conversation_${selectedUser.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'user_chat_messages'
+          table: 'user_chat_messages',
+          filter: `or(and(sender_id.eq.${selectedUser.id}),and(recipient_id.eq.${selectedUser.id}))`
         },
         (payload) => {
           console.log('New message received via realtime:', payload);
-          // Always refresh messages to show new message
+          // Refresh messages when new message is inserted
           fetchMessages(selectedUser.id);
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_chat_messages',
+          filter: `or(and(sender_id.eq.${selectedUser.id}),and(recipient_id.eq.${selectedUser.id}))`
+        },
+        (payload) => {
+          console.log('Message updated via realtime:', payload);
+          // Refresh messages when message is updated (e.g., read status)
+          fetchMessages(selectedUser.id);
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       console.log('Cleaning up real-time subscription');
