@@ -68,8 +68,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   return (
     <SidebarContent className="px-4 py-4">
       <SidebarGroup>
-        <SidebarGroupLabel className="flex items-center gap-2 text-lg font-semibold mb-4">
-          <MessageSquare className="h-5 w-5" />
+        <SidebarGroupLabel className="text-lg font-semibold mb-4">
           Messages
         </SidebarGroupLabel>
         
@@ -85,7 +84,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                   }`}
                   onClick={() => handleUserClick(user)}
                 >
-                  <Avatar className="h-14 w-14 flex-shrink-0">
+                  <Avatar className="h-16 w-16 flex-shrink-0">
                     <AvatarImage src={user.avatar_url || ""} />
                     <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
                       {getInitials(user)}
