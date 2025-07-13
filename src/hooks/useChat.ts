@@ -133,6 +133,84 @@ export function useChat() {
     }));
   };
 
+  // Refresh messages without showing loading state (for after sending)
+  const refreshMessages = async (roomId: string) => {
+    try {
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new AbortController for this request
+      const newAbortController = new AbortController();
+      abortControllerRef.current = newAbortController;
+
+      console.log('Refreshing messages for room:', roomId);
+      
+      const { data, error } = await supabase
+        .from('employee_chat_messages')
+        .select(`
+          id,
+          message_text,
+          file_urls,
+          created_at,
+          sender_id,
+          reply_to_message_id
+        `)
+        .eq('room_id', roomId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      console.log('Messages refresh result:', { data, error, count: data?.length });
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        console.log('No messages found for room:', roomId);
+        if (mountedRef.current) {
+          setMessages([]);
+          setHasMoreMessages(false);
+          setOldestMessageDate(null);
+        }
+        return;
+      }
+
+      console.log('Processing', data.length, 'messages...');
+
+      // Process messages with sender info
+      const messagesWithReplies = await processMessagesWithSenders(data);
+
+      // Check if request was cancelled
+      if (newAbortController.signal.aborted) {
+        console.log('Request was cancelled');
+        return;
+      }
+
+      // Reverse to show oldest to newest
+      const orderedMessages = messagesWithReplies.reverse();
+
+      console.log('Setting messages, final count:', orderedMessages.length);
+      setMessages(orderedMessages);
+      
+      // Set pagination state
+      setHasMoreMessages(data.length === 20); // If we got 20 messages, there might be more
+      
+      // Set oldest message date for pagination
+      if (data.length > 0) {
+        const oldestCreatedAt = data[data.length - 1].created_at;
+        setOldestMessageDate(oldestCreatedAt);
+      }
+
+      console.log('Messages state updated');
+    } catch (error) {
+      console.error('Error refreshing messages:', error);
+    } finally {
+      if (mountedRef.current) {
+        setIsLoadingMessages(false);
+      }
+    }
+  };
+
   // Fetch initial messages for a room (last 20)
   const fetchMessages = async (roomId: string) => {
     try {
@@ -434,8 +512,8 @@ export function useChat() {
       
       // Replace optimistic message with real message
       if (data) {
-        // Fetch the complete message with sender details
-        await fetchMessages(selectedRoom.id);
+        // Refresh the messages without showing loading state
+        await refreshMessages(selectedRoom.id);
       }
       
     } catch (error) {
