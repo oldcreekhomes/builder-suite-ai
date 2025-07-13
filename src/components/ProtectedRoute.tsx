@@ -1,6 +1,7 @@
 
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatNotifications } from "@/hooks/useChatNotifications";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,6 +10,9 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  
+  // Initialize global chat notifications for all protected pages
+  useChatNotifications();
 
   if (loading) {
     return (
