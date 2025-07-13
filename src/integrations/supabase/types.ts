@@ -839,6 +839,51 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          avatar_url: string | null
+          company_name: string | null
+          confirmed: boolean
+          created_at: string
+          email: string
+          first_name: string | null
+          home_builder_id: string | null
+          id: string
+          last_name: string | null
+          phone_number: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_name?: string | null
+          confirmed?: boolean
+          created_at?: string
+          email: string
+          first_name?: string | null
+          home_builder_id?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_name?: string | null
+          confirmed?: boolean
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          home_builder_id?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

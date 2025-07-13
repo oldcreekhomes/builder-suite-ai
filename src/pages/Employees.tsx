@@ -14,10 +14,10 @@ export default function Employees() {
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
   const { profile } = useUserProfile();
 
-  // Check if user is a home builder (users table) vs employee
-  const isHomeBuilder = profile && 'company_name' in profile;
+  // Check if user is an owner (home builder) vs employee
+  const isOwner = profile && profile.role === 'owner';
   
-  if (!isHomeBuilder) {
+  if (!isOwner) {
     return (
       <SidebarProvider>
         <div className="flex min-h-screen w-full">

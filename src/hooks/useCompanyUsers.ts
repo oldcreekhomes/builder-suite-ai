@@ -36,19 +36,22 @@ export const useCompanyUsers = () => {
 
       let allUsers: User[] = [];
 
-      // Check if current user is an owner
-      const { data: ownerProfile } = await supabase
-        .from('owners')
-        .select('*')
+      // Get current user's profile from unified users table
+      const { data: currentUserProfile } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
-      if (ownerProfile) {
+      if (!currentUserProfile) return;
+
+      if (currentUserProfile.role === 'owner') {
         // User is owner - get all employees
         const { data: employees } = await supabase
-          .from('employees')
+          .from('users')
           .select('*')
           .eq('home_builder_id', currentUser.user.id)
+          .eq('role', 'employee')
           .eq('confirmed', true);
         
         allUsers = employees?.map(emp => ({
@@ -59,49 +62,43 @@ export const useCompanyUsers = () => {
           avatar_url: emp.avatar_url,
           email: emp.email
         })) || [];
-      } else {
+      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
         // User is employee - get owner and other employees
-        const { data: employee } = await supabase
-          .from('employees')
-          .select('home_builder_id')
-          .eq('id', currentUser.user.id)
-          .single();
+        // Get owner
+        const { data: owner } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentUserProfile.home_builder_id)
+          .eq('role', 'owner')
+          .maybeSingle();
 
-        if (employee?.home_builder_id) {
-          // Get owner
-          const { data: owner } = await supabase
-            .from('owners')
-            .select('*')
-            .eq('id', employee.home_builder_id)
-            .single();
+        // Get other employees
+        const { data: employees } = await supabase
+          .from('users')
+          .select('*')
+          .eq('home_builder_id', currentUserProfile.home_builder_id)
+          .eq('role', 'employee')
+          .eq('confirmed', true)
+          .neq('id', currentUser.user.id);
 
-          // Get other employees
-          const { data: employees } = await supabase
-            .from('employees')
-            .select('*')
-            .eq('home_builder_id', employee.home_builder_id)
-            .eq('confirmed', true)
-            .neq('id', currentUser.user.id);
-
-          allUsers = [
-            ...(owner ? [{
-              id: owner.id,
-              first_name: owner.first_name || 'Owner',
-              last_name: owner.last_name || '',
-              role: 'owner',
-              avatar_url: owner.avatar_url,
-              email: owner.email
-            }] : []),
-            ...(employees?.map(emp => ({
-              id: emp.id,
-              first_name: emp.first_name,
-              last_name: emp.last_name,
-              role: emp.role,
-              avatar_url: emp.avatar_url,
-              email: emp.email
-            })) || [])
-          ];
-        }
+        allUsers = [
+          ...(owner ? [{
+            id: owner.id,
+            first_name: owner.first_name || 'Owner',
+            last_name: owner.last_name || '',
+            role: 'owner',
+            avatar_url: owner.avatar_url,
+            email: owner.email
+          }] : []),
+          ...(employees?.map(emp => ({
+            id: emp.id,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            role: emp.role,
+            avatar_url: emp.avatar_url,
+            email: emp.email
+          })) || [])
+        ];
       }
 
       setUsers(allUsers);
