@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Paperclip, Smile, Send, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -75,6 +75,16 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
     }
   };
 
+  // Auto-resize textarea
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageInput(e.target.value);
+    
+    // Reset height to auto to shrink if needed
+    e.target.style.height = 'auto';
+    // Set height to scroll height to expand as needed
+    e.target.style.height = e.target.scrollHeight + 'px';
+  }, []);
+
   return (
     <div 
       className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
@@ -126,54 +136,57 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
         </div>
       )}
       
-      <div className="flex items-center space-x-2">
-        <div className="flex-1 relative">
-          <Input
+      <div className="flex items-end space-x-2">
+        <div className="flex-1">
+          <Textarea
             placeholder="Send a message..."
             value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            className="pr-20"
+            className="min-h-[80px] resize-none pr-2"
+            rows={1}
           />
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-            {/* File Attachment Button */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="h-4 w-4 text-gray-400" />
-            </Button>
-            
-            {/* Emoji Button */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <Smile className="h-4 w-4 text-gray-400" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" side="top">
-                <div className="grid grid-cols-10 gap-1">
-                  {commonEmojis.map((emoji, index) => (
-                    <Button
-                      key={index}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-lg hover:bg-gray-100"
-                      onClick={() => insertEmoji(emoji)}
-                    >
-                      {emoji}
-                    </Button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
         </div>
-        <Button size="sm" className="h-8 w-8 p-0" onClick={sendMessage}>
-          <Send className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center space-x-1">
+          {/* File Attachment Button */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-4 w-4 text-gray-400" />
+          </Button>
+          
+          {/* Emoji Button */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Smile className="h-4 w-4 text-gray-400" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2" side="top">
+              <div className="grid grid-cols-10 gap-1">
+                {commonEmojis.map((emoji, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-lg hover:bg-gray-100"
+                    onClick={() => insertEmoji(emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          {/* Send Button */}
+          <Button size="sm" className="h-8 w-8 p-0" onClick={sendMessage}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
       {/* Hidden file input */}
