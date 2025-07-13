@@ -86,15 +86,75 @@ export function useDocumentTitle() {
     };
   }, [currentUserId]);
 
-  // Update document title when unread count changes
+  // Create dynamic favicon with red badge showing unread count
+  const updateFavicon = (count: number) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return;
+    
+    canvas.width = 32;
+    canvas.height = 32;
+    
+    // Draw base icon (simple building shape for BuilderSuite)
+    ctx.fillStyle = '#3b82f6'; // Blue color
+    ctx.fillRect(4, 12, 24, 16);
+    ctx.fillStyle = '#1e40af'; // Darker blue for roof
+    ctx.beginPath();
+    ctx.moveTo(16, 4);
+    ctx.lineTo(6, 14);
+    ctx.lineTo(26, 14);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw window
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(12, 18, 8, 6);
+    
+    if (count > 0) {
+      // Draw red circle badge
+      ctx.fillStyle = '#ef4444'; // Red color
+      ctx.beginPath();
+      ctx.arc(24, 8, 8, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Draw white number
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Handle numbers > 99
+      const displayCount = count > 99 ? '99+' : count.toString();
+      ctx.fillText(displayCount, 24, 8);
+    }
+    
+    // Update favicon
+    const dataURL = canvas.toDataURL('image/png');
+    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      document.head.appendChild(favicon);
+    }
+    
+    favicon.href = dataURL;
+  };
 
+  // Update document title and favicon when unread count changes
   useEffect(() => {
-    console.log('Document title: Updating title with unread count:', totalUnread);
+    console.log('Document title: Updating title and favicon with unread count:', totalUnread);
+    
+    // Update title (keep the text for accessibility)
     if (totalUnread > 0) {
       document.title = `(${totalUnread}) ${BASE_TITLE}`;
     } else {
       document.title = BASE_TITLE;
     }
+    
+    // Update favicon with red badge
+    updateFavicon(totalUnread);
   }, [totalUnread]);
 
   // Listen for when rooms are marked as read to decrease the count
