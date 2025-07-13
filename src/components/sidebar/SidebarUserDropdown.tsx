@@ -62,7 +62,7 @@ export function SidebarUserDropdown() {
 
   return (
     <>
-      <SidebarFooter className="p-4 border-t border-gray-200 h-[120px]">
+      <SidebarFooter className="p-4 border-t border-gray-200 h-[72px]">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start p-2 h-auto">

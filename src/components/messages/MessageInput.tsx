@@ -77,7 +77,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
 
   return (
     <div 
-      className={`p-4 border-t border-gray-200 bg-white flex-shrink-0 h-[72px] ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+      className={`p-3 border-t border-gray-200 bg-white flex-shrink-0 h-[72px] ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -133,7 +133,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none pr-2 h-12 overflow-hidden"
+            className="resize-none pr-2 h-10 overflow-hidden"
             rows={1}
           />
         </div>
