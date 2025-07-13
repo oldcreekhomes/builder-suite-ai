@@ -85,7 +85,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message) => {
-        const isOwn = isMyMessage(message.sender.id);
+        const isOwn = isMyMessage(message.sender_id);
         
         return (
           <div
@@ -96,9 +96,9 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
               {/* Avatar */}
               <div className={`flex-shrink-0 ${isOwn ? 'ml-2' : 'mr-2'}`}>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={message.sender.avatar_url || undefined} />
+                  <AvatarImage src={message.sender_avatar || undefined} />
                   <AvatarFallback className="text-xs">
-                    {getAvatarFallback(message.sender)}
+                    {message.sender_name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -108,7 +108,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                 {/* Sender name and time */}
                 <div className={`text-xs text-muted-foreground mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
                   <span className="font-medium">
-                    {isOwn ? 'You' : `${message.sender.first_name} ${message.sender.last_name || ''}`.trim()}
+                    {isOwn ? 'You' : message.sender_name}
                   </span>
                   <span className="ml-2">{formatTime(message.created_at)}</span>
                 </div>

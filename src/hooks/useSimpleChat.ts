@@ -1,80 +1,181 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-interface Employee {
+export interface User {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
-  role?: string | null;
-  avatar_url: string | null;
+  first_name: string;
+  last_name: string;
+  role?: string;
+  avatar_url?: string;
   email: string;
 }
 
-interface ChatRoom {
+export interface ChatRoom {
   id: string;
-  name: string | null;
+  name?: string;
   is_direct_message: boolean;
   updated_at: string;
-  otherUser?: Employee;
+  otherUser?: User;
   lastMessage?: string;
   unreadCount?: number;
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
-  message_text: string | null;
-  file_urls: string[] | null;
+  message_text?: string;
+  file_urls?: string[];
   created_at: string;
-  sender: Employee;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar?: string;
 }
 
-export function useSimpleChat() {
-  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+export const useSimpleChat = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const mountedRef = useRef(true);
 
-  // Get current user ID
+  // Get current user
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        await fetchUsers();
       }
     };
     getCurrentUser();
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Fetch all users in the company
+  const fetchUsers = async () => {
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) return;
 
-  // Simple function to get messages with sender info (using database function)
+      let allUsers: User[] = [];
+
+      // Check if current user is an owner
+      const { data: ownerProfile } = await supabase
+        .from('owners')
+        .select('*')
+        .eq('id', currentUser.user.id)
+        .maybeSingle();
+
+      if (ownerProfile) {
+        // User is owner - get all employees
+        const { data: employees } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('home_builder_id', currentUser.user.id)
+          .eq('confirmed', true);
+        
+        allUsers = employees?.map(emp => ({
+          id: emp.id,
+          first_name: emp.first_name,
+          last_name: emp.last_name,
+          role: emp.role,
+          avatar_url: emp.avatar_url,
+          email: emp.email
+        })) || [];
+      } else {
+        // User is employee - get owner and other employees
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('home_builder_id')
+          .eq('id', currentUser.user.id)
+          .single();
+
+        if (employee?.home_builder_id) {
+          // Get owner
+          const { data: owner } = await supabase
+            .from('owners')
+            .select('*')
+            .eq('id', employee.home_builder_id)
+            .single();
+
+          // Get other employees
+          const { data: employees } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('home_builder_id', employee.home_builder_id)
+            .eq('confirmed', true)
+            .neq('id', currentUser.user.id);
+
+          allUsers = [
+            ...(owner ? [{
+              id: owner.id,
+              first_name: owner.first_name || 'Owner',
+              last_name: owner.last_name || '',
+              role: 'owner',
+              avatar_url: owner.avatar_url,
+              email: owner.email
+            }] : []),
+            ...(employees?.map(emp => ({
+              id: emp.id,
+              first_name: emp.first_name,
+              last_name: emp.last_name,
+              role: emp.role,
+              avatar_url: emp.avatar_url,
+              email: emp.email
+            })) || [])
+          ];
+        }
+      }
+
+      setUsers(allUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  // Start chat with user
+  const startChatWithUser = async (user: User) => {
+    try {
+      console.log('Starting chat with user:', user.id);
+      
+      const { data: roomId, error } = await supabase.rpc('get_or_create_dm_room', {
+        other_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      console.log('Room created/found:', roomId);
+
+      const newRoom: ChatRoom = {
+        id: roomId,
+        is_direct_message: true,
+        updated_at: new Date().toISOString(),
+        otherUser: user
+      };
+
+      setSelectedRoom(newRoom);
+      await fetchMessages(roomId);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start chat",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fetch messages for room
   const fetchMessages = async (roomId: string) => {
-    if (!mountedRef.current) return;
-    
     try {
       setIsLoadingMessages(true);
       console.log('Fetching messages for room:', roomId);
       
-      // Get messages with a simple query - last 50 messages
-      const { data: messagesData, error } = await supabase
+      const { data, error } = await supabase
         .from('employee_chat_messages')
-        .select(`
-          id,
-          message_text,
-          file_urls,
-          created_at,
-          sender_id
-        `)
+        .select('*')
         .eq('room_id', roomId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: true })
@@ -82,196 +183,115 @@ export function useSimpleChat() {
 
       if (error) throw error;
 
-      if (!messagesData || messagesData.length === 0) {
-        setMessages([]);
-        return;
-      }
+      // Get sender info for each message
+      const messagesWithSenders = await Promise.all(
+        (data || []).map(async (msg) => {
+          let senderName = 'Unknown';
+          let senderAvatar = null;
 
-      // Get unique sender IDs
-      const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
-      
-      // Fetch all senders in parallel (both owners and employees)
-      const [ownersData, employeesData] = await Promise.all([
-        supabase
-          .from('owners')
-          .select('id, first_name, last_name, avatar_url, email, role')
-          .in('id', senderIds),
-        supabase
-          .from('employees')
-          .select('id, first_name, last_name, role, avatar_url, email')
-          .in('id', senderIds)
-      ]);
+          // Try owners first
+          const { data: owner } = await supabase
+            .from('owners')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', msg.sender_id)
+            .maybeSingle();
 
-      // Create sender lookup map
-      const sendersMap = new Map();
-      ownersData.data?.forEach(sender => sendersMap.set(sender.id, sender));
-      employeesData.data?.forEach(sender => sendersMap.set(sender.id, sender));
+          if (owner) {
+            senderName = `${owner.first_name || ''} ${owner.last_name || ''}`.trim();
+            senderAvatar = owner.avatar_url;
+          } else {
+            // Try employees
+            const { data: employee } = await supabase
+              .from('employees')
+              .select('first_name, last_name, avatar_url')
+              .eq('id', msg.sender_id)
+              .maybeSingle();
 
-      // Add sender info to messages
-      const messagesWithSenders = messagesData.map(message => ({
-        ...message,
-        sender: sendersMap.get(message.sender_id) || {
-          id: message.sender_id,
-          first_name: 'Unknown',
-          last_name: 'User',
-          role: 'user',
-          avatar_url: null,
-          email: ''
-        }
-      }));
+            if (employee) {
+              senderName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
+              senderAvatar = employee.avatar_url;
+            }
+          }
 
-      if (mountedRef.current) {
-        setMessages(messagesWithSenders);
-      }
-      
+          return {
+            ...msg,
+            sender_name: senderName,
+            sender_avatar: senderAvatar
+          };
+        })
+      );
+
+      setMessages(messagesWithSenders);
+      console.log('Messages loaded:', messagesWithSenders.length);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      if (mountedRef.current) {
-        toast({
-          title: "Error",
-          description: "Failed to load messages",
-          variant: "destructive",
-        });
-      }
     } finally {
-      if (mountedRef.current) {
-        setIsLoadingMessages(false);
-      }
+      setIsLoadingMessages(false);
     }
   };
 
-  // Start a new chat with an employee
-  const startChatWithEmployee = async (employee: Employee) => {
-    try {
-      console.log('Starting chat with employee:', employee);
-      
-      const { data, error } = await supabase.rpc('get_or_create_dm_room', {
-        other_user_id: employee.id
-      });
-
-      if (error) throw error;
-
-      // Fetch the room details
-      const { data: room, error: roomError } = await supabase
-        .from('employee_chat_rooms')
-        .select('*')
-        .eq('id', data)
-        .single();
-
-      if (roomError) throw roomError;
-
-      const newRoom = {
-        ...room,
-        otherUser: employee
-      };
-
-      setSelectedRoom(newRoom);
-      await fetchMessages(data);
-      
-      // Navigate to messages page if not already there
-      if (window.location.pathname !== '/messages') {
-        navigate('/messages', { 
-          state: { selectedRoom: newRoom } 
-        });
-      }
-      
-    } catch (error) {
-      console.error('Error starting chat:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start chat",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Upload files to Supabase Storage
-  const uploadFiles = async (files: File[]): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
-    
-    for (const file of files) {
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const fileName = `${Date.now()}_${sanitizedName}`;
-      
-      const { data, error } = await supabase.storage
-        .from('chat-attachments')
-        .upload(fileName, file);
-      
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-attachments')
-        .getPublicUrl(fileName);
-      
-      uploadedUrls.push(publicUrl);
-    }
-    
-    return uploadedUrls;
-  };
-
-  // Send a message (simplified - no optimistic updates)
+  // Send message
   const sendMessage = async (messageText: string, files: File[] = []) => {
-    console.log('sendMessage called with:', { messageText, filesCount: files.length, selectedRoom: selectedRoom?.id });
+    console.log('Sending message:', messageText);
     
-    if (!messageText.trim() && files.length === 0) {
-      console.log('Message empty, returning early');
-      return;
-    }
-    if (!selectedRoom) {
-      console.log('No selected room, returning early');
-      return;
-    }
+    if (!messageText.trim() && files.length === 0) return;
+    if (!selectedRoom) return;
 
     try {
       const { data: currentUser } = await supabase.auth.getUser();
-      console.log('Current user:', currentUser.user?.id);
-      if (!currentUser.user) {
-        console.log('No current user, returning early');
-        return;
-      }
+      if (!currentUser.user) return;
 
+      // Upload files if any
       let fileUrls: string[] = [];
-      
-      // Upload files if any are selected
       if (files.length > 0) {
-        console.log('Uploading files...');
-        fileUrls = await uploadFiles(files);
-        console.log('Files uploaded:', fileUrls);
+        for (const file of files) {
+          const fileName = `${Date.now()}_${file.name}`;
+          const { data, error } = await supabase.storage
+            .from('chat-attachments')
+            .upload(fileName, file);
+          
+          if (error) throw error;
+          
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-attachments')
+            .getPublicUrl(fileName);
+          
+          fileUrls.push(publicUrl);
+        }
       }
 
-      console.log('Inserting message into database...');
-      // Send message to database
-      const { data, error } = await supabase
+      // Insert message
+      const { error } = await supabase
         .from('employee_chat_messages')
         .insert({
           room_id: selectedRoom.id,
           sender_id: currentUser.user.id,
           message_text: messageText.trim() || null,
           file_urls: fileUrls.length > 0 ? fileUrls : null
-        })
-        .select();
+        });
 
       if (error) {
-        console.error('Database insert error:', error);
+        console.error('Error inserting message:', error);
         throw error;
       }
+
+      console.log('Message sent successfully');
       
-      console.log('Message inserted successfully:', data);
-      
-      // Messages will be updated via real-time subscription
+      // Refresh messages
+      await fetchMessages(selectedRoom.id);
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
+        description: "Failed to send message",
+        variant: "destructive"
       });
     }
   };
 
-  // Mark room as read when selected
-  const markSelectedRoomAsRead = async (roomId: string) => {
+  // Mark room as read
+  const markRoomAsRead = async (roomId: string) => {
     try {
       await supabase.rpc('mark_room_as_read', {
         room_id_param: roomId
@@ -281,21 +301,14 @@ export function useSimpleChat() {
     }
   };
 
-  // Fetch messages when room changes
+  // Set up real-time subscription when room is selected
   useEffect(() => {
-    if (selectedRoom) {
-      setMessages([]); // Clear messages immediately
-      fetchMessages(selectedRoom.id);
-      markSelectedRoomAsRead(selectedRoom.id);
-    }
-  }, [selectedRoom]);
+    if (!selectedRoom) return;
 
-  // Set up real-time subscription for the current room
-  useEffect(() => {
-    if (!selectedRoom || !currentUserId) return;
+    console.log('Setting up real-time subscription for room:', selectedRoom.id);
 
     const channel = supabase
-      .channel(`simple_messages_${selectedRoom.id}`)
+      .channel(`messages_${selectedRoom.id}`)
       .on(
         'postgres_changes',
         {
@@ -304,95 +317,33 @@ export function useSimpleChat() {
           table: 'employee_chat_messages',
           filter: `room_id=eq.${selectedRoom.id}`
         },
-        async (payload) => {
-          const newMessage = payload.new as any;
-          console.log('New message received:', newMessage);
-          
-          // Always refresh messages when a new message arrives
-          await fetchMessages(selectedRoom.id);
-          
-          // Show notifications for messages from other users
-          if (newMessage.sender_id !== currentUserId) {
-            // Get sender info for notification
-            let senderName = 'Someone';
-            try {
-              let { data: sender } = await supabase
-                .from('owners')
-                .select('first_name, last_name')
-                .eq('id', newMessage.sender_id)
-                .maybeSingle();
-              
-              if (!sender) {
-                const { data: empSender } = await supabase
-                  .from('employees')
-                  .select('first_name, last_name')
-                  .eq('id', newMessage.sender_id)
-                  .maybeSingle();
-                sender = empSender;
-              }
-              
-              if (sender?.first_name) {
-                senderName = `${sender.first_name} ${sender.last_name || ''}`.trim();
-              }
-            } catch (error) {
-              console.error('Error getting sender info for notification:', error);
-            }
-            
-            // Show toast notification
-            toast({
-              title: `New message from ${senderName}`,
-              description: newMessage.message_text || 'Sent an attachment',
-              duration: 4000,
-            });
-            
-            // Show browser notification if available
-            if (window.Notification && window.Notification.permission === 'granted') {
-              new window.Notification(`New message from ${senderName}`, {
-                body: newMessage.message_text || 'Sent an attachment',
-                icon: '/favicon.ico'
-              });
-            }
-            
-            // Play a simple sound
-            try {
-              const audioContext = new AudioContext();
-              const oscillator = audioContext.createOscillator();
-              const gainNode = audioContext.createGain();
-              
-              oscillator.connect(gainNode);
-              gainNode.connect(audioContext.destination);
-              
-              oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-              gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-              
-              oscillator.start();
-              oscillator.stop(audioContext.currentTime + 0.2);
-              
-              setTimeout(() => audioContext.close(), 300);
-            } catch (error) {
-              console.log('Could not play notification sound:', error);
-            }
-          }
+        (payload) => {
+          console.log('New message received via realtime:', payload);
+          // Refresh messages when new message arrives
+          fetchMessages(selectedRoom.id);
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [selectedRoom, currentUserId]);
+  }, [selectedRoom]);
 
   return {
-    selectedRoom,
-    setSelectedRoom,
+    users,
+    rooms,
     messages,
+    selectedRoom,
     currentUserId,
+    isLoading,
     isLoadingMessages,
-    startChatWithEmployee,
+    setSelectedRoom,
+    startChatWithUser,
+    startChatWithEmployee: startChatWithUser, // Alias for backwards compatibility
     sendMessage,
     fetchMessages,
-    markSelectedRoomAsRead
+    markRoomAsRead
   };
-}
-
-export type { Employee, ChatRoom, ChatMessage };
+};

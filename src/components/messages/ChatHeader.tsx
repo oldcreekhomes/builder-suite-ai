@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { ChatRoom } from "@/hooks/useChat";
+import type { ChatRoom } from "@/hooks/useSimpleChat";
 
 interface ChatHeaderProps {
   selectedRoom: ChatRoom;
