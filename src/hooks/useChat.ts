@@ -623,11 +623,8 @@ export function useChat() {
             return;
           }
           
-          // For messages from other users, refresh the message list
-          // For messages from current user, they're already handled by optimistic updates
-          if (newMessage.sender_id !== currentUserId) {
-            await refreshMessages(selectedRoom.id);
-          }
+          // Always refresh messages for any real message
+          await refreshMessages(selectedRoom.id);
         }
       )
       .subscribe();
