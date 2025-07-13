@@ -783,6 +783,7 @@ export type Database = {
           id: string
           is_deleted: boolean
           message_text: string | null
+          read_at: string | null
           recipient_id: string
           sender_id: string
           updated_at: string
@@ -793,6 +794,7 @@ export type Database = {
           id?: string
           is_deleted?: boolean
           message_text?: string | null
+          read_at?: string | null
           recipient_id: string
           sender_id: string
           updated_at?: string
@@ -803,30 +805,10 @@ export type Database = {
           id?: string
           is_deleted?: boolean
           message_text?: string | null
+          read_at?: string | null
           recipient_id?: string
           sender_id?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      user_chat_read_status: {
-        Row: {
-          id: string
-          last_read_at: string
-          other_user_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          last_read_at?: string
-          other_user_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          last_read_at?: string
-          other_user_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -892,6 +874,10 @@ export type Database = {
       }
       mark_conversation_as_read: {
         Args: { other_user_id_param: string }
+        Returns: undefined
+      }
+      mark_message_as_read: {
+        Args: { message_id_param: string }
         Returns: undefined
       }
     }
