@@ -82,10 +82,26 @@ export const useMessages = () => {
     }
   };
 
+  // Add a single message to the list (for real-time updates)
+  const addMessage = (newMessage: ChatMessage) => {
+    setMessages(prevMessages => {
+      // Check if message already exists to avoid duplicates
+      const messageExists = prevMessages.some(msg => msg.id === newMessage.id);
+      if (messageExists) {
+        console.log('Message already exists, skipping:', newMessage.id);
+        return prevMessages;
+      }
+      
+      console.log('Adding new message to chat:', newMessage);
+      return [...prevMessages, newMessage];
+    });
+  };
+
   return {
     messages,
     isLoadingMessages,
     fetchMessages,
-    setMessages
+    setMessages,
+    addMessage
   };
 };

@@ -11,7 +11,7 @@ export type { User, ChatMessage };
 export const useSimpleChat = () => {
   // Use focused hooks
   const { users, currentUserId, isLoading } = useCompanyUsers();
-  const { messages, isLoadingMessages, fetchMessages, setMessages } = useMessages();
+  const { messages, isLoadingMessages, fetchMessages, setMessages, addMessage } = useMessages();
   const { sendMessage: sendMessageHook } = useSendMessage();
   const { 
     selectedUser, 
@@ -21,7 +21,7 @@ export const useSimpleChat = () => {
   } = useChatRooms();
 
   // Set up real-time subscription
-  useRealtime(selectedUser, fetchMessages);
+  useRealtime(selectedUser, addMessage);
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {

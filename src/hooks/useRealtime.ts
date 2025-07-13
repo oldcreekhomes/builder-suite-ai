@@ -4,7 +4,7 @@ import { User } from './useCompanyUsers';
 
 export const useRealtime = (
   selectedUser: User | null,
-  fetchMessages: (otherUserId: string) => Promise<void>
+  addMessage: (message: any) => void
 ) => {
   const channelRef = useRef<any>(null);
   const currentUserRef = useRef<string | null>(null);
@@ -93,8 +93,18 @@ export const useRealtime = (
               });
 
               if (isRelevant) {
-                console.log('✅ Relevant message detected - fetching messages');
-                await fetchMessages(selectedUser.id);
+                console.log('✅ Relevant message detected - adding new message');
+                // Create message object with sender info for display
+                const newMessage = {
+                  id: (messageData as any).id,
+                  message_text: (messageData as any).message_text,
+                  file_urls: (messageData as any).file_urls,
+                  created_at: (messageData as any).created_at,
+                  sender_id: senderId,
+                  sender_name: senderId === selectedUser.id ? `${selectedUser.first_name} ${selectedUser.last_name}` : 'You',
+                  sender_avatar: senderId === selectedUser.id ? selectedUser.avatar_url : null
+                };
+                addMessage(newMessage);
               } else {
                 console.log('⏭️ Message not relevant to current conversation');
               }
@@ -139,5 +149,5 @@ export const useRealtime = (
         channelRef.current = null;
       }
     };
-  }, [selectedUser, fetchMessages]);
+  }, [selectedUser, addMessage]);
 };
