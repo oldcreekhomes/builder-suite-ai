@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useChat } from "@/hooks/useChat";
+import { useSimpleChat } from "@/hooks/useSimpleChat";
 import { ChatHeader } from "@/components/messages/ChatHeader";
-import { MessagesList } from "@/components/messages/MessagesList";
-import { MessageInput } from "@/components/messages/MessageInput";
+import { SimpleMessagesList } from "@/components/messages/SimpleMessagesList";
+import { SimpleMessageInput } from "@/components/messages/SimpleMessageInput";
 
 export default function Messages() {
   const location = useLocation();
@@ -16,16 +16,9 @@ export default function Messages() {
     messages,
     currentUserId,
     isLoadingMessages,
-    isLoadingMore,
-    hasMoreMessages,
     startChatWithEmployee,
-    sendMessage,
-    editMessage,
-    deleteMessage,
-    loadMoreMessages
-  } = useChat();
-
-  const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
+    sendMessage
+  } = useSimpleChat();
 
   // Handle navigation state from direct room navigation
   useEffect(() => {
@@ -34,14 +27,6 @@ export default function Messages() {
       setSelectedRoom(navigationState.selectedRoom);
     }
   }, [location.state, selectedRoom, setSelectedRoom]);
-
-  const handleReplyToMessage = (messageId: string, messageText: string, senderName: string) => {
-    setReplyingTo({ id: messageId, text: messageText, sender: senderName });
-  };
-
-  const handleCancelReply = () => {
-    setReplyingTo(null);
-  };
 
   return (
     <SidebarProvider>
@@ -58,27 +43,19 @@ export default function Messages() {
             {/* Right Side - Chat Interface */}
             <div className="flex-1 flex flex-col bg-white min-h-0 border-l border-gray-200">
               {selectedRoom ? (
-                <>
-                  <ChatHeader selectedRoom={selectedRoom} />
-                  <div className="flex-1 flex flex-col min-h-0">
-                    <MessagesList 
-                      messages={messages} 
-                      currentUserId={currentUserId} 
-                      isLoadingMessages={isLoadingMessages}
-                      isLoadingMore={isLoadingMore}
-                      hasMoreMessages={hasMoreMessages}
-                      onLoadMoreMessages={loadMoreMessages}
-                      onEditMessage={editMessage}
-                      onDeleteMessage={deleteMessage}
-                      onReplyToMessage={handleReplyToMessage}
-                    />
-                    <MessageInput 
-                      onSendMessage={sendMessage}
-                      replyingTo={replyingTo}
-                      onCancelReply={handleCancelReply}
-                    />
-                  </div>
-                </>
+                  <>
+                   <ChatHeader selectedRoom={selectedRoom} />
+                   <div className="flex-1 flex flex-col min-h-0">
+                     <SimpleMessagesList 
+                       messages={messages} 
+                       currentUserId={currentUserId} 
+                       isLoadingMessages={isLoadingMessages}
+                     />
+                     <SimpleMessageInput 
+                       onSendMessage={sendMessage}
+                     />
+                   </div>
+                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center bg-gray-50">
                   <div className="text-center">
