@@ -601,6 +601,62 @@ export function useChat() {
     }
   }, [selectedRoom]);
 
+  // Set up real-time subscription for current room
+  useEffect(() => {
+    if (!selectedRoom || !currentUserId) return;
+
+    console.log('Setting up real-time subscription for room:', selectedRoom.id);
+
+    const channel = supabase
+      .channel(`room_${selectedRoom.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'employee_chat_messages',
+          filter: `room_id=eq.${selectedRoom.id}`
+        },
+        async (payload) => {
+          console.log('Real-time message received:', payload);
+          
+          const newMessage = payload.new as any;
+          
+          // Don't add optimistic messages again
+          if (newMessage.id.startsWith('temp-')) return;
+          
+          // Only refresh if this message is not from current user (to avoid duplication)
+          // Since we already show optimistic messages for current user
+          if (newMessage.sender_id !== currentUserId) {
+            console.log('Message from other user, refreshing messages');
+            await refreshMessages(selectedRoom.id);
+          } else {
+            console.log('Message from current user, already handled optimistically');
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'employee_chat_messages',
+          filter: `room_id=eq.${selectedRoom.id}`
+        },
+        async (payload) => {
+          console.log('Real-time message update received:', payload);
+          // Refresh messages when a message is edited or deleted
+          await refreshMessages(selectedRoom.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription for room:', selectedRoom.id);
+      supabase.removeChannel(channel);
+    };
+  }, [selectedRoom, currentUserId]);
+
   return {
     selectedRoom,
     setSelectedRoom,
