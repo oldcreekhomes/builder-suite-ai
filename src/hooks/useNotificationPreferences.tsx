@@ -10,11 +10,8 @@ export interface NotificationPreferences {
   sound_notifications_enabled: boolean;
   toast_notifications_enabled: boolean;
   notification_sound: string;
-  do_not_disturb_start?: string;
-  do_not_disturb_end?: string;
   direct_message_notifications: boolean;
   group_message_notifications: boolean;
-  toast_duration: number;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -22,11 +19,8 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
   notification_sound: 'chime',
-  do_not_disturb_start: undefined,
-  do_not_disturb_end: undefined,
   direct_message_notifications: true,
   group_message_notifications: true,
-  toast_duration: 5,
 };
 
 export const useNotificationPreferences = () => {

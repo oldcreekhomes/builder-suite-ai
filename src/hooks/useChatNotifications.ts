@@ -187,31 +187,9 @@ export function useChatNotifications() {
     };
   }, [currentUserId, loadUnreadCounts, toast, preferences]);
 
-  const isInDoNotDisturbTime = useCallback(() => {
-    if (!preferences.do_not_disturb_start || !preferences.do_not_disturb_end) {
-      return false;
-    }
-
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    
-    const [startHour, startMinute] = preferences.do_not_disturb_start.split(':').map(Number);
-    const [endHour, endMinute] = preferences.do_not_disturb_end.split(':').map(Number);
-    
-    const startTime = startHour * 60 + startMinute;
-    const endTime = endHour * 60 + endMinute;
-    
-    if (startTime <= endTime) {
-      return currentTime >= startTime && currentTime <= endTime;
-    } else {
-      // Crosses midnight
-      return currentTime >= startTime || currentTime <= endTime;
-    }
-  }, [preferences.do_not_disturb_start, preferences.do_not_disturb_end]);
-
   const shouldShowNotification = useCallback(() => {
-    return !isInDoNotDisturbTime();
-  }, [isInDoNotDisturbTime]);
+    return true; // Always show notifications since do not disturb is removed
+  }, []);
 
   const playNotificationSound = useCallback(() => {
     if (!preferences.sound_notifications_enabled) return;
@@ -304,7 +282,7 @@ export function useChatNotifications() {
     if (preferences.toast_notifications_enabled) {
       sonnerToast(title, {
         description: messagePreview,
-        duration: preferences.toast_duration * 1000,
+        duration: 5000, // Fixed 5 seconds
         action: {
           label: "View",
           onClick: () => {
@@ -325,7 +303,7 @@ export function useChatNotifications() {
 
     // Play sound notification
     playNotificationSound();
-  }, [preferences.toast_notifications_enabled, preferences.browser_notifications_enabled, preferences.toast_duration, playNotificationSound]);
+  }, [preferences.toast_notifications_enabled, preferences.browser_notifications_enabled, playNotificationSound]);
 
   return {
     unreadCounts,
