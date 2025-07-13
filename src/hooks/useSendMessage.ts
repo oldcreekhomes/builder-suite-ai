@@ -42,7 +42,11 @@ export const useSendMessage = () => {
       let fileUrls: string[] = [];
       if (files.length > 0) {
         for (const file of files) {
-          const fileName = `${Date.now()}_${file.name}`;
+          // Sanitize filename by removing spaces and special characters
+          const sanitizedName = file.name
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
+            .replace(/_{2,}/g, '_');
+          const fileName = `${Date.now()}_${sanitizedName}`;
           const { data, error } = await supabase.storage
             .from('chat-attachments')
             .upload(fileName, file);
