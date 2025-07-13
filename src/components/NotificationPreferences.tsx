@@ -1,8 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Bell, Volume2, MessageSquare, TestTube } from "lucide-react";
+import { Bell, MessageSquare, TestTube } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { toast } from "sonner";
 
@@ -36,12 +35,6 @@ export const NotificationPreferences = () => {
     }
   };
 
-  const soundOptions = [
-    { value: 'chime', label: 'Chime' },
-    { value: 'bell', label: 'Bell' },
-    { value: 'notification', label: 'Notification' },
-    { value: 'subtle', label: 'Subtle Beep' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -94,36 +87,6 @@ export const NotificationPreferences = () => {
         </div>
       </div>
 
-      {/* Sound Settings */}
-      {preferences.sound_notifications_enabled && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Volume2 className="h-4 w-4" />
-            <h3 className="text-sm font-medium">Sound Settings</h3>
-          </div>
-          
-          <div className="pl-6">
-            <Label htmlFor="notification-sound" className="text-sm">
-              Notification sound
-            </Label>
-            <Select
-              value={preferences.notification_sound}
-              onValueChange={(value) => updatePreferences({ notification_sound: value })}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {soundOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
 
       {/* Message Type Filters */}
       <div className="space-y-4">

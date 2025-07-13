@@ -195,30 +195,10 @@ export function useChatNotifications() {
     if (!preferences.sound_notifications_enabled) return;
     
     try {
-      // Generate data URL for different notification sounds
-      let frequency1, frequency2, duration;
-      
-      switch (preferences.notification_sound) {
-        case 'bell':
-          frequency1 = 800;
-          frequency2 = 600;
-          duration = 0.3;
-          break;
-        case 'notification':
-          frequency1 = 1000;
-          frequency2 = 800;
-          duration = 0.4;
-          break;
-        case 'subtle':
-          frequency1 = 400;
-          frequency2 = 350;
-          duration = 0.2;
-          break;
-        default: // chime
-          frequency1 = 523; // C5
-          frequency2 = 659; // E5
-          duration = 0.3;
-      }
+      // Always use chime sound (C5 to E5)
+      const frequency1 = 523; // C5
+      const frequency2 = 659; // E5
+      const duration = 0.3;
       
       // Create a simple beep sound using Web Audio API
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -272,7 +252,7 @@ export function useChatNotifications() {
         console.log('Fallback notification sound also failed:', fallbackError);
       }
     }
-  }, [preferences.sound_notifications_enabled, preferences.notification_sound]);
+  }, [preferences.sound_notifications_enabled]);
 
   const showNotifications = useCallback((senderName: string, messageText: string | null, isDirectMessage: boolean) => {
     const messagePreview = messageText || 'Sent an attachment';

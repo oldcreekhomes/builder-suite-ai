@@ -893,7 +893,6 @@ export type Database = {
           direct_message_notifications: boolean
           group_message_notifications: boolean
           id: string
-          notification_sound: string
           sound_notifications_enabled: boolean
           toast_notifications_enabled: boolean
           updated_at: string
@@ -905,7 +904,6 @@ export type Database = {
           direct_message_notifications?: boolean
           group_message_notifications?: boolean
           id?: string
-          notification_sound?: string
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
           updated_at?: string
@@ -917,7 +915,6 @@ export type Database = {
           direct_message_notifications?: boolean
           group_message_notifications?: boolean
           id?: string
-          notification_sound?: string
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
           updated_at?: string
