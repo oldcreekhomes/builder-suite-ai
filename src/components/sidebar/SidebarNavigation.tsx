@@ -25,7 +25,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useChatNotificationsContext } from "@/components/GlobalNotificationsProvider";
 
 
 const navigationItems = [
@@ -77,7 +76,8 @@ const navigationItems = [
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const { totalUnread } = useChatNotificationsContext();
+  // Note: Total unread count will need to be passed down from global provider
+  const totalUnread = 0; // Placeholder for now
 
   // Get current project ID from URL
   const getProjectId = () => {
@@ -154,7 +154,7 @@ export function SidebarNavigation() {
                        asChild 
                        className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
                      >
-                        <a href={item.url === '/' || item.url === '/messages' ? item.url : `/project/${projectId}${item.url}`} className="flex items-center justify-between space-x-3 p-3 rounded-lg w-full">
+                        <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center justify-between space-x-3 p-3 rounded-lg w-full">
                           <div className="flex items-center space-x-3">
                             <item.icon className="h-5 w-5" />
                             <span className="font-medium">{item.title}</span>
