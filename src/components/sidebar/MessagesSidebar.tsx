@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useChatNotifications } from "@/hooks/useChatNotifications";
 
 interface Employee {
   id: string;
@@ -42,7 +41,8 @@ export function MessagesSidebar({ selectedRoom, onRoomSelect, onStartChat }: Mes
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { unreadCounts } = useChatNotifications();
+  // Note: Global chat notifications are now handled by GlobalNotificationsProvider
+  const unreadCounts: { [roomId: string]: number } = {}; // Placeholder for now
 
   // Combine all users and sort them alphabetically by first name
   const allSortedUsers = useMemo(() => {

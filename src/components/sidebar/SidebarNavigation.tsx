@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useChatNotifications } from "@/hooks/useChatNotifications";
+
 
 const navigationItems = [
   {
@@ -76,7 +76,8 @@ const navigationItems = [
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const { totalUnread } = useChatNotifications();
+  // Note: Total unread count will need to be passed down from global provider
+  const totalUnread = 0; // Placeholder for now
 
   // Get current project ID from URL
   const getProjectId = () => {

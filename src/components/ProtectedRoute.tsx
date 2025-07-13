@@ -1,7 +1,7 @@
 
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useChatNotifications } from "@/hooks/useChatNotifications";
+import { GlobalNotificationsProvider } from "./GlobalNotificationsProvider";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,9 +10,6 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  
-  // Initialize global chat notifications for all protected pages
-  useChatNotifications();
 
   if (loading) {
     return (
@@ -27,7 +24,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <GlobalNotificationsProvider>
+      {children}
+    </GlobalNotificationsProvider>
+  );
 };
 
 export default ProtectedRoute;
