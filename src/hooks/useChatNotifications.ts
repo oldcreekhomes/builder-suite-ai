@@ -252,7 +252,7 @@ export function useChatNotifications() {
     }
   }, [preferences.sound_notifications_enabled]);
 
-  const showNotifications = useCallback((senderName: string, messageText: string | null, isDirectMessage: boolean) => {
+  const showNotifications = useCallback(async (senderName: string, messageText: string | null, isDirectMessage: boolean) => {
     const messagePreview = messageText || 'Sent an attachment';
     const title = `New ${isDirectMessage ? 'direct message' : 'group message'} from ${senderName}`;
 
@@ -272,11 +272,30 @@ export function useChatNotifications() {
     }
 
     // Show browser notification
-    if (preferences.browser_notifications_enabled && "Notification" in window && Notification.permission === "granted") {
-      new Notification(title, {
-        body: messagePreview,
-        icon: "/favicon.ico",
-      });
+    if (preferences.browser_notifications_enabled && "Notification" in window) {
+      console.log('Browser notification permission status:', Notification.permission);
+      
+      if (Notification.permission === "granted") {
+        console.log('Showing browser notification');
+        new Notification(title, {
+          body: messagePreview,
+          icon: "/favicon.ico",
+        });
+      } else if (Notification.permission !== "denied") {
+        console.log('Requesting notification permission');
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          console.log('Permission granted, showing notification');
+          new Notification(title, {
+            body: messagePreview,
+            icon: "/favicon.ico",
+          });
+        } else {
+          console.log('Permission denied for browser notifications');
+        }
+      } else {
+        console.log('Browser notifications are blocked by the user');
+      }
     }
 
     // Play sound notification
