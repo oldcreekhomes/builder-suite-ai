@@ -22,6 +22,34 @@ export const useSendMessage = () => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
 
+      // Get current user's profile info for avatar
+      let currentUserName = 'You';
+      let currentUserAvatar = null;
+
+      // Try owners first
+      const { data: owner } = await supabase
+        .from('owners')
+        .select('first_name, last_name, avatar_url')
+        .eq('id', currentUser.user.id)
+        .maybeSingle();
+
+      if (owner) {
+        currentUserName = `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || 'You';
+        currentUserAvatar = owner.avatar_url;
+      } else {
+        // Try employees
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('first_name, last_name, avatar_url')
+          .eq('id', currentUser.user.id)
+          .maybeSingle();
+
+        if (employee) {
+          currentUserName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'You';
+          currentUserAvatar = employee.avatar_url;
+        }
+      }
+
       // Upload files if any
       let fileUrls: string[] = [];
       if (files.length > 0) {
@@ -41,15 +69,15 @@ export const useSendMessage = () => {
         }
       }
 
-      // Add optimistic message immediately
+      // Add optimistic message immediately with proper avatar
       const optimisticMessage: ChatMessage = {
         id: 'temp-' + Date.now(),
         message_text: messageText.trim(),
         file_urls: fileUrls.length > 0 ? fileUrls : undefined,
         created_at: new Date().toISOString(),
         sender_id: currentUser.user.id,
-        sender_name: 'You',
-        sender_avatar: null
+        sender_name: currentUserName,
+        sender_avatar: currentUserAvatar
       };
       
       setMessages(prev => [...prev, optimisticMessage]);
