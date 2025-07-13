@@ -25,8 +25,10 @@ export default function Messages() {
     const navigationState = location.state as { selectedRoom?: any } | null;
     if (navigationState?.selectedRoom && !selectedRoom) {
       setSelectedRoom(navigationState.selectedRoom);
+      // Automatically start chat and load messages
+      startChatWithEmployee(navigationState.selectedRoom);
     }
-  }, [location.state, selectedRoom, setSelectedRoom]);
+  }, [location.state, selectedRoom, setSelectedRoom, startChatWithEmployee]);
 
   return (
     <SidebarProvider>
