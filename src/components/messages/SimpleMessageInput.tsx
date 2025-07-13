@@ -73,7 +73,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
 
   return (
     <div 
-      className={`p-4 border-t bg-background h-[90px] flex-shrink-0 ${isDragOver ? 'bg-accent' : ''}`}
+      className={`p-4 border-t bg-background h-[74px] flex-shrink-0 ${isDragOver ? 'bg-accent' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
