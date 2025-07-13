@@ -211,31 +211,52 @@ export function useSimpleChat() {
 
   // Send a message (simplified - no optimistic updates)
   const sendMessage = async (messageText: string, files: File[] = []) => {
-    if (!messageText.trim() && files.length === 0) return;
-    if (!selectedRoom) return;
+    console.log('sendMessage called with:', { messageText, filesCount: files.length, selectedRoom: selectedRoom?.id });
+    
+    if (!messageText.trim() && files.length === 0) {
+      console.log('Message empty, returning early');
+      return;
+    }
+    if (!selectedRoom) {
+      console.log('No selected room, returning early');
+      return;
+    }
 
     try {
       const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) return;
+      console.log('Current user:', currentUser.user?.id);
+      if (!currentUser.user) {
+        console.log('No current user, returning early');
+        return;
+      }
 
       let fileUrls: string[] = [];
       
       // Upload files if any are selected
       if (files.length > 0) {
+        console.log('Uploading files...');
         fileUrls = await uploadFiles(files);
+        console.log('Files uploaded:', fileUrls);
       }
 
+      console.log('Inserting message into database...');
       // Send message to database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('employee_chat_messages')
         .insert({
           room_id: selectedRoom.id,
           sender_id: currentUser.user.id,
           message_text: messageText.trim() || null,
           file_urls: fileUrls.length > 0 ? fileUrls : null
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
+      
+      console.log('Message inserted successfully:', data);
       
       // Messages will be updated via real-time subscription
       
