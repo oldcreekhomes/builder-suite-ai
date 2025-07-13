@@ -79,7 +79,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
               filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 w-4/5 ${
+                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
                     selectedUser?.id === user.id ? 'bg-gray-100' : ''
                   }`}
                   onClick={() => handleUserClick(user)}
