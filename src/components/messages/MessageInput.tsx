@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { Paperclip, Smile, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -75,16 +75,6 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
     }
   };
 
-  // Auto-resize textarea
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessageInput(e.target.value);
-    
-    // Reset height to auto to shrink if needed
-    e.target.style.height = 'auto';
-    // Set height to scroll height to expand as needed
-    e.target.style.height = e.target.scrollHeight + 'px';
-  }, []);
-
   return (
     <div 
       className={`px-4 py-4 border-t border-gray-200 bg-white flex-shrink-0 ${isDragOver ? 'bg-blue-50 border-blue-300' : ''}`}
@@ -142,9 +132,9 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
           <Textarea
             placeholder="Send a message..."
             value={messageInput}
-            onChange={handleInputChange}
+            onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none pr-2 h-12"
+            className="resize-none pr-2 h-12 overflow-hidden"
             rows={1}
           />
         </div>
