@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { GlobalNotificationsProvider } from "./components/GlobalNotificationsProvider";
+import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import SharedPhoto from "./pages/SharedPhoto";
 import SharedFolder from "./pages/SharedFolder";
 import ProjectDashboard from "./pages/ProjectDashboard";
@@ -27,12 +28,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const AppContent = () => {
+  useDocumentTitle(); // This will update the document title with unread counts
+  
+  return (
+    <BrowserRouter>
         <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
@@ -88,6 +88,15 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
 );
