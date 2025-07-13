@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
 import { useNotificationPreferences } from './useNotificationPreferences';
 
@@ -19,7 +18,6 @@ export function useChatNotifications() {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   const [totalUnread, setTotalUnread] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { toast } = useToast();
   const { preferences } = useNotificationPreferences();
 
   // Get current user ID
@@ -183,7 +181,7 @@ export function useChatNotifications() {
     return () => {
       supabase.removeChannel(messageChannel);
     };
-  }, [currentUserId, loadUnreadCounts, toast, preferences]);
+  }, [currentUserId, loadUnreadCounts, preferences]);
 
   const shouldShowNotification = useCallback(() => {
     return true; // Always show notifications since do not disturb is removed
