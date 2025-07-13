@@ -86,7 +86,7 @@ export function useDocumentTitle() {
     };
   }, [currentUserId]);
 
-  // Create dynamic favicon with red badge showing unread count
+  // Create simple red circle favicon with white number
   const updateFavicon = (count: number) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -96,64 +96,54 @@ export function useDocumentTitle() {
     canvas.width = 32;
     canvas.height = 32;
     
-    // Draw base icon (simple building shape for BuilderSuite)
-    ctx.fillStyle = '#3b82f6'; // Blue color
-    ctx.fillRect(4, 12, 24, 16);
-    ctx.fillStyle = '#1e40af'; // Darker blue for roof
-    ctx.beginPath();
-    ctx.moveTo(16, 4);
-    ctx.lineTo(6, 14);
-    ctx.lineTo(26, 14);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw window
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(12, 18, 8, 6);
-    
     if (count > 0) {
-      // Draw red circle badge
+      // Clear canvas with transparent background
+      ctx.clearRect(0, 0, 32, 32);
+      
+      // Draw red circle
       ctx.fillStyle = '#ef4444'; // Red color
       ctx.beginPath();
-      ctx.arc(24, 8, 8, 0, 2 * Math.PI);
+      ctx.arc(16, 16, 15, 0, 2 * Math.PI); // Centered circle
       ctx.fill();
       
       // Draw white number
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px Arial';
+      ctx.font = 'bold 14px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
       // Handle numbers > 99
       const displayCount = count > 99 ? '99+' : count.toString();
-      ctx.fillText(displayCount, 24, 8);
+      ctx.fillText(displayCount, 16, 16);
+      
+      // Update favicon
+      const dataURL = canvas.toDataURL('image/png');
+      let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+      
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+      }
+      
+      favicon.href = dataURL;
+    } else {
+      // Reset to original favicon when no unread messages
+      let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+      if (favicon) {
+        favicon.href = '/src/assets/buildersuiteai-logo.png';
+      }
     }
-    
-    // Update favicon
-    const dataURL = canvas.toDataURL('image/png');
-    let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-    
-    if (!favicon) {
-      favicon = document.createElement('link');
-      favicon.rel = 'icon';
-      document.head.appendChild(favicon);
-    }
-    
-    favicon.href = dataURL;
   };
 
   // Update document title and favicon when unread count changes
   useEffect(() => {
     console.log('Document title: Updating title and favicon with unread count:', totalUnread);
     
-    // Update title (keep the text for accessibility)
-    if (totalUnread > 0) {
-      document.title = `(${totalUnread}) ${BASE_TITLE}`;
-    } else {
-      document.title = BASE_TITLE;
-    }
+    // Always show just the base title (no count in text)
+    document.title = BASE_TITLE;
     
-    // Update favicon with red badge
+    // Update favicon with red circle (only when there are unread messages)
     updateFavicon(totalUnread);
   }, [totalUnread]);
 
