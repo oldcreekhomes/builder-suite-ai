@@ -66,37 +66,33 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   }
 
   return (
-    <SidebarContent className="px-3 py-4">
+    <SidebarContent className="px-4 py-4">
       <SidebarGroup>
         <SidebarGroupContent>
           {/* Users List */}
-          <SidebarMenu>
+          <div className="space-y-2">
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
-                <SidebarMenuItem key={user.id}>
-                  <SidebarMenuButton
-                    asChild
-                    className={`w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors ${
-                      selectedUser?.id === user.id ? 'bg-gray-100' : ''
-                    }`}
-                  >
-                    <div 
-                      className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer w-full"
-                      onClick={() => handleUserClick(user)}
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar_url || ""} />
-                        <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
-                          {getInitials(user)}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <span className="font-medium text-sm flex-1 text-left">
-                        {getDisplayName(user)}
-                      </span>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <div
+                  key={user.id}
+                  className={`flex items-center space-x-4 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                    selectedUser?.id === user.id ? 'bg-gray-100' : ''
+                  }`}
+                  onClick={() => handleUserClick(user)}
+                >
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.avatar_url || ""} />
+                    <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
+                      {getInitials(user)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-medium text-gray-900 truncate">
+                      {getDisplayName(user)}
+                    </p>
+                  </div>
+                </div>
               ))
             ) : (
               <div className="text-center py-8">
@@ -104,7 +100,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                 <p className="text-sm text-gray-500">No users available</p>
               </div>
             )}
-          </SidebarMenu>
+          </div>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
