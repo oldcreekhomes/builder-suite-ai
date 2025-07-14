@@ -213,14 +213,6 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
               Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
             </p>
             <div className="flex items-center justify-center space-x-4">
-              <Button type="button" onClick={handleChoosePhotos} className="mt-4">
-                <Image className="h-4 w-4 mr-2" />
-                Choose Photos
-              </Button>
-              <Button type="button" variant="outline" onClick={handleChoosePhotoFolder} className="mt-4">
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Choose Photo Folder
-              </Button>
               <Button type="button" variant="outline" onClick={handleNewFolder} className="mt-4">
                 <FolderPlus className="h-4 w-4 mr-2" />
                 Create Folder
