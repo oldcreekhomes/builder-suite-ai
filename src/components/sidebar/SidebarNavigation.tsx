@@ -11,7 +11,9 @@ import {
   MessageSquare,
   HelpCircle
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { UnreadBadge } from "@/components/ui/unread-badge";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import {
   SidebarContent,
   SidebarGroup,
@@ -77,7 +79,12 @@ const navigationItems = [
 
 export function SidebarNavigation() {
   const location = useLocation();
-  const totalUnread = 0; // TODO: Implement unread count
+  const { users } = useCompanyUsers();
+  const userIds = users?.map(user => user.id) || [];
+  const { unreadCounts } = useUnreadCounts(userIds);
+  
+  // Calculate total unread count
+  const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
   // Get current project ID from URL
   const getProjectId = () => {
@@ -159,11 +166,11 @@ export function SidebarNavigation() {
                             <item.icon className="h-5 w-5" />
                             <span className="font-medium">{item.title}</span>
                           </div>
-                          {item.showBadge && totalUnread > 0 && (
-                            <Badge variant="destructive" className="ml-2">
-                              {totalUnread}
-                            </Badge>
-                          )}
+                           {item.showBadge && (
+                             <div className="relative">
+                               <UnreadBadge count={totalUnread} />
+                             </div>
+                           )}
                         </a>
                      </SidebarMenuButton>
                    )}
