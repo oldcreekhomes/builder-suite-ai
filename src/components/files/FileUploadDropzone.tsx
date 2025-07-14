@@ -553,37 +553,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
             <p className="text-sm text-gray-500 mb-4">
               Supports: PDF, Word, Excel, PowerPoint, Text, and Images. System files (.DS_Store, etc.) are automatically filtered out.
             </p>
-            <div className="flex items-center justify-center space-x-4">
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Button type="button" className="mt-4">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Choose Files
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  id="file-upload"
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-              <label htmlFor="folder-upload" className="cursor-pointer">
-                <Button type="button" variant="outline" className="mt-4">
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Choose Folders
-                </Button>
-                <input
-                  ref={folderInputRef}
-                  id="folder-upload"
-                  type="file"
-                  {...({ webkitdirectory: "" } as any)}
-                  multiple
-                  onChange={handleMultipleFolderUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
           </div>
         </FileOperationsContextMenu>
       </Card>
