@@ -38,20 +38,49 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     handleFolderDrop,
   } = useFileGridDragDrop({ uploadFileToFolder, onRefresh });
 
-  // Group files by top-level folder only
+  // Group files by folder using the same logic as FileList
   const groupedFiles = files.reduce((acc, file) => {
-    const displayInfo = getDisplayName(file.original_filename);
-    const folderKey = displayInfo.isInFolder ? displayInfo.topLevelFolder : 'Root';
-    
-    if (!acc[folderKey]) {
-      acc[folderKey] = [];
+    // Skip folder placeholder files
+    if (file.file_type === 'folderkeeper') {
+      return acc;
     }
-    acc[folderKey].push(file);
+    
+    const filePath = file.original_filename || file.filename || '';
+    
+    // Check if this is a loose file
+    if (filePath.startsWith('__LOOSE_FILE__')) {
+      if (!acc['__LOOSE_FILES__']) {
+        acc['__LOOSE_FILES__'] = [];
+      }
+      acc['__LOOSE_FILES__'].push(file);
+      return acc;
+    }
+    
+    // Extract folder path
+    const pathParts = filePath.split('/');
+    
+    if (pathParts.length === 1) {
+      // Root level file
+      if (!acc['Root']) {
+        acc['Root'] = [];
+      }
+      acc['Root'].push(file);
+    } else {
+      // File in folder - use complete folder path except filename
+      const folderPath = pathParts.slice(0, -1).join('/');
+      if (!acc[folderPath]) {
+        acc[folderPath] = [];
+      }
+      acc[folderPath].push(file);
+    }
+    
     return acc;
   }, {} as Record<string, any[]>);
 
-  // Sort folders - Root first, then alphabetically
+  // Sort folders - loose files last, Root first among folders, then alphabetically
   const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
+    if (a === '__LOOSE_FILES__') return 1;
+    if (b === '__LOOSE_FILES__') return -1;
     if (a === 'Root') return -1;
     if (b === 'Root') return 1;
     return a.localeCompare(b);
@@ -119,6 +148,29 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
 
       {sortedFolders.map((folderPath) => {
         const folderFiles = groupedFiles[folderPath];
+        
+        // Handle loose files differently - render them directly without folder header
+        if (folderPath === '__LOOSE_FILES__') {
+          return (
+            <div key={folderPath} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {folderFiles.map((file) => (
+                  <FileGridCard
+                    key={file.id}
+                    file={file}
+                    isSelected={selectedFiles.has(file.id)}
+                    onSelectFile={handleSelectFile}
+                    onFileSelect={onFileSelect}
+                    onRefresh={onRefresh}
+                    onShare={onShare}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        }
+        
+        // Handle regular folders
         const isExpanded = expandedFolders.has(folderPath);
         const isDragOver = dragOverFolder === folderPath;
         

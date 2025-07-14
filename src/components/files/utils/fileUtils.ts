@@ -10,11 +10,21 @@ export const groupFilesByFolder = (files: any[]) => {
     // Use original_filename which contains the full path
     const filePath = file.original_filename || file.filename || '';
     
+    // Check if this is a loose file (dragged directly without folder)
+    if (filePath.startsWith('__LOOSE_FILE__')) {
+      // Add to special loose files group
+      if (!grouped['__LOOSE_FILES__']) {
+        grouped['__LOOSE_FILES__'] = [];
+      }
+      grouped['__LOOSE_FILES__'].push(file);
+      return;
+    }
+    
     // Extract the folder path from the file path
     const pathParts = filePath.split('/');
     
     if (pathParts.length === 1) {
-      // Root level file
+      // Root level file (legacy or files uploaded to specific folders)
       if (!grouped['Root']) {
         grouped['Root'] = [];
       }
@@ -52,7 +62,11 @@ export const groupFilesByFolder = (files: any[]) => {
 
 export const sortFolders = (folderPaths: string[]) => {
   return folderPaths.sort((a, b) => {
-    // Root folder always comes first
+    // Loose files always come last (like Google Drive)
+    if (a === '__LOOSE_FILES__') return 1;
+    if (b === '__LOOSE_FILES__') return -1;
+    
+    // Root folder comes first among folders
     if (a === 'Root') return -1;
     if (b === 'Root') return 1;
     
@@ -107,6 +121,12 @@ export const getFileIcon = (fileType: string) => {
 export const getDisplayName = (originalFilename: string) => {
   if (!originalFilename) {
     return { fileName: 'Unknown', pathWithinFolder: null };
+  }
+  
+  // Handle loose files
+  if (originalFilename.startsWith('__LOOSE_FILE__')) {
+    const fileName = originalFilename.replace('__LOOSE_FILE__', '');
+    return { fileName, pathWithinFolder: null };
   }
   
   const pathParts = originalFilename.split('/');

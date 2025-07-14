@@ -129,6 +129,29 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
           <TableBody>
             {sortedFolders.map((folderPath) => {
               const folderFiles = groupedFiles[folderPath];
+              
+              // Handle loose files differently - render them as individual files
+              if (folderPath === '__LOOSE_FILES__') {
+                return (
+                  <React.Fragment key={folderPath}>
+                    {folderFiles.map((file) => (
+                      <FileRow
+                        key={file.id}
+                        file={file}
+                        isSelected={selectedFiles.has(file.id)}
+                        onSelectFile={handleSelectFile}
+                        onFileSelect={onFileSelect}
+                        onDownload={handleDownload}
+                        onDelete={handleDelete}
+                        onRefresh={onRefresh}
+                        onShare={onShare}
+                      />
+                    ))}
+                  </React.Fragment>
+                );
+              }
+              
+              // Handle regular folders
               // Ensure folders are collapsed by default - only expanded if explicitly in the set
               const isExpanded = expandedFolders.has(folderPath);
               const isDragOver = dragOverFolder === folderPath;

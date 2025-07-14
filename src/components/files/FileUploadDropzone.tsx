@@ -281,7 +281,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
     const newUploads = validFiles.map(file => ({
       file,
-      relativePath: file.name,
+      relativePath: `__LOOSE_FILE__${file.name}`, // Mark as loose file
       progress: 0,
       uploading: true,
     }));
@@ -300,7 +300,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         );
       }, 200);
 
-      const success = await uploadFile(file, file.name);
+      // Store loose files with special prefix to distinguish them
+      const success = await uploadFile(file, `__LOOSE_FILE__${file.name}`);
       
       clearInterval(progressInterval);
       
@@ -547,7 +548,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               {isDragOver ? 'Drop files or folders here' : 'Upload files or nested folders'}
             </h3>
             <p className="text-gray-600 mb-4">
-              Drag and drop files or complete folder structures here. All nested subfolders will be preserved.
+              Drag and drop files here to upload them as loose files, or drop complete folder structures to preserve organization.
             </p>
             <p className="text-sm text-gray-500 mb-4">
               Supports: PDF, Word, Excel, PowerPoint, Text, and Images. System files (.DS_Store, etc.) are automatically filtered out.
