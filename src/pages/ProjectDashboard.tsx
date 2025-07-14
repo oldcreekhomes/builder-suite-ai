@@ -24,13 +24,22 @@ import { WeatherForecast } from "@/components/WeatherForecast";
 export default function ProjectDashboard() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { data: projects = [] } = useProjects();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: photos = [], refetch } = useProjectPhotos(projectId || '');
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
+  
+  // Debug logging
+  console.log('ProjectDashboard Debug:', {
+    projectId,
+    projectsCount: projects.length,
+    projectsLoading,
+    currentProject: currentProject ? 'found' : 'not found',
+    projectIds: projects.map(p => p.id)
+  });
   
   // Get more recent photos for the wider layout (already ordered by uploaded_at desc)
   const recentPhotos = photos.slice(0, 12);
@@ -46,7 +55,23 @@ export default function ProjectDashboard() {
     refetch();
   };
 
-  if (!projectId || !currentProject) {
+  if (!projectId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Project not found</p>
+      </div>
+    );
+  }
+
+  if (projectsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading project...</p>
+      </div>
+    );
+  }
+
+  if (!currentProject) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Project not found</p>
