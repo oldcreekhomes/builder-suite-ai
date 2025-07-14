@@ -20,6 +20,15 @@ export default function Messages() {
     sendMessage
   } = useSimpleChat();
 
+  // Debug logging
+  console.log('Messages Component Debug:', {
+    pathname: location.pathname,
+    selectedRoom: selectedRoom ? 'has room' : 'no room',
+    messagesCount: messages.length,
+    currentUserId: currentUserId ? 'has user' : 'no user',
+    isLoadingMessages
+  });
+
   // Handle navigation state from direct room navigation
   useEffect(() => {
     const navigationState = location.state as { selectedRoom?: any } | null;
