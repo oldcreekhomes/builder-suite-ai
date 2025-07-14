@@ -60,11 +60,11 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     const pathParts = filePath.split('/');
     
     if (pathParts.length === 1) {
-      // Root level file
-      if (!acc['Root']) {
-        acc['Root'] = [];
+      // Root level file - treat as loose file
+      if (!acc['__LOOSE_FILES__']) {
+        acc['__LOOSE_FILES__'] = [];
       }
-      acc['Root'].push(file);
+      acc['__LOOSE_FILES__'].push(file);
     } else {
       // File in folder - use complete folder path except filename
       const folderPath = pathParts.slice(0, -1).join('/');
@@ -77,12 +77,10 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     return acc;
   }, {} as Record<string, any[]>);
 
-  // Sort folders - loose files last, Root first among folders, then alphabetically
+  // Sort folders - loose files last, then alphabetically
   const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
     if (a === '__LOOSE_FILES__') return 1;
     if (b === '__LOOSE_FILES__') return -1;
-    if (a === 'Root') return -1;
-    if (b === 'Root') return 1;
     return a.localeCompare(b);
   });
 

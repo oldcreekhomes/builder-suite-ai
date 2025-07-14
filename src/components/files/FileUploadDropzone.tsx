@@ -281,7 +281,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
     const newUploads = validFiles.map(file => ({
       file,
-      relativePath: `__LOOSE_FILE__${file.name}`, // Mark as loose file
+      relativePath: file.name, // Just use filename directly for loose files
       progress: 0,
       uploading: true,
     }));
@@ -300,8 +300,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         );
       }, 200);
 
-      // Store loose files with special prefix to distinguish them
-      const success = await uploadFile(file, `__LOOSE_FILE__${file.name}`);
+      // Store loose files with just the filename (no prefix)
+      const success = await uploadFile(file, file.name);
       
       clearInterval(progressInterval);
       

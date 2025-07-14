@@ -24,11 +24,11 @@ export const groupFilesByFolder = (files: any[]) => {
     const pathParts = filePath.split('/');
     
     if (pathParts.length === 1) {
-      // Root level file (legacy or files uploaded to specific folders)
-      if (!grouped['Root']) {
-        grouped['Root'] = [];
+      // Root level file (legacy or files uploaded to specific folders) - treat as loose files
+      if (!grouped['__LOOSE_FILES__']) {
+        grouped['__LOOSE_FILES__'] = [];
       }
-      grouped['Root'].push(file);
+      grouped['__LOOSE_FILES__'].push(file);
     } else {
       // File is in a folder - use the complete folder path except the filename
       const folderPath = pathParts.slice(0, -1).join('/');
@@ -65,10 +65,6 @@ export const sortFolders = (folderPaths: string[]) => {
     // Loose files always come last (like Google Drive)
     if (a === '__LOOSE_FILES__') return 1;
     if (b === '__LOOSE_FILES__') return -1;
-    
-    // Root folder comes first among folders
-    if (a === 'Root') return -1;
-    if (b === 'Root') return 1;
     
     // Sort by folder depth first (shallower folders first)
     const aDepth = a.split('/').length;
