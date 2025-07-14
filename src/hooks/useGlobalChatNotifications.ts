@@ -17,7 +17,7 @@ export const useGlobalChatNotifications = (activeConversationUserId: string | nu
 
   // Sound generation function (same as in NotificationPreferences)
   const playNotificationSound = () => {
-    if (!preferences.sound_notifications_enabled) return;
+    if (!preferences?.sound_notifications_enabled) return;
     
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -95,7 +95,7 @@ export const useGlobalChatNotifications = (activeConversationUserId: string | nu
                     : 'New message';
 
                 // Show toast notification if enabled
-                if (preferences.toast_notifications_enabled) {
+                if (preferences?.toast_notifications_enabled) {
                   toast(`${senderName}`, {
                     description: messagePreview,
                     action: {
@@ -109,7 +109,7 @@ export const useGlobalChatNotifications = (activeConversationUserId: string | nu
                 }
 
                 // Play sound notification if enabled
-                if (preferences.sound_notifications_enabled) {
+                if (preferences?.sound_notifications_enabled) {
                   playNotificationSound();
                 }
               }
@@ -129,5 +129,5 @@ export const useGlobalChatNotifications = (activeConversationUserId: string | nu
         channelRef.current = null;
       }
     };
-  }, [activeConversationUserId, preferences.toast_notifications_enabled, preferences.sound_notifications_enabled]);
+  }, [activeConversationUserId, preferences?.toast_notifications_enabled, preferences?.sound_notifications_enabled]);
 };
