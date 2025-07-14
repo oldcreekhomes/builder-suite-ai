@@ -3,6 +3,7 @@ import { MessageSquare, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UnreadBadge } from "@/components/ui/unread-badge";
 import {
   SidebarContent,
   SidebarGroup,
@@ -13,6 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
 interface MessagesSidebarProps {
   selectedUser: CompanyUser | null;
@@ -32,6 +34,10 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
       return nameA.localeCompare(nameB);
     });
 
+  // Get user IDs for unread count tracking
+  const userIds = filteredUsers.map(user => user.id);
+  const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
+
   const getInitials = (user: CompanyUser) => {
     if (user.first_name && user.last_name) {
       return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
@@ -47,6 +53,8 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   };
 
   const handleUserClick = (user: CompanyUser) => {
+    // Mark conversation as read when user clicks on it
+    markConversationAsRead(user.id);
     onUserSelect?.(user);
     onStartChat?.(user);
   };
@@ -77,26 +85,29 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
           <div className="space-y-3">
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className={`flex items-center py-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                    selectedUser?.id === user.id ? 'bg-gray-100' : ''
-                  }`}
-                  onClick={() => handleUserClick(user)}
-                >
-                  <Avatar className="h-16 w-16 flex-shrink-0">
-                    <AvatarImage src={user.avatar_url || ""} />
-                    <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
-                      {getInitials(user)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0 ml-3">
-                    <p className="text-base font-medium text-gray-900">
-                      {getDisplayName(user)}
-                    </p>
-                  </div>
-                </div>
+                 <div
+                   key={user.id}
+                   className={`flex items-center py-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                     selectedUser?.id === user.id ? 'bg-gray-100' : ''
+                   }`}
+                   onClick={() => handleUserClick(user)}
+                 >
+                   <div className="relative">
+                     <Avatar className="h-16 w-16 flex-shrink-0">
+                       <AvatarImage src={user.avatar_url || ""} />
+                       <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
+                         {getInitials(user)}
+                       </AvatarFallback>
+                     </Avatar>
+                     <UnreadBadge count={unreadCounts[user.id] || 0} />
+                   </div>
+                   
+                   <div className="flex-1 min-w-0 ml-3">
+                     <p className="text-base font-medium text-gray-900">
+                       {getDisplayName(user)}
+                     </p>
+                   </div>
+                 </div>
               ))
             ) : (
               <div className="text-center py-8">

@@ -12,6 +12,10 @@ export const useChatRooms = () => {
     try {
       console.log('Starting chat with user:', user.id);
       setSelectedUser(user);
+      
+      // Automatically mark conversation as read when opening
+      await markConversationAsRead(user.id);
+      
       return user.id; // Return user ID instead of room ID
     } catch (error) {
       console.error('Error starting chat:', error);
