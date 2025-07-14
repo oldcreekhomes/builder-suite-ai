@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from './useCompanyUsers';
+import { useNotificationPreferences } from './useNotificationPreferences';
+import { toast } from 'sonner';
 
 export const useRealtime = (
   selectedUser: User | null,

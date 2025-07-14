@@ -4,6 +4,7 @@ import { useMessages, ChatMessage } from './useMessages';
 import { useSendMessage } from './useSendMessage';
 import { useChatRooms } from './useChatRooms';
 import { useRealtime } from './useRealtime';
+import { useGlobalChatNotifications } from './useGlobalChatNotifications';
 
 // Re-export interfaces for backwards compatibility
 export type { User, ChatMessage };
@@ -22,6 +23,9 @@ export const useSimpleChat = () => {
 
   // Set up real-time subscription
   useRealtime(selectedUser, addMessage);
+  
+  // Set up global chat notifications (skip notifications for active conversation)
+  useGlobalChatNotifications(selectedUser?.id || null);
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {
