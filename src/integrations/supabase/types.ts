@@ -797,6 +797,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_home_builder_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          is_employee: boolean
+          home_builder_id: string
+        }[]
+      }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
