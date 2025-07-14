@@ -12,7 +12,7 @@ export type { User, ChatMessage };
 export const useSimpleChat = () => {
   // Use focused hooks
   const { users, currentUserId, isLoading } = useCompanyUsers();
-  const { messages, isLoadingMessages, fetchMessages, setMessages, addMessage } = useMessages();
+  const { messages, isLoadingMessages, fetchMessages, setMessages, addMessage, clearMessages, currentConversationUserId } = useMessages();
   const { sendMessage: sendMessageHook } = useSendMessage();
   const { 
     selectedUser, 
@@ -31,11 +31,17 @@ export const useSimpleChat = () => {
   const startChatWithUser = useCallback(async (user: User) => {
     try {
       console.log('Starting chat with user:', user);
+      console.log('Current conversation user ID:', currentConversationUserId);
+      
+      // Always clear messages first to ensure clean state
+      clearMessages();
+      
       const userId = await startChatWithUserHook(user);
       console.log('Start chat returned userId:', userId);
       if (userId) {
-        console.log('Fetching messages for userId:', userId);
-        await fetchMessages(userId);
+        console.log('Fetching messages for userId:', userId, 'with force refresh');
+        // Always force refresh to ensure we get the latest messages
+        await fetchMessages(userId, true);
         console.log('Messages fetched successfully');
       } else {
         console.error('Failed to get userId from startChatWithUserHook');
@@ -43,7 +49,7 @@ export const useSimpleChat = () => {
     } catch (error) {
       console.error('Error in startChatWithUser:', error);
     }
-  }, [startChatWithUserHook, fetchMessages]);
+  }, [startChatWithUserHook, fetchMessages, clearMessages, currentConversationUserId]);
 
   // Enhanced send message function
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {

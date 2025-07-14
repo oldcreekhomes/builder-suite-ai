@@ -12,6 +12,16 @@ interface SimpleMessagesListProps {
 export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages }: SimpleMessagesListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging for message changes
+  useEffect(() => {
+    console.log('SimpleMessagesList received messages:', {
+      count: messages.length,
+      isLoading: isLoadingMessages,
+      messageIds: messages.map(m => m.id),
+      messagePreviews: messages.map(m => ({ id: m.id, text: m.message_text?.substring(0, 50), sender: m.sender_name }))
+    });
+  }, [messages, isLoadingMessages]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

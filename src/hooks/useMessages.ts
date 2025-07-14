@@ -14,12 +14,27 @@ export interface ChatMessage {
 export const useMessages = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [currentConversationUserId, setCurrentConversationUserId] = useState<string | null>(null);
+
+  // Clear messages when switching conversations
+  const clearMessages = () => {
+    console.log('Clearing messages for conversation switch');
+    setMessages([]);
+  };
 
   // Fetch messages for conversation with other user
-  const fetchMessages = async (otherUserId: string) => {
+  const fetchMessages = async (otherUserId: string, forceRefresh = false) => {
     try {
       setIsLoadingMessages(true);
-      console.log('Fetching messages for conversation with user:', otherUserId);
+      
+      // Clear messages if switching to different conversation or force refresh
+      if (currentConversationUserId !== otherUserId || forceRefresh) {
+        console.log('Clearing messages - switching from', currentConversationUserId, 'to', otherUserId);
+        setMessages([]);
+        setCurrentConversationUserId(otherUserId);
+      }
+      
+      console.log('Fetching messages for conversation with user:', otherUserId, 'forceRefresh:', forceRefresh);
       
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
@@ -63,6 +78,7 @@ export const useMessages = () => {
       console.log('Messages with senders:', messagesWithSenders);
       setMessages(messagesWithSenders);
       console.log('Messages state updated, length:', messagesWithSenders.length);
+      console.log('Full message objects:', messagesWithSenders.map(m => ({ id: m.id, text: m.message_text, sender: m.sender_name, created_at: m.created_at })));
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -90,6 +106,8 @@ export const useMessages = () => {
     isLoadingMessages,
     fetchMessages,
     setMessages,
-    addMessage
+    addMessage,
+    clearMessages,
+    currentConversationUserId
   };
 };
