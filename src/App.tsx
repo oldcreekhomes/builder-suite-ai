@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { navItems } from "./nav-items";
-import { useBrowserTitle } from "./hooks/useBrowserTitle";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
 import SharedFolder from "./pages/SharedFolder";
@@ -28,9 +27,6 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  // Use the browser title hook to manage unread message alerts in browser title
-  useBrowserTitle();
-  
   return (
     <BrowserRouter>
         <Routes>
@@ -41,7 +37,7 @@ const AppContent = () => {
           <Route path="/landing" element={<Landing />} />
           
           {/* Root route - show Index for authenticated users, redirect to auth for unauthenticated */}
-          
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
