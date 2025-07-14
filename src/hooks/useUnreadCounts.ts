@@ -50,10 +50,13 @@ export const useUnreadCounts = (userIds: string[]) => {
 
   // Set up real-time updates for new messages
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || userIds.length === 0) return;
 
+    // Create a unique channel name to avoid conflicts
+    const channelName = `unread_counts_${user.id}_${Date.now()}`;
+    
     const channel = supabase
-      .channel('unread_counts_updates')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -100,7 +103,7 @@ export const useUnreadCounts = (userIds: string[]) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user?.id, userIds.join(',')]);
 
