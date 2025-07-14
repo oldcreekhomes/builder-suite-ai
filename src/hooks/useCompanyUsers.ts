@@ -39,7 +39,7 @@ export const useCompanyUsers = () => {
       // Get current user's profile from unified users table
       const { data: currentUserProfile } = await supabase
         .from('users')
-        .select('role, home_builder_id')
+        .select('*')
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
@@ -48,7 +48,7 @@ export const useCompanyUsers = () => {
       if (!currentUserProfile) return;
 
       if (currentUserProfile.role === 'owner') {
-        // User is owner - get all employees
+        // User is owner - get all employees in the company AND include self
         const { data: employees } = await supabase
           .from('users')
           .select('*')
@@ -56,14 +56,25 @@ export const useCompanyUsers = () => {
           .eq('role', 'employee')
           .eq('confirmed', true);
         
-        allUsers = employees?.map(emp => ({
-          id: emp.id,
-          first_name: emp.first_name,
-          last_name: emp.last_name,
-          role: emp.role,
-          avatar_url: emp.avatar_url,
-          email: emp.email
-        })) || [];
+        // Include the owner (current user) and all employees
+        allUsers = [
+          {
+            id: currentUser.user.id,
+            first_name: currentUserProfile.first_name || 'Owner',
+            last_name: currentUserProfile.last_name || '',
+            role: 'owner',
+            avatar_url: currentUserProfile.avatar_url,
+            email: currentUser.user.email || ''
+          },
+          ...(employees?.map(emp => ({
+            id: emp.id,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            role: emp.role,
+            avatar_url: emp.avatar_url,
+            email: emp.email
+          })) || [])
+        ];
       } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
         // User is employee - get owner and other employees
         console.log('Employee flow - home_builder_id:', currentUserProfile.home_builder_id);
@@ -78,14 +89,13 @@ export const useCompanyUsers = () => {
 
         console.log('Owner query result:', { owner, ownerError });
 
-        // Get other employees
+        // Get ALL employees (including current user)
         const { data: employees, error: employeesError } = await supabase
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUserProfile.home_builder_id)
           .eq('role', 'employee')
-          .eq('confirmed', true)
-          .neq('id', currentUser.user.id);
+          .eq('confirmed', true);
 
         console.log('Employees query result:', { employees, employeesError });
 
