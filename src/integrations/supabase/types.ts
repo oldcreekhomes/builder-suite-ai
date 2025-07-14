@@ -793,6 +793,10 @@ export type Database = {
         Args: { other_user_id_param: string }
         Returns: number
       }
+      get_current_user_company: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_home_builder_id: {
         Args: Record<PropertyKey, never>
         Returns: string
