@@ -43,6 +43,8 @@ export const useCompanyUsers = () => {
         .eq('id', currentUser.user.id)
         .maybeSingle();
 
+      console.log('Current user profile:', currentUserProfile);
+
       if (!currentUserProfile) return;
 
       if (currentUserProfile.role === 'owner') {
@@ -64,22 +66,28 @@ export const useCompanyUsers = () => {
         })) || [];
       } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
         // User is employee - get owner and other employees
+        console.log('Employee flow - home_builder_id:', currentUserProfile.home_builder_id);
+        
         // Get owner
-        const { data: owner } = await supabase
+        const { data: owner, error: ownerError } = await supabase
           .from('users')
           .select('*')
           .eq('id', currentUserProfile.home_builder_id)
           .eq('role', 'owner')
           .maybeSingle();
 
+        console.log('Owner query result:', { owner, ownerError });
+
         // Get other employees
-        const { data: employees } = await supabase
+        const { data: employees, error: employeesError } = await supabase
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUserProfile.home_builder_id)
           .eq('role', 'employee')
           .eq('confirmed', true)
           .neq('id', currentUser.user.id);
+
+        console.log('Employees query result:', { employees, employeesError });
 
         allUsers = [
           ...(owner ? [{
