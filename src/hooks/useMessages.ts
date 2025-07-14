@@ -36,22 +36,60 @@ export const useMessages = () => {
       
       console.log('Fetching messages for conversation with user:', otherUserId, 'forceRefresh:', forceRefresh);
       
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) return;
+      // Get current user with retry logic
+      const { data: currentUser, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
+      
+      if (!currentUser.user) {
+        console.error('No authenticated user found');
+        return;
+      }
 
-      const { data, error } = await supabase
+      console.log('Current user ID:', currentUser.user.id, 'Other user ID:', otherUserId);
+
+      // Simplified query approach - fetch messages in both directions separately then combine
+      const { data: sentMessages, error: sentError } = await supabase
         .from('user_chat_messages')
         .select('*')
-        .or(`and(sender_id.eq.${currentUser.user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${currentUser.user.id})`)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .eq('sender_id', currentUser.user.id)
+        .eq('recipient_id', otherUserId)
+        .eq('is_deleted', false);
 
-      if (error) throw error;
+      const { data: receivedMessages, error: receivedError } = await supabase
+        .from('user_chat_messages')
+        .select('*')
+        .eq('sender_id', otherUserId)
+        .eq('recipient_id', currentUser.user.id)
+        .eq('is_deleted', false);
+
+      if (sentError) {
+        console.error('Error fetching sent messages:', sentError);
+        throw sentError;
+      }
+      
+      if (receivedError) {
+        console.error('Error fetching received messages:', receivedError);
+        throw receivedError;
+      }
+
+      // Combine and sort messages
+      const allMessages = [...(sentMessages || []), ...(receivedMessages || [])]
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .slice(-50); // Keep only the last 50 messages
+
+      console.log('Raw messages fetched:', {
+        sent: sentMessages?.length || 0,
+        received: receivedMessages?.length || 0,
+        total: allMessages.length,
+        messages: allMessages.map(m => ({ id: m.id, text: m.message_text?.substring(0, 30), sender: m.sender_id, created: m.created_at }))
+      });
 
       // Get sender info for each message
       const messagesWithSenders = await Promise.all(
-        (data || []).map(async (msg) => {
+        allMessages.map(async (msg) => {
           let senderName = 'Unknown';
           let senderAvatar = null;
 
