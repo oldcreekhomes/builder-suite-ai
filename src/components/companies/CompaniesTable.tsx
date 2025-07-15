@@ -32,6 +32,8 @@ interface Company {
   representatives_count?: number;
   cost_codes_count?: number;
   cost_codes?: CostCode[];
+  groupedCostCodes?: Record<string, CostCode[]>;
+  parentCodes?: Set<string>;
 }
 
 export function CompaniesTable() {
@@ -88,9 +90,49 @@ export function CompaniesTable() {
     refetchOnWindowFocus: true,
   });
 
-  // Group cost codes for all companies
-  const allCostCodes = companies.flatMap(company => company.cost_codes || []);
-  const { groupedCostCodes, parentCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes);
+  // Pre-process cost code grouping for each company
+  const companiesWithGroupedCodes = companies.map(company => {
+    const companyCostCodes = company.cost_codes || [];
+    const allCostCodes = companies.flatMap(c => c.cost_codes || []);
+    const parentCodes = new Set<string>();
+    allCostCodes.forEach(cc => {
+      if (cc.parent_group) {
+        parentCodes.add(cc.parent_group);
+      }
+    });
+
+    const groups: Record<string, CostCode[]> = {};
+    companyCostCodes.forEach(costCode => {
+      let groupKey = 'ungrouped';
+      
+      if (costCode.parent_group && costCode.parent_group.trim() !== '') {
+        groupKey = costCode.parent_group;
+      } else {
+        const matchingParent = Array.from(parentCodes).find(parentCode => {
+          return costCode.code.startsWith(parentCode) && costCode.code !== parentCode;
+        });
+        
+        if (matchingParent) {
+          groupKey = matchingParent;
+        }
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(costCode);
+    });
+    
+    Object.keys(groups).forEach(groupKey => {
+      groups[groupKey].sort((a, b) => a.code.localeCompare(b.code));
+    });
+
+    return {
+      ...company,
+      groupedCostCodes: groups,
+      parentCodes
+    };
+  });
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups(prev => {
@@ -149,17 +191,19 @@ export function CompaniesTable() {
     return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
-  const renderCostCodeGroups = (companyCostCodes: CostCode[]) => {
+  const renderCostCodeGroups = (company: Company) => {
+    const companyCostCodes = company.cost_codes || [];
     if (!companyCostCodes.length) return <span className="text-xs text-gray-400">No cost codes</span>;
 
-    const { groupedCostCodes: companyGroupedCodes } = useCostCodeGrouping(companyCostCodes);
+    const companyGroupedCodes = company.groupedCostCodes || {};
+    const companyParentCodes = company.parentCodes || new Set();
     
     return (
       <div className="space-y-1">
         {Object.entries(companyGroupedCodes)
           .filter(([groupKey, codes]) => {
             if (groupKey === 'ungrouped') return true;
-            const childCodes = codes.filter(code => !parentCodes.has(code.code));
+            const childCodes = codes.filter(code => !companyParentCodes.has(code.code));
             return childCodes.length > 0;
           })
           .sort(([a], [b]) => {
@@ -182,7 +226,7 @@ export function CompaniesTable() {
                     )}
                     <span className="font-medium text-blue-600">{groupKey}</span>
                     <span className="text-gray-500">
-                      ({codes.filter(code => !parentCodes.has(code.code)).length})
+                      ({codes.filter(code => !companyParentCodes.has(code.code)).length})
                     </span>
                   </button>
                 </div>
@@ -191,7 +235,7 @@ export function CompaniesTable() {
               {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && (
                 <div className={`space-y-0.5 ${groupKey !== 'ungrouped' ? 'ml-4' : ''}`}>
                   {codes
-                    .filter(code => !parentCodes.has(code.code))
+                    .filter(code => !companyParentCodes.has(code.code))
                     .sort((a, b) => a.code.localeCompare(b.code))
                     .map(code => (
                       <div key={code.id} className="text-xs">
@@ -225,10 +269,10 @@ export function CompaniesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((company) => (
+            {companiesWithGroupedCodes.map((company) => (
               <TableRow key={company.id} className="h-auto">
                 <TableCell className="px-2 py-2 align-top w-1/3">
-                  {renderCostCodeGroups(company.cost_codes || [])}
+                  {renderCostCodeGroups(company)}
                 </TableCell>
                 <TableCell className="px-2 py-2 align-top">
                   <div className="text-xs font-medium">{company.company_name}</div>
