@@ -644,7 +644,9 @@ export type Database = {
           address: string
           created_at: string
           id: string
-          manager: string
+          manager: string | null
+          manager_id: string | null
+          manager_name: string
           name: string
           owner_id: string
           status: string
@@ -654,7 +656,9 @@ export type Database = {
           address: string
           created_at?: string
           id?: string
-          manager: string
+          manager?: string | null
+          manager_id?: string | null
+          manager_name: string
           name: string
           owner_id: string
           status: string
@@ -664,13 +668,30 @@ export type Database = {
           address?: string
           created_at?: string
           id?: string
-          manager?: string
+          manager?: string | null
+          manager_id?: string | null
+          manager_name?: string
           name?: string
           owner_id?: string
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_projects_manager"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_projects_manager_user"
+            columns: ["manager"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_chat_messages: {
         Row: {

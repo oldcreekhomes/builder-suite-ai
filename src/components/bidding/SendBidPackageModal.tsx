@@ -59,7 +59,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     enabled: !!bidPackage?.id && open,
   });
 
-  // Fetch project information
+  // Fetch project information with manager details
   const { data: projectData } = useQuery({
     queryKey: ['project-details', bidPackage?.project_id],
     queryFn: async () => {
@@ -67,7 +67,14 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
 
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          manager_user:users!fk_projects_manager_user(
+            first_name,
+            last_name,
+            email
+          )
+        `)
         .eq('id', bidPackage.project_id)
         .single();
 
@@ -129,23 +136,17 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     console.log('📧 Starting email send process...');
     setIsSending(true);
     try {
-      // Get project owner's details if available
+      // Get project manager's details from the manager user relationship
       let managerEmail = undefined;
-      let managerFullName = projectData?.manager;
+      let managerFullName = projectData?.manager_name; // fallback to old text field
       
-      if (projectData?.owner_id) {
-        const { data: ownerData } = await supabase
-          .from('users')
-          .select('email, first_name, last_name')
-          .eq('id', projectData.owner_id)
-          .single();
-        
-        if (ownerData?.email) {
-          managerEmail = ownerData.email;
+      if (projectData?.manager_user) {
+        const manager = projectData.manager_user;
+        if (manager.first_name && manager.last_name) {
+          managerFullName = `${manager.first_name} ${manager.last_name}`;
         }
-        
-        if (ownerData?.first_name && ownerData?.last_name) {
-          managerFullName = `${ownerData.first_name} ${ownerData.last_name}`;
+        if (manager.email) {
+          managerEmail = manager.email;
         }
       }
 

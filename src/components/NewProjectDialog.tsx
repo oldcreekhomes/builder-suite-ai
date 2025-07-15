@@ -81,7 +81,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           name: projectName,
           address,
           status,
-          manager,
+          manager_name: manager, // Use manager_name for backward compatibility
           owner_id,
         })
         .select()
