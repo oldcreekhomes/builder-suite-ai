@@ -104,17 +104,20 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     const files: Array<{ file: File; relativePath: string }> = [];
     
     const items = Array.from(dataTransfer.items);
+    console.log('🔍 Processing drag and drop with', items.length, 'items');
     
     // Process all items concurrently to handle multiple folders
     const promises = items.map(async (item) => {
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
+          console.log('📁 Processing entry:', entry.name, 'isDirectory:', entry.isDirectory);
           await traverseFileTree(entry, '', files);
         } else {
           // Fallback for browsers that don't support webkitGetAsEntry
           const file = item.getAsFile();
           if (file && isValidFile(file)) {
+            console.log('📄 Adding loose file:', file.name);
             files.push({ file, relativePath: file.name });
           }
         }
@@ -126,6 +129,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     // Filter out invalid files and return clean paths
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
     
+    console.log('✅ Final file paths from drag and drop:');
+    validFiles.forEach(f => console.log('  -', f.relativePath));
+    
     return validFiles;
   };
 
@@ -134,12 +140,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
       if (item.isFile) {
         item.file((file: File) => {
           const fullPath = currentPath + file.name;
+          console.log('📄 File found:', fullPath);
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
           }
           resolve();
         });
       } else if (item.isDirectory) {
+        console.log('📁 Entering directory:', item.name, 'currentPath:', currentPath);
         const dirReader = item.createReader();
         
         const readEntries = () => {
@@ -148,6 +156,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               resolve();
             } else {
               const newPath = currentPath + item.name + '/';
+              console.log('🔄 Directory path will be:', newPath);
               const promises = entries.map(entry => 
                 traverseFileTree(entry, newPath, files)
               );
