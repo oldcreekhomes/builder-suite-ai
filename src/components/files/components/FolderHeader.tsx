@@ -2,7 +2,7 @@
 import React from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Folder, ChevronRight, ChevronDown, Download, Share2 } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Download, Share2, FolderPlus } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -22,6 +22,7 @@ interface FolderHeaderProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, folderName: string) => void;
   onShareFolder: (folderPath: string, files: any[]) => void;
+  onCreateSubfolder: (parentPath: string) => void;
 }
 
 export function FolderHeader({
@@ -36,6 +37,7 @@ export function FolderHeader({
   onDragLeave,
   onDrop,
   onShareFolder,
+  onCreateSubfolder,
 }: FolderHeaderProps) {
   
   const handleDownloadFolder = () => {
@@ -45,6 +47,10 @@ export function FolderHeader({
 
   const handleShareFolder = () => {
     onShareFolder(folderPath, folderFiles);
+  };
+
+  const handleCreateSubfolder = () => {
+    onCreateSubfolder(folderPath);
   };
   // Calculate folder depth for indentation
   const folderDepth = folderPath === 'Root' ? 0 : folderPath.split('/').length;
@@ -155,6 +161,10 @@ export function FolderHeader({
         </TableRow>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={handleCreateSubfolder}>
+          <FolderPlus className="h-4 w-4 mr-2" />
+          New Subfolder
+        </ContextMenuItem>
         <ContextMenuItem onClick={handleDownloadFolder}>
           <Download className="h-4 w-4 mr-2" />
           Download All

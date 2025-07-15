@@ -1,6 +1,6 @@
 
 import { Card } from "@/components/ui/card";
-import { Folder, ChevronRight, ChevronDown, Download, Share2 } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Download, Share2, FolderPlus } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -18,6 +18,7 @@ interface FileGridFolderProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, folderName: string) => void;
   onShareFolder: (folderPath: string, files: any[]) => void;
+  onCreateSubfolder: (parentPath: string) => void;
 }
 
 export function FileGridFolder({
@@ -30,6 +31,7 @@ export function FileGridFolder({
   onDragLeave,
   onDrop,
   onShareFolder,
+  onCreateSubfolder,
 }: FileGridFolderProps) {
   
   const handleDownloadFolder = () => {
@@ -39,6 +41,10 @@ export function FileGridFolder({
 
   const handleShareFolder = () => {
     onShareFolder(folderPath, folderFiles);
+  };
+
+  const handleCreateSubfolder = () => {
+    onCreateSubfolder(folderPath);
   };
   return (
     <ContextMenu>
@@ -80,6 +86,10 @@ export function FileGridFolder({
     </Card>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={handleCreateSubfolder}>
+          <FolderPlus className="h-4 w-4 mr-2" />
+          New Subfolder
+        </ContextMenuItem>
         <ContextMenuItem onClick={handleDownloadFolder}>
           <Download className="h-4 w-4 mr-2" />
           Download All

@@ -488,8 +488,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     }
   };
 
-  const handleCreateFolder = async (folderName: string) => {
-    const success = await createFolderPlaceholder(folderName);
+  const handleCreateFolder = async (folderName: string, parentPath?: string) => {
+    const fullPath = parentPath && parentPath !== 'Root' ? `${parentPath}/${folderName}` : folderName;
+    const success = await createFolderPlaceholder(fullPath);
     
     if (success) {
       toast({
@@ -515,11 +516,17 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           onFolderUpload={handleContextFolderUpload}
         >
           <div
-            ref={dropzoneRef}
+            ref={(el) => {
+              dropzoneRef.current = el;
+              if (el) {
+                (el as any).createFolderPlaceholder = createFolderPlaceholder;
+              }
+            }}
             {...getRootProps()}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            data-testid="file-upload-dropzone"
             className={`p-8 text-center cursor-pointer ${
               isDragOver ? 'bg-blue-50 border-blue-400' : ''
             }`}
@@ -572,6 +579,23 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         isOpen={showNewFolderModal}
         onClose={() => setShowNewFolderModal(false)}
         onCreateFolder={handleCreateFolder}
+      />
+
+      {/* Hidden file inputs for context menu functionality */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileUpload}
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        {...({ webkitdirectory: "" } as any)}
+        style={{ display: 'none' }}
+        onChange={handleMultipleFolderUpload}
       />
     </div>
   );

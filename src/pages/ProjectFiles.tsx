@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { FileShareModal } from "@/components/files/components/FileShareModal";
 import { FolderShareModal } from "@/components/files/components/FolderShareModal";
+import { NewFolderModal } from "@/components/files/NewFolderModal";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -29,8 +30,10 @@ export default function ProjectFiles() {
   const [showPreview, setShowPreview] = useState(false);
   const [showFileShareModal, setShowFileShareModal] = useState(false);
   const [showFolderShareModal, setShowFolderShareModal] = useState(false);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [shareFile, setShareFile] = useState<any>(null);
   const [shareFolder, setShareFolder] = useState<{ folderPath: string; files: any[] } | null>(null);
+  const [parentFolderPath, setParentFolderPath] = useState<string | undefined>(undefined);
 
   const { data: files = [], isLoading, refetch } = useProjectFiles(projectId || '');
   const { data: project } = useProject(projectId || '');
@@ -81,6 +84,25 @@ export default function ProjectFiles() {
   const handleFolderShare = (folderPath: string, files: any[]) => {
     setShareFolder({ folderPath, files });
     setShowFolderShareModal(true);
+  };
+
+  const handleCreateSubfolder = (parentPath: string) => {
+    setParentFolderPath(parentPath);
+    setShowNewFolderModal(true);
+  };
+
+  const handleCreateFolder = async (folderName: string, parentPath?: string) => {
+    // This will be handled by the FileUploadDropzone component
+    const dropzone = document.querySelector('[data-testid="file-upload-dropzone"]') as any;
+    if (dropzone && dropzone.createFolderPlaceholder) {
+      const fullPath = parentPath && parentPath !== 'Root' ? `${parentPath}/${folderName}` : folderName;
+      await dropzone.createFolderPlaceholder(fullPath);
+      refetch();
+      toast({
+        title: "Success",
+        description: `Folder "${folderName}" created successfully`,
+      });
+    }
   };
 
   if (!projectId) {
@@ -184,6 +206,7 @@ export default function ProjectFiles() {
                     }}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
+                    onCreateSubfolder={handleCreateSubfolder}
                   />
                 ) : (
                   <FileGrid
@@ -196,6 +219,7 @@ export default function ProjectFiles() {
                     }}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
+                    onCreateSubfolder={handleCreateSubfolder}
                   />
                 )}
               </>
@@ -221,6 +245,16 @@ export default function ProjectFiles() {
           folderPath={shareFolder?.folderPath || ''}
           files={shareFolder?.files || []}
           projectId={projectId || ''}
+        />
+
+        <NewFolderModal
+          isOpen={showNewFolderModal}
+          onClose={() => {
+            setShowNewFolderModal(false);
+            setParentFolderPath(undefined);
+          }}
+          onCreateFolder={handleCreateFolder}
+          parentPath={parentFolderPath}
         />
       </div>
     </SidebarProvider>
