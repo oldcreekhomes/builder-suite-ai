@@ -119,7 +119,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(successHTML, {
       status: 200,
-      headers: { "Content-Type": "text/html", ...corsHeaders },
+      headers: { 
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache",
+        ...corsHeaders 
+      },
     });
 
   } catch (error) {
