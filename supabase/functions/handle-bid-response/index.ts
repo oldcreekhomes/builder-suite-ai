@@ -110,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Successfully updated bid status for company:', companyData.company_name);
 
     // Redirect to React confirmation page
-    const redirectUrl = new URL(`https://nlmnwlvmmkngrgatnzkj.supabase.co/bid-response-confirmation`);
+    const redirectUrl = new URL(`https://lovable.app/bid-response-confirmation`);
     redirectUrl.searchParams.set('response', response);
     redirectUrl.searchParams.set('company', companyData.company_name);
     redirectUrl.searchParams.set('project', bidPackageData.projects?.name || '');
