@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Table, 
@@ -96,6 +96,17 @@ export function CompaniesTable() {
 
   // Use the cost code grouping hook at the top level
   const { groupedCostCodes, parentCodes } = useCostCodeGrouping(allCostCodes);
+
+  // Update collapsed groups when grouped cost codes change
+  useEffect(() => {
+    const newCollapsed = new Set<string>();
+    Object.keys(groupedCostCodes).forEach(groupKey => {
+      if (groupKey !== 'ungrouped') {
+        newCollapsed.add(groupKey);
+      }
+    });
+    setCollapsedGroups(newCollapsed);
+  }, [groupedCostCodes]);
 
   // Group companies by cost codes
   const costCodeToCompaniesMap = useMemo(() => {
@@ -231,7 +242,16 @@ export function CompaniesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableRows.map((row) => (
+            {tableRows
+              .filter((row) => {
+                // If the group is collapsed, only show the first row of the group (to show the group header)
+                if (collapsedGroups.has(row.groupKey) && row.groupKey !== 'ungrouped') {
+                  return row.isFirstCodeOfGroup && row.isFirstCompanyOfCode;
+                }
+                // If the group is expanded, show all rows
+                return true;
+              })
+              .map((row) => (
               <TableRow key={row.id} className="h-auto">
                 <TableCell className="px-2 py-2 align-top">
                   {row.isFirstCompanyOfCode && (
@@ -251,10 +271,12 @@ export function CompaniesTable() {
                           </button>
                         </div>
                       )}
-                      <div className={row.groupKey !== 'ungrouped' ? 'ml-4' : ''}>
-                        <span className="font-mono text-xs font-medium">{row.costCode.code}</span>
-                        <span className="text-gray-600 ml-1 text-xs">{row.costCode.name}</span>
-                      </div>
+                      {!collapsedGroups.has(row.groupKey) && (
+                        <div className={row.groupKey !== 'ungrouped' ? 'ml-4' : ''}>
+                          <span className="font-mono text-xs font-medium">{row.costCode.code}</span>
+                          <span className="text-gray-600 ml-1 text-xs">{row.costCode.name}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </TableCell>
