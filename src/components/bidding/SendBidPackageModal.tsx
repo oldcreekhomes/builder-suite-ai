@@ -65,25 +65,44 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     queryFn: async () => {
       if (!bidPackage?.project_id) return null;
 
-      const { data, error } = await supabase
+      console.log('🔍 Fetching project with ID:', bidPackage.project_id);
+      
+      // First fetch the project
+      const { data: project, error } = await supabase
         .from('projects')
-        .select(`
-          *,
-          manager_user:users!fk_projects_manager_user(
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('id', bidPackage.project_id)
         .single();
 
       if (error) {
-        console.error('Error fetching project:', error);
+        console.error('❌ Error fetching project:', error);
         return null;
       }
 
-      return data;
+      console.log('✅ Project fetched:', project);
+      
+      // If project has a manager UUID, fetch manager details
+      let managerDetails = null;
+      if (project?.manager) {
+        console.log('🔍 Fetching manager details for ID:', project.manager);
+        const { data: manager, error: managerError } = await supabase
+          .from('users')
+          .select('first_name, last_name, email')
+          .eq('id', project.manager)
+          .single();
+        
+        if (managerError) {
+          console.error('❌ Error fetching manager:', managerError);
+        } else {
+          console.log('✅ Manager details fetched:', manager);
+          managerDetails = manager;
+        }
+      }
+
+      return {
+        ...project,
+        manager_user: managerDetails
+      };
     },
     enabled: !!bidPackage?.project_id && open,
   });
