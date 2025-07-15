@@ -86,7 +86,9 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
   if (!files || files.length === 0) return 'No files attached';
   
   return files.map(file => {
-    const downloadUrl = `${baseUrl}/${file}`;
+    // Check if the file already includes a path or if it's just a filename
+    const filePath = file.includes('/') ? file : `specifications/${file}`;
+    const downloadUrl = `${baseUrl}/${filePath}`;
     const fileName = file.split('/').pop() || file;
     return `<p style="margin: 5px 0;"><a href="${downloadUrl}" style="color: #059669; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></p>`;
   }).join('');
