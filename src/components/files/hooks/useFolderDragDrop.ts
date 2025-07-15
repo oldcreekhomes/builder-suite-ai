@@ -40,10 +40,20 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
             
-            // Track the folder path for this file
+            // Track all folder paths in the hierarchy for this file
             const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
             if (folderPath) {
+              // Add the immediate parent folder
               folderPaths.add(folderPath);
+              
+              // Add all parent folders in the hierarchy
+              const parts = folderPath.split('/');
+              for (let i = 1; i <= parts.length; i++) {
+                const parentPath = parts.slice(0, i).join('/');
+                if (parentPath) {
+                  folderPaths.add(parentPath);
+                }
+              }
             }
           }
           resolve();
@@ -53,13 +63,25 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
         
         const readEntries = () => {
           dirReader.readEntries((entries: any[]) => {
+            const newPath = currentPath + item.name + '/';
+            
+            // Always add the directory to folderPaths
+            const folderPath = newPath.slice(0, -1); // Remove trailing slash
+            folderPaths.add(folderPath);
+            
+            // Add all parent folders in the hierarchy
+            const parts = folderPath.split('/');
+            for (let i = 1; i <= parts.length; i++) {
+              const parentPath = parts.slice(0, i).join('/');
+              if (parentPath) {
+                folderPaths.add(parentPath);
+              }
+            }
+            
             if (entries.length === 0) {
-              // Empty directory - ensure it's tracked
-              const folderPath = currentPath + item.name;
-              folderPaths.add(folderPath);
+              // Empty directory - already tracked above
               resolve();
             } else {
-              const newPath = currentPath + item.name + '/';
               const promises = entries.map(entry => 
                 traverseFileTree(entry, newPath, files, folderPaths)
               );
@@ -141,21 +163,26 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       description: `Uploading ${filesWithPaths.length} file(s) to ${folderName}...`,
     });
 
-    // Create folderkeeper files for all unique folder paths
+    // Get all unique folder paths from the dragged files
     const folderPaths = new Set<string>();
     filesWithPaths.forEach(({ relativePath }) => {
       const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
       if (folderPath) {
+        // Add the immediate parent folder
         folderPaths.add(folderPath);
         
-        // Also add parent folders to ensure complete hierarchy
+        // Add all parent folders in the hierarchy
         const parts = folderPath.split('/');
-        for (let i = 1; i < parts.length; i++) {
-          const parentPath = parts.slice(0, i + 1).join('/');
-          folderPaths.add(parentPath);
+        for (let i = 1; i <= parts.length; i++) {
+          const parentPath = parts.slice(0, i).join('/');
+          if (parentPath) {
+            folderPaths.add(parentPath);
+          }
         }
       }
     });
+
+    console.log('Creating folderkeeper files for paths:', Array.from(folderPaths));
 
     // Create folderkeeper files for all folders
     const folderPromises = Array.from(folderPaths).map(folderPath => 
