@@ -95,6 +95,20 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     return true;
   };
 
+  const createFolderKeeper = async (folderPath: string) => {
+    try {
+      const placeholderContent = new Blob([''], { type: 'text/plain' });
+      const placeholderFile = new File([placeholderContent], '.folderkeeper', {
+        type: 'text/plain'
+      });
+      
+      return await uploadFileToFolder(placeholderFile, `${folderPath}/.folderkeeper`);
+    } catch (error) {
+      console.error('Error creating folder keeper:', error);
+      return false;
+    }
+  };
+
   const handleFolderDragOver = (e: React.DragEvent, folderName: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -127,16 +141,39 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       description: `Uploading ${filesWithPaths.length} file(s) to ${folderName}...`,
     });
 
+    // Create folderkeeper files for all unique folder paths
+    const folderPaths = new Set<string>();
+    filesWithPaths.forEach(({ relativePath }) => {
+      const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
+      if (folderPath) {
+        folderPaths.add(folderPath);
+        
+        // Also add parent folders to ensure complete hierarchy
+        const parts = folderPath.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          const parentPath = parts.slice(0, i + 1).join('/');
+          folderPaths.add(parentPath);
+        }
+      }
+    });
+
+    // Create folderkeeper files for all folders
+    const folderPromises = Array.from(folderPaths).map(folderPath => 
+      createFolderKeeper(folderPath)
+    );
+
     const uploadPromises = filesWithPaths.map(({ file, relativePath }) => 
       uploadFileToFolder(file, relativePath)
     );
-    const results = await Promise.all(uploadPromises);
+    
+    const allPromises = [...folderPromises, ...uploadPromises];
+    const results = await Promise.all(allPromises);
     const successCount = results.filter(Boolean).length;
 
     if (successCount > 0) {
       toast({
         title: "Upload Complete",
-        description: `Successfully uploaded ${successCount} file(s) to ${folderName}`,
+        description: `Successfully uploaded ${filesWithPaths.length} file(s) to ${folderName}`,
       });
       onRefresh();
     } else {
