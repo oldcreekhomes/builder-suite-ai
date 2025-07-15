@@ -387,11 +387,82 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                               </tr>
                                             </tbody>
                                           </table>
-                                        </td>
-                                      </tr>
-                                      <tr>
-                                        <td height="10"></td>
-                                      </tr>
+                                         </td>
+                                       </tr>
+                                       <tr>
+                                         <td style="height: 15px;"></td>
+                                       </tr>
+                                       <!-- Will you bid section -->
+                                       <tr>
+                                         <td>
+                                           <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                             <tbody>
+                                               <tr>
+                                                 <td>
+                                                   <table class="email-div" bgcolor="#FFFFFF" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
+                                                     <tbody>
+                                                       <tr>
+                                                         <td>
+                                                           <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                             <tbody>
+                                                               <tr>
+                                                                 <td style="width: 15px;"></td>
+                                                                 <td>
+                                                                   <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                     <tbody>
+                                                                       <tr>
+                                                                         <td style="height: 25px;"></td>
+                                                                       </tr>
+                                                                       <tr>
+                                                                         <td align="center">
+                                                                           <h4 style="color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 18px; line-height: 22px; margin: 0 0 20px 0; text-align: center;">
+                                                                             Will you bid on this project?
+                                                                           </h4>
+                                                                         </td>
+                                                                       </tr>
+                                                                       <tr>
+                                                                         <td align="center">
+                                                                           <table style="border-collapse: collapse; border-spacing: 0; margin: 0 auto;" cellpadding="0" cellspacing="0">
+                                                                             <tbody>
+                                                                               <tr>
+                                                                                 <td style="padding-right: 10px;">
+                                                                                   <a href="#" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
+                                                                                     Yes
+                                                                                   </a>
+                                                                                 </td>
+                                                                                 <td style="padding-left: 10px;">
+                                                                                   <a href="#" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
+                                                                                     No
+                                                                                   </a>
+                                                                                 </td>
+                                                                               </tr>
+                                                                             </tbody>
+                                                                           </table>
+                                                                         </td>
+                                                                       </tr>
+                                                                       <tr>
+                                                                         <td style="height: 25px;"></td>
+                                                                       </tr>
+                                                                     </tbody>
+                                                                   </table>
+                                                                 </td>
+                                                                 <td style="width: 15px;"></td>
+                                                               </tr>
+                                                             </tbody>
+                                                           </table>
+                                                         </td>
+                                                       </tr>
+                                                     </tbody>
+                                                   </table>
+                                                 </td>
+                                               </tr>
+                                             </tbody>
+                                           </table>
+                                         </td>
+                                       </tr>
+                                       <tr>
+                                         <td height="10"></td>
+                                       </tr>
                                       <!-- Footer -->
                                       <tr>
                                         <td>
