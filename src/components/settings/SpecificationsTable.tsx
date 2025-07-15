@@ -94,8 +94,9 @@ export function SpecificationsTable({
                 if (b === 'ungrouped') return 1;
                 return a.localeCompare(b);
               })
-              .map(([groupKey, groupSpecifications]) => (
-                <React.Fragment key={`group-${groupKey}`}>
+              .map(([groupKey, groupSpecifications]) => {
+                return (
+                  <React.Fragment key={`group-${groupKey}`}>
                   {groupKey !== 'ungrouped' && (
                     <SpecificationGroupRow
                       groupKey={groupKey}
@@ -134,8 +135,9 @@ export function SpecificationsTable({
                         />
                       ))
                   }
-                </React.Fragment>
-              ))
+                  </React.Fragment>
+                );
+              })
           )}
         </TableBody>
       </Table>

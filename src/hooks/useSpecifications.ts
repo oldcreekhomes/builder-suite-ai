@@ -121,6 +121,7 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
     input.onchange = async (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
+      console.log('Files selected for upload:', files);
       if (files.length > 0) {
         try {
           const uploadedFileNames = [];
@@ -151,9 +152,10 @@ export const useSpecifications = (costCodes: CostCode[]) => {
           });
         } catch (error) {
           console.error('Error uploading files:', error);
+          console.error('Upload error details:', error);
           toast({
             title: "Error",
-            description: "Failed to upload files",
+            description: `Failed to upload files: ${error.message || 'Unknown error'}`,
             variant: "destructive",
           });
         }
