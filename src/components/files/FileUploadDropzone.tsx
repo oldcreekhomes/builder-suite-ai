@@ -43,97 +43,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     // Filter out system files and other hidden files
     if (systemFiles.includes(fileName) || (hiddenFiles && fileName !== '.gitignore' && fileName !== '.gitkeep')) {
-      console.log('Filtering out system/hidden file:', fileName);
       return false;
     }
     
     return true;
-  };
-
-  // Normalize folder paths to remove unwanted parent directories
-  const normalizeFolderPaths = (files: Array<{ file: File; relativePath: string }>) => {
-    if (files.length === 0) return files;
-    
-    // Find all unique top-level folders in the file paths
-    const allPaths = files.map(f => f.relativePath);
-    const pathSegments = allPaths.map(path => path.split('/').filter(segment => segment.length > 0));
-    
-    // If all files are loose files (no folders), return as-is
-    if (pathSegments.every(segments => segments.length === 1)) {
-      return files;
-    }
-    
-    // Find the common folder structure that we want to normalize
-    // If there's a common root that all files share, and users likely want to upload
-    // the subfolder as the root, detect this scenario
-    const foldersWithFiles = pathSegments.filter(segments => segments.length > 1);
-    
-    if (foldersWithFiles.length === 0) {
-      return files; // No folder structure to normalize
-    }
-    
-    // Group files by their top-level folder
-    const folderGroups = new Map<string, Array<{ file: File; relativePath: string }>>();
-    
-    files.forEach(fileObj => {
-      const pathParts = fileObj.relativePath.split('/');
-      if (pathParts.length > 1) {
-        const topFolder = pathParts[0];
-        if (!folderGroups.has(topFolder)) {
-          folderGroups.set(topFolder, []);
-        }
-        folderGroups.get(topFolder)!.push(fileObj);
-      } else {
-        // Loose files - keep as-is
-        if (!folderGroups.has('')) {
-          folderGroups.set('', []);
-        }
-        folderGroups.get('')!.push(fileObj);
-      }
-    });
-    
-    // If there's only one folder group (plus possibly loose files), 
-    // and that folder contains subfolders, check if we should normalize
-    const folderNames = Array.from(folderGroups.keys()).filter(name => name !== '');
-    
-    if (folderNames.length === 1) {
-      const mainFolder = folderNames[0];
-      const folderFiles = folderGroups.get(mainFolder) || [];
-      
-      // Check if this looks like a case where the user selected a subfolder
-      // but the system preserved the parent path
-      const subfolders = new Set<string>();
-      folderFiles.forEach(fileObj => {
-        const pathParts = fileObj.relativePath.split('/');
-        if (pathParts.length > 2) { // mainFolder/subfolder/file
-          subfolders.add(pathParts[1]);
-        }
-      });
-      
-      // If there are subfolders and they seem to be the actual target folders,
-      // normalize by removing the main folder prefix
-      if (subfolders.size > 0) {
-        console.log(`Detected potential path normalization case: ${mainFolder} contains ${subfolders.size} subfolders`);
-        
-        // Normalize by removing the main folder prefix
-        const normalizedFiles = files.map(fileObj => {
-          if (fileObj.relativePath.startsWith(mainFolder + '/')) {
-            const newPath = fileObj.relativePath.substring(mainFolder.length + 1);
-            console.log(`Normalizing path: ${fileObj.relativePath} → ${newPath}`);
-            return {
-              ...fileObj,
-              relativePath: newPath
-            };
-          }
-          return fileObj;
-        });
-        
-        return normalizedFiles;
-      }
-    }
-    
-    // No normalization needed - return files as-is
-    return files;
   };
 
   const uploadFile = async (file: File, relativePath: string) => {
@@ -210,52 +123,35 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     await Promise.all(promises);
     
-    // Filter out invalid files
+    // Filter out invalid files and return clean paths
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
     
-    // Normalize paths to remove unwanted parent directories
-    const normalizedFiles = normalizeFolderPaths(validFiles);
-    
-    console.log('Valid files with normalized paths from drag and drop:', normalizedFiles.map(f => ({ name: f.file.name, path: f.relativePath })));
-    
-    return normalizedFiles;
+    return validFiles;
   };
 
   const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
         item.file((file: File) => {
-          // Preserve the complete path including all nested folders
           const fullPath = currentPath + file.name;
-          
-          // Only add valid files
           if (isValidFile(file, fullPath)) {
-            console.log('Adding valid file with full path:', fullPath);
             files.push({ file, relativePath: fullPath });
-          } else {
-            console.log('Skipping invalid file:', fullPath);
           }
           resolve();
         });
       } else if (item.isDirectory) {
         const dirReader = item.createReader();
         
-        // Read all entries in the directory
         const readEntries = () => {
           dirReader.readEntries((entries: any[]) => {
             if (entries.length === 0) {
-              // No more entries, we're done with this directory
               resolve();
             } else {
-              // Process all entries in this batch with the updated path
               const newPath = currentPath + item.name + '/';
-              console.log('Processing directory:', item.name, 'with path:', newPath);
-              
               const promises = entries.map(entry => 
                 traverseFileTree(entry, newPath, files)
               );
               Promise.all(promises).then(() => {
-                // Continue reading in case there are more entries
                 readEntries();
               });
             }
@@ -430,40 +326,25 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
 
   const handleMultipleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    console.log('Folder input files:', files.length);
     
-    // Filter out system files and get valid files with paths
+    // Simple Google Drive approach: Use webkitRelativePath as-is
     const filesWithPaths = files
       .filter(file => isValidFile(file, file.webkitRelativePath))
-      .map(file => {
-        // Use webkitRelativePath to preserve the complete folder structure
-        const relativePath = file.webkitRelativePath || file.name;
-        console.log('File with webkitRelativePath:', {
-          name: file.name,
-          webkitRelativePath: file.webkitRelativePath,
-          finalPath: relativePath
-        });
-        return {
-          file,
-          relativePath
-        };
-      });
+      .map(file => ({
+        file,
+        relativePath: file.webkitRelativePath || file.name
+      }));
 
     if (filesWithPaths.length === 0) {
       toast({
         title: "No Valid Files",
-        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+        description: "No valid files found to upload",
       });
       event.target.value = '';
       return;
     }
 
-    // Normalize paths to remove unwanted parent directories
-    const normalizedFiles = normalizeFolderPaths(filesWithPaths);
-    
-    console.log('All valid files with normalized paths:', normalizedFiles.map(f => ({ name: f.file.name, path: f.relativePath })));
-
-    const newUploads = normalizedFiles.map(({ file, relativePath }) => ({
+    const newUploads = filesWithPaths.map(({ file, relativePath }) => ({
       file,
       relativePath,
       progress: 0,
@@ -473,7 +354,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
     // Upload all files concurrently
-    const uploadPromises = normalizedFiles.map(async ({ file, relativePath }) => {
+    const uploadPromises = filesWithPaths.map(async ({ file, relativePath }) => {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadingFiles(prev => 
@@ -511,7 +392,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     
     // Count unique top-level folders by looking at the paths
     const uniqueTopFolders = new Set(
-      normalizedFiles
+      filesWithPaths
         .map(f => f.relativePath.split('/')[0])
         .filter(folder => folder !== '')
     );
