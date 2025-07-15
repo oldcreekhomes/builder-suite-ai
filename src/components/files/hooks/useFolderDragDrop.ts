@@ -175,18 +175,16 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       description: `Uploading ${filesWithPaths.length} file(s) to ${folderName}...`,
     });
 
-    // Get all unique folder paths from the dragged files
+    // Get all unique folder paths from the dragged files AND ensure all parent paths exist
     const folderPaths = new Set<string>();
+    
     filesWithPaths.forEach(({ relativePath }) => {
       const folderPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
       if (folderPath) {
-        // Add the immediate parent folder
-        folderPaths.add(folderPath);
-        
-        // Add all parent folders in the hierarchy
+        // Split the path and create all parent folders
         const parts = folderPath.split('/');
-        for (let i = 1; i <= parts.length; i++) {
-          const parentPath = parts.slice(0, i).join('/');
+        for (let i = 0; i < parts.length; i++) {
+          const parentPath = parts.slice(0, i + 1).join('/');
           if (parentPath) {
             folderPaths.add(parentPath);
           }
@@ -194,7 +192,19 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       }
     });
 
-    console.log('Creating folderkeeper files for paths:', Array.from(folderPaths));
+    // Also add any folders that were detected during traversal but might not have files
+    const allFolderPaths = Array.from(folderPaths);
+    allFolderPaths.forEach(folderPath => {
+      const parts = folderPath.split('/');
+      for (let i = 0; i < parts.length; i++) {
+        const parentPath = parts.slice(0, i + 1).join('/');
+        if (parentPath) {
+          folderPaths.add(parentPath);
+        }
+      }
+    });
+
+    console.log('Final folder paths to create:', Array.from(folderPaths).sort());
 
     // Create folderkeeper files for all folders
     const folderPromises = Array.from(folderPaths).map(folderPath => 
