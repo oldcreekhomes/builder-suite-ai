@@ -109,22 +109,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Successfully updated bid status for company:', companyData.company_name);
 
-    // Generate success confirmation page
-    const successHTML = generateSuccessHTML(
-      response,
-      companyData.company_name,
-      bidPackageData.name,
-      bidPackageData.cost_codes,
-      bidPackageData.projects
-    );
+    // Redirect to React confirmation page
+    const redirectUrl = new URL(`https://nlmnwlvmmkngrgatnzkj.supabase.co/bid-response-confirmation`);
+    redirectUrl.searchParams.set('response', response);
+    redirectUrl.searchParams.set('company', companyData.company_name);
+    redirectUrl.searchParams.set('project', bidPackageData.projects?.name || '');
+    redirectUrl.searchParams.set('address', bidPackageData.projects?.address || '');
+    redirectUrl.searchParams.set('bidPackage', bidPackageData.name);
+    redirectUrl.searchParams.set('costCode', `${bidPackageData.cost_codes?.code || ''} - ${bidPackageData.cost_codes?.name || ''}`);
+    redirectUrl.searchParams.set('status', 'success');
 
-    return new Response(successHTML, {
-      status: 200,
+    return new Response(null, {
+      status: 302,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "DENY",
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Location": redirectUrl.toString()
       },
     });
 

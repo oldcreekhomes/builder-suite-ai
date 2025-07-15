@@ -23,6 +23,7 @@ import PasswordReset from "./pages/PasswordReset";
 import Index from "./pages/Index";
 
 import NotFound from "./pages/NotFound";
+import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,9 @@ const AppContent = () => {
           
           {/* Settings route */}
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          
+          {/* Bid Response Confirmation - no auth required */}
+          <Route path="/bid-response-confirmation" element={<BidResponseConfirmation />} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
