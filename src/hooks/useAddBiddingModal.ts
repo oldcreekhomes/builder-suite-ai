@@ -173,6 +173,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
       toast({
         title: "Success",
         description: "Bidding items and associated companies loaded successfully",
