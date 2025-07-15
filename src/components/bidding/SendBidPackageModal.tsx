@@ -97,6 +97,23 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           console.log('✅ Manager details fetched:', manager);
           managerDetails = manager;
         }
+      } else if (project?.manager_name) {
+        // Try to find a user by name if no UUID manager is set
+        console.log('🔍 Trying to find user by name:', project.manager_name);
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('first_name, last_name, email')
+          .or(`first_name.ilike.%${project.manager_name}%,last_name.ilike.%${project.manager_name}%`)
+          .limit(1);
+        
+        if (usersError) {
+          console.error('❌ Error searching for user by name:', usersError);
+        } else if (users && users.length > 0) {
+          console.log('✅ Found user by name:', users[0]);
+          managerDetails = users[0];
+        } else {
+          console.log('ℹ️ No user found matching name:', project.manager_name);
+        }
       }
 
       return {
@@ -157,7 +174,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     try {
       // Get project manager's details from the manager user relationship
       let managerEmail = undefined;
-      let managerFullName = projectData?.manager_name; // fallback to old text field
+      let managerFullName = projectData?.manager_name; // Use the text field as fallback
       
       if (projectData?.manager_user) {
         const manager = projectData.manager_user;
@@ -168,6 +185,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           managerEmail = manager.email;
         }
       }
+      
+      console.log('📋 Manager details:', { managerFullName, managerEmail });
 
       // Prepare email data
       const emailData = {
