@@ -81,38 +81,23 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
 
       console.log('✅ Project fetched:', project);
       
-      // If project has a manager UUID, fetch manager details
+      // Get project manager details if manager UUID is set
       let managerDetails = null;
       if (project?.manager) {
-        console.log('🔍 Fetching manager details for ID:', project.manager);
+        console.log('🔍 Fetching manager details for UUID:', project.manager);
         const { data: manager, error: managerError } = await supabase
           .from('users')
           .select('first_name, last_name, email')
           .eq('id', project.manager)
-          .single();
+          .maybeSingle();
         
         if (managerError) {
-          console.error('❌ Error fetching manager:', managerError);
-        } else {
+          console.error('❌ Error fetching manager details:', managerError);
+        } else if (manager) {
           console.log('✅ Manager details fetched:', manager);
           managerDetails = manager;
-        }
-      } else if (project?.manager_name) {
-        // Try to find a user by name if no UUID manager is set
-        console.log('🔍 Trying to find user by name:', project.manager_name);
-        const { data: users, error: usersError } = await supabase
-          .from('users')
-          .select('first_name, last_name, email')
-          .or(`first_name.ilike.%${project.manager_name}%,last_name.ilike.%${project.manager_name}%`)
-          .limit(1);
-        
-        if (usersError) {
-          console.error('❌ Error searching for user by name:', usersError);
-        } else if (users && users.length > 0) {
-          console.log('✅ Found user by name:', users[0]);
-          managerDetails = users[0];
         } else {
-          console.log('ℹ️ No user found matching name:', project.manager_name);
+          console.log('ℹ️ No manager found for UUID:', project.manager);
         }
       }
 
@@ -174,13 +159,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     try {
       // Get project manager's details from the manager user relationship
       let managerEmail = undefined;
-      let managerFullName = projectData?.manager_name; // Use the text field as fallback
+      let managerFullName = 'Project Manager'; // Default fallback
       
       if (projectData?.manager_user) {
         const manager = projectData.manager_user;
-        if (manager.first_name && manager.last_name) {
-          managerFullName = `${manager.first_name} ${manager.last_name}`;
-        }
+        console.log('📋 Using manager from project:', manager);
+        
+        managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
         if (manager.email) {
           managerEmail = manager.email;
         }
