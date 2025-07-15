@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
+import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 
 interface SendBidPackageModalProps {
   open: boolean;
@@ -20,6 +21,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { users } = useCompanyUsers();
 
   // Fetch companies and representatives for this bid package
   const { data: companiesData, isLoading } = useQuery({
@@ -59,15 +61,12 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     enabled: !!bidPackage?.id && open,
   });
 
-  // Fetch project information with manager details
+  // Fetch project information
   const { data: projectData } = useQuery({
     queryKey: ['project-details', bidPackage?.project_id],
     queryFn: async () => {
       if (!bidPackage?.project_id) return null;
 
-      console.log('🔍 Fetching project with ID:', bidPackage.project_id);
-      
-      // First fetch the project
       const { data: project, error } = await supabase
         .from('projects')
         .select('*')
@@ -75,36 +74,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         .single();
 
       if (error) {
-        console.error('❌ Error fetching project:', error);
+        console.error('Error fetching project:', error);
         return null;
       }
 
-      console.log('✅ Project fetched:', project);
-      
-      // Get project manager details if manager UUID is set
-      let managerDetails = null;
-      if (project?.manager) {
-        console.log('🔍 Fetching manager details for UUID:', project.manager);
-        const { data: manager, error: managerError } = await supabase
-          .from('users')
-          .select('first_name, last_name, email')
-          .eq('id', project.manager)
-          .maybeSingle();
-        
-        if (managerError) {
-          console.error('❌ Error fetching manager details:', managerError);
-        } else if (manager) {
-          console.log('✅ Manager details fetched:', manager);
-          managerDetails = manager;
-        } else {
-          console.log('ℹ️ No manager found for UUID:', project.manager);
-        }
-      }
-
-      return {
-        ...project,
-        manager_user: managerDetails
-      };
+      return project;
     },
     enabled: !!bidPackage?.project_id && open,
   });
@@ -157,52 +131,17 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     console.log('📧 Starting email send process...');
     setIsSending(true);
     try {
-      // Get project manager's details from the manager user relationship
+      // Get project manager's details from company users
       let managerEmail = undefined;
       let managerFullName = 'Project Manager'; // Default fallback
       
-      console.log('🔍 Project data check:', projectData);
-      console.log('🔍 Manager field:', projectData?.manager);
-      console.log('🔍 Manager user data:', projectData?.manager_user);
-      
-      if (projectData?.manager_user) {
-        const manager = projectData.manager_user;
-        console.log('📋 Using manager from project:', manager);
-        
-        managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
-        if (manager.email) {
+      if (projectData?.manager) {
+        const manager = users.find(user => user.id === projectData.manager);
+        if (manager) {
+          managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
           managerEmail = manager.email;
         }
-      } else {
-        console.log('⚠️ No manager_user found in projectData');
-        // If no manager_user but we have a manager UUID, let's try to fetch it directly here
-        if (projectData?.manager) {
-          console.log('🔄 Attempting to fetch manager details directly for:', projectData.manager);
-          try {
-            const { data: manager, error } = await supabase
-              .from('users')
-              .select('first_name, last_name, email')
-              .eq('id', projectData.manager)
-              .maybeSingle();
-            
-            if (error) {
-              console.error('❌ Error fetching manager directly:', error);
-            } else if (manager) {
-              console.log('✅ Manager details fetched directly:', manager);
-              managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
-              if (manager.email) {
-                managerEmail = manager.email;
-              }
-            } else {
-              console.log('ℹ️ No manager found for UUID:', projectData.manager);
-            }
-          } catch (err) {
-            console.error('❌ Exception fetching manager:', err);
-          }
-        }
       }
-      
-      console.log('📋 Final manager details:', { managerFullName, managerEmail });
 
       // Prepare email data
       const emailData = {
