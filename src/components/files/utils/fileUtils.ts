@@ -66,16 +66,28 @@ export const sortFolders = (folderPaths: string[]) => {
     if (a === '__LOOSE_FILES__') return 1;
     if (b === '__LOOSE_FILES__') return -1;
     
-    // Sort by folder depth first (shallower folders first)
-    const aDepth = a.split('/').length;
-    const bDepth = b.split('/').length;
+    // Split paths to analyze hierarchy
+    const aParts = a.split('/');
+    const bParts = b.split('/');
     
-    if (aDepth !== bDepth) {
-      return aDepth - bDepth;
+    // Find common prefix length
+    let commonPrefixLength = 0;
+    while (commonPrefixLength < Math.min(aParts.length, bParts.length) && 
+           aParts[commonPrefixLength] === bParts[commonPrefixLength]) {
+      commonPrefixLength++;
     }
     
-    // If same depth, sort alphabetically
-    return a.localeCompare(b);
+    // If one path is a prefix of another, the shorter one comes first
+    if (commonPrefixLength === aParts.length) return -1;
+    if (commonPrefixLength === bParts.length) return 1;
+    
+    // If they have the same depth up to the common prefix, sort alphabetically
+    if (aParts.length === bParts.length) {
+      return a.localeCompare(b);
+    }
+    
+    // Compare the next part after common prefix alphabetically
+    return aParts[commonPrefixLength].localeCompare(bParts[commonPrefixLength]);
   });
 };
 

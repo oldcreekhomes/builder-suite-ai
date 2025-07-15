@@ -134,7 +134,7 @@ export default function ProjectFiles() {
       refetch();
       toast({
         title: "Success",
-        description: `Folder "${folderName}" created successfully`,
+        description: `Folder "${folderName}" created successfully in ${parentPath || 'Root'}`,
       });
     } catch (error) {
       console.error('Error creating folder:', error);

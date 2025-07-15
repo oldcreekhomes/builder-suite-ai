@@ -12,6 +12,7 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
 
   const processFilesFromDataTransfer = async (dataTransfer: DataTransfer, targetFolder: string) => {
     const files: Array<{ file: File; relativePath: string }> = [];
+    const folderPaths = new Set<string>();
     
     const items = Array.from(dataTransfer.items);
     
@@ -20,7 +21,7 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
           const baseFolder = targetFolder === 'Root' ? '' : targetFolder + '/';
-          await traverseFileTree(entry, baseFolder, files);
+          await traverseFileTree(entry, baseFolder, files, folderPaths);
         }
       }
     }
@@ -31,13 +32,19 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     return validFiles;
   };
 
-  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>) => {
+  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>, folderPaths: Set<string>) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
         item.file((file: File) => {
           const fullPath = currentPath + file.name;
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
+            
+            // Track the folder path for this file
+            const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+            if (folderPath) {
+              folderPaths.add(folderPath);
+            }
           }
           resolve();
         });
@@ -47,11 +54,14 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
         const readEntries = () => {
           dirReader.readEntries((entries: any[]) => {
             if (entries.length === 0) {
+              // Empty directory - ensure it's tracked
+              const folderPath = currentPath + item.name;
+              folderPaths.add(folderPath);
               resolve();
             } else {
               const newPath = currentPath + item.name + '/';
               const promises = entries.map(entry => 
-                traverseFileTree(entry, newPath, files)
+                traverseFileTree(entry, newPath, files, folderPaths)
               );
               Promise.all(promises).then(() => {
                 readEntries();
