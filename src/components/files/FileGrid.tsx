@@ -186,6 +186,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
               onDrop={handleFolderDrop}
               onShareFolder={onShareFolder}
               onCreateSubfolder={onCreateSubfolder}
+              onRefresh={onRefresh}
             />
 
             {isExpanded && (

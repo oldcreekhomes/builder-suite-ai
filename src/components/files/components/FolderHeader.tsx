@@ -1,14 +1,18 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Folder, ChevronRight, ChevronDown, Download, Share2, FolderPlus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Folder, ChevronRight, ChevronDown, Download, Share2, FolderPlus, Edit, Check, X } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FolderHeaderProps {
   folderPath: string;
@@ -23,6 +27,7 @@ interface FolderHeaderProps {
   onDrop: (e: React.DragEvent, folderName: string) => void;
   onShareFolder: (folderPath: string, files: any[]) => void;
   onCreateSubfolder: (parentPath: string) => void;
+  onRefresh?: () => void;
 }
 
 export function FolderHeader({
@@ -38,7 +43,11 @@ export function FolderHeader({
   onDrop,
   onShareFolder,
   onCreateSubfolder,
+  onRefresh,
 }: FolderHeaderProps) {
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
   
   const handleDownloadFolder = () => {
     // TODO: Implement folder download
@@ -51,6 +60,84 @@ export function FolderHeader({
 
   const handleCreateSubfolder = () => {
     onCreateSubfolder(folderPath);
+  };
+
+  const handleRenameFolder = () => {
+    const displayName = folderPath === 'Root' ? 'Root Files' : 
+      folderPath.split('/').pop() || folderPath;
+    setEditName(displayName);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      toast({
+        title: "Error",
+        description: "Folder name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (folderPath === 'Root') {
+      toast({
+        title: "Error",
+        description: "Cannot rename root folder",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Calculate the new folder path
+      const pathParts = folderPath.split('/');
+      pathParts[pathParts.length - 1] = editName.trim();
+      const newFolderPath = pathParts.join('/');
+
+      // Update all files in this folder and its subfolders
+      const { data: filesToUpdate, error: fetchError } = await supabase
+        .from('project_files')
+        .select('id, original_filename')
+        .like('original_filename', `${folderPath}%`);
+
+      if (fetchError) throw fetchError;
+
+      // Update each file's path
+      for (const file of filesToUpdate || []) {
+        const newFilename = file.original_filename.replace(folderPath, newFolderPath);
+        const { error: updateError } = await supabase
+          .from('project_files')
+          .update({ 
+            original_filename: newFilename,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', file.id);
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Folder renamed successfully",
+      });
+      
+      setIsEditing(false);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast({
+        title: "Error",
+        description: "Failed to rename folder",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    const displayName = folderPath === 'Root' ? 'Root Files' : 
+      folderPath.split('/').pop() || folderPath;
+    setEditName(displayName);
+    setIsEditing(false);
   };
   // Calculate folder depth for indentation
   const folderDepth = folderPath === 'Root' ? 0 : folderPath.split('/').length;
@@ -137,13 +224,36 @@ export function FolderHeader({
                   </div>
                   <Folder className="h-5 w-5 text-blue-500 flex-shrink-0" />
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="font-semibold text-gray-700 truncate">
-                      {displayName}
-                    </span>
-                    {showFullPath && (
-                      <span className="text-xs text-gray-500 truncate">
-                        {folderPath}
-                      </span>
+                    {isEditing ? (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-6 text-sm font-semibold"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
+                          autoFocus
+                        />
+                        <Button size="sm" variant="ghost" onClick={handleSaveEdit} className="h-6 w-6 p-0">
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-6 w-6 p-0">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-gray-700 truncate">
+                          {displayName}
+                        </span>
+                        {showFullPath && (
+                          <span className="text-xs text-gray-500 truncate">
+                            {folderPath}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                   <span className="text-sm text-gray-500 flex-shrink-0">
@@ -164,6 +274,10 @@ export function FolderHeader({
         <ContextMenuItem onClick={handleCreateSubfolder}>
           <FolderPlus className="h-4 w-4 mr-2" />
           New Subfolder
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleRenameFolder} disabled={folderPath === 'Root'}>
+          <Edit className="h-4 w-4 mr-2" />
+          Rename
         </ContextMenuItem>
         <ContextMenuItem onClick={handleDownloadFolder}>
           <Download className="h-4 w-4 mr-2" />
