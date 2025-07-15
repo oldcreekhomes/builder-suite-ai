@@ -81,28 +81,6 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     enabled: !!bidPackage?.project_id && open,
   });
 
-  // Fetch project owner details
-  const { data: projectOwnerData } = useQuery({
-    queryKey: ['project-owner', projectData?.owner_id],
-    queryFn: async () => {
-      if (!projectData?.owner_id) return null;
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('first_name, last_name, email')
-        .eq('id', projectData.owner_id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching project owner:', error);
-        return null;
-      }
-
-      return data;
-    },
-    enabled: !!projectData?.owner_id && open,
-  });
-
   // Fetch sender company information (current user's company)
   const { data: senderCompanyData } = useQuery({
     queryKey: ['sender-company'],
@@ -163,12 +141,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         },
         project: projectData ? {
           address: projectData.address,
-          manager: projectData.manager,
-          project_owner: projectOwnerData ? {
-            first_name: projectOwnerData.first_name,
-            last_name: projectOwnerData.last_name,
-            email: projectOwnerData.email
-          } : undefined
+          manager: projectData.manager
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,
