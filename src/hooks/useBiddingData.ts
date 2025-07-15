@@ -51,7 +51,28 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   const [groupedBiddingItems, setGroupedBiddingItems] = useState<Record<string, BiddingPackageWithCostCode[]>>({});
   const [existingCostCodeIds, setExistingCostCodeIds] = useState<string[]>([]);
 
-  // Fetch bidding packages with cost codes and companies
+  // Fetch ALL bidding packages for the project to get existing cost code IDs
+  const { data: allBiddingItems } = useQuery({
+    queryKey: ['all-project-bidding', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+
+      const { data, error } = await supabase
+        .from('project_bid_packages')
+        .select('cost_code_id')
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error fetching all bidding packages:', error);
+        throw error;
+      }
+
+      return (data || []).map(item => item.cost_code_id);
+    },
+    enabled: !!projectId,
+  });
+
+  // Fetch bidding packages with cost codes and companies filtered by status
   const { data: biddingItems, isLoading, refetch } = useQuery({
     queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
@@ -154,8 +175,14 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
     });
 
     setGroupedBiddingItems(grouped);
-    setExistingCostCodeIds((biddingItems || []).map(item => item.cost_code_id));
   }, [biddingItems]);
+
+  // Update existing cost code IDs from all packages (not just the current status)
+  useEffect(() => {
+    if (allBiddingItems) {
+      setExistingCostCodeIds(allBiddingItems);
+    }
+  }, [allBiddingItems]);
 
   return {
     biddingItems: biddingItems || [],
