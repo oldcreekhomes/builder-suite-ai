@@ -141,7 +141,10 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         },
         project: projectData ? {
           address: projectData.address,
-          manager: projectData.manager
+          manager: projectData.manager,
+          managerEmail: projectData.manager && projectData.manager.includes('@') 
+            ? projectData.manager.split(';').find(part => part.trim().includes('@'))?.trim()
+            : undefined
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,

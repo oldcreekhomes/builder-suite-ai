@@ -32,6 +32,7 @@ interface BidPackageEmailRequest {
   project?: {
     address: string;
     manager?: string;
+    managerEmail?: string;
   };
   senderCompany?: {
     company_name: string;
@@ -290,15 +291,15 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                                             <b>Project Address: </b>${project?.address || 'Not specified'}
                                                                                           </p>
-                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                            <b>Contact: </b>${managerName}
-                                                                                          </p>
+                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                             <b>Contact: </b>${managerName}${project?.managerEmail ? `; ${project.managerEmail}` : ''}
+                                                                                           </p>
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                                             <b>Due Date: </b>${formatDate(bidPackage.due_date)}
                                                                                           </p>
-                                                                                           <div style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                             <b>Scope of Work: </b>${bidPackage.costCode?.name || 'Not specified'}
-                                                                                           </div>
+                                                                                            <div style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                              <b>Scope of Work: </b>${bidPackage.name}
+                                                                                            </div>
                                                                                            <div style="margin: 10px 0;">
                                                                                              ${formattedSpecifications}
                                                                                            </div>
