@@ -175,6 +175,31 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         }
       } else {
         console.log('⚠️ No manager_user found in projectData');
+        // If no manager_user but we have a manager UUID, let's try to fetch it directly here
+        if (projectData?.manager) {
+          console.log('🔄 Attempting to fetch manager details directly for:', projectData.manager);
+          try {
+            const { data: manager, error } = await supabase
+              .from('users')
+              .select('first_name, last_name, email')
+              .eq('id', projectData.manager)
+              .maybeSingle();
+            
+            if (error) {
+              console.error('❌ Error fetching manager directly:', error);
+            } else if (manager) {
+              console.log('✅ Manager details fetched directly:', manager);
+              managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
+              if (manager.email) {
+                managerEmail = manager.email;
+              }
+            } else {
+              console.log('ℹ️ No manager found for UUID:', projectData.manager);
+            }
+          } catch (err) {
+            console.error('❌ Exception fetching manager:', err);
+          }
+        }
       }
       
       console.log('📋 Final manager details:', { managerFullName, managerEmail });
