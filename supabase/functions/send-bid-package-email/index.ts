@@ -479,11 +479,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailHTML = generateEmailHTML(requestData);
     const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
+    
+    // Use sender company name for the from field
+    const senderName = requestData.senderCompany?.company_name || 'Bid Packages';
 
     console.log('📬 About to send email via Resend...');
     // Send email to all recipients
     const emailResponse = await resend.emails.send({
-      from: "Bid Packages <noreply@transactional.buildersuiteai.com>",
+      from: `${senderName} <noreply@transactional.buildersuiteai.com>`,
       to: recipients,
       subject: subject,
       html: emailHTML
