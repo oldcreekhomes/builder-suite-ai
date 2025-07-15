@@ -126,21 +126,49 @@ export const useSpecifications = (costCodes: CostCode[]) => {
         try {
           const uploadedFileNames = [];
           
-          // Upload each file to storage
-          for (const file of files) {
-            const fileName = `${Date.now()}-${file.name}`;
-            const { error: uploadError } = await supabase.storage
-              .from('project-files')
-              .upload(`specifications/${fileName}`, file);
+          // Find the specification to get the cost code details
+          const spec = specifications.find(s => s.id === specId);
+          if (!spec) {
+            throw new Error('Specification not found');
+          }
 
-            if (uploadError) throw uploadError;
-            uploadedFileNames.push(fileName);
+          // Get user's company info to create the correct path
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('User not authenticated');
+          }
+
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('company_name')
+            .eq('id', user.id)
+            .single();
+
+          if (userError || !userData?.company_name) {
+            throw new Error('Could not determine user company');
           }
           
-          // Update database with uploaded file names
+          // Upload each file to storage with company-based path
+          for (const file of files) {
+            const fileName = `${Date.now()}-${file.name}`;
+            // New path structure: specifications/{companyId}/{costCodeId}/{fileName}
+            const filePath = `specifications/${userData.company_name}/${spec.cost_code_id}/${fileName}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('project-files')
+              .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+            uploadedFileNames.push(filePath);
+          }
+          
+          // Update database with uploaded file paths (append to existing files)
+          const existingFiles = spec.files || [];
+          const updatedFiles = [...existingFiles, ...uploadedFileNames];
+          
           const { error } = await supabase
             .from('cost_code_specifications')
-            .update({ files: uploadedFileNames })
+            .update({ files: updatedFiles })
             .eq('id', specId);
 
           if (error) throw error;

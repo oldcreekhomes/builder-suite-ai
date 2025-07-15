@@ -20,11 +20,12 @@ export function SpecificationFilesCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: SpecificationFilesCellProps) {
-  const handleFilePreview = async (fileName: string) => {
+  const handleFilePreview = async (filePath: string) => {
     try {
+      // filePath now contains the full path: specifications/{companyId}/{costCodeId}/{fileName}
       const { data } = supabase.storage
         .from('project-files')
-        .getPublicUrl(`specifications/${fileName}`);
+        .getPublicUrl(filePath);
       
       if (data?.publicUrl) {
         window.open(data.publicUrl, '_blank');
@@ -39,13 +40,15 @@ export function SpecificationFilesCell({
       {files && files.length > 0 ? (
         <>
           <div className="flex items-center space-x-2">
-            {files.map((fileName, index) => {
+            {files.map((filePath, index) => {
+              // Extract just the filename from the full path for icon determination and display
+              const fileName = filePath.split('/').pop() || filePath;
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
               return (
                 <button
                   key={index}
-                  onClick={() => handleFilePreview(fileName)}
+                  onClick={() => handleFilePreview(filePath)}
                   className={`${iconColorClass} transition-colors p-1`}
                   disabled={isReadOnly}
                   title={fileName}
