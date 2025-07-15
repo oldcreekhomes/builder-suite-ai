@@ -482,6 +482,9 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Use sender company name for the from field
     const senderName = requestData.senderCompany?.company_name || 'Bid Packages';
+    
+    console.log('🏢 Sender company data:', JSON.stringify(requestData.senderCompany, null, 2));
+    console.log('📧 Using sender name:', senderName);
 
     console.log('📬 About to send email via Resend...');
     // Send email to all recipients
