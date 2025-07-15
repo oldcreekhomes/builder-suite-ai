@@ -15,24 +15,46 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     
     const items = Array.from(dataTransfer.items);
     
-    // Process all items concurrently to handle multiple folders
-    const promises = items.map(async (item) => {
+    // Collect root entries to determine the intended folder structure
+    const rootEntries: Array<{ entry: any; isDirectory: boolean }> = [];
+    
+    for (const item of items) {
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
-          await traverseFileTree(entry, '', files, targetFolder);
-        } else {
-          // Fallback for browsers that don't support webkitGetAsEntry
+          rootEntries.push({ entry, isDirectory: entry.isDirectory });
+        }
+      }
+    }
+    
+    // Process all root entries concurrently
+    const promises = rootEntries.map(async ({ entry, isDirectory }) => {
+      if (isDirectory) {
+        // For directories, preserve their internal structure within the target folder
+        const rootFolderName = targetFolder === 'Root' ? entry.name : `${targetFolder}/${entry.name}`;
+        await traverseFileTree(entry, '', files, rootFolderName);
+      } else {
+        // For loose files, add them directly to the target folder
+        const rootFolderName = targetFolder === 'Root' ? '' : targetFolder;
+        await traverseFileTree(entry, '', files, rootFolderName);
+      }
+    });
+    
+    // Handle fallback for browsers that don't support webkitGetAsEntry
+    if (rootEntries.length === 0) {
+      const promises = items.map(async (item) => {
+        if (item.kind === 'file') {
           const file = item.getAsFile();
           if (file && isValidFile(file)) {
             const relativePath = targetFolder === 'Root' ? file.name : `${targetFolder}/${file.name}`;
             files.push({ file, relativePath });
           }
         }
-      }
-    });
-    
-    await Promise.all(promises);
+      });
+      await Promise.all(promises);
+    } else {
+      await Promise.all(promises);
+    }
     
     // Filter out invalid files
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
@@ -40,13 +62,20 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     return validFiles;
   };
 
-  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>, targetFolder: string) => {
+  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>, rootFolderName: string) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
         item.file((file: File) => {
-          // Create the full path including target folder and nested structure
-          const nestedPath = currentPath + file.name;
-          const fullPath = targetFolder === 'Root' ? nestedPath : `${targetFolder}/${nestedPath}`;
+          // Build the correct relative path
+          let fullPath: string;
+          
+          if (rootFolderName) {
+            // For files in folders, include the root folder path and current nested structure
+            fullPath = currentPath ? `${rootFolderName}/${currentPath}${file.name}` : `${rootFolderName}/${file.name}`;
+          } else {
+            // For loose files, just use the current path
+            fullPath = currentPath + file.name;
+          }
           
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
@@ -63,7 +92,7 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
             } else {
               const newPath = currentPath + item.name + '/';
               const promises = entries.map(entry => 
-                traverseFileTree(entry, newPath, files, targetFolder)
+                traverseFileTree(entry, newPath, files, rootFolderName)
               );
               Promise.all(promises).then(() => {
                 readEntries();
