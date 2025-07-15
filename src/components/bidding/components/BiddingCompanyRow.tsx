@@ -3,6 +3,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { Button } from '@/components/ui/button';
+import { Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 
 interface Company {
@@ -30,6 +32,7 @@ interface BiddingCompanyRowProps {
   onFileUpload: (companyId: string) => void;
   onDeleteAllFiles: (companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
+  onSendEmail?: (companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -43,6 +46,7 @@ export function BiddingCompanyRow({
   onFileUpload,
   onDeleteAllFiles,
   onDeleteCompany,
+  onSendEmail,
   isReadOnly = false
 }: BiddingCompanyRowProps) {
   return (
@@ -89,16 +93,29 @@ export function BiddingCompanyRow({
         />
       </TableCell>
       <TableCell className="py-1">
-        {!isReadOnly && (
-          <DeleteButton
-            onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.company_id)}
-            title="Remove Company"
-            description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
-            size="sm"
-            variant="ghost"
-            showIcon={true}
-          />
-        )}
+        <div className="flex items-center gap-1">
+          {!isReadOnly && onSendEmail && (
+            <Button
+              onClick={() => onSendEmail(biddingCompany.company_id)}
+              size="sm"
+              variant="ghost"
+              title="Send Email to Company"
+              className="h-6 w-6 p-0"
+            >
+              <Mail className="h-3 w-3" />
+            </Button>
+          )}
+          {!isReadOnly && (
+            <DeleteButton
+              onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.company_id)}
+              title="Remove Company"
+              description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
+              size="sm"
+              variant="ghost"
+              showIcon={true}
+            />
+          )}
+        </div>
       </TableCell>
     </TableRow>
   );

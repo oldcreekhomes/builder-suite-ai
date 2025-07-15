@@ -26,6 +26,7 @@ interface BiddingCompanyListProps {
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
   onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
+  onSendEmail?: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function BiddingCompanyList({
   onUploadProposal,
   onDeleteAllProposals,
   onDeleteCompany,
+  onSendEmail,
   isReadOnly = false
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
@@ -122,6 +124,7 @@ export function BiddingCompanyList({
           onFileUpload={handleFileUpload}
           onDeleteAllFiles={handleDeleteAllFiles}
           onDeleteCompany={onDeleteCompany}
+          onSendEmail={onSendEmail ? (companyId) => onSendEmail(biddingItemId, companyId) : undefined}
           isReadOnly={isReadOnly}
         />
       ))}
