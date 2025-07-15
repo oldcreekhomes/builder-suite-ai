@@ -11,12 +11,16 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Globe, MapPin, Users } from "lucide-react";
+import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { useCostCodeGrouping } from "@/hooks/useCostCodeGrouping";
+import type { Tables } from '@/integrations/supabase/types';
+
+type CostCode = Tables<'cost_codes'>;
 
 interface Company {
   id: string;
@@ -27,6 +31,7 @@ interface Company {
   created_at: string;
   representatives_count?: number;
   cost_codes_count?: number;
+  cost_codes?: CostCode[];
 }
 
 export function CompaniesTable() {
@@ -34,8 +39,9 @@ export function CompaniesTable() {
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Fetch companies with counts
+  // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
@@ -48,8 +54,8 @@ export function CompaniesTable() {
       console.log('Companies fetch result:', { companiesData, error: companiesError });
       if (companiesError) throw companiesError;
 
-      // Get counts for representatives and cost codes
-      const companiesWithCounts = await Promise.all(
+      // Get counts and cost codes for each company
+      const companiesWithData = await Promise.all(
         companiesData.map(async (company) => {
           const [repsResult, costCodesResult] = await Promise.all([
             supabase
@@ -58,23 +64,45 @@ export function CompaniesTable() {
               .eq('company_id', company.id),
             supabase
               .from('company_cost_codes')
-              .select('id', { count: 'exact' })
+              .select(`
+                cost_code_id,
+                cost_codes(*)
+              `)
               .eq('company_id', company.id)
           ]);
+
+          const costCodes = costCodesResult.data?.map(item => item.cost_codes).filter(Boolean) || [];
 
           return {
             ...company,
             representatives_count: repsResult.count || 0,
-            cost_codes_count: costCodesResult.count || 0
+            cost_codes_count: costCodes.length,
+            cost_codes: costCodes as CostCode[]
           };
         })
       );
 
-      return companiesWithCounts as Company[];
+      return companiesWithData as Company[];
     },
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
+
+  // Group cost codes for all companies
+  const allCostCodes = companies.flatMap(company => company.cost_codes || []);
+  const { groupedCostCodes, parentCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes);
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
 
   // Delete company mutation
   const deleteCompanyMutation = useMutation({
@@ -121,33 +149,96 @@ export function CompaniesTable() {
     return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
+  const renderCostCodeGroups = (companyCostCodes: CostCode[]) => {
+    if (!companyCostCodes.length) return <span className="text-xs text-gray-400">No cost codes</span>;
+
+    const { groupedCostCodes: companyGroupedCodes } = useCostCodeGrouping(companyCostCodes);
+    
+    return (
+      <div className="space-y-1">
+        {Object.entries(companyGroupedCodes)
+          .filter(([groupKey, codes]) => {
+            if (groupKey === 'ungrouped') return true;
+            const childCodes = codes.filter(code => !parentCodes.has(code.code));
+            return childCodes.length > 0;
+          })
+          .sort(([a], [b]) => {
+            if (a === 'ungrouped') return -1;
+            if (b === 'ungrouped') return 1;
+            return a.localeCompare(b);
+          })
+          .map(([groupKey, codes]) => (
+            <div key={groupKey}>
+              {groupKey !== 'ungrouped' && (
+                <div className="flex items-center space-x-1 mb-1">
+                  <button
+                    onClick={() => toggleGroupCollapse(groupKey)}
+                    className="flex items-center space-x-1 hover:bg-gray-50 p-1 rounded text-xs"
+                  >
+                    {collapsedGroups.has(groupKey) ? (
+                      <ChevronRight className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                    <span className="font-medium text-blue-600">{groupKey}</span>
+                    <span className="text-gray-500">
+                      ({codes.filter(code => !parentCodes.has(code.code)).length})
+                    </span>
+                  </button>
+                </div>
+              )}
+              
+              {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && (
+                <div className={`space-y-0.5 ${groupKey !== 'ungrouped' ? 'ml-4' : ''}`}>
+                  {codes
+                    .filter(code => !parentCodes.has(code.code))
+                    .sort((a, b) => a.code.localeCompare(b.code))
+                    .map(code => (
+                      <div key={code.id} className="text-xs">
+                        <span className="font-mono">{code.code}</span>
+                        <span className="text-gray-600 ml-1">{code.name}</span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="bg-white rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {companies.map((company) => (
-              <TableRow key={company.id} className="h-10">
-                <TableCell className="px-2 py-1">
+              <TableRow key={company.id} className="h-auto">
+                <TableCell className="px-2 py-2 align-top w-1/3">
+                  {renderCostCodeGroups(company.cost_codes || [])}
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
                   <div className="text-xs font-medium">{company.company_name}</div>
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell className="px-2 py-2 align-top">
                   <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] px-1 py-0`}>
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell className="px-2 py-2 align-top">
                   <div className="flex items-center space-x-1">
                     {company.address && (
                       <>
@@ -160,7 +251,7 @@ export function CompaniesTable() {
                     {!company.address && <span className="text-gray-400 text-xs">-</span>}
                   </div>
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell className="px-2 py-2 align-top">
                   {company.website ? (
                     <a 
                       href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
@@ -175,16 +266,13 @@ export function CompaniesTable() {
                     <span className="text-gray-400 text-xs">-</span>
                   )}
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell className="px-2 py-2 align-top">
                   <div className="flex items-center space-x-1">
                     <Users className="h-3 w-3 text-gray-400" />
                     <span className="text-xs">{company.representatives_count || 0}</span>
                   </div>
                 </TableCell>
-                <TableCell className="px-2 py-1">
-                  <span className="text-xs">{company.cost_codes_count || 0}</span>
-                </TableCell>
-                <TableCell className="px-2 py-1 text-right">
+                <TableCell className="px-2 py-2 align-top text-right">
                   <div className="flex justify-end space-x-1">
                     <Button
                       variant="ghost"
