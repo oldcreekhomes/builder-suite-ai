@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Table, 
@@ -17,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { useCostCodeGrouping } from "@/hooks/useCostCodeGrouping";
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -90,49 +89,51 @@ export function CompaniesTable() {
     refetchOnWindowFocus: true,
   });
 
-  // Pre-process cost code grouping for each company
-  const companiesWithGroupedCodes = companies.map(company => {
-    const companyCostCodes = company.cost_codes || [];
-    const allCostCodes = companies.flatMap(c => c.cost_codes || []);
-    const parentCodes = new Set<string>();
-    allCostCodes.forEach(cc => {
-      if (cc.parent_group) {
-        parentCodes.add(cc.parent_group);
-      }
-    });
-
-    const groups: Record<string, CostCode[]> = {};
-    companyCostCodes.forEach(costCode => {
-      let groupKey = 'ungrouped';
-      
-      if (costCode.parent_group && costCode.parent_group.trim() !== '') {
-        groupKey = costCode.parent_group;
-      } else {
-        const matchingParent = Array.from(parentCodes).find(parentCode => {
-          return costCode.code.startsWith(parentCode) && costCode.code !== parentCode;
-        });
-        
-        if (matchingParent) {
-          groupKey = matchingParent;
+  // Pre-process cost code grouping for each company using useMemo
+  const companiesWithGroupedCodes = useMemo(() => {
+    return companies.map(company => {
+      const companyCostCodes = company.cost_codes || [];
+      const allCostCodes = companies.flatMap(c => c.cost_codes || []);
+      const parentCodes = new Set<string>();
+      allCostCodes.forEach(cc => {
+        if (cc.parent_group) {
+          parentCodes.add(cc.parent_group);
         }
-      }
-      
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(costCode);
-    });
-    
-    Object.keys(groups).forEach(groupKey => {
-      groups[groupKey].sort((a, b) => a.code.localeCompare(b.code));
-    });
+      });
 
-    return {
-      ...company,
-      groupedCostCodes: groups,
-      parentCodes
-    };
-  });
+      const groups: Record<string, CostCode[]> = {};
+      companyCostCodes.forEach(costCode => {
+        let groupKey = 'ungrouped';
+        
+        if (costCode.parent_group && costCode.parent_group.trim() !== '') {
+          groupKey = costCode.parent_group;
+        } else {
+          const matchingParent = Array.from(parentCodes).find(parentCode => {
+            return costCode.code.startsWith(parentCode) && costCode.code !== parentCode;
+          });
+          
+          if (matchingParent) {
+            groupKey = matchingParent;
+          }
+        }
+        
+        if (!groups[groupKey]) {
+          groups[groupKey] = [];
+        }
+        groups[groupKey].push(costCode);
+      });
+      
+      Object.keys(groups).forEach(groupKey => {
+        groups[groupKey].sort((a, b) => a.code.localeCompare(b.code));
+      });
+
+      return {
+        ...company,
+        groupedCostCodes: groups,
+        parentCodes
+      };
+    });
+  }, [companies]);
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups(prev => {
