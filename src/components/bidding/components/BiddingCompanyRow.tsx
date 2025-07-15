@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
-import { Mail } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 
 interface Company {
@@ -102,7 +102,7 @@ export function BiddingCompanyRow({
               title="Send Email to Company"
               className="h-6 w-6 p-0"
             >
-              <Mail className="h-3 w-3" />
+              <Send className="h-3 w-3" />
             </Button>
           )}
           {!isReadOnly && (
