@@ -19,19 +19,24 @@ const corsHeaders = {
 
 interface BidPackageEmailRequest {
   bidPackage: {
+    name: string;
     costCode: {
       code: string;
       name: string;
     };
-    dueDate?: string;
-    reminderDate?: string;
+    due_date?: string;
+    reminder_date?: string;
     specifications?: string;
     files: string[];
   };
+  project?: {
+    address: string;
+    manager?: string;
+  };
   companies: Array<{
-    name: string;
+    company_name: string;
     address?: string;
-    phone?: string;
+    phone_number?: string;
     representatives: Array<{
       id: string;
       first_name: string;
@@ -39,6 +44,7 @@ interface BidPackageEmailRequest {
       email: string;
       phone_number?: string;
       title?: string;
+      is_primary?: boolean;
     }>;
   }>;
 }
@@ -53,85 +59,332 @@ const formatDate = (dateString: string | undefined) => {
 };
 
 const generateEmailHTML = (data: BidPackageEmailRequest) => {
-  const { bidPackage, companies } = data;
-  
+  const { bidPackage, companies, project } = data;
+
+  // Get project manager name (using first company's primary representative as fallback)
+  const managerName = project?.manager || 
+    companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.first_name + ' ' + 
+    companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.last_name || 
+    'Project Manager';
+
+  // Generate file attachments HTML
+  const attachmentsHtml = bidPackage.files && bidPackage.files.length > 0
+    ? bidPackage.files.map(file => `<a href="#" style="color: #059669; text-decoration: underline;">📎 ${file}</a><br>`).join('')
+    : 'No files attached';
+
+  // Get company name from first company (assuming bid is from one home builder)
+  const companyName = companies[0]?.company_name || 'Your Company';
+
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Bid Package - ${bidPackage.costCode.code}</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #e9ecef; border-radius: 8px; }
-        .section-title { font-size: 18px; font-weight: bold; color: #495057; margin-bottom: 10px; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
-        .cost-code { font-size: 24px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
-        .date-info { display: flex; gap: 20px; margin-bottom: 15px; }
-        .date-item { background-color: #e7f3ff; padding: 10px; border-radius: 4px; flex: 1; }
-        .date-label { font-weight: bold; color: #0056b3; }
-        .specifications { background-color: #f8f9fa; padding: 15px; border-radius: 4px; white-space: pre-wrap; }
-        .files-list { list-style: none; padding: 0; }
-        .file-item { background-color: #e9ecef; margin: 5px 0; padding: 8px 12px; border-radius: 4px; display: inline-block; margin-right: 10px; }
-        .company { border-left: 4px solid #007bff; padding-left: 15px; margin-bottom: 15px; }
-        .company-name { font-size: 18px; font-weight: bold; color: #007bff; }
-        .company-address { color: #6c757d; margin-bottom: 10px; }
-        .representative { background-color: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 4px; }
-        .rep-name { font-weight: bold; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d; text-align: center; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Bid Package Request</h1>
-        <p>You have received a new bid package request. Please review the details below.</p>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Project Details</div>
-        <div class="cost-code">${bidPackage.costCode.code} - ${bidPackage.costCode.name}</div>
-        
-        <div class="date-info">
-          <div class="date-item">
-            <div class="date-label">Due Date:</div>
-            <div>${formatDate(bidPackage.dueDate)}</div>
-          </div>
-          <div class="date-item">
-            <div class="date-label">Reminder Date:</div>
-            <div>${formatDate(bidPackage.reminderDate)}</div>
-          </div>
-        </div>
-      </div>
-
-      ${bidPackage.specifications ? `
-        <div class="section">
-          <div class="section-title">Specifications</div>
-          <div class="specifications">${bidPackage.specifications}</div>
-        </div>
-      ` : ''}
-
-      ${bidPackage.files.length > 0 ? `
-        <div class="section">
-          <div class="section-title">Attached Files</div>
-          <ul class="files-list">
-            ${bidPackage.files.map(file => `<li class="file-item">📄 ${file}</li>`).join('')}
-          </ul>
-        </div>
-      ` : ''}
-
-      <div class="section">
-        <div class="section-title">Next Steps</div>
-        <p>Please review the specifications and requirements above. If you have any questions or need clarification, please don't hesitate to contact us.</p>
-        <p><strong>Important:</strong> Please confirm your intent to bid and submit your proposal by the due date specified above.</p>
-      </div>
-
-      <div class="footer">
-        <p>This is an automated message. Please do not reply directly to this email.</p>
-        <p>If you have questions, please contact the project manager.</p>
-      </div>
-    </body>
-    </html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" style="-ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100% !important; width: 100% !important; margin: 0; padding: 0;">
+<head>
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Bid Invitation - ${companyName}</title>
+  <style type="text/css">
+    body {
+      -ms-text-size-adjust: 100%;
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-size-adjust: none;
+      height: 100% !important;
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+    }
+  </style>
+</head>
+<body style="background-color: #F6F6F6; -ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100% !important; width: 100% !important; margin: 0; padding: 0;" bgcolor="#F6F6F6">
+  <table class="body-wrap" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+    <tbody>
+      <tr>
+        <td></td>
+        <td width="600" align="center">
+          <table class="main-table" style="border-collapse: collapse; border-spacing: 0; min-width: 300px; width: 100%; max-width: 600px;" cellpadding="0" cellspacing="0">
+            <tbody>
+              <tr>
+                <td>
+                  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                    <tbody>
+                      <tr>
+                        <td>
+                          <table class="email-div" style="height: 100%; max-width: 600px; min-width: 300px; border-collapse: collapse; border-spacing: 0; width: 100%;" cellpadding="0" cellspacing="0">
+                            <tbody>
+                              <tr>
+                                <td style="width: 10px;"></td>
+                                <td>
+                                  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                    <tbody>
+                                      <tr>
+                                        <td style="height: 15px;"></td>
+                                      </tr>
+                                      <!-- Logo Section -->
+                                      <tr>
+                                        <td>
+                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                            <tbody>
+                                              <tr class="header">
+                                                <td align="center">
+                                                  <h4 style="color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 24px; line-height: 30px; margin: 0; text-align: center;">
+                                                    <b>${companyName}</b>
+                                                  </h4>
+                                                </td>
+                                              </tr>
+                                              <tr>
+                                                <td height="10"></td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                      <!-- Main Content Card -->
+                                      <tr>
+                                        <td>
+                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                            <tbody>
+                                              <tr>
+                                                <td>
+                                                  <table class="email-div" bgcolor="#FFFFFF" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                      <tr>
+                                                        <td>
+                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td style="width: 15px;"></td>
+                                                                <td>
+                                                                  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td style="height: 15px;"></td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                        <td>
+                                                                          <h4 style="color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 24px; line-height: 30px; margin: 0;">
+                                                                            <b>Bid Invitation</b>
+                                                                          </h4>
+                                                                        </td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                        <td style="height: 15px;"></td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                                <td style="width: 15px;"></td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                        </td>
+                                                      </tr>
+                                                    </tbody>
+                                                  </table>
+                                                </td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td style="height: 15px;"></td>
+                                      </tr>
+                                      <!-- Project Details Section -->
+                                      <tr>
+                                        <td>
+                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                            <tbody>
+                                              <tr>
+                                                <td>
+                                                  <table class="email-div" bgcolor="#FFFFFF" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                      <tr>
+                                                        <td>
+                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td>
+                                                                  <table class="email-div" style="border-bottom-width: 1px; border-bottom-color: #E0E0E0; border-bottom-style: solid; border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td style="width: 15px;"></td>
+                                                                        <td>
+                                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                            <tbody>
+                                                                              <tr>
+                                                                                <td style="height: 15px;"></td>
+                                                                              </tr>
+                                                                              <tr>
+                                                                                <td>
+                                                                                  <h5 style="color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 16px; line-height: 21px; margin: 0;">
+                                                                                    Project Details
+                                                                                  </h5>
+                                                                                </td>
+                                                                              </tr>
+                                                                              <tr>
+                                                                                <td style="height: 15px;"></td>
+                                                                              </tr>
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </td>
+                                                                        <td style="width: 15px;"></td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                              </tr>
+                                                              <tr>
+                                                                <td>
+                                                                  <table class="email-div" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td style="width: 15px;"></td>
+                                                                        <td>
+                                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                            <tbody>
+                                                                              <tr>
+                                                                                <td style="height: 15px;"></td>
+                                                                              </tr>
+                                                                              <tr>
+                                                                                <td>
+                                                                                  <table class="project-details" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                                    <tbody>
+                                                                                      <tr>
+                                                                                        <td>
+                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                            <b>Project Address: </b>${project?.address || 'Not specified'}
+                                                                                          </p>
+                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                            <b>Contact: </b>${managerName}
+                                                                                          </p>
+                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                            <b>Due Date: </b>${formatDate(bidPackage.due_date)}
+                                                                                          </p>
+                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                            <b>Scope of Work: </b>${bidPackage.costCode?.name || 'Not specified'} - ${bidPackage.specifications || 'See attached specifications'}
+                                                                                          </p>
+                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; margin: 0;">
+                                                                                            <b>Project Files:</b><br>
+                                                                                            ${attachmentsHtml}
+                                                                                          </p>
+                                                                                        </td>
+                                                                                      </tr>
+                                                                                    </tbody>
+                                                                                  </table>
+                                                                                </td>
+                                                                              </tr>
+                                                                              <tr>
+                                                                                <td style="height: 15px;"></td>
+                                                                              </tr>
+                                                                            </tbody>
+                                                                          </table>
+                                                                        </td>
+                                                                        <td style="width: 15px;"></td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                        </td>
+                                                      </tr>
+                                                    </tbody>
+                                                  </table>
+                                                </td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td style="height: 15px;"></td>
+                                      </tr>
+                                      <!-- Instructions Section -->
+                                      <tr>
+                                        <td>
+                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                            <tbody>
+                                              <tr>
+                                                <td>
+                                                  <table class="email-div" bgcolor="#FFFFFF" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                      <tr>
+                                                        <td>
+                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                            <tbody>
+                                                              <tr>
+                                                                <td style="width: 15px;"></td>
+                                                                <td>
+                                                                  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
+                                                                    <tbody>
+                                                                      <tr>
+                                                                        <td style="height: 15px;"></td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                        <td>
+                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                            Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerName}.
+                                                                          </p>
+                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                            Thank you for your interest in this project.
+                                                                          </p>
+                                                                        </td>
+                                                                      </tr>
+                                                                      <tr>
+                                                                        <td style="height: 15px;"></td>
+                                                                      </tr>
+                                                                    </tbody>
+                                                                  </table>
+                                                                </td>
+                                                                <td style="width: 15px;"></td>
+                                                              </tr>
+                                                            </tbody>
+                                                          </table>
+                                                        </td>
+                                                      </tr>
+                                                    </tbody>
+                                                  </table>
+                                                </td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td height="10"></td>
+                                      </tr>
+                                      <!-- Footer -->
+                                      <tr>
+                                        <td>
+                                          <div class="footer">
+                                            <p style="color: #4A4A4A; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: 300; word-break: break-word; word-wrap: break-word; font-size: 12px; line-height: 20px; text-align: center; margin: 0;" align="center">
+                                              © 2025 ${companyName}
+                                            </p>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                                <td style="width: 10px;"></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
   `;
 };
 
@@ -150,7 +403,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Collect all recipient emails
     const recipients: string[] = [];
     companies.forEach(company => {
-      console.log(`🏢 Processing company: ${company.name}`);
+      console.log(`🏢 Processing company: ${company.company_name}`);
       company.representatives.forEach(rep => {
         console.log(`👤 Processing representative: ${rep.first_name} ${rep.last_name}, email: ${rep.email}`);
         if (rep.email) {
