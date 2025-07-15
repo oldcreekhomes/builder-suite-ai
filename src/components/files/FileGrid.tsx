@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FileText, Trash2 } from "lucide-react";
 import { getDisplayName } from "./utils/fileGridUtils";
+import { groupFilesByFolder, sortFolders } from "./utils/fileUtils";
 import { useFileGridOperations } from "./hooks/useFileGridOperations";
 import { useFileGridDragDrop } from "./hooks/useFileGridDragDrop";
 import { FileGridFolder } from "./components/FileGridFolder";
@@ -39,51 +40,34 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     handleFolderDrop,
   } = useFileGridDragDrop({ uploadFileToFolder, onRefresh });
 
-  // Group files by folder using the same logic as FileList
-  const groupedFiles = files.reduce((acc, file) => {
-    // Skip folder placeholder files
-    if (file.file_type === 'folderkeeper') {
-      return acc;
-    }
-    
-    const filePath = file.original_filename || file.filename || '';
-    
-    // Check if this is a loose file
-    if (filePath.startsWith('__LOOSE_FILE__')) {
-      if (!acc['__LOOSE_FILES__']) {
-        acc['__LOOSE_FILES__'] = [];
-      }
-      acc['__LOOSE_FILES__'].push(file);
-      return acc;
-    }
-    
-    // Extract folder path
-    const pathParts = filePath.split('/');
-    
-    if (pathParts.length === 1) {
-      // Root level file - treat as loose file
-      if (!acc['__LOOSE_FILES__']) {
-        acc['__LOOSE_FILES__'] = [];
-      }
-      acc['__LOOSE_FILES__'].push(file);
-    } else {
-      // File in folder - use complete folder path except filename
-      const folderPath = pathParts.slice(0, -1).join('/');
-      if (!acc[folderPath]) {
-        acc[folderPath] = [];
-      }
-      acc[folderPath].push(file);
-    }
-    
-    return acc;
-  }, {} as Record<string, any[]>);
+  // Group files by folder
+  const groupedFiles = groupFilesByFolder(files);
+  const folderPaths = Object.keys(groupedFiles);
+  const sortedFolders = sortFolders(folderPaths);
 
-  // Sort folders - loose files last, then alphabetically
-  const sortedFolders = Object.keys(groupedFiles).sort((a, b) => {
-    if (a === '__LOOSE_FILES__') return 1;
-    if (b === '__LOOSE_FILES__') return -1;
-    return a.localeCompare(b);
-  });
+  // Filter folders to only show top-level and expanded folders
+  const getVisibleFolders = () => {
+    return sortedFolders.filter(folderPath => {
+      if (folderPath === '__LOOSE_FILES__') return true;
+      
+      const pathParts = folderPath.split('/');
+      
+      // Always show top-level folders
+      if (pathParts.length === 1) return true;
+      
+      // For nested folders, check if all parent folders are expanded
+      for (let i = 1; i < pathParts.length; i++) {
+        const parentPath = pathParts.slice(0, i).join('/');
+        if (!expandedFolders.has(parentPath)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  const visibleFolders = getVisibleFolders();
 
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -145,7 +129,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
         )}
       </div>
 
-      {sortedFolders.map((folderPath) => {
+      {visibleFolders.map((folderPath) => {
         const folderFiles = groupedFiles[folderPath];
         
         // Handle loose files differently - render them directly without folder header

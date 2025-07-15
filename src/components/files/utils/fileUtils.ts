@@ -1,5 +1,6 @@
 export const groupFilesByFolder = (files: any[]) => {
   const grouped: { [key: string]: any[] } = {};
+  const allFolderPaths = new Set<string>();
   
   files.forEach(file => {
     // Skip folder placeholder files from being displayed
@@ -37,6 +38,14 @@ export const groupFilesByFolder = (files: any[]) => {
         grouped[folderPath] = [];
       }
       grouped[folderPath].push(file);
+      
+      // Track all parent folder paths
+      for (let i = 1; i <= pathParts.length - 1; i++) {
+        const parentPath = pathParts.slice(0, i).join('/');
+        if (parentPath) {
+          allFolderPaths.add(parentPath);
+        }
+      }
     }
   });
   
@@ -53,7 +62,22 @@ export const groupFilesByFolder = (files: any[]) => {
         if (!grouped[folderPath]) {
           grouped[folderPath] = [];
         }
+        
+        // Track all parent folder paths for folderkeeper files too
+        for (let i = 1; i <= pathParts.length - 1; i++) {
+          const parentPath = pathParts.slice(0, i).join('/');
+          if (parentPath) {
+            allFolderPaths.add(parentPath);
+          }
+        }
       }
+    }
+  });
+  
+  // Ensure all parent folders exist (even if empty)
+  allFolderPaths.forEach(folderPath => {
+    if (!grouped[folderPath]) {
+      grouped[folderPath] = [];
     }
   });
   
@@ -70,24 +94,21 @@ export const sortFolders = (folderPaths: string[]) => {
     const aParts = a.split('/');
     const bParts = b.split('/');
     
-    // Find common prefix length
-    let commonPrefixLength = 0;
-    while (commonPrefixLength < Math.min(aParts.length, bParts.length) && 
-           aParts[commonPrefixLength] === bParts[commonPrefixLength]) {
-      commonPrefixLength++;
-    }
+    // Parent folders come before their children
+    if (a === bParts.slice(0, aParts.length).join('/') && aParts.length < bParts.length) return -1;
+    if (b === aParts.slice(0, bParts.length).join('/') && bParts.length < aParts.length) return 1;
     
-    // If one path is a prefix of another, the shorter one comes first
-    if (commonPrefixLength === aParts.length) return -1;
-    if (commonPrefixLength === bParts.length) return 1;
-    
-    // If they have the same depth up to the common prefix, sort alphabetically
+    // If same depth, sort alphabetically
     if (aParts.length === bParts.length) {
       return a.localeCompare(b);
     }
     
-    // Compare the next part after common prefix alphabetically
-    return aParts[commonPrefixLength].localeCompare(bParts[commonPrefixLength]);
+    // Compare by depth first (shallower folders first)
+    if (aParts.length !== bParts.length) {
+      return aParts.length - bParts.length;
+    }
+    
+    return a.localeCompare(b);
   });
 };
 

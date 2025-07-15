@@ -84,8 +84,33 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
   const groupedFiles = groupFilesByFolder(files);
   const sortedFolders = sortFolders(Object.keys(groupedFiles));
 
+  // Filter folders to only show top-level and expanded folders
+  const getVisibleFolders = () => {
+    return sortedFolders.filter(folderPath => {
+      if (folderPath === '__LOOSE_FILES__') return true;
+      
+      const pathParts = folderPath.split('/');
+      
+      // Always show top-level folders
+      if (pathParts.length === 1) return true;
+      
+      // For nested folders, check if all parent folders are expanded
+      for (let i = 1; i < pathParts.length; i++) {
+        const parentPath = pathParts.slice(0, i).join('/');
+        if (!expandedFolders.has(parentPath)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  const visibleFolders = getVisibleFolders();
+
   console.log('Grouped files by folder:', groupedFiles);
   console.log('Sorted folders:', sortedFolders);
+  console.log('Visible folders:', visibleFolders);
   console.log('Current expanded folders in render:', Array.from(expandedFolders));
   console.log('All folders should be collapsed by default');
 
@@ -128,7 +153,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedFolders.map((folderPath) => {
+            {visibleFolders.map((folderPath) => {
               const folderFiles = groupedFiles[folderPath];
               
               // Handle loose files differently - render them as individual files
