@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { supabase } from "@/integrations/supabase/client";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 
@@ -30,19 +31,19 @@ interface NewProjectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const managers = ["Erica", "Jole", "Matt", "Steven"];
 const statuses = ["In Design", "Permitting", "Under Construction", "Completed", "Template"];
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
   const [status, setStatus] = useState("");
-  const [manager, setManager] = useState("");
+  const [manager, setManager] = useState(""); // This will store the user ID
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { users, isLoading: usersLoading } = useCompanyUsers();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +76,20 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         owner_id = profile.home_builder_id;
       }
 
+      // Find the selected manager's details
+      const selectedUser = users.find(u => u.id === manager);
+      const managerName = selectedUser 
+        ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
+        : '';
+
       const { data: project, error } = await supabase
         .from('projects')
         .insert({
           name: projectName,
           address,
           status,
-          manager_name: manager, // Use manager_name for backward compatibility
+          manager: manager, // Store the user ID
+          manager_name: managerName, // Store the display name for backward compatibility
           owner_id,
         })
         .select()
@@ -162,14 +170,14 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
           <div className="space-y-2">
             <Label htmlFor="manager">Manager</Label>
-            <Select value={manager} onValueChange={setManager} disabled={isLoading}>
+            <Select value={manager} onValueChange={setManager} disabled={isLoading || usersLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Select manager" />
+                <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
               </SelectTrigger>
               <SelectContent>
-                {managers.map((managerOption) => (
-                  <SelectItem key={managerOption} value={managerOption}>
-                    {managerOption}
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
                   </SelectItem>
                 ))}
               </SelectContent>
