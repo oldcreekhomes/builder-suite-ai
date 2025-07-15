@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { Project } from "@/hooks/useProjects";
 
 interface EditProjectDialogProps {
@@ -24,12 +25,13 @@ interface EditProjectDialogProps {
 export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { users, isLoading: usersLoading } = useCompanyUsers();
   
   const [formData, setFormData] = useState({
     name: project?.name || "",
     address: project?.address || "",
     status: project?.status || "In Design",
-    manager: project?.manager || "",
+    manager: project?.manager || "", // This stores the user ID
   });
 
   // Update form data when project changes
@@ -39,7 +41,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         name: project.name,
         address: project.address,
         status: project.status,
-        manager: project.manager,
+        manager: project.manager || "", // Use the manager UUID
       });
     }
   }, [project]);
@@ -48,13 +50,19 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     mutationFn: async (data: typeof formData) => {
       if (!project) return;
       
+      // Find the selected manager's details for the manager_name field
+      const selectedUser = users.find(u => u.id === data.manager);
+      const managerName = selectedUser 
+        ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
+        : '';
+      
       const { error } = await supabase
         .from('projects')
         .update({
           name: data.name,
           address: data.address,
           status: data.status,
-          manager: data.manager,
+          manager: data.manager, // Store the user ID
           updated_at: new Date().toISOString(),
         })
         .eq('id', project.id);
@@ -117,12 +125,22 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
           <div className="space-y-2">
             <Label htmlFor="manager">Manager</Label>
-            <Input
-              id="manager"
-              value={formData.manager}
-              onChange={(e) => handleChange('manager', e.target.value)}
-              required
-            />
+            <Select 
+              value={formData.manager} 
+              onValueChange={(value) => handleChange('manager', value)}
+              disabled={usersLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
