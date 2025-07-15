@@ -121,7 +121,10 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(successHTML, {
       status: 200,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8"
+        "Content-Type": "text/html; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Cache-Control": "no-store, no-cache, must-revalidate"
       },
     });
 
