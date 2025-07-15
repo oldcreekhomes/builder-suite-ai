@@ -15,16 +15,21 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     const folderPaths = new Set<string>();
     
     const items = Array.from(dataTransfer.items);
+    console.log('Processing drag items:', items.length);
     
     for (const item of items) {
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
+          console.log('Processing entry:', entry.name, 'isDirectory:', entry.isDirectory);
           const baseFolder = targetFolder === 'Root' ? '' : targetFolder + '/';
           await traverseFileTree(entry, baseFolder, files, folderPaths);
         }
       }
     }
+    
+    console.log('All detected folder paths:', Array.from(folderPaths));
+    console.log('All files to upload:', files.map(f => f.relativePath));
     
     // Filter out invalid files
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
@@ -34,16 +39,19 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
 
   const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>, folderPaths: Set<string>) => {
     return new Promise<void>((resolve) => {
+      console.log('Traversing:', item.name, 'currentPath:', currentPath, 'isDirectory:', item.isDirectory);
+      
       if (item.isFile) {
         item.file((file: File) => {
           const fullPath = currentPath + file.name;
+          console.log('File found:', fullPath);
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
             
             // Track all folder paths in the hierarchy for this file
             const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
             if (folderPath) {
-              // Add the immediate parent folder
+              console.log('Adding folder path from file:', folderPath);
               folderPaths.add(folderPath);
               
               // Add all parent folders in the hierarchy
@@ -51,6 +59,7 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
               for (let i = 1; i <= parts.length; i++) {
                 const parentPath = parts.slice(0, i).join('/');
                 if (parentPath) {
+                  console.log('Adding parent folder path:', parentPath);
                   folderPaths.add(parentPath);
                 }
               }
@@ -67,6 +76,7 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
             
             // Always add the directory to folderPaths
             const folderPath = newPath.slice(0, -1); // Remove trailing slash
+            console.log('Adding directory path:', folderPath);
             folderPaths.add(folderPath);
             
             // Add all parent folders in the hierarchy
@@ -74,14 +84,16 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
             for (let i = 1; i <= parts.length; i++) {
               const parentPath = parts.slice(0, i).join('/');
               if (parentPath) {
+                console.log('Adding parent directory path:', parentPath);
                 folderPaths.add(parentPath);
               }
             }
             
             if (entries.length === 0) {
-              // Empty directory - already tracked above
+              console.log('Empty directory:', folderPath);
               resolve();
             } else {
+              console.log('Directory has', entries.length, 'entries');
               const promises = entries.map(entry => 
                 traverseFileTree(entry, newPath, files, folderPaths)
               );
