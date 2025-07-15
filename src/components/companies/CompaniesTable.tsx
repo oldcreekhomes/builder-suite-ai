@@ -40,6 +40,7 @@ export function CompaniesTable() {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedCostCodes, setCollapsedCostCodes] = useState<Set<string>>(new Set());
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -99,14 +100,25 @@ export function CompaniesTable() {
 
   // Update collapsed groups when grouped cost codes change
   useEffect(() => {
-    const newCollapsed = new Set<string>();
+    const newCollapsedGroups = new Set<string>();
+    const newCollapsedCostCodes = new Set<string>();
+    
     Object.keys(groupedCostCodes).forEach(groupKey => {
       if (groupKey !== 'ungrouped') {
-        newCollapsed.add(groupKey);
+        newCollapsedGroups.add(groupKey);
       }
     });
-    setCollapsedGroups(newCollapsed);
-  }, [groupedCostCodes]);
+    
+    // Also collapse all individual cost codes by default
+    Object.values(groupedCostCodes).flat().forEach(costCode => {
+      if (!parentCodes.has(costCode.code)) {
+        newCollapsedCostCodes.add(costCode.id);
+      }
+    });
+    
+    setCollapsedGroups(newCollapsedGroups);
+    setCollapsedCostCodes(newCollapsedCostCodes);
+  }, [groupedCostCodes, parentCodes]);
 
   // Group companies by cost codes - restructure to match settings hierarchy
   const costCodeToCompaniesMap = useMemo(() => {
@@ -200,6 +212,18 @@ export function CompaniesTable() {
     });
   };
 
+  const toggleCostCodeCollapse = (costCodeId: string) => {
+    setCollapsedCostCodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(costCodeId)) {
+        newSet.delete(costCodeId);
+      } else {
+        newSet.add(costCodeId);
+      }
+      return newSet;
+    });
+  };
+
   // Delete company mutation
   const deleteCompanyMutation = useMutation({
     mutationFn: async (companyId: string) => {
@@ -265,12 +289,26 @@ export function CompaniesTable() {
           <TableBody>
             {tableRows
               .filter((row) => {
-                // Show parent rows always
+                // Always show parent rows
                 if (row.type === 'parent') return true;
                 
-                // Show child/company rows only if parent is expanded
-                if (row.parentCode && collapsedGroups.has(row.parentCode)) {
-                  return false;
+                // For child cost code rows: show only if parent is expanded
+                if (row.type === 'child') {
+                  if (row.parentCode && collapsedGroups.has(row.parentCode)) {
+                    return false;
+                  }
+                  return true;
+                }
+                
+                // For company rows: show only if both parent is expanded AND cost code is expanded
+                if (row.type === 'company') {
+                  if (row.parentCode && collapsedGroups.has(row.parentCode)) {
+                    return false;
+                  }
+                  if (row.costCode && collapsedCostCodes.has(row.costCode.id)) {
+                    return false;
+                  }
+                  return true;
                 }
                 
                 return true;
@@ -295,9 +333,19 @@ export function CompaniesTable() {
                   )}
                   
                   {row.type === 'child' && row.costCode && (
-                    <div className="ml-4">
-                      <span className="font-mono text-xs font-medium">{row.costCode.code}</span>
-                      <span className="text-gray-600 ml-1 text-xs">{row.costCode.name}</span>
+                    <div className="ml-4 flex items-center space-x-1">
+                      <button
+                        onClick={() => toggleCostCodeCollapse(row.costCode.id)}
+                        className="flex items-center space-x-1 hover:bg-gray-50 p-1 rounded text-xs"
+                      >
+                        {collapsedCostCodes.has(row.costCode.id) ? (
+                          <ChevronRight className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                        <span className="font-mono text-xs font-medium">{row.costCode.code}</span>
+                        <span className="text-gray-600 ml-1 text-xs">{row.costCode.name}</span>
+                      </button>
                     </div>
                   )}
                   
