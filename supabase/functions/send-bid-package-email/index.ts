@@ -338,57 +338,6 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                       <tr>
                                         <td style="height: 15px;"></td>
                                       </tr>
-                                      <!-- Instructions Section -->
-                                      <tr>
-                                        <td>
-                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
-                                            <tbody>
-                                              <tr>
-                                                <td>
-                                                  <table class="email-div" bgcolor="#FFFFFF" style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
-                                                    <tbody>
-                                                      <tr>
-                                                        <td>
-                                                          <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
-                                                            <tbody>
-                                                              <tr>
-                                                                <td style="width: 15px;"></td>
-                                                                <td>
-                                                                  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
-                                                                    <tbody>
-                                                                      <tr>
-                                                                        <td style="height: 15px;"></td>
-                                                                      </tr>
-                                                                      <tr>
-                                                                        <td>
-                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                            Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerName}${managerEmail ? ` at ${managerEmail}` : ''}.
-                                                                          </p>
-                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                            Thank you for your interest in this project.
-                                                                          </p>
-                                                                        </td>
-                                                                      </tr>
-                                                                      <tr>
-                                                                        <td style="height: 15px;"></td>
-                                                                      </tr>
-                                                                    </tbody>
-                                                                  </table>
-                                                                </td>
-                                                                <td style="width: 15px;"></td>
-                                                              </tr>
-                                                            </tbody>
-                                                          </table>
-                                                        </td>
-                                                      </tr>
-                                                    </tbody>
-                                                  </table>
-                                                </td>
-                                              </tr>
-                                            </tbody>
-                                          </table>
-                                         </td>
-                                       </tr>
                                        <tr>
                                          <td style="height: 15px;"></td>
                                        </tr>
