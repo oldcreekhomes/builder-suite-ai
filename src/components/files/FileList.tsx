@@ -133,23 +133,19 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
               
               // Handle loose files differently - render them as individual files
               if (folderPath === '__LOOSE_FILES__') {
-                return (
-                  <React.Fragment key={folderPath}>
-                    {folderFiles.map((file) => (
-                      <FileRow
-                        key={file.id}
-                        file={file}
-                        isSelected={selectedFiles.has(file.id)}
-                        onSelectFile={handleSelectFile}
-                        onFileSelect={onFileSelect}
-                        onDownload={handleDownload}
-                        onDelete={handleDelete}
-                        onRefresh={onRefresh}
-                        onShare={onShare}
-                      />
-                    ))}
-                  </React.Fragment>
-                );
+                return folderFiles.map((file) => (
+                  <FileRow
+                    key={file.id}
+                    file={file}
+                    isSelected={selectedFiles.has(file.id)}
+                    onSelectFile={handleSelectFile}
+                    onFileSelect={onFileSelect}
+                    onDownload={handleDownload}
+                    onDelete={handleDelete}
+                    onRefresh={onRefresh}
+                    onShare={onShare}
+                  />
+                ));
               }
               
               // Handle regular folders
@@ -160,23 +156,27 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
               
               console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
               
-              return (
-                <React.Fragment key={folderPath}>
-                  <FolderHeader
-                    folderPath={folderPath}
-                    folderFiles={folderFiles}
-                    isExpanded={isExpanded}
-                    isDragOver={isDragOver}
-                    isSelected={isFolderSelected}
-                    onToggleFolder={toggleFolder}
-                    onSelectFolder={handleSelectFolder}
-                    onDragOver={handleFolderDragOver}
-                    onDragLeave={handleFolderDragLeave}
-                    onDrop={handleFolderDrop}
-                    onShareFolder={onShareFolder}
-                    onCreateSubfolder={onCreateSubfolder}
-                  />
-                  {isExpanded && folderFiles.map((file) => (
+              const folderItems = [
+                <FolderHeader
+                  key={`folder-${folderPath}`}
+                  folderPath={folderPath}
+                  folderFiles={folderFiles}
+                  isExpanded={isExpanded}
+                  isDragOver={isDragOver}
+                  isSelected={isFolderSelected}
+                  onToggleFolder={toggleFolder}
+                  onSelectFolder={handleSelectFolder}
+                  onDragOver={handleFolderDragOver}
+                  onDragLeave={handleFolderDragLeave}
+                  onDrop={handleFolderDrop}
+                  onShareFolder={onShareFolder}
+                  onCreateSubfolder={onCreateSubfolder}
+                />
+              ];
+              
+              if (isExpanded) {
+                folderFiles.forEach((file) => {
+                  folderItems.push(
                     <FileRow
                       key={file.id}
                       file={file}
@@ -188,9 +188,11 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
                       onRefresh={onRefresh}
                       onShare={onShare}
                     />
-                  ))}
-                </React.Fragment>
-              );
+                  );
+                });
+              }
+              
+              return folderItems;
             })}
           </TableBody>
         </Table>

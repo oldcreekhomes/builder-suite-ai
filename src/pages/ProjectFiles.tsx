@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search, Grid, List, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 import { FileList } from "@/components/files/FileList";
 import { FileGrid } from "@/components/files/FileGrid";
@@ -23,6 +24,7 @@ export default function ProjectFiles() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [fileTypeFilter, setFileTypeFilter] = useState('all');
@@ -92,15 +94,54 @@ export default function ProjectFiles() {
   };
 
   const handleCreateFolder = async (folderName: string, parentPath?: string) => {
-    // This will be handled by the FileUploadDropzone component
-    const dropzone = document.querySelector('[data-testid="file-upload-dropzone"]') as any;
-    if (dropzone && dropzone.createFolderPlaceholder) {
-      const fullPath = parentPath && parentPath !== 'Root' ? `${parentPath}/${folderName}` : folderName;
-      await dropzone.createFolderPlaceholder(fullPath);
+    if (!user) return;
+
+    const fullPath = parentPath && parentPath !== 'Root' ? `${parentPath}/${folderName}` : folderName;
+    
+    try {
+      // Create a placeholder file in the folder to make it visible
+      const placeholderContent = new Blob([''], { type: 'text/plain' });
+      const placeholderFile = new File([placeholderContent], '.folderkeeper', {
+        type: 'text/plain'
+      });
+
+      const fileId = crypto.randomUUID();
+      const fileName = `${user.id}/${projectId}/${fileId}_${fullPath}/.folderkeeper`;
+      
+      // Upload placeholder to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, placeholderFile);
+
+      if (uploadError) throw uploadError;
+
+      // Save file metadata to database
+      const { error: dbError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: projectId,
+          filename: fileName,
+          original_filename: `${fullPath}/.folderkeeper`,
+          file_size: placeholderFile.size,
+          file_type: 'folderkeeper',
+          mime_type: 'text/plain',
+          storage_path: uploadData.path,
+          uploaded_by: user.id,
+        });
+
+      if (dbError) throw dbError;
+
       refetch();
       toast({
         title: "Success",
         description: `Folder "${folderName}" created successfully`,
+      });
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create folder",
+        variant: "destructive",
       });
     }
   };
@@ -187,6 +228,7 @@ export default function ProjectFiles() {
             <FileUploadDropzone
               projectId={projectId}
               onUploadSuccess={handleUploadSuccess}
+              onCreateFolder={handleCreateFolder}
             />
 
             {isLoading ? (

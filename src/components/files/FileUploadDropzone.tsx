@@ -13,9 +13,10 @@ import { NewFolderModal } from "./NewFolderModal";
 interface FileUploadDropzoneProps {
   projectId: string;
   onUploadSuccess: () => void;
+  onCreateFolder?: (folderName: string, parentPath?: string) => Promise<void>;
 }
 
-export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDropzoneProps) {
+export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder }: FileUploadDropzoneProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const dropzoneRef = useRef<HTMLDivElement>(null);
@@ -106,48 +107,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     const items = Array.from(dataTransfer.items);
     console.log('🔍 Processing drag and drop with', items.length, 'items');
     
-    // Collect root entries to determine the intended folder structure
-    const rootEntries: Array<{ entry: any; isDirectory: boolean }> = [];
-    
     for (const item of items) {
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
-          rootEntries.push({ entry, isDirectory: entry.isDirectory });
+          await traverseFileTree(entry, '', files);
         }
       }
     }
     
-    // Process all root entries concurrently
-    const promises = rootEntries.map(async ({ entry, isDirectory }) => {
-      console.log('📁 Processing root entry:', entry.name, 'isDirectory:', isDirectory);
-      
-      if (isDirectory) {
-        // For directories, start the path with the directory name
-        await traverseFileTree(entry, '', files, entry.name);
-      } else {
-        // For loose files, add them directly
-        await traverseFileTree(entry, '', files, '');
-      }
-    });
-    
-    // Handle fallback for browsers that don't support webkitGetAsEntry
-    if (rootEntries.length === 0) {
-      const promises = items.map(async (item) => {
-        if (item.kind === 'file') {
-          const file = item.getAsFile();
-          if (file && isValidFile(file)) {
-            console.log('📄 Adding loose file:', file.name);
-            files.push({ file, relativePath: file.name });
-          }
-        }
-      });
-      await Promise.all(promises);
-    } else {
-      await Promise.all(promises);
-    }
-    
-    // Filter out invalid files and return clean paths
+    // Filter out invalid files
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
     
     console.log('✅ Final file paths from drag and drop:');
@@ -156,21 +125,11 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
     return validFiles;
   };
 
-  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>, rootFolderName: string = '') => {
+  const traverseFileTree = (item: any, currentPath: string, files: Array<{ file: File; relativePath: string }>) => {
     return new Promise<void>((resolve) => {
       if (item.isFile) {
         item.file((file: File) => {
-          // Build the correct relative path
-          let fullPath: string;
-          
-          if (rootFolderName) {
-            // For files in folders, include the root folder name
-            fullPath = currentPath ? `${rootFolderName}/${currentPath}${file.name}` : `${rootFolderName}/${file.name}`;
-          } else {
-            // For loose files, just use the current path
-            fullPath = currentPath + file.name;
-          }
-          
+          const fullPath = currentPath + file.name;
           console.log('📄 File found:', fullPath);
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
@@ -178,7 +137,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
           resolve();
         });
       } else if (item.isDirectory) {
-        console.log('📁 Entering directory:', item.name, 'currentPath:', currentPath, 'rootFolder:', rootFolderName);
+        console.log('📁 Entering directory:', item.name);
         const dirReader = item.createReader();
         
         const readEntries = () => {
@@ -187,9 +146,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
               resolve();
             } else {
               const newPath = currentPath + item.name + '/';
-              console.log('🔄 Directory path will be:', newPath);
               const promises = entries.map(entry => 
-                traverseFileTree(entry, newPath, files, rootFolderName)
+                traverseFileTree(entry, newPath, files)
               );
               Promise.all(promises).then(() => {
                 readEntries();
