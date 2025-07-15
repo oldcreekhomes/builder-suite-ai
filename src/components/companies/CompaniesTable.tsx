@@ -344,7 +344,7 @@ export function CompaniesTable() {
                 if (row.type === 'child' && row.costCode) {
                   return (
                     <TableRow key={row.id} className="h-8">
-                      <TableCell className="py-1">
+                      <TableCell className="py-1 text-sm text-left">
                         <div className="flex items-center">
                           <button
                             onClick={() => toggleCostCodeCollapse(row.costCode.id)}
@@ -356,7 +356,7 @@ export function CompaniesTable() {
                               <ChevronDown className="h-4 w-4" />
                             )}
                           </button>
-                          <span className="text-sm text-left">{row.costCode.code}</span>
+                          <span>{row.costCode.code}</span>
                         </div>
                       </TableCell>
                       <TableCell className="py-1 text-sm">{row.costCode.name}</TableCell>
@@ -373,11 +373,11 @@ export function CompaniesTable() {
                 if (row.type === 'company' && row.company) {
                   return (
                     <TableRow key={row.id} className="h-8">
-                      <TableCell className="py-1">
-                        <span className="text-sm text-gray-500 ml-8">└─ Company</span>
+                      <TableCell className="py-1 text-sm text-left">
+                        <span className="text-gray-500 ml-8">└─ Company</span>
                       </TableCell>
                       <TableCell className="py-1 text-sm">{row.company.company_name}</TableCell>
-                      <TableCell className="py-1">
+                      <TableCell className="py-1 text-sm">
                         <Badge className={`${getCompanyTypeColor(row.company.company_type)} text-[10px] px-1 py-0`}>
                           {row.company.company_type}
                         </Badge>
@@ -394,7 +394,7 @@ export function CompaniesTable() {
                           <span className="text-gray-400 text-xs">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1">
+                      <TableCell className="py-1 text-sm">
                         {row.company.website ? (
                           <a 
                             href={row.company.website.startsWith('http') ? row.company.website : `https://${row.company.website}`}
@@ -409,7 +409,7 @@ export function CompaniesTable() {
                           <span className="text-gray-400 text-xs">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1">
+                      <TableCell className="py-1 text-sm">
                         <div className="flex items-center space-x-1">
                           <Users className="h-3 w-3 text-gray-400" />
                           <span className="text-xs">{row.company.representatives_count || 0}</span>
