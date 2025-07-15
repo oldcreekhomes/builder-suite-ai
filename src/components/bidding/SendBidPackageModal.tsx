@@ -59,6 +59,65 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     enabled: !!bidPackage?.id && open,
   });
 
+  // Fetch project information
+  const { data: projectData } = useQuery({
+    queryKey: ['project-details', bidPackage?.project_id],
+    queryFn: async () => {
+      if (!bidPackage?.project_id) return null;
+
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', bidPackage.project_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching project:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!bidPackage?.project_id && open,
+  });
+
+  // Fetch sender company information (current user's company)
+  const { data: senderCompanyData } = useQuery({
+    queryKey: ['sender-company'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (userError || !userData?.company_name) {
+        console.error('Error fetching user company:', userError);
+        return null;
+      }
+
+      // Find the company details based on the company name
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .ilike('company_name', userData.company_name)
+        .limit(1)
+        .single();
+
+      if (companyError) {
+        console.error('Error fetching company details:', companyError);
+        // Return basic info even if company details aren't found
+        return { company_name: userData.company_name };
+      }
+
+      return companyData;
+    },
+    enabled: open,
+  });
+
   const handleSendEmail = async () => {
     console.log('🚀 handleSendEmail called', { bidPackage, companiesData });
     
@@ -73,16 +132,25 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       // Prepare email data
       const emailData = {
         bidPackage: {
+          name: bidPackage.name,
           costCode: bidPackage.cost_codes,
-          dueDate: bidPackage.due_date,
-          reminderDate: bidPackage.reminder_date,
+          due_date: bidPackage.due_date,
+          reminder_date: bidPackage.reminder_date,
           specifications: bidPackage.specifications,
           files: bidPackage.files || []
         },
+        project: projectData ? {
+          address: projectData.address,
+          manager: projectData.manager
+        } : undefined,
+        senderCompany: senderCompanyData ? {
+          company_name: senderCompanyData.company_name,
+          address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
+        } : undefined,
         companies: companiesData.map(company => ({
-          name: company.companies.company_name,
+          company_name: company.companies.company_name,
           address: company.companies.address,
-          phone: company.companies.phone_number,
+          phone_number: company.companies.phone_number,
           representatives: company.companies.company_representatives.filter(
             (rep: any) => rep.receive_bid_notifications
           )

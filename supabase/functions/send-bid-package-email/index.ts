@@ -33,6 +33,10 @@ interface BidPackageEmailRequest {
     address: string;
     manager?: string;
   };
+  senderCompany?: {
+    company_name: string;
+    address?: string;
+  };
   companies: Array<{
     company_name: string;
     address?: string;
@@ -58,8 +62,38 @@ const formatDate = (dateString: string | undefined) => {
   });
 };
 
+const formatSpecifications = (specifications: string | undefined) => {
+  if (!specifications) return 'See attached specifications';
+  
+  // Split by line breaks and process bullet points and numbered lists
+  const lines = specifications.split(/\r?\n/);
+  const formattedLines = lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    
+    // Check if line starts with bullet point markers
+    if (trimmed.match(/^[•·-]\s*/) || trimmed.match(/^\d+\.\s*/)) {
+      return `<p style="line-height: 20px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
+    }
+    
+    return `<p style="line-height: 20px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
+  });
+  
+  return formattedLines.filter(line => line).join('');
+};
+
+const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files') => {
+  if (!files || files.length === 0) return 'No files attached';
+  
+  return files.map(file => {
+    const downloadUrl = `${baseUrl}/${file}`;
+    const fileName = file.split('/').pop() || file;
+    return `<p style="margin: 5px 0;"><a href="${downloadUrl}" style="color: #059669; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></p>`;
+  }).join('');
+};
+
 const generateEmailHTML = (data: BidPackageEmailRequest) => {
-  const { bidPackage, companies, project } = data;
+  const { bidPackage, companies, project, senderCompany } = data;
 
   // Get project manager name (using first company's primary representative as fallback)
   const managerName = project?.manager || 
@@ -67,13 +101,14 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
     companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.last_name || 
     'Project Manager';
 
-  // Generate file attachments HTML
-  const attachmentsHtml = bidPackage.files && bidPackage.files.length > 0
-    ? bidPackage.files.map(file => `<a href="#" style="color: #059669; text-decoration: underline;">📎 ${file}</a><br>`).join('')
-    : 'No files attached';
+  // Use sender company name if provided, otherwise fallback to first company
+  const companyName = senderCompany?.company_name || companies[0]?.company_name || 'Your Company';
 
-  // Get company name from first company (assuming bid is from one home builder)
-  const companyName = companies[0]?.company_name || 'Your Company';
+  // Format specifications with bullet points and numbered lists
+  const formattedSpecifications = formatSpecifications(bidPackage.specifications);
+
+  // Generate downloadable file links
+  const attachmentsHtml = generateFileDownloadLinks(bidPackage.files);
 
   return `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -259,9 +294,12 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                                             <b>Due Date: </b>${formatDate(bidPackage.due_date)}
                                                                                           </p>
-                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                            <b>Scope of Work: </b>${bidPackage.costCode?.name || 'Not specified'} - ${bidPackage.specifications || 'See attached specifications'}
-                                                                                          </p>
+                                                                                           <div style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                             <b>Scope of Work: </b>${bidPackage.costCode?.name || 'Not specified'}
+                                                                                           </div>
+                                                                                           <div style="margin: 10px 0;">
+                                                                                             ${formattedSpecifications}
+                                                                                           </div>
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; margin: 0;">
                                                                                             <b>Project Files:</b><br>
                                                                                             ${attachmentsHtml}
