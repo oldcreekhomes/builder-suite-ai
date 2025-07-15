@@ -30,8 +30,10 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
   // Fetch cost codes that have bidding enabled and are not already in the project
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes-for-bidding', projectId],
+    queryKey: ['cost-codes-for-bidding', projectId, existingCostCodeIds],
     queryFn: async () => {
+      console.log('Fetching cost codes with existing IDs:', existingCostCodeIds);
+      
       let query = supabase
         .from('cost_codes')
         .select('*')
@@ -39,6 +41,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
       // Only add the exclusion filter if there are existing cost code IDs
       if (existingCostCodeIds.length > 0) {
+        console.log('Adding exclusion filter for cost code IDs:', existingCostCodeIds);
         query = query.not('id', 'in', `(${existingCostCodeIds.join(',')})`);
       }
 

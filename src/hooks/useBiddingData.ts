@@ -180,6 +180,7 @@ export const useBiddingData = (projectId: string, status?: 'draft' | 'sent' | 'c
   // Update existing cost code IDs from all packages (not just the current status)
   useEffect(() => {
     if (allBiddingItems) {
+      console.log('All bidding items (cost code IDs):', allBiddingItems);
       setExistingCostCodeIds(allBiddingItems);
     }
   }, [allBiddingItems]);
