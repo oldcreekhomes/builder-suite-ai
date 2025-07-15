@@ -129,6 +129,26 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     console.log('📧 Starting email send process...');
     setIsSending(true);
     try {
+      // Get project owner's details if available
+      let managerEmail = undefined;
+      let managerFullName = projectData?.manager;
+      
+      if (projectData?.owner_id) {
+        const { data: ownerData } = await supabase
+          .from('users')
+          .select('email, first_name, last_name')
+          .eq('id', projectData.owner_id)
+          .single();
+        
+        if (ownerData?.email) {
+          managerEmail = ownerData.email;
+        }
+        
+        if (ownerData?.first_name && ownerData?.last_name) {
+          managerFullName = `${ownerData.first_name} ${ownerData.last_name}`;
+        }
+      }
+
       // Prepare email data
       const emailData = {
         bidPackage: {
@@ -141,10 +161,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         },
         project: projectData ? {
           address: projectData.address,
-          manager: projectData.manager,
-          managerEmail: projectData.manager && projectData.manager.includes('@') 
-            ? projectData.manager.split(';').find(part => part.trim().includes('@'))?.trim()
-            : undefined
+          manager: managerFullName,
+          managerEmail: managerEmail
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,
