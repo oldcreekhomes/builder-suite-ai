@@ -88,17 +88,17 @@ export function CompaniesTable() {
     refetchOnWindowFocus: true,
   });
 
+  // Get all unique cost codes from all companies
+  const allCostCodes = useMemo(() => {
+    const costCodes = companies.flatMap(company => company.cost_codes || []);
+    return Array.from(new Map(costCodes.map(cc => [cc.id, cc])).values());
+  }, [companies]);
+
+  // Use the cost code grouping hook at the top level
+  const { groupedCostCodes, parentCodes } = useCostCodeGrouping(allCostCodes);
+
   // Group companies by cost codes
   const costCodeToCompaniesMap = useMemo(() => {
-    // Get all unique cost codes from all companies
-    const allCostCodes = companies.flatMap(company => company.cost_codes || []);
-    const uniqueCostCodes = Array.from(
-      new Map(allCostCodes.map(cc => [cc.id, cc])).values()
-    );
-
-    // Use the cost code grouping hook
-    const { groupedCostCodes, parentCodes } = useCostCodeGrouping(uniqueCostCodes);
-
     // Create a map from cost code ID to companies that have that cost code
     const costCodeCompanyMap = new Map<string, Company[]>();
     
@@ -152,10 +152,9 @@ export function CompaniesTable() {
       });
 
     return {
-      tableRows,
-      parentCodes
+      tableRows
     };
-  }, [companies]);
+  }, [companies, groupedCostCodes, parentCodes]);
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups(prev => {
@@ -214,7 +213,7 @@ export function CompaniesTable() {
     return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
-  const { tableRows, parentCodes } = costCodeToCompaniesMap;
+  const { tableRows } = costCodeToCompaniesMap;
 
   return (
     <>
