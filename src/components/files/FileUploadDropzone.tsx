@@ -111,6 +111,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry?.();
         if (entry) {
+          console.log('📁 Processing entry:', entry.name, 'isDirectory:', entry.isDirectory);
           await traverseFileTree(entry, '', files);
         }
       }
@@ -130,14 +131,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
       if (item.isFile) {
         item.file((file: File) => {
           const fullPath = currentPath + file.name;
-          console.log('📄 File found:', fullPath);
+          console.log('📄 File found with path:', fullPath);
           if (isValidFile(file, fullPath)) {
             files.push({ file, relativePath: fullPath });
           }
           resolve();
         });
       } else if (item.isDirectory) {
-        console.log('📁 Entering directory:', item.name);
+        console.log('📁 Entering directory:', item.name, 'currentPath:', currentPath);
         const dirReader = item.createReader();
         
         const readEntries = () => {
@@ -146,6 +147,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
               resolve();
             } else {
               const newPath = currentPath + item.name + '/';
+              console.log('🔄 New path will be:', newPath);
               const promises = entries.map(entry => 
                 traverseFileTree(entry, newPath, files)
               );
