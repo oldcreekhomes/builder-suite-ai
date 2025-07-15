@@ -111,10 +111,49 @@ export function CompaniesTable() {
       });
     });
 
+    // Flatten the structure into table rows for easier rendering
+    const tableRows: Array<{
+      id: string;
+      costCode: CostCode;
+      company: Company;
+      isFirstCompanyOfCode: boolean;
+      isFirstCodeOfGroup: boolean;
+      groupKey: string;
+    }> = [];
+
+    Object.entries(groupedCostCodes)
+      .filter(([groupKey, codes]) => {
+        if (groupKey === 'ungrouped') return true;
+        const childCodes = codes.filter(code => !parentCodes.has(code.code));
+        return childCodes.length > 0;
+      })
+      .sort(([a], [b]) => {
+        if (a === 'ungrouped') return 1;
+        if (b === 'ungrouped') return -1;
+        return a.localeCompare(b);
+      })
+      .forEach(([groupKey, codes], groupIndex) => {
+        const relevantCodes = codes.filter(code => !parentCodes.has(code.code));
+        
+        relevantCodes.forEach((costCode, codeIndex) => {
+          const companiesForThisCostCode = costCodeCompanyMap.get(costCode.id) || [];
+          
+          companiesForThisCostCode.forEach((company, companyIndex) => {
+            tableRows.push({
+              id: `${costCode.id}-${company.id}`,
+              costCode,
+              company,
+              isFirstCompanyOfCode: companyIndex === 0,
+              isFirstCodeOfGroup: codeIndex === 0,
+              groupKey
+            });
+          });
+        });
+      });
+
     return {
-      groupedCostCodes,
-      parentCodes,
-      costCodeCompanyMap
+      tableRows,
+      parentCodes
     };
   }, [companies]);
 
@@ -175,7 +214,7 @@ export function CompaniesTable() {
     return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
-  const { groupedCostCodes, parentCodes, costCodeCompanyMap } = costCodeToCompaniesMap;
+  const { tableRows, parentCodes } = costCodeToCompaniesMap;
 
   return (
     <>
@@ -193,127 +232,103 @@ export function CompaniesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Object.entries(groupedCostCodes)
-              .filter(([groupKey, codes]) => {
-                if (groupKey === 'ungrouped') return true;
-                const childCodes = codes.filter(code => !parentCodes.has(code.code));
-                return childCodes.length > 0;
-              })
-              .sort(([a], [b]) => {
-                if (a === 'ungrouped') return 1; // Put ungrouped at bottom
-                if (b === 'ungrouped') return -1;
-                return a.localeCompare(b);
-              })
-              .map(([groupKey, codes]) => {
-                const relevantCodes = codes.filter(code => !parentCodes.has(code.code));
-                
-                return relevantCodes.map((costCode, codeIndex) => {
-                  const companiesForThisCostCode = costCodeCompanyMap.get(costCode.id) || [];
-                  
-                  return companiesForThisCostCode.map((company, companyIndex) => {
-                    const isFirstCompanyOfCode = companyIndex === 0;
-                    const isFirstCodeOfGroup = codeIndex === 0;
-                    
-                    return (
-                      <TableRow key={`${costCode.id}-${company.id}`} className="h-auto">
-                        <TableCell className="px-2 py-2 align-top">
-                          {isFirstCompanyOfCode && (
-                            <div className="space-y-1">
-                              {isFirstCodeOfGroup && groupKey !== 'ungrouped' && (
-                                <div className="flex items-center space-x-1 mb-1">
-                                  <button
-                                    onClick={() => toggleGroupCollapse(groupKey)}
-                                    className="flex items-center space-x-1 hover:bg-gray-50 p-1 rounded text-xs"
-                                  >
-                                    {collapsedGroups.has(groupKey) ? (
-                                      <ChevronRight className="h-3 w-3" />
-                                    ) : (
-                                      <ChevronDown className="h-3 w-3" />
-                                    )}
-                                    <span className="font-medium text-blue-600">{groupKey}</span>
-                                  </button>
-                                </div>
-                              )}
-                              <div className={groupKey !== 'ungrouped' ? 'ml-4' : ''}>
-                                <span className="font-mono text-xs font-medium">{costCode.code}</span>
-                                <span className="text-gray-600 ml-1 text-xs">{costCode.name}</span>
-                              </div>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          <div className="text-xs font-medium">{company.company_name}</div>
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] px-1 py-0`}>
-                            {company.company_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          <div className="flex items-center space-x-1">
-                            {company.address && (
-                              <>
-                                <MapPin className="h-3 w-3 text-gray-400" />
-                                <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                                  {company.address}
-                                </span>
-                              </>
+            {tableRows.map((row) => (
+              <TableRow key={row.id} className="h-auto">
+                <TableCell className="px-2 py-2 align-top">
+                  {row.isFirstCompanyOfCode && (
+                    <div className="space-y-1">
+                      {row.isFirstCodeOfGroup && row.groupKey !== 'ungrouped' && (
+                        <div className="flex items-center space-x-1 mb-1">
+                          <button
+                            onClick={() => toggleGroupCollapse(row.groupKey)}
+                            className="flex items-center space-x-1 hover:bg-gray-50 p-1 rounded text-xs"
+                          >
+                            {collapsedGroups.has(row.groupKey) ? (
+                              <ChevronRight className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
                             )}
-                            {!company.address && <span className="text-gray-400 text-xs">-</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          {company.website ? (
-                            <a 
-                              href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                            >
-                              <Globe className="h-3 w-3" />
-                              <span className="text-xs">Website</span>
-                            </a>
-                          ) : (
-                            <span className="text-gray-400 text-xs">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          <div className="flex items-center space-x-1">
-                            <Users className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs">{company.representatives_count || 0}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top text-right">
-                          <div className="flex justify-end space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setViewingCompany(company)}
-                              className="h-6 px-2 text-xs hover:bg-gray-100"
-                            >
-                              View
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingCompany(company)}
-                              className="h-6 w-6 p-0 hover:bg-gray-100"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <DeleteButton
-                              onDelete={() => deleteCompanyMutation.mutate(company.id)}
-                              title="Delete Company"
-                              description={`Are you sure you want to delete ${company.company_name}? This action cannot be undone and will also delete all associated representatives and cost codes.`}
-                              isLoading={deleteCompanyMutation.isPending}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  });
-                });
-              })}
+                            <span className="font-medium text-blue-600">{row.groupKey}</span>
+                          </button>
+                        </div>
+                      )}
+                      <div className={row.groupKey !== 'ungrouped' ? 'ml-4' : ''}>
+                        <span className="font-mono text-xs font-medium">{row.costCode.code}</span>
+                        <span className="text-gray-600 ml-1 text-xs">{row.costCode.name}</span>
+                      </div>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
+                  <div className="text-xs font-medium">{row.company.company_name}</div>
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
+                  <Badge className={`${getCompanyTypeColor(row.company.company_type)} text-[10px] px-1 py-0`}>
+                    {row.company.company_type}
+                  </Badge>
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
+                  <div className="flex items-center space-x-1">
+                    {row.company.address && (
+                      <>
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                          {row.company.address}
+                        </span>
+                      </>
+                    )}
+                    {!row.company.address && <span className="text-gray-400 text-xs">-</span>}
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
+                  {row.company.website ? (
+                    <a 
+                      href={row.company.website.startsWith('http') ? row.company.website : `https://${row.company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Globe className="h-3 w-3" />
+                      <span className="text-xs">Website</span>
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top">
+                  <div className="flex items-center space-x-1">
+                    <Users className="h-3 w-3 text-gray-400" />
+                    <span className="text-xs">{row.company.representatives_count || 0}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-2 align-top text-right">
+                  <div className="flex justify-end space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewingCompany(row.company)}
+                      className="h-6 px-2 text-xs hover:bg-gray-100"
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingCompany(row.company)}
+                      className="h-6 w-6 p-0 hover:bg-gray-100"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <DeleteButton
+                      onDelete={() => deleteCompanyMutation.mutate(row.company.id)}
+                      title="Delete Company"
+                      description={`Are you sure you want to delete ${row.company.company_name}? This action cannot be undone and will also delete all associated representatives and cost codes.`}
+                      isLoading={deleteCompanyMutation.isPending}
+                    />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
 
             {companies.length === 0 && (
               <TableRow>
