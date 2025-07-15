@@ -373,8 +373,7 @@ export function CompaniesTable() {
                 if (row.type === 'company' && row.company) {
                   return (
                     <TableRow key={row.id} className="h-8">
-                      <TableCell className="py-1 text-sm text-left">
-                        <span className="text-gray-500 ml-8">└─ Company</span>
+                      <TableCell className="py-1 text-sm text-left ml-8">
                       </TableCell>
                       <TableCell className="py-1 text-sm">{row.company.company_name}</TableCell>
                       <TableCell className="py-1 text-sm">
