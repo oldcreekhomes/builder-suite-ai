@@ -161,6 +161,10 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       let managerEmail = undefined;
       let managerFullName = 'Project Manager'; // Default fallback
       
+      console.log('🔍 Project data check:', projectData);
+      console.log('🔍 Manager field:', projectData?.manager);
+      console.log('🔍 Manager user data:', projectData?.manager_user);
+      
       if (projectData?.manager_user) {
         const manager = projectData.manager_user;
         console.log('📋 Using manager from project:', manager);
@@ -169,9 +173,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         if (manager.email) {
           managerEmail = manager.email;
         }
+      } else {
+        console.log('⚠️ No manager_user found in projectData');
       }
       
-      console.log('📋 Manager details:', { managerFullName, managerEmail });
+      console.log('📋 Final manager details:', { managerFullName, managerEmail });
 
       // Prepare email data
       const emailData = {
