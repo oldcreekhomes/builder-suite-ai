@@ -19,6 +19,7 @@ const corsHeaders = {
 
 interface BidPackageEmailRequest {
   bidPackage: {
+    id: string;
     name: string;
     costCode: {
       code: string;
@@ -39,6 +40,7 @@ interface BidPackageEmailRequest {
     address?: string;
   };
   companies: Array<{
+    id: string;
     company_name: string;
     address?: string;
     phone_number?: string;
@@ -95,7 +97,7 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
   }).join('');
 };
 
-const generateEmailHTML = (data: BidPackageEmailRequest) => {
+const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => {
   const { bidPackage, companies, project, senderCompany } = data;
 
   // Get project manager information from the project data
@@ -110,6 +112,11 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
 
   // Generate downloadable file links
   const attachmentsHtml = generateFileDownloadLinks(bidPackage.files);
+
+  // Generate Yes/No button URLs
+  const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response';
+  const yesUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_bid`;
+  const noUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_not_bid`;
 
   return `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -374,16 +381,16 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                            <table style="border-collapse: collapse; border-spacing: 0; margin: 0 auto;" cellpadding="0" cellspacing="0">
                                                                              <tbody>
                                                                                <tr>
-                                                                                 <td style="padding-right: 10px;">
-                                                                                   <a href="#" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
-                                                                                     Yes
-                                                                                   </a>
-                                                                                 </td>
-                                                                                 <td style="padding-left: 10px;">
-                                                                                   <a href="#" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
-                                                                                     No
-                                                                                   </a>
-                                                                                 </td>
+                                                                                  <td style="padding-right: 10px;">
+                                                                                    <a href="${yesUrl}" target="_blank" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
+                                                                                      Yes
+                                                                                    </a>
+                                                                                  </td>
+                                                                                  <td style="padding-left: 10px;">
+                                                                                    <a href="${noUrl}" target="_blank" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #FFFFFF; display: inline-block; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;">
+                                                                                      No
+                                                                                    </a>
+                                                                                  </td>
                                                                                </tr>
                                                                              </tbody>
                                                                            </table>
@@ -496,30 +503,53 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const emailHTML = generateEmailHTML(requestData);
-    const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
-    
     // Use sender company name for the from field
     const senderName = requestData.senderCompany?.company_name || 'Bid Packages';
     
     console.log('🏢 Sender company data:', JSON.stringify(requestData.senderCompany, null, 2));
     console.log('📧 Using sender name:', senderName);
 
-    console.log('📬 About to send email via Resend...');
-    // Send email to all recipients
-    const emailResponse = await resend.emails.send({
-      from: `${senderName} <noreply@transactional.buildersuiteai.com>`,
-      to: recipients,
-      subject: subject,
-      html: emailHTML
+    console.log('📬 About to send emails via Resend...');
+    
+    // Send emails to each company individually with their specific company ID
+    const emailPromises = companies.map(async (company) => {
+      const emailHTML = generateEmailHTML(requestData, company.id);
+      const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
+      
+      // Get recipients for this specific company
+      const companyRecipients = company.representatives
+        .filter(rep => rep.email)
+        .map(rep => rep.email);
+
+      if (companyRecipients.length === 0) {
+        console.log(`⚠️ No recipients for company ${company.company_name}`);
+        return null;
+      }
+
+      console.log(`📧 Sending email to ${company.company_name} (${companyRecipients.length} recipients)`);
+
+      return await resend.emails.send({
+        from: `${senderName} <noreply@transactional.buildersuiteai.com>`,
+        to: companyRecipients,
+        subject: subject,
+        html: emailHTML
+      });
     });
 
-    console.log("📧 Resend API response:", JSON.stringify(emailResponse, null, 2));
+    // Wait for all emails to be sent
+    const emailResponses = await Promise.allSettled(emailPromises.filter(p => p !== null));
+
+    console.log("📧 Resend API responses:", JSON.stringify(emailResponses, null, 2));
+
+    const successfulEmails = emailResponses.filter(result => result.status === 'fulfilled').length;
+    const failedEmails = emailResponses.filter(result => result.status === 'rejected').length;
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        emailId: emailResponse.data?.id,
+        companiesCount: companies.length,
+        successfulEmails,
+        failedEmails,
         recipientsCount: recipients.length,
         recipients: recipients
       }),

@@ -145,6 +145,7 @@ export function SendSingleCompanyEmailModal({
       // Prepare email data for single company
       const emailData = {
         bidPackage: {
+          id: bidPackage.id,
           name: bidPackage.name,
           costCode: bidPackage.cost_codes,
           due_date: bidPackage.due_date,
@@ -161,6 +162,7 @@ export function SendSingleCompanyEmailModal({
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
         companies: [{
+          id: companyData.companies.id,
           company_name: companyData.companies.company_name,
           address: companyData.companies.address,
           phone_number: companyData.companies.phone_number,
