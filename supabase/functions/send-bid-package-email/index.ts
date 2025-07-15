@@ -32,6 +32,11 @@ interface BidPackageEmailRequest {
   project?: {
     address: string;
     manager?: string;
+    project_owner?: {
+      first_name: string;
+      last_name: string;
+      email: string;
+    };
   };
   senderCompany?: {
     company_name: string;
@@ -97,8 +102,10 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
 const generateEmailHTML = (data: BidPackageEmailRequest) => {
   const { bidPackage, companies, project, senderCompany } = data;
 
-  // Get project manager name (using first company's primary representative as fallback)
-  const managerName = project?.manager || 
+  // Get project manager contact info - use project_owner if available, otherwise fallback to manager name or primary rep
+  const managerContact = project?.project_owner ? 
+    `${project.project_owner.first_name} ${project.project_owner.last_name}; ${project.project_owner.email}` :
+    project?.manager || 
     companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.first_name + ' ' + 
     companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.last_name || 
     'Project Manager';
@@ -290,15 +297,15 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                                             <b>Project Address: </b>${project?.address || 'Not specified'}
                                                                                           </p>
-                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                            <b>Contact: </b>${managerName}
-                                                                                          </p>
-                                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                            <b>Due Date: </b>${formatDate(bidPackage.due_date)}
-                                                                                          </p>
-                                                                                           <div style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                             <b>Scope of Work: </b>${bidPackage.costCode?.name || 'Not specified'}
-                                                                                           </div>
+                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                             <b>Contact: </b>${managerContact}
+                                                                                           </p>
+                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                             <b>Due Date: </b>${formatDate(bidPackage.due_date)}
+                                                                                           </p>
+                                                                                            <div style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                                              <b>Scope of Work: </b>
+                                                                                            </div>
                                                                                            <div style="margin: 10px 0;">
                                                                                              ${formattedSpecifications}
                                                                                            </div>
@@ -362,9 +369,9 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                       </tr>
                                                                       <tr>
                                                                         <td>
-                                                                          <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                            Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerName}.
-                                                                          </p>
+                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
+                                                                             Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerContact}.
+                                                                           </p>
                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                             Thank you for your interest in this project.
                                                                           </p>
