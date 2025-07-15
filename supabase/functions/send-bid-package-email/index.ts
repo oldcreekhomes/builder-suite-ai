@@ -98,11 +98,9 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
 const generateEmailHTML = (data: BidPackageEmailRequest) => {
   const { bidPackage, companies, project, senderCompany } = data;
 
-  // Get project manager name (using first company's primary representative as fallback)
-  const managerName = project?.manager || 
-    companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.first_name + ' ' + 
-    companies.find(c => c.representatives?.some(r => r.is_primary))?.representatives?.find(r => r.is_primary)?.last_name || 
-    'Project Manager';
+  // Get project manager information from the project data
+  const managerName = project?.manager || 'Project Manager';
+  const managerEmail = project?.managerEmail;
 
   // Use sender company name if provided, otherwise fallback to first company
   const companyName = senderCompany?.company_name || companies[0]?.company_name || 'Your Company';
@@ -292,7 +290,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                                             <b>Project Address: </b>${project?.address || 'Not specified'}
                                                                                           </p>
                                                                                            <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                                             <b>Contact: </b>${managerName}${project?.managerEmail ? `; ${project.managerEmail}` : ''}
+                                                                                             <b>Contact: </b>${managerName}${managerEmail ? ` - ${managerEmail}` : ''}
                                                                                            </p>
                                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                                             <b>Due Date: </b>${formatDate(bidPackage.due_date)}
@@ -364,7 +362,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest) => {
                                                                       <tr>
                                                                         <td>
                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
-                                                                            Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerName}.
+                                                                            Please review the project details and specifications above. If you have any questions or need clarification, please contact ${managerName}${managerEmail ? ` at ${managerEmail}` : ''}.
                                                                           </p>
                                                                           <p style="line-height: 28px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: normal; word-break: break-word; word-wrap: break-word; font-size: 14px; margin: 0;">
                                                                             Thank you for your interest in this project.
