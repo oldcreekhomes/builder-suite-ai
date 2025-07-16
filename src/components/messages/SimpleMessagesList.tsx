@@ -93,7 +93,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
       {messages.map((message) => {
         const isOwn = isMyMessage(message.sender_id);
         
