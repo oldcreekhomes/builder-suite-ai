@@ -133,23 +133,33 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       }
 
       // Get existing proposals and add new ones
-      const { data: existing } = await supabase
+      const { data: existing, error: selectError } = await supabase
         .from('project_bid_package_companies')
         .select('id, proposals')
         .eq('bid_package_id', biddingItemId)
         .eq('company_id', companyId)
         .single();
 
+      if (selectError) {
+        console.error('Error finding existing record:', selectError);
+        throw new Error(`Could not find bidding record for company. Please ensure the company is added to this bidding item first.`);
+      }
+
       if (existing) {
         const currentProposals = existing.proposals || [];
         const updatedProposals = [...currentProposals, ...uploadedFileNames];
         
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('project_bid_package_companies')
           .update({ proposals: updatedProposals, updated_at: new Date().toISOString() })
           .eq('id', existing.id);
         
-        if (error) throw error;
+        if (updateError) {
+          console.error('Error updating proposals:', updateError);
+          throw updateError;
+        }
+      } else {
+        throw new Error('No bidding record found for this company. Please ensure the company is added to this bidding item first.');
       }
     },
     onSuccess: () => {
