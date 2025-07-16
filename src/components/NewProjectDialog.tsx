@@ -89,7 +89,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           address,
           status,
           manager: manager, // Store the user ID
-          manager_name: managerName, // Store the display name for backward compatibility
           owner_id,
         })
         .select()
