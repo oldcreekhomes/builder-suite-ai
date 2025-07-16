@@ -140,12 +140,13 @@ export const useBiddingCompanyMutations = (projectId: string) => {
         .eq('company_id', companyId)
         .single();
 
-      if (selectError) {
+      if (selectError && selectError.code !== 'PGRST116') {
         console.error('Error finding existing record:', selectError);
-        throw new Error(`Could not find bidding record for company. Please ensure the company is added to this bidding item first.`);
+        throw selectError;
       }
 
       if (existing) {
+        // Update existing record
         const currentProposals = existing.proposals || [];
         const updatedProposals = [...currentProposals, ...uploadedFileNames];
         
@@ -159,7 +160,20 @@ export const useBiddingCompanyMutations = (projectId: string) => {
           throw updateError;
         }
       } else {
-        throw new Error('No bidding record found for this company. Please ensure the company is added to this bidding item first.');
+        // Create new record if it doesn't exist
+        const { error: insertError } = await supabase
+          .from('project_bid_package_companies')
+          .insert({
+            bid_package_id: biddingItemId,
+            company_id: companyId,
+            bid_status: 'will_bid',
+            proposals: uploadedFileNames
+          });
+        
+        if (insertError) {
+          console.error('Error creating new bidding record:', insertError);
+          throw insertError;
+        }
       }
     },
     onSuccess: () => {
