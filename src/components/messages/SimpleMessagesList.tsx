@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ChatMessage } from "@/hooks/useSimpleChat";
+import { FileText, File, FileSpreadsheet, FileImage, FileVideo, FileAudio, FileCode } from "lucide-react";
 
 interface SimpleMessagesListProps {
   messages: ChatMessage[];
@@ -42,6 +43,51 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     return senderId === currentUserId;
   };
 
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.toLowerCase().split('.').pop() || '';
+    
+    switch (extension) {
+      case 'pdf':
+        return <File className="w-4 h-4 text-white" />;
+      case 'doc':
+      case 'docx':
+      case 'txt':
+        return <FileText className="w-4 h-4 text-white" />;
+      case 'xls':
+      case 'xlsx':
+      case 'csv':
+        return <FileSpreadsheet className="w-4 h-4 text-white" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+      case 'heic':
+      case 'heif':
+        return <FileImage className="w-4 h-4 text-white" />;
+      case 'mp4':
+      case 'avi':
+      case 'mov':
+      case 'wmv':
+        return <FileVideo className="w-4 h-4 text-white" />;
+      case 'mp3':
+      case 'wav':
+      case 'flac':
+        return <FileAudio className="w-4 h-4 text-white" />;
+      case 'js':
+      case 'ts':
+      case 'jsx':
+      case 'tsx':
+      case 'html':
+      case 'css':
+      case 'py':
+      case 'java':
+        return <FileCode className="w-4 h-4 text-white" />;
+      default:
+        return <File className="w-4 h-4 text-white" />;
+    }
+  };
+
   const renderFileAttachment = (url: string, index: number, isOwn: boolean) => {
     const fileName = url.split('/').pop() || 'file';
     const isImage = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(fileName);
@@ -64,9 +110,10 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
           >
-            <span className="text-sm">{fileName}</span>
+            {getFileIcon(fileName)}
+            <span className="text-sm text-white">{fileName}</span>
           </a>
         </div>
       );
