@@ -78,7 +78,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     return status === 'draft' ? 'Load Bid Packages' : 'View Bid Packages';
   };
 
-  const isReadOnly = status !== 'draft';
+  const isReadOnly = status === 'closed';
 
   return (
     <div className="space-y-4">
