@@ -76,11 +76,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         owner_id = profile.home_builder_id;
       }
 
-      // Find the selected manager's details
-      const selectedUser = users.find(u => u.id === manager);
-      const managerName = selectedUser 
-        ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
-        : '';
 
       const { data: project, error } = await supabase
         .from('projects')
