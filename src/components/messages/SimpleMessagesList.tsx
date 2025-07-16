@@ -64,11 +64,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
-              isOwn 
-                ? 'bg-blue-700 hover:bg-blue-800 text-white' 
-                : 'bg-muted hover:bg-muted/80 text-foreground'
-            }`}
+            className="inline-flex items-center px-3 py-2 rounded-lg transition-colors hover:opacity-80"
           >
             <span className="text-sm">{fileName}</span>
           </a>
