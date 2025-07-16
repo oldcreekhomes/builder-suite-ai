@@ -42,7 +42,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     return senderId === currentUserId;
   };
 
-  const renderFileAttachment = (url: string, index: number) => {
+  const renderFileAttachment = (url: string, index: number, isOwn: boolean) => {
     const fileName = url.split('/').pop() || 'file';
     const isImage = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(fileName);
 
@@ -64,7 +64,11 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-3 py-2 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+            className={`inline-flex items-center px-3 py-2 rounded-lg transition-colors ${
+              isOwn 
+                ? 'bg-blue-700 hover:bg-blue-800 text-white' 
+                : 'bg-muted hover:bg-muted/80 text-foreground'
+            }`}
           >
             <span className="text-sm">{fileName}</span>
           </a>
@@ -140,7 +144,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
 
                   {/* File attachments */}
                   {message.file_urls && message.file_urls.map((url, index) => 
-                    renderFileAttachment(url, index)
+                    renderFileAttachment(url, index, isOwn)
                   )}
                 </div>
               </div>
