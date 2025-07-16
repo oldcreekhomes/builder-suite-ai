@@ -117,10 +117,12 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       companyId: string; 
       files: File[]; 
     }) => {
+      console.log('Upload starting for:', { biddingItemId, companyId, fileCount: files.length });
       const uploadedFileNames: string[] = [];
       
       // Upload all files to storage
       for (const file of files) {
+        console.log('Uploading file:', file.name);
         const fileExt = file.name.split('.').pop();
         const fileName = `${biddingItemId}-${companyId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         
@@ -128,10 +130,16 @@ export const useBiddingCompanyMutations = (projectId: string) => {
           .from('project-files')
           .upload(`proposals/${fileName}`, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw uploadError;
+        }
+        console.log('File uploaded successfully:', fileName);
         uploadedFileNames.push(fileName);
       }
 
+      console.log('All files uploaded, now updating database...');
+      
       // Get existing proposals and add new ones
       const { data: existing, error: selectError } = await supabase
         .from('project_bid_package_companies')
@@ -140,12 +148,15 @@ export const useBiddingCompanyMutations = (projectId: string) => {
         .eq('company_id', companyId)
         .single();
 
+      console.log('Database lookup result:', { existing, selectError });
+
       if (selectError && selectError.code !== 'PGRST116') {
         console.error('Error finding existing record:', selectError);
         throw selectError;
       }
 
       if (existing) {
+        console.log('Updating existing record:', existing.id);
         // Update existing record
         const currentProposals = existing.proposals || [];
         const updatedProposals = [...currentProposals, ...uploadedFileNames];
@@ -159,7 +170,9 @@ export const useBiddingCompanyMutations = (projectId: string) => {
           console.error('Error updating proposals:', updateError);
           throw updateError;
         }
+        console.log('Successfully updated existing record');
       } else {
+        console.log('Creating new record...');
         // Create new record if it doesn't exist
         const { error: insertError } = await supabase
           .from('project_bid_package_companies')
@@ -174,7 +187,10 @@ export const useBiddingCompanyMutations = (projectId: string) => {
           console.error('Error creating new bidding record:', insertError);
           throw insertError;
         }
+        console.log('Successfully created new record');
       }
+      
+      console.log('Upload process completed successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
