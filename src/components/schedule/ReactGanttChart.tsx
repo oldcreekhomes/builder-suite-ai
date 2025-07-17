@@ -4,6 +4,7 @@ import 'gantt-task-react/dist/index.css';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { TaskEditDialog } from './TaskEditDialog';
 
 interface ReactGanttChartProps {
   tasks: any[];
@@ -25,7 +26,8 @@ export function ReactGanttChart({
   isLoading = false
 }: ReactGanttChartProps) {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day);
-  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Convert tasks to Gantt format
   const ganttTasks: Task[] = useMemo(() => {
@@ -74,9 +76,30 @@ export function ReactGanttChart({
       color: '#3b82f6'
     });
   };
-
+  
   const handleExportToPDF = () => {
     window.print();
+  };
+
+  const handleTaskEdit = (task: Task) => {
+    // Find the original task data
+    const originalTask = tasks.find(t => t.id === task.id);
+    if (originalTask) {
+      setSelectedTask(originalTask);
+      setIsEditDialogOpen(true);
+    }
+  };
+
+  const handleEditDialogSave = (taskId: string, updates: any) => {
+    onUpdateTask(taskId, updates);
+    setIsEditDialogOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleEditDialogDelete = (taskId: string) => {
+    onDeleteTask(taskId);
+    setIsEditDialogOpen(false);
+    setSelectedTask(null);
   };
 
   const ganttStyling: StylingOption = {
@@ -167,14 +190,20 @@ export function ReactGanttChart({
             onDateChange={handleTaskChange}
             onDelete={handleTaskDelete}
             onProgressChange={handleTaskChange}
-            onDoubleClick={(task) => {
-              // Handle task editing
-              console.log('Edit task:', task);
-            }}
+            onDoubleClick={handleTaskEdit}
             {...ganttStyling}
           />
         )}
       </div>
+
+      {/* Task Edit Dialog */}
+      <TaskEditDialog
+        task={selectedTask}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={handleEditDialogSave}
+        onDelete={handleEditDialogDelete}
+      />
 
       <style>{`
         .gantt-container {
