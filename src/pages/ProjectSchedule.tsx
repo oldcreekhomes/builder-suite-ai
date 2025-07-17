@@ -8,16 +8,14 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 
-import { Plus } from "lucide-react";
+import { Calendar, Users, BarChart3, Settings } from "lucide-react";
 import { useState } from "react";
-import { DHtmlxGanttChart } from "@/components/schedule/DHtmlxGanttChart";
-import { AddTaskModal } from "@/components/schedule/AddTaskModal";
-import { useProjectSchedule } from "@/hooks/useProjectSchedule";
+import { ProfessionalGanttChart } from "@/components/schedule/ProfessionalGanttChart";
+import { useEnhancedProjectSchedule } from "@/hooks/useEnhancedProjectSchedule";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedView, setSelectedView] = useState<'gantt' | 'calendar' | 'resources'>('gantt');
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -43,12 +41,17 @@ export default function ProjectSchedule() {
 
   const {
     tasks,
+    dependencies,
+    resources,
     isLoading: tasksLoading,
     createTask,
     updateTask,
     deleteTask,
+    createLink,
+    deleteLink,
+    createResource,
     isCreating
-  } = useProjectSchedule(projectId || '');
+  } = useEnhancedProjectSchedule(projectId || '');
 
   const handleCreateTask = async (taskData: any) => {
     try {
@@ -60,26 +63,26 @@ export default function ProjectSchedule() {
         ...taskData,
         project_id: projectId
       });
-      setIsAddTaskOpen(false);
     } catch (error) {
       console.error('Failed to create task:', error);
       throw error;
     }
   };
 
-  const handleTaskClick = (task: any) => {
-    setSelectedTask(task);
-  };
-
-  const handleEditTask = (task: any) => {
-    // TODO: Implement edit modal
-    console.log('Edit task:', task);
+  const handleUpdateTask = (taskId: string, updates: any) => {
+    updateTask({ taskId, updates });
   };
 
   const handleDeleteTask = (taskId: string) => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      deleteTask(taskId);
-    }
+    deleteTask(taskId);
+  };
+
+  const handleCreateLink = async (linkData: any) => {
+    await createLink(linkData);
+  };
+
+  const handleDeleteLink = (linkId: string) => {
+    deleteLink(linkId);
   };
 
   if (!projectId) {
@@ -97,35 +100,78 @@ export default function ProjectSchedule() {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
-              <Button onClick={() => setIsAddTaskOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
+              <h2 className="text-2xl font-bold tracking-tight">Professional Project Schedule</h2>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={selectedView === 'gantt' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setSelectedView('gantt')}
+                >
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Gantt
+                </Button>
+                <Button 
+                  variant={selectedView === 'resources' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setSelectedView('resources')}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Resources
+                </Button>
+                <Button 
+                  variant={selectedView === 'calendar' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setSelectedView('calendar')}
+                >
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  Reports
+                </Button>
+              </div>
             </div>
 
             {tasksLoading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Loading schedule...</div>
+                <div className="text-muted-foreground">Loading professional schedule...</div>
               </div>
-            ) : (
-              <div className="bg-white rounded-lg border p-6">
-                <DHtmlxGanttChart
+            ) : selectedView === 'gantt' ? (
+              <div className="bg-background rounded-lg border">
+                <ProfessionalGanttChart
                   tasks={tasks || []}
-                  onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
+                  onTaskUpdate={handleUpdateTask}
                   onTaskDelete={handleDeleteTask}
                   onTaskCreate={handleCreateTask}
+                  onLinkCreate={handleCreateLink}
+                  onLinkDelete={handleDeleteLink}
                 />
+              </div>
+            ) : selectedView === 'resources' ? (
+              <div className="bg-background rounded-lg border p-6">
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold">Resource Management</h3>
+                  <p className="text-muted-foreground">
+                    Manage team members and resource allocation for this project.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Found {resources.length} resources configured for this project.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-background rounded-lg border p-6">
+                <div className="text-center py-8">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold">Project Reports</h3>
+                  <p className="text-muted-foreground">
+                    View progress reports, timeline analysis, and cost tracking.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {tasks.length} total tasks • {dependencies.length} dependencies
+                  </p>
+                </div>
               </div>
             )}
           </div>
-
-          <AddTaskModal
-            open={isAddTaskOpen}
-            onOpenChange={setIsAddTaskOpen}
-            onSubmit={handleCreateTask}
-            isLoading={isCreating}
-          />
         </SidebarInset>
       </div>
     </SidebarProvider>
