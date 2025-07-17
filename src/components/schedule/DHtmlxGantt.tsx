@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { gantt } from 'dhtmlx-gantt';
+import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 
 export interface DHtmlxGanttProps {
   tasks: any[];
@@ -138,6 +139,8 @@ export function DHtmlxGantt({
   useEffect(() => {
     if (!ganttReady || isLoading) return;
 
+    console.log('Updating Gantt data:', { tasks: tasks.length, dependencies: dependencies.length });
+
     try {
       const formattedTasks = tasks.map(task => ({
         id: String(task.id),
@@ -156,12 +159,18 @@ export function DHtmlxGantt({
         type: String(link.dependency_type || "0")
       }));
 
+      console.log('Formatted data:', { formattedTasks, formattedLinks });
+
       // Clear and parse new data
       gantt.clearAll();
       gantt.parse({
         data: formattedTasks,
         links: formattedLinks
       });
+
+      // Force render
+      gantt.render();
+      console.log('Gantt rendered successfully');
 
     } catch (error) {
       console.error('Error updating Gantt data:', error);
