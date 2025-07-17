@@ -26,6 +26,7 @@ interface TaskEditDialogProps {
   onClose: () => void;
   onSave: (taskId: string, updates: any) => void;
   onDelete: (taskId: string) => void;
+  availableTasks?: any[];
 }
 
 export function TaskEditDialog({
@@ -33,7 +34,8 @@ export function TaskEditDialog({
   isOpen,
   onClose,
   onSave,
-  onDelete
+  onDelete,
+  availableTasks = []
 }: TaskEditDialogProps) {
   const [formData, setFormData] = useState({
     task_name: '',
@@ -42,6 +44,7 @@ export function TaskEditDialog({
     progress: 0,
     priority: 'medium',
     assigned_to: '',
+    parent_id: '',
     notes: '',
     color: '#3b82f6'
   });
@@ -54,6 +57,7 @@ export function TaskEditDialog({
         end_date: task.end_date || '',
         progress: task.progress || 0,
         priority: task.priority || 'medium',
+        parent_id: task.parent_id || '',
         assigned_to: task.assigned_to || '',
         notes: task.notes || '',
         color: task.color || '#3b82f6'
@@ -167,6 +171,28 @@ export function TaskEditDialog({
             </Select>
           </div>
           
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="parent_id" className="text-right">
+              Parent Task
+            </Label>
+            <Select
+              value={formData.parent_id || ""}
+              onValueChange={(value) => setFormData({ ...formData, parent_id: value || null })}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select parent task (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No Parent</SelectItem>
+                {task?.availableParents?.map((parentTask: any) => (
+                  <SelectItem key={parentTask.id} value={parentTask.id}>
+                    {parentTask.task_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="assigned_to" className="text-right">
               Assigned To

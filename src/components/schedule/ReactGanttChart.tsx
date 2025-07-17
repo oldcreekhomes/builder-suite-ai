@@ -41,6 +41,8 @@ export function ReactGanttChart({
       type: task.task_type === 'milestone' ? 'milestone' : 'task',
       progress: task.progress || 0,
       isDisabled: false,
+      project: task.parent_id || undefined, // Set parent relationship
+      hideChildren: false,
       styles: {
         backgroundColor: task.color || '#3b82f6',
         backgroundSelectedColor: task.color ? `${task.color}dd` : '#2563eb',
@@ -84,8 +86,36 @@ export function ReactGanttChart({
   };
 
   const handleTaskEdit = (task: any) => {
-    setSelectedTask(task);
+    // Get potential parent tasks (exclude itself and its children)
+    const potentialParents = tasks.filter(t => 
+      t.id !== task.id && 
+      // Avoid circular dependencies - don't allow selecting children as parents
+      !isChildTask(t.id, task.id)
+    );
+    
+    const taskWithParents = {
+      ...task,
+      availableParents: potentialParents
+    };
+    
+    setSelectedTask(taskWithParents);
     setIsEditDialogOpen(true);
+  };
+  
+  // Helper function to check if taskId is a child of potentialParentId
+  const isChildTask = (taskId: string, potentialParentId: string): boolean => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return false;
+    
+    // Direct child check
+    if (task.parent_id === potentialParentId) return true;
+    
+    // Recursive check for deeper levels
+    if (task.parent_id) {
+      return isChildTask(task.parent_id, potentialParentId);
+    }
+    
+    return false;
   };
 
   const handleEditDialogSave = (taskId: string, updates: any) => {
@@ -234,6 +264,7 @@ export function ReactGanttChart({
         onClose={() => setIsEditDialogOpen(false)}
         onSave={handleEditDialogSave}
         onDelete={handleEditDialogDelete}
+        availableTasks={tasks}
       />
 
       <style>{`
