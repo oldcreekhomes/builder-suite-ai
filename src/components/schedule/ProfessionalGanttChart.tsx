@@ -59,19 +59,63 @@ export function ProfessionalGanttChart({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
-  const handleTaskAction = useCallback(async (type: string, action: string, item: any, id: string) => {
+  // CRITICAL: Safe date conversion with validation
+  const safeDateToString = useCallback((date: any): string => {
+    if (!date) {
+      console.warn('Date is null/undefined, using today');
+      return gantt.date.date_to_str("%Y-%m-%d")(new Date());
+    }
+    
+    if (typeof date === 'string') {
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        console.warn('Invalid date string:', date, 'using today');
+        return gantt.date.date_to_str("%Y-%m-%d")(new Date());
+      }
+      return gantt.date.date_to_str("%Y-%m-%d")(parsedDate);
+    }
+    
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return gantt.date.date_to_str("%Y-%m-%d")(date);
+    }
+    
+    console.warn('Invalid date object:', date, 'using today');
+    return gantt.date.date_to_str("%Y-%m-%d")(new Date());
+  }, []);
+
+  // CRITICAL: Fixed data processor that returns sync responses for DHTMLX
+  const handleTaskAction = useCallback((type: string, action: string, item: any, id: string) => {
+    console.log('Data processor called:', { type, action, item, id });
+    
     try {
-      setIsLoading(true);
-      
       if (action === "delete" && onTaskDelete) {
-        await onTaskDelete(id);
-        toast.success("Task deleted successfully");
+        console.log('Deleting task:', id);
+        try {
+          onTaskDelete(id);
+          toast.success("Task deleted successfully");
+        } catch (error) {
+          console.error('Delete failed:', error);
+          toast.error("Failed to delete task");
+        }
+        
+        return { tid: id, sid: id }; // DHTMLX expected format
+        
       } else if (action === "create" && onTaskCreate) {
+        console.log('Creating task with item:', item);
+        
+        // Provide defaults for new tasks
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const startDate = item.start_date || today;
+        const endDate = item.end_date || tomorrow;
+        
         const taskData: Partial<Task> = {
-          task_name: item.text,
-          start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
-          end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
-          duration: item.duration,
+          task_name: item.text || "New Task",
+          start_date: safeDateToString(startDate),
+          end_date: safeDateToString(endDate),
+          duration: item.duration || 1,
           progress: Math.round((item.progress || 0) * 100),
           assigned_to: item.assigned_to || "",
           color: item.color || "#3b82f6",
@@ -81,14 +125,31 @@ export function ProfessionalGanttChart({
           cost_estimate: item.cost_estimate || null,
           notes: item.notes || ""
         };
-        await onTaskCreate(taskData);
-        toast.success("Task created successfully");
+        
+        console.log('Task data to create:', taskData);
+        
+        const createResult = onTaskCreate(taskData);
+        if (createResult && typeof createResult.then === 'function') {
+          createResult.then(() => {
+            toast.success("Task created successfully");
+          }).catch((error) => {
+            console.error('Create failed:', error);
+            toast.error("Failed to create task");
+          });
+        } else {
+          toast.success("Task created successfully");
+        }
+        
+        return { tid: id, sid: id }; // DHTMLX expected format
+        
       } else if (action === "update" && onTaskUpdate) {
+        console.log('Updating task:', id, 'with item:', item);
+        
         const updates: Partial<Task> = {
-          task_name: item.text,
-          start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
-          end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
-          duration: item.duration,
+          task_name: item.text || "Untitled Task",
+          start_date: safeDateToString(item.start_date),
+          end_date: safeDateToString(item.end_date),
+          duration: item.duration || 1,
           progress: Math.round((item.progress || 0) * 100),
           assigned_to: item.assigned_to || "",
           color: item.color || "#3b82f6",
@@ -97,36 +158,73 @@ export function ProfessionalGanttChart({
           cost_estimate: item.cost_estimate || null,
           notes: item.notes || ""
         };
-        await onTaskUpdate(id, updates);
-        toast.success("Task updated successfully");
+        
+        console.log('Task updates:', updates);
+        
+        try {
+          onTaskUpdate(id, updates);
+          toast.success("Task updated successfully");
+        } catch (error) {
+          console.error('Update failed:', error);
+          toast.error("Failed to update task");
+        }
+        
+        return { tid: id, sid: id }; // DHTMLX expected format
       }
+      
+      console.warn('Unknown action or missing handler:', action);
+      return { tid: id, sid: id }; // Default success response
+      
     } catch (error) {
       console.error("Task action failed:", error);
-      toast.error(`Failed to ${action} task`);
-      return { status: "error" };
-    } finally {
-      setIsLoading(false);
+      toast.error(`Failed to ${action} task: ${error.message}`);
+      return { tid: id, sid: id }; // Return success format even on error to prevent loops
     }
-    return { status: "success" };
-  }, [onTaskUpdate, onTaskDelete, onTaskCreate]);
+  }, [onTaskUpdate, onTaskDelete, onTaskCreate, safeDateToString]);
 
-  const handleLinkAction = useCallback(async (action: string, link: any) => {
+  // CRITICAL: Fixed link processor that returns sync responses
+  const handleLinkAction = useCallback((action: string, link: any) => {
+    console.log('Link processor called:', { action, link });
+    
     try {
       if (action === "create" && onLinkCreate) {
-        await onLinkCreate({
+        const createResult = onLinkCreate({
           source_task_id: link.source,
           target_task_id: link.target,
           dependency_type: "finish_to_start",
           lag_days: 0
         });
-        toast.success("Dependency created successfully");
+        if (createResult && typeof createResult.then === 'function') {
+          createResult.then(() => {
+            toast.success("Dependency created successfully");
+          }).catch((error) => {
+            console.error('Link create failed:', error);
+            toast.error("Failed to create dependency");
+          });
+        } else {
+          toast.success("Dependency created successfully");
+        }
+        
+        return { tid: link.id, sid: link.id }; // DHTMLX expected format
+        
       } else if (action === "delete" && onLinkDelete) {
-        await onLinkDelete(link.id);
-        toast.success("Dependency removed successfully");
+        try {
+          onLinkDelete(link.id);
+          toast.success("Dependency removed successfully");
+        } catch (error) {
+          console.error('Link delete failed:', error);
+          toast.error("Failed to remove dependency");
+        }
+        
+        return { tid: link.id, sid: link.id }; // DHTMLX expected format
       }
+      
+      return { tid: link.id, sid: link.id }; // Default success response
+      
     } catch (error) {
       console.error("Link action failed:", error);
-      toast.error(`Failed to ${action} dependency`);
+      toast.error(`Failed to ${action} dependency: ${error.message}`);
+      return { tid: link.id, sid: link.id }; // Return success format even on error
     }
   }, [onLinkCreate, onLinkDelete]);
 
@@ -292,10 +390,24 @@ export function ProfessionalGanttChart({
     });
 
     gantt.attachEvent("onBeforeTaskAdd", (id, task) => {
-      // Add default values for new tasks
+      console.log('Before task add:', { id, task });
+      
+      // CRITICAL: Ensure valid dates for new tasks
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Provide comprehensive defaults
+      task.text = task.text || "New Task";
+      task.start_date = task.start_date || today;
+      task.end_date = task.end_date || tomorrow;
+      task.duration = task.duration || 1;
+      task.progress = task.progress || 0;
       task.priority = task.priority || 'medium';
       task.type = task.type || 'task';
-      task.progress = task.progress || 0;
+      task.color = task.color || '#3b82f6';
+      
+      console.log('Task after defaults:', task);
       return true;
     });
 

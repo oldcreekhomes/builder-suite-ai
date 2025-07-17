@@ -125,38 +125,55 @@ export function useEnhancedProjectSchedule(projectId: string) {
     enabled: !!projectId,
   });
 
-  // Create new task with enhanced fields
+  // Create new task with enhanced fields and validation
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: CreateTaskData) => {
-      // Calculate duration in days
-      const startDate = new Date(taskData.start_date);
-      const endDate = new Date(taskData.end_date);
-      const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      console.log('Creating task in database:', taskData);
+      
+      // Validate and provide defaults
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+      
+      const validatedData = {
+        project_id: taskData.project_id,
+        task_name: taskData.task_name || 'New Task',
+        start_date: taskData.start_date || today,
+        end_date: taskData.end_date || tomorrow,
+        assigned_to: taskData.assigned_to || null,
+        color: taskData.color || '#3b82f6',
+        progress: Math.max(0, Math.min(100, taskData.progress || 0)),
+        dependencies: [],
+        order_index: tasks?.length || 0,
+        task_type: taskData.task_type || 'task',
+        priority: taskData.priority || 'medium',
+        cost_estimate: taskData.cost_estimate || null,
+        notes: taskData.notes || null,
+        parent_id: taskData.parent_id || null,
+        completion_percentage: 0
+      };
+      
+      // Calculate duration in days (ensure minimum 1 day)
+      const startDate = new Date(validatedData.start_date);
+      const endDate = new Date(validatedData.end_date);
+      const duration = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      
+      console.log('Validated task data:', { ...validatedData, duration });
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .insert({
-          project_id: taskData.project_id,
-          task_name: taskData.task_name,
-          start_date: taskData.start_date,
-          end_date: taskData.end_date,
-          assigned_to: taskData.assigned_to || null,
-          color: taskData.color,
-          duration,
-          progress: taskData.progress || 0,
-          dependencies: [],
-          order_index: tasks.length,
-          task_type: taskData.task_type || 'task',
-          priority: taskData.priority || 'medium',
-          cost_estimate: taskData.cost_estimate || null,
-          notes: taskData.notes || null,
-          parent_id: taskData.parent_id || null,
-          completion_percentage: 0
+          ...validatedData,
+          duration
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error creating task:', error);
+        throw new Error(`Failed to create task: ${error.message}`);
+      }
+      
+      console.log('Task created successfully:', data);
       return data;
     },
     onSuccess: () => {
