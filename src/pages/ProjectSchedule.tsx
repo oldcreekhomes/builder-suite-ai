@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, List } from "lucide-react";
 import { useState } from "react";
 import { ReactGanttChart } from "@/components/schedule/ReactGanttChart";
+import { DHtmlxGanttChart } from "@/components/schedule/DHtmlxGanttChart";
 import { TaskList } from "@/components/schedule/TaskList";
 import { AddTaskModal } from "@/components/schedule/AddTaskModal";
 import { useProjectSchedule } from "@/hooks/useProjectSchedule";
@@ -99,10 +100,14 @@ export default function ProjectSchedule() {
             </div>
 
             <Tabs defaultValue="gantt" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsList className="grid w-full grid-cols-3 max-w-lg">
                 <TabsTrigger value="gantt" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Gantt Chart
+                  Current Gantt
+                </TabsTrigger>
+                <TabsTrigger value="dhtmlx" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  DHTMLX Gantt
                 </TabsTrigger>
                 <TabsTrigger value="list" className="flex items-center gap-2">
                   <List className="h-4 w-4" />
@@ -117,6 +122,20 @@ export default function ProjectSchedule() {
                   </div>
                 ) : (
                   <ReactGanttChart
+                    tasks={tasks}
+                    onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
+                    onTaskDelete={handleDeleteTask}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="dhtmlx" className="mt-6">
+                {tasksLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-muted-foreground">Loading schedule...</div>
+                  </div>
+                ) : (
+                  <DHtmlxGanttChart
                     tasks={tasks}
                     onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
                     onTaskDelete={handleDeleteTask}
