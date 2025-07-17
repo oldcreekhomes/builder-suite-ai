@@ -1,9 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DeleteButton } from '@/components/ui/delete-button';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -34,7 +32,6 @@ export function BudgetTableRow({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
-  const unitTriggerRef = useRef<HTMLButtonElement>(null);
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -64,26 +61,12 @@ export function BudgetTableRow({
   const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleQuantityBlur();
-      // End of editable columns - let browser handle default tab behavior
-      // or could move to next row's price field in future
     }
   };
 
   const handleUnitPriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUnitPriceBlur();
-      // Move to Unit column
-      setTimeout(() => {
-        setIsEditingUnit(true);
-      }, 100);
     }
   };
 
@@ -93,8 +76,6 @@ export function BudgetTableRow({
   };
 
   const handleUnitKeyDown = (e: React.KeyboardEvent) => {
-    console.log('Unit key pressed:', e.key); // Debug log
-    
     // Handle keyboard shortcuts for unit selection
     if (e.key === 'e') {
       e.preventDefault();
@@ -116,15 +97,6 @@ export function BudgetTableRow({
       e.preventDefault();
       handleUnitChange('cubic-yard');
       return;
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      console.log('Tab pressed in unit field'); // Debug log
-      e.preventDefault();
-      e.stopPropagation();
-      setIsEditingUnit(false);
-      // Move to Quantity column
-      setTimeout(() => {
-        setIsEditingQuantity(true);
-      }, 100);
     }
   };
 
@@ -147,17 +119,8 @@ export function BudgetTableRow({
   };
 
   const handleUnitOpenChange = (open: boolean) => {
-    console.log('Unit dropdown open changed:', open); // Debug log
     if (!open) {
-      // When dropdown closes, check if we should move to next field
-      setTimeout(() => {
-        // If unit editing is still active but dropdown closed, move to quantity
-        if (isEditingUnit) {
-          console.log('Moving to quantity after dropdown close'); // Debug log
-          setIsEditingUnit(false);
-          setIsEditingQuantity(true);
-        }
-      }, 50);
+      setIsEditingUnit(false);
     }
   };
 
@@ -167,12 +130,6 @@ export function BudgetTableRow({
 
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="w-12 py-1">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
-        />
-      </TableCell>
       <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
         {costCode?.code}
       </TableCell>
@@ -189,12 +146,14 @@ export function BudgetTableRow({
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
             className="w-24 h-7 text-sm"
+            tabIndex={1}
             autoFocus
           />
         ) : (
           <div 
             className="w-24 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handlePriceClick}
+            tabIndex={1}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
           </div>
@@ -211,6 +170,7 @@ export function BudgetTableRow({
             <SelectTrigger 
               className="w-20 h-7 text-sm"
               onKeyDown={handleUnitKeyDown}
+              tabIndex={2}
             >
               <SelectValue placeholder="-" />
             </SelectTrigger>
@@ -226,6 +186,7 @@ export function BudgetTableRow({
           <div 
             className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleUnitClick}
+            tabIndex={2}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
           </div>
@@ -241,12 +202,14 @@ export function BudgetTableRow({
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
             className="w-20 h-7 text-sm"
+            tabIndex={3}
             autoFocus
           />
         ) : (
           <div 
             className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleQuantityClick}
+            tabIndex={3}
           >
             {parseFloat(quantity) || 0}
           </div>
@@ -254,19 +217,6 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="font-medium py-1 text-sm">
         {formatCurrency(total)}
-      </TableCell>
-      <TableCell className="py-1">
-        <div>
-          <DeleteButton
-            onDelete={() => onDelete(item.id)}
-            title="Delete Budget Item"
-            description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-          />
-        </div>
       </TableCell>
     </TableRow>
   );
