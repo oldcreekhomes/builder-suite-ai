@@ -70,7 +70,7 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
 
-    // Disable auto-resize to prevent loops
+    // Completely disable all auto-resize features to prevent infinite loops
     gantt.config.auto_resize = false;
     gantt.config.fit_tasks = false;
     
@@ -79,18 +79,14 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
     gantt.config.xml_date = "%Y-%m-%d";
     gantt.config.duration_unit = "day";
     
-    // Enable interactive features but disable problematic ones
-    gantt.config.drag_timeline = {
-      ignore: ".gantt_task_progress",
-      useKey: false
-    };
-    gantt.config.drag_progress = true;
-    gantt.config.drag_resize = true;
-    gantt.config.drag_links = false; // Disable to prevent layout issues
-    gantt.config.drag_move = true;
+    // Disable problematic features that trigger resizing
+    gantt.config.drag_progress = false;
+    gantt.config.drag_resize = false;
+    gantt.config.drag_links = false;
+    gantt.config.drag_move = false;
     
-    // Grid configuration
-    gantt.config.grid_resize = true;
+    // Grid configuration - fixed sizes
+    gantt.config.grid_resize = false;
     gantt.config.row_height = 40;
     gantt.config.task_height = 24;
     gantt.config.bar_height = 20;
