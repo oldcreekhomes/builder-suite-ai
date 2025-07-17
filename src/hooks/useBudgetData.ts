@@ -41,9 +41,9 @@ export function useBudgetData(projectId: string) {
       const codeA = (a.cost_codes as CostCode)?.code || '';
       const codeB = (b.cost_codes as CostCode)?.code || '';
       
-      // Extract numeric parts for proper numerical sorting
-      const numA = parseInt(codeA.replace(/\D/g, '')) || 0;
-      const numB = parseInt(codeB.replace(/\D/g, '')) || 0;
+      // Parse cost codes as actual numbers (handles decimals like 4010.1)
+      const numA = parseFloat(codeA) || 0;
+      const numB = parseFloat(codeB) || 0;
       
       if (numA !== numB) {
         return numA - numB;
