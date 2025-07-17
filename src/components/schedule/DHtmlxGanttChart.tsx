@@ -70,22 +70,27 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
 
-    // Completely disable all auto-resize features to prevent infinite loops
+    // COMPLETELY disable all auto-update and resize features
     gantt.config.auto_resize = false;
     gantt.config.fit_tasks = false;
+    gantt.config.autosize = false;
+    gantt.config.smart_rendering = false;
+    gantt.config.static_background = true;
     
     // Configure Gantt before initialization
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
     gantt.config.duration_unit = "day";
     
-    // Disable problematic features that trigger resizing
+    // Disable ALL interactive features to prevent any updates
     gantt.config.drag_progress = false;
     gantt.config.drag_resize = false;
     gantt.config.drag_links = false;
     gantt.config.drag_move = false;
+    gantt.config.sort = false;
+    gantt.config.readonly = true; // Make it completely read-only
     
-    // Grid configuration - fixed sizes
+    // Grid configuration - completely fixed
     gantt.config.grid_resize = false;
     gantt.config.row_height = 40;
     gantt.config.task_height = 24;
@@ -123,15 +128,14 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
         label: "Assignee", 
         width: 120, 
         align: "center"
-      },
-      { name: "add", label: "", width: 44 }
+      }
     ];
 
-    // Enable progress display
+    // Basic display settings
     gantt.config.show_progress = true;
     gantt.config.show_task_cells = true;
     
-    // Disable auto-scheduling to prevent layout thrashing
+    // Disable scheduling features
     gantt.config.auto_scheduling = false;
     
     // Configure task colors
@@ -216,10 +220,7 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
     gantt.clearAll();
     gantt.parse(ganttData);
     
-    // Force layout refresh without auto-resize
-    setTimeout(() => {
-      gantt.render();
-    }, 10);
+    // Don't force render - let it render naturally without triggering loops
   }, [tasks]);
 
   return (
