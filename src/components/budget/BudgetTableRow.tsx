@@ -93,6 +93,8 @@ export function BudgetTableRow({
   };
 
   const handleUnitKeyDown = (e: React.KeyboardEvent) => {
+    console.log('Unit key pressed:', e.key); // Debug log
+    
     // Handle keyboard shortcuts for unit selection
     if (e.key === 'e') {
       e.preventDefault();
@@ -115,6 +117,7 @@ export function BudgetTableRow({
       handleUnitChange('cubic-yard');
       return;
     } else if (e.key === 'Tab' && !e.shiftKey) {
+      console.log('Tab pressed in unit field'); // Debug log
       e.preventDefault();
       e.stopPropagation();
       setIsEditingUnit(false);
@@ -144,8 +147,17 @@ export function BudgetTableRow({
   };
 
   const handleUnitOpenChange = (open: boolean) => {
+    console.log('Unit dropdown open changed:', open); // Debug log
     if (!open) {
-      setIsEditingUnit(false);
+      // When dropdown closes, check if we should move to next field
+      setTimeout(() => {
+        // If unit editing is still active but dropdown closed, move to quantity
+        if (isEditingUnit) {
+          console.log('Moving to quantity after dropdown close'); // Debug log
+          setIsEditingUnit(false);
+          setIsEditingQuantity(true);
+        }
+      }, 50);
     }
   };
 
