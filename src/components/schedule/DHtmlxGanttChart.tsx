@@ -25,60 +25,25 @@ interface DHtmlxGanttChartProps {
 
 export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGanttChartProps) {
   const ganttRef = useRef<HTMLDivElement>(null);
-  const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (!ganttRef.current || isInitialized.current) return;
+    if (!ganttRef.current) return;
 
-    // Configure DHTMLX Gantt
+    // Basic DHTMLX Gantt configuration
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
-    gantt.config.auto_scheduling = true;
-    gantt.config.auto_scheduling_strict = true;
-    gantt.config.work_time = true;
-    gantt.config.correct_work_time = true;
     
-    // Configure columns
+    // Grid columns
     gantt.config.columns = [
-      { name: "text", label: "Task Name", width: 200, tree: true },
-      { name: "start_date", label: "Start Date", width: 100, align: "center" },
-      { name: "duration", label: "Duration", width: 80, align: "center" },
-      { name: "progress", label: "Progress", width: 80, align: "center" },
-      { name: "assigned_to", label: "Assigned To", width: 120, align: "center" }
+      { name: "text", label: "Task Name", tree: true, width: 200 },
+      { name: "start_date", label: "Start", align: "center", width: 100 },
+      { name: "duration", label: "Duration", align: "center", width: 80 },
+      { name: "add", label: "", width: 44 }
     ];
 
-    // Configure progress display
+    // Basic settings
     gantt.config.show_progress = true;
-    gantt.config.order_branch = true;
-    gantt.config.order_branch_free = true;
-    
-    // Enable resizable grid with explicit settings
     gantt.config.grid_resize = true;
-    gantt.config.grid_width = 460;
-    gantt.config.min_grid_column_width = 50;
-    
-    // Ensure layout is properly configured
-    gantt.config.layout = {
-      css: "gantt_container",
-      cols: [
-        {
-          width: 460,
-          min_width: 200,
-          rows: [
-            { view: "grid", scrollX: "gridScroll", scrollY: "scrollVer" },
-            { view: "scrollbar", id: "gridScroll" }
-          ]
-        },
-        { resizer: true, width: 2 },
-        {
-          rows: [
-            { view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
-            { view: "scrollbar", id: "scrollHor" }
-          ]
-        },
-        { view: "scrollbar", id: "scrollVer" }
-      ]
-    };
 
     // Event handlers
     gantt.attachEvent("onAfterTaskUpdate", (id: string, task: any) => {
@@ -88,7 +53,7 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
           start_date: gantt.date.date_to_str("%Y-%m-%d")(task.start_date),
           end_date: gantt.date.date_to_str("%Y-%m-%d")(task.end_date),
           duration: task.duration,
-          progress: task.progress * 100, // DHTMLX uses 0-1, we use 0-100
+          progress: Math.round(task.progress * 100),
           assigned_to: task.assigned_to
         };
         onTaskUpdate(id, updates);
@@ -99,53 +64,40 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
       if (onTaskDelete) {
         onTaskDelete(id);
       }
-      return false; // Prevent default deletion, handle via React
+      return false;
     });
 
-    // Initialize gantt only once
+    // Initialize
     gantt.init(ganttRef.current);
-    isInitialized.current = true;
 
     return () => {
-      if (isInitialized.current) {
-        gantt.clearAll();
-        isInitialized.current = false;
-      }
+      gantt.clearAll();
     };
-  }, []); // Remove dependencies to prevent re-initialization
+  }, [onTaskUpdate, onTaskDelete]);
 
   useEffect(() => {
-    if (!isInitialized.current) return;
-
-    // Transform data for DHTMLX Gantt
+    // Update data
     const ganttData = {
       data: tasks.map(task => ({
         id: task.id,
         text: task.task_name,
         start_date: task.start_date,
-        end_date: task.end_date,
         duration: task.duration,
-        progress: task.progress / 100, // Convert 0-100 to 0-1
-        assigned_to: task.assigned_to || '',
-        parent: task.parent_id || '',
-        color: task.color,
-        sortorder: task.order_index
+        progress: task.progress / 100,
+        parent: task.parent_id || 0
       })),
-      links: [] // We'll add dependency links here when needed
+      links: []
     };
 
-    // Clear and re-parse data
     gantt.clearAll();
     gantt.parse(ganttData);
   }, [tasks]);
 
   return (
-    <div className="w-full">
-      <div 
-        ref={ganttRef} 
-        style={{ width: '100%', height: '600px' }}
-        className="dhtmlx-gantt-container"
-      />
-    </div>
+    <div 
+      ref={ganttRef} 
+      style={{ width: '100%', height: '500px' }}
+      className="gantt-container"
+    />
   );
 }
