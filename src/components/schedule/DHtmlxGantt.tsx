@@ -1,7 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import { gantt } from 'dhtmlx-gantt';
-import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
-import 'dhtmlx-gantt/codebase/skins/dhtmlxgantt_material.css';
 
 // Define task types for TypeScript
 interface GanttTask {
