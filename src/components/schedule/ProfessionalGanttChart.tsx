@@ -83,149 +83,159 @@ export function ProfessionalGanttChart({
     return gantt.date.date_to_str("%Y-%m-%d")(new Date());
   }, []);
 
-  // CRITICAL: Fixed data processor that returns sync responses for DHTMLX
+  // CRITICAL: Fixed data processor that returns PROMISES for DHTMLX
   const handleTaskAction = useCallback((type: string, action: string, item: any, id: string) => {
     console.log('Data processor called:', { type, action, item, id });
     
-    try {
-      if (action === "delete" && onTaskDelete) {
-        console.log('Deleting task:', id);
-        try {
-          onTaskDelete(id);
-          toast.success("Task deleted successfully");
-        } catch (error) {
-          console.error('Delete failed:', error);
-          toast.error("Failed to delete task");
-        }
-        
-        return { tid: id, sid: id }; // DHTMLX expected format
-        
-      } else if (action === "create" && onTaskCreate) {
-        console.log('Creating task with item:', item);
-        
-        // Provide defaults for new tasks
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const startDate = item.start_date || today;
-        const endDate = item.end_date || tomorrow;
-        
-        const taskData: Partial<Task> = {
-          task_name: item.text || "New Task",
-          start_date: safeDateToString(startDate),
-          end_date: safeDateToString(endDate),
-          duration: item.duration || 1,
-          progress: Math.round((item.progress || 0) * 100),
-          assigned_to: item.assigned_to || "",
-          color: item.color || "#3b82f6",
-          parent_id: item.parent || null,
-          task_type: item.type || "task",
-          priority: item.priority || "medium",
-          cost_estimate: item.cost_estimate || null,
-          notes: item.notes || ""
-        };
-        
-        console.log('Task data to create:', taskData);
-        
-        const createResult = onTaskCreate(taskData);
-        if (createResult && typeof createResult.then === 'function') {
-          createResult.then(() => {
+    // DHTMLX requires a Promise return - this is critical!
+    return new Promise((resolve, reject) => {
+      try {
+        if (action === "delete" && onTaskDelete) {
+          console.log('Deleting task:', id);
+          try {
+            onTaskDelete(id);
+            toast.success("Task deleted successfully");
+            resolve({ tid: id, sid: id });
+          } catch (error) {
+            console.error('Delete failed:', error);
+            toast.error("Failed to delete task");
+            resolve({ tid: id, sid: id }); // Still resolve to prevent loops
+          }
+          
+        } else if (action === "create" && onTaskCreate) {
+          console.log('Creating task with item:', item);
+          
+          // Provide defaults for new tasks
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          const startDate = item.start_date || today;
+          const endDate = item.end_date || tomorrow;
+          
+          const taskData: Partial<Task> = {
+            task_name: item.text || "New Task",
+            start_date: safeDateToString(startDate),
+            end_date: safeDateToString(endDate),
+            duration: item.duration || 1,
+            progress: Math.round((item.progress || 0) * 100),
+            assigned_to: item.assigned_to || "",
+            color: item.color || "#3b82f6",
+            parent_id: item.parent || null,
+            task_type: item.type || "task",
+            priority: item.priority || "medium",
+            cost_estimate: item.cost_estimate || null,
+            notes: item.notes || ""
+          };
+          
+          console.log('Task data to create:', taskData);
+          
+          const createResult = onTaskCreate(taskData);
+          if (createResult && typeof createResult.then === 'function') {
+            createResult.then(() => {
+              toast.success("Task created successfully");
+              resolve({ tid: id, sid: id });
+            }).catch((error) => {
+              console.error('Create failed:', error);
+              toast.error("Failed to create task");
+              resolve({ tid: id, sid: id }); // Still resolve to prevent loops
+            });
+          } else {
             toast.success("Task created successfully");
-          }).catch((error) => {
-            console.error('Create failed:', error);
-            toast.error("Failed to create task");
-          });
+            resolve({ tid: id, sid: id });
+          }
+          
+        } else if (action === "update" && onTaskUpdate) {
+          console.log('Updating task:', id, 'with item:', item);
+          
+          const updates: Partial<Task> = {
+            task_name: item.text || "Untitled Task",
+            start_date: safeDateToString(item.start_date),
+            end_date: safeDateToString(item.end_date),
+            duration: item.duration || 1,
+            progress: Math.round((item.progress || 0) * 100),
+            assigned_to: item.assigned_to || "",
+            color: item.color || "#3b82f6",
+            task_type: item.type || "task",
+            priority: item.priority || "medium",
+            cost_estimate: item.cost_estimate || null,
+            notes: item.notes || ""
+          };
+          
+          console.log('Task updates:', updates);
+          
+          try {
+            onTaskUpdate(id, updates);
+            toast.success("Task updated successfully");
+            resolve({ tid: id, sid: id });
+          } catch (error) {
+            console.error('Update failed:', error);
+            toast.error("Failed to update task");
+            resolve({ tid: id, sid: id }); // Still resolve to prevent loops
+          }
+          
         } else {
-          toast.success("Task created successfully");
+          console.warn('Unknown action or missing handler:', action);
+          resolve({ tid: id, sid: id }); // Default success response
         }
         
-        return { tid: id, sid: id }; // DHTMLX expected format
-        
-      } else if (action === "update" && onTaskUpdate) {
-        console.log('Updating task:', id, 'with item:', item);
-        
-        const updates: Partial<Task> = {
-          task_name: item.text || "Untitled Task",
-          start_date: safeDateToString(item.start_date),
-          end_date: safeDateToString(item.end_date),
-          duration: item.duration || 1,
-          progress: Math.round((item.progress || 0) * 100),
-          assigned_to: item.assigned_to || "",
-          color: item.color || "#3b82f6",
-          task_type: item.type || "task",
-          priority: item.priority || "medium",
-          cost_estimate: item.cost_estimate || null,
-          notes: item.notes || ""
-        };
-        
-        console.log('Task updates:', updates);
-        
-        try {
-          onTaskUpdate(id, updates);
-          toast.success("Task updated successfully");
-        } catch (error) {
-          console.error('Update failed:', error);
-          toast.error("Failed to update task");
-        }
-        
-        return { tid: id, sid: id }; // DHTMLX expected format
+      } catch (error) {
+        console.error("Task action failed:", error);
+        toast.error(`Failed to ${action} task: ${error.message}`);
+        resolve({ tid: id, sid: id }); // Always resolve to prevent router errors
       }
-      
-      console.warn('Unknown action or missing handler:', action);
-      return { tid: id, sid: id }; // Default success response
-      
-    } catch (error) {
-      console.error("Task action failed:", error);
-      toast.error(`Failed to ${action} task: ${error.message}`);
-      return { tid: id, sid: id }; // Return success format even on error to prevent loops
-    }
+    });
   }, [onTaskUpdate, onTaskDelete, onTaskCreate, safeDateToString]);
 
-  // CRITICAL: Fixed link processor that returns sync responses
+  // CRITICAL: Fixed link processor that returns PROMISES
   const handleLinkAction = useCallback((action: string, link: any) => {
     console.log('Link processor called:', { action, link });
     
-    try {
-      if (action === "create" && onLinkCreate) {
-        const createResult = onLinkCreate({
-          source_task_id: link.source,
-          target_task_id: link.target,
-          dependency_type: "finish_to_start",
-          lag_days: 0
-        });
-        if (createResult && typeof createResult.then === 'function') {
-          createResult.then(() => {
-            toast.success("Dependency created successfully");
-          }).catch((error) => {
-            console.error('Link create failed:', error);
-            toast.error("Failed to create dependency");
+    // DHTMLX requires a Promise return - this is critical!
+    return new Promise((resolve, reject) => {
+      try {
+        if (action === "create" && onLinkCreate) {
+          const createResult = onLinkCreate({
+            source_task_id: link.source,
+            target_task_id: link.target,
+            dependency_type: "finish_to_start",
+            lag_days: 0
           });
+          if (createResult && typeof createResult.then === 'function') {
+            createResult.then(() => {
+              toast.success("Dependency created successfully");
+              resolve({ tid: link.id, sid: link.id });
+            }).catch((error) => {
+              console.error('Link create failed:', error);
+              toast.error("Failed to create dependency");
+              resolve({ tid: link.id, sid: link.id }); // Still resolve to prevent loops
+            });
+          } else {
+            toast.success("Dependency created successfully");
+            resolve({ tid: link.id, sid: link.id });
+          }
+          
+        } else if (action === "delete" && onLinkDelete) {
+          try {
+            onLinkDelete(link.id);
+            toast.success("Dependency removed successfully");
+            resolve({ tid: link.id, sid: link.id });
+          } catch (error) {
+            console.error('Link delete failed:', error);
+            toast.error("Failed to remove dependency");
+            resolve({ tid: link.id, sid: link.id }); // Still resolve to prevent loops
+          }
+          
         } else {
-          toast.success("Dependency created successfully");
+          resolve({ tid: link.id, sid: link.id }); // Default success response
         }
         
-        return { tid: link.id, sid: link.id }; // DHTMLX expected format
-        
-      } else if (action === "delete" && onLinkDelete) {
-        try {
-          onLinkDelete(link.id);
-          toast.success("Dependency removed successfully");
-        } catch (error) {
-          console.error('Link delete failed:', error);
-          toast.error("Failed to remove dependency");
-        }
-        
-        return { tid: link.id, sid: link.id }; // DHTMLX expected format
+      } catch (error) {
+        console.error("Link action failed:", error);
+        toast.error(`Failed to ${action} dependency: ${error.message}`);
+        resolve({ tid: link.id, sid: link.id }); // Always resolve to prevent router errors
       }
-      
-      return { tid: link.id, sid: link.id }; // Default success response
-      
-    } catch (error) {
-      console.error("Link action failed:", error);
-      toast.error(`Failed to ${action} dependency: ${error.message}`);
-      return { tid: link.id, sid: link.id }; // Return success format even on error
-    }
+    });
   }, [onLinkCreate, onLinkDelete]);
 
   useEffect(() => {
