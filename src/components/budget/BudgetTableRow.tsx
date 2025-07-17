@@ -61,12 +61,23 @@ export function BudgetTableRow({
   const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      handleQuantityBlur();
+      // End of row - move to next row's price field would go here
     }
   };
 
   const handleUnitPriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      handleUnitPriceBlur();
+      // Move to Unit column
+      setTimeout(() => {
+        setIsEditingUnit(true);
+      }, 50);
     }
   };
 
@@ -97,6 +108,13 @@ export function BudgetTableRow({
       e.preventDefault();
       handleUnitChange('cubic-yard');
       return;
+    } else if (e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      setIsEditingUnit(false);
+      // Move to Quantity column
+      setTimeout(() => {
+        setIsEditingQuantity(true);
+      }, 50);
     }
   };
 
@@ -146,14 +164,12 @@ export function BudgetTableRow({
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
             className="w-24 h-7 text-sm"
-            tabIndex={1}
             autoFocus
           />
         ) : (
           <div 
             className="w-24 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handlePriceClick}
-            tabIndex={1}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
           </div>
@@ -170,7 +186,6 @@ export function BudgetTableRow({
             <SelectTrigger 
               className="w-20 h-7 text-sm"
               onKeyDown={handleUnitKeyDown}
-              tabIndex={2}
             >
               <SelectValue placeholder="-" />
             </SelectTrigger>
@@ -186,7 +201,6 @@ export function BudgetTableRow({
           <div 
             className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleUnitClick}
-            tabIndex={2}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
           </div>
@@ -202,14 +216,12 @@ export function BudgetTableRow({
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
             className="w-20 h-7 text-sm"
-            tabIndex={3}
             autoFocus
           />
         ) : (
           <div 
             className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleQuantityClick}
-            tabIndex={3}
           >
             {parseFloat(quantity) || 0}
           </div>
