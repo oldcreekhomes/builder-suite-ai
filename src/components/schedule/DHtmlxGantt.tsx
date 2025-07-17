@@ -1,24 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { gantt } from 'dhtmlx-gantt';
 
-interface GanttTask {
-  id: string;
-  text: string;
-  start_date: Date;
-  end_date?: Date;
-  duration?: number;
-  progress?: number;
-  parent?: string;
-  type?: string;
-}
-
-interface GanttLink {
-  id: string;
-  source: string;
-  target: string;
-  type: string;
-}
-
 export interface DHtmlxGanttProps {
   tasks: any[];
   dependencies?: any[];
@@ -41,41 +23,49 @@ export function DHtmlxGantt({
   isLoading = false
 }: DHtmlxGanttProps) {
   const ganttContainer = useRef<HTMLDivElement>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [ganttReady, setGanttReady] = useState(false);
 
-  // Basic initialization
+  // Initialize gantt once
   useEffect(() => {
     if (!ganttContainer.current) return;
 
+    let isCleanedUp = false;
+
     try {
-      // Basic configurations
-      gantt.config.xml_date = "%Y-%m-%d %H:%i";
-      gantt.config.scale_unit = "day";
-      gantt.config.duration_unit = "day";
-      gantt.config.row_height = 30;
-      gantt.config.min_column_width = 30;
+      // Clear any existing data
+      gantt.clearAll();
 
-      // Initialize gantt in container
+      // Basic configuration first
+      gantt.config.xml_date = "%Y-%m-%d %H:%i:%s";
+      gantt.config.fit_tasks = true;
+      gantt.config.auto_types = true;
+      
+      // Initialize with minimal setup to avoid internal errors
       gantt.init(ganttContainer.current);
-      setInitialized(true);
+      
+      if (!isCleanedUp) {
+        setGanttReady(true);
+      }
 
-      return () => {
-        try {
-          gantt.clearAll();
-          gantt.destructor();
-          setInitialized(false);
-        } catch (err) {
-          console.error('Error cleaning up Gantt:', err);
-        }
-      };
     } catch (error) {
-      console.error('Error initializing Gantt chart:', error);
+      console.error('Failed to initialize Gantt:', error);
     }
+
+    return () => {
+      isCleanedUp = true;
+      setGanttReady(false);
+      try {
+        gantt.clearAll();
+        // Don't call destructor as it can cause issues in development
+      } catch (error) {
+        console.error('Error during cleanup:', error);
+      }
+    };
   }, []);
 
-  // Configure advanced features after basic initialization
+  // Configure gantt after initialization
   useEffect(() => {
-    if (!initialized) return;
+    if (!ganttReady) return;
 
     try {
       // Configure columns
@@ -85,22 +75,25 @@ export function DHtmlxGantt({
         { name: "duration", label: "Duration", align: "center", width: 50 }
       ];
 
-      // Enable features
+      // Configure behavior
       gantt.config.drag_progress = true;
       gantt.config.drag_resize = true;
       gantt.config.drag_move = true;
       gantt.config.drag_links = true;
+      gantt.config.details_on_dblclick = true;
+      gantt.config.readonly = false;
 
-      // Event handlers
+      // Set up event handlers
       gantt.attachEvent("onAfterTaskAdd", (id, task) => {
         const taskData = {
-          task_name: task.text,
+          task_name: task.text || 'New Task',
           start_date: task.start_date,
           end_date: task.end_date,
-          duration: task.duration,
-          parent_id: task.parent || null
+          duration: task.duration || 1,
+          parent_id: task.parent || null,
+          progress: 0
         };
-        onCreateTask(taskData);
+        onCreateTask(taskData).catch(console.error);
       });
 
       gantt.attachEvent("onAfterTaskUpdate", (id, task) => {
@@ -109,7 +102,8 @@ export function DHtmlxGantt({
           start_date: task.start_date,
           end_date: task.end_date,
           duration: task.duration,
-          parent_id: task.parent || null
+          parent_id: task.parent || null,
+          progress: task.progress ? task.progress * 100 : 0
         };
         onUpdateTask(String(id), updates);
       });
@@ -120,61 +114,86 @@ export function DHtmlxGantt({
 
       gantt.attachEvent("onAfterLinkAdd", (id, link) => {
         const linkData = {
-          source_task_id: link.source,
-          target_task_id: link.target,
-          dependency_type: link.type
+          source_task_id: String(link.source),
+          target_task_id: String(link.target),
+          dependency_type: String(link.type || 0),
+          lag_days: 0
         };
-        onCreateLink(linkData);
+        onCreateLink(linkData).catch(console.error);
       });
 
       gantt.attachEvent("onAfterLinkDelete", (id) => {
         onDeleteLink(String(id));
       });
 
-      // Render initial state
+      // Render the updated configuration
       gantt.render();
-    } catch (error) {
-      console.error('Error configuring Gantt chart:', error);
-    }
-  }, [initialized, onCreateTask, onUpdateTask, onDeleteTask, onCreateLink, onDeleteLink]);
 
-  // Update data when tasks or dependencies change
+    } catch (error) {
+      console.error('Error configuring Gantt:', error);
+    }
+  }, [ganttReady, onCreateTask, onUpdateTask, onDeleteTask, onCreateLink, onDeleteLink]);
+
+  // Update data when tasks change
   useEffect(() => {
-    if (!initialized || isLoading) return;
+    if (!ganttReady || isLoading) return;
 
     try {
       const formattedTasks = tasks.map(task => ({
-        id: task.id,
-        text: task.task_name,
+        id: String(task.id),
+        text: task.task_name || 'Untitled Task',
         start_date: new Date(task.start_date),
         end_date: new Date(task.end_date),
-        duration: task.duration,
-        parent: task.parent_id || null,
+        duration: task.duration || 1,
+        parent: task.parent_id ? String(task.parent_id) : undefined,
         progress: task.progress ? task.progress / 100 : 0
       }));
 
-      const formattedLinks = dependencies.map(link => ({
-        id: link.id,
-        source: link.source_task_id,
-        target: link.target_task_id,
-        type: link.dependency_type || "0"
+      const formattedLinks = (dependencies || []).map(link => ({
+        id: String(link.id),
+        source: String(link.source_task_id),
+        target: String(link.target_task_id),
+        type: String(link.dependency_type || "0")
       }));
 
+      // Clear and parse new data
       gantt.clearAll();
       gantt.parse({
         data: formattedTasks,
         links: formattedLinks
       });
+
     } catch (error) {
       console.error('Error updating Gantt data:', error);
     }
-  }, [tasks, dependencies, initialized, isLoading]);
+  }, [tasks, dependencies, ganttReady, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="gantt-loading">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading Gantt Chart...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="gantt-container">
+    <div className="gantt-wrapper">
+      <div className="gantt-toolbar mb-2 p-2 bg-muted rounded">
+        <div className="text-sm text-muted-foreground">
+          Professional Gantt Chart - {tasks.length} tasks, {dependencies.length} dependencies
+        </div>
+      </div>
       <div 
         ref={ganttContainer} 
-        style={{ width: '100%', height: 'calc(100vh - 200px)', minHeight: '500px' }} 
+        style={{ 
+          width: '100%', 
+          height: 'calc(100vh - 250px)', 
+          minHeight: '400px',
+          border: '1px solid var(--border)',
+          borderRadius: '8px'
+        }} 
         className="gantt-chart"
       />
     </div>
