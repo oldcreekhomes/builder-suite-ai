@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,6 +35,8 @@ export function BudgetTableRow({
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   
+  const deleteWrapperRef = useRef<HTMLDivElement>(null);
+  
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
 
@@ -63,18 +65,37 @@ export function BudgetTableRow({
   const handleQuantityKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleQuantityBlur();
+      // Focus the delete button wrapper
+      setTimeout(() => {
+        deleteWrapperRef.current?.focus();
+      }, 0);
     }
   };
 
   const handleUnitPriceKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleUnitPriceBlur();
+      setIsEditingUnit(true);
     }
   };
 
   const handleUnitChange = (value: string) => {
     onUpdateUnit(costCode.id, value);
     setIsEditingUnit(false);
+  };
+
+  const handleUnitKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setIsEditingUnit(false);
+      setIsEditingQuantity(true);
+    }
   };
 
   const handleQuantityClick = () => {
@@ -133,7 +154,10 @@ export function BudgetTableRow({
       <TableCell className="py-1">
         {isEditingUnit ? (
           <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
-            <SelectTrigger className="w-20 h-7 text-sm">
+            <SelectTrigger 
+              className="w-20 h-7 text-sm"
+              onKeyDown={handleUnitKeyDown}
+            >
               <SelectValue placeholder="-" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
@@ -178,15 +202,21 @@ export function BudgetTableRow({
         {formatCurrency(total)}
       </TableCell>
       <TableCell className="py-1">
-        <DeleteButton
-          onDelete={() => onDelete(item.id)}
-          title="Delete Budget Item"
-          description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-          size="sm"
-          variant="ghost"
-          isLoading={isDeleting}
-          showIcon={true}
-        />
+        <div 
+          ref={deleteWrapperRef}
+          tabIndex={0}
+          className="inline-block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+        >
+          <DeleteButton
+            onDelete={() => onDelete(item.id)}
+            title="Delete Budget Item"
+            description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+            size="sm"
+            variant="ghost"
+            isLoading={isDeleting}
+            showIcon={true}
+          />
+        </div>
       </TableCell>
     </TableRow>
   );
