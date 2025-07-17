@@ -64,26 +64,32 @@ export function BudgetTableRow({
   };
 
   const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    console.log('Quantity field tab pressed'); // Debug log
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
+      console.log('Moving from Quantity to Delete'); // Debug log
       handleQuantityBlur();
       setTimeout(() => {
         deleteWrapperRef.current?.focus();
-      }, 0);
+      }, 50);
     }
   };
 
   const handleUnitPriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    console.log('Price field tab pressed'); // Debug log
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
+      console.log('Moving from Price to Unit'); // Debug log
       handleUnitPriceBlur();
       setTimeout(() => {
         setIsEditingUnit(true);
-      }, 0);
+      }, 50);
     }
   };
 
@@ -116,10 +122,12 @@ export function BudgetTableRow({
       return;
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
+      console.log('Moving from Unit to Quantity'); // Debug log
       setIsEditingUnit(false);
       setTimeout(() => {
         setIsEditingQuantity(true);
-      }, 0);
+      }, 50);
     }
   };
 
