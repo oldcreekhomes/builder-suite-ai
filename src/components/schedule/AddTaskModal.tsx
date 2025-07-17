@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,6 +49,11 @@ export function AddTaskModal({ open, onOpenChange, onSubmit, isLoading }: AddTas
     reset();
   };
 
+  const handleInvalidSubmit = (errors: any) => {
+    console.log('Form validation failed:', errors);
+    console.log('Please check all required fields: Task Name, Start Date, and End Date');
+  };
+
   const colors = [
     '#3b82f6', // blue
     '#10b981', // emerald
@@ -68,9 +73,12 @@ export function AddTaskModal({ open, onOpenChange, onSubmit, isLoading }: AddTas
             <Calendar className="h-5 w-5" />
             Add New Task
           </DialogTitle>
+          <DialogDescription>
+            Fill in the details below to create a new task. Make sure to complete the <strong>Schedule</strong> tab with required dates.
+          </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} className="space-y-4">
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basic" className="flex items-center gap-1">
