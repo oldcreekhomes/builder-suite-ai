@@ -133,13 +133,20 @@ export function ProfessionalGanttChart({
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
 
-    // Configure Gantt for professional use
+    // Configure Gantt for professional use - STABLE CONFIGURATION
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
     gantt.config.duration_unit = "day";
-    gantt.config.work_time = true;
+    gantt.config.work_time = false; // Disable work time calculations
     
-    // Enable all interactive features
+    // CRITICAL: Disable ALL auto-resize and auto-fit features
+    gantt.config.auto_resize = false;
+    gantt.config.autosize = false;
+    gantt.config.fit_tasks = false;
+    gantt.config.smart_rendering = false;
+    gantt.config.static_background = true;
+    
+    // Enable controlled interactive features only
     gantt.config.drag_progress = true;
     gantt.config.drag_resize = true;
     gantt.config.drag_links = true;
@@ -147,17 +154,17 @@ export function ProfessionalGanttChart({
     gantt.config.sort = true;
     gantt.config.readonly = false;
     
-    // Professional layout configuration
+    // Fixed layout configuration - NO AUTO-SIZING
     gantt.config.grid_resize = true;
     gantt.config.row_height = 36;
     gantt.config.task_height = 28;
     gantt.config.bar_height = 24;
     gantt.config.scale_height = 50;
     
-    // Auto-scheduling and critical path
-    gantt.config.auto_scheduling = true;
-    gantt.config.auto_scheduling_strict = true;
-    gantt.config.critical_path = true;
+    // DISABLE auto-scheduling to prevent loops
+    gantt.config.auto_scheduling = false;
+    gantt.config.auto_scheduling_strict = false;
+    gantt.config.critical_path = false; // Disable critical path auto-calculation
     
     // Configure professional columns
     gantt.config.columns = [
@@ -250,17 +257,17 @@ export function ProfessionalGanttChart({
     gantt.config.link_line_width = 2;
     gantt.config.link_arrow_size = 8;
     
-    // Advanced scale configuration
-    gantt.config.scale_unit = "day";
-    gantt.config.date_scale = "%d %M";
-    gantt.config.subscales = [
-      { unit: "month", step: 1, date: "%F %Y" }
+    // FIXED scale configuration (modern approach)
+    gantt.config.scales = [
+      { unit: "month", step: 1, format: "%F %Y" },
+      { unit: "day", step: 1, format: "%d" }
     ];
     
-    // Initialize Gantt
+    // Initialize Gantt with FIXED dimensions
     gantt.init(containerRef.current);
     
-    // Set up data processor
+    // CRITICAL: Set fixed size immediately and disable auto-sizing
+    gantt.setSizes = () => {}; // Override setSizes to prevent resize loops
     const dataProcessor = gantt.createDataProcessor(handleTaskAction);
     dataProcessor.init(gantt);
     
@@ -396,20 +403,12 @@ export function ProfessionalGanttChart({
         )
     };
 
+    // Clear and reload data WITHOUT triggering resize loops
     gantt.clearAll();
     gantt.parse(ganttData);
     
-    // Auto-fit
-    gantt.autofit = true;
-    
-    // Show critical path if available
-    try {
-      if (gantt.showCriticalPath && typeof gantt.showCriticalPath === 'function') {
-        gantt.showCriticalPath(true);
-      }
-    } catch (error) {
-      console.warn('Critical path functionality not available');
-    }
+    // CRITICAL: Do NOT call autofit or render - causes infinite loops
+    // The chart will render automatically when data is parsed
     
   }, [tasks]);
 
