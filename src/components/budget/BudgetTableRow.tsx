@@ -33,6 +33,7 @@ export function BudgetTableRow({
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
+  const [isEditingUnit, setIsEditingUnit] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -73,6 +74,7 @@ export function BudgetTableRow({
 
   const handleUnitChange = (value: string) => {
     onUpdateUnit(costCode.id, value);
+    setIsEditingUnit(false);
   };
 
   const handleQuantityClick = () => {
@@ -83,6 +85,10 @@ export function BudgetTableRow({
   const handlePriceClick = () => {
     setIsEditingPrice(true);
     setUnitPrice((item.unit_price || 0).toString());
+  };
+
+  const handleUnitClick = () => {
+    setIsEditingUnit(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -125,18 +131,27 @@ export function BudgetTableRow({
         )}
       </TableCell>
       <TableCell className="py-1">
-        <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
-          <SelectTrigger className="w-20 h-7 text-sm">
-            <SelectValue placeholder="-" />
-          </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            <SelectItem value="each">EA</SelectItem>
-            <SelectItem value="square-feet">SF</SelectItem>
-            <SelectItem value="linear-feet">LF</SelectItem>
-            <SelectItem value="square-yard">SY</SelectItem>
-            <SelectItem value="cubic-yard">CY</SelectItem>
-          </SelectContent>
-        </Select>
+        {isEditingUnit ? (
+          <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
+            <SelectTrigger className="w-20 h-7 text-sm">
+              <SelectValue placeholder="-" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="each">EA</SelectItem>
+              <SelectItem value="square-feet">SF</SelectItem>
+              <SelectItem value="linear-feet">LF</SelectItem>
+              <SelectItem value="square-yard">SY</SelectItem>
+              <SelectItem value="cubic-yard">CY</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div 
+            className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            onClick={handleUnitClick}
+          >
+            {formatUnitOfMeasure(costCode?.unit_of_measure)}
+          </div>
+        )}
       </TableCell>
       <TableCell className="py-1">
         {isEditingQuantity ? (
