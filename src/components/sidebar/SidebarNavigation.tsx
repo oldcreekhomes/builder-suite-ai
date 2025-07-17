@@ -72,8 +72,7 @@ const navigationItems = [
     title: "Schedule",
     url: "/schedule",
     icon: Clock,
-    enabled: false,
-    tooltip: "Coming Soon...",
+    enabled: true,
   },
 ];
 
@@ -138,41 +137,21 @@ export function SidebarNavigation() {
             <SidebarMenu>
                {filteredItems.map((item) => (
                  <SidebarMenuItem key={item.title}>
-                   {item.enabled === false ? (
-                     <Tooltip>
-                       <TooltipTrigger asChild>
-                         <SidebarMenuButton 
-                           asChild 
-                           className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                         >
-                           <div className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer" onClick={(e) => e.preventDefault()}>
-                             <item.icon className="h-5 w-5" />
-                             <span className="font-medium">{item.title}</span>
-                             <HelpCircle className="h-4 w-4 ml-auto" />
-                           </div>
-                         </SidebarMenuButton>
-                       </TooltipTrigger>
-                       <TooltipContent>
-                         <p>{item.tooltip}</p>
-                       </TooltipContent>
-                     </Tooltip>
-                   ) : (
-                     <SidebarMenuButton 
-                       asChild 
-                       className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                     >
-                         <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                           <item.icon className="h-5 w-5" />
-                           <span className="font-medium">{item.title}</span>
-                           {item.showBadge && (
-                             <div className="ml-auto flex items-center">
-                               <UnreadBadge count={totalUnread} className="relative top-0" />
-                             </div>
-                           )}
-                         </a>
-                     </SidebarMenuButton>
-                   )}
-                 </SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                    >
+                        <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                          <item.icon className="h-5 w-5" />
+                          <span className="font-medium">{item.title}</span>
+                          {item.showBadge && (
+                            <div className="ml-auto flex items-center">
+                              <UnreadBadge count={totalUnread} className="relative top-0" />
+                            </div>
+                          )}
+                        </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                ))}
             </SidebarMenu>
           </SidebarGroupContent>
