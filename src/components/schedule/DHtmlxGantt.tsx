@@ -177,6 +177,18 @@ export function DHtmlxGantt({
     }
   }, [tasks, dependencies, ganttReady, isLoading]);
 
+  const handleAddTask = () => {
+    const newTask = {
+      task_name: 'New Task',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0],
+      duration: 1,
+      progress: 0,
+      parent_id: null
+    };
+    onCreateTask(newTask);
+  };
+
   if (isLoading) {
     return (
       <div className="gantt-loading">
@@ -189,9 +201,25 @@ export function DHtmlxGantt({
 
   return (
     <div className="gantt-wrapper">
-      <div className="gantt-toolbar mb-2 p-2 bg-muted rounded">
-        <div className="text-sm text-muted-foreground">
-          Professional Gantt Chart - {tasks.length} tasks, {dependencies.length} dependencies
+      <div className="gantt-toolbar mb-4 p-3 bg-muted rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Professional Gantt Chart - {tasks.length} tasks, {dependencies.length} dependencies
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleAddTask}
+              className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
+            >
+              + Add Task
+            </button>
+            <button 
+              onClick={() => gantt.exportToPDF && gantt.exportToPDF()}
+              className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-sm hover:bg-secondary/90 transition-colors"
+            >
+              Export PDF
+            </button>
+          </div>
         </div>
       </div>
       <div 
