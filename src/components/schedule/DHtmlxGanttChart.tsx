@@ -25,9 +25,10 @@ interface DHtmlxGanttChartProps {
 
 export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGanttChartProps) {
   const ganttRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    if (!ganttRef.current) return;
+    if (!ganttRef.current || isInitialized.current) return;
 
     // Configure DHTMLX Gantt
     gantt.config.date_format = "%Y-%m-%d";
@@ -73,15 +74,21 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
       return false; // Prevent default deletion, handle via React
     });
 
-    // Initialize gantt
+    // Initialize gantt only once
     gantt.init(ganttRef.current);
+    isInitialized.current = true;
 
     return () => {
-      gantt.clearAll();
+      if (isInitialized.current) {
+        gantt.clearAll();
+        isInitialized.current = false;
+      }
     };
-  }, [onTaskUpdate, onTaskDelete]);
+  }, []); // Remove dependencies to prevent re-initialization
 
   useEffect(() => {
+    if (!isInitialized.current) return;
+
     // Transform data for DHTMLX Gantt
     const ganttData = {
       data: tasks.map(task => ({
@@ -99,7 +106,8 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
       links: [] // We'll add dependency links here when needed
     };
 
-    // Parse data into gantt
+    // Clear and re-parse data
+    gantt.clearAll();
     gantt.parse(ganttData);
   }, [tasks]);
 
