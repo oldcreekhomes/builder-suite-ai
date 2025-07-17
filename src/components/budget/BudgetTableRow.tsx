@@ -62,26 +62,27 @@ export function BudgetTableRow({
     setIsEditingPrice(false);
   };
 
-  const handleQuantityKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
-    } else if (e.key === 'Tab') {
+    } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       handleQuantityBlur();
-      // Focus the delete button wrapper
       setTimeout(() => {
         deleteWrapperRef.current?.focus();
       }, 0);
     }
   };
 
-  const handleUnitPriceKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleUnitPriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.currentTarget.blur();
-    } else if (e.key === 'Tab') {
+    } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       handleUnitPriceBlur();
-      setIsEditingUnit(true);
+      setTimeout(() => {
+        setIsEditingUnit(true);
+      }, 0);
     }
   };
 
@@ -91,10 +92,12 @@ export function BudgetTableRow({
   };
 
   const handleUnitKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Tab') {
+    if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       setIsEditingUnit(false);
-      setIsEditingQuantity(true);
+      setTimeout(() => {
+        setIsEditingQuantity(true);
+      }, 0);
     }
   };
 
@@ -138,7 +141,7 @@ export function BudgetTableRow({
             value={unitPrice}
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
-            onKeyPress={handleUnitPriceKeyPress}
+            onKeyDown={handleUnitPriceKeyDown}
             className="w-24 h-7 text-sm"
             autoFocus
           />
@@ -185,7 +188,7 @@ export function BudgetTableRow({
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
-            onKeyPress={handleQuantityKeyPress}
+            onKeyDown={handleQuantityKeyDown}
             className="w-20 h-7 text-sm"
             autoFocus
           />
