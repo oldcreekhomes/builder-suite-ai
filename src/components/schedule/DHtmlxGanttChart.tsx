@@ -51,6 +51,10 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
     gantt.config.show_progress = true;
     gantt.config.order_branch = true;
     gantt.config.order_branch_free = true;
+    
+    // Enable resizable grid
+    gantt.config.grid_resize = true;
+    gantt.config.grid_width = 460; // Initial width of the grid section
 
     // Event handlers
     gantt.attachEvent("onAfterTaskUpdate", (id: string, task: any) => {
