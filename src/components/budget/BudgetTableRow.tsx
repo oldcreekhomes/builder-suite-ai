@@ -31,6 +31,8 @@ export function BudgetTableRow({
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
+  const [isEditingQuantity, setIsEditingQuantity] = useState(false);
+  const [isEditingPrice, setIsEditingPrice] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -43,6 +45,7 @@ export function BudgetTableRow({
     if (numQuantity !== (item.quantity || 0) || numUnitPrice !== (item.unit_price || 0)) {
       onUpdate(item.id, numQuantity, numUnitPrice);
     }
+    setIsEditingQuantity(false);
   };
 
   const handleUnitPriceBlur = () => {
@@ -53,6 +56,7 @@ export function BudgetTableRow({
     if (numQuantity !== (item.quantity || 0) || numUnitPrice !== (item.unit_price || 0)) {
       onUpdate(item.id, numQuantity, numUnitPrice);
     }
+    setIsEditingPrice(false);
   };
 
   const handleQuantityKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -69,6 +73,16 @@ export function BudgetTableRow({
 
   const handleUnitChange = (value: string) => {
     onUpdateUnit(costCode.id, value);
+  };
+
+  const handleQuantityClick = () => {
+    setIsEditingQuantity(true);
+    setQuantity((item.quantity || 0).toString());
+  };
+
+  const handlePriceClick = () => {
+    setIsEditingPrice(true);
+    setUnitPrice((item.unit_price || 0).toString());
   };
 
   const formatCurrency = (amount: number) => {
@@ -90,15 +104,25 @@ export function BudgetTableRow({
         {costCode?.name}
       </TableCell>
       <TableCell className="py-1">
-        <Input
-          type="number"
-          step="0.01"
-          value={unitPrice}
-          onChange={(e) => setUnitPrice(e.target.value)}
-          onBlur={handleUnitPriceBlur}
-          onKeyPress={handleUnitPriceKeyPress}
-          className="w-24 h-7 text-sm"
-        />
+        {isEditingPrice ? (
+          <Input
+            type="number"
+            step="0.01"
+            value={unitPrice}
+            onChange={(e) => setUnitPrice(e.target.value)}
+            onBlur={handleUnitPriceBlur}
+            onKeyPress={handleUnitPriceKeyPress}
+            className="w-24 h-7 text-sm"
+            autoFocus
+          />
+        ) : (
+          <div 
+            className="w-24 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            onClick={handlePriceClick}
+          >
+            ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
+          </div>
+        )}
       </TableCell>
       <TableCell className="py-1">
         <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
@@ -115,15 +139,25 @@ export function BudgetTableRow({
         </Select>
       </TableCell>
       <TableCell className="py-1">
-        <Input
-          type="number"
-          step="0.01"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          onBlur={handleQuantityBlur}
-          onKeyPress={handleQuantityKeyPress}
-          className="w-20 h-7 text-sm"
-        />
+        {isEditingQuantity ? (
+          <Input
+            type="number"
+            step="0.01"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            onBlur={handleQuantityBlur}
+            onKeyPress={handleQuantityKeyPress}
+            className="w-20 h-7 text-sm"
+            autoFocus
+          />
+        ) : (
+          <div 
+            className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            onClick={handleQuantityClick}
+          >
+            {parseFloat(quantity) || 0}
+          </div>
+        )}
       </TableCell>
       <TableCell className="font-medium py-1 text-sm">
         {formatCurrency(total)}
