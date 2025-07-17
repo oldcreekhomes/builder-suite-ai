@@ -26,6 +26,7 @@ interface CreateTaskData {
   end_date: string;
   assigned_to?: string;
   color: string;
+  progress?: number;
 }
 
 export function useProjectSchedule(projectId: string) {
@@ -68,9 +69,14 @@ export function useProjectSchedule(projectId: string) {
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .insert({
-          ...taskData,
+          project_id: taskData.project_id,
+          task_name: taskData.task_name,
+          start_date: taskData.start_date,
+          end_date: taskData.end_date,
+          assigned_to: taskData.assigned_to || null,
+          color: taskData.color,
           duration,
-          progress: 0,
+          progress: taskData.progress || 0,
           dependencies: [],
           order_index: tasks.length
         })
