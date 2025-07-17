@@ -24,65 +24,54 @@ interface DHtmlxGanttChartProps {
 }
 
 export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGanttChartProps) {
-  const ganttRef = useRef<HTMLDivElement>(null);
-  const dataProcessorRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ganttRef.current) return;
+    if (!containerRef.current) return;
 
-    // Basic configuration following DHTMLX official React guide
+    // Initialize Gantt following DHTMLX official pattern
+    gantt.init(containerRef.current);
+
+    // Configure basic settings
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
     
-    // Grid columns configuration
+    // Enable grid resize
+    gantt.config.grid_resize = true;
+    
+    // Configure columns
     gantt.config.columns = [
       { name: "text", label: "Task Name", tree: true, width: 200 },
-      { name: "start_date", label: "Start", align: "center", width: 100 },
-      { name: "duration", label: "Duration", align: "center", width: 80 },
-      { name: "progress", label: "Progress", align: "center", width: 80 },
+      { name: "start_date", label: "Start Date", width: 100, align: "center" },
+      { name: "duration", label: "Duration", width: 80, align: "center" },
+      { name: "progress", label: "Progress", width: 80, align: "center" },
       { name: "add", label: "", width: 44 }
     ];
 
-    // Enable basic features
+    // Enable progress display
     gantt.config.show_progress = true;
-    gantt.config.grid_resize = true;
 
     // Initialize data processor for handling updates
-    if (onTaskUpdate || onTaskDelete) {
-      dataProcessorRef.current = gantt.createDataProcessor((entityType: string, action: string, item: any, id: string) => {
-        return new Promise((resolve) => {
-          if (action === "delete" && onTaskDelete) {
-            onTaskDelete(id);
-          } else if ((action === "update" || action === "create") && onTaskUpdate) {
-            const updates: Partial<Task> = {
-              task_name: item.text,
-              start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
-              end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
-              duration: item.duration,
-              progress: Math.round(item.progress * 100),
-              assigned_to: item.assigned_to
-            };
-            onTaskUpdate(id, updates);
-          }
-          resolve(undefined);
-        });
+    const dataProcessor = gantt.createDataProcessor((type: string, action: string, item: any, id: string) => {
+      return new Promise<void>((resolve) => {
+        if (action === "delete" && onTaskDelete) {
+          onTaskDelete(id);
+        } else if ((action === "update" || action === "create") && onTaskUpdate) {
+          const updates: Partial<Task> = {
+            task_name: item.text,
+            start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
+            end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
+            duration: item.duration,
+            progress: Math.round(item.progress * 100),
+            assigned_to: item.assigned_to
+          };
+          onTaskUpdate(id, updates);
+        }
+        resolve();
       });
-    }
+    });
 
-    // Initialize gantt
-    gantt.init(ganttRef.current);
-
-    return () => {
-      if (dataProcessorRef.current) {
-        dataProcessorRef.current.destructor();
-        dataProcessorRef.current = null;
-      }
-      gantt.clearAll();
-    };
-  }, [onTaskUpdate, onTaskDelete]);
-
-  useEffect(() => {
-    // Transform and load data
+    // Parse initial data
     const ganttData = {
       data: tasks.map(task => ({
         id: task.id,
@@ -90,19 +79,30 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
         start_date: task.start_date,
         duration: task.duration,
         progress: task.progress / 100, // Convert 0-100 to 0-1
-        parent: task.parent_id || 0
+        parent: task.parent_id || "",
+        order: task.order_index
       })),
       links: [] // Add dependency links when needed
     };
 
-    gantt.clearAll();
     gantt.parse(ganttData);
-  }, [tasks]);
+
+    // Cleanup function
+    return () => {
+      if (dataProcessor) {
+        dataProcessor.destructor();
+      }
+      gantt.clearAll();
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+    };
+  }, [tasks, onTaskUpdate, onTaskDelete]);
 
   return (
     <div 
-      ref={ganttRef} 
-      style={{ width: '100%', height: '500px' }}
+      ref={containerRef} 
+      style={{ width: "100%", height: "500px" }}
       className="gantt-container"
     />
   );
