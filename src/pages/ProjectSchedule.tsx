@@ -50,19 +50,21 @@ export default function ProjectSchedule() {
     isCreating
   } = useProjectSchedule(projectId || '');
 
-  const handleCreateTask = (taskData: any) => {
-    console.log('handleCreateTask called with:', taskData);
-    if (!projectId) {
-      console.log('No projectId available');
-      return;
+  const handleCreateTask = async (taskData: any) => {
+    try {
+      if (!projectId) {
+        throw new Error('No project ID available');
+      }
+      
+      await createTask({
+        ...taskData,
+        project_id: projectId
+      });
+      setIsAddTaskOpen(false);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      throw error;
     }
-    
-    console.log('Calling createTask with projectId:', projectId);
-    createTask({
-      ...taskData,
-      project_id: projectId
-    });
-    setIsAddTaskOpen(false);
   };
 
   const handleTaskClick = (task: any) => {
@@ -112,6 +114,7 @@ export default function ProjectSchedule() {
                   tasks={tasks || []}
                   onTaskUpdate={(taskId, updates) => updateTask({ taskId, updates })}
                   onTaskDelete={handleDeleteTask}
+                  onTaskCreate={handleCreateTask}
                 />
               </div>
             )}

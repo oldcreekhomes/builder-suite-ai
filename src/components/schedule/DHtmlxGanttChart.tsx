@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { gantt } from 'dhtmlx-gantt';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
+import { toast } from 'sonner';
 
 interface Task {
   id: string;
@@ -21,71 +22,185 @@ interface DHtmlxGanttChartProps {
   tasks: Task[];
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
   onTaskDelete?: (taskId: string) => void;
+  onTaskCreate?: (taskData: Partial<Task>) => Promise<void>;
 }
 
-export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGanttChartProps) {
+export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCreate }: DHtmlxGanttChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
+
+  const handleTaskAction = useCallback(async (type: string, action: string, item: any, id: string) => {
+    try {
+      if (action === "delete" && onTaskDelete) {
+        await onTaskDelete(id);
+        toast.success("Task deleted successfully");
+      } else if (action === "create" && onTaskCreate) {
+        const taskData: Partial<Task> = {
+          task_name: item.text,
+          start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
+          end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
+          duration: item.duration,
+          progress: Math.round((item.progress || 0) * 100),
+          assigned_to: item.assigned_to || "",
+          color: item.color || "#3b82f6",
+          parent_id: item.parent || null
+        };
+        await onTaskCreate(taskData);
+        toast.success("Task created successfully");
+      } else if (action === "update" && onTaskUpdate) {
+        const updates: Partial<Task> = {
+          task_name: item.text,
+          start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
+          end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
+          duration: item.duration,
+          progress: Math.round((item.progress || 0) * 100),
+          assigned_to: item.assigned_to || ""
+        };
+        await onTaskUpdate(id, updates);
+        toast.success("Task updated successfully");
+      }
+    } catch (error) {
+      console.error("Task action failed:", error);
+      toast.error(`Failed to ${action} task`);
+      return { status: "error" };
+    }
+    return { status: "success" };
+  }, [onTaskUpdate, onTaskDelete, onTaskCreate]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || isInitialized.current) return;
 
-    // Initialize Gantt following DHTMLX official pattern
-    gantt.init(containerRef.current);
-
-    // Configure basic settings
+    // Configure Gantt before initialization
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
+    gantt.config.duration_unit = "day";
     
-    // Enable grid resize
+    // Enable interactive features
+    gantt.config.drag_timeline = {
+      ignore: ".gantt_task_progress",
+      useKey: false
+    };
+    gantt.config.drag_progress = true;
+    gantt.config.drag_resize = true;
+    gantt.config.drag_links = true;
+    gantt.config.drag_move = true;
+    
+    // Enable grid features
     gantt.config.grid_resize = true;
+    gantt.config.row_height = 40;
+    gantt.config.task_height = 24;
+    gantt.config.bar_height = 20;
+    
+    // Enable inline editing
+    gantt.config.inline_editors_date_processing = "keepDates";
     
     // Configure columns
     gantt.config.columns = [
-      { name: "text", label: "Task Name", tree: true, width: 200 },
-      { name: "start_date", label: "Start Date", width: 100, align: "center" },
-      { name: "duration", label: "Duration", width: 80, align: "center" },
-      { name: "progress", label: "Progress", width: 80, align: "center" },
+      { 
+        name: "text", 
+        label: "Task Name", 
+        tree: true, 
+        width: 250
+      },
+      { 
+        name: "start_date", 
+        label: "Start Date", 
+        width: 120, 
+        align: "center"
+      },
+      { 
+        name: "duration", 
+        label: "Duration", 
+        width: 80, 
+        align: "center"
+      },
+      { 
+        name: "progress", 
+        label: "Progress", 
+        width: 80, 
+        align: "center",
+        template: (task: any) => Math.round((task.progress || 0) * 100) + "%"
+      },
+      { 
+        name: "assigned_to", 
+        label: "Assignee", 
+        width: 120, 
+        align: "center"
+      },
       { name: "add", label: "", width: 44 }
     ];
 
-    // Enable progress display
+    // Enable progress display and editing
     gantt.config.show_progress = true;
-
-    // Initialize data processor for handling updates
-    const dataProcessor = gantt.createDataProcessor((type: string, action: string, item: any, id: string) => {
-      return new Promise<void>((resolve) => {
-        if (action === "delete" && onTaskDelete) {
-          onTaskDelete(id);
-        } else if ((action === "update" || action === "create") && onTaskUpdate) {
-          const updates: Partial<Task> = {
-            task_name: item.text,
-            start_date: gantt.date.date_to_str("%Y-%m-%d")(item.start_date),
-            end_date: gantt.date.date_to_str("%Y-%m-%d")(item.end_date),
-            duration: item.duration,
-            progress: Math.round(item.progress * 100),
-            assigned_to: item.assigned_to
-          };
-          onTaskUpdate(id, updates);
-        }
-        resolve();
-      });
-    });
-
-    // Parse initial data
-    const ganttData = {
-      data: tasks.map(task => ({
-        id: task.id,
-        text: task.task_name,
-        start_date: task.start_date,
-        duration: task.duration,
-        progress: task.progress / 100, // Convert 0-100 to 0-1
-        parent: task.parent_id || "",
-        order: task.order_index
-      })),
-      links: [] // Add dependency links when needed
+    gantt.config.show_task_cells = true;
+    
+    // Enable auto-scheduling
+    gantt.config.auto_scheduling = true;
+    gantt.config.auto_scheduling_strict = true;
+    
+    // Configure task colors
+    gantt.templates.task_class = (start, end, task) => {
+      return task.color ? "gantt_task_custom" : "";
+    };
+    
+    gantt.templates.task_row_class = (start, end, task) => {
+      return task.parent ? "gantt_child_row" : "gantt_parent_row";
     };
 
-    gantt.parse(ganttData);
+    // Add custom CSS for task colors
+    gantt.templates.task_cell_class = (task, column) => {
+      return column.name === "text" && task.parent ? "gantt_child_cell" : "";
+    };
+
+    // Configure links (dependencies)
+    gantt.config.link_wrapper_width = 20;
+    gantt.config.link_line_width = 2;
+    
+    // Initialize Gantt
+    gantt.init(containerRef.current);
+    
+    // Set up data processor
+    const dataProcessor = gantt.createDataProcessor(handleTaskAction);
+    dataProcessor.init(gantt);
+    
+    // Add keyboard shortcuts
+    gantt.keys.edit_save = 13; // Enter
+    gantt.keys.edit_cancel = 27; // Escape
+    
+    // Add double-click to edit
+    gantt.attachEvent("onTaskDblClick", (id) => {
+      gantt.showLightbox(id);
+      return false;
+    });
+    
+    // Add context menu events
+    gantt.attachEvent("onContextMenu", (taskId, linkId, e) => {
+      e.preventDefault();
+      return false;
+    });
+
+    // Add progress tracking
+    gantt.attachEvent("onAfterTaskDrag", (id, mode, e) => {
+      const task = gantt.getTask(id);
+      if (mode === "progress") {
+        toast.success(`Progress updated to ${Math.round(task.progress * 100)}%`);
+      }
+    });
+
+    // Custom lightbox configuration
+    gantt.config.lightbox.sections = [
+      { name: "description", height: 38, map_to: "text", type: "textarea", focus: true },
+      { name: "priority", height: 22, map_to: "priority", type: "select", options: [
+          { key: "high", label: "High" },
+          { key: "normal", label: "Normal" },
+          { key: "low", label: "Low" }
+        ]
+      },
+      { name: "assigned_to", height: 22, map_to: "assigned_to", type: "textarea" },
+      { name: "time", type: "duration", map_to: "auto" }
+    ];
+
+    isInitialized.current = true;
 
     // Cleanup function
     return () => {
@@ -93,17 +208,77 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
         dataProcessor.destructor();
       }
       gantt.clearAll();
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
-      }
+      isInitialized.current = false;
     };
-  }, [tasks, onTaskUpdate, onTaskDelete]);
+  }, [handleTaskAction]);
+
+  // Update data when tasks change
+  useEffect(() => {
+    if (!isInitialized.current) return;
+
+    const ganttData = {
+      data: tasks.map(task => ({
+        id: task.id,
+        text: task.task_name,
+        start_date: new Date(task.start_date),
+        duration: task.duration,
+        progress: (task.progress || 0) / 100,
+        parent: task.parent_id || 0,
+        assigned_to: task.assigned_to || "",
+        color: task.color || "#3b82f6",
+        priority: "normal"
+      })),
+      links: tasks
+        .filter(task => task.dependencies && task.dependencies.length > 0)
+        .flatMap(task => 
+          task.dependencies.map((depId, index) => ({
+            id: `${task.id}_${depId}_${index}`,
+            source: depId,
+            target: task.id,
+            type: "0" // finish-to-start
+          }))
+        )
+    };
+
+    gantt.clearAll();
+    gantt.parse(ganttData);
+  }, [tasks]);
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ width: "100%", height: "500px" }}
-      className="gantt-container"
-    />
+    <div className="gantt-wrapper">
+      <style>{`
+        .gantt_task_custom .gantt_task_content {
+          background-color: var(--color, #3b82f6) !important;
+          border-color: var(--color, #3b82f6) !important;
+        }
+        .gantt_child_row {
+          background-color: #f8fafc;
+        }
+        .gantt_child_cell {
+          padding-left: 40px;
+        }
+        .gantt_grid_scale .gantt_grid_head_cell {
+          background: #f1f5f9;
+          border-color: #e2e8f0;
+        }
+        .gantt_task_line {
+          border-radius: 4px;
+        }
+        .gantt_task_progress {
+          border-radius: 4px;
+        }
+        .gantt_link_arrow {
+          color: #64748b;
+        }
+        .gantt_link_line {
+          background-color: #64748b;
+        }
+      `}</style>
+      <div 
+        ref={containerRef} 
+        style={{ width: "100%", height: "600px" }}
+        className="gantt-container border border-border rounded-lg overflow-hidden bg-background"
+      />
+    </div>
   );
 }
