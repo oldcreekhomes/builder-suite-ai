@@ -399,9 +399,17 @@ export function ProfessionalGanttChart({
     gantt.clearAll();
     gantt.parse(ganttData);
     
-    // Auto-fit and show critical path
+    // Auto-fit
     gantt.autofit = true;
-    gantt.showCriticalPath(true);
+    
+    // Show critical path if available
+    try {
+      if (gantt.showCriticalPath && typeof gantt.showCriticalPath === 'function') {
+        gantt.showCriticalPath(true);
+      }
+    } catch (error) {
+      console.warn('Critical path functionality not available');
+    }
     
   }, [tasks]);
 
