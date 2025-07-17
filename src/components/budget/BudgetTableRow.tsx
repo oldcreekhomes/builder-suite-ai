@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +36,7 @@ export function BudgetTableRow({
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   
   const deleteWrapperRef = useRef<HTMLDivElement>(null);
+  const unitTriggerRef = useRef<HTMLButtonElement>(null);
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -98,21 +99,6 @@ export function BudgetTableRow({
       setTimeout(() => {
         setIsEditingQuantity(true);
       }, 0);
-    } else if (e.key.toLowerCase() === 'e') {
-      e.preventDefault();
-      handleUnitChange('each');
-    } else if (e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      handleUnitChange('square-feet');
-    } else if (e.key.toLowerCase() === 'l') {
-      e.preventDefault();
-      handleUnitChange('linear-feet');
-    } else if (e.key.toLowerCase() === 'y') {
-      e.preventDefault();
-      handleUnitChange('square-yard');
-    } else if (e.key.toLowerCase() === 'c') {
-      e.preventDefault();
-      handleUnitChange('cubic-yard');
     }
   };
 
@@ -128,7 +114,56 @@ export function BudgetTableRow({
 
   const handleUnitClick = () => {
     setIsEditingUnit(true);
+    // Add a brief delay to ensure the Select component is rendered before adding listener
+    setTimeout(() => {
+      document.addEventListener('keydown', handleUnitKeyboardShortcut);
+    }, 50);
   };
+
+  const handleUnitKeyboardShortcut = (e: KeyboardEvent) => {
+    if (!isEditingUnit) return;
+    
+    const key = e.key.toLowerCase();
+    let selectedValue = '';
+    
+    switch (key) {
+      case 'e':
+        selectedValue = 'each';
+        break;
+      case 's':
+        selectedValue = 'square-feet';
+        break;
+      case 'l':
+        selectedValue = 'linear-feet';
+        break;
+      case 'y':
+        selectedValue = 'square-yard';
+        break;
+      case 'c':
+        selectedValue = 'cubic-yard';
+        break;
+      default:
+        return;
+    }
+    
+    if (selectedValue) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleUnitChange(selectedValue);
+      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
+    }
+  };
+
+  // Clean up event listener when component unmounts or unit editing ends
+  React.useEffect(() => {
+    if (!isEditingUnit) {
+      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
+    };
+  }, [isEditingUnit]);
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
