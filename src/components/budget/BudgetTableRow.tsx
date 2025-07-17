@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -93,7 +93,28 @@ export function BudgetTableRow({
   };
 
   const handleUnitKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Tab' && !e.shiftKey) {
+    // Handle keyboard shortcuts for unit selection
+    if (e.key === 'e') {
+      e.preventDefault();
+      handleUnitChange('each');
+      return;
+    } else if (e.key === 's') {
+      e.preventDefault();
+      handleUnitChange('square-feet');
+      return;
+    } else if (e.key === 'l') {
+      e.preventDefault();
+      handleUnitChange('linear-feet');
+      return;
+    } else if (e.key === 'y') {
+      e.preventDefault();
+      handleUnitChange('square-yard');
+      return;
+    } else if (e.key === 'c') {
+      e.preventDefault();
+      handleUnitChange('cubic-yard');
+      return;
+    } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       setIsEditingUnit(false);
       setTimeout(() => {
@@ -114,56 +135,17 @@ export function BudgetTableRow({
 
   const handleUnitClick = () => {
     setIsEditingUnit(true);
-    // Add a brief delay to ensure the Select component is rendered before adding listener
-    setTimeout(() => {
-      document.addEventListener('keydown', handleUnitKeyboardShortcut);
-    }, 50);
   };
 
-  const handleUnitKeyboardShortcut = (e: KeyboardEvent) => {
-    if (!isEditingUnit) return;
-    
-    const key = e.key; // Use actual key without converting to lowercase
-    let selectedValue = '';
-    
-    switch (key) {
-      case 'e':
-        selectedValue = 'each';
-        break;
-      case 's':
-        selectedValue = 'square-feet';
-        break;
-      case 'l':
-        selectedValue = 'linear-feet';
-        break;
-      case 'y':
-        selectedValue = 'square-yard';
-        break;
-      case 'c':
-        selectedValue = 'cubic-yard';
-        break;
-      default:
-        return;
-    }
-    
-    if (selectedValue) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleUnitChange(selectedValue);
-      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
-    }
+  const handleUnitValueChange = (value: string) => {
+    handleUnitChange(value);
   };
 
-  // Clean up event listener when component unmounts or unit editing ends
-  React.useEffect(() => {
-    if (!isEditingUnit) {
-      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
+  const handleUnitOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsEditingUnit(false);
     }
-    
-    return () => {
-      document.removeEventListener('keydown', handleUnitKeyboardShortcut);
-    };
-  }, [isEditingUnit]);
+  };
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -206,7 +188,12 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="py-1">
         {isEditingUnit ? (
-          <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
+          <Select 
+            value={costCode?.unit_of_measure || ""} 
+            onValueChange={handleUnitValueChange}
+            onOpenChange={handleUnitOpenChange}
+            open={true}
+          >
             <SelectTrigger 
               className="w-20 h-7 text-sm"
               onKeyDown={handleUnitKeyDown}
@@ -214,11 +201,11 @@ export function BudgetTableRow({
               <SelectValue placeholder="-" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
-              <SelectItem value="each">EA</SelectItem>
-              <SelectItem value="square-feet">SF</SelectItem>
-              <SelectItem value="linear-feet">LF</SelectItem>
-              <SelectItem value="square-yard">SY</SelectItem>
-              <SelectItem value="cubic-yard">CY</SelectItem>
+              <SelectItem value="each">EA - (e)</SelectItem>
+              <SelectItem value="square-feet">SF - (s)</SelectItem>
+              <SelectItem value="linear-feet">LF - (l)</SelectItem>
+              <SelectItem value="square-yard">SY - (y)</SelectItem>
+              <SelectItem value="cubic-yard">CY - (c)</SelectItem>
             </SelectContent>
           </Select>
         ) : (
