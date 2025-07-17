@@ -70,29 +70,30 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
 
+    // Disable auto-resize to prevent loops
+    gantt.config.auto_resize = false;
+    gantt.config.fit_tasks = false;
+    
     // Configure Gantt before initialization
     gantt.config.date_format = "%Y-%m-%d";
     gantt.config.xml_date = "%Y-%m-%d";
     gantt.config.duration_unit = "day";
     
-    // Enable interactive features
+    // Enable interactive features but disable problematic ones
     gantt.config.drag_timeline = {
       ignore: ".gantt_task_progress",
       useKey: false
     };
     gantt.config.drag_progress = true;
     gantt.config.drag_resize = true;
-    gantt.config.drag_links = true;
+    gantt.config.drag_links = false; // Disable to prevent layout issues
     gantt.config.drag_move = true;
     
-    // Enable grid features
+    // Grid configuration
     gantt.config.grid_resize = true;
     gantt.config.row_height = 40;
     gantt.config.task_height = 24;
     gantt.config.bar_height = 20;
-    
-    // Enable inline editing
-    gantt.config.inline_editors_date_processing = "keepDates";
     
     // Configure columns
     gantt.config.columns = [
@@ -130,13 +131,12 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
       { name: "add", label: "", width: 44 }
     ];
 
-    // Enable progress display and editing
+    // Enable progress display
     gantt.config.show_progress = true;
     gantt.config.show_task_cells = true;
     
-    // Enable auto-scheduling
-    gantt.config.auto_scheduling = true;
-    gantt.config.auto_scheduling_strict = true;
+    // Disable auto-scheduling to prevent layout thrashing
+    gantt.config.auto_scheduling = false;
     
     // Configure task colors
     gantt.templates.task_class = (start, end, task) => {
@@ -147,55 +147,29 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
       return task.parent ? "gantt_child_row" : "gantt_parent_row";
     };
 
-    // Add custom CSS for task colors
-    gantt.templates.task_cell_class = (task, column) => {
-      return column.name === "text" && task.parent ? "gantt_child_cell" : "";
-    };
-
-    // Configure links (dependencies)
+    // Configure links (dependencies) - simplified
     gantt.config.link_wrapper_width = 20;
     gantt.config.link_line_width = 2;
     
-    // Initialize Gantt
+    // Initialize Gantt with fixed dimensions
     gantt.init(containerRef.current);
+    
+    // Force a specific size to prevent auto-resizing
+    gantt.setSizes();
     
     // Set up data processor
     const dataProcessor = gantt.createDataProcessor(handleTaskAction);
     dataProcessor.init(gantt);
     
-    // Add keyboard shortcuts
-    gantt.keys.edit_save = 13; // Enter
-    gantt.keys.edit_cancel = 27; // Escape
-    
-    // Add double-click to edit
+    // Add event handlers
     gantt.attachEvent("onTaskDblClick", (id) => {
       gantt.showLightbox(id);
       return false;
-    });
-    
-    // Add context menu events
-    gantt.attachEvent("onContextMenu", (taskId, linkId, e) => {
-      e.preventDefault();
-      return false;
-    });
-
-    // Add progress tracking
-    gantt.attachEvent("onAfterTaskDrag", (id, mode, e) => {
-      const task = gantt.getTask(id);
-      if (mode === "progress") {
-        toast.success(`Progress updated to ${Math.round(task.progress * 100)}%`);
-      }
     });
 
     // Custom lightbox configuration
     gantt.config.lightbox.sections = [
       { name: "description", height: 38, map_to: "text", type: "textarea", focus: true },
-      { name: "priority", height: 22, map_to: "priority", type: "select", options: [
-          { key: "high", label: "High" },
-          { key: "normal", label: "Normal" },
-          { key: "low", label: "Low" }
-        ]
-      },
       { name: "assigned_to", height: 22, map_to: "assigned_to", type: "textarea" },
       { name: "time", type: "duration", map_to: "auto" }
     ];
@@ -208,13 +182,16 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
         dataProcessor.destructor();
       }
       gantt.clearAll();
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
       isInitialized.current = false;
     };
   }, [handleTaskAction]);
 
-  // Update data when tasks change
+  // Update data when tasks change - but don't re-init
   useEffect(() => {
-    if (!isInitialized.current) return;
+    if (!isInitialized.current || !tasks) return;
 
     const ganttData = {
       data: tasks.map(task => ({
@@ -225,8 +202,7 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
         progress: (task.progress || 0) / 100,
         parent: task.parent_id || 0,
         assigned_to: task.assigned_to || "",
-        color: task.color || "#3b82f6",
-        priority: "normal"
+        color: task.color || "#3b82f6"
       })),
       links: tasks
         .filter(task => task.dependencies && task.dependencies.length > 0)
@@ -235,13 +211,19 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
             id: `${task.id}_${depId}_${index}`,
             source: depId,
             target: task.id,
-            type: "0" // finish-to-start
+            type: "0"
           }))
         )
     };
 
+    // Clear and reload data without re-initializing
     gantt.clearAll();
     gantt.parse(ganttData);
+    
+    // Force layout refresh without auto-resize
+    setTimeout(() => {
+      gantt.render();
+    }, 10);
   }, [tasks]);
 
   return (
@@ -273,11 +255,25 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete, onTaskCrea
         .gantt_link_line {
           background-color: #64748b;
         }
+        /* Prevent resize loops */
+        .gantt_layout_cell {
+          max-width: 100% !important;
+          overflow: hidden !important;
+        }
+        .gantt_container {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
       `}</style>
       <div 
         ref={containerRef} 
-        style={{ width: "100%", height: "600px" }}
-        className="gantt-container border border-border rounded-lg overflow-hidden bg-background"
+        style={{ 
+          width: "100%", 
+          height: "600px",
+          maxWidth: "100%",
+          overflow: "hidden"
+        }}
+        className="gantt-container border border-border rounded-lg bg-background"
       />
     </div>
   );
