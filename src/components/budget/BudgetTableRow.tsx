@@ -86,11 +86,11 @@ export function BudgetTableRow({
         <Input
           type="number"
           step="0.01"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          onBlur={handleQuantityBlur}
-          onKeyPress={handleQuantityKeyPress}
-          className="w-20 h-7 text-sm"
+          value={unitPrice}
+          onChange={(e) => setUnitPrice(e.target.value)}
+          onBlur={handleUnitPriceBlur}
+          onKeyPress={handleUnitPriceKeyPress}
+          className="w-24 h-7 text-sm"
         />
       </TableCell>
       <TableCell className="py-1 text-sm">
@@ -100,11 +100,11 @@ export function BudgetTableRow({
         <Input
           type="number"
           step="0.01"
-          value={unitPrice}
-          onChange={(e) => setUnitPrice(e.target.value)}
-          onBlur={handleUnitPriceBlur}
-          onKeyPress={handleUnitPriceKeyPress}
-          className="w-24 h-7 text-sm"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          onBlur={handleQuantityBlur}
+          onKeyPress={handleQuantityKeyPress}
+          className="w-20 h-7 text-sm"
         />
       </TableCell>
       <TableCell className="font-medium py-1 text-sm">
