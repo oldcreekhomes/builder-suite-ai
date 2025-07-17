@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { Gantt, Task, ViewMode, StylingOption } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, ZoomIn, ZoomOut, Download } from 'lucide-react';
+import { Plus, Calendar, ZoomIn, ZoomOut, Download, List, GanttChart } from 'lucide-react';
 import { format } from 'date-fns';
 import { TaskEditDialog } from './TaskEditDialog';
+import { TaskList } from './TaskList';
 
 interface ReactGanttChartProps {
   tasks: any[];
@@ -28,6 +29,7 @@ export function ReactGanttChart({
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [viewType, setViewType] = useState<'gantt' | 'list'>('gantt');
 
   // Convert tasks to Gantt format
   const ganttTasks: Task[] = useMemo(() => {
@@ -81,13 +83,9 @@ export function ReactGanttChart({
     window.print();
   };
 
-  const handleTaskEdit = (task: Task) => {
-    // Find the original task data
-    const originalTask = tasks.find(t => t.id === task.id);
-    if (originalTask) {
-      setSelectedTask(originalTask);
-      setIsEditDialogOpen(true);
-    }
+  const handleTaskEdit = (task: any) => {
+    setSelectedTask(task);
+    setIsEditDialogOpen(true);
   };
 
   const handleEditDialogSave = (taskId: string, updates: any) => {
@@ -169,29 +167,62 @@ export function ReactGanttChart({
           <Download className="h-4 w-4" />
           Export
         </Button>
+        
+        <div className="ml-auto flex gap-2">
+          <Button 
+            variant={viewType === 'gantt' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setViewType('gantt')}
+            className="gap-2"
+          >
+            <GanttChart className="h-4 w-4" />
+            Gantt
+          </Button>
+          <Button 
+            variant={viewType === 'list' ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setViewType('list')}
+            className="gap-2"
+          >
+            <List className="h-4 w-4" />
+            List
+          </Button>
+        </div>
       </div>
 
-      {/* Gantt Chart */}
-      <div className="gantt-container">
-        {ganttTasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
-            <Calendar className="h-12 w-12 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
-            <p className="text-sm mb-4">Create your first task to get started</p>
-            <Button onClick={handleAddTask} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Task
-            </Button>
+      {/* Content */}
+      <div className="p-4">
+        {viewType === 'gantt' && (
+          <div className="gantt-container">
+            {ganttTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
+                <Calendar className="h-12 w-12 mb-4" />
+                <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
+                <p className="text-sm mb-4">Create your first task to get started</p>
+                <Button onClick={handleAddTask} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Task
+                </Button>
+              </div>
+            ) : (
+              <Gantt
+                tasks={ganttTasks}
+                viewMode={viewMode}
+                onDateChange={handleTaskChange}
+                onDelete={handleTaskDelete}
+                onProgressChange={handleTaskChange}
+                onClick={(task) => handleTaskEdit(tasks.find(t => t.id === task.id))}
+                {...ganttStyling}
+              />
+            )}
           </div>
-        ) : (
-          <Gantt
-            tasks={ganttTasks}
-            viewMode={viewMode}
-            onDateChange={handleTaskChange}
-            onDelete={handleTaskDelete}
-            onProgressChange={handleTaskChange}
-            onDoubleClick={handleTaskEdit}
-            {...ganttStyling}
+        )}
+
+        {viewType === 'list' && (
+          <TaskList
+            tasks={tasks}
+            onEditTask={handleTaskEdit}
+            onDeleteTask={onDeleteTask}
           />
         )}
       </div>
