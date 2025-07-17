@@ -34,8 +34,6 @@ export function BudgetTableRow({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
-  
-  const deleteWrapperRef = useRef<HTMLDivElement>(null);
   const unitTriggerRef = useRef<HTMLButtonElement>(null);
   
   const costCode = item.cost_codes as CostCode;
@@ -64,32 +62,28 @@ export function BudgetTableRow({
   };
 
   const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    console.log('Quantity field tab pressed'); // Debug log
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Moving from Quantity to Delete'); // Debug log
       handleQuantityBlur();
-      setTimeout(() => {
-        deleteWrapperRef.current?.focus();
-      }, 50);
+      // End of editable columns - let browser handle default tab behavior
+      // or could move to next row's price field in future
     }
   };
 
   const handleUnitPriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    console.log('Price field tab pressed'); // Debug log
     if (e.key === 'Enter') {
       e.currentTarget.blur();
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Moving from Price to Unit'); // Debug log
       handleUnitPriceBlur();
+      // Move to Unit column
       setTimeout(() => {
         setIsEditingUnit(true);
-      }, 50);
+      }, 100);
     }
   };
 
@@ -123,11 +117,11 @@ export function BudgetTableRow({
     } else if (e.key === 'Tab' && !e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Moving from Unit to Quantity'); // Debug log
       setIsEditingUnit(false);
+      // Move to Quantity column
       setTimeout(() => {
         setIsEditingQuantity(true);
-      }, 50);
+      }, 100);
     }
   };
 
@@ -250,11 +244,7 @@ export function BudgetTableRow({
         {formatCurrency(total)}
       </TableCell>
       <TableCell className="py-1">
-        <div 
-          ref={deleteWrapperRef}
-          tabIndex={0}
-          className="inline-block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-        >
+        <div>
           <DeleteButton
             onDelete={() => onDelete(item.id)}
             title="Delete Budget Item"
