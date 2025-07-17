@@ -55,6 +55,27 @@ export function DHtmlxGanttChart({ tasks, onTaskUpdate, onTaskDelete }: DHtmlxGa
     // Enable resizable grid
     gantt.config.grid_resize = true;
     gantt.config.grid_width = 460; // Initial width of the grid section
+    gantt.config.layout = {
+      css: "gantt_container",
+      cols: [
+        {
+          width: 460,
+          min_width: 300,
+          rows: [
+            { view: "grid", scrollX: "gridScroll", scrollable: true, scrollY: "scrollVer" },
+            { view: "scrollbar", id: "gridScroll", group: "horizontal" }
+          ]
+        },
+        { resizer: true, width: 1 },
+        {
+          rows: [
+            { view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
+            { view: "scrollbar", id: "scrollHor", group: "horizontal" }
+          ]
+        },
+        { view: "scrollbar", id: "scrollVer" }
+      ]
+    };
 
     // Event handlers
     gantt.attachEvent("onAfterTaskUpdate", (id: string, task: any) => {
