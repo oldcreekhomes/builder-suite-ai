@@ -98,6 +98,21 @@ export function BudgetTableRow({
       setTimeout(() => {
         setIsEditingQuantity(true);
       }, 0);
+    } else if (e.key.toLowerCase() === 'e') {
+      e.preventDefault();
+      handleUnitChange('each');
+    } else if (e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      handleUnitChange('square-feet');
+    } else if (e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      handleUnitChange('linear-feet');
+    } else if (e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      handleUnitChange('square-yard');
+    } else if (e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      handleUnitChange('cubic-yard');
     }
   };
 
