@@ -123,7 +123,7 @@ export function BudgetTableRow({
   const handleUnitKeyboardShortcut = (e: KeyboardEvent) => {
     if (!isEditingUnit) return;
     
-    const key = e.key.toLowerCase();
+    const key = e.key; // Use actual key without converting to lowercase
     let selectedValue = '';
     
     switch (key) {
