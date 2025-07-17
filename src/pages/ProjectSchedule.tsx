@@ -51,8 +51,13 @@ export default function ProjectSchedule() {
   } = useProjectSchedule(projectId || '');
 
   const handleCreateTask = (taskData: any) => {
-    if (!projectId) return;
+    console.log('handleCreateTask called with:', taskData);
+    if (!projectId) {
+      console.log('No projectId available');
+      return;
+    }
     
+    console.log('Calling createTask with projectId:', projectId);
     createTask({
       ...taskData,
       project_id: projectId

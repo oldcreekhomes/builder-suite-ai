@@ -44,6 +44,7 @@ export function AddTaskModal({ open, onOpenChange, onSubmit, isLoading }: AddTas
   });
 
   const handleFormSubmit = (data: TaskFormData) => {
+    console.log('Form submitted with data:', data);
     onSubmit(data);
     reset();
   };

@@ -55,10 +55,15 @@ export function useProjectSchedule(projectId: string) {
   // Create new task
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: CreateTaskData) => {
+      console.log('createTaskMutation called with:', taskData);
+      
       // Calculate duration in days
       const startDate = new Date(taskData.start_date);
       const endDate = new Date(taskData.end_date);
       const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      console.log('Calculated duration:', duration);
+      console.log('About to insert into database...');
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')
@@ -72,7 +77,12 @@ export function useProjectSchedule(projectId: string) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      
+      console.log('Successfully created task:', data);
       return data;
     },
     onSuccess: () => {
