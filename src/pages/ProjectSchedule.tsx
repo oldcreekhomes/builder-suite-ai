@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 
 import { Calendar, Users, BarChart3, Settings } from "lucide-react";
 import { useState } from "react";
-import { ReactGanttChart } from "@/components/schedule/ReactGanttChart";
 import { useEnhancedProjectSchedule } from "@/hooks/useEnhancedProjectSchedule";
+import { DHtmlxGantt } from "@/components/schedule/DHtmlxGantt";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -135,8 +135,9 @@ export default function ProjectSchedule() {
               </div>
             ) : selectedView === 'gantt' ? (
               <div className="bg-background rounded-lg border">
-                <ReactGanttChart
+                <DHtmlxGantt
                   tasks={tasks || []}
+                  dependencies={dependencies || []}
                   onCreateTask={handleCreateTask}
                   onUpdateTask={handleUpdateTask}
                   onDeleteTask={handleDeleteTask}
