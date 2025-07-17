@@ -538,6 +538,47 @@ export type Database = {
           },
         ]
       }
+      project_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          folder_name: string
+          folder_path: string
+          id: string
+          parent_path: string | null
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          folder_name: string
+          folder_path: string
+          id?: string
+          parent_path?: string | null
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          folder_name?: string
+          folder_path?: string
+          id?: string
+          parent_path?: string | null
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_project_folders_project_id"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_photos: {
         Row: {
           description: string | null
