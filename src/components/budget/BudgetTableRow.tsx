@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DeleteButton } from '@/components/ui/delete-button';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -148,6 +150,13 @@ export function BudgetTableRow({
 
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableCell className="w-12 py-1">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
+          tabIndex={-1}
+        />
+      </TableCell>
       <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
         {costCode?.code}
       </TableCell>
@@ -229,6 +238,20 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="font-medium py-1 text-sm">
         {formatCurrency(total)}
+      </TableCell>
+      <TableCell className="py-1">
+        <div>
+          <DeleteButton
+            onDelete={() => onDelete(item.id)}
+            title="Delete Budget Item"
+            description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+            size="sm"
+            variant="ghost"
+            isLoading={isDeleting}
+            showIcon={true}
+            className="tabindex-[-1]"
+          />
+        </div>
       </TableCell>
     </TableRow>
   );
