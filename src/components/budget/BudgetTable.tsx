@@ -37,7 +37,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { deletingGroups, deletingItems, handleUpdateItem, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
+  const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBudgetItems[group] || [];
@@ -162,6 +162,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         key={item.id}
                         item={item}
                         onUpdate={handleUpdateItem}
+                        onUpdateUnit={handleUpdateUnit}
                         onDelete={onDeleteItem}
                         formatUnitOfMeasure={formatUnitOfMeasure}
                         isSelected={selectedItems.has(item.id)}

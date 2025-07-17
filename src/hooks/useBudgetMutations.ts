@@ -32,6 +32,28 @@ export function useBudgetMutations(projectId: string) {
     },
   });
 
+  // Update cost code unit mutation
+  const updateCostCodeUnit = useMutation({
+    mutationFn: async ({ costCodeId, unit_of_measure }: { costCodeId: string; unit_of_measure: string }) => {
+      const { data, error } = await supabase
+        .from('cost_codes')
+        .update({ unit_of_measure })
+        .eq('id', costCodeId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      toast({
+        title: "Success",
+        description: "Unit of measure updated successfully",
+      });
+    },
+  });
+
   // Delete individual item mutation
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
@@ -118,6 +140,10 @@ export function useBudgetMutations(projectId: string) {
     updateBudgetItem.mutate({ id, quantity, unit_price });
   };
 
+  const handleUpdateUnit = (costCodeId: string, unit_of_measure: string) => {
+    updateCostCodeUnit.mutate({ costCodeId, unit_of_measure });
+  };
+
   const handleDeleteItem = (itemId: string) => {
     setDeletingItems(prev => new Set([...prev, itemId]));
     deleteItemMutation.mutate(itemId);
@@ -132,6 +158,7 @@ export function useBudgetMutations(projectId: string) {
     deletingGroups,
     deletingItems,
     handleUpdateItem,
+    handleUpdateUnit,
     handleDeleteItem,
     handleDeleteGroup
   };

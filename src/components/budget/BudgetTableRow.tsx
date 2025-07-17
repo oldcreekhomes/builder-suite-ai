@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -10,6 +11,7 @@ type CostCode = Tables<'cost_codes'>;
 interface BudgetTableRowProps {
   item: any; // Project budget item with cost_codes relation
   onUpdate: (id: string, quantity: number, unit_price: number) => void;
+  onUpdateUnit: (costCodeId: string, unit_of_measure: string) => void;
   onDelete: (itemId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
@@ -20,6 +22,7 @@ interface BudgetTableRowProps {
 export function BudgetTableRow({ 
   item, 
   onUpdate, 
+  onUpdateUnit,
   onDelete,
   formatUnitOfMeasure,
   isSelected,
@@ -64,6 +67,10 @@ export function BudgetTableRow({
     }
   };
 
+  const handleUnitChange = (value: string) => {
+    onUpdateUnit(costCode.id, value);
+  };
+
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
@@ -93,8 +100,19 @@ export function BudgetTableRow({
           className="w-24 h-7 text-sm"
         />
       </TableCell>
-      <TableCell className="py-1 text-sm">
-        {formatUnitOfMeasure(costCode?.unit_of_measure)}
+      <TableCell className="py-1">
+        <Select value={costCode?.unit_of_measure || ""} onValueChange={handleUnitChange}>
+          <SelectTrigger className="w-20 h-7 text-sm">
+            <SelectValue placeholder="-" />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            <SelectItem value="each">EA</SelectItem>
+            <SelectItem value="square-feet">SF</SelectItem>
+            <SelectItem value="linear-feet">LF</SelectItem>
+            <SelectItem value="square-yard">SY</SelectItem>
+            <SelectItem value="cubic-yard">CY</SelectItem>
+          </SelectContent>
+        </Select>
       </TableCell>
       <TableCell className="py-1">
         <Input
