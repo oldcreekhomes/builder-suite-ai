@@ -379,6 +379,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const updateTaskInDatabase = async (taskData: any) => {
     try {
       console.log('Updating task in database:', taskData.DatabaseID);
+      console.log('Full taskData:', taskData);
       
       // Handle resource assignment - the Resource field contains the selected resourceId
       let assignedTo = null;
