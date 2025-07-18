@@ -362,8 +362,19 @@ function GanttChart({ projectId }: GanttChartProps) {
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Don't cancel beforeOpenEditDialog - let Syncfusion handle inline editing
-    // We'll only use custom modal when user clicks toolbar Edit button
+    // Add specific logging for edit actions
+    if (args.requestType === 'beforeOpenEditDialog') {
+      console.log('Edit dialog would open, args:', args);
+      // Only cancel if this was triggered by toolbar edit button
+      if (args.cancel !== undefined) {
+        console.log('Canceling edit dialog');
+        args.cancel = true;
+      }
+    }
+    
+    if (args.requestType === 'cellEdit') {
+      console.log('Cell edit action begin:', args);
+    }
   };
 
 
