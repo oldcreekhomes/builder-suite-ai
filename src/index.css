@@ -371,52 +371,88 @@ div[role="dialog"] .e-btn:not(.e-primary) {
   background: hsl(var(--background)) !important;
 }
 
-/* Override any inline blue styles */
+/* ULTIMATE NUCLEAR OPTION - Override ALL Syncfusion styling */
+
+/* Remove ALL blue backgrounds and borders with maximum specificity */
+.e-dialog *[style*="background"],
+.e-dialog *[style*="border"],
+.e-gantt .e-dialog *[style*="background"],
+.e-gantt .e-dialog *[style*="border"],
 .e-dialog [style*="#0078d4"],
 .e-dialog [style*="rgb(0, 120, 212)"],
 .e-gantt .e-dialog [style*="#0078d4"],
 .e-dialog [style*="background-color: rgb(0, 120, 212)"],
-.e-gantt .e-dialog [style*="background-color: rgb(0, 120, 212)"] {
+.e-gantt .e-dialog [style*="background-color: rgb(0, 120, 212)"],
+.e-dialog [style*="border-color: rgb(0, 120, 212)"],
+.e-gantt .e-dialog [style*="border-color: rgb(0, 120, 212)"] {
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Target ALL tab elements specifically */
+.e-dialog .e-tab .e-tab-header .e-toolbar-item::after,
+.e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item::after,
+.e-dialog .e-tab .e-tab-header .e-toolbar-item::before,
+.e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item::before,
+.e-dialog .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap::after,
+.e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item .e-tab-wrap::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+/* Completely override ALL Syncfusion elements */
+.e-dialog *,
+.e-gantt .e-dialog *,
+div[role="dialog"] * {
+  background-color: inherit !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Force white background on ALL dialog elements */
+.e-dialog,
+.e-dialog *:not(.e-btn):not(input):not(select):not(textarea),
+.e-gantt .e-dialog,
+.e-gantt .e-dialog *:not(.e-btn):not(input):not(select):not(textarea),
+div[role="dialog"],
+div[role="dialog"] *:not(.e-btn):not(input):not(select):not(textarea) {
   background: hsl(var(--background)) !important;
   background-color: hsl(var(--background)) !important;
 }
 
-/* NUCLEAR OPTION - Override ALL possible Syncfusion blue elements */
-.e-dialog *,
-.e-gantt .e-dialog *,
-div[role="dialog"] *,
-.e-dialog-wrap * {
-  background-color: inherit !important;
-}
-
-/* Specifically target the modal overlay */
+/* Target modal overlay */
 .e-dlg-overlay,
 .e-dialog .e-dlg-overlay,
 .e-gantt .e-dlg-overlay {
   background: rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Target any blue borders or backgrounds in the dialog */
+/* Override any remaining primary elements */
 .e-dialog .e-primary,
 .e-gantt .e-dialog .e-primary,
-.e-dialog .e-dlg-header.e-primary {
+.e-dialog .e-dlg-header.e-primary,
+.e-dialog .e-tab-header .e-primary {
   background: hsl(var(--background)) !important;
   background-color: hsl(var(--background)) !important;
   border-color: hsl(var(--border)) !important;
 }
 
-/* Ensure all tab content areas are properly styled */
-.e-dialog .e-tab .e-content,
-.e-gantt .e-dialog .e-tab .e-content,
-.e-dialog .e-tab-content,
-.e-gantt .e-dialog .e-tab-content {
-  background: hsl(var(--background)) !important;
-  background-color: hsl(var(--background)) !important;
+/* Force tab styling with extreme specificity */
+html body .e-dialog .e-tab .e-tab-header .e-toolbar-item.e-active,
+html body .e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item.e-active {
+  color: hsl(var(--foreground)) !important;
+  border-bottom: 2px solid hsl(var(--primary)) !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
-/* Force override any remaining blue elements */
-.e-dialog .e-dlg-header-content.e-primary,
-.e-gantt .e-dialog .e-dlg-header-content.e-primary {
-  background: hsl(var(--background)) !important;
-  background-color: hsl(var(--background)) !important;
+/* Remove any blue underlines or decorations */
+html body .e-dialog .e-tab .e-tab-header .e-toolbar-item,
+html body .e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item {
+  border-bottom: none !important;
+  text-decoration: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
