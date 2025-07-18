@@ -359,7 +359,13 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete - data:', args.data);
     
     // Enhanced detection for inline edits - check for data with DatabaseID regardless of requestType
-    if (args.data && args.data.DatabaseID) {
+    if (args.data && args.data.taskData && args.data.taskData.DatabaseID) {
+      // Check various possible requestType formats
+      const requestType = args.requestType?.value || args.requestType?.toString() || args.requestType || 'unknown';
+      console.log('INLINE EDIT DETECTED - RequestType processed:', requestType);
+      console.log('INLINE EDIT DETECTED - Saving to database:', args.data.taskData.DatabaseID);
+      updateTaskInDatabase(args.data.taskData);
+    } else if (args.data && args.data.DatabaseID) {
       // Check various possible requestType formats
       const requestType = args.requestType?.value || args.requestType?.toString() || args.requestType || 'unknown';
       console.log('INLINE EDIT DETECTED - RequestType processed:', requestType);
