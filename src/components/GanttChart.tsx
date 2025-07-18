@@ -1,4 +1,5 @@
 
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -64,7 +65,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
         Duration: task.duration,
-        Resource: task.assigned_to ? [task.assigned_to] : [], // Convert to array for resource mapping
+        Resource: task.assigned_to ? [task.assigned_to] : [], // Keep as resource ID/name for now
         Predecessor: task.dependencies?.join(',') || null,
         ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
       }));
@@ -370,13 +371,14 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
-      // Extract resource ID from the resource array
+      // Handle resource assignment - the Resource field contains the selected resourceId
       let assignedTo = null;
       if (taskData.Resource && taskData.Resource.length > 0) {
-        // Find the resource ID from the resources array
+        // The Resource array now contains the resourceId directly
         const resourceId = taskData.Resource[0];
+        // Find the resource to get the name for storage
         const resource = resources.find(r => r.resourceId === resourceId);
-        assignedTo = resource ? resource.resourceId : null;
+        assignedTo = resource ? resource.resourceName : resourceId; // Store name or fallback to ID
       }
 
       const { error } = await supabase
@@ -505,7 +507,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       edit: {
         params: {
           dataSource: resources,
-          fields: { value: 'resourceName', text: 'resourceName' },
+          fields: { value: 'resourceId', text: 'resourceName' }, // Fixed: use resourceId for value
           allowFiltering: true,
           filterBarPlaceholder: 'Search resources...'
         }
