@@ -1,8 +1,9 @@
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -26,6 +27,9 @@ interface GanttChartProps {
 }
 
 function GanttChart({ projectId }: GanttChartProps) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
   // Fetch schedule tasks from the database
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
@@ -54,6 +58,63 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
     enabled: !!projectId,
   });
+
+  // Handle adding new task
+  const handleAddTask = async () => {
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .insert({
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: today.toISOString(),
+          end_date: tomorrow.toISOString(),
+          duration: 1,
+          progress: 0,
+          order_index: tasks.length,
+          color: '#3b82f6'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add new task",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the tasks
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "New task added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add new task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle toolbar click events
+  const toolbarClick = (args: any) => {
+    if (args.item.id === 'SyncfusionGantt_add') {
+      args.cancel = true; // Cancel the default add behavior
+      handleAddTask(); // Call our custom add function
+    }
+  };
 
   const taskFields = {
     id: 'TaskID',
@@ -122,6 +183,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowSorting={true}
         allowReordering={true}
         allowSelection={true}
+        toolbarClick={toolbarClick}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
