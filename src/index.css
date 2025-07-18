@@ -164,13 +164,19 @@
   font-weight: 600;
 }
 
-/* COMPREHENSIVE Syncfusion Modal Styling Overrides - Remove ALL blue backgrounds */
+/* ULTRA AGGRESSIVE Syncfusion Modal Styling Overrides - Remove ALL blue backgrounds */
 
-/* Modal Container and Overlay */
+/* Target ALL possible dialog containers */
+.e-dialog,
 .e-dialog.e-dlg-modal,
+.e-gantt .e-dialog,
 .e-gantt .e-dialog.e-dlg-modal,
+div[role="dialog"],
 div[role="dialog"].e-dialog,
-.e-dialog-wrap .e-dialog {
+.e-dialog-wrap,
+.e-dialog-wrap .e-dialog,
+.e-gantt-dialog,
+.e-gantt .e-gantt-dialog {
   border-radius: calc(var(--radius)) !important;
   border: 1px solid hsl(var(--border)) !important;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
@@ -368,7 +374,49 @@ div[role="dialog"] .e-btn:not(.e-primary) {
 /* Override any inline blue styles */
 .e-dialog [style*="#0078d4"],
 .e-dialog [style*="rgb(0, 120, 212)"],
-.e-gantt .e-dialog [style*="#0078d4"] {
+.e-gantt .e-dialog [style*="#0078d4"],
+.e-dialog [style*="background-color: rgb(0, 120, 212)"],
+.e-gantt .e-dialog [style*="background-color: rgb(0, 120, 212)"] {
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+/* NUCLEAR OPTION - Override ALL possible Syncfusion blue elements */
+.e-dialog *,
+.e-gantt .e-dialog *,
+div[role="dialog"] *,
+.e-dialog-wrap * {
+  background-color: inherit !important;
+}
+
+/* Specifically target the modal overlay */
+.e-dlg-overlay,
+.e-dialog .e-dlg-overlay,
+.e-gantt .e-dlg-overlay {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Target any blue borders or backgrounds in the dialog */
+.e-dialog .e-primary,
+.e-gantt .e-dialog .e-primary,
+.e-dialog .e-dlg-header.e-primary {
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Ensure all tab content areas are properly styled */
+.e-dialog .e-tab .e-content,
+.e-gantt .e-dialog .e-tab .e-content,
+.e-dialog .e-tab-content,
+.e-gantt .e-dialog .e-tab-content {
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Force override any remaining blue elements */
+.e-dialog .e-dlg-header-content.e-primary,
+.e-gantt .e-dialog .e-dlg-header-content.e-primary {
   background: hsl(var(--background)) !important;
   background-color: hsl(var(--background)) !important;
 }
