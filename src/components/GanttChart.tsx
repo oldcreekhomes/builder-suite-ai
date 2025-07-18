@@ -88,30 +88,37 @@ function GanttChart({ projectId }: GanttChartProps) {
       console.log('Raw users data:', users);
       console.log('Raw representatives data:', representatives);
 
-      // Combine and format resources
+      // Combine and format resources, avoiding duplicates by email
       const allResources = [];
+      const seenEmails = new Set();
       
       if (users && users.length > 0) {
         users.forEach(user => {
-          const resourceName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-          console.log('Adding user resource:', resourceName);
-          allResources.push({
-            resourceId: user.id,
-            resourceName: resourceName,
-            resourceType: 'user'
-          });
+          if (!seenEmails.has(user.email)) {
+            const resourceName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+            console.log('Adding user resource:', resourceName);
+            allResources.push({
+              resourceId: user.id,
+              resourceName: resourceName,
+              resourceType: 'user'
+            });
+            seenEmails.add(user.email);
+          }
         });
       }
 
       if (representatives && representatives.length > 0) {
         representatives.forEach(rep => {
-          const resourceName = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
-          console.log('Adding rep resource:', resourceName);
-          allResources.push({
-            resourceId: rep.id,
-            resourceName: resourceName,
-            resourceType: 'representative'
-          });
+          if (!seenEmails.has(rep.email)) {
+            const resourceName = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
+            console.log('Adding rep resource:', resourceName);
+            allResources.push({
+              resourceId: rep.id,
+              resourceName: resourceName,
+              resourceType: 'representative'
+            });
+            seenEmails.add(rep.email);
+          }
         });
       }
 
