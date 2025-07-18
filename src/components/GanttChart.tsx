@@ -381,6 +381,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     // We'll only use custom modal when user clicks toolbar Edit button
   };
 
+  // Handle double-click to enable inline editing
+  const recordDoubleClick = (args: any) => {
+    console.log('Double click:', args);
+    // Don't cancel - let Syncfusion handle inline editing
+  };
+
   const updateTaskInDatabase = async (taskData: any) => {
     try {
       // Handle resource assignment - the Resource field contains the selected resourceId
@@ -588,6 +594,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
         actionBegin={actionBegin}
+        recordDoubleClick={recordDoubleClick}
         cellEdit={cellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
