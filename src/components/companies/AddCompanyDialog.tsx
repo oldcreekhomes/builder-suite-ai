@@ -35,8 +35,8 @@ import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Municipality", "Consultant"]),
-  address: z.string().optional(),
-  phone_number: z.string().optional(),
+  address: z.string().min(1, "Address is required"),
+  phone_number: z.string().min(1, "Phone number is required"),
   website: z.string().optional(),
 });
 
