@@ -58,7 +58,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     open: false, 
     taskToEdit: null 
   });
-  
+
   // Fetch schedule tasks from the database
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
@@ -352,7 +352,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-
   // Handle task updates from both inline editing and other actions
   const actionComplete = (args: any) => {
     console.log('Action complete:', args.requestType, args);
@@ -379,6 +378,8 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
+      console.log('Updating task in database:', taskData.DatabaseID);
+      
       // Handle resource assignment - the Resource field contains the selected resourceId
       let assignedTo = null;
       if (taskData.Resource && taskData.Resource.length > 0) {
@@ -407,9 +408,24 @@ function GanttChart({ projectId }: GanttChartProps) {
           description: "Failed to update task",
           variant: "destructive",
         });
+        return;
       }
+
+      console.log('Task updated successfully in database, invalidating cache');
+      // Refresh the React Query cache to reflect the changes
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
     } catch (error) {
       console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
     }
   };
 
