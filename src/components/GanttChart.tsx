@@ -69,6 +69,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'TaskName'
   };
 
+  const columns = [
+    { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false },
+    { field: 'TaskName', headerText: 'Task Name', width: 250 },
+    { field: 'StartDate', headerText: 'Start Date' },
+    { field: 'Duration', headerText: 'Duration' },
+    { field: 'Progress', headerText: 'Progress' },
+  ];
+
   const splitterSettings = {
     position: "28%"
   };
@@ -104,6 +112,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         dataSource={tasks}
         taskFields={taskFields} 
         labelSettings={labelSettings} 
+        columns={columns}
         height='500px'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
