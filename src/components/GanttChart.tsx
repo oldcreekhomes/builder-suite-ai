@@ -53,11 +53,60 @@ function GanttChart({ projectId }: GanttChartProps) {
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
         Duration: task.duration,
-        Progress: task.progress || 0,
+        Resource: task.assigned_to || null,
         Predecessor: task.dependencies?.join(',') || null,
       }));
     },
     enabled: !!projectId,
+  });
+
+  // Fetch available resources (company users and representatives)
+  const { data: resources = [] } = useQuery({
+    queryKey: ['available-resources'],
+    queryFn: async () => {
+      // Fetch company users
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email');
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
+
+      // Fetch company representatives
+      const { data: representatives, error: repsError } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, email');
+
+      if (repsError) {
+        console.error('Error fetching representatives:', repsError);
+      }
+
+      // Combine and format resources
+      const allResources = [];
+      
+      if (users) {
+        users.forEach(user => {
+          allResources.push({
+            resourceId: user.id,
+            resourceName: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+            resourceType: 'user'
+          });
+        });
+      }
+
+      if (representatives) {
+        representatives.forEach(rep => {
+          allResources.push({
+            resourceId: rep.id,
+            resourceName: `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email,
+            resourceType: 'representative'
+          });
+        });
+      }
+
+      return allResources;
+    },
   });
 
   // Handle adding new task
@@ -75,7 +124,6 @@ function GanttChart({ projectId }: GanttChartProps) {
           start_date: today.toISOString(),
           end_date: tomorrow.toISOString(),
           duration: 1,
-          progress: 0,
           order_index: tasks.length,
           color: '#3b82f6'
         })
@@ -137,7 +185,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           start_date: new Date(taskData.StartDate).toISOString(),
           end_date: new Date(taskData.EndDate).toISOString(),
           duration: taskData.Duration,
-          progress: taskData.Progress || 0,
+          assigned_to: taskData.Resource || null,
         })
         .eq('id', taskData.DatabaseID);
 
@@ -160,7 +208,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     startDate: 'StartDate',
     endDate: 'EndDate',
     duration: 'Duration',
-    progress: 'Progress',
+    resourceInfo: 'Resource',
     dependency: 'Predecessor',
   };
 
@@ -174,7 +222,19 @@ function GanttChart({ projectId }: GanttChartProps) {
     { field: 'StartDate', headerText: 'Start Date' },
     { field: 'Duration', headerText: 'Duration' },
     { field: 'EndDate', headerText: 'End Date' },
-    { field: 'Progress', headerText: 'Progress' },
+    { 
+      field: 'Resource', 
+      headerText: 'Resource', 
+      width: 200,
+      editType: 'dropdownedit',
+      edit: {
+        params: {
+          dataSource: resources,
+          fields: { text: 'resourceName', value: 'resourceName' },
+          allowFiltering: true
+        }
+      }
+    },
   ];
 
   const splitterSettings = {
