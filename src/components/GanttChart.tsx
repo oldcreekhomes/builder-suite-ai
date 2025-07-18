@@ -19,7 +19,7 @@ import '@syncfusion/ej2-gantt/styles/material.css';
 
 // Register Syncfusion license
 if (typeof window !== 'undefined') {
-  registerLicense(import.meta.env.VITE_SYNCFUSION_LICENSE_KEY || '');
+  registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 }
 
 function GanttChart() {
