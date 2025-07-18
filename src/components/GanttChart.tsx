@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -53,7 +54,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
         Duration: task.duration,
-        Resource: task.assigned_to || null,
+        Resource: task.assigned_to ? [task.assigned_to] : [], // Convert to array for resource mapping
         Predecessor: task.dependencies?.join(',') || null,
       }));
     },
@@ -188,6 +189,15 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
+      // Extract resource ID from the resource array
+      let assignedTo = null;
+      if (taskData.Resource && taskData.Resource.length > 0) {
+        // Find the resource ID from the resources array
+        const resourceId = taskData.Resource[0];
+        const resource = resources.find(r => r.resourceId === resourceId);
+        assignedTo = resource ? resource.resourceId : null;
+      }
+
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -195,7 +205,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           start_date: new Date(taskData.StartDate).toISOString(),
           end_date: new Date(taskData.EndDate).toISOString(),
           duration: taskData.Duration,
-          assigned_to: taskData.Resource || null,
+          assigned_to: assignedTo,
         })
         .eq('id', taskData.DatabaseID);
 
@@ -240,20 +250,8 @@ function GanttChart({ projectId }: GanttChartProps) {
     { 
       field: 'Resource', 
       headerText: 'Resource', 
-      width: 200,
-      editType: 'autocompleteedit',
-      edit: {
-        params: {
-          dataSource: resources.map(r => r.resourceName),
-          allowFiltering: true,
-          filterType: 'Contains',
-          ignoreCase: true,
-          placeholder: 'Select or type resource name...',
-          suggestionCount: 10,
-          minLength: 1,
-          showClearButton: true
-        }
-      }
+      width: 200
+      // Removed the editType and edit params - let Syncfusion handle resource management
     },
   ];
 
