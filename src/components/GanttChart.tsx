@@ -216,7 +216,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'TaskName'
   };
 
-  const columns = [
+  const columns: any[] = [
     { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false },
     { field: 'TaskName', headerText: 'Task Name', width: 250 },
     { field: 'StartDate', headerText: 'Start Date' },
@@ -226,12 +226,15 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'Resource', 
       headerText: 'Resource', 
       width: 200,
-      editType: 'dropdownedit',
+      editType: 'autocompleteedit',
       edit: {
         params: {
-          dataSource: resources,
-          fields: { text: 'resourceName', value: 'resourceName' },
-          allowFiltering: true
+          dataSource: resources.map(r => r.resourceName),
+          allowFiltering: true,
+          filterType: 'Contains',
+          ignoreCase: true,
+          suggestionCount: 10,
+          minLength: 1
         }
       }
     },
