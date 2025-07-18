@@ -176,14 +176,14 @@ export function TaskEditDialog({
               Parent Task
             </Label>
             <Select
-              value={formData.parent_id || ""}
-              onValueChange={(value) => setFormData({ ...formData, parent_id: value || null })}
+              value={formData.parent_id || "none"}
+              onValueChange={(value) => setFormData({ ...formData, parent_id: value === "none" ? null : value })}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select parent task (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Parent</SelectItem>
+                <SelectItem value="none">No Parent</SelectItem>
                 {task?.availableParents?.map((parentTask: any) => (
                   <SelectItem key={parentTask.id} value={parentTask.id}>
                     {parentTask.task_name}
