@@ -348,6 +348,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowSorting={true}
         allowReordering={true}
         allowSelection={true}
+        allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
       >
