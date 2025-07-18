@@ -56,6 +56,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         Duration: task.duration,
         Resource: task.assigned_to ? [task.assigned_to] : [], // Convert to array for resource mapping
         Predecessor: task.dependencies?.join(',') || null,
+        ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
       }));
     },
     enabled: !!projectId,
@@ -191,6 +192,15 @@ function GanttChart({ projectId }: GanttChartProps) {
       if (taskData.DatabaseID) {
         updateTaskInDatabase(taskData);
       }
+    } else if (args.requestType === 'indent' || args.requestType === 'outdent') {
+      // Handle indent/outdent operations
+      if (args.data && args.data.length > 0) {
+        args.data.forEach((taskData: any) => {
+          if (taskData.DatabaseID) {
+            updateTaskHierarchy(taskData);
+          }
+        });
+      }
     }
   };
 
@@ -229,6 +239,34 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
+  const updateTaskHierarchy = async (taskData: any) => {
+    try {
+      // Extract parent_id from the task data - Syncfusion sets parentItem for child tasks
+      const parentId = taskData.parentItem ? taskData.parentItem.DatabaseID : null;
+
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update({
+          parent_id: parentId,
+        })
+        .eq('id', taskData.DatabaseID);
+
+      if (error) {
+        console.error('Error updating task hierarchy:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update task hierarchy",
+          variant: "destructive",
+        });
+      } else {
+        // Refresh the tasks to reflect hierarchy changes
+        queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      }
+    } catch (error) {
+      console.error('Error updating task hierarchy:', error);
+    }
+  };
+
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName',
@@ -237,6 +275,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     duration: 'Duration',
     resourceInfo: 'Resource',
     dependency: 'Predecessor',
+    parentID: 'ParentID',
   };
 
   const resourceFields = {
@@ -284,7 +323,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     newRowPosition: 'Bottom' as any
   };
 
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'];
+  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
