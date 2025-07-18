@@ -135,6 +135,14 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   });
 
   const onSubmit = (data: CompanyFormData) => {
+    if (selectedCostCodes.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one cost code",
+        variant: "destructive",
+      });
+      return;
+    }
     createCompanyMutation.mutate(data);
   };
 
