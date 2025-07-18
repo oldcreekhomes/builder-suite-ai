@@ -49,7 +49,8 @@ function GanttChart() {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true
+    showDeleteConfirmDialog: true,
+    newRowPosition: 'Bottom' as any
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll'];
