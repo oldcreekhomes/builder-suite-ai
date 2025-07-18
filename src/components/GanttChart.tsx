@@ -1,4 +1,4 @@
-import { GanttComponent, Inject, Selection, Toolbar, Edit, Filter, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { projectNewData } from '@/data/ganttData';
@@ -70,9 +70,8 @@ function GanttChart() {
         allowSorting={true}
         allowReordering={true}
         allowSelection={true}
-        allowFiltering={true}
       >
-        <Inject services={[Selection, Toolbar, Edit, Filter, Sort, RowDD, Resize, ColumnMenu]} />
+        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
     </div>
   );
