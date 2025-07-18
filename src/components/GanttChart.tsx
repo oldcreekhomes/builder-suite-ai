@@ -1,5 +1,3 @@
-
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -189,6 +187,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle toolbar click events
   const toolbarClick = (args: any) => {
+    console.log('Toolbar clicked:', args.item.id);
     if (args.item.id === 'SyncfusionGantt_add') {
       args.cancel = true; // Cancel the default add behavior
       handleAddTask(); // Call our custom add function
@@ -345,19 +344,33 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle cell edit events for inline editing
   const cellEdit = (args: any) => {
-    // This event is triggered when a cell starts editing (single-click)
-    // We can add any validation or logic here if needed
+    console.log('Cell edit triggered:', args);
+    console.log('Column field:', args.columnName);
+    console.log('Row data:', args.rowData);
+    console.log('Cell value:', args.value);
+    
+    // Allow editing for all editable columns
+    if (args.columnName === 'TaskID') {
+      args.cancel = true; // Prevent editing ID column
+      console.log('Prevented editing of TaskID column');
+    } else {
+      console.log('Allowing cell edit for column:', args.columnName);
+    }
   };
 
   // Handle task updates from both inline editing and other actions
   const actionComplete = (args: any) => {
+    console.log('Action complete:', args.requestType, args);
+    
     if (args.requestType === 'save' && args.data) {
+      console.log('Save action detected, updating task in database');
       // Handle task update using the DatabaseID
       const taskData = args.data;
       if (taskData.DatabaseID) {
         updateTaskInDatabase(taskData);
       }
     } else if (args.requestType === 'indent' || args.requestType === 'outdent') {
+      console.log('Hierarchy change detected');
       // Handle indent/outdent operations
       if (args.data && args.data.length > 0) {
         args.data.forEach((taskData: any) => {
@@ -365,6 +378,19 @@ function GanttChart({ projectId }: GanttChartProps) {
             updateTaskHierarchy(taskData);
           }
         });
+      }
+    }
+  };
+
+  // Handle action begin to allow inline editing
+  const actionBegin = (args: any) => {
+    console.log('Action begin:', args.requestType, args);
+    
+    if (args.requestType === 'beforeOpenEditDialog') {
+      // Cancel the default edit dialog and use our custom one
+      args.cancel = true;
+      if (args.rowData) {
+        openEditDialog(args.rowData);
       }
     }
   };
@@ -507,7 +533,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       edit: {
         params: {
           dataSource: resources,
-          fields: { value: 'resourceId', text: 'resourceName' }, // Fixed: use resourceId for value
+          fields: { value: 'resourceId', text: 'resourceName' },
           allowFiltering: true,
           filterBarPlaceholder: 'Search resources...'
         }
@@ -539,9 +565,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: false, // Disable default confirm dialog to use our custom one
+    showDeleteConfirmDialog: false,
     newRowPosition: 'Bottom' as any,
-    mode: 'Cell' as any // Enable cell edit mode for single-click editing
+    mode: 'Cell' as any
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -549,6 +575,9 @@ function GanttChart({ projectId }: GanttChartProps) {
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
+
+  console.log('Rendering GanttChart with tasks:', tasks.length);
+  console.log('Resources available:', resources.length);
 
   return (
     <div style={{ padding: '10px' }}>
@@ -572,6 +601,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
+        actionBegin={actionBegin}
         recordDoubleClick={recordDoubleClick}
         cellEdit={cellEdit}
       >
