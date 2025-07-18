@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, BarChart3, Settings, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useEnhancedProjectSchedule } from "@/hooks/useEnhancedProjectSchedule";
-import { DHtmlxGantt } from "@/components/schedule/DHtmlxGantt";
+import { SyncfusionGantt } from "@/components/schedule/SyncfusionGantt";
 import { ResourceManagement } from "@/components/schedule/ResourceManagement";
 import { CalendarView } from "@/components/schedule/CalendarView";
 import { DependencyManager } from "@/components/schedule/DependencyManager";
@@ -146,7 +146,7 @@ export default function ProjectSchedule() {
               </div>
             ) : selectedView === 'gantt' ? (
               <div className="bg-background rounded-lg border">
-                <DHtmlxGantt
+                <SyncfusionGantt
                   tasks={tasks || []}
                   dependencies={dependencies || []}
                   onCreateTask={handleCreateTask}
