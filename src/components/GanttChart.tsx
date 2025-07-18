@@ -353,18 +353,21 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle task updates from both inline editing and other actions
+  // Handle action completion events from Syncfusion Gantt
   const actionComplete = (args: any) => {
+    console.log('=== ACTION COMPLETE EVENT ===');
     console.log('Action complete - requestType:', args.requestType);
     console.log('Action complete - data:', args.data);
     console.log('Action complete - action:', args.action);
     
-  // Handle different types of editing events that should trigger database saves
-  const shouldSaveToDatabase = (
-    (args.requestType === 'save' && args.data) ||
-    (args.requestType === 'recordUpdate' && args.data) ||
-    (args.action === 'CellEditing' && args.data)
-  );
+    // Handle different types of editing events that should trigger database saves
+    const shouldSaveToDatabase = (
+      (args.requestType === 'save' && args.data) ||
+      (args.requestType === 'recordUpdate' && args.data) ||
+      (args.action === 'CellEditing' && args.data)
+    );
+    
+    console.log('Should save to database:', shouldSaveToDatabase);
     
     if (shouldSaveToDatabase) {
       console.log('Database save triggered by:', args.requestType || args.action);
@@ -405,6 +408,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
+      console.log('=== UPDATE TASK IN DATABASE ===');
       console.log('Updating task in database:', taskData.DatabaseID);
       console.log('Full taskData:', taskData);
       
