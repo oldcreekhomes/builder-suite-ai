@@ -41,7 +41,7 @@ if (typeof document !== 'undefined') {
 }
 
 // Register Syncfusion license immediately
-registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
+registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
 interface GanttChartProps {
   projectId: string;
@@ -155,6 +155,20 @@ function GanttChart({ projectId }: GanttChartProps) {
       return allResources;
     },
   });
+
+  // Handle cell edit completion - this fires when user finishes editing a cell
+  const handleCellEdit = (args: any) => {
+    console.log('Cell edit event triggered:', args);
+    console.log('Cell edit - requestType:', args.requestType);
+    console.log('Cell edit - data:', args.data);
+    console.log('Cell edit - action:', args.action);
+    
+    // Get the updated task data from the cell edit event
+    if (args.data && args.data.DatabaseID) {
+      console.log('Cell edit detected, saving task to database:', args.data.DatabaseID);
+      updateTaskInDatabase(args.data);
+    }
+  };
 
   // Handle adding new task
   const handleAddTask = async () => {
@@ -361,9 +375,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     // Handle different types of editing events that should trigger database saves
     const shouldSaveToDatabase = (
       (args.requestType === 'save' && args.data) ||
-      (args.action === 'CellEditing' && args.data) ||
-      (args.requestType === 'recordUpdate' && args.data) ||
-      (args.requestType === 'cellSave' && args.data)
+      (args.requestType === 'recordUpdate' && args.data)
     );
     
     if (shouldSaveToDatabase) {
@@ -396,6 +408,10 @@ function GanttChart({ projectId }: GanttChartProps) {
           }
         });
       }
+    } else if (args.requestType === 'refresh') {
+      console.log('Refresh event detected - this typically happens after cell edits');
+      // For refresh events, we don't get the updated data in args.data
+      // The cell edit should be handled by the cellEdit event handler instead
     }
   };
 
@@ -436,13 +452,9 @@ function GanttChart({ projectId }: GanttChartProps) {
       }
 
       console.log('Task updated successfully in database');
+      // Don't show toast for inline edits to avoid UI noise
       // Don't invalidate queries immediately to avoid UI flicker during inline editing
-      // The data will be refreshed on the next component mount or manual refresh
       
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      });
     } catch (error) {
       console.error('Error updating task:', error);
       toast({
@@ -631,6 +643,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
+        cellEdit={handleCellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
