@@ -253,15 +253,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     setEditDialog({ open: true, taskToEdit: dbTask });
   };
 
-  // Handle task double-click to open edit dialog
-  const recordDoubleClick = (args: any) => {
-    args.cancel = true; // Prevent default double-click behavior
-    const selectedTask = args.rowData;
-    if (selectedTask) {
-      openEditDialog(selectedTask);
-    }
-  };
-
   // Handle task updates from custom edit dialog
   const handleTaskSave = async (taskId: string, updates: any) => {
     try {
@@ -349,7 +340,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Row data:', args.rowData);
     console.log('Cell value:', args.value);
     
-    // Allow editing for all editable columns
+    // Allow editing for all editable columns except TaskID
     if (args.columnName === 'TaskID') {
       args.cancel = true; // Prevent editing ID column
       console.log('Prevented editing of TaskID column');
@@ -382,16 +373,15 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action begin to allow inline editing
+  // Handle action begin - only cancel the default edit dialog, not inline editing
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
+    // Only cancel the edit dialog if it's opened via toolbar, not double-click
     if (args.requestType === 'beforeOpenEditDialog') {
-      // Cancel the default edit dialog and use our custom one
+      // Check if this was triggered by toolbar edit (we'll handle it in toolbarClick)
+      // For now, always cancel the default dialog since we use custom modal
       args.cancel = true;
-      if (args.rowData) {
-        openEditDialog(args.rowData);
-      }
     }
   };
 
@@ -519,7 +509,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const columns: any[] = [
-    { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false },
+    { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false, isPrimaryKey: true },
     { field: 'TaskName', headerText: 'Task Name', width: 250, allowEditing: true },
     { field: 'StartDate', headerText: 'Start Date', allowEditing: true },
     { field: 'Duration', headerText: 'Duration', allowEditing: true },
@@ -602,7 +592,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
         actionBegin={actionBegin}
-        recordDoubleClick={recordDoubleClick}
         cellEdit={cellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
