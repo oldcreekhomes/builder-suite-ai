@@ -45,9 +45,10 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
-      // Transform database data to Gantt format
+      // Transform database data to Gantt format with numerical IDs
       return data.map((task, index) => ({
-        TaskID: task.id,
+        TaskID: index + 1, // Show simple numerical ID on frontend
+        DatabaseID: task.id, // Keep the actual UUID for database operations
         TaskName: task.task_name,
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
@@ -113,6 +114,43 @@ function GanttChart({ projectId }: GanttChartProps) {
     if (args.item.id === 'SyncfusionGantt_add') {
       args.cancel = true; // Cancel the default add behavior
       handleAddTask(); // Call our custom add function
+    }
+  };
+
+  // Handle task updates
+  const actionComplete = (args: any) => {
+    if (args.requestType === 'save' && args.data) {
+      // Handle task update using the DatabaseID
+      const taskData = args.data;
+      if (taskData.DatabaseID) {
+        updateTaskInDatabase(taskData);
+      }
+    }
+  };
+
+  const updateTaskInDatabase = async (taskData: any) => {
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update({
+          task_name: taskData.TaskName,
+          start_date: new Date(taskData.StartDate).toISOString(),
+          end_date: new Date(taskData.EndDate).toISOString(),
+          duration: taskData.Duration,
+          progress: taskData.Progress || 0,
+        })
+        .eq('id', taskData.DatabaseID);
+
+      if (error) {
+        console.error('Error updating task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update task",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
     }
   };
 
@@ -184,6 +222,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowReordering={true}
         allowSelection={true}
         toolbarClick={toolbarClick}
+        actionComplete={actionComplete}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
