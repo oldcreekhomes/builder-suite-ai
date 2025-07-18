@@ -105,6 +105,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
+      console.log('Fetched users:', users);
+      console.log('Fetched representatives:', representatives);
+      console.log('All resources:', allResources);
       return allResources;
     },
   });
@@ -229,7 +232,11 @@ function GanttChart({ projectId }: GanttChartProps) {
       editType: 'dropdownedit',
       edit: {
         params: {
-          dataSource: resources.map(r => ({ text: r.resourceName, value: r.resourceName })),
+          dataSource: (() => {
+            const mappedResources = resources.map(r => ({ text: r.resourceName, value: r.resourceName }));
+            console.log('Resources for dropdown:', mappedResources);
+            return mappedResources;
+          })(),
           fields: { text: 'text', value: 'value' },
           allowFiltering: true,
           filterBarPlaceholder: 'Search resources...',
