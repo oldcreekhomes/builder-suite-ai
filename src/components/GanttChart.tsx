@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { TaskEditDialog } from "@/components/schedule/TaskEditDialog";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -34,6 +35,10 @@ function GanttChart({ projectId }: GanttChartProps) {
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
     open: false, 
     taskToDelete: null 
+  });
+  const [editDialog, setEditDialog] = React.useState<{ open: boolean; taskToEdit: any | null }>({ 
+    open: false, 
+    taskToEdit: null 
   });
   
   // Fetch schedule tasks from the database
@@ -186,6 +191,24 @@ function GanttChart({ projectId }: GanttChartProps) {
     if (args.item.id === 'SyncfusionGantt_add') {
       args.cancel = true; // Cancel the default add behavior
       handleAddTask(); // Call our custom add function
+    } else if (args.item.id === 'SyncfusionGantt_edit') {
+      args.cancel = true; // Cancel the default edit behavior
+      // Get selected task
+      const ganttComponent = document.getElementById('SyncfusionGantt') as any;
+      if (ganttComponent && ganttComponent.ej2_instances && ganttComponent.ej2_instances[0]) {
+        const ganttInstance = ganttComponent.ej2_instances[0];
+        const selectedRowIndex = ganttInstance.selectedRowIndex;
+        if (selectedRowIndex >= 0 && tasks[selectedRowIndex]) {
+          const selectedTask = tasks[selectedRowIndex];
+          openEditDialog(selectedTask);
+        } else {
+          toast({
+            title: "No Selection",
+            description: "Please select a task to edit",
+            variant: "destructive",
+          });
+        }
+      }
     } else if (args.item.id === 'SyncfusionGantt_delete') {
       args.cancel = true; // Cancel the default delete behavior
       // Get selected task using the correct method
@@ -203,6 +226,118 @@ function GanttChart({ projectId }: GanttChartProps) {
           });
         }
       }
+    }
+  };
+
+  // Open custom edit dialog
+  const openEditDialog = (task: any) => {
+    // Convert Gantt task format to database format for the edit dialog
+    const dbTask = {
+      id: task.DatabaseID,
+      task_name: task.TaskName,
+      start_date: task.StartDate.toISOString().split('T')[0], // Convert to YYYY-MM-DD format
+      end_date: task.EndDate.toISOString().split('T')[0],
+      progress: 0, // Default since not in Gantt format
+      priority: 'medium', // Default
+      assigned_to: task.Resource?.[0] || '',
+      parent_id: task.ParentID ? tasks.find(t => t.TaskID === task.ParentID)?.DatabaseID : null,
+      notes: '',
+      color: '#3b82f6',
+      availableParents: tasks.filter(t => t.DatabaseID !== task.DatabaseID).map(t => ({
+        id: t.DatabaseID,
+        task_name: t.TaskName
+      }))
+    };
+    
+    setEditDialog({ open: true, taskToEdit: dbTask });
+  };
+
+  // Handle task double-click to open edit dialog
+  const recordDoubleClick = (args: any) => {
+    args.cancel = true; // Prevent default double-click behavior
+    const selectedTask = args.rowData;
+    if (selectedTask) {
+      openEditDialog(selectedTask);
+    }
+  };
+
+  // Handle task updates from custom edit dialog
+  const handleTaskSave = async (taskId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update({
+          task_name: updates.task_name,
+          start_date: new Date(updates.start_date).toISOString(),
+          end_date: new Date(updates.end_date).toISOString(),
+          progress: updates.progress,
+          priority: updates.priority,
+          assigned_to: updates.assigned_to || null,
+          parent_id: updates.parent_id || null,
+          notes: updates.notes || null,
+          color: updates.color || '#3b82f6'
+        })
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error updating task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update task",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the tasks
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle task delete from custom edit dialog
+  const handleTaskDelete = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error deleting task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete task",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the tasks
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
     }
   };
 
@@ -289,6 +424,45 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
+  // Handle custom delete operation
+  const handleDeleteTask = async () => {
+    if (!deleteDialog.taskToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', deleteDialog.taskToDelete.DatabaseID);
+
+      if (error) {
+        console.error('Error deleting task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete task",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the tasks
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog({ open: false, taskToDelete: null });
+    }
+  };
+
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName',
@@ -350,45 +524,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     newRowPosition: 'Bottom' as any
   };
 
-  // Handle custom delete operation
-  const handleDeleteTask = async () => {
-    if (!deleteDialog.taskToDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .delete()
-        .eq('id', deleteDialog.taskToDelete.DatabaseID);
-
-      if (error) {
-        console.error('Error deleting task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Refresh the tasks
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleteDialog({ open: false, taskToDelete: null });
-    }
-  };
-
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
@@ -417,9 +552,18 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
+        recordDoubleClick={recordDoubleClick}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
+
+      <TaskEditDialog
+        task={editDialog.taskToEdit}
+        isOpen={editDialog.open}
+        onClose={() => setEditDialog({ open: false, taskToEdit: null })}
+        onSave={handleTaskSave}
+        onDelete={handleTaskDelete}
+      />
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, taskToDelete: null })}>
         <AlertDialogContent>
