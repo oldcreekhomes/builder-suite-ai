@@ -1,5 +1,4 @@
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
-import { TreeGrid, Edit as TreeGridEdit } from '@syncfusion/ej2-treegrid';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,9 +23,6 @@ import '@syncfusion/ej2-gantt/styles/material.css';
 
 // Register Syncfusion license immediately
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
-
-// Register TreeGrid edit module globally
-TreeGrid.Inject(TreeGridEdit);
 
 interface GanttChartProps {
   projectId: string;
@@ -362,20 +358,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action begin - only block toolbar edit button, allow everything else
-  const actionBegin = (args: any) => {
-    console.log('Action begin:', args.requestType, args);
-    
-    // Only cancel edit dialog if it was explicitly triggered by the toolbar Edit button
-    // We can detect this by checking if a task is already selected when beforeOpenEditDialog fires
-    if (args.requestType === 'beforeOpenEditDialog') {
-      console.log('Edit dialog triggered, checking if from toolbar...');
-      // For now, let all edit dialogs through to enable inline editing
-      // The toolbar edit is handled separately in toolbarClick
-    }
-  };
-
-
   const updateTaskInDatabase = async (taskData: any) => {
     try {
       // Handle resource assignment - the Resource field contains the selected resourceId
@@ -548,7 +530,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: false,
     newRowPosition: 'Bottom' as any,
-    mode: 'Cell' as any
+    mode: 'Auto' as any
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -582,9 +564,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
-        actionBegin={actionBegin}
       >
-        <Inject services={[Selection, Toolbar, Edit, TreeGridEdit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
+        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
 
       <TaskEditDialog
