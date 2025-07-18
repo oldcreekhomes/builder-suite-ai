@@ -226,15 +226,14 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'Resource', 
       headerText: 'Resource', 
       width: 200,
-      editType: 'autocompleteedit',
+      editType: 'dropdownedit',
       edit: {
         params: {
-          dataSource: resources.map(r => r.resourceName),
+          dataSource: resources.map(r => ({ text: r.resourceName, value: r.resourceName })),
+          fields: { text: 'text', value: 'value' },
           allowFiltering: true,
-          filterType: 'Contains',
-          ignoreCase: true,
-          suggestionCount: 10,
-          minLength: 1
+          filterBarPlaceholder: 'Search resources...',
+          enableAutoComplete: true
         }
       }
     },
