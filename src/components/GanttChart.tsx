@@ -188,12 +188,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       handleAddTask(); // Call our custom add function
     } else if (args.item.id === 'SyncfusionGantt_delete') {
       args.cancel = true; // Cancel the default delete behavior
-      // Get selected task
+      // Get selected task using the correct method
       const ganttComponent = document.getElementById('SyncfusionGantt') as any;
       if (ganttComponent && ganttComponent.ej2_instances && ganttComponent.ej2_instances[0]) {
-        const selectedTask = ganttComponent.ej2_instances[0].getSelectedRecords()[0];
-        if (selectedTask) {
-          setDeleteDialog({ open: true, taskToDelete: selectedTask });
+        const ganttInstance = ganttComponent.ej2_instances[0];
+        const selectedRowIndex = ganttInstance.selectedRowIndex;
+        if (selectedRowIndex >= 0 && tasks[selectedRowIndex]) {
+          setDeleteDialog({ open: true, taskToDelete: tasks[selectedRowIndex] });
+        } else {
+          toast({
+            title: "No Selection",
+            description: "Please select a task to delete",
+            variant: "destructive",
+          });
         }
       }
     }
