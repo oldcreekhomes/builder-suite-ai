@@ -354,7 +354,8 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle task updates from both inline editing and other actions
   const actionComplete = (args: any) => {
-    console.log('Action complete:', args.requestType, args);
+    console.log('Action complete - requestType:', args.requestType);
+    console.log('Full args object:', JSON.stringify(args, null, 2));
     
     if (args.requestType === 'save' && args.data) {
       console.log('Save action detected, updating task in database');
