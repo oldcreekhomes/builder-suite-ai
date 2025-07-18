@@ -1,4 +1,5 @@
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
+import { Edit as TreeGridEdit } from '@syncfusion/ej2-treegrid';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -586,7 +587,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         actionComplete={actionComplete}
         actionBegin={actionBegin}
       >
-        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
+        <Inject services={[Selection, Toolbar, Edit, TreeGridEdit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
 
       <TaskEditDialog
