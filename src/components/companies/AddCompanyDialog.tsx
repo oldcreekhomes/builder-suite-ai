@@ -121,6 +121,8 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       form.reset();
       setSelectedCostCodes([]);
       onOpenChange(false);
+      // Refresh the page to ensure data is properly loaded
+      window.location.reload();
     },
     onError: (error) => {
       console.error('Error creating company:', error);
