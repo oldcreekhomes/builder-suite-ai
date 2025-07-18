@@ -246,7 +246,8 @@ function GanttChart({ projectId }: GanttChartProps) {
       availableParents: tasks.filter(t => t.DatabaseID !== task.DatabaseID).map(t => ({
         id: t.DatabaseID,
         task_name: t.TaskName
-      }))
+      })),
+      availableResources: resources
     };
     
     setEditDialog({ open: true, taskToEdit: dbTask });
