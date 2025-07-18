@@ -51,6 +51,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const [costCodeError, setCostCodeError] = useState<string>("");
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -66,6 +67,10 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   // Memoize the cost codes change handler to prevent infinite re-renders
   const handleCostCodesChange = useCallback((costCodes: string[]) => {
     setSelectedCostCodes(costCodes);
+    // Clear error when cost codes are selected
+    if (costCodes.length > 0) {
+      setCostCodeError("");
+    }
   }, []);
 
   const createCompanyMutation = useMutation({
@@ -136,6 +141,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
 
   const onSubmit = (data: CompanyFormData) => {
     if (selectedCostCodes.length === 0) {
+      setCostCodeError("Associated cost codes are required");
       toast({
         title: "Error",
         description: "Please select at least one cost code",
@@ -143,6 +149,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       });
       return;
     }
+    setCostCodeError("");
     createCompanyMutation.mutate(data);
   };
 
@@ -152,6 +159,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       // Reset form and selections when closing
       form.reset();
       setSelectedCostCodes([]);
+      setCostCodeError("");
     }
     onOpenChange(newOpen);
   }, [onOpenChange, form]);
@@ -258,6 +266,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                 companyId={null}
                 selectedCostCodes={selectedCostCodes}
                 onCostCodesChange={handleCostCodesChange}
+                error={costCodeError}
               />
 
               <div className="flex justify-end space-x-4 pt-4">

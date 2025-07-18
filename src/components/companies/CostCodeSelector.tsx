@@ -11,12 +11,14 @@ interface CostCodeSelectorProps {
   companyId: string | null;
   selectedCostCodes: string[];
   onCostCodesChange: (costCodes: string[]) => void;
+  error?: string;
 }
 
 export const CostCodeSelector = React.memo(function CostCodeSelector({ 
   companyId, 
   selectedCostCodes, 
-  onCostCodesChange 
+  onCostCodesChange,
+  error 
 }: CostCodeSelectorProps) {
   const [costCodeSearch, setCostCodeSearch] = useState("");
 
@@ -104,6 +106,11 @@ export const CostCodeSelector = React.memo(function CostCodeSelector({
           </div>
         )}
       </div>
+      
+      {/* Error message */}
+      {error && (
+        <p className="text-sm font-medium text-destructive">{error}</p>
+      )}
     </div>
   );
 });
