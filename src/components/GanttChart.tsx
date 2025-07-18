@@ -321,6 +321,11 @@ function GanttChart({ projectId }: GanttChartProps) {
       width: 200
       // Removed the editType and edit params - let Syncfusion handle resource management
     },
+    { 
+      field: 'Predecessor', 
+      headerText: 'Dependencies', 
+      width: 150 
+    },
   ];
 
   const splitterSettings = {
