@@ -1,5 +1,5 @@
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
-import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
+import { TreeGrid, Edit as TreeGridEdit } from '@syncfusion/ej2-treegrid';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +24,9 @@ import '@syncfusion/ej2-gantt/styles/material.css';
 
 // Register Syncfusion license immediately
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
+
+// Register TreeGrid edit module globally
+TreeGrid.Inject(TreeGridEdit);
 
 interface GanttChartProps {
   projectId: string;
