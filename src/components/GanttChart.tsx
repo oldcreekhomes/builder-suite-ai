@@ -361,16 +361,24 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete - action:', args.action);
     
     // Handle different types of editing events that should trigger database saves
-    const shouldSaveToDatabase = (
-      (args.requestType === 'save' && args.data) ||
-      (args.requestType === 'recordUpdate' && args.data) ||
-      (args.action === 'CellEditing' && args.data)
-    );
+    // Check if we have valid task data with DatabaseID (indicates an existing task being edited)
+    const hasValidTaskData = args.data && args.data.DatabaseID;
+    const isRefreshEvent = args.requestType === 'refresh';
+    const isDefinedAction = args.action && typeof args.action === 'string';
+    const isDefinedRequestType = args.requestType && typeof args.requestType === 'string';
+    
+    console.log('Has valid task data:', hasValidTaskData);
+    console.log('Is refresh event:', isRefreshEvent);
+    console.log('Action type:', typeof args.action, args.action);
+    console.log('RequestType type:', typeof args.requestType, args.requestType);
+    
+    // Save to database if we have valid task data and it's not just a refresh event without changes
+    const shouldSaveToDatabase = hasValidTaskData && !isRefreshEvent;
     
     console.log('Should save to database:', shouldSaveToDatabase);
     
     if (shouldSaveToDatabase) {
-      console.log('Database save triggered by:', args.requestType || args.action);
+      console.log('Database save triggered - task data found with DatabaseID:', args.data.DatabaseID);
       
       // Handle single task update
       if (args.data && !Array.isArray(args.data)) {
