@@ -21,6 +21,25 @@ import '@syncfusion/ej2-grids/styles/material.css';
 import '@syncfusion/ej2-treegrid/styles/material.css';
 import '@syncfusion/ej2-gantt/styles/material.css';
 
+// Custom styles for parent tasks
+const ganttStyles = `
+  .e-gantt .e-gantt-table .e-row[aria-expanded="true"] .e-rowcell,
+  .e-gantt .e-gantt-table .e-row[aria-expanded="false"] .e-rowcell {
+    font-weight: bold !important;
+  }
+  
+  .e-gantt .e-gantt-table .e-row.e-parentrow .e-rowcell {
+    font-weight: bold !important;
+  }
+`;
+
+// Add styles to document head
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.innerHTML = ganttStyles;
+  document.head.appendChild(styleElement);
+}
+
 // Register Syncfusion license immediately
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
@@ -483,7 +502,15 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const columns: any[] = [
     { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false, isPrimaryKey: true },
-    { field: 'TaskName', headerText: 'Task Name', width: 250, allowEditing: true },
+    { 
+      field: 'TaskName', 
+      headerText: 'Task Name', 
+      width: 250, 
+      allowEditing: true,
+      customAttributes: {
+        class: 'parent-task-bold'
+      }
+    },
     { field: 'StartDate', headerText: 'Start Date', allowEditing: true },
     { field: 'Duration', headerText: 'Duration', allowEditing: true },
     { field: 'EndDate', headerText: 'End Date', allowEditing: true },
