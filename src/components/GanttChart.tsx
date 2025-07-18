@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -30,6 +31,10 @@ interface GanttChartProps {
 function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
+    open: false, 
+    taskToDelete: null 
+  });
   
   // Fetch schedule tasks from the database
   const { data: tasks = [], isLoading } = useQuery({
@@ -181,6 +186,16 @@ function GanttChart({ projectId }: GanttChartProps) {
     if (args.item.id === 'SyncfusionGantt_add') {
       args.cancel = true; // Cancel the default add behavior
       handleAddTask(); // Call our custom add function
+    } else if (args.item.id === 'SyncfusionGantt_delete') {
+      args.cancel = true; // Cancel the default delete behavior
+      // Get selected task
+      const ganttComponent = document.getElementById('SyncfusionGantt') as any;
+      if (ganttComponent && ganttComponent.ej2_instances && ganttComponent.ej2_instances[0]) {
+        const selectedTask = ganttComponent.ej2_instances[0].getSelectedRecords()[0];
+        if (selectedTask) {
+          setDeleteDialog({ open: true, taskToDelete: selectedTask });
+        }
+      }
     }
   };
 
@@ -319,8 +334,47 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
+    showDeleteConfirmDialog: false, // Disable default confirm dialog to use our custom one
     newRowPosition: 'Bottom' as any
+  };
+
+  // Handle custom delete operation
+  const handleDeleteTask = async () => {
+    if (!deleteDialog.taskToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', deleteDialog.taskToDelete.DatabaseID);
+
+      if (error) {
+        console.error('Error deleting task:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete task",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh the tasks
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog({ open: false, taskToDelete: null });
+    }
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -354,6 +408,26 @@ function GanttChart({ projectId }: GanttChartProps) {
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
+
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, taskToDelete: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialog.taskToDelete?.TaskName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTask}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
