@@ -357,7 +357,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('=== ACTION COMPLETE EVENT ===');
     console.log('Action complete - requestType:', args.requestType);
     console.log('Action complete - data:', args.data);
-    console.log('Action complete - args full object:', JSON.stringify(args, null, 2));
     
     // Enhanced detection for inline edits - check for data with DatabaseID regardless of requestType
     if (args.data && args.data.DatabaseID) {
