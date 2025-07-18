@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -500,15 +499,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'Resource', 
       headerText: 'Resource', 
       width: 200,
-      allowEditing: true,
-      editType: 'dropdownedit',
-      edit: {
-        params: {
-          dataSource: resources,
-          fields: { value: 'resourceName', text: 'resourceName' },
-          allowFiltering: true
-        }
-      }
+      allowEditing: true
     },
     { 
       field: 'Predecessor', 
