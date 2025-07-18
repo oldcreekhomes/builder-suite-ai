@@ -53,7 +53,6 @@
     "d3": "^7.9.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
-    "gantt-task-react": "^0.3.9",
     "input-otp": "^1.2.4",
     "jszip": "^3.10.1",
     "lucide-react": "^0.462.0",

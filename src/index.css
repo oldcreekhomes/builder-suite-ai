@@ -1,53 +1,8 @@
 
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* DHTMLX Gantt Styles */
-.gantt-container {
-  width: 100%;
-  height: 100%;
-  background: var(--background);
-}
-
-.gantt-chart {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Overriding DHTMLX default styles */
-:root .gantt_task_line {
-  border-radius: 4px;
-  background-color: var(--primary);
-  border-color: var(--primary-foreground);
-}
-
-:root .gantt_task_progress {
-  background-color: var(--primary-foreground);
-}
-
-:root .gantt_grid_head_cell {
-  background-color: var(--background);
-  border-color: var(--border);
-  color: var(--foreground);
-}
-
-:root .gantt_grid_data {
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-:root .gantt_task_row {
-  background-color: var(--background);
-}
-
-:root .gantt_task_row:hover {
-  background-color: var(--accent);
-}
-
-/* DHTMLX Gantt CSS imports */
-@import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 
 @layer base {
   :root {
@@ -113,24 +68,6 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
-}
-
-/* Gantt chart styles */
-.gantt-container {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.gantt-container .gstc-list-column-header-resizer {
-  background-color: #e2e8f0;
-}
-
-.gantt-container .gstc-list-row {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.gantt-container .gstc-chart-item {
-  background-color: #3b82f6;
-  border-radius: 4px;
 }
 
 /* Syncfusion Gantt Chart Font Override */
@@ -456,3 +393,4 @@ html body .e-gantt .e-dialog .e-tab .e-tab-header .e-toolbar-item {
   background: transparent !important;
   background-color: transparent !important;
 }
+

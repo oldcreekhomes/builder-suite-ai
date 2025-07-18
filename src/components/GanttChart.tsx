@@ -156,7 +156,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
   });
 
-
   // Handle adding new task
   const handleAddTask = async () => {
     try {
@@ -353,50 +352,16 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action completion events from Syncfusion Gantt
+  // CRITICAL FIX: Handle action completion events from Syncfusion Gantt
   const actionComplete = (args: any) => {
     console.log('=== ACTION COMPLETE EVENT ===');
     console.log('Action complete - requestType:', args.requestType);
     console.log('Action complete - data:', args.data);
-    console.log('Action complete - action:', args.action);
     
-    // Handle different types of editing events that should trigger database saves
-    // Check if we have valid task data with DatabaseID (indicates an existing task being edited)
-    const hasValidTaskData = !!(args.data && args.data.DatabaseID);
-    const isRefreshEvent = args.requestType === 'refresh';
-    
-    console.log('Has valid task data:', hasValidTaskData);
-    console.log('Is refresh event:', isRefreshEvent);
-    console.log('Raw args.data:', !!args.data);
-    console.log('DatabaseID exists:', !!(args.data && args.data.DatabaseID));
-    console.log('RequestType value:', args.requestType);
-    
-    // Save to database if we have valid task data regardless of event type
-    // Skip only refresh events that have no real data
-    const shouldSaveToDatabase = hasValidTaskData && !isRefreshEvent;
-    
-    console.log('Should save to database (boolean):', shouldSaveToDatabase);
-    
-    if (shouldSaveToDatabase === true) {
-      console.log('Database save triggered - task data found with DatabaseID:', args.data.DatabaseID);
-      
-      // Handle single task update
-      if (args.data && !Array.isArray(args.data)) {
-        const taskData = args.data;
-        if (taskData.DatabaseID) {
-          console.log('Updating single task:', taskData.DatabaseID);
-          updateTaskInDatabase(taskData);
-        }
-      }
-      // Handle multiple task updates (for operations like indent/outdent)
-      else if (args.data && Array.isArray(args.data)) {
-        console.log('Updating multiple tasks');
-        args.data.forEach((taskData: any) => {
-          if (taskData.DatabaseID) {
-            updateTaskInDatabase(taskData);
-          }
-        });
-      }
+    // FIXED: Check for valid task data that has DatabaseID
+    if (args.data && args.data.DatabaseID && args.requestType === 'save') {
+      console.log('INLINE EDIT DETECTED - Saving to database:', args.data.DatabaseID);
+      updateTaskInDatabase(args.data);
     } else if (args.requestType === 'indent' || args.requestType === 'outdent') {
       console.log('Hierarchy change detected');
       // Handle indent/outdent operations
@@ -407,10 +372,6 @@ function GanttChart({ projectId }: GanttChartProps) {
           }
         });
       }
-    } else if (args.requestType === 'refresh') {
-      console.log('Refresh event detected - this typically happens after cell edits');
-      // For refresh events, we don't get the updated data in args.data
-      // The cell edit should be handled by the cellEdit event handler instead
     }
   };
 
@@ -452,8 +413,10 @@ function GanttChart({ projectId }: GanttChartProps) {
       }
 
       console.log('Task updated successfully in database');
-      // Don't show toast for inline edits to avoid UI noise
-      // Don't invalidate queries immediately to avoid UI flicker during inline editing
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
       
     } catch (error) {
       console.error('Error updating task:', error);
