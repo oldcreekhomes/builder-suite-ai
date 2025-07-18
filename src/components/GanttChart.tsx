@@ -173,6 +173,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     { field: 'TaskName', headerText: 'Task Name', width: 250 },
     { field: 'StartDate', headerText: 'Start Date' },
     { field: 'Duration', headerText: 'Duration' },
+    { field: 'EndDate', headerText: 'End Date' },
     { field: 'Progress', headerText: 'Progress' },
   ];
 
