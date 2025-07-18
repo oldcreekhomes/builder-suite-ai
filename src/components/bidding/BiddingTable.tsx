@@ -34,7 +34,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     isGroupPartiallySelected,
     removeDeletedItemsFromSelection,
     removeGroupFromExpanded
-  } = useBudgetGroups();
+  } = useBudgetGroups(groupedBiddingItems);
   
   const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
