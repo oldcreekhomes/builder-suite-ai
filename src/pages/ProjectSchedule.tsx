@@ -52,7 +52,7 @@ export default function ProjectSchedule() {
             </div>
 
             <div className="bg-background rounded-lg border">
-              <GanttChart />
+              <GanttChart projectId={projectId} />
             </div>
           </div>
         </SidebarInset>
