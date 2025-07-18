@@ -64,6 +64,8 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: resources = [] } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
+      console.log('Fetching resources...');
+      
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -82,32 +84,37 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error fetching representatives:', repsError);
       }
 
+      console.log('Raw users data:', users);
+      console.log('Raw representatives data:', representatives);
+
       // Combine and format resources
       const allResources = [];
       
-      if (users) {
+      if (users && users.length > 0) {
         users.forEach(user => {
+          const resourceName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+          console.log('Adding user resource:', resourceName);
           allResources.push({
             resourceId: user.id,
-            resourceName: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+            resourceName: resourceName,
             resourceType: 'user'
           });
         });
       }
 
-      if (representatives) {
+      if (representatives && representatives.length > 0) {
         representatives.forEach(rep => {
+          const resourceName = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
+          console.log('Adding rep resource:', resourceName);
           allResources.push({
             resourceId: rep.id,
-            resourceName: `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email,
+            resourceName: resourceName,
             resourceType: 'representative'
           });
         });
       }
 
-      console.log('Fetched users:', users);
-      console.log('Fetched representatives:', representatives);
-      console.log('All resources:', allResources);
+      console.log('Final allResources:', allResources);
       return allResources;
     },
   });
