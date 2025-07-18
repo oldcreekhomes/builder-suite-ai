@@ -358,12 +358,33 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete - data:', args.data);
     console.log('Action complete - action:', args.action);
     
-    if (args.requestType === 'save' && args.data) {
-      console.log('Save action detected, updating task in database');
-      // Handle task update using the DatabaseID
-      const taskData = args.data;
-      if (taskData.DatabaseID) {
-        updateTaskInDatabase(taskData);
+    // Handle different types of editing events that should trigger database saves
+    const shouldSaveToDatabase = (
+      (args.requestType === 'save' && args.data) ||
+      (args.action === 'CellEditing' && args.data) ||
+      (args.requestType === 'recordUpdate' && args.data) ||
+      (args.requestType === 'cellSave' && args.data)
+    );
+    
+    if (shouldSaveToDatabase) {
+      console.log('Database save triggered by:', args.requestType || args.action);
+      
+      // Handle single task update
+      if (args.data && !Array.isArray(args.data)) {
+        const taskData = args.data;
+        if (taskData.DatabaseID) {
+          console.log('Updating single task:', taskData.DatabaseID);
+          updateTaskInDatabase(taskData);
+        }
+      }
+      // Handle multiple task updates (for operations like indent/outdent)
+      else if (args.data && Array.isArray(args.data)) {
+        console.log('Updating multiple tasks');
+        args.data.forEach((taskData: any) => {
+          if (taskData.DatabaseID) {
+            updateTaskInDatabase(taskData);
+          }
+        });
       }
     } else if (args.requestType === 'indent' || args.requestType === 'outdent') {
       console.log('Hierarchy change detected');
@@ -414,9 +435,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         return;
       }
 
-      console.log('Task updated successfully in database, invalidating cache');
-      // Refresh the React Query cache to reflect the changes
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      console.log('Task updated successfully in database');
+      // Don't invalidate queries immediately to avoid UI flicker during inline editing
+      // The data will be refreshed on the next component mount or manual refresh
       
       toast({
         title: "Success",
