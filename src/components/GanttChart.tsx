@@ -342,7 +342,13 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle task updates
+  // Handle cell edit events for inline editing
+  const cellEdit = (args: any) => {
+    // This event is triggered when a cell starts editing (single-click)
+    // We can add any validation or logic here if needed
+  };
+
+  // Handle task updates from both inline editing and other actions
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
       // Handle task update using the DatabaseID
@@ -486,20 +492,29 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const columns: any[] = [
     { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false },
-    { field: 'TaskName', headerText: 'Task Name', width: 250 },
-    { field: 'StartDate', headerText: 'Start Date' },
-    { field: 'Duration', headerText: 'Duration' },
-    { field: 'EndDate', headerText: 'End Date' },
+    { field: 'TaskName', headerText: 'Task Name', width: 250, allowEditing: true },
+    { field: 'StartDate', headerText: 'Start Date', allowEditing: true },
+    { field: 'Duration', headerText: 'Duration', allowEditing: true },
+    { field: 'EndDate', headerText: 'End Date', allowEditing: true },
     { 
       field: 'Resource', 
       headerText: 'Resource', 
-      width: 200
-      // Removed the editType and edit params - let Syncfusion handle resource management
+      width: 200,
+      allowEditing: true,
+      editType: 'dropdownedit',
+      edit: {
+        params: {
+          dataSource: resources,
+          fields: { value: 'resourceName', text: 'resourceName' },
+          allowFiltering: true
+        }
+      }
     },
     { 
       field: 'Predecessor', 
       headerText: 'Dependencies', 
-      width: 150 
+      width: 150,
+      allowEditing: true
     },
   ];
 
@@ -522,7 +537,8 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: false, // Disable default confirm dialog to use our custom one
-    newRowPosition: 'Bottom' as any
+    newRowPosition: 'Bottom' as any,
+    mode: 'Cell' as any // Enable cell edit mode for single-click editing
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -554,6 +570,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
         recordDoubleClick={recordDoubleClick}
+        cellEdit={cellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu]} />
       </GanttComponent>
