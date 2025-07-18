@@ -8,14 +8,17 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 
-import { Calendar, Users, BarChart3, Settings } from "lucide-react";
+import { Calendar, Users, BarChart3, Settings, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useEnhancedProjectSchedule } from "@/hooks/useEnhancedProjectSchedule";
 import { DHtmlxGantt } from "@/components/schedule/DHtmlxGantt";
+import { ResourceManagement } from "@/components/schedule/ResourceManagement";
+import { CalendarView } from "@/components/schedule/CalendarView";
+import { DependencyManager } from "@/components/schedule/DependencyManager";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const [selectedView, setSelectedView] = useState<'gantt' | 'calendar' | 'resources'>('gantt');
+  const [selectedView, setSelectedView] = useState<'gantt' | 'calendar' | 'resources' | 'dependencies'>('gantt');
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -107,7 +110,7 @@ export default function ProjectSchedule() {
                   size="sm"
                   onClick={() => setSelectedView('gantt')}
                 >
-                  <Calendar className="h-4 w-4 mr-1" />
+                  <BarChart3 className="h-4 w-4 mr-1" />
                   Gantt
                 </Button>
                 <Button 
@@ -119,12 +122,20 @@ export default function ProjectSchedule() {
                   Resources
                 </Button>
                 <Button 
+                  variant={selectedView === 'dependencies' ? 'default' : 'outline'} 
+                  size="sm"
+                  onClick={() => setSelectedView('dependencies')}
+                >
+                  <ArrowRight className="h-4 w-4 mr-1" />
+                  Dependencies
+                </Button>
+                <Button 
                   variant={selectedView === 'calendar' ? 'default' : 'outline'} 
                   size="sm"
                   onClick={() => setSelectedView('calendar')}
                 >
-                  <BarChart3 className="h-4 w-4 mr-1" />
-                  Reports
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Calendar
                 </Button>
               </div>
             </div>
@@ -147,18 +158,11 @@ export default function ProjectSchedule() {
                 />
               </div>
             ) : selectedView === 'resources' ? (
-              <div className="bg-background rounded-lg border p-6">
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold">Resource Management</h3>
-                  <p className="text-muted-foreground">
-                    Manage team members and resource allocation for this project.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Found {resources.length} resources configured for this project.
-                  </p>
-                </div>
-              </div>
+              <ResourceManagement projectId={projectId} />
+            ) : selectedView === 'dependencies' ? (
+              <DependencyManager projectId={projectId} />
+            ) : selectedView === 'calendar' ? (
+              <CalendarView projectId={projectId} />
             ) : (
               <div className="bg-background rounded-lg border p-6">
                 <div className="text-center py-8">
