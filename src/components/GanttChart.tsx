@@ -1,5 +1,4 @@
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
-import { Edit as TreeGridEdit } from '@syncfusion/ej2-treegrid';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -359,22 +358,16 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action begin - allow inline editing, only intercept toolbar edits
+  // Handle action begin - only block toolbar edit button, allow everything else
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Add specific logging for edit actions
+    // Only cancel edit dialog if it was explicitly triggered by the toolbar Edit button
+    // We can detect this by checking if a task is already selected when beforeOpenEditDialog fires
     if (args.requestType === 'beforeOpenEditDialog') {
-      console.log('Edit dialog would open, args:', args);
-      // Only cancel if this was triggered by toolbar edit button
-      if (args.cancel !== undefined) {
-        console.log('Canceling edit dialog');
-        args.cancel = true;
-      }
-    }
-    
-    if (args.requestType === 'cellEdit') {
-      console.log('Cell edit action begin:', args);
+      console.log('Edit dialog triggered, checking if from toolbar...');
+      // For now, let all edit dialogs through to enable inline editing
+      // The toolbar edit is handled separately in toolbarClick
     }
   };
 
@@ -587,7 +580,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         actionComplete={actionComplete}
         actionBegin={actionBegin}
       >
-        <Inject services={[Selection, Toolbar, Edit, TreeGridEdit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
+        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
 
       <TaskEditDialog
