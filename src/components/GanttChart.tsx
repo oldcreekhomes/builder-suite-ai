@@ -333,21 +333,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle cell edit events for inline editing
-  const cellEdit = (args: any) => {
-    console.log('Cell edit triggered:', args);
-    console.log('Column field:', args.columnName);
-    console.log('Row data:', args.rowData);
-    console.log('Cell value:', args.value);
-    
-    // Allow editing for all editable columns except TaskID
-    if (args.columnName === 'TaskID') {
-      args.cancel = true; // Prevent editing ID column
-      console.log('Prevented editing of TaskID column');
-    } else {
-      console.log('Allowing cell edit for column:', args.columnName);
-    }
-  };
 
   // Handle task updates from both inline editing and other actions
   const actionComplete = (args: any) => {
@@ -381,11 +366,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     // We'll only use custom modal when user clicks toolbar Edit button
   };
 
-  // Handle double-click to enable inline editing
-  const recordDoubleClick = (args: any) => {
-    console.log('Double click:', args);
-    // Don't cancel - let Syncfusion handle inline editing
-  };
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
@@ -594,8 +574,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
         actionBegin={actionBegin}
-        recordDoubleClick={recordDoubleClick}
-        cellEdit={cellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
