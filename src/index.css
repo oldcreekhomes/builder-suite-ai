@@ -163,3 +163,119 @@
 .e-gantt .e-treegrid .e-headercell {
   font-weight: 600;
 }
+
+/* Syncfusion Modal Styling Overrides */
+.e-dialog {
+  border-radius: calc(var(--radius) + 2px) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  background: hsl(var(--background)) !important;
+}
+
+.e-dialog .e-dlg-header {
+  background: hsl(var(--background)) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  padding: 1.5rem !important;
+  border-radius: calc(var(--radius) + 2px) calc(var(--radius) + 2px) 0 0 !important;
+}
+
+.e-dialog .e-dlg-header .e-dlg-header-content {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.e-dialog .e-dlg-content {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  padding: 1.5rem !important;
+}
+
+/* Tab styling */
+.e-dialog .e-tab .e-tab-header {
+  background: transparent !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  margin-bottom: 1rem !important;
+}
+
+.e-dialog .e-tab .e-tab-header .e-toolbar-item {
+  background: transparent !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border: none !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.e-dialog .e-tab .e-tab-header .e-toolbar-item.e-active {
+  color: hsl(var(--foreground)) !important;
+  border-bottom: 2px solid hsl(var(--primary)) !important;
+  background: transparent !important;
+}
+
+/* Form styling */
+.e-dialog .e-textbox,
+.e-dialog .e-input-group.e-control-wrapper,
+.e-dialog .e-float-input.e-control-wrapper {
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  background: hsl(var(--background)) !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.e-dialog .e-textbox:focus,
+.e-dialog .e-input-group.e-control-wrapper:focus-within,
+.e-dialog .e-float-input.e-control-wrapper:focus-within {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+}
+
+.e-dialog .e-textbox,
+.e-dialog .e-input-group input {
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+.e-dialog .e-float-text {
+  color: hsl(var(--muted-foreground)) !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Button styling */
+.e-dialog .e-footer-content {
+  background: hsl(var(--background)) !important;
+  border-top: 1px solid hsl(var(--border)) !important;
+  padding: 1.5rem !important;
+  border-radius: 0 0 calc(var(--radius) + 2px) calc(var(--radius) + 2px) !important;
+}
+
+.e-dialog .e-btn.e-primary {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border: 1px solid hsl(var(--primary)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.e-dialog .e-btn.e-primary:hover {
+  background: hsl(var(--primary) / 0.9) !important;
+}
+
+.e-dialog .e-btn:not(.e-primary) {
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.e-dialog .e-btn:not(.e-primary):hover {
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
