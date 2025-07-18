@@ -222,6 +222,11 @@ function GanttChart({ projectId }: GanttChartProps) {
     dependency: 'Predecessor',
   };
 
+  const resourceFields = {
+    id: 'resourceId',
+    name: 'resourceName'
+  };
+
   const labelSettings: any = {
     leftLabel: 'TaskName'
   };
@@ -286,6 +291,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         id='SyncfusionGantt' 
         dataSource={tasks}
         taskFields={taskFields} 
+        resourceFields={resourceFields}
+        resources={resources}
         labelSettings={labelSettings} 
         columns={columns}
         height='500px'
