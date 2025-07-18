@@ -364,15 +364,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     // Check if we have valid task data with DatabaseID (indicates an existing task being edited)
     const hasValidTaskData = args.data && args.data.DatabaseID;
     const isRefreshEvent = args.requestType === 'refresh';
-    const isDefinedAction = args.action && typeof args.action === 'string';
-    const isDefinedRequestType = args.requestType && typeof args.requestType === 'string';
     
     console.log('Has valid task data:', hasValidTaskData);
     console.log('Is refresh event:', isRefreshEvent);
     console.log('Action type:', typeof args.action, args.action);
     console.log('RequestType type:', typeof args.requestType, args.requestType);
     
-    // Save to database if we have valid task data and it's not just a refresh event without changes
+    // Save to database if we have valid task data regardless of event type
+    // Skip only refresh events that have no real data
     const shouldSaveToDatabase = hasValidTaskData && !isRefreshEvent;
     
     console.log('Should save to database:', shouldSaveToDatabase);
