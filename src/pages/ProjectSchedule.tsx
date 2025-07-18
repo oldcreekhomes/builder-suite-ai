@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import GanttChart from "@/components/GanttChart";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -50,15 +51,8 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
             </div>
 
-            <div className="bg-background rounded-lg border p-8">
-              <div className="text-center py-16">
-                <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-                  Schedule functionality has been removed
-                </h3>
-                <p className="text-muted-foreground">
-                  All schedule-related features and data have been deleted from this project.
-                </p>
-              </div>
+            <div className="bg-background rounded-lg border">
+              <GanttChart />
             </div>
           </div>
         </SidebarInset>
