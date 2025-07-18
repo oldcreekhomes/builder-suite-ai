@@ -132,3 +132,34 @@
   background-color: #3b82f6;
   border-radius: 4px;
 }
+
+/* Syncfusion Gantt Chart Font Override */
+.e-gantt,
+.e-gantt .e-treegrid,
+.e-gantt .e-treegrid .e-gridheader,
+.e-gantt .e-treegrid .e-gridcontent,
+.e-gantt .e-treegrid .e-rowcell,
+.e-gantt .e-treegrid .e-headercell,
+.e-gantt .e-gantt-chart,
+.e-gantt .e-gantt-chart-pane,
+.e-gantt .e-taskbar-main-container,
+.e-gantt .e-timeline-header-container,
+.e-gantt .e-timeline-top-header-cell,
+.e-gantt .e-timeline-header-cell,
+.e-gantt .e-gantt-toolbar,
+.e-gantt .e-toolbar-item,
+.e-gantt input,
+.e-gantt select,
+.e-gantt button {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+}
+
+/* Ensure proper font weight and styling for readability */
+.e-gantt .e-treegrid .e-rowcell,
+.e-gantt .e-treegrid .e-headercell {
+  font-weight: 500;
+}
+
+.e-gantt .e-treegrid .e-headercell {
+  font-weight: 600;
+}
