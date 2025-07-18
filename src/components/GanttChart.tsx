@@ -156,19 +156,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
   });
 
-  // Handle cell edit completion - this fires when user finishes editing a cell
-  const handleCellEdit = (args: any) => {
-    console.log('Cell edit event triggered:', args);
-    console.log('Cell edit - requestType:', args.requestType);
-    console.log('Cell edit - data:', args.data);
-    console.log('Cell edit - action:', args.action);
-    
-    // Get the updated task data from the cell edit event
-    if (args.data && args.data.DatabaseID) {
-      console.log('Cell edit detected, saving task to database:', args.data.DatabaseID);
-      updateTaskInDatabase(args.data);
-    }
-  };
 
   // Handle adding new task
   const handleAddTask = async () => {
@@ -372,11 +359,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete - data:', args.data);
     console.log('Action complete - action:', args.action);
     
-    // Handle different types of editing events that should trigger database saves
-    const shouldSaveToDatabase = (
-      (args.requestType === 'save' && args.data) ||
-      (args.requestType === 'recordUpdate' && args.data)
-    );
+  // Handle different types of editing events that should trigger database saves
+  const shouldSaveToDatabase = (
+    (args.requestType === 'save' && args.data) ||
+    (args.requestType === 'recordUpdate' && args.data) ||
+    (args.action === 'CellEditing' && args.data)
+  );
     
     if (shouldSaveToDatabase) {
       console.log('Database save triggered by:', args.requestType || args.action);
@@ -643,7 +631,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
-        cellEdit={handleCellEdit}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
       </GanttComponent>
