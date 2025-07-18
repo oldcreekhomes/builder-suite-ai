@@ -852,13 +852,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "task_resource_assignments_resource_id_fkey"
-            columns: ["resource_id"]
-            isOneToOne: false
-            referencedRelation: "project_resources"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "task_resource_assignments_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false

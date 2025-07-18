@@ -88,8 +88,8 @@ export function DHtmlxGantt({
       gantt.attachEvent("onAfterTaskAdd", (id, task) => {
         const taskData = {
           task_name: task.text || 'New Task',
-          start_date: task.start_date,
-          end_date: task.end_date,
+          start_date: task.start_date instanceof Date ? task.start_date.toISOString() : new Date().toISOString(),
+          end_date: task.end_date instanceof Date ? task.end_date.toISOString() : new Date(Date.now() + 24*60*60*1000).toISOString(),
           duration: task.duration || 1,
           parent_id: task.parent || null,
           progress: 0
@@ -100,8 +100,8 @@ export function DHtmlxGantt({
       gantt.attachEvent("onAfterTaskUpdate", (id, task) => {
         const updates = {
           task_name: task.text,
-          start_date: task.start_date,
-          end_date: task.end_date,
+          start_date: task.start_date instanceof Date ? task.start_date.toISOString() : task.start_date,
+          end_date: task.end_date instanceof Date ? task.end_date.toISOString() : task.end_date,
           duration: task.duration,
           parent_id: task.parent || null,
           progress: task.progress ? task.progress * 100 : 0
@@ -114,10 +114,16 @@ export function DHtmlxGantt({
       });
 
       gantt.attachEvent("onAfterLinkAdd", (id, link) => {
+        // Convert link type number to dependency type string
+        let dependencyType = 'finish_to_start';
+        if (link.type === "1") dependencyType = 'start_to_start';
+        else if (link.type === "2") dependencyType = 'finish_to_finish';  
+        else if (link.type === "3") dependencyType = 'start_to_finish';
+        
         const linkData = {
           source_task_id: String(link.source),
           target_task_id: String(link.target),
-          dependency_type: String(link.type || 0),
+          dependency_type: dependencyType,
           lag_days: 0
         };
         onCreateLink(linkData).catch(console.error);
@@ -142,22 +148,52 @@ export function DHtmlxGantt({
     console.log('Updating Gantt data:', { tasks: tasks.length, dependencies: dependencies.length });
 
     try {
-      const formattedTasks = tasks.map(task => ({
-        id: String(task.id),
-        text: task.task_name || 'Untitled Task',
-        start_date: new Date(task.start_date),
-        end_date: new Date(task.end_date),
-        duration: task.duration || 1,
-        parent: task.parent_id ? String(task.parent_id) : undefined,
-        progress: task.progress ? task.progress / 100 : 0
-      }));
+      const formattedTasks = tasks.map(task => {
+        const startDate = new Date(task.start_date);
+        const endDate = new Date(task.end_date);
+        
+        // Ensure dates are valid
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.warn('Invalid date for task:', task);
+          const today = new Date();
+          const tomorrow = new Date(today.getTime() + 24*60*60*1000);
+          
+          return {
+            id: String(task.id),
+            text: task.task_name || 'Untitled Task',
+            start_date: today,
+            end_date: tomorrow,
+            duration: 1,
+            parent: task.parent_id ? String(task.parent_id) : undefined,
+            progress: task.progress ? task.progress / 100 : 0
+          };
+        }
+        
+        return {
+          id: String(task.id),
+          text: task.task_name || 'Untitled Task',
+          start_date: startDate,
+          end_date: endDate,
+          duration: task.duration || 1,
+          parent: task.parent_id ? String(task.parent_id) : undefined,
+          progress: task.progress ? task.progress / 100 : 0
+        };
+      });
 
-      const formattedLinks = (dependencies || []).map(link => ({
-        id: String(link.id),
-        source: String(link.source_task_id),
-        target: String(link.target_task_id),
-        type: String(link.dependency_type || "0")
-      }));
+      // Map dependency types correctly
+      const formattedLinks = (dependencies || []).map(link => {
+        let linkType = "0"; // Default to finish-to-start
+        if (link.dependency_type === 'start_to_start') linkType = "1";
+        else if (link.dependency_type === 'finish_to_finish') linkType = "2";
+        else if (link.dependency_type === 'start_to_finish') linkType = "3";
+        
+        return {
+          id: String(link.id),
+          source: String(link.source_task_id),
+          target: String(link.target_task_id),
+          type: linkType
+        };
+      });
 
       console.log('Formatted data:', { formattedTasks, formattedLinks });
 
@@ -180,8 +216,8 @@ export function DHtmlxGantt({
   const handleAddTask = () => {
     const newTask = {
       task_name: 'New Task',
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0],
+      start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + 24*60*60*1000).toISOString(),
       duration: 1,
       progress: 0,
       parent_id: null

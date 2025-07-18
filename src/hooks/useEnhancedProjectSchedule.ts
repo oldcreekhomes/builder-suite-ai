@@ -84,7 +84,15 @@ export function useEnhancedProjectSchedule(projectId: string) {
         .order('order_index', { ascending: true });
 
       if (error) throw error;
-      return data as ScheduleTask[];
+      
+      // Convert dates to proper format for the frontend
+      const formattedTasks = data?.map(task => ({
+        ...task,
+        start_date: task.start_date ? new Date(task.start_date).toISOString() : new Date().toISOString(),
+        end_date: task.end_date ? new Date(task.end_date).toISOString() : new Date(Date.now() + 24*60*60*1000).toISOString(),
+      })) || [];
+      
+      return formattedTasks as ScheduleTask[];
     },
     enabled: !!projectId,
   });
@@ -130,15 +138,19 @@ export function useEnhancedProjectSchedule(projectId: string) {
     mutationFn: async (taskData: CreateTaskData) => {
       console.log('Creating task in database:', taskData);
       
-      // Validate and provide defaults
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+      // Ensure dates are properly formatted for TIMESTAMP WITH TIME ZONE
+      const startDate = new Date(taskData.start_date || new Date());
+      const endDate = new Date(taskData.end_date || new Date(Date.now() + 24*60*60*1000));
+      
+      // Calculate duration in days
+      const duration = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       
       const validatedData = {
         project_id: taskData.project_id,
         task_name: taskData.task_name || 'New Task',
-        start_date: taskData.start_date || today,
-        end_date: taskData.end_date || tomorrow,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        duration,
         assigned_to: taskData.assigned_to || null,
         color: taskData.color || '#3b82f6',
         progress: Math.max(0, Math.min(100, taskData.progress || 0)),
@@ -147,24 +159,17 @@ export function useEnhancedProjectSchedule(projectId: string) {
         task_type: taskData.task_type || 'task',
         priority: taskData.priority || 'medium',
         cost_estimate: taskData.cost_estimate || null,
+        actual_cost: null,
         notes: taskData.notes || null,
+        completion_percentage: 0,
         parent_id: taskData.parent_id || null,
-        completion_percentage: 0
       };
       
-      // Calculate duration in days (ensure minimum 1 day)
-      const startDate = new Date(validatedData.start_date);
-      const endDate = new Date(validatedData.end_date);
-      const duration = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-      
-      console.log('Validated task data:', { ...validatedData, duration });
+      console.log('Validated task data:', validatedData);
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')
-        .insert({
-          ...validatedData,
-          duration
-        })
+        .insert(validatedData)
         .select()
         .single();
 
@@ -196,16 +201,20 @@ export function useEnhancedProjectSchedule(projectId: string) {
   // Update task with enhanced fields
   const updateTaskMutation = useMutation({
     mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<ScheduleTask> }) => {
-      // Calculate duration if dates changed
+      // Process dates and calculate duration if dates changed
+      const processedUpdates = { ...updates };
+      
       if (updates.start_date && updates.end_date) {
         const startDate = new Date(updates.start_date);
         const endDate = new Date(updates.end_date);
-        updates.duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        processedUpdates.start_date = startDate.toISOString();
+        processedUpdates.end_date = endDate.toISOString();
+        processedUpdates.duration = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       }
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')
-        .update(updates)
+        .update(processedUpdates)
         .eq('id', taskId)
         .select()
         .single();
