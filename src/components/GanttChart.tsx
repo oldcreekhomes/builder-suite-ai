@@ -357,21 +357,25 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('=== ACTION COMPLETE EVENT ===');
     console.log('Action complete - requestType:', args.requestType);
     console.log('Action complete - data:', args.data);
+    console.log('Action complete - args full object:', JSON.stringify(args, null, 2));
     
-    // FIXED: Check for valid task data that has DatabaseID
-    if (args.data && args.data.DatabaseID && args.requestType === 'save') {
+    // Enhanced detection for inline edits - check for data with DatabaseID regardless of requestType
+    if (args.data && args.data.DatabaseID) {
+      // Check various possible requestType formats
+      const requestType = args.requestType?.value || args.requestType?.toString() || args.requestType || 'unknown';
+      console.log('INLINE EDIT DETECTED - RequestType processed:', requestType);
       console.log('INLINE EDIT DETECTED - Saving to database:', args.data.DatabaseID);
       updateTaskInDatabase(args.data);
-    } else if (args.requestType === 'indent' || args.requestType === 'outdent') {
-      console.log('Hierarchy change detected');
-      // Handle indent/outdent operations
-      if (args.data && args.data.length > 0) {
-        args.data.forEach((taskData: any) => {
-          if (taskData.DatabaseID) {
-            updateTaskHierarchy(taskData);
-          }
-        });
-      }
+    } else if (args.data && Array.isArray(args.data) && args.data.length > 0) {
+      // Handle bulk operations like indent/outdent
+      console.log('Bulk operation detected');
+      args.data.forEach((taskData: any) => {
+        if (taskData.DatabaseID) {
+          updateTaskHierarchy(taskData);
+        }
+      });
+    } else {
+      console.log('Action complete - No database save needed');
     }
   };
 
