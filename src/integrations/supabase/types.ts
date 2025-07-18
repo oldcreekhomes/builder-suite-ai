@@ -660,11 +660,8 @@ export type Database = {
       }
       project_schedule_tasks: {
         Row: {
-          actual_cost: number | null
           assigned_to: string | null
           color: string | null
-          completion_percentage: number | null
-          cost_estimate: number | null
           created_at: string
           dependencies: string[] | null
           duration: number
@@ -678,15 +675,11 @@ export type Database = {
           project_id: string
           start_date: string
           task_name: string
-          task_type: string | null
           updated_at: string
         }
         Insert: {
-          actual_cost?: number | null
           assigned_to?: string | null
           color?: string | null
-          completion_percentage?: number | null
-          cost_estimate?: number | null
           created_at?: string
           dependencies?: string[] | null
           duration?: number
@@ -700,15 +693,11 @@ export type Database = {
           project_id: string
           start_date: string
           task_name: string
-          task_type?: string | null
           updated_at?: string
         }
         Update: {
-          actual_cost?: number | null
           assigned_to?: string | null
           color?: string | null
-          completion_percentage?: number | null
-          cost_estimate?: number | null
           created_at?: string
           dependencies?: string[] | null
           duration?: number
@@ -722,7 +711,6 @@ export type Database = {
           project_id?: string
           start_date?: string
           task_name?: string
-          task_type?: string | null
           updated_at?: string
         }
         Relationships: [
