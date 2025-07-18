@@ -373,16 +373,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action begin - only cancel the default edit dialog, not inline editing
+  // Handle action begin - allow inline editing, only intercept toolbar edits
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Only cancel the edit dialog if it's opened via toolbar, not double-click
-    if (args.requestType === 'beforeOpenEditDialog') {
-      // Check if this was triggered by toolbar edit (we'll handle it in toolbarClick)
-      // For now, always cancel the default dialog since we use custom modal
-      args.cancel = true;
-    }
+    // Don't cancel beforeOpenEditDialog - let Syncfusion handle inline editing
+    // We'll only use custom modal when user clicks toolbar Edit button
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
