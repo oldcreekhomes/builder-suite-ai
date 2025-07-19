@@ -83,6 +83,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
         }
 
+        // Keep the UUID for resourceInfo, Syncfusion needs it to match with resources
         return {
           taskID: simpleId, // Use simple number for display
           taskName: task.task_name,
