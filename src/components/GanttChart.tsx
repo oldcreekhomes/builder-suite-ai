@@ -216,7 +216,10 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Convert simple predecessor number back to UUID
       let predecessorUUID = null;
       if (taskData.dependency) {
-        const predecessorNumber = parseInt(taskData.dependency);
+        // Handle Syncfusion's dependency format like "1FS", "2FS", etc.
+        const dependencyStr = taskData.dependency.toString();
+        const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, '')); // Remove FS, SS, etc.
+        
         if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
           // Find the task with this simple ID
           const predecessorTask = tasks.find(t => t.taskID === predecessorNumber);
