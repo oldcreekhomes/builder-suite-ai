@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -233,8 +234,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   // Handle action completion - simplified to use Syncfusion's built-in events
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
-      console.log('Action complete - saving task data:', args.data);
-      console.log('Resource info from Syncfusion:', args.data.resourceInfo);
       updateTaskInDatabase(args.data);
     }
   };
@@ -242,7 +241,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const updateTaskInDatabase = async (taskData: any) => {
     try {
       console.log('Saving task data:', taskData);
-      console.log('Resource info received:', taskData.resourceInfo);
       
       // Get the actual UUID from our mapping
       const actualTaskUUID = taskIdMapping.get(taskData.taskID);
@@ -271,10 +269,8 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Convert resource names back to UUIDs (handle multiple resources)
       let resourceUUIDs = null;
       if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
-        console.log('Processing resource info:', taskData.resourceInfo);
         // Split by comma in case multiple resources are selected
         const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
-        console.log('Resource names after split:', resourceNames);
         const foundUUIDs = [];
         
         for (const resourceName of resourceNames) {
@@ -290,7 +286,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         
         // Join UUIDs with comma if multiple resources found
         resourceUUIDs = foundUUIDs.length > 0 ? foundUUIDs.join(',') : null;
-        console.log('Final resource UUIDs to save:', resourceUUIDs);
       }
 
       console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUIDs);
@@ -324,8 +319,23 @@ function GanttChart({ projectId }: GanttChartProps) {
         description: "Task updated successfully",
       });
       
-      // Refresh data to ensure consistency - this will properly transform all resources back to names
-      console.log('Invalidating queries to refresh data...');
+      // Update the local task data to reflect the resource changes immediately
+      const updatedTasks = tasks.map(task => {
+        if (task.taskID === taskData.taskID) {
+          return {
+            ...task,
+            resourceInfo: taskData.resourceInfo
+          };
+        }
+        return task;
+      });
+      
+      // Update the Gantt component's data source immediately
+      if (ganttRef.current) {
+        ganttRef.current.dataSource = updatedTasks;
+      }
+      
+      // Refresh data to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
     } catch (error) {
