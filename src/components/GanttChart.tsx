@@ -238,6 +238,9 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID);
 
+      // Make sure we save the resource UUID, not the display value
+      const resourceUUID = taskData.resourceInfo?.[0] || null;
+      
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -246,7 +249,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           end_date: new Date(taskData.endDate).toISOString(),
           duration: taskData.duration,
           progress: taskData.progress || 0,
-          assigned_to: taskData.resourceInfo?.[0] || null,
+          assigned_to: resourceUUID,
           predecessor: predecessorUUID,
           parent_id: taskData.parentID || null,
         })
