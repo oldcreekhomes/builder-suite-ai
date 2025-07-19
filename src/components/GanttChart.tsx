@@ -305,7 +305,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         actionComplete={actionComplete}
       >
         <ColumnsDirective>
-          <ColumnDirective field='taskID' headerText='ID' width={80} visible={false} isPrimaryKey={true} />
+          <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
           <ColumnDirective field='taskName' headerText='Task Name' width={250} clipMode='EllipsisWithTooltip' validationRules={{ required: true, minLength: [3, 'Task name should have a minimum length of 3 characters'] }} />
           <ColumnDirective field='startDate' headerText='Start Date' width={120} />
           <ColumnDirective field='endDate' headerText='End Date' width={120} />
