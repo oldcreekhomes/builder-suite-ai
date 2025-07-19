@@ -137,6 +137,27 @@ function GanttChart({ projectId }: GanttChartProps) {
   const isLoading = resourcesLoading || tasksLoading;
 
   // Simplified action handler - let Syncfusion handle most operations
+  const toolbarClick = (args: any) => {
+    if (args.item.id === 'SyncfusionGantt_add') {
+      args.cancel = true; // Prevent default popup
+      
+      const newTask = {
+        taskID: crypto.randomUUID(),
+        taskName: 'New Task',
+        startDate: new Date(),
+        duration: 1,
+        progress: 0,
+        resourceInfo: [],
+        dependency: '',
+      };
+      
+      // Add to Gantt data source
+      if (ganttRef.current) {
+        ganttRef.current.addRecord(newTask);
+      }
+    }
+  };
+
   const actionComplete = async (args: any) => {
     console.log('Action complete:', args.requestType, args.data);
     
@@ -385,6 +406,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         gridLines="Both"
         actionComplete={actionComplete}
+        toolbarClick={toolbarClick}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
