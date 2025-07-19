@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -7,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskEditDialog } from "@/components/schedule/TaskEditDialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -268,14 +269,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle toolbar click events
-  const toolbarClick = (args: any) => {
-    if (args.item.id === 'SyncfusionGantt_add') {
-      args.cancel = true;
-      handleAddTask();
-    }
-  };
-
   // Single clean action handler
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
@@ -395,7 +388,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     showDeleteConfirmDialog: true
   };
 
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  const toolbar = ['Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
@@ -405,6 +398,14 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   return (
     <div style={{ padding: '10px' }}>
+      {/* Custom Add Task Button */}
+      <div className="mb-4">
+        <Button onClick={handleAddTask} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Task
+        </Button>
+      </div>
+
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
@@ -426,7 +427,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
-        toolbarClick={toolbarClick}
         actionComplete={actionComplete}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
