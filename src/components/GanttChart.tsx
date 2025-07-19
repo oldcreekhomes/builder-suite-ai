@@ -333,8 +333,18 @@ function GanttChart({ projectId }: GanttChartProps) {
           dataSource: resources,
           fields: { value: 'resourceId', text: 'resourceName' },
           allowFiltering: true,
-          placeholder: 'Select Resource'
+          placeholder: 'Select Resource',
+          query: undefined // Force refresh of dropdown data
         }
+      },
+      valueAccessor: (field: string, data: any) => {
+        // Display the resource name instead of ID
+        if (data.resourceInfo && data.resourceInfo.length > 0) {
+          const resourceId = data.resourceInfo[0];
+          const resource = resources.find(r => r.resourceId === resourceId);
+          return resource ? resource.resourceName : '';
+        }
+        return '';
       }
     },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
@@ -379,7 +389,22 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        columns={columns}
+        columns={columns.map(col => {
+          // Update resource column dataSource dynamically
+          if (col.field === 'resourceInfo' && col.edit?.params) {
+            return {
+              ...col,
+              edit: {
+                ...col.edit,
+                params: {
+                  ...col.edit.params,
+                  dataSource: resources
+                }
+              }
+            };
+          }
+          return col;
+        })}
         height='500px'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
