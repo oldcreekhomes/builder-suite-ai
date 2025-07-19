@@ -534,7 +534,9 @@ function GanttChart({ projectId }: GanttChartProps) {
       autoFit: false,
       allowTextWrap: false,
       minWidth: 80,
-      maxWidth: 100
+      maxWidth: 100,
+      textAlign: 'Left',
+      headerTextAlign: 'Left'
     },
     { 
       field: 'TaskName', 
