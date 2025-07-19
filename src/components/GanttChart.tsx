@@ -83,7 +83,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         EndDate: new Date(task.end_date),
         Duration: task.duration,
         Resource: task.assigned_to ? [task.assigned_to] : [], // Keep as resource ID/name for now
-        Predecessor: task.dependencies?.join(',') || null,
+        Predecessor: task.predecessor?.join(',') || null,
         ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
       }));
     },
@@ -400,12 +400,12 @@ function GanttChart({ projectId }: GanttChartProps) {
         assignedTo = resource ? resource.resourceName : resourceId; // Store name or fallback to ID
       }
 
-      // Handle dependencies - convert Predecessor string to dependencies array with actual DatabaseIDs
-      let dependenciesArray = [];
+      // Handle predecessor - convert Predecessor string to predecessor array with actual DatabaseIDs
+      let predecessorArray = [];
       if (taskData.Predecessor) {
         // Split comma-separated predecessor string and convert TaskIDs to DatabaseIDs
         const predecessorIds = taskData.Predecessor.split(',').map(id => parseInt(id.trim()));
-        dependenciesArray = predecessorIds
+        predecessorArray = predecessorIds
           .map(taskId => {
             const task = tasks.find(t => t.TaskID === taskId);
             return task ? task.DatabaseID : null;
@@ -421,7 +421,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           end_date: new Date(taskData.EndDate).toISOString(),
           duration: taskData.Duration,
           assigned_to: assignedTo,
-          dependencies: dependenciesArray,
+          predecessor: predecessorArray,
         })
         .eq('id', taskData.DatabaseID);
 
@@ -611,7 +611,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
     { 
       field: 'Predecessor', 
-      headerText: 'Dependencies', 
+      headerText: 'Predecessor', 
       width: 150,
       allowEditing: true,
       autoFit: false,

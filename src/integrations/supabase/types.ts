@@ -663,12 +663,12 @@ export type Database = {
           assigned_to: string | null
           color: string | null
           created_at: string
-          dependencies: string[] | null
           duration: number
           end_date: string
           id: string
           order_index: number | null
           parent_id: string | null
+          predecessor: string[] | null
           progress: number | null
           project_id: string
           start_date: string
@@ -679,12 +679,12 @@ export type Database = {
           assigned_to?: string | null
           color?: string | null
           created_at?: string
-          dependencies?: string[] | null
           duration?: number
           end_date: string
           id?: string
           order_index?: number | null
           parent_id?: string | null
+          predecessor?: string[] | null
           progress?: number | null
           project_id: string
           start_date: string
@@ -695,12 +695,12 @@ export type Database = {
           assigned_to?: string | null
           color?: string | null
           created_at?: string
-          dependencies?: string[] | null
           duration?: number
           end_date?: string
           id?: string
           order_index?: number | null
           parent_id?: string | null
+          predecessor?: string[] | null
           progress?: number | null
           project_id?: string
           start_date?: string
