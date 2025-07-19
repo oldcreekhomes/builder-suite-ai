@@ -668,7 +668,7 @@ export type Database = {
           id: string
           order_index: number | null
           parent_id: string | null
-          predecessor: string[] | null
+          predecessor: string | null
           progress: number | null
           project_id: string
           start_date: string
@@ -684,7 +684,7 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
-          predecessor?: string[] | null
+          predecessor?: string | null
           progress?: number | null
           project_id: string
           start_date: string
@@ -700,7 +700,7 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
-          predecessor?: string[] | null
+          predecessor?: string | null
           progress?: number | null
           project_id?: string
           start_date?: string
