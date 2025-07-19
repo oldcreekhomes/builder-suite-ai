@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskEditDialog } from "@/components/schedule/TaskEditDialog";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -28,6 +30,116 @@ interface GanttChartProps {
   projectId: string;
 }
 
+// Helper function to transform database data to Syncfusion format
+const transformToSyncfusion = (dbTasks: any[], resources: any[]) => {
+  console.log('Transforming to Syncfusion format - DB tasks:', dbTasks.length, 'Resources:', resources.length);
+  
+  // Create simple ID mapping for tasks
+  const taskIdMapping = new Map();
+  dbTasks.forEach((task, index) => {
+    const simpleId = index + 1;
+    taskIdMapping.set(task.id, simpleId);
+  });
+
+  const transformedTasks = dbTasks.map((task, index) => {
+    const simpleId = index + 1;
+    
+    // Convert predecessor UUID to simple number
+    let simplePredecessor = '';
+    if (task.predecessor) {
+      const predecessorNumber = taskIdMapping.get(task.predecessor);
+      if (predecessorNumber) {
+        simplePredecessor = predecessorNumber.toString();
+      }
+    }
+
+    // Convert resource UUIDs to names for display
+    let resourceNames = '';
+    if (task.assigned_to) {
+      const resourceUUIDs = task.assigned_to.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
+      const names = resourceUUIDs
+        .map(uuid => resources.find(r => r.resourceId === uuid)?.resourceName)
+        .filter(name => name);
+      resourceNames = names.join(', ');
+    }
+
+    console.log(`Task ${task.task_name}: UUIDs [${task.assigned_to}] -> Names [${resourceNames}]`);
+
+    return {
+      taskID: simpleId,
+      taskName: task.task_name,
+      startDate: new Date(task.start_date),
+      endDate: new Date(task.end_date),
+      duration: task.duration,
+      progress: task.progress || 0,
+      resourceInfo: resourceNames,
+      dependency: simplePredecessor,
+      parentID: task.parent_id,
+    };
+  });
+
+  return { transformedTasks, taskIdMapping };
+};
+
+// Helper function to transform Syncfusion data back to database format
+const transformFromSyncfusion = (taskData: any, taskIdMapping: Map<number, string>, resources: any[]) => {
+  console.log('Transforming from Syncfusion - Task:', taskData.taskName, 'Resources:', taskData.resourceInfo);
+  
+  // Get actual task UUID
+  const actualTaskUUID = taskIdMapping.get(taskData.taskID);
+  if (!actualTaskUUID) {
+    throw new Error(`Could not find UUID for task ID: ${taskData.taskID}`);
+  }
+
+  // Convert simple predecessor number back to UUID
+  let predecessorUUID = null;
+  if (taskData.dependency) {
+    const dependencyStr = taskData.dependency.toString();
+    const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, ''));
+    if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
+      predecessorUUID = taskIdMapping.get(predecessorNumber);
+    }
+  }
+
+  // Convert resource names back to UUIDs
+  let resourceUUIDs = null;
+  if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
+    const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
+    const foundUUIDs = resourceNames
+      .map(name => resources.find(r => r.resourceName === name)?.resourceId)
+      .filter(uuid => uuid);
+    
+    resourceUUIDs = foundUUIDs.length > 0 ? foundUUIDs.join(',') : null;
+    console.log(`Resource transformation: Names [${resourceNames.join(', ')}] -> UUIDs [${resourceUUIDs}]`);
+  }
+
+  return {
+    id: actualTaskUUID,
+    task_name: taskData.taskName,
+    start_date: new Date(taskData.startDate).toISOString(),
+    end_date: new Date(taskData.endDate).toISOString(),
+    duration: taskData.duration,
+    progress: taskData.progress || 0,
+    assigned_to: resourceUUIDs,
+    predecessor: predecessorUUID,
+    parent_id: taskData.parentID || null,
+  };
+};
+
+// Helper function to validate task data
+const validateTaskData = (taskData: any) => {
+  if (!taskData.taskName || taskData.taskName.trim() === '') {
+    throw new Error('Task name is required');
+  }
+  if (!taskData.startDate || !taskData.endDate) {
+    throw new Error('Start date and end date are required');
+  }
+  if (new Date(taskData.endDate) < new Date(taskData.startDate)) {
+    throw new Error('End date must be after start date');
+  }
+  return true;
+};
+
 function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -42,25 +154,21 @@ function GanttChart({ projectId }: GanttChartProps) {
     taskToEdit: null 
   });
 
-  // Fetch resources first - this must complete before tasks
+  // Fetch resources
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
       console.log('Fetching resources...');
-      // Fetch company users
       const { data: users } = await supabase
         .from('users')
         .select('id, first_name, last_name, email');
 
-      // Fetch company representatives  
       const { data: representatives } = await supabase
         .from('company_representatives')
         .select('id, first_name, last_name, email');
 
-      // Combine all resources
       const allResources = [];
       
-      // Add users
       if (users) {
         users.forEach(user => {
           const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
@@ -71,7 +179,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
-      // Add representatives
       if (representatives) {
         representatives.forEach(rep => {
           const name = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
@@ -82,17 +189,16 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
-      console.log('Resources loaded:', allResources.length, allResources);
+      console.log('Resources loaded:', allResources.length);
       return allResources;
     },
   });
 
-  // Fetch schedule tasks - now depends on resources being loaded
+  // Fetch schedule tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
       console.log('Fetching tasks for project:', projectId);
-      console.log('Resources available for task transformation:', resources.length);
       
       const { data, error } = await supabase
         .from('project_schedule_tasks')
@@ -105,72 +211,15 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
-      console.log('Raw data from database:', data);
-      console.log('Number of tasks found:', data.length);
-
-      // Create mapping between UUIDs and simple numbers for tasks
-      const taskIdToNumber = new Map();
-      const numberToTaskId = new Map();
+      console.log('Raw tasks from database:', data.length);
       
-      data.forEach((task, index) => {
-        const simpleId = index + 1;
-        taskIdToNumber.set(task.id, simpleId);
-        numberToTaskId.set(simpleId, task.id);
-      });
-
-      // Update the mapping state for use in save operations
-      setTaskIdMapping(numberToTaskId);
-
-      // Transform data to use simple numbers and names for display
-      const transformedTasks = data.map((task, index) => {
-        const simpleId = index + 1;
-        let simplePredecessor = '';
-        
-        if (task.predecessor) {
-          const predecessorNumber = taskIdToNumber.get(task.predecessor);
-          simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
-        }
-
-        // Convert UUIDs to names for display - handle multiple resources
-        let resourceName = '';
-        if (task.assigned_to) {
-          console.log('Looking for resource with UUID:', task.assigned_to);
-          
-          // Handle multiple UUIDs (comma-separated)
-          const resourceUUIDs = task.assigned_to.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
-          const resourceNames = [];
-          
-          for (const uuid of resourceUUIDs) {
-            const foundResource = resources.find(r => r.resourceId === uuid);
-            if (foundResource) {
-              resourceNames.push(foundResource.resourceName);
-              console.log('Found resource name:', foundResource.resourceName, 'for UUID:', uuid);
-            } else {
-              console.warn('Could not find resource name for UUID:', uuid);
-              console.log('Available resources:', resources.map(r => ({ id: r.resourceId, name: r.resourceName })));
-            }
-          }
-          
-          resourceName = resourceNames.join(', ');
-        }
-
-        return {
-          taskID: simpleId, // Use simple number for display
-          taskName: task.task_name,
-          startDate: new Date(task.start_date),
-          endDate: new Date(task.end_date),
-          duration: task.duration,
-          progress: task.progress || 0,
-          resourceInfo: resourceName, // Use name for display
-          dependency: simplePredecessor,
-          parentID: task.parent_id,
-        };
-      });
-
-      console.log('Transformed tasks for Gantt:', transformedTasks);
+      // Transform data using helper function
+      const { transformedTasks, taskIdMapping: mapping } = transformToSyncfusion(data, resources);
+      setTaskIdMapping(mapping);
+      
       return transformedTasks;
     },
-    enabled: !!projectId && !resourcesLoading && resources.length >= 0, // Wait for resources to load
+    enabled: !!projectId && !resourcesLoading && resources.length >= 0,
   });
 
   const isLoading = resourcesLoading || tasksLoading;
@@ -182,7 +231,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('project_schedule_tasks')
         .insert({
           project_id: projectId,
@@ -192,9 +241,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           duration: 1,
           order_index: tasks.length,
           color: '#3b82f6'
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
         console.error('Error adding task:', error);
@@ -222,89 +269,41 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle toolbar click events
-  const toolbarClick = (args: any) => {
-    if (args.item.id === 'SyncfusionGantt_add') {
-      args.cancel = true;
-      handleAddTask();
-    }
-  };
-
-  // Handle action completion - simplified to use Syncfusion's built-in events
+  // Single clean action handler
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
-      updateTaskInDatabase(args.data);
+      console.log('Syncfusion save event triggered:', args.data);
+      handleTaskSave(args.data);
     }
   };
 
-  const updateTaskInDatabase = async (taskData: any) => {
+  // Clean task save handler
+  const handleTaskSave = async (taskData: any) => {
     try {
-      console.log('Saving task data:', taskData);
+      // Validate data first
+      validateTaskData(taskData);
       
-      // Get the actual UUID from our mapping
-      const actualTaskUUID = taskIdMapping.get(taskData.taskID);
-      if (!actualTaskUUID) {
-        console.error('Could not find UUID for task ID:', taskData.taskID);
-        toast({
-          title: "Error",
-          description: "Could not identify task for update",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Convert simple predecessor number back to UUID
-      let predecessorUUID = null;
-      if (taskData.dependency) {
-        // Handle Syncfusion's dependency format like "1FS", "2FS", etc.
-        const dependencyStr = taskData.dependency.toString();
-        const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, '')); // Remove FS, SS, etc.
-        
-        if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
-          predecessorUUID = taskIdMapping.get(predecessorNumber);
-        }
-      }
-
-      // Convert resource names back to UUIDs (handle multiple resources)
-      let resourceUUIDs = null;
-      if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
-        // Split by comma in case multiple resources are selected
-        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
-        const foundUUIDs = [];
-        
-        for (const resourceName of resourceNames) {
-          const foundResource = resources.find(r => r.resourceName === resourceName);
-          if (foundResource) {
-            foundUUIDs.push(foundResource.resourceId);
-            console.log('Found resource UUID:', foundResource.resourceId, 'for name:', resourceName);
-          } else {
-            console.warn('Could not find UUID for resource name:', resourceName);
-            console.log('Available resources:', resources.map(r => r.resourceName));
-          }
-        }
-        
-        // Join UUIDs with comma if multiple resources found
-        resourceUUIDs = foundUUIDs.length > 0 ? foundUUIDs.join(',') : null;
-      }
-
-      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUIDs);
+      // Transform data using helper function
+      const dbTaskData = transformFromSyncfusion(taskData, taskIdMapping, resources);
+      
+      console.log('Saving to database:', dbTaskData);
 
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
-          task_name: taskData.taskName,
-          start_date: new Date(taskData.startDate).toISOString(),
-          end_date: new Date(taskData.endDate).toISOString(),
-          duration: taskData.duration,
-          progress: taskData.progress || 0,
-          assigned_to: resourceUUIDs,
-          predecessor: predecessorUUID,
-          parent_id: taskData.parentID || null,
+          task_name: dbTaskData.task_name,
+          start_date: dbTaskData.start_date,
+          end_date: dbTaskData.end_date,
+          duration: dbTaskData.duration,
+          progress: dbTaskData.progress,
+          assigned_to: dbTaskData.assigned_to,
+          predecessor: dbTaskData.predecessor,
+          parent_id: dbTaskData.parent_id,
         })
-        .eq('id', actualTaskUUID);
+        .eq('id', dbTaskData.id);
 
       if (error) {
-        console.error('Error updating task:', error);
+        console.error('Database save error:', error);
         toast({
           title: "Error",
           description: "Failed to update task",
@@ -313,41 +312,26 @@ function GanttChart({ projectId }: GanttChartProps) {
         return;
       }
 
+      console.log('Task saved successfully, refreshing data...');
       toast({
         title: "Success",
         description: "Task updated successfully",
       });
       
-      // Update the local task data to reflect the resource changes immediately
-      const updatedTasks = tasks.map(task => {
-        if (task.taskID === taskData.taskID) {
-          return {
-            ...task,
-            resourceInfo: taskData.resourceInfo
-          };
-        }
-        return task;
-      });
-      
-      // Update the Gantt component's data source immediately
-      if (ganttRef.current) {
-        ganttRef.current.dataSource = updatedTasks;
-      }
-      
-      // Refresh data to ensure consistency
+      // Refresh data - this will properly display all resources
       queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error('Task save error:', error);
       toast({
         title: "Error",
-        description: "Failed to update task",
+        description: error instanceof Error ? error.message : "Failed to update task",
         variant: "destructive",
       });
     }
   };
 
-  // Standard Syncfusion field mapping
+  // Syncfusion configuration
   const taskFields = {
     id: 'taskID',
     name: 'taskName',
@@ -404,17 +388,24 @@ function GanttChart({ projectId }: GanttChartProps) {
     showDeleteConfirmDialog: true
   };
 
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  const toolbar = ['Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
-  console.log('Final render - Resources available:', resources.length);
-  console.log('Final render - Tasks available:', tasks.length);
+  console.log('Rendering Gantt - Resources:', resources.length, 'Tasks:', tasks.length);
 
   return (
     <div style={{ padding: '10px' }}>
+      {/* Custom Add Task Button */}
+      <div className="mb-4">
+        <Button onClick={handleAddTask} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Task
+        </Button>
+      </div>
+
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
@@ -436,7 +427,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
-        toolbarClick={toolbarClick}
         actionComplete={actionComplete}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
