@@ -63,6 +63,8 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
+      console.log('Fetching tasks for project:', projectId);
+      
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -74,18 +76,30 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
+      console.log('Raw database tasks:', data);
+
       // Transform database data to Gantt format with numerical IDs
-      return data.map((task, index) => ({
-        TaskID: index + 1, // Show simple numerical ID on frontend
-        DatabaseID: task.id, // Keep the actual UUID for database operations
-        TaskName: task.task_name,
-        StartDate: new Date(task.start_date),
-        EndDate: new Date(task.end_date),
-        Duration: task.duration,
-        Resource: task.assigned_to ? [task.assigned_to] : [], // Keep as resource ID/name for now
-        Predecessor: task.predecessor || null,
-        ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
-      }));
+      const transformedTasks = data.map((task, index) => {
+        console.log(`Transforming task ${task.id}:`, {
+          predecessor: task.predecessor,
+          type: typeof task.predecessor
+        });
+
+        return {
+          TaskID: index + 1, // Show simple numerical ID on frontend
+          DatabaseID: task.id, // Keep the actual UUID for database operations
+          TaskName: task.task_name,
+          StartDate: new Date(task.start_date),
+          EndDate: new Date(task.end_date),
+          Duration: task.duration,
+          Resource: task.assigned_to ? [task.assigned_to] : [], // Keep as resource ID/name for now
+          Predecessor: task.predecessor || null, // Now it's a simple string
+          ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
+        };
+      });
+
+      console.log('Transformed tasks for Gantt:', transformedTasks);
+      return transformedTasks;
     },
     enabled: !!projectId,
   });
@@ -352,7 +366,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // CRITICAL FIX: Handle action completion events from Syncfusion Gantt
+  // FIXED: Handle action completion events from Syncfusion Gantt
   const actionComplete = (args: any) => {
     console.log('=== ACTION COMPLETE EVENT ===');
     console.log('Action complete - requestType:', args.requestType);
@@ -360,15 +374,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     
     // Enhanced detection for inline edits - check for data with DatabaseID regardless of requestType
     if (args.data && args.data.taskData && args.data.taskData.DatabaseID) {
-      // Check various possible requestType formats
-      const requestType = args.requestType?.value || args.requestType?.toString() || args.requestType || 'unknown';
-      console.log('INLINE EDIT DETECTED - RequestType processed:', requestType);
       console.log('INLINE EDIT DETECTED - Saving to database:', args.data.taskData.DatabaseID);
       updateTaskInDatabase(args.data.taskData);
     } else if (args.data && args.data.DatabaseID) {
-      // Check various possible requestType formats
-      const requestType = args.requestType?.value || args.requestType?.toString() || args.requestType || 'unknown';
-      console.log('INLINE EDIT DETECTED - RequestType processed:', requestType);
       console.log('INLINE EDIT DETECTED - Saving to database:', args.data.DatabaseID);
       updateTaskInDatabase(args.data);
     } else if (args.data && Array.isArray(args.data) && args.data.length > 0) {
@@ -400,8 +408,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         assignedTo = resource ? resource.resourceName : resourceId; // Store name or fallback to ID
       }
 
-      // Handle predecessor - save the Predecessor string directly
+      // FIXED: Handle predecessor - save the Predecessor string directly (already in correct format)
       const predecessorValue = taskData.Predecessor || null;
+      console.log('Saving predecessor value:', predecessorValue);
 
       const { error } = await supabase
         .from('project_schedule_tasks')
@@ -641,6 +650,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   console.log('Rendering GanttChart with tasks:', tasks.length);
   console.log('Resources available:', resources.length);
+  console.log('Final tasks data:', tasks);
 
   return (
     <div style={{ padding: '10px' }}>
