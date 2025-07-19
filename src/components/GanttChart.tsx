@@ -104,17 +104,19 @@ function GanttChart({ projectId }: GanttChartProps) {
   });
 
   // Fetch available resources
-  const { data: resources = [] } = useQuery({
+  const { data: resources = [], isLoading: resourcesLoading, error: resourcesError } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
-      console.log('Fetching resources...');
+      console.log('🔄 Starting to fetch resources...');
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, first_name, last_name, email');
 
       if (usersError) {
-        console.error('Error fetching users:', usersError);
+        console.error('❌ Error fetching users:', usersError);
+      } else {
+        console.log('✅ Users fetched:', users);
       }
 
       // Fetch company representatives
@@ -123,7 +125,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         .select('id, first_name, last_name, email');
 
       if (repsError) {
-        console.error('Error fetching representatives:', repsError);
+        console.error('❌ Error fetching representatives:', repsError);
+      } else {
+        console.log('✅ Representatives fetched:', representatives);
       }
 
       // Combine and format resources
@@ -156,7 +160,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
-      console.log('Fetched resources:', allResources);
+      console.log('🎯 Final combined resources:', allResources);
+      console.log('📊 Total resources count:', allResources.length);
       return allResources;
     },
   });
@@ -367,14 +372,24 @@ function GanttChart({ projectId }: GanttChartProps) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
-  // Don't render Gantt until we have resources loaded
-  if (!resources || resources.length === 0) {
+  if (resourcesLoading) {
     return <div style={{ padding: '10px' }}>Loading resources...</div>;
   }
 
-  console.log('Rendering Gantt with tasks:', tasks);
-  console.log('Task ID mapping:', taskIdMapping);
-  console.log('Available resources for dropdown:', resources);
+  if (resourcesError) {
+    console.error('❌ Resources query error:', resourcesError);
+    return <div style={{ padding: '10px' }}>Error loading resources: {resourcesError.message}</div>;
+  }
+
+  // Don't render Gantt until we have resources loaded
+  if (!resources || resources.length === 0) {
+    console.log('⚠️ No resources available, resources:', resources);
+    return <div style={{ padding: '10px' }}>No resources found...</div>;
+  }
+
+  console.log('🎯 Rendering Gantt with tasks:', tasks);
+  console.log('🗂️ Task ID mapping:', taskIdMapping);
+  console.log('👥 Available resources for dropdown:', resources);
 
   return (
     <div style={{ padding: '10px' }}>
