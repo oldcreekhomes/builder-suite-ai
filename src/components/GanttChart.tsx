@@ -259,13 +259,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure edit settings like the working example
+  // Configure edit settings for inline cell editing
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
+    mode: 'Auto' as any, // This enables both dialog and inline editing
   };
 
   // Toolbar with Edit/Update/Cancel buttons like the working example
