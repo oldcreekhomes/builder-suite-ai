@@ -528,13 +528,13 @@ function GanttChart({ projectId }: GanttChartProps) {
     { 
       field: 'TaskID', 
       headerText: 'ID', 
-      width: 50, 
+      width: 70, 
       allowEditing: false, 
       isPrimaryKey: true,
       autoFit: false,
       allowTextWrap: false,
-      minWidth: 50,
-      maxWidth: 80
+      minWidth: 70,
+      maxWidth: 100
     },
     { 
       field: 'TaskName', 
@@ -551,29 +551,29 @@ function GanttChart({ projectId }: GanttChartProps) {
     { 
       field: 'StartDate', 
       headerText: 'Start Date', 
-      width: 100,
+      width: 120,
       allowEditing: true,
       autoFit: false,
       allowTextWrap: false,
-      minWidth: 100
+      minWidth: 120
     },
     { 
       field: 'Duration', 
       headerText: 'Duration', 
-      width: 80,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 80
-    },
-    { 
-      field: 'EndDate', 
-      headerText: 'End Date', 
       width: 100,
       allowEditing: true,
       autoFit: false,
       allowTextWrap: false,
       minWidth: 100
+    },
+    { 
+      field: 'EndDate', 
+      headerText: 'End Date', 
+      width: 120,
+      allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 120
     },
     { 
       field: 'Resource', 
