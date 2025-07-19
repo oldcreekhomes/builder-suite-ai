@@ -273,8 +273,8 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Cell', // This enables inline cell editing without popups
-    newRowPosition: 'Bottom' // New tasks appear at bottom of list
+    mode: 'Cell' as any, // This enables inline cell editing without popups
+    newRowPosition: 'Bottom' as any // New tasks appear at bottom of list
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
