@@ -44,12 +44,21 @@ export class GanttIdMapper {
   convertTaskForSyncfusion(task: any): any {
     const numericId = this.getNumericId(task.id) || this.addTaskMapping(task.id);
     
+    const startDate = new Date(task.start_date);
+    let endDate = new Date(task.end_date);
+    
+    // If end date is invalid (1970-01-01) or before start date, calculate from duration
+    if (endDate.getTime() <= 0 || endDate < startDate) {
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + (task.duration || 1));
+    }
+    
     return {
       taskID: numericId,
       taskName: task.task_name,
-      startDate: new Date(task.start_date),
-      endDate: new Date(task.end_date),
-      duration: task.duration,
+      startDate: startDate,
+      endDate: endDate,
+      duration: task.duration || 1,
       progress: task.progress || 0,
       resourceInfo: this.parseResourceInfo(task.assigned_to),
       dependency: this.convertDependencies(task.predecessor),
