@@ -60,7 +60,7 @@ export class GanttIdMapper {
       endDate: endDate,
       duration: task.duration || 1,
       progress: task.progress || 0,
-      resourceInfo: this.parseResourceInfo(task.assigned_to),
+      resourceInfo: this.parseResourceInfoForSyncfusion(task.assigned_to), // Convert to Syncfusion format
       dependency: this.convertDependencies(task.predecessor),
       parentID: task.parent_id ? this.getNumericId(task.parent_id) : null,
     };
@@ -84,7 +84,7 @@ export class GanttIdMapper {
       end_date: new Date(task.endDate).toISOString(),
       duration: task.duration || 1,
       progress: task.progress || 0,
-      assigned_to: this.convertResourceInfoToUUIDs(task.resourceInfo),
+      assigned_to: this.convertResourceInfoToDatabase(task.resourceInfo), // Convert from Syncfusion format
       predecessor: task.dependency || null,
       parent_id: task.parentID ? this.getUuid(task.parentID) : null,
       order_index: 0,
@@ -92,7 +92,8 @@ export class GanttIdMapper {
     };
   }
 
-  private parseResourceInfo(assignedTo: string | null): any[] {
+  // Parse database assigned_to field into Syncfusion resourceInfo format
+  private parseResourceInfoForSyncfusion(assignedTo: string | null): any[] {
     if (!assignedTo) return [];
     
     const resourceUUIDs = assignedTo.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
@@ -102,7 +103,8 @@ export class GanttIdMapper {
     }));
   }
 
-  private convertResourceInfoToUUIDs(resourceInfo: any[]): string | null {
+  // Convert Syncfusion resourceInfo back to database assigned_to format
+  private convertResourceInfoToDatabase(resourceInfo: any[]): string | null {
     if (!resourceInfo || resourceInfo.length === 0) return null;
     
     const uuids = resourceInfo.map(resource => resource.resourceId);

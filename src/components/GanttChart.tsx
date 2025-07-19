@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -159,9 +158,17 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
-    console.log('Updating task:', taskData);
+    console.log('Updating task with resource info:', taskData);
     
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    // Extract resource assignments from Syncfusion's resourceInfo
+    let assignedTo = null;
+    if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+      const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+      assignedTo = resourceIds.join(',');
+      console.log('Extracted resource assignments:', assignedTo);
+    }
     
     const { error } = await supabase
       .from('project_schedule_tasks')
@@ -171,7 +178,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         end_date: dbTask.end_date,
         duration: dbTask.duration,
         progress: dbTask.progress,
-        assigned_to: dbTask.assigned_to,
+        assigned_to: assignedTo, // Save the extracted resource assignments
         predecessor: dbTask.predecessor,
         parent_id: dbTask.parent_id,
       })
@@ -182,6 +189,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw error;
     }
 
+    console.log('Task updated successfully with resource assignments:', assignedTo);
     toast({
       title: "Success",
       description: "Task updated successfully",
@@ -195,6 +203,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Adding task:', taskData);
     
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    // Extract resource assignments for new tasks too
+    if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+      const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+      dbTask.assigned_to = resourceIds.join(',');
+    }
     
     const { error } = await supabase
       .from('project_schedule_tasks')
@@ -336,7 +350,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     endDate: 'endDate',
     duration: 'duration',
     progress: 'progress',
-    resourceInfo: 'resourceInfo',
+    resourceInfo: 'resourceInfo', // This maps to Syncfusion's native resource management
     dependency: 'dependency',
     parentID: 'parentID',
   };
