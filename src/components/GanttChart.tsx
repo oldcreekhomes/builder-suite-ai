@@ -34,32 +34,47 @@ function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
 
-  // Fetch resources from project_resources table
+  // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
-    queryKey: ['project-resources', projectId],
+    queryKey: ['company-resources'],
     queryFn: async () => {
-      console.log('Fetching project resources for project:', projectId);
+      console.log('Fetching company users and representatives');
       
-      const { data, error } = await supabase
-        .from('project_resources')
-        .select('*')
-        .eq('project_id', projectId);
+      // Fetch company users
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email');
 
-      if (error) {
-        console.error('Error fetching project resources:', error);
-        throw error;
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        throw usersError;
+      }
+
+      // Fetch company representatives
+      const { data: representatives, error: repsError } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, email');
+
+      if (repsError) {
+        console.error('Error fetching representatives:', repsError);
+        throw repsError;
       }
 
       // Transform to Syncfusion resource format
-      const syncfusionResources = data?.map(resource => ({
-        resourceId: resource.id,
-        resourceName: resource.resource_name,
-      })) || [];
+      const allResources = [
+        ...(users || []).map(user => ({
+          resourceId: user.id,
+          resourceName: `${user.first_name} ${user.last_name}`.trim() || user.email,
+        })),
+        ...(representatives || []).map(rep => ({
+          resourceId: rep.id,
+          resourceName: `${rep.first_name} ${rep.last_name}`.trim() || rep.email,
+        }))
+      ];
 
-      console.log('Project resources loaded:', syncfusionResources.length, syncfusionResources);
-      return syncfusionResources;
+      console.log('Company resources loaded:', allResources.length, allResources);
+      return allResources;
     },
-    enabled: !!projectId,
   });
 
   // Fetch and transform schedule tasks
