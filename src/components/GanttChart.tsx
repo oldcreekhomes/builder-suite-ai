@@ -301,7 +301,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
-        sortSettings={{ columns: [{ field: 'taskID', direction: 'Ascending' }] }}
         actionBegin={actionBegin}
         actionComplete={actionComplete}
       >
