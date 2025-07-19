@@ -525,24 +525,64 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const columns: any[] = [
-    { field: 'TaskID', headerText: 'ID', width: 80, allowEditing: false, isPrimaryKey: true },
+    { 
+      field: 'TaskID', 
+      headerText: 'ID', 
+      width: 50, 
+      allowEditing: false, 
+      isPrimaryKey: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 50,
+      maxWidth: 80
+    },
     { 
       field: 'TaskName', 
       headerText: 'Task Name', 
       width: 250, 
       allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 200,
       customAttributes: {
         class: 'parent-task-bold'
       }
     },
-    { field: 'StartDate', headerText: 'Start Date', allowEditing: true },
-    { field: 'Duration', headerText: 'Duration', allowEditing: true },
-    { field: 'EndDate', headerText: 'End Date', allowEditing: true },
+    { 
+      field: 'StartDate', 
+      headerText: 'Start Date', 
+      width: 100,
+      allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 100
+    },
+    { 
+      field: 'Duration', 
+      headerText: 'Duration', 
+      width: 80,
+      allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 80
+    },
+    { 
+      field: 'EndDate', 
+      headerText: 'End Date', 
+      width: 100,
+      allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 100
+    },
     { 
       field: 'Resource', 
       headerText: 'Resource', 
       width: 200,
       allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 150,
       editType: 'dropdownedit',
       edit: {
         params: {
@@ -557,7 +597,10 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'Predecessor', 
       headerText: 'Dependencies', 
       width: 150,
-      allowEditing: true
+      allowEditing: true,
+      autoFit: false,
+      allowTextWrap: false,
+      minWidth: 120
     },
   ];
 
@@ -613,6 +656,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowReordering={true}
         allowSelection={true}
         allowResizing={true}
+        allowAutoFit={false}
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
       >
