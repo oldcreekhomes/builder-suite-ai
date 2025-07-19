@@ -58,7 +58,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       // Simple transformation to match Syncfusion's expected format
       return data.map((task) => ({
-        taskID: task.id, // Use actual UUID as ID
+        taskID: task.id,
         taskName: task.task_name,
         startDate: new Date(task.start_date),
         endDate: new Date(task.end_date),
