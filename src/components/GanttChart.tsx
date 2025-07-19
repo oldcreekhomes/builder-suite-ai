@@ -241,17 +241,17 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const columns = [
     { field: 'taskID', headerText: 'ID', width: 80, visible: false },
-    { field: 'taskName', headerText: 'Task Name', width: 250 },
-    { field: 'startDate', headerText: 'Start Date', width: 120 },
-    { field: 'duration', headerText: 'Duration', width: 100 },
-    { field: 'endDate', headerText: 'End Date', width: 120 },
+    { field: 'taskName', headerText: 'Task Name', width: 250, editType: 'stringedit' },
+    { field: 'startDate', headerText: 'Start Date', width: 120, editType: 'datepickeredit' },
+    { field: 'duration', headerText: 'Duration', width: 100, editType: 'numericedit' },
+    { field: 'endDate', headerText: 'End Date', width: 120, editType: 'datepickeredit' },
     { 
       field: 'resourceInfo', 
       headerText: 'Resource', 
       width: 200,
       editType: 'dropdownedit'
     },
-    { field: 'dependency', headerText: 'Predecessor', width: 150 },
+    { field: 'dependency', headerText: 'Predecessor', width: 150, editType: 'stringedit' },
   ];
 
   const splitterSettings = {
@@ -266,12 +266,15 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+  // Configure inline editing - this is the key change!
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true
+    showDeleteConfirmDialog: true,
+    mode: 'Cell', // This enables inline cell editing without popups
+    newRowPosition: 'Bottom' // New tasks appear at bottom of list
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
