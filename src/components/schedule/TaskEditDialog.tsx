@@ -48,10 +48,8 @@ export function TaskEditDialog({
     start_date: '',
     end_date: '',
     progress: 0,
-    priority: 'medium',
     assigned_to: '',
     parent_id: '',
-    notes: '',
     color: '#3b82f6'
   });
 
@@ -62,10 +60,8 @@ export function TaskEditDialog({
         start_date: task.start_date || '',
         end_date: task.end_date || '',
         progress: task.progress || 0,
-        priority: task.priority || 'medium',
         parent_id: task.parent_id || '',
         assigned_to: task.assigned_to || '',
-        notes: task.notes || '',
         color: task.color || '#3b82f6'
       });
     }
@@ -155,26 +151,6 @@ export function TaskEditDialog({
                 className="w-full"
               />
             </div>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="priority" className="text-right">
-              Priority
-            </Label>
-            <Select
-              value={formData.priority}
-              onValueChange={(value) => setFormData({ ...formData, priority: value })}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
@@ -269,20 +245,6 @@ export function TaskEditDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="notes" className="text-right">
-              Notes
-            </Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="col-span-3"
-              placeholder="Add notes or comments..."
-              rows={3}
-            />
           </div>
         </div>
         

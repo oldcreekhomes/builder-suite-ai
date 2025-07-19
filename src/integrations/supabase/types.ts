@@ -667,10 +667,8 @@ export type Database = {
           duration: number
           end_date: string
           id: string
-          notes: string | null
           order_index: number | null
           parent_id: string | null
-          priority: string | null
           progress: number | null
           project_id: string
           start_date: string
@@ -685,10 +683,8 @@ export type Database = {
           duration?: number
           end_date: string
           id?: string
-          notes?: string | null
           order_index?: number | null
           parent_id?: string | null
-          priority?: string | null
           progress?: number | null
           project_id: string
           start_date: string
@@ -703,10 +699,8 @@ export type Database = {
           duration?: number
           end_date?: string
           id?: string
-          notes?: string | null
           order_index?: number | null
           parent_id?: string | null
-          priority?: string | null
           progress?: number | null
           project_id?: string
           start_date?: string
