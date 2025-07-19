@@ -1,5 +1,4 @@
-
-import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -114,6 +113,15 @@ function GanttChart({ projectId }: GanttChartProps) {
   });
 
   const isLoading = resourcesLoading || tasksLoading;
+
+  const actionBegin = (args: any) => {
+    console.log('Action begin:', args.requestType, args);
+    
+    // Handle validation and pre-processing like in the working example
+    if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
+      // Pre-processing for date validation if needed
+    }
+  };
 
   const actionComplete = async (args: any) => {
     console.log('Action complete:', args.requestType, args.data);
@@ -239,21 +247,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  const columns = [
-    { field: 'taskID', headerText: 'ID', width: 80, visible: false, isPrimaryKey: true },
-    { field: 'taskName', headerText: 'Task Name', width: 250, editType: 'stringedit' },
-    { field: 'startDate', headerText: 'Start Date', width: 120, editType: 'datepickeredit' },
-    { field: 'duration', headerText: 'Duration', width: 100, editType: 'numericedit' },
-    { field: 'endDate', headerText: 'End Date', width: 120, editType: 'datepickeredit' },
-    { 
-      field: 'resourceInfo', 
-      headerText: 'Resource', 
-      width: 200,
-      editType: 'dropdownedit'
-    },
-    { field: 'dependency', headerText: 'Predecessor', width: 150, editType: 'stringedit' },
-  ];
-
   const splitterSettings = {
     position: "28%"
   };
@@ -266,18 +259,17 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure inline cell editing - this enables double-click to edit grid cells
+  // Configure edit settings like the working example
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Cell' as any, // This enables inline cell editing - double-click any cell to edit
   };
 
-  // Clean toolbar - remove Edit/Update/Cancel since inline editing handles this automatically
-  const toolbar = ['Add', 'Delete', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  // Toolbar with Edit/Update/Cancel buttons like the working example
+  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
@@ -296,7 +288,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        columns={columns}
         height='500px'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
@@ -309,8 +300,24 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
+        actionBegin={actionBegin}
         actionComplete={actionComplete}
       >
+        <ColumnsDirective>
+          <ColumnDirective field='taskID' headerText='ID' width={80} visible={false} isPrimaryKey={true} />
+          <ColumnDirective field='taskName' headerText='Task Name' width={250} clipMode='EllipsisWithTooltip' validationRules={{ required: true, minLength: [3, 'Task name should have a minimum length of 3 characters'] }} />
+          <ColumnDirective field='startDate' headerText='Start Date' width={120} />
+          <ColumnDirective field='endDate' headerText='End Date' width={120} />
+          <ColumnDirective field='duration' headerText='Duration' width={100} validationRules={{ required: true }} />
+          <ColumnDirective field='resourceInfo' headerText='Resource' width={200} />
+          <ColumnDirective field='dependency' headerText='Predecessor' width={150} />
+        </ColumnsDirective>
+        <EditDialogFieldsDirective>
+          <EditDialogFieldDirective type='General' headerText='General' />
+          <EditDialogFieldDirective type='Dependency' />
+          <EditDialogFieldDirective type='Resources' />
+          <EditDialogFieldDirective type='Notes' />
+        </EditDialogFieldsDirective>
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
     </div>
