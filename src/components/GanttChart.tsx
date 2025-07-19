@@ -400,6 +400,19 @@ function GanttChart({ projectId }: GanttChartProps) {
         assignedTo = resource ? resource.resourceName : resourceId; // Store name or fallback to ID
       }
 
+      // Handle dependencies - convert Predecessor string to dependencies array with actual DatabaseIDs
+      let dependenciesArray = [];
+      if (taskData.Predecessor) {
+        // Split comma-separated predecessor string and convert TaskIDs to DatabaseIDs
+        const predecessorIds = taskData.Predecessor.split(',').map(id => parseInt(id.trim()));
+        dependenciesArray = predecessorIds
+          .map(taskId => {
+            const task = tasks.find(t => t.TaskID === taskId);
+            return task ? task.DatabaseID : null;
+          })
+          .filter(Boolean); // Remove null values
+      }
+
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -408,6 +421,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           end_date: new Date(taskData.EndDate).toISOString(),
           duration: taskData.Duration,
           assigned_to: assignedTo,
+          dependencies: dependenciesArray,
         })
         .eq('id', taskData.DatabaseID);
 
