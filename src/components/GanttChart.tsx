@@ -173,7 +173,8 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: "Task updated successfully",
     });
     
-    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+    // DON'T invalidate queries to prevent ID remapping and row shuffling
+    // queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
   const addTaskToDatabase = async (taskData: any) => {
