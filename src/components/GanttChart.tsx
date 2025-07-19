@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TaskEditDialog } from "@/components/schedule/TaskEditDialog";
+import { Trash2 } from "lucide-react";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -222,6 +223,77 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
+  // Remove resource from task
+  const removeResourceFromTask = async (taskSimpleId: number, resourceNameToRemove: string) => {
+    try {
+      const actualTaskUUID = taskIdMapping.get(taskSimpleId);
+      if (!actualTaskUUID) {
+        console.error('Could not find UUID for task ID:', taskSimpleId);
+        return;
+      }
+
+      // Get current task data
+      const { data: currentTask, error: fetchError } = await supabase
+        .from('project_schedule_tasks')
+        .select('assigned_to')
+        .eq('id', actualTaskUUID)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current task:', fetchError);
+        return;
+      }
+
+      if (!currentTask?.assigned_to) {
+        return; // No resources to remove
+      }
+
+      // Convert resource name to UUID for removal
+      const resourceToRemove = resources.find(r => r.resourceName === resourceNameToRemove);
+      if (!resourceToRemove) {
+        console.error('Could not find resource UUID for name:', resourceNameToRemove);
+        return;
+      }
+
+      // Remove the UUID from the comma-separated list
+      const currentUUIDs = currentTask.assigned_to.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
+      const updatedUUIDs = currentUUIDs.filter(uuid => uuid !== resourceToRemove.resourceId);
+      
+      const newAssignedTo = updatedUUIDs.length > 0 ? updatedUUIDs.join(',') : null;
+
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update({ assigned_to: newAssignedTo })
+        .eq('id', actualTaskUUID);
+
+      if (error) {
+        console.error('Error removing resource:', error);
+        toast({
+          title: "Error",
+          description: "Failed to remove resource",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Resource removed successfully",
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+    } catch (error) {
+      console.error('Error removing resource:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove resource",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Handle toolbar click events
   const toolbarClick = (args: any) => {
     if (args.item.id === 'SyncfusionGantt_add') {
@@ -230,16 +302,17 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action completion - simplified to use Syncfusion's built-in events
+  // Handle action completion - only for non-resource updates
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
-      updateTaskInDatabase(args.data);
+      // Only update non-resource fields to prevent unintended changes
+      updateNonResourceTaskFields(args.data);
     }
   };
 
-  const updateTaskInDatabase = async (taskData: any) => {
+  const updateNonResourceTaskFields = async (taskData: any) => {
     try {
-      console.log('Saving task data:', taskData);
+      console.log('Updating non-resource task fields:', taskData);
       
       // Get the actual UUID from our mapping
       const actualTaskUUID = taskIdMapping.get(taskData.taskID);
@@ -256,50 +329,17 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Convert simple predecessor number back to UUID
       let predecessorUUID = null;
       if (taskData.dependency) {
-        // Handle Syncfusion's dependency format like "1FS", "2FS", etc.
         const dependencyStr = taskData.dependency.toString();
-        const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, '')); // Remove FS, SS, etc.
+        const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, ''));
         
         if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
           predecessorUUID = taskIdMapping.get(predecessorNumber);
         }
       }
 
-      // Convert resource names back to user UUIDs (handle multiple resources)
-      let resourceUUIDs = null;
-      if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
-        // Split by comma in case multiple resources are selected
-        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
-        const foundUUIDs = [];
-        
-        // Fetch all users from the database to convert names to UUIDs
-        const { data: companyName } = await supabase.rpc('get_current_user_company');
-        const { data: allUsers, error: usersError } = await supabase
-          .from('users')
-          .select('id, first_name, last_name')
-          .eq('company_name', companyName);
-        
-        if (usersError) {
-          console.error('Error fetching users:', usersError);
-        } else if (allUsers) {
-          for (const resourceName of resourceNames) {
-            const foundUser = allUsers.find(user => `${user.first_name} ${user.last_name}` === resourceName);
-            if (foundUser) {
-              foundUUIDs.push(foundUser.id);
-              console.log('Found user UUID:', foundUser.id, 'for name:', resourceName);
-            } else {
-              console.warn('Could not find UUID for user name:', resourceName);
-              console.log('Available users:', allUsers.map(user => `${user.first_name} ${user.last_name}`));
-            }
-          }
-        }
-        
-        // Join UUIDs with comma if multiple resources found
-        resourceUUIDs = foundUUIDs.length > 0 ? foundUUIDs.join(',') : null;
-      }
+      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID);
 
-      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUIDs);
-
+      // Only update non-resource fields
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -308,7 +348,6 @@ function GanttChart({ projectId }: GanttChartProps) {
           end_date: new Date(taskData.endDate).toISOString(),
           duration: taskData.duration,
           progress: taskData.progress || 0,
-          assigned_to: resourceUUIDs,
           predecessor: predecessorUUID,
           parent_id: taskData.parentID || null,
         })
@@ -342,6 +381,33 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
+  // Custom column template for resources with delete buttons
+  const resourceTemplate = (props: any) => {
+    if (!props.resourceInfo) return <div>No resources</div>;
+    
+    const resourceNames = props.resourceInfo.split(',').map((name: string) => name.trim()).filter((name: string) => name);
+    
+    return (
+      <div className="flex flex-wrap gap-1">
+        {resourceNames.map((resourceName: string, index: number) => (
+          <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs">
+            <span>{resourceName}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                removeResourceFromTask(props.taskID, resourceName);
+              }}
+              className="text-red-500 hover:text-red-700 ml-1"
+              title="Remove resource"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Standard Syncfusion field mapping
   const taskFields = {
     id: 'taskID',
@@ -373,14 +439,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     { 
       field: 'resourceInfo', 
       headerText: 'Resource', 
-      width: 200,
-      editType: 'dropdownedit'
+      width: 300,
+      template: resourceTemplate
     },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
 
   const splitterSettings = {
-    position: "28%"
+    position: "35%"
   };
 
   const projectStartDate = tasks.length > 0 
