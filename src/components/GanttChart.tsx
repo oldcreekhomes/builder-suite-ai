@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -21,26 +22,7 @@ import '@syncfusion/ej2-grids/styles/material.css';
 import '@syncfusion/ej2-treegrid/styles/material.css';
 import '@syncfusion/ej2-gantt/styles/material.css';
 
-// Custom styles for parent tasks
-const ganttStyles = `
-  .e-gantt .e-gantt-table .e-row[aria-expanded="true"] .e-rowcell,
-  .e-gantt .e-gantt-table .e-row[aria-expanded="false"] .e-rowcell {
-    font-weight: bold !important;
-  }
-  
-  .e-gantt .e-gantt-table .e-row.e-parentrow .e-rowcell {
-    font-weight: bold !important;
-  }
-`;
-
-// Add styles to document head
-if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.innerHTML = ganttStyles;
-  document.head.appendChild(styleElement);
-}
-
-// Register Syncfusion license immediately
+// Register Syncfusion license
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
 interface GanttChartProps {
@@ -63,8 +45,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
-      console.log('Fetching tasks for project:', projectId);
-      
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -76,40 +56,26 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
-      console.log('Raw database tasks:', data);
-
-      // Transform database data to Gantt format with numerical IDs
-      const transformedTasks = data.map((task, index) => {
-        console.log(`Transforming task ${task.id}:`, {
-          predecessor: task.predecessor,
-          type: typeof task.predecessor
-        });
-
-        return {
-          TaskID: index + 1, // Show simple numerical ID on frontend
-          DatabaseID: task.id, // Keep the actual UUID for database operations
-          TaskName: task.task_name,
-          StartDate: new Date(task.start_date),
-          EndDate: new Date(task.end_date),
-          Duration: task.duration,
-          Resource: task.assigned_to ? [task.assigned_to] : [], // Keep as resource ID/name for now
-          Predecessor: task.predecessor || null, // Now it's a simple string
-          ParentID: task.parent_id ? data.findIndex(t => t.id === task.parent_id) + 1 : null, // Map parent UUID to TaskID
-        };
-      });
-
-      console.log('Transformed tasks for Gantt:', transformedTasks);
-      return transformedTasks;
+      // Simple transformation to match Syncfusion's expected format
+      return data.map((task) => ({
+        taskID: task.id, // Use actual UUID as ID
+        taskName: task.task_name,
+        startDate: new Date(task.start_date),
+        endDate: new Date(task.end_date),
+        duration: task.duration,
+        progress: task.progress || 0,
+        resourceInfo: task.assigned_to ? [task.assigned_to] : [],
+        dependency: task.predecessor || '',
+        parentID: task.parent_id,
+      }));
     },
     enabled: !!projectId,
   });
 
-  // Fetch available resources (company users and representatives)
+  // Fetch available resources
   const { data: resources = [] } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
-      console.log('Fetching resources...');
-      
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -128,10 +94,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error fetching representatives:', repsError);
       }
 
-      console.log('Raw users data:', users);
-      console.log('Raw representatives data:', representatives);
-
-      // Combine and format resources, avoiding duplicates by email
+      // Combine and format resources
       const allResources = [];
       const seenEmails = new Set();
       
@@ -139,11 +102,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         users.forEach(user => {
           if (!seenEmails.has(user.email)) {
             const resourceName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-            console.log('Adding user resource:', resourceName);
             allResources.push({
               resourceId: user.id,
               resourceName: resourceName,
-              resourceType: 'user'
             });
             seenEmails.add(user.email);
           }
@@ -154,18 +115,15 @@ function GanttChart({ projectId }: GanttChartProps) {
         representatives.forEach(rep => {
           if (!seenEmails.has(rep.email)) {
             const resourceName = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
-            console.log('Adding rep resource:', resourceName);
             allResources.push({
               resourceId: rep.id,
               resourceName: resourceName,
-              resourceType: 'representative'
             });
             seenEmails.add(rep.email);
           }
         });
       }
 
-      console.log('Final allResources:', allResources);
       return allResources;
     },
   });
@@ -201,7 +159,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         return;
       }
 
-      // Refresh the tasks
       queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
       toast({
@@ -220,209 +177,34 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle toolbar click events
   const toolbarClick = (args: any) => {
-    console.log('Toolbar clicked:', args.item.id);
     if (args.item.id === 'SyncfusionGantt_add') {
-      args.cancel = true; // Cancel the default add behavior
-      handleAddTask(); // Call our custom add function
-    } else if (args.item.id === 'SyncfusionGantt_edit') {
-      args.cancel = true; // Cancel the default edit behavior
-      // Get selected task
-      const ganttComponent = document.getElementById('SyncfusionGantt') as any;
-      if (ganttComponent && ganttComponent.ej2_instances && ganttComponent.ej2_instances[0]) {
-        const ganttInstance = ganttComponent.ej2_instances[0];
-        const selectedRowIndex = ganttInstance.selectedRowIndex;
-        if (selectedRowIndex >= 0 && tasks[selectedRowIndex]) {
-          const selectedTask = tasks[selectedRowIndex];
-          openEditDialog(selectedTask);
-        } else {
-          toast({
-            title: "No Selection",
-            description: "Please select a task to edit",
-            variant: "destructive",
-          });
-        }
-      }
-    } else if (args.item.id === 'SyncfusionGantt_delete') {
-      args.cancel = true; // Cancel the default delete behavior
-      // Get selected task using the correct method
-      const ganttComponent = document.getElementById('SyncfusionGantt') as any;
-      if (ganttComponent && ganttComponent.ej2_instances && ganttComponent.ej2_instances[0]) {
-        const ganttInstance = ganttComponent.ej2_instances[0];
-        const selectedRowIndex = ganttInstance.selectedRowIndex;
-        if (selectedRowIndex >= 0 && tasks[selectedRowIndex]) {
-          setDeleteDialog({ open: true, taskToDelete: tasks[selectedRowIndex] });
-        } else {
-          toast({
-            title: "No Selection",
-            description: "Please select a task to delete",
-            variant: "destructive",
-          });
-        }
-      }
+      args.cancel = true;
+      handleAddTask();
     }
   };
 
-  // Open custom edit dialog
-  const openEditDialog = (task: any) => {
-    // Convert Gantt task format to database format for the edit dialog
-    const dbTask = {
-      id: task.DatabaseID,
-      task_name: task.TaskName,
-      start_date: task.StartDate.toISOString().split('T')[0], // Convert to YYYY-MM-DD format
-      end_date: task.EndDate.toISOString().split('T')[0],
-      progress: 0, // Default since not in Gantt format
-      priority: 'medium', // Default
-      assigned_to: task.Resource?.[0] || '',
-      parent_id: task.ParentID ? tasks.find(t => t.TaskID === task.ParentID)?.DatabaseID : null,
-      notes: '',
-      color: '#3b82f6',
-      availableParents: tasks.filter(t => t.DatabaseID !== task.DatabaseID).map(t => ({
-        id: t.DatabaseID,
-        task_name: t.TaskName
-      })),
-      availableResources: resources
-    };
-    
-    setEditDialog({ open: true, taskToEdit: dbTask });
-  };
-
-  // Handle task updates from custom edit dialog
-  const handleTaskSave = async (taskId: string, updates: any) => {
-    try {
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .update({
-          task_name: updates.task_name,
-          start_date: new Date(updates.start_date).toISOString(),
-          end_date: new Date(updates.end_date).toISOString(),
-          progress: updates.progress,
-          priority: updates.priority,
-          assigned_to: updates.assigned_to || null,
-          parent_id: updates.parent_id || null,
-          notes: updates.notes || null,
-          color: updates.color || '#3b82f6'
-        })
-        .eq('id', taskId);
-
-      if (error) {
-        console.error('Error updating task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Refresh the tasks
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      });
-    } catch (error) {
-      console.error('Error updating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle task delete from custom edit dialog
-  const handleTaskDelete = async (taskId: string) => {
-    try {
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .delete()
-        .eq('id', taskId);
-
-      if (error) {
-        console.error('Error deleting task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Refresh the tasks
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // FIXED: Handle action completion events from Syncfusion Gantt
+  // Handle action completion - simplified to use Syncfusion's built-in events
   const actionComplete = (args: any) => {
-    console.log('=== ACTION COMPLETE EVENT ===');
-    console.log('Action complete - requestType:', args.requestType);
-    console.log('Action complete - data:', args.data);
-    
-    // Enhanced detection for inline edits - check for data with DatabaseID regardless of requestType
-    if (args.data && args.data.taskData && args.data.taskData.DatabaseID) {
-      console.log('INLINE EDIT DETECTED - Saving to database:', args.data.taskData.DatabaseID);
-      updateTaskInDatabase(args.data.taskData);
-    } else if (args.data && args.data.DatabaseID) {
-      console.log('INLINE EDIT DETECTED - Saving to database:', args.data.DatabaseID);
+    if (args.requestType === 'save' && args.data) {
       updateTaskInDatabase(args.data);
-    } else if (args.data && Array.isArray(args.data) && args.data.length > 0) {
-      // Handle bulk operations like indent/outdent
-      console.log('Bulk operation detected');
-      args.data.forEach((taskData: any) => {
-        if (taskData.DatabaseID) {
-          updateTaskHierarchy(taskData);
-        }
-      });
-    } else {
-      console.log('Action complete - No database save needed');
     }
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
-      console.log('=== UPDATE TASK IN DATABASE ===');
-      console.log('Updating task in database:', taskData.DatabaseID);
-      console.log('Full taskData:', taskData);
-      
-      // Handle resource assignment - the Resource field contains the selected resourceId
-      let assignedTo = null;
-      if (taskData.Resource && taskData.Resource.length > 0) {
-        // The Resource array now contains the resourceId directly
-        const resourceId = taskData.Resource[0];
-        // Find the resource to get the name for storage
-        const resource = resources.find(r => r.resourceId === resourceId);
-        assignedTo = resource ? resource.resourceName : resourceId; // Store name or fallback to ID
-      }
-
-      // FIXED: Handle predecessor - save the Predecessor string directly (already in correct format)
-      const predecessorValue = taskData.Predecessor || null;
-      console.log('Saving predecessor value:', predecessorValue);
-
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
-          task_name: taskData.TaskName,
-          start_date: new Date(taskData.StartDate).toISOString(),
-          end_date: new Date(taskData.EndDate).toISOString(),
-          duration: taskData.Duration,
-          assigned_to: assignedTo,
-          predecessor: predecessorValue,
+          task_name: taskData.taskName,
+          start_date: new Date(taskData.startDate).toISOString(),
+          end_date: new Date(taskData.endDate).toISOString(),
+          duration: taskData.duration,
+          progress: taskData.progress || 0,
+          assigned_to: taskData.resourceInfo?.[0] || null,
+          predecessor: taskData.dependency || null,
+          parent_id: taskData.parentID || null,
         })
-        .eq('id', taskData.DatabaseID);
+        .eq('id', taskData.taskID);
 
       if (error) {
         console.error('Error updating task:', error);
@@ -434,7 +216,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         return;
       }
 
-      console.log('Task updated successfully in database');
       toast({
         title: "Success",
         description: "Task updated successfully",
@@ -450,82 +231,17 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  const updateTaskHierarchy = async (taskData: any) => {
-    try {
-      // Extract parent_id from the task data - Syncfusion sets parentItem for child tasks
-      const parentId = taskData.parentItem ? taskData.parentItem.DatabaseID : null;
-
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .update({
-          parent_id: parentId,
-        })
-        .eq('id', taskData.DatabaseID);
-
-      if (error) {
-        console.error('Error updating task hierarchy:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update task hierarchy",
-          variant: "destructive",
-        });
-      } else {
-        // Refresh the tasks to reflect hierarchy changes
-        queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      }
-    } catch (error) {
-      console.error('Error updating task hierarchy:', error);
-    }
-  };
-
-  // Handle custom delete operation
-  const handleDeleteTask = async () => {
-    if (!deleteDialog.taskToDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .delete()
-        .eq('id', deleteDialog.taskToDelete.DatabaseID);
-
-      if (error) {
-        console.error('Error deleting task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Refresh the tasks
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleteDialog({ open: false, taskToDelete: null });
-    }
-  };
-
+  // Standard Syncfusion field mapping
   const taskFields = {
-    id: 'TaskID',
-    name: 'TaskName',
-    startDate: 'StartDate',
-    endDate: 'EndDate',
-    duration: 'Duration',
-    resourceInfo: 'Resource',
-    dependency: 'Predecessor',
-    parentID: 'ParentID',
+    id: 'taskID',
+    name: 'taskName',
+    startDate: 'startDate',
+    endDate: 'endDate',
+    duration: 'duration',
+    progress: 'progress',
+    resourceInfo: 'resourceInfo',
+    dependency: 'dependency',
+    parentID: 'parentID',
   };
 
   const resourceFields = {
@@ -533,113 +249,50 @@ function GanttChart({ projectId }: GanttChartProps) {
     name: 'resourceName'
   };
 
-  const labelSettings: any = {
-    leftLabel: 'TaskName'
+  const labelSettings = {
+    leftLabel: 'taskName'
   };
 
-  const columns: any[] = [
+  const columns = [
+    { field: 'taskID', headerText: 'ID', width: 80 },
+    { field: 'taskName', headerText: 'Task Name', width: 250 },
+    { field: 'startDate', headerText: 'Start Date', width: 120 },
+    { field: 'duration', headerText: 'Duration', width: 100 },
+    { field: 'endDate', headerText: 'End Date', width: 120 },
     { 
-      field: 'TaskID', 
-      headerText: 'ID', 
-      width: 80, 
-      allowEditing: false, 
-      isPrimaryKey: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 80,
-      maxWidth: 100,
-      textAlign: 'Left',
-      headerTextAlign: 'Left'
-    },
-    { 
-      field: 'TaskName', 
-      headerText: 'Task Name', 
-      width: 250, 
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 200,
-      customAttributes: {
-        class: 'parent-task-bold'
-      }
-    },
-    { 
-      field: 'StartDate', 
-      headerText: 'Start Date', 
-      width: 120,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 120
-    },
-    { 
-      field: 'Duration', 
-      headerText: 'Duration', 
-      width: 100,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 100
-    },
-    { 
-      field: 'EndDate', 
-      headerText: 'End Date', 
-      width: 120,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 120
-    },
-    { 
-      field: 'Resource', 
+      field: 'resourceInfo', 
       headerText: 'Resource', 
       width: 200,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 150,
       editType: 'dropdownedit',
       edit: {
         params: {
           dataSource: resources,
           fields: { value: 'resourceId', text: 'resourceName' },
           allowFiltering: true,
-          filterBarPlaceholder: 'Search resources...'
         }
       }
     },
-    { 
-      field: 'Predecessor', 
-      headerText: 'Predecessor', 
-      width: 150,
-      allowEditing: true,
-      autoFit: false,
-      allowTextWrap: false,
-      minWidth: 120
-    },
+    { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
 
   const splitterSettings = {
     position: "28%"
   };
 
-  // Set dynamic project dates based on tasks or default dates
-  const projectStartDate: Date = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => new Date(t.StartDate).getTime())))
+  const projectStartDate = tasks.length > 0 
+    ? new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())))
     : new Date();
   
-  const projectEndDate: Date = tasks.length > 0 
-    ? new Date(Math.max(...tasks.map(t => new Date(t.EndDate).getTime())))
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+  const projectEndDate = tasks.length > 0 
+    ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: false,
-    newRowPosition: 'Bottom' as any,
-    mode: 'Auto' as any
+    showDeleteConfirmDialog: true,
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -647,10 +300,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
-
-  console.log('Rendering GanttChart with tasks:', tasks.length);
-  console.log('Resources available:', resources.length);
-  console.log('Final tasks data:', tasks);
 
   return (
     <div style={{ padding: '10px' }}>
@@ -682,8 +331,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         task={editDialog.taskToEdit}
         isOpen={editDialog.open}
         onClose={() => setEditDialog({ open: false, taskToEdit: null })}
-        onSave={handleTaskSave}
-        onDelete={handleTaskDelete}
+        onSave={() => {}}
+        onDelete={() => {}}
       />
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, taskToDelete: null })}>
@@ -691,15 +340,12 @@ function GanttChart({ projectId }: GanttChartProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteDialog.taskToDelete?.TaskName}"? This action cannot be undone.
+              Are you sure you want to delete this task? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteTask}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
