@@ -5,6 +5,7 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { GanttIdMapper } from "@/utils/ganttIdMapping";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -31,6 +32,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const ganttRef = React.useRef<any>(null);
+  const idMapper = React.useRef(new GanttIdMapper());
 
   // Fetch resources first
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
@@ -78,7 +80,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
   });
 
-  // Fetch schedule tasks - simplified to use UUIDs directly
+  // Fetch and transform schedule tasks
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
@@ -97,36 +99,13 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       console.log('Raw data from database:', data);
 
-      // Simple transformation - use UUIDs directly
-      const transformedTasks = data.map((task) => {
-        // Convert assigned_to UUIDs to resource names for display
-        let resourceInfo = [];
-        if (task.assigned_to) {
-          const resourceUUIDs = task.assigned_to.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
-          
-          for (const uuid of resourceUUIDs) {
-            const foundResource = resources.find(r => r.resourceId === uuid);
-            if (foundResource) {
-              resourceInfo.push({
-                resourceId: foundResource.resourceId,
-                resourceName: foundResource.resourceName
-              });
-            }
-          }
-        }
+      // Initialize ID mapper with existing tasks
+      idMapper.current.initializeFromTasks(data);
 
-        return {
-          taskID: task.id, // Use actual UUID
-          taskName: task.task_name,
-          startDate: new Date(task.start_date),
-          endDate: new Date(task.end_date),
-          duration: task.duration,
-          progress: task.progress || 0,
-          resourceInfo: resourceInfo, // Use resource objects
-          dependency: task.predecessor || '', // Use as-is
-          parentID: task.parent_id,
-        };
-      });
+      // Transform tasks for Syncfusion
+      const transformedTasks = data.map((task) => 
+        idMapper.current.convertTaskForSyncfusion(task)
+      );
 
       console.log('Transformed tasks for Gantt:', transformedTasks);
       return transformedTasks;
@@ -136,187 +115,109 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const isLoading = resourcesLoading || tasksLoading;
 
-  // Simplified action handler - let Syncfusion handle most operations
-  const toolbarClick = (args: any) => {
-    if (args.item.id === 'SyncfusionGantt_add') {
-      args.cancel = true; // Prevent default popup
-      
-      const newTask = {
-        taskID: crypto.randomUUID(),
-        taskName: 'New Task',
-        startDate: new Date(),
-        duration: 1,
-        progress: 0,
-        resourceInfo: [],
-        dependency: '',
-      };
-      
-      // Add to Gantt data source
-      if (ganttRef.current) {
-        ganttRef.current.addRecord(newTask);
-      }
-    }
-  };
-
   const actionComplete = async (args: any) => {
     console.log('Action complete:', args.requestType, args.data);
     
-    if (args.requestType === 'save' && args.data) {
-      await saveTaskToDatabase(args.data);
-    } else if (args.requestType === 'add' && args.data) {
-      await saveNewTaskToDatabase(args.data);
-    } else if (args.requestType === 'delete' && args.data) {
-      await deleteTaskFromDatabase(args.data);
+    try {
+      if (args.requestType === 'save' && args.data) {
+        await updateTaskInDatabase(args.data);
+      } else if (args.requestType === 'add' && args.data) {
+        await addTaskToDatabase(args.data);
+      } else if (args.requestType === 'delete' && args.data) {
+        await deleteTaskFromDatabase(args.data);
+      }
+    } catch (error) {
+      console.error('Error in actionComplete:', error);
+      toast({
+        title: "Error",
+        description: "Failed to perform operation",
+        variant: "destructive",
+      });
     }
   };
 
-  const saveTaskToDatabase = async (taskData: any) => {
-    try {
-      console.log('Saving existing task:', taskData);
-      
-      // Convert resource info back to UUIDs
-      let resourceUUIDs = null;
-      if (taskData.resourceInfo && taskData.resourceInfo.length > 0) {
-        const uuids = taskData.resourceInfo.map(resource => resource.resourceId);
-        resourceUUIDs = uuids.join(',');
-      }
+  const updateTaskInDatabase = async (taskData: any) => {
+    console.log('Updating task:', taskData);
+    
+    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .update({
+        task_name: dbTask.task_name,
+        start_date: dbTask.start_date,
+        end_date: dbTask.end_date,
+        duration: dbTask.duration,
+        progress: dbTask.progress,
+        assigned_to: dbTask.assigned_to,
+        predecessor: dbTask.predecessor,
+        parent_id: dbTask.parent_id,
+      })
+      .eq('id', dbTask.id);
 
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .update({
-          task_name: taskData.taskName,
-          start_date: new Date(taskData.startDate).toISOString(),
-          end_date: new Date(taskData.endDate).toISOString(),
-          duration: taskData.duration,
-          progress: taskData.progress || 0,
-          assigned_to: resourceUUIDs,
-          predecessor: taskData.dependency || null,
-          parent_id: taskData.parentID || null,
-        })
-        .eq('id', taskData.taskID);
-
-      if (error) {
-        console.error('Error updating task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      });
-      
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-    } catch (error) {
+    if (error) {
       console.error('Error updating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
+      throw error;
     }
+
+    toast({
+      title: "Success",
+      description: "Task updated successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
-  const saveNewTaskToDatabase = async (taskData: any) => {
-    try {
-      console.log('Saving new task:', taskData);
-      
-      // Convert resource info to UUIDs
-      let resourceUUIDs = null;
-      if (taskData.resourceInfo && taskData.resourceInfo.length > 0) {
-        const uuids = taskData.resourceInfo.map(resource => resource.resourceId);
-        resourceUUIDs = uuids.join(',');
-      }
+  const addTaskToDatabase = async (taskData: any) => {
+    console.log('Adding task:', taskData);
+    
+    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .insert(dbTask);
 
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .insert({
-          id: taskData.taskID, // Use the UUID generated by Syncfusion
-          project_id: projectId,
-          task_name: taskData.taskName || 'New Task',
-          start_date: new Date(taskData.startDate).toISOString(),
-          end_date: new Date(taskData.endDate).toISOString(),
-          duration: taskData.duration || 1,
-          progress: taskData.progress || 0,
-          assigned_to: resourceUUIDs,
-          predecessor: taskData.dependency || null,
-          parent_id: taskData.parentID || null,
-          order_index: tasks.length,
-          color: '#3b82f6'
-        });
-
-      if (error) {
-        console.error('Error adding task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to add task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Task added successfully",
-      });
-      
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-    } catch (error) {
+    if (error) {
       console.error('Error adding task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add task",
-        variant: "destructive",
-      });
+      throw error;
     }
+
+    toast({
+      title: "Success",
+      description: "Task added successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
   const deleteTaskFromDatabase = async (taskData: any) => {
-    try {
-      console.log('Deleting task:', taskData);
-      
-      const { error } = await supabase
-        .from('project_schedule_tasks')
-        .delete()
-        .eq('id', taskData.taskID);
-
-      if (error) {
-        console.error('Error deleting task:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete task",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
-      
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
-        variant: "destructive",
-      });
+    console.log('Deleting task:', taskData);
+    
+    const uuid = idMapper.current.getUuid(taskData.taskID);
+    if (!uuid) {
+      console.error('Could not find UUID for task:', taskData.taskID);
+      throw new Error('Task UUID not found');
     }
+    
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .delete()
+      .eq('id', uuid);
+
+    if (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+
+    toast({
+      title: "Success",
+      description: "Task deleted successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
-  // Standard Syncfusion field mapping
+  // Syncfusion field mapping
   const taskFields = {
     id: 'taskID',
     name: 'taskName',
@@ -339,7 +240,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const columns = [
-    { field: 'taskID', headerText: 'ID', width: 80, visible: false }, // Hide UUID column
+    { field: 'taskID', headerText: 'ID', width: 80, visible: false },
     { field: 'taskName', headerText: 'Task Name', width: 250 },
     { field: 'startDate', headerText: 'Start Date', width: 120 },
     { field: 'duration', headerText: 'Duration', width: 100 },
@@ -406,7 +307,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         gridLines="Both"
         actionComplete={actionComplete}
-        toolbarClick={toolbarClick}
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>

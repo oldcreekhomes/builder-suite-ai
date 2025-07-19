@@ -1,0 +1,115 @@
+
+// Utility for mapping between Syncfusion numeric IDs and database UUIDs
+export class GanttIdMapper {
+  private numericToUuid: Map<number, string> = new Map();
+  private uuidToNumeric: Map<string, number> = new Map();
+  private nextId: number = 1;
+
+  // Initialize mapping from existing tasks
+  initializeFromTasks(tasks: any[]) {
+    this.numericToUuid.clear();
+    this.uuidToNumeric.clear();
+    this.nextId = 1;
+
+    tasks.forEach((task) => {
+      const numericId = this.nextId++;
+      this.numericToUuid.set(numericId, task.id);
+      this.uuidToNumeric.set(task.id, numericId);
+    });
+  }
+
+  // Add new task mapping
+  addTaskMapping(uuid: string): number {
+    if (this.uuidToNumeric.has(uuid)) {
+      return this.uuidToNumeric.get(uuid)!;
+    }
+    
+    const numericId = this.nextId++;
+    this.numericToUuid.set(numericId, uuid);
+    this.uuidToNumeric.set(uuid, numericId);
+    return numericId;
+  }
+
+  // Get UUID from numeric ID
+  getUuid(numericId: number): string | undefined {
+    return this.numericToUuid.get(numericId);
+  }
+
+  // Get numeric ID from UUID
+  getNumericId(uuid: string): number | undefined {
+    return this.uuidToNumeric.get(uuid);
+  }
+
+  // Convert task data for Syncfusion (UUID -> numeric)
+  convertTaskForSyncfusion(task: any): any {
+    const numericId = this.getNumericId(task.id) || this.addTaskMapping(task.id);
+    
+    return {
+      taskID: numericId,
+      taskName: task.task_name,
+      startDate: new Date(task.start_date),
+      endDate: new Date(task.end_date),
+      duration: task.duration,
+      progress: task.progress || 0,
+      resourceInfo: this.parseResourceInfo(task.assigned_to),
+      dependency: this.convertDependencies(task.predecessor),
+      parentID: task.parent_id ? this.getNumericId(task.parent_id) : null,
+    };
+  }
+
+  // Convert task data for database (numeric -> UUID)
+  convertTaskForDatabase(task: any, projectId: string): any {
+    const uuid = this.getUuid(task.taskID) || crypto.randomUUID();
+    
+    // Ensure mapping exists for new tasks
+    if (!this.getUuid(task.taskID)) {
+      this.numericToUuid.set(task.taskID, uuid);
+      this.uuidToNumeric.set(uuid, task.taskID);
+    }
+
+    return {
+      id: uuid,
+      project_id: projectId,
+      task_name: task.taskName || 'New Task',
+      start_date: new Date(task.startDate).toISOString(),
+      end_date: new Date(task.endDate).toISOString(),
+      duration: task.duration || 1,
+      progress: task.progress || 0,
+      assigned_to: this.convertResourceInfoToUUIDs(task.resourceInfo),
+      predecessor: task.dependency || null,
+      parent_id: task.parentID ? this.getUuid(task.parentID) : null,
+      order_index: 0,
+      color: '#3b82f6'
+    };
+  }
+
+  private parseResourceInfo(assignedTo: string | null): any[] {
+    if (!assignedTo) return [];
+    
+    const resourceUUIDs = assignedTo.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
+    return resourceUUIDs.map(uuid => ({
+      resourceId: uuid,
+      resourceName: uuid // Will be resolved by Syncfusion from resources array
+    }));
+  }
+
+  private convertResourceInfoToUUIDs(resourceInfo: any[]): string | null {
+    if (!resourceInfo || resourceInfo.length === 0) return null;
+    
+    const uuids = resourceInfo.map(resource => resource.resourceId);
+    return uuids.join(',');
+  }
+
+  private convertDependencies(predecessor: string | null): string {
+    if (!predecessor) return '';
+    
+    // Convert UUID dependencies to numeric IDs
+    const deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
+    const numericDeps = deps.map(dep => {
+      const numericId = this.getNumericId(dep);
+      return numericId ? numericId.toString() : dep;
+    });
+    
+    return numericDeps.join(',');
+  }
+}
