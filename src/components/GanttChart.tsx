@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -32,6 +33,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [taskIdMapping, setTaskIdMapping] = React.useState<Map<number, string>>(new Map());
+  const [resourceMapping, setResourceMapping] = React.useState<Map<string, string>>(new Map());
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
     open: false, 
     taskToDelete: null 
@@ -60,7 +62,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       console.log('Raw data from database:', data);
       console.log('Number of tasks found:', data.length);
 
-      // Create mapping between UUIDs and simple numbers
+      // Create mapping between UUIDs and simple numbers for tasks
       const taskIdToNumber = new Map();
       const numberToTaskId = new Map();
       
@@ -73,7 +75,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Update the mapping state for use in save operations
       setTaskIdMapping(numberToTaskId);
 
-      // Transform data to use simple numbers for display
+      // Create mapping between resource UUIDs and names for display
+      const resourceUUIDToName = new Map();
+      const nameToResourceUUID = new Map();
+      
+      resources.forEach(resource => {
+        resourceUUIDToName.set(resource.resourceId, resource.resourceName);
+        nameToResourceUUID.set(resource.resourceName, resource.resourceId);
+      });
+
+      // Update the resource mapping state
+      setResourceMapping(nameToResourceUUID);
+
+      // Transform data to use simple numbers and names for display
       const transformedTasks = data.map((task, index) => {
         const simpleId = index + 1;
         let simplePredecessor = '';
@@ -83,7 +97,13 @@ function GanttChart({ projectId }: GanttChartProps) {
           simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
         }
 
-        // Keep the UUID for resourceInfo, Syncfusion needs it to match with resources
+        // Convert UUID to name for display, like predecessor does with numbers
+        let resourceName = '';
+        if (task.assigned_to) {
+          const foundResource = resources.find(r => r.resourceId === task.assigned_to);
+          resourceName = foundResource ? foundResource.resourceName : '';
+        }
+
         return {
           taskID: simpleId, // Use simple number for display
           taskName: task.task_name,
@@ -91,7 +111,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           endDate: new Date(task.end_date),
           duration: task.duration,
           progress: task.progress || 0,
-          resourceInfo: task.assigned_to ? [task.assigned_to] : [],
+          resourceInfo: resourceName, // Use name for display like predecessor uses numbers
           dependency: simplePredecessor,
           parentID: task.parent_id,
         };
@@ -237,11 +257,17 @@ function GanttChart({ projectId }: GanttChartProps) {
         }
       }
 
-      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID);
+      // Convert resource name back to UUID (same pattern as predecessor)
+      let resourceUUID = null;
+      if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
+        resourceUUID = resourceMapping.get(taskData.resourceInfo);
+        if (!resourceUUID) {
+          console.warn('Could not find UUID for resource name:', taskData.resourceInfo);
+        }
+      }
 
-      // Make sure we save the resource UUID, not the display value
-      const resourceUUID = taskData.resourceInfo?.[0] || null;
-      
+      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUID);
+
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -316,15 +342,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'resourceInfo', 
       headerText: 'Resource', 
       width: 200,
-      editType: 'dropdownedit',
-      template: (props: any) => {
-        if (props.resourceInfo && props.resourceInfo.length > 0) {
-          const resourceId = props.resourceInfo[0];
-          const resource = resources.find(r => r.resourceId === resourceId);
-          return resource ? resource.resourceName : '';
-        }
-        return '';
-      }
+      editType: 'dropdownedit'
     },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
