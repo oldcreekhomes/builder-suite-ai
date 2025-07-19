@@ -96,11 +96,21 @@ export class GanttIdMapper {
   private parseResourceInfoForSyncfusion(assignedTo: string | null): any[] {
     if (!assignedTo) return [];
     
-    const resourceUUIDs = assignedTo.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
-    return resourceUUIDs.map(uuid => ({
-      resourceId: uuid,
-      resourceName: uuid // Will be resolved by Syncfusion from resources array
-    }));
+    // Handle string input
+    if (typeof assignedTo === 'string') {
+      const resourceUUIDs = assignedTo.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
+      return resourceUUIDs.map(uuid => ({
+        resourceId: uuid,
+        resourceName: uuid // Will be resolved by Syncfusion from resources array
+      }));
+    }
+    
+    // If it's already an array, return as is
+    if (Array.isArray(assignedTo)) {
+      return assignedTo;
+    }
+    
+    return [];
   }
 
   // Convert Syncfusion resourceInfo back to database assigned_to format
