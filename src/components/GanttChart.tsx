@@ -419,6 +419,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     resourceInfo: 'resourceInfo',
     dependency: 'dependency',
     parentID: 'parentID',
+    resourceField: 'resourceInfo',
   };
 
   const resourceFields = {
@@ -436,12 +437,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     { field: 'startDate', headerText: 'Start Date', width: 120 },
     { field: 'duration', headerText: 'Duration', width: 100 },
     { field: 'endDate', headerText: 'End Date', width: 120 },
-    { 
-      field: 'resourceInfo', 
-      headerText: 'Resource', 
-      width: 300,
-      template: resourceTemplate
-    },
+    { field: 'resourceInfo', headerText: 'Resource', width: 300 },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
 
