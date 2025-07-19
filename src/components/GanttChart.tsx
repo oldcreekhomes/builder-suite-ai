@@ -167,13 +167,23 @@ function GanttChart({ projectId }: GanttChartProps) {
     if (taskData.resourceInfo) {
       console.log('Raw resourceInfo:', taskData.resourceInfo);
       
-      // Handle when resourceInfo is a string (resource name)
+      // Handle when resourceInfo is a string (resource name or comma-separated names)
       if (typeof taskData.resourceInfo === 'string') {
-        // Find the resource UUID by name
-        const resource = resources.find(r => r.resourceName === taskData.resourceInfo);
-        if (resource) {
-          assignedTo = resource.resourceId;
-          console.log('Found resource by name:', taskData.resourceInfo, '-> UUID:', assignedTo);
+        // Split by comma in case of multiple resources
+        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim());
+        const resourceUUIDs = [];
+        
+        for (const resourceName of resourceNames) {
+          const resource = resources.find(r => r.resourceName === resourceName);
+          if (resource) {
+            resourceUUIDs.push(resource.resourceId);
+            console.log('Found resource by name:', resourceName, '-> UUID:', resource.resourceId);
+          }
+        }
+        
+        if (resourceUUIDs.length > 0) {
+          assignedTo = resourceUUIDs.join(',');
+          console.log('Final assigned resources:', assignedTo);
         }
       }
       // Handle when resourceInfo is an array
