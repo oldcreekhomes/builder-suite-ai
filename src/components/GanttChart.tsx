@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -319,23 +318,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         description: "Task updated successfully",
       });
       
-      // Update the local task data to reflect the resource changes immediately
-      const updatedTasks = tasks.map(task => {
-        if (task.taskID === taskData.taskID) {
-          return {
-            ...task,
-            resourceInfo: taskData.resourceInfo
-          };
-        }
-        return task;
-      });
-      
-      // Update the Gantt component's data source immediately
-      if (ganttRef.current) {
-        ganttRef.current.dataSource = updatedTasks;
-      }
-      
-      // Refresh data to ensure consistency
+      // Refresh data to ensure consistency - this will show the correct resources from database
       queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
     } catch (error) {
