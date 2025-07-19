@@ -32,6 +32,7 @@ interface GanttChartProps {
 function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const ganttRef = React.useRef<any>(null);
   const [taskIdMapping, setTaskIdMapping] = React.useState<Map<number, string>>(new Map());
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
     open: false, 
@@ -318,6 +319,22 @@ function GanttChart({ projectId }: GanttChartProps) {
         description: "Task updated successfully",
       });
       
+      // Update the local task data to reflect the resource changes immediately
+      const updatedTasks = tasks.map(task => {
+        if (task.taskID === taskData.taskID) {
+          return {
+            ...task,
+            resourceInfo: taskData.resourceInfo
+          };
+        }
+        return task;
+      });
+      
+      // Update the Gantt component's data source immediately
+      if (ganttRef.current) {
+        ganttRef.current.dataSource = updatedTasks;
+      }
+      
       // Refresh data to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
@@ -400,6 +417,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   return (
     <div style={{ padding: '10px' }}>
       <GanttComponent 
+        ref={ganttRef}
         id='SyncfusionGantt' 
         dataSource={tasks}
         taskFields={taskFields} 
