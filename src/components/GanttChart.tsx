@@ -201,25 +201,37 @@ function GanttChart({ projectId }: GanttChartProps) {
   const deleteTaskFromDatabase = async (taskData: any) => {
     console.log('Deleting task:', taskData);
     
-    const uuid = idMapper.current.getUuid(taskData.taskID);
-    if (!uuid) {
-      console.error('Could not find UUID for task:', taskData.taskID);
-      throw new Error('Task UUID not found');
-    }
+    // Handle both single task and array of tasks for delete
+    const tasksToDelete = Array.isArray(taskData) ? taskData : [taskData];
     
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .delete()
-      .eq('id', uuid);
+    for (const task of tasksToDelete) {
+      // For delete operations, Syncfusion might pass taskID directly or in different structure
+      const taskId = task.taskID || task.taskData?.taskID || task.ganttProperties?.taskId;
+      
+      console.log('Attempting to delete task with ID:', taskId);
+      
+      const uuid = idMapper.current.getUuid(taskId);
+      if (!uuid) {
+        console.error('Could not find UUID for task ID:', taskId);
+        throw new Error(`Task UUID not found for ID: ${taskId}`);
+      }
+      
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', uuid);
 
-    if (error) {
-      console.error('Error deleting task:', error);
-      throw error;
+      if (error) {
+        console.error('Error deleting task:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted task:', uuid);
     }
 
     toast({
       title: "Success",
-      description: "Task deleted successfully",
+      description: `Deleted ${tasksToDelete.length} task(s) successfully`,
     });
     
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
