@@ -46,6 +46,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
+      console.log('Fetching tasks for project:', projectId);
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -56,6 +57,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error fetching schedule tasks:', error);
         throw error;
       }
+
+      console.log('Raw data from database:', data);
+      console.log('Number of tasks found:', data.length);
 
       // Create mapping between UUIDs and simple numbers
       const taskIdToNumber = new Map();
@@ -71,7 +75,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       setTaskIdMapping(numberToTaskId);
 
       // Transform data to use simple numbers for display
-      return data.map((task, index) => {
+      const transformedTasks = data.map((task, index) => {
         const simpleId = index + 1;
         let simplePredecessor = '';
         
@@ -92,6 +96,9 @@ function GanttChart({ projectId }: GanttChartProps) {
           parentID: task.parent_id,
         };
       });
+
+      console.log('Transformed tasks for Gantt:', transformedTasks);
+      return transformedTasks;
     },
     enabled: !!projectId,
   });
@@ -355,6 +362,9 @@ function GanttChart({ projectId }: GanttChartProps) {
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
+
+  console.log('Rendering Gantt with tasks:', tasks);
+  console.log('Task ID mapping:', taskIdMapping);
 
   return (
     <div style={{ padding: '10px' }}>
