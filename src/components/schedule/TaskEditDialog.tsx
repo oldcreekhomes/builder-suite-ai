@@ -48,20 +48,24 @@ export function TaskEditDialog({
     start_date: '',
     end_date: '',
     progress: 0,
-    assigned_to: '',
+    assigned_to: [] as string[],
     parent_id: '',
     color: '#3b82f6'
   });
 
   useEffect(() => {
     if (task) {
+      const assignedResources = task.assigned_to ? 
+        (Array.isArray(task.assigned_to) ? task.assigned_to : task.assigned_to.split(',').filter(Boolean)) : 
+        [];
+      
       setFormData({
         task_name: task.task_name || '',
         start_date: task.start_date || '',
         end_date: task.end_date || '',
         progress: task.progress || 0,
         parent_id: task.parent_id || '',
-        assigned_to: task.assigned_to || '',
+        assigned_to: assignedResources,
         color: task.color || '#3b82f6'
       });
     }
@@ -69,7 +73,12 @@ export function TaskEditDialog({
 
   const handleSave = () => {
     if (task) {
-      onSave(task.id, formData);
+      // Convert array back to comma-separated string for database
+      const updatedFormData = {
+        ...formData,
+        assigned_to: formData.assigned_to.join(',')
+      };
+      onSave(task.id, updatedFormData);
       onClose();
     }
   };
@@ -177,7 +186,7 @@ export function TaskEditDialog({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="assigned_to" className="text-right">
-              Resource
+              Resources
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -186,7 +195,10 @@ export function TaskEditDialog({
                   role="combobox"
                   className="col-span-3 justify-between"
                 >
-                  {formData.assigned_to || "Select resource..."}
+                  {formData.assigned_to.length > 0 
+                    ? `${formData.assigned_to.length} resource(s) selected`
+                    : "Select resources..."
+                  }
                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -197,14 +209,19 @@ export function TaskEditDialog({
                       key={resource.resourceId}
                       className="flex items-center space-x-2 p-2 hover:bg-accent cursor-pointer"
                       onClick={() => {
+                        const isSelected = formData.assigned_to.includes(resource.resourceName);
+                        const updatedResources = isSelected
+                          ? formData.assigned_to.filter(name => name !== resource.resourceName)
+                          : [...formData.assigned_to, resource.resourceName];
+                        
                         setFormData({ 
                           ...formData, 
-                          assigned_to: formData.assigned_to === resource.resourceName ? '' : resource.resourceName 
+                          assigned_to: updatedResources
                         });
                       }}
                     >
                       <Checkbox
-                        checked={formData.assigned_to === resource.resourceName}
+                        checked={formData.assigned_to.includes(resource.resourceName)}
                         onChange={() => {}}
                       />
                       <span className="text-sm">{resource.resourceName}</span>
