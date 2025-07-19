@@ -330,10 +330,11 @@ function GanttChart({ projectId }: GanttChartProps) {
       editType: 'dropdownedit',
       edit: {
         params: {
-          dataSource: resources,
+          dataSource: resources || [],
           fields: { value: 'resourceId', text: 'resourceName' },
           allowFiltering: true,
-          placeholder: 'Select Resource'
+          placeholder: 'Select Resource',
+          value: null
         }
       }
     },
@@ -366,6 +367,11 @@ function GanttChart({ projectId }: GanttChartProps) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
+  // Don't render Gantt until we have resources loaded
+  if (!resources || resources.length === 0) {
+    return <div style={{ padding: '10px' }}>Loading resources...</div>;
+  }
+
   console.log('Rendering Gantt with tasks:', tasks);
   console.log('Task ID mapping:', taskIdMapping);
   console.log('Available resources for dropdown:', resources);
@@ -394,6 +400,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         gridLines="Both"
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
+        key={`gantt-${resources.length}`} // Force re-render when resources change
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
