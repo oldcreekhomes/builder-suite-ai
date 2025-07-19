@@ -32,6 +32,7 @@ interface GanttChartProps {
 function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [taskIdMapping, setTaskIdMapping] = React.useState<Map<number, string>>(new Map());
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
     open: false, 
     taskToDelete: null 
@@ -66,6 +67,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         numberToTaskId.set(simpleId, task.id);
       });
 
+      // Update the mapping state for use in save operations
+      setTaskIdMapping(numberToTaskId);
+
       // Transform data to use simple numbers for display
       return data.map((task, index) => {
         const simpleId = index + 1;
@@ -78,7 +82,6 @@ function GanttChart({ projectId }: GanttChartProps) {
 
         return {
           taskID: simpleId, // Use simple number for display
-          actualTaskID: task.id, // Keep UUID for database operations
           taskName: task.task_name,
           startDate: new Date(task.start_date),
           endDate: new Date(task.end_date),
@@ -213,6 +216,20 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
+      console.log('Saving task data:', taskData);
+      
+      // Get the actual UUID from our mapping
+      const actualTaskUUID = taskIdMapping.get(taskData.taskID);
+      if (!actualTaskUUID) {
+        console.error('Could not find UUID for task ID:', taskData.taskID);
+        toast({
+          title: "Error",
+          description: "Could not identify task for update",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Convert simple predecessor number back to UUID
       let predecessorUUID = null;
       if (taskData.dependency) {
@@ -221,13 +238,11 @@ function GanttChart({ projectId }: GanttChartProps) {
         const predecessorNumber = parseInt(dependencyStr.replace(/[A-Z]/g, '')); // Remove FS, SS, etc.
         
         if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
-          // Find the task with this simple ID
-          const predecessorTask = tasks.find(t => t.taskID === predecessorNumber);
-          if (predecessorTask) {
-            predecessorUUID = predecessorTask.actualTaskID;
-          }
+          predecessorUUID = taskIdMapping.get(predecessorNumber);
         }
       }
+
+      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID);
 
       const { error } = await supabase
         .from('project_schedule_tasks')
@@ -241,7 +256,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           predecessor: predecessorUUID,
           parent_id: taskData.parentID || null,
         })
-        .eq('id', taskData.actualTaskID); // Use actual UUID for database update
+        .eq('id', actualTaskUUID);
 
       if (error) {
         console.error('Error updating task:', error);
