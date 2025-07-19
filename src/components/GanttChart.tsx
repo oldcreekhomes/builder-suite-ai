@@ -240,7 +240,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const columns = [
-    { field: 'taskID', headerText: 'ID', width: 80, visible: false },
+    { field: 'taskID', headerText: 'ID', width: 80, visible: false, isPrimaryKey: true },
     { field: 'taskName', headerText: 'Task Name', width: 250, editType: 'stringedit' },
     { field: 'startDate', headerText: 'Start Date', width: 120, editType: 'datepickeredit' },
     { field: 'duration', headerText: 'Duration', width: 100, editType: 'numericedit' },
@@ -266,18 +266,18 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure inline editing - this is the key change!
+  // Configure inline cell editing - this enables double-click to edit grid cells
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Batch' as any, // This enables inline adding and editing without popups
-    newRowPosition: 'Bottom' as any // New tasks appear at bottom of list
+    mode: 'Cell' as any, // This enables inline cell editing - double-click any cell to edit
   };
 
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  // Clean toolbar - remove Edit/Update/Cancel since inline editing handles this automatically
+  const toolbar = ['Add', 'Delete', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
