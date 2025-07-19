@@ -1,6 +1,6 @@
+
 import React from "react";
 import { Edit } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function TaskBar(props: any) {
   return (
@@ -49,7 +49,6 @@ export default function TaskBar(props: any) {
           className="edit-button"
           onClick={(e) => {
             e.stopPropagation();
-            // Call the onEdit callback with this task's data
             if (props.onEdit) {
               props.onEdit(props.task);
             }

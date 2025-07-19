@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Edit } from 'lucide-react';
 
@@ -13,29 +14,25 @@ export function EditButton({
 
   useEffect(() => {
     const positionButton = () => {
-      // Find the task bar by its data attribute or class that contains the task ID
       const taskBar = document.querySelector(`[data-task-id="${taskId}"]`) as HTMLElement;
       
       if (taskBar) {
         const rect = taskBar.getBoundingClientRect();
         setPosition({
-          top: rect.top + rect.height / 2 - 12, // Center vertically
-          left: rect.right - 30 // Position near the right edge
+          top: rect.top + rect.height / 2 - 12,
+          left: rect.right - 30
         });
       }
     };
 
-    // Position when first mounted
     positionButton();
     
-    // Set up resize observer to reposition when size changes
     const observer = new ResizeObserver(positionButton);
     const ganttElement = document.querySelector('.gantt-chart');
     if (ganttElement) {
       observer.observe(ganttElement);
     }
 
-    // Cleanup observer
     return () => {
       if (ganttElement) {
         observer.unobserve(ganttElement);
