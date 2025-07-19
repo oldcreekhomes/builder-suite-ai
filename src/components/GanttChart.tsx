@@ -1,5 +1,5 @@
 
-import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -292,7 +292,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
+    showDeleteConfirmDialog: true
   };
 
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
@@ -321,10 +321,12 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowReordering={true}
         allowSelection={true}
         allowResizing={true}
+        allowFiltering={true}
+        gridLines="Both"
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
       >
-        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers]} />
+        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
 
       <TaskEditDialog
