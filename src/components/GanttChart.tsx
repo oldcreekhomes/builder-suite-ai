@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -33,50 +34,32 @@ function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
 
-  // Fetch resources first
+  // Fetch resources from project_resources table
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
-    queryKey: ['available-resources'],
+    queryKey: ['project-resources', projectId],
     queryFn: async () => {
-      console.log('Fetching resources...');
+      console.log('Fetching project resources for project:', projectId);
       
-      // Fetch company users
-      const { data: users } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email');
+      const { data, error } = await supabase
+        .from('project_resources')
+        .select('*')
+        .eq('project_id', projectId);
 
-      // Fetch company representatives  
-      const { data: representatives } = await supabase
-        .from('company_representatives')
-        .select('id, first_name, last_name, email');
-
-      // Combine all resources
-      const allResources = [];
-      
-      // Add users
-      if (users) {
-        users.forEach(user => {
-          const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-          allResources.push({
-            resourceId: user.id,
-            resourceName: name,
-          });
-        });
+      if (error) {
+        console.error('Error fetching project resources:', error);
+        throw error;
       }
 
-      // Add representatives
-      if (representatives) {
-        representatives.forEach(rep => {
-          const name = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
-          allResources.push({
-            resourceId: rep.id,
-            resourceName: name,
-          });
-        });
-      }
+      // Transform to Syncfusion resource format
+      const syncfusionResources = data?.map(resource => ({
+        resourceId: resource.id,
+        resourceName: resource.resource_name,
+      })) || [];
 
-      console.log('Resources loaded:', allResources.length, allResources);
-      return allResources;
+      console.log('Project resources loaded:', syncfusionResources.length, syncfusionResources);
+      return syncfusionResources;
     },
+    enabled: !!projectId,
   });
 
   // Fetch and transform schedule tasks
@@ -127,12 +110,21 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete:', args.requestType, args.data);
     
     try {
+      // Handle task operations
       if (args.requestType === 'save' && args.data) {
         await updateTaskInDatabase(args.data);
       } else if (args.requestType === 'add' && args.data) {
         await addTaskToDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
+      }
+      // Handle resource operations
+      else if (args.requestType === 'resourceAdd' && args.data) {
+        await addResourceToDatabase(args.data);
+      } else if (args.requestType === 'resourceUpdate' && args.data) {
+        await updateResourceInDatabase(args.data);
+      } else if (args.requestType === 'resourceDelete' && args.data) {
+        await deleteResourceFromDatabase(args.data);
       }
     } catch (error) {
       console.error('Error in actionComplete:', error);
@@ -236,6 +228,82 @@ function GanttChart({ projectId }: GanttChartProps) {
     });
     
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+  };
+
+  const addResourceToDatabase = async (resourceData: any) => {
+    console.log('Adding resource:', resourceData);
+    
+    const { error } = await supabase
+      .from('project_resources')
+      .insert({
+        project_id: projectId,
+        resource_name: resourceData.resourceName,
+        resource_type: 'person',
+        email: resourceData.email || null,
+      });
+
+    if (error) {
+      console.error('Error adding resource:', error);
+      throw error;
+    }
+
+    toast({
+      title: "Success",
+      description: "Resource added successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
+  };
+
+  const updateResourceInDatabase = async (resourceData: any) => {
+    console.log('Updating resource:', resourceData);
+    
+    const { error } = await supabase
+      .from('project_resources')
+      .update({
+        resource_name: resourceData.resourceName,
+        email: resourceData.email || null,
+      })
+      .eq('id', resourceData.resourceId);
+
+    if (error) {
+      console.error('Error updating resource:', error);
+      throw error;
+    }
+
+    toast({
+      title: "Success",
+      description: "Resource updated successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
+  };
+
+  const deleteResourceFromDatabase = async (resourceData: any) => {
+    console.log('Deleting resource:', resourceData);
+    
+    const resourcesToDelete = Array.isArray(resourceData) ? resourceData : [resourceData];
+    
+    for (const resource of resourcesToDelete) {
+      const { error } = await supabase
+        .from('project_resources')
+        .delete()
+        .eq('id', resource.resourceId);
+
+      if (error) {
+        console.error('Error deleting resource:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted resource:', resource.resourceId);
+    }
+
+    toast({
+      title: "Success",
+      description: `Deleted ${resourcesToDelete.length} resource(s) successfully`,
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
   };
 
   // Syncfusion field mapping
