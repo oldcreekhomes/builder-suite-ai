@@ -528,12 +528,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     { 
       field: 'TaskID', 
       headerText: 'ID', 
-      width: 70, 
+      width: 80, 
       allowEditing: false, 
       isPrimaryKey: true,
       autoFit: false,
       allowTextWrap: false,
-      minWidth: 70,
+      minWidth: 80,
       maxWidth: 100
     },
     { 
