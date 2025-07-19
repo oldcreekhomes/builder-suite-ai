@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -103,65 +102,46 @@ function GanttChart({ projectId }: GanttChartProps) {
     enabled: !!projectId,
   });
 
-  // Fetch available resources
-  const { data: resources = [], isLoading: resourcesLoading, error: resourcesError } = useQuery({
+  // Simplified resource fetching - just get users and representatives
+  const { data: resources = [] } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
-      console.log('🔄 Starting to fetch resources...');
       // Fetch company users
-      const { data: users, error: usersError } = await supabase
+      const { data: users } = await supabase
         .from('users')
         .select('id, first_name, last_name, email');
 
-      if (usersError) {
-        console.error('❌ Error fetching users:', usersError);
-      } else {
-        console.log('✅ Users fetched:', users);
-      }
-
-      // Fetch company representatives
-      const { data: representatives, error: repsError } = await supabase
+      // Fetch company representatives  
+      const { data: representatives } = await supabase
         .from('company_representatives')
         .select('id, first_name, last_name, email');
 
-      if (repsError) {
-        console.error('❌ Error fetching representatives:', repsError);
-      } else {
-        console.log('✅ Representatives fetched:', representatives);
-      }
-
-      // Combine and format resources
+      // Combine all resources
       const allResources = [];
-      const seenEmails = new Set();
       
-      if (users && users.length > 0) {
+      // Add users
+      if (users) {
         users.forEach(user => {
-          if (!seenEmails.has(user.email)) {
-            const resourceName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-            allResources.push({
-              resourceId: user.id,
-              resourceName: resourceName,
-            });
-            seenEmails.add(user.email);
-          }
+          const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+          allResources.push({
+            resourceId: user.id,
+            resourceName: name,
+          });
         });
       }
 
-      if (representatives && representatives.length > 0) {
+      // Add representatives
+      if (representatives) {
         representatives.forEach(rep => {
-          if (!seenEmails.has(rep.email)) {
-            const resourceName = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
-            allResources.push({
-              resourceId: rep.id,
-              resourceName: resourceName,
-            });
-            seenEmails.add(rep.email);
-          }
+          const name = `${rep.first_name || ''} ${rep.last_name || ''}`.trim() || rep.email;
+          allResources.push({
+            resourceId: rep.id,
+            resourceName: name,
+          });
         });
       }
 
-      console.log('🎯 Final combined resources:', allResources);
-      console.log('📊 Total resources count:', allResources.length);
+      console.log('Simple fetch - Total resources:', allResources.length);
       return allResources;
     },
   });
@@ -332,16 +312,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'resourceInfo', 
       headerText: 'Resource', 
       width: 200,
-      editType: 'dropdownedit',
-      edit: {
-        params: {
-          dataSource: resources || [],
-          fields: { value: 'resourceId', text: 'resourceName' },
-          allowFiltering: true,
-          placeholder: 'Select Resource',
-          value: null
-        }
-      }
+      editType: 'dropdownedit'
     },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
@@ -372,24 +343,8 @@ function GanttChart({ projectId }: GanttChartProps) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
-  if (resourcesLoading) {
-    return <div style={{ padding: '10px' }}>Loading resources...</div>;
-  }
-
-  if (resourcesError) {
-    console.error('❌ Resources query error:', resourcesError);
-    return <div style={{ padding: '10px' }}>Error loading resources: {resourcesError.message}</div>;
-  }
-
-  // Don't render Gantt until we have resources loaded
-  if (!resources || resources.length === 0) {
-    console.log('⚠️ No resources available, resources:', resources);
-    return <div style={{ padding: '10px' }}>No resources found...</div>;
-  }
-
-  console.log('🎯 Rendering Gantt with tasks:', tasks);
-  console.log('🗂️ Task ID mapping:', taskIdMapping);
-  console.log('👥 Available resources for dropdown:', resources);
+  console.log('Resources available:', resources.length);
+  console.log('Resources data:', resources);
 
   return (
     <div style={{ padding: '10px' }}>
@@ -415,7 +370,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         gridLines="Both"
         toolbarClick={toolbarClick}
         actionComplete={actionComplete}
-        key={`gantt-${resources.length}`} // Force re-render when resources change
       >
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
