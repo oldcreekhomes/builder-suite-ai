@@ -99,10 +99,17 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Initialize ID mapper with existing tasks
       idMapper.current.initializeFromTasks(data);
 
-      // Transform tasks for Syncfusion
-      const transformedTasks = data.map((task) => 
-        idMapper.current.convertTaskForSyncfusion(task)
-      );
+      // Transform tasks for Syncfusion and clean up dependencies
+      const transformedTasks = data.map((task) => {
+        const syncTask = idMapper.current.convertTaskForSyncfusion(task);
+        // Clean up dependencies to prevent circular references
+        if (syncTask.dependency && typeof syncTask.dependency === 'string') {
+          // Remove any self-references and validate dependency format
+          const deps = syncTask.dependency.split(',').map(d => d.trim()).filter(d => d && d !== syncTask.taskID.toString());
+          syncTask.dependency = deps.join(',');
+        }
+        return syncTask;
+      });
 
       console.log('Transformed tasks for Gantt:', transformedTasks);
       return transformedTasks;
