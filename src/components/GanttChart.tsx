@@ -302,11 +302,92 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  // Handle action completion - only for non-resource updates
+  // Handle action completion - separate resource updates from other updates
   const actionComplete = (args: any) => {
     if (args.requestType === 'save' && args.data) {
-      // Only update non-resource fields to prevent unintended changes
-      updateNonResourceTaskFields(args.data);
+      console.log('Action complete with data:', args.data);
+      
+      // Check if this is a resource update by comparing with original data
+      const originalTask = tasks.find(t => t.taskID === args.data.taskID);
+      if (originalTask && originalTask.resourceInfo !== args.data.resourceInfo) {
+        console.log('Resource update detected');
+        updateTaskResources(args.data);
+      } else {
+        console.log('Non-resource update detected');
+        updateNonResourceTaskFields(args.data);
+      }
+    }
+  };
+
+  const updateTaskResources = async (taskData: any) => {
+    try {
+      console.log('Updating task resources:', taskData);
+      
+      // Get the actual UUID from our mapping
+      const actualTaskUUID = taskIdMapping.get(taskData.taskID);
+      if (!actualTaskUUID) {
+        console.error('Could not find UUID for task ID:', taskData.taskID);
+        toast({
+          title: "Error",
+          description: "Could not identify task for update",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert resource names back to UUIDs for database storage
+      let assignedToUUIDs = null;
+      if (taskData.resourceInfo) {
+        const resourceNames = taskData.resourceInfo.split(',').map((name: string) => name.trim()).filter((name: string) => name);
+        const resourceUUIDs = [];
+        
+        for (const resourceName of resourceNames) {
+          const foundResource = resources.find(r => r.resourceName === resourceName);
+          if (foundResource) {
+            resourceUUIDs.push(foundResource.resourceId);
+          } else {
+            console.warn('Could not find UUID for resource name:', resourceName);
+          }
+        }
+        
+        assignedToUUIDs = resourceUUIDs.length > 0 ? resourceUUIDs.join(',') : null;
+      }
+
+      console.log('Updating task resources with UUIDs:', assignedToUUIDs);
+
+      // Only update the assigned_to field
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update({
+          assigned_to: assignedToUUIDs,
+        })
+        .eq('id', actualTaskUUID);
+
+      if (error) {
+        console.error('Error updating task resources:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update task resources",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Task resources updated successfully",
+      });
+      
+      // Refresh data to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+    } catch (error) {
+      console.error('Error updating task resources:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task resources",
+        variant: "destructive",
+      });
     }
   };
 
