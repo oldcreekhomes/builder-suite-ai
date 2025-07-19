@@ -164,10 +164,24 @@ function GanttChart({ projectId }: GanttChartProps) {
     
     // Extract resource assignments from Syncfusion's resourceInfo
     let assignedTo = null;
-    if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
-      const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
-      assignedTo = resourceIds.join(',');
-      console.log('Extracted resource assignments:', assignedTo);
+    if (taskData.resourceInfo) {
+      console.log('Raw resourceInfo:', taskData.resourceInfo);
+      
+      // Handle when resourceInfo is a string (resource name)
+      if (typeof taskData.resourceInfo === 'string') {
+        // Find the resource UUID by name
+        const resource = resources.find(r => r.resourceName === taskData.resourceInfo);
+        if (resource) {
+          assignedTo = resource.resourceId;
+          console.log('Found resource by name:', taskData.resourceInfo, '-> UUID:', assignedTo);
+        }
+      }
+      // Handle when resourceInfo is an array
+      else if (Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+        const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+        assignedTo = resourceIds.join(',');
+        console.log('Extracted resource assignments from array:', assignedTo);
+      }
     }
     
     const { error } = await supabase

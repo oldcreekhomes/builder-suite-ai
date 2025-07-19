@@ -117,20 +117,25 @@ export class GanttIdMapper {
   private convertResourceInfoToDatabase(resourceInfo: any): string | null {
     if (!resourceInfo) return null;
     
-    // Handle both array and non-array cases
-    if (Array.isArray(resourceInfo)) {
-      if (resourceInfo.length === 0) return null;
-      const uuids = resourceInfo.map(resource => resource.resourceId);
-      return uuids.join(',');
-    }
+    console.log('Converting resourceInfo to database format:', resourceInfo);
     
-    // Handle string case (when it's already a comma-separated list of UUIDs)
+    // If it's a string (resource name), we need to convert it to UUID
+    // This will be handled by the calling function with access to resources
     if (typeof resourceInfo === 'string') {
-      return resourceInfo;
+      console.log('ResourceInfo is a string (resource name):', resourceInfo);
+      return resourceInfo; // Return the string, caller will handle UUID lookup
     }
     
-    // Handle single resource object case
-    if (resourceInfo.resourceId) {
+    // If it's an array of resource objects
+    if (Array.isArray(resourceInfo)) {
+      const resourceIds = resourceInfo
+        .map(resource => resource.resourceId)
+        .filter(id => id);
+      return resourceIds.length > 0 ? resourceIds.join(',') : null;
+    }
+    
+    // If it's a single resource object
+    if (typeof resourceInfo === 'object' && resourceInfo.resourceId) {
       return resourceInfo.resourceId;
     }
     
