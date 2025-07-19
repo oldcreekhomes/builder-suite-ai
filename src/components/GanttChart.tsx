@@ -260,9 +260,14 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Convert resource name back to UUID (same pattern as predecessor)
       let resourceUUID = null;
       if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
-        resourceUUID = resourceMapping.get(taskData.resourceInfo);
-        if (!resourceUUID) {
+        // Find the resource UUID by name from the resources array
+        const foundResource = resources.find(r => r.resourceName === taskData.resourceInfo);
+        if (foundResource) {
+          resourceUUID = foundResource.resourceId;
+          console.log('Found resource UUID:', resourceUUID, 'for name:', taskData.resourceInfo);
+        } else {
           console.warn('Could not find UUID for resource name:', taskData.resourceInfo);
+          console.log('Available resources:', resources.map(r => r.resourceName));
         }
       }
 
