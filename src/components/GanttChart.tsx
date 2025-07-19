@@ -33,7 +33,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [taskIdMapping, setTaskIdMapping] = React.useState<Map<number, string>>(new Map());
-  const [resourceMapping, setResourceMapping] = React.useState<Map<string, string>>(new Map());
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; taskToDelete: any | null }>({ 
     open: false, 
     taskToDelete: null 
@@ -43,90 +42,11 @@ function GanttChart({ projectId }: GanttChartProps) {
     taskToEdit: null 
   });
 
-  // Fetch schedule tasks from the database
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['project-schedule-tasks', projectId],
-    queryFn: async () => {
-      console.log('Fetching tasks for project:', projectId);
-      const { data, error } = await supabase
-        .from('project_schedule_tasks')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('order_index');
-
-      if (error) {
-        console.error('Error fetching schedule tasks:', error);
-        throw error;
-      }
-
-      console.log('Raw data from database:', data);
-      console.log('Number of tasks found:', data.length);
-
-      // Create mapping between UUIDs and simple numbers for tasks
-      const taskIdToNumber = new Map();
-      const numberToTaskId = new Map();
-      
-      data.forEach((task, index) => {
-        const simpleId = index + 1;
-        taskIdToNumber.set(task.id, simpleId);
-        numberToTaskId.set(simpleId, task.id);
-      });
-
-      // Update the mapping state for use in save operations
-      setTaskIdMapping(numberToTaskId);
-
-      // Create mapping between resource UUIDs and names for display
-      const resourceUUIDToName = new Map();
-      const nameToResourceUUID = new Map();
-      
-      resources.forEach(resource => {
-        resourceUUIDToName.set(resource.resourceId, resource.resourceName);
-        nameToResourceUUID.set(resource.resourceName, resource.resourceId);
-      });
-
-      // Update the resource mapping state
-      setResourceMapping(nameToResourceUUID);
-
-      // Transform data to use simple numbers and names for display
-      const transformedTasks = data.map((task, index) => {
-        const simpleId = index + 1;
-        let simplePredecessor = '';
-        
-        if (task.predecessor) {
-          const predecessorNumber = taskIdToNumber.get(task.predecessor);
-          simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
-        }
-
-        // Convert UUID to name for display, like predecessor does with numbers
-        let resourceName = '';
-        if (task.assigned_to) {
-          const foundResource = resources.find(r => r.resourceId === task.assigned_to);
-          resourceName = foundResource ? foundResource.resourceName : '';
-        }
-
-        return {
-          taskID: simpleId, // Use simple number for display
-          taskName: task.task_name,
-          startDate: new Date(task.start_date),
-          endDate: new Date(task.end_date),
-          duration: task.duration,
-          progress: task.progress || 0,
-          resourceInfo: resourceName, // Use name for display like predecessor uses numbers
-          dependency: simplePredecessor,
-          parentID: task.parent_id,
-        };
-      });
-
-      console.log('Transformed tasks for Gantt:', transformedTasks);
-      return transformedTasks;
-    },
-    enabled: !!projectId,
-  });
-
-  // Simplified resource fetching - just get users and representatives
-  const { data: resources = [] } = useQuery({
+  // Fetch resources first - this must complete before tasks
+  const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
+      console.log('Fetching resources...');
       // Fetch company users
       const { data: users } = await supabase
         .from('users')
@@ -162,10 +82,89 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
-      console.log('Simple fetch - Total resources:', allResources.length);
+      console.log('Resources loaded:', allResources.length, allResources);
       return allResources;
     },
   });
+
+  // Fetch schedule tasks - now depends on resources being loaded
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['project-schedule-tasks', projectId],
+    queryFn: async () => {
+      console.log('Fetching tasks for project:', projectId);
+      console.log('Resources available for task transformation:', resources.length);
+      
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('order_index');
+
+      if (error) {
+        console.error('Error fetching schedule tasks:', error);
+        throw error;
+      }
+
+      console.log('Raw data from database:', data);
+      console.log('Number of tasks found:', data.length);
+
+      // Create mapping between UUIDs and simple numbers for tasks
+      const taskIdToNumber = new Map();
+      const numberToTaskId = new Map();
+      
+      data.forEach((task, index) => {
+        const simpleId = index + 1;
+        taskIdToNumber.set(task.id, simpleId);
+        numberToTaskId.set(simpleId, task.id);
+      });
+
+      // Update the mapping state for use in save operations
+      setTaskIdMapping(numberToTaskId);
+
+      // Transform data to use simple numbers and names for display
+      const transformedTasks = data.map((task, index) => {
+        const simpleId = index + 1;
+        let simplePredecessor = '';
+        
+        if (task.predecessor) {
+          const predecessorNumber = taskIdToNumber.get(task.predecessor);
+          simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
+        }
+
+        // Convert UUID to name for display - now with proper error handling
+        let resourceName = '';
+        if (task.assigned_to) {
+          console.log('Looking for resource with UUID:', task.assigned_to);
+          const foundResource = resources.find(r => r.resourceId === task.assigned_to);
+          if (foundResource) {
+            resourceName = foundResource.resourceName;
+            console.log('Found resource name:', resourceName, 'for UUID:', task.assigned_to);
+          } else {
+            console.warn('Could not find resource name for UUID:', task.assigned_to);
+            console.log('Available resources:', resources.map(r => ({ id: r.resourceId, name: r.resourceName })));
+          }
+        }
+
+        return {
+          taskID: simpleId, // Use simple number for display
+          taskName: task.task_name,
+          startDate: new Date(task.start_date),
+          endDate: new Date(task.end_date),
+          duration: task.duration,
+          progress: task.progress || 0,
+          resourceInfo: resourceName, // Use name for display
+          dependency: simplePredecessor,
+          parentID: task.parent_id,
+        };
+      });
+
+      console.log('Transformed tasks for Gantt:', transformedTasks);
+      return transformedTasks;
+    },
+    enabled: !!projectId && !resourcesLoading && resources.length >= 0, // Wait for resources to load
+  });
+
+  const isLoading = resourcesLoading || tasksLoading;
 
   // Handle adding new task
   const handleAddTask = async () => {
@@ -257,7 +256,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         }
       }
 
-      // Convert resource name back to UUID (same pattern as predecessor)
+      // Convert resource name back to UUID
       let resourceUUID = null;
       if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
         // Find the resource UUID by name from the resources array
@@ -378,8 +377,8 @@ function GanttChart({ projectId }: GanttChartProps) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
-  console.log('Resources available:', resources.length);
-  console.log('Resources data:', resources);
+  console.log('Final render - Resources available:', resources.length);
+  console.log('Final render - Tasks available:', tasks.length);
 
   return (
     <div style={{ padding: '10px' }}>
