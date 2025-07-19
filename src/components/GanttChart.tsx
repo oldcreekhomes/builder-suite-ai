@@ -316,7 +316,15 @@ function GanttChart({ projectId }: GanttChartProps) {
       field: 'resourceInfo', 
       headerText: 'Resource', 
       width: 200,
-      editType: 'dropdownedit'
+      editType: 'dropdownedit',
+      template: (props: any) => {
+        if (props.resourceInfo && props.resourceInfo.length > 0) {
+          const resourceId = props.resourceInfo[0];
+          const resource = resources.find(r => r.resourceId === resourceId);
+          return resource ? resource.resourceName : '';
+        }
+        return '';
+      }
     },
     { field: 'dependency', headerText: 'Predecessor', width: 150 },
   ];
