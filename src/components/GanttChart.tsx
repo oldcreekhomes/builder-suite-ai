@@ -107,6 +107,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: resources = [] } = useQuery({
     queryKey: ['available-resources'],
     queryFn: async () => {
+      console.log('Fetching resources...');
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -155,6 +156,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       }
 
+      console.log('Fetched resources:', allResources);
       return allResources;
     },
   });
@@ -331,6 +333,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           dataSource: resources,
           fields: { value: 'resourceId', text: 'resourceName' },
           allowFiltering: true,
+          placeholder: 'Select Resource'
         }
       }
     },
@@ -365,6 +368,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   console.log('Rendering Gantt with tasks:', tasks);
   console.log('Task ID mapping:', taskIdMapping);
+  console.log('Available resources for dropdown:', resources);
 
   return (
     <div style={{ padding: '10px' }}>
