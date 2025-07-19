@@ -265,21 +265,32 @@ function GanttChart({ projectId }: GanttChartProps) {
         }
       }
 
-      // Convert resource names back to UUIDs (handle multiple resources)
+      // Convert resource names back to user UUIDs (handle multiple resources)
       let resourceUUIDs = null;
       if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
         // Split by comma in case multiple resources are selected
         const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
         const foundUUIDs = [];
         
-        for (const resourceName of resourceNames) {
-          const foundResource = resources.find(r => r.resourceName === resourceName);
-          if (foundResource) {
-            foundUUIDs.push(foundResource.resourceId);
-            console.log('Found resource UUID:', foundResource.resourceId, 'for name:', resourceName);
-          } else {
-            console.warn('Could not find UUID for resource name:', resourceName);
-            console.log('Available resources:', resources.map(r => r.resourceName));
+        // Fetch all users from the database to convert names to UUIDs
+        const { data: companyName } = await supabase.rpc('get_current_user_company');
+        const { data: allUsers, error: usersError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .eq('company_name', companyName);
+        
+        if (usersError) {
+          console.error('Error fetching users:', usersError);
+        } else if (allUsers) {
+          for (const resourceName of resourceNames) {
+            const foundUser = allUsers.find(user => `${user.first_name} ${user.last_name}` === resourceName);
+            if (foundUser) {
+              foundUUIDs.push(foundUser.id);
+              console.log('Found user UUID:', foundUser.id, 'for name:', resourceName);
+            } else {
+              console.warn('Could not find UUID for user name:', resourceName);
+              console.log('Available users:', allUsers.map(user => `${user.first_name} ${user.last_name}`));
+            }
           }
         }
         
