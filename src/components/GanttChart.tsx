@@ -131,18 +131,27 @@ function GanttChart({ projectId }: GanttChartProps) {
           simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
         }
 
-        // Convert UUID to name for display - now with proper error handling
+        // Convert UUIDs to names for display - handle multiple resources
         let resourceName = '';
         if (task.assigned_to) {
           console.log('Looking for resource with UUID:', task.assigned_to);
-          const foundResource = resources.find(r => r.resourceId === task.assigned_to);
-          if (foundResource) {
-            resourceName = foundResource.resourceName;
-            console.log('Found resource name:', resourceName, 'for UUID:', task.assigned_to);
-          } else {
-            console.warn('Could not find resource name for UUID:', task.assigned_to);
-            console.log('Available resources:', resources.map(r => ({ id: r.resourceId, name: r.resourceName })));
+          
+          // Handle multiple UUIDs (comma-separated)
+          const resourceUUIDs = task.assigned_to.split(',').map(uuid => uuid.trim()).filter(uuid => uuid);
+          const resourceNames = [];
+          
+          for (const uuid of resourceUUIDs) {
+            const foundResource = resources.find(r => r.resourceId === uuid);
+            if (foundResource) {
+              resourceNames.push(foundResource.resourceName);
+              console.log('Found resource name:', foundResource.resourceName, 'for UUID:', uuid);
+            } else {
+              console.warn('Could not find resource name for UUID:', uuid);
+              console.log('Available resources:', resources.map(r => ({ id: r.resourceId, name: r.resourceName })));
+            }
           }
+          
+          resourceName = resourceNames.join(', ');
         }
 
         return {
@@ -256,21 +265,29 @@ function GanttChart({ projectId }: GanttChartProps) {
         }
       }
 
-      // Convert resource name back to UUID
-      let resourceUUID = null;
+      // Convert resource names back to UUIDs (handle multiple resources)
+      let resourceUUIDs = null;
       if (taskData.resourceInfo && taskData.resourceInfo.trim() !== '') {
-        // Find the resource UUID by name from the resources array
-        const foundResource = resources.find(r => r.resourceName === taskData.resourceInfo);
-        if (foundResource) {
-          resourceUUID = foundResource.resourceId;
-          console.log('Found resource UUID:', resourceUUID, 'for name:', taskData.resourceInfo);
-        } else {
-          console.warn('Could not find UUID for resource name:', taskData.resourceInfo);
-          console.log('Available resources:', resources.map(r => r.resourceName));
+        // Split by comma in case multiple resources are selected
+        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim()).filter(name => name);
+        const foundUUIDs = [];
+        
+        for (const resourceName of resourceNames) {
+          const foundResource = resources.find(r => r.resourceName === resourceName);
+          if (foundResource) {
+            foundUUIDs.push(foundResource.resourceId);
+            console.log('Found resource UUID:', foundResource.resourceId, 'for name:', resourceName);
+          } else {
+            console.warn('Could not find UUID for resource name:', resourceName);
+            console.log('Available resources:', resources.map(r => r.resourceName));
+          }
         }
+        
+        // Join UUIDs with comma if multiple resources found
+        resourceUUIDs = foundUUIDs.length > 0 ? foundUUIDs.join(',') : null;
       }
 
-      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUID);
+      console.log('Updating task:', actualTaskUUID, 'with predecessor:', predecessorUUID, 'and resource:', resourceUUIDs);
 
       const { error } = await supabase
         .from('project_schedule_tasks')
@@ -280,7 +297,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           end_date: new Date(taskData.endDate).toISOString(),
           duration: taskData.duration,
           progress: taskData.progress || 0,
-          assigned_to: resourceUUID,
+          assigned_to: resourceUUIDs,
           predecessor: predecessorUUID,
           parent_id: taskData.parentID || null,
         })
