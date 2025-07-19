@@ -56,18 +56,39 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
-      // Simple transformation to match Syncfusion's expected format
-      return data.map((task) => ({
-        taskID: task.id,
-        taskName: task.task_name,
-        startDate: new Date(task.start_date),
-        endDate: new Date(task.end_date),
-        duration: task.duration,
-        progress: task.progress || 0,
-        resourceInfo: task.assigned_to ? [task.assigned_to] : [],
-        dependency: task.predecessor || '',
-        parentID: task.parent_id,
-      }));
+      // Create mapping between UUIDs and simple numbers
+      const taskIdToNumber = new Map();
+      const numberToTaskId = new Map();
+      
+      data.forEach((task, index) => {
+        const simpleId = index + 1;
+        taskIdToNumber.set(task.id, simpleId);
+        numberToTaskId.set(simpleId, task.id);
+      });
+
+      // Transform data to use simple numbers for display
+      return data.map((task, index) => {
+        const simpleId = index + 1;
+        let simplePredecessor = '';
+        
+        if (task.predecessor) {
+          const predecessorNumber = taskIdToNumber.get(task.predecessor);
+          simplePredecessor = predecessorNumber ? predecessorNumber.toString() : '';
+        }
+
+        return {
+          taskID: simpleId, // Use simple number for display
+          actualTaskID: task.id, // Keep UUID for database operations
+          taskName: task.task_name,
+          startDate: new Date(task.start_date),
+          endDate: new Date(task.end_date),
+          duration: task.duration,
+          progress: task.progress || 0,
+          resourceInfo: task.assigned_to ? [task.assigned_to] : [],
+          dependency: simplePredecessor,
+          parentID: task.parent_id,
+        };
+      });
     },
     enabled: !!projectId,
   });
@@ -192,6 +213,19 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const updateTaskInDatabase = async (taskData: any) => {
     try {
+      // Convert simple predecessor number back to UUID
+      let predecessorUUID = null;
+      if (taskData.dependency) {
+        const predecessorNumber = parseInt(taskData.dependency);
+        if (!isNaN(predecessorNumber) && predecessorNumber > 0) {
+          // Find the task with this simple ID
+          const predecessorTask = tasks.find(t => t.taskID === predecessorNumber);
+          if (predecessorTask) {
+            predecessorUUID = predecessorTask.actualTaskID;
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('project_schedule_tasks')
         .update({
@@ -201,10 +235,10 @@ function GanttChart({ projectId }: GanttChartProps) {
           duration: taskData.duration,
           progress: taskData.progress || 0,
           assigned_to: taskData.resourceInfo?.[0] || null,
-          predecessor: taskData.dependency || null,
+          predecessor: predecessorUUID,
           parent_id: taskData.parentID || null,
         })
-        .eq('id', taskData.taskID);
+        .eq('id', taskData.actualTaskID); // Use actual UUID for database update
 
       if (error) {
         console.error('Error updating task:', error);
@@ -220,6 +254,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         title: "Success",
         description: "Task updated successfully",
       });
+      
+      // Refresh data to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       
     } catch (error) {
       console.error('Error updating task:', error);
