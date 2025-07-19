@@ -104,11 +104,27 @@ export class GanttIdMapper {
   }
 
   // Convert Syncfusion resourceInfo back to database assigned_to format
-  private convertResourceInfoToDatabase(resourceInfo: any[]): string | null {
-    if (!resourceInfo || resourceInfo.length === 0) return null;
+  private convertResourceInfoToDatabase(resourceInfo: any): string | null {
+    if (!resourceInfo) return null;
     
-    const uuids = resourceInfo.map(resource => resource.resourceId);
-    return uuids.join(',');
+    // Handle both array and non-array cases
+    if (Array.isArray(resourceInfo)) {
+      if (resourceInfo.length === 0) return null;
+      const uuids = resourceInfo.map(resource => resource.resourceId);
+      return uuids.join(',');
+    }
+    
+    // Handle string case (when it's already a comma-separated list of UUIDs)
+    if (typeof resourceInfo === 'string') {
+      return resourceInfo;
+    }
+    
+    // Handle single resource object case
+    if (resourceInfo.resourceId) {
+      return resourceInfo.resourceId;
+    }
+    
+    return null;
   }
 
   private convertDependencies(predecessor: string | null): string {
