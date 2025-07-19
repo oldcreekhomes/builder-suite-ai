@@ -92,7 +92,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       console.log('Transformed tasks for Gantt:', transformedTasks);
       return transformedTasks;
     },
-    enabled: !!projectId && !resourcesLoading,
+    enabled: !!projectId,
   });
 
   const isLoading = resourcesLoading || tasksLoading;
