@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -180,11 +179,17 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.log('DELETE: Processing delete operation');
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' && args.modifiedRecords) {
-        console.log('INDENT: Processing indent with sequential updates');
-        await processSequentialHierarchyChange(args.modifiedRecords, 'indented');
+        console.log('INDENT: Processing as save operations');
+        for (const record of args.modifiedRecords) {
+          await updateSingleTask(record);
+        }
+        queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       } else if (args.requestType === 'outdenting' && args.modifiedRecords) {
-        console.log('OUTDENT: Processing outdent with sequential updates');
-        await processSequentialHierarchyChange(args.modifiedRecords, 'outdented');
+        console.log('OUTDENT: Processing as save operations');
+        for (const record of args.modifiedRecords) {
+          await updateSingleTask(record);
+        }
+        queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
       }
     } catch (error) {
       console.error('Error in actionComplete:', error);
@@ -196,85 +201,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
     
     console.log('=== END NATIVE ACTION COMPLETE ===');
-  };
-
-  // NEW: Sequential processing to fix concurrency issues
-  const processSequentialHierarchyChange = async (modifiedRecords: any[], operation: string) => {
-    console.log(`=== PROCESS SEQUENTIAL ${operation.toUpperCase()} HIERARCHY ===`);
-    console.log('Modified records:', modifiedRecords);
-    
-    const results = [];
-    
-    // Process each task sequentially to avoid race conditions
-    for (let i = 0; i < modifiedRecords.length; i++) {
-      const record = modifiedRecords[i];
-      console.log(`Processing ${operation} for task ${i + 1}/${modifiedRecords.length}:`, record.taskID, 'parentID:', record.parentID);
-      
-      try {
-        await updateSingleTaskWithRetry(record, 3); // Retry up to 3 times
-        console.log(`✅ Successfully ${operation} task:`, record.taskID);
-        results.push({ taskId: record.taskID, success: true });
-        
-        // Add small delay between updates to prevent database conflicts
-        if (i < modifiedRecords.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      } catch (error) {
-        console.error(`❌ Failed to ${operation} task ${record.taskID}:`, error);
-        results.push({ taskId: record.taskID, success: false, error: error.message });
-      }
-    }
-    
-    const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
-    
-    console.log(`${operation} Results:`, {
-      successful: successful.length,
-      failed: failed.length,
-      successfulTasks: successful.map(s => s.taskId),
-      failedTasks: failed.map(f => `${f.taskId}:${f.error}`)
-    });
-    
-    if (failed.length > 0) {
-      console.error(`Some tasks failed to ${operation}:`, failed);
-      toast({
-        title: "Partial Success", 
-        description: `${successful.length} tasks ${operation} successfully, ${failed.length} failed`,
-        variant: failed.length > successful.length ? "destructive" : "default",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: `All ${successful.length} tasks ${operation} successfully`,
-      });
-    }
-    
-    console.log(`=== END PROCESS SEQUENTIAL ${operation.toUpperCase()} HIERARCHY ===`);
-  };
-
-  // NEW: Retry logic for failed updates
-  const updateSingleTaskWithRetry = async (taskData: any, maxRetries: number = 3) => {
-    let lastError;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt}/${maxRetries} for task ${taskData.taskID}`);
-        await updateSingleTask(taskData);
-        console.log(`✅ Task ${taskData.taskID} updated successfully on attempt ${attempt}`);
-        return; // Success, exit retry loop
-      } catch (error) {
-        lastError = error;
-        console.error(`❌ Attempt ${attempt} failed for task ${taskData.taskID}:`, error);
-        
-        if (attempt < maxRetries) {
-          const delay = attempt * 200; // Exponential backoff
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-    
-    throw lastError; // If all retries failed, throw the last error
   };
 
   // Native Syncfusion cell save handler
@@ -316,7 +242,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('=== END EDIT EVENT ===');
   };
 
-  // Simplified single task update with better error handling
+  // Simplified single task update
   const updateSingleTask = async (taskData: any) => {
     console.log('=== UPDATE SINGLE TASK ===');
     console.log('Task data:', taskData);
@@ -376,19 +302,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw error;
     }
     
-    // Simplified verification - just check if the update worked
-    const { data: verifyData, error: verifyError } = await supabase
-      .from('project_schedule_tasks')
-      .select('id, task_name, parent_id')
-      .eq('id', uuid)
-      .single();
-    
-    if (verifyError) {
-      console.error('Verification failed:', verifyError);
-      throw verifyError;
-    }
-    
-    console.log(`✅ Task ${taskId} verified - parent_id: "${verifyData.parent_id}"`);
+    console.log(`✅ Task ${taskId} updated successfully`);
     console.log('=== END UPDATE SINGLE TASK ===');
   };
 
