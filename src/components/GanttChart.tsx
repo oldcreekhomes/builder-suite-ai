@@ -135,7 +135,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         
         case 'add':
           console.log('Handling ADD operation', args.data);
-          if (args.data && args.data.taskID) {
+          if (args.data) {
             await handleTaskAdd(args.data);
           }
           break;
@@ -198,25 +198,94 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const handleTaskAdd = async (syncTask: any) => {
-    const insertData = {
-      project_id: projectId,
-      task_name: syncTask.taskName,
-      start_date: new Date(syncTask.startDate).toISOString(),
-      end_date: new Date(syncTask.endDate).toISOString(),
-      duration: syncTask.duration || 1,
-      progress: syncTask.progress || 0,
-      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
-      predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
-      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
-      order_index: syncTask.taskID || 0, // Use numeric ID as order for new tasks
-    };
+    console.log('=== Starting handleTaskAdd ===');
+    console.log('Raw syncTask data:', JSON.stringify(syncTask, null, 2));
 
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .insert([insertData]);
+    try {
+      // Validate required fields
+      if (!syncTask.taskName || syncTask.taskName.trim() === '') {
+        throw new Error('Task name is required');
+      }
 
-    if (error) throw error;
-    console.log('Task added successfully');
+      // Handle dates with proper validation
+      let startDate: Date;
+      let endDate: Date;
+
+      if (syncTask.startDate) {
+        startDate = new Date(syncTask.startDate);
+      } else {
+        // Default to today if no start date provided
+        startDate = new Date();
+      }
+
+      if (syncTask.endDate) {
+        endDate = new Date(syncTask.endDate);
+      } else {
+        // Calculate end date based on duration or default to start date + 1 day
+        endDate = new Date(startDate);
+        const duration = syncTask.duration || 1;
+        endDate.setDate(startDate.getDate() + duration);
+      }
+
+      // Validate dates
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error('Invalid date values provided');
+      }
+
+      // Handle parent_id - convert from numeric ID to UUID if provided
+      let parentUuid = null;
+      if (syncTask.parentID && syncTask.parentID !== null && syncTask.parentID !== undefined) {
+        parentUuid = idMapper.current.getUuid(syncTask.parentID);
+        console.log('Parent ID conversion:', syncTask.parentID, '->', parentUuid);
+      }
+
+      // Handle assigned_to field
+      let assignedTo = null;
+      if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
+        assignedTo = syncTask.resourceInfo.map((r: any) => r.resourceId).join(',');
+      }
+
+      // Handle predecessor field - ensure it's a string
+      let predecessor = '';
+      if (syncTask.dependency) {
+        if (Array.isArray(syncTask.dependency)) {
+          predecessor = syncTask.dependency.join(',');
+        } else if (typeof syncTask.dependency === 'string') {
+          predecessor = syncTask.dependency;
+        }
+      }
+
+      const insertData = {
+        project_id: projectId,
+        task_name: syncTask.taskName.trim(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        duration: Math.max(1, syncTask.duration || 1), // Ensure minimum duration of 1
+        progress: Math.max(0, Math.min(100, syncTask.progress || 0)), // Ensure progress is between 0-100
+        assigned_to: assignedTo,
+        predecessor: predecessor,
+        parent_id: parentUuid,
+        order_index: syncTask.taskID || 0,
+      };
+
+      console.log('Final insert data:', JSON.stringify(insertData, null, 2));
+
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .insert([insertData])
+        .select();
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+
+      console.log('Task added successfully:', data);
+      
+    } catch (error) {
+      console.error('Error in handleTaskAdd:', error);
+      throw error;
+    }
   };
 
   const handleTaskDelete = async (deletedTasks: any[]) => {
