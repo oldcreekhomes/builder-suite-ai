@@ -122,17 +122,19 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
-    console.log('ActionComplete event:', args.requestType, args);
+    console.log('=== ActionComplete event ===', args.requestType, 'Full args:', args);
 
     try {
       switch (args.requestType) {
         case 'save':
+          console.log('Handling SAVE operation', args.data);
           if (args.data && args.data.taskID) {
             await handleTaskUpdate(args.data);
           }
           break;
         
         case 'add':
+          console.log('Handling ADD operation', args.data);
           if (args.data && args.data.taskID) {
             await handleTaskAdd(args.data);
           }
