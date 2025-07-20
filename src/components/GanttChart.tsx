@@ -1,10 +1,10 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GanttIdMapper } from "@/utils/ganttIdMapping";
+import { toast } from "@/hooks/use-toast";
 
 // Import Syncfusion CSS
 import '@syncfusion/ej2-base/styles/material.css';
@@ -30,6 +30,7 @@ interface GanttChartProps {
 function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
+  const queryClient = useQueryClient();
 
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
@@ -119,6 +120,144 @@ function GanttChart({ projectId }: GanttChartProps) {
     enabled: !!projectId,
   });
 
+  // Handle database persistence for Syncfusion native operations
+  const handleActionComplete = async (args: any) => {
+    console.log('ActionComplete event:', args.requestType, args);
+
+    try {
+      switch (args.requestType) {
+        case 'save':
+          if (args.data && args.data.taskID) {
+            await handleTaskUpdate(args.data);
+          }
+          break;
+        
+        case 'add':
+          if (args.data && args.data.taskID) {
+            await handleTaskAdd(args.data);
+          }
+          break;
+        
+        case 'delete':
+          if (args.data && args.data.length > 0) {
+            await handleTaskDelete(args.data);
+          }
+          break;
+        
+        case 'indenting':
+        case 'outdenting':
+          if (args.data && args.data.length > 0) {
+            await handleHierarchyChange(args.data);
+          }
+          break;
+        
+        default:
+          console.log('Unhandled action type:', args.requestType);
+      }
+      
+      // Invalidate cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      toast({
+        title: "Save Error",
+        description: "Failed to save changes to database. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTaskUpdate = async (syncTask: any) => {
+    const uuid = idMapper.current.getUuid(syncTask.taskID);
+    if (!uuid) {
+      console.error('No UUID found for task ID:', syncTask.taskID);
+      return;
+    }
+
+    const updateData = {
+      task_name: syncTask.taskName,
+      start_date: new Date(syncTask.startDate).toISOString(),
+      end_date: new Date(syncTask.endDate).toISOString(),
+      duration: syncTask.duration || 1,
+      progress: syncTask.progress || 0,
+      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
+      predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
+      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
+    };
+
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .update(updateData)
+      .eq('id', uuid);
+
+    if (error) throw error;
+    console.log('Task updated successfully:', uuid);
+  };
+
+  const handleTaskAdd = async (syncTask: any) => {
+    const insertData = {
+      project_id: projectId,
+      task_name: syncTask.taskName,
+      start_date: new Date(syncTask.startDate).toISOString(),
+      end_date: new Date(syncTask.endDate).toISOString(),
+      duration: syncTask.duration || 1,
+      progress: syncTask.progress || 0,
+      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
+      predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
+      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
+      order_index: syncTask.taskID || 0, // Use numeric ID as order for new tasks
+    };
+
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .insert([insertData]);
+
+    if (error) throw error;
+    console.log('Task added successfully');
+  };
+
+  const handleTaskDelete = async (deletedTasks: any[]) => {
+    const uuidsToDelete = deletedTasks
+      .map(task => idMapper.current.getUuid(task.taskID))
+      .filter(uuid => uuid);
+
+    if (uuidsToDelete.length === 0) {
+      console.error('No valid UUIDs found for deletion');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .delete()
+      .in('id', uuidsToDelete);
+
+    if (error) throw error;
+    console.log('Tasks deleted successfully:', uuidsToDelete);
+  };
+
+  const handleHierarchyChange = async (changedTasks: any[]) => {
+    for (const task of changedTasks) {
+      const uuid = idMapper.current.getUuid(task.taskID);
+      if (!uuid) continue;
+
+      const updateData = {
+        parent_id: task.parentID ? idMapper.current.getUuid(task.parentID) : null,
+      };
+
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update(updateData)
+        .eq('id', uuid);
+
+      if (error) {
+        console.error('Failed to update hierarchy for task:', uuid, error);
+        throw error;
+      }
+    }
+    console.log('Hierarchy updated successfully');
+  };
+
   const isLoading = resourcesLoading || tasksLoading;
 
   const taskFields = {
@@ -198,6 +337,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         allowRowDragAndDrop={true}
         gridLines="Both"
+        actionComplete={handleActionComplete}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
