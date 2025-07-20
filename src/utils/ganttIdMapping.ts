@@ -1,3 +1,4 @@
+
 // Utility for mapping between Syncfusion numeric IDs and database UUIDs
 export class GanttIdMapper {
   private numericToUuid: Map<number, string> = new Map();
@@ -6,6 +7,7 @@ export class GanttIdMapper {
 
   // Initialize mapping from existing tasks with stable, deterministic IDs
   initializeFromTasks(tasks: any[]) {
+    console.log('=== INITIALIZING ID MAPPER ===');
     this.numericToUuid.clear();
     this.uuidToNumeric.clear();
     this.nextId = 1;
@@ -25,6 +27,7 @@ export class GanttIdMapper {
       const numericId = this.nextId++;
       this.numericToUuid.set(numericId, task.id);
       this.uuidToNumeric.set(task.id, numericId);
+      console.log(`Mapped: ${numericId} <-> ${task.id} (${task.task_name})`);
     });
     
     console.log('ID mapping initialized:', {
@@ -32,12 +35,15 @@ export class GanttIdMapper {
       nextId: this.nextId,
       sampleMappings: Array.from(this.numericToUuid.entries()).slice(0, 5)
     });
+    console.log('=== END INITIALIZING ID MAPPER ===');
   }
 
   // Add new task mapping
   addTaskMapping(uuid: string): number {
     if (this.uuidToNumeric.has(uuid)) {
-      return this.uuidToNumeric.get(uuid)!;
+      const existingId = this.uuidToNumeric.get(uuid)!;
+      console.log(`Existing mapping found: ${existingId} <-> ${uuid}`);
+      return existingId;
     }
     
     const numericId = this.nextId++;
@@ -47,21 +53,39 @@ export class GanttIdMapper {
     return numericId;
   }
 
-  // Get UUID from numeric ID
+  // Get UUID from numeric ID with enhanced validation
   getUuid(numericId: number): string | undefined {
+    if (numericId === null || numericId === undefined) {
+      console.log('getUuid: numericId is null/undefined');
+      return undefined;
+    }
+    
     const uuid = this.numericToUuid.get(numericId);
+    console.log(`getUuid: ${numericId} -> ${uuid || 'NOT_FOUND'}`);
+    
     if (!uuid) {
       console.warn(`UUID not found for numeric ID: ${numericId}`);
+      console.warn('Available numeric->UUID mappings:', Array.from(this.numericToUuid.entries()));
     }
+    
     return uuid;
   }
 
-  // Get numeric ID from UUID
+  // Get numeric ID from UUID with enhanced validation
   getNumericId(uuid: string): number | undefined {
+    if (!uuid) {
+      console.log('getNumericId: uuid is empty');
+      return undefined;
+    }
+    
     const numericId = this.uuidToNumeric.get(uuid);
+    console.log(`getNumericId: ${uuid} -> ${numericId || 'NOT_FOUND'}`);
+    
     if (!numericId) {
       console.warn(`Numeric ID not found for UUID: ${uuid}`);
+      console.warn('Available UUID->numeric mappings:', Array.from(this.uuidToNumeric.entries()));
     }
+    
     return numericId;
   }
 
@@ -70,7 +94,8 @@ export class GanttIdMapper {
     return {
       numericToUuid: Object.fromEntries(this.numericToUuid),
       uuidToNumeric: Object.fromEntries(this.uuidToNumeric),
-      nextId: this.nextId
+      nextId: this.nextId,
+      totalMappings: this.numericToUuid.size
     };
   }
 
@@ -87,18 +112,21 @@ export class GanttIdMapper {
       endDate.setDate(startDate.getDate() + (task.duration || 1));
     }
     
-    // Handle parent ID conversion with validation
+    // Handle parent ID conversion with enhanced validation
     let parentNumericId = null;
     if (task.parent_id) {
       parentNumericId = this.getNumericId(task.parent_id);
+      console.log(`Converting parent for Syncfusion: ${task.parent_id} -> ${parentNumericId}`);
+      
       if (!parentNumericId) {
         console.error(`Failed to convert parent UUID to numeric ID: ${task.parent_id}`);
         // Try to add mapping if it doesn't exist (defensive programming)
         parentNumericId = this.addTaskMapping(task.parent_id);
+        console.log(`Created defensive mapping for parent: ${parentNumericId}`);
       }
     }
     
-    return {
+    const syncTask = {
       taskID: numericId,
       taskName: task.task_name,
       startDate: startDate,
@@ -109,13 +137,16 @@ export class GanttIdMapper {
       dependency: this.convertDependencies(task.predecessor),
       parentID: parentNumericId,
     };
+    
+    console.log(`Converted task for Syncfusion: ${task.task_name}`, syncTask);
+    return syncTask;
   }
 
-  // Convert task data for database (numeric -> UUID)
+  // Convert task data for database (numeric -> UUID) with CRITICAL parent ID fix
   convertTaskForDatabase(task: any, projectId: string): any {
     console.log('=== CONVERT TASK FOR DATABASE DEBUG ===');
-    console.log('Input task data:', task);
-    console.log('Task parentID:', task.parentID);
+    console.log('Input task data:', JSON.stringify(task, null, 2));
+    console.log('Task parentID type:', typeof task.parentID, 'value:', task.parentID);
     
     const uuid = this.getUuid(task.taskID) || crypto.randomUUID();
     
@@ -126,18 +157,27 @@ export class GanttIdMapper {
       console.log(`Created new mapping for task: ${task.taskID} <-> ${uuid}`);
     }
 
-    // Critical: Convert parentID to parent_id UUID
+    // CRITICAL FIX: Enhanced parent ID conversion with validation
     let parentUuid = null;
-    if (task.parentID) {
+    if (task.parentID !== null && task.parentID !== undefined) {
+      console.log('Processing parentID:', task.parentID);
       parentUuid = this.getUuid(task.parentID);
       console.log(`Parent ID conversion: ${task.parentID} -> ${parentUuid}`);
       
       if (!parentUuid) {
         console.error('CRITICAL ERROR: Failed to convert parentID to UUID!', {
           parentID: task.parentID,
+          parentIDType: typeof task.parentID,
           availableMappings: this.getAllMappings()
         });
+        
+        // This should not happen if our mapping is correct
+        throw new Error(`Cannot convert parent ID ${task.parentID} to UUID. Check ID mapping.`);
+      } else {
+        console.log(`SUCCESS: Parent ID converted successfully: ${task.parentID} -> ${parentUuid}`);
       }
+    } else {
+      console.log('No parentID to convert (root level task)');
     }
 
     const result = {
@@ -150,12 +190,13 @@ export class GanttIdMapper {
       progress: task.progress || 0,
       assigned_to: this.convertResourceInfoToDatabase(task.resourceInfo),
       predecessor: task.dependency || null,
-      parent_id: parentUuid, // This is the key field that was failing
+      parent_id: parentUuid, // This is the CRITICAL field that was failing
       order_index: 0,
       color: '#3b82f6'
     };
     
-    console.log('Final database task:', result);
+    console.log('Final database task:', JSON.stringify(result, null, 2));
+    console.log('CRITICAL CHECK - parent_id value:', result.parent_id);
     console.log('=== END CONVERT TASK FOR DATABASE DEBUG ===');
     
     return result;

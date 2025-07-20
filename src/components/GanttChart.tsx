@@ -128,21 +128,24 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const actionComplete = async (args: any) => {
-    console.log('Action complete:', args.requestType, args.data);
+    console.log('=== ACTION COMPLETE DEBUG ===');
+    console.log('Request type:', args.requestType);
+    console.log('Args data:', args.data);
     console.log('Full args object:', args);
     
     try {
       // Handle task operations including hierarchy changes
       if (args.requestType === 'save' && args.data) {
-        console.log('Save operation detected with data:', args.data);
+        console.log('SAVE: Processing save operation with data:', args.data);
         await updateTaskInDatabase(args.data);
       } else if (args.requestType === 'add' && args.data) {
+        console.log('ADD: Processing add operation with data:', args.data);
         await addTaskToDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
+        console.log('DELETE: Processing delete operation with data:', args.data);
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' || args.requestType === 'outdenting') {
-        // Handle hierarchy changes - these might come as different request types
-        console.log('Hierarchy change detected:', args.requestType, args.data);
+        console.log('HIERARCHY: Processing hierarchy change:', args.requestType, args.data);
         if (args.data) {
           await updateTaskInDatabase(args.data);
         }
@@ -155,34 +158,43 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
+    
+    console.log('=== END ACTION COMPLETE DEBUG ===');
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
-    console.log('=== UPDATE TASK DEBUG ===');
-    console.log('Updating task with full data:', taskData);
-    console.log('Task parentID:', taskData.parentID);
-    console.log('Task taskID:', taskData.taskID);
+    console.log('=== UPDATE TASK DATABASE DEBUG ===');
+    console.log('Input task data:', JSON.stringify(taskData, null, 2));
+    console.log('Task parentID type:', typeof taskData.parentID, 'value:', taskData.parentID);
     
-    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
-    console.log('Converted database task:', dbTask);
-    console.log('Converted parent_id:', dbTask.parent_id);
-    
-    // Validate parent ID mapping
-    if (taskData.parentID) {
+    // Validate parent ID mapping BEFORE conversion
+    if (taskData.parentID !== null && taskData.parentID !== undefined) {
       const parentUuid = idMapper.current.getUuid(taskData.parentID);
-      console.log(`Parent ID mapping: ${taskData.parentID} -> ${parentUuid}`);
+      console.log('CRITICAL: Parent ID validation:', {
+        numericParentId: taskData.parentID,
+        convertedUuid: parentUuid,
+        conversionSuccessful: !!parentUuid
+      });
+      
       if (!parentUuid) {
-        console.error('CRITICAL: Parent ID mapping failed!', {
-          numericParentId: taskData.parentID,
-          allMappings: idMapper.current.getAllMappings()
+        console.error('PARENT ID CONVERSION FAILED! Available mappings:', idMapper.current.getAllMappings());
+        toast({
+          title: "Error",
+          description: "Failed to convert parent ID for hierarchy operation",
+          variant: "destructive",
         });
+        return;
       }
     }
+    
+    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    console.log('Converted database task:', JSON.stringify(dbTask, null, 2));
+    console.log('Final parent_id for database:', dbTask.parent_id);
     
     // Extract resource assignments from Syncfusion's resourceInfo
     let assignedTo = null;
     if (taskData.resourceInfo) {
-      console.log('Raw resourceInfo:', taskData.resourceInfo);
+      console.log('Processing resourceInfo:', taskData.resourceInfo);
       
       // Handle when resourceInfo is a string (resource name or comma-separated names)
       if (typeof taskData.resourceInfo === 'string') {
@@ -219,10 +231,10 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: dbTask.progress,
       assigned_to: assignedTo,
       predecessor: dbTask.predecessor,
-      parent_id: dbTask.parent_id, // This is the critical field for hierarchy
+      parent_id: dbTask.parent_id, // This should now be correctly converted
     };
     
-    console.log('Final update data being sent to database:', updateData);
+    console.log('FINAL UPDATE DATA:', JSON.stringify(updateData, null, 2));
     
     const { error } = await supabase
       .from('project_schedule_tasks')
@@ -234,16 +246,22 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw error;
     }
 
-    console.log('Task updated successfully in database');
-    console.log('=== END UPDATE TASK DEBUG ===');
+    console.log('Task updated successfully in database with parent_id:', updateData.parent_id);
+    console.log('=== END UPDATE TASK DATABASE DEBUG ===');
     
     toast({
       title: "Success",
       description: "Task updated successfully",
     });
     
-    // DON'T invalidate queries to prevent ID remapping and row shuffling
-    // queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+    // Verify the update by checking the database
+    const { data: verifyData } = await supabase
+      .from('project_schedule_tasks')
+      .select('id, task_name, parent_id')
+      .eq('id', dbTask.id)
+      .single();
+    
+    console.log('VERIFICATION: Task after update:', verifyData);
   };
 
   const addTaskToDatabase = async (taskData: any) => {
