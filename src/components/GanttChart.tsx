@@ -129,17 +129,24 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const actionComplete = async (args: any) => {
     console.log('Action complete:', args.requestType, args.data);
+    console.log('Full args object:', args);
     
     try {
-      // Handle task operations
+      // Handle task operations including hierarchy changes
       if (args.requestType === 'save' && args.data) {
+        console.log('Save operation detected with data:', args.data);
         await updateTaskInDatabase(args.data);
       } else if (args.requestType === 'add' && args.data) {
         await addTaskToDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
+      } else if (args.requestType === 'indenting' || args.requestType === 'outdenting') {
+        // Handle hierarchy changes - these might come as different request types
+        console.log('Hierarchy change detected:', args.requestType, args.data);
+        if (args.data) {
+          await updateTaskInDatabase(args.data);
+        }
       }
-      // Resource operations are not needed since we manage resources via users/representatives tables
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -151,9 +158,26 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
-    console.log('Updating task with resource info:', taskData);
+    console.log('=== UPDATE TASK DEBUG ===');
+    console.log('Updating task with full data:', taskData);
+    console.log('Task parentID:', taskData.parentID);
+    console.log('Task taskID:', taskData.taskID);
     
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    console.log('Converted database task:', dbTask);
+    console.log('Converted parent_id:', dbTask.parent_id);
+    
+    // Validate parent ID mapping
+    if (taskData.parentID) {
+      const parentUuid = idMapper.current.getUuid(taskData.parentID);
+      console.log(`Parent ID mapping: ${taskData.parentID} -> ${parentUuid}`);
+      if (!parentUuid) {
+        console.error('CRITICAL: Parent ID mapping failed!', {
+          numericParentId: taskData.parentID,
+          allMappings: idMapper.current.getAllMappings()
+        });
+      }
+    }
     
     // Extract resource assignments from Syncfusion's resourceInfo
     let assignedTo = null;
@@ -187,26 +211,32 @@ function GanttChart({ projectId }: GanttChartProps) {
       }
     }
     
+    const updateData = {
+      task_name: dbTask.task_name,
+      start_date: dbTask.start_date,
+      end_date: dbTask.end_date,
+      duration: dbTask.duration,
+      progress: dbTask.progress,
+      assigned_to: assignedTo,
+      predecessor: dbTask.predecessor,
+      parent_id: dbTask.parent_id, // This is the critical field for hierarchy
+    };
+    
+    console.log('Final update data being sent to database:', updateData);
+    
     const { error } = await supabase
       .from('project_schedule_tasks')
-      .update({
-        task_name: dbTask.task_name,
-        start_date: dbTask.start_date,
-        end_date: dbTask.end_date,
-        duration: dbTask.duration,
-        progress: dbTask.progress,
-        assigned_to: assignedTo, // Save the extracted resource assignments
-        predecessor: dbTask.predecessor,
-        parent_id: dbTask.parent_id,
-      })
+      .update(updateData)
       .eq('id', dbTask.id);
 
     if (error) {
-      console.error('Error updating task:', error);
+      console.error('Database update error:', error);
       throw error;
     }
 
-    console.log('Task updated successfully with resource assignments:', assignedTo);
+    console.log('Task updated successfully in database');
+    console.log('=== END UPDATE TASK DEBUG ===');
+    
     toast({
       title: "Success",
       description: "Task updated successfully",
