@@ -5,17 +5,31 @@ export class GanttIdMapper {
   private uuidToNumeric: Map<string, number> = new Map();
   private nextId: number = 1;
 
-  // Initialize mapping from existing tasks
-  initializeFromTasks(tasks: any[]) {
-    this.numericToUuid.clear();
-    this.uuidToNumeric.clear();
-    this.nextId = 1;
+  // Initialize mapping from existing tasks with option to preserve existing mappings
+  initializeFromTasks(tasks: any[], preserveExisting: boolean = false) {
+    if (!preserveExisting) {
+      this.numericToUuid.clear();
+      this.uuidToNumeric.clear();
+      this.nextId = 1;
+    }
 
-    tasks.forEach((task) => {
-      const numericId = this.nextId++;
-      this.numericToUuid.set(numericId, task.id);
-      this.uuidToNumeric.set(task.id, numericId);
+    // Sort tasks by order_index to maintain consistent ID assignment
+    const sortedTasks = [...tasks].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+    sortedTasks.forEach((task) => {
+      // Only assign new IDs if we don't already have a mapping for this UUID
+      if (!this.uuidToNumeric.has(task.id)) {
+        const numericId = this.nextId++;
+        this.numericToUuid.set(numericId, task.id);
+        this.uuidToNumeric.set(task.id, numericId);
+      }
     });
+
+    // Update nextId to be higher than any existing numeric ID
+    const maxNumericId = Math.max(...Array.from(this.numericToUuid.keys()), 0);
+    if (maxNumericId >= this.nextId) {
+      this.nextId = maxNumericId + 1;
+    }
   }
 
   // Add new task mapping
@@ -63,6 +77,7 @@ export class GanttIdMapper {
       resourceInfo: this.parseResourceInfoForSyncfusion(task.assigned_to), // Convert to Syncfusion format
       dependency: this.convertDependencies(task.predecessor),
       parentID: task.parent_id ? this.getNumericId(task.parent_id) : null,
+      order_index: task.order_index || 0, // Preserve order_index for stable ordering
     };
   }
 
@@ -87,7 +102,7 @@ export class GanttIdMapper {
       assigned_to: this.convertResourceInfoToDatabase(task.resourceInfo), // Convert from Syncfusion format
       predecessor: task.dependency || null,
       parent_id: task.parentID ? this.getUuid(task.parentID) : null,
-      order_index: 0,
+      order_index: task.order_index || 0, // Use provided order_index or default to 0
       color: '#3b82f6'
     };
   }

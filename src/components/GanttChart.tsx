@@ -95,8 +95,8 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       console.log('Raw data from database:', data);
 
-      // Initialize ID mapper with existing tasks
-      idMapper.current.initializeFromTasks(data);
+      // Initialize ID mapper with existing tasks - preserve existing mappings
+      idMapper.current.initializeFromTasks(data, true);
 
       // Transform tasks for Syncfusion and clean up dependencies
       const transformedTasks = data.map((task) => {
@@ -151,7 +151,13 @@ function GanttChart({ projectId }: GanttChartProps) {
   const addTaskToDatabase = async (taskData: any) => {
     console.log('Adding new task to database:', taskData);
     
+    // Calculate proper order_index based on current position in the grid
+    const maxOrderIndex = Math.max(...tasks.map(t => t.order_index || 0), 0);
+    const newOrderIndex = maxOrderIndex + 1;
+    
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    // Override the order_index with calculated value
+    dbTask.order_index = newOrderIndex;
     
     // Extract resource assignments from Syncfusion's resourceInfo
     let assignedTo = null;
@@ -203,7 +209,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw error;
     }
 
-    console.log('Task added successfully to database with resource assignments:', assignedTo);
+    console.log('Task added successfully to database with order_index:', dbTask.order_index);
     toast({
       title: "Success",
       description: "Task added successfully",
@@ -388,9 +394,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
-        allowSorting={true}
-        allowReordering={true}
         allowSelection={true}
+        allowReordering={true}
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
