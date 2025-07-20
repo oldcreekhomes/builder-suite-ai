@@ -765,51 +765,6 @@ export type Database = {
           },
         ]
       }
-      task_dependencies: {
-        Row: {
-          created_at: string
-          dependency_type: string
-          id: string
-          lag_days: number | null
-          source_task_id: string
-          target_task_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          dependency_type?: string
-          id?: string
-          lag_days?: number | null
-          source_task_id: string
-          target_task_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          dependency_type?: string
-          id?: string
-          lag_days?: number | null
-          source_task_id?: string
-          target_task_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_dependencies_source_task_id_fkey"
-            columns: ["source_task_id"]
-            isOneToOne: false
-            referencedRelation: "project_schedule_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_dependencies_target_task_id_fkey"
-            columns: ["target_task_id"]
-            isOneToOne: false
-            referencedRelation: "project_schedule_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       task_resource_assignments: {
         Row: {
           allocation_percent: number | null
