@@ -131,14 +131,13 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete:', args.requestType, args.data);
     
     try {
-      // Only handle 'save' (update) and 'delete' operations
-      // Let Syncfusion handle 'add' operations natively to avoid double screen
-      if (args.requestType === 'save' && args.data) {
+      if (args.requestType === 'add' && args.data) {
+        await addTaskToDatabase(args.data);
+      } else if (args.requestType === 'save' && args.data) {
         await updateTaskInDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
       }
-      // Skip 'add' operations - let Syncfusion handle them natively
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -147,6 +146,71 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const addTaskToDatabase = async (taskData: any) => {
+    console.log('Adding new task to database:', taskData);
+    
+    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    // Extract resource assignments from Syncfusion's resourceInfo
+    let assignedTo = null;
+    if (taskData.resourceInfo) {
+      console.log('Raw resourceInfo for new task:', taskData.resourceInfo);
+      
+      if (typeof taskData.resourceInfo === 'string') {
+        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim());
+        const resourceUUIDs = [];
+        
+        for (const resourceName of resourceNames) {
+          const resource = resources.find(r => r.resourceName === resourceName);
+          if (resource) {
+            resourceUUIDs.push(resource.resourceId);
+            console.log('Found resource by name:', resourceName, '-> UUID:', resource.resourceId);
+          }
+        }
+        
+        if (resourceUUIDs.length > 0) {
+          assignedTo = resourceUUIDs.join(',');
+          console.log('Final assigned resources for new task:', assignedTo);
+        }
+      } else if (Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+        const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+        assignedTo = resourceIds.join(',');
+        console.log('Extracted resource assignments from array for new task:', assignedTo);
+      }
+    }
+    
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .insert({
+        id: dbTask.id,
+        project_id: dbTask.project_id,
+        task_name: dbTask.task_name,
+        start_date: dbTask.start_date,
+        end_date: dbTask.end_date,
+        duration: dbTask.duration,
+        progress: dbTask.progress,
+        assigned_to: assignedTo,
+        predecessor: dbTask.predecessor,
+        parent_id: dbTask.parent_id,
+        order_index: dbTask.order_index,
+        color: dbTask.color,
+      });
+
+    if (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
+
+    console.log('Task added successfully to database with resource assignments:', assignedTo);
+    toast({
+      title: "Success",
+      description: "Task added successfully",
+    });
+    
+    // Do NOT invalidate queries to prevent double-screen issue
+    // Let Syncfusion handle the UI updates natively
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
