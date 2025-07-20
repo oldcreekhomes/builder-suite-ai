@@ -295,7 +295,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
     mode: 'Auto' as any,
-    newRowPosition: 'Bottom' as any,
   };
 
   // Toolbar with native Add button that Syncfusion will handle
