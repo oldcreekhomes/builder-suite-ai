@@ -245,10 +245,6 @@ export class GanttIdMapper {
       return predecessor;
     }
     
-    if (Array.isArray(predecessor)) {
-      return predecessor.join(',');
-    }
-    
     return '';
   }
 }
