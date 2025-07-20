@@ -94,23 +94,102 @@ function GanttChart({ projectId }: GanttChartProps) {
       }
 
       console.log('Raw data from database:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('No tasks found for project:', projectId);
+        return [];
+      }
+
+      // Validate data before processing
+      console.log('Data validation for Gantt chart rendering:');
+      data.forEach((task, index) => {
+        console.log(`Task ${index + 1}:`, {
+          id: task.id,
+          task_name: task.task_name,
+          parent_id: task.parent_id,
+          parent_id_type: typeof task.parent_id,
+          assigned_to: task.assigned_to,
+          predecessor: task.predecessor,
+          start_date: task.start_date,
+          end_date: task.end_date
+        });
+        
+        // Check for invalid parent_id (should be text/numeric, not UUID)
+        if (task.parent_id && task.parent_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          console.error('ERROR: Task has UUID parent_id instead of numeric text:', task.id, task.parent_id);
+        }
+        
+        // Check for invalid assigned_to references
+        if (task.assigned_to) {
+          const assignedUsers = task.assigned_to.split(',');
+          assignedUsers.forEach(userId => {
+            const resourceExists = resources.some(r => r.resourceId === userId.trim());
+            if (!resourceExists) {
+              console.error('ERROR: Task references non-existent user/resource:', task.id, userId);
+            }
+          });
+        }
+      });
 
       // Initialize ID mapper with existing tasks
       idMapper.current.initializeFromTasks(data);
 
       // Transform tasks for Syncfusion and clean up dependencies
-      const transformedTasks = data.map((task) => {
-        const syncTask = idMapper.current.convertTaskForSyncfusion(task);
-        // Clean up dependencies to prevent circular references
-        if (syncTask.dependency && typeof syncTask.dependency === 'string') {
-          // Remove any self-references and validate dependency format
-          const deps = syncTask.dependency.split(',').map(d => d.trim()).filter(d => d && d !== syncTask.taskID.toString());
-          syncTask.dependency = deps.join(',');
+      const transformedTasks = data.map((task, index) => {
+        try {
+          const syncTask = idMapper.current.convertTaskForSyncfusion(task);
+          
+          // Enhanced dependency validation and cleanup
+          if (syncTask.dependency && typeof syncTask.dependency === 'string') {
+            // Remove any self-references and validate dependency format
+            const deps = syncTask.dependency.split(',')
+              .map(d => d.trim())
+              .filter(d => {
+                if (!d) return false;
+                if (d === syncTask.taskID.toString()) {
+                  console.warn('Removed self-reference dependency for task:', syncTask.taskID);
+                  return false;
+                }
+                // Check if dependency references a valid task
+                const depTaskId = parseInt(d.replace(/[A-Z]+$/, ''));
+                if (isNaN(depTaskId) || depTaskId <= 0 || depTaskId > data.length) {
+                  console.warn('Removed invalid dependency reference:', d, 'for task:', syncTask.taskID);
+                  return false;
+                }
+                return true;
+              });
+            syncTask.dependency = deps.length > 0 ? deps.join(',') : '';
+          }
+          
+          // Validate required fields
+          if (!syncTask.taskName) {
+            console.error('Task missing name:', task.id);
+            syncTask.taskName = `Untitled Task ${index + 1}`;
+          }
+          
+          return syncTask;
+        } catch (transformError) {
+          console.error('Error transforming task:', task.id, transformError);
+          // Return a minimal valid task structure
+          return {
+            taskID: index + 1,
+            taskName: task.task_name || `Task ${index + 1}`,
+            startDate: task.start_date ? new Date(task.start_date) : new Date(),
+            endDate: task.end_date ? new Date(task.end_date) : new Date(),
+            duration: task.duration || 1,
+            progress: task.progress || 0,
+            parentID: null
+          };
         }
-        return syncTask;
-      });
+      }).filter(task => task !== null);
 
       console.log('Transformed tasks for Gantt:', transformedTasks);
+      console.log('Total tasks to render:', transformedTasks.length);
+      
+      if (transformedTasks.length === 0) {
+        console.error('No valid tasks after transformation!');
+      }
+      
       return transformedTasks;
     },
     enabled: !!projectId,
