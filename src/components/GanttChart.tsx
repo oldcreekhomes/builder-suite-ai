@@ -283,6 +283,100 @@ function GanttChart({ projectId }: GanttChartProps) {
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
+  const rowDrop = async (args: any) => {
+    console.log('Row drop event:', args);
+    
+    try {
+      // Get the dragged task data
+      const draggedData = args.data;
+      const dropPosition = args.dropPosition;
+      const targetTask = args.targetData;
+      
+      console.log('Dragged task:', draggedData);
+      console.log('Drop position:', dropPosition);
+      console.log('Target task:', targetTask);
+      
+      // Update order_index and parent_id based on the drop
+      const updates = [];
+      
+      // Get the UUID of the dragged task
+      const draggedUuid = idMapper.current.getUuid(draggedData.taskID);
+      if (!draggedUuid) {
+        throw new Error(`Task UUID not found for dragged task: ${draggedData.taskID}`);
+      }
+      
+      // Handle parent_id update based on drop position
+      let newParentId = null;
+      let newOrderIndex = 0;
+      
+      if (dropPosition === 'child' && targetTask) {
+        // Dropped as child of target task
+        const targetUuid = idMapper.current.getUuid(targetTask.taskID);
+        newParentId = targetUuid;
+        // Get the highest order_index among target's children and add 1
+        const { data: siblings } = await supabase
+          .from('project_schedule_tasks')
+          .select('order_index')
+          .eq('parent_id', targetUuid)
+          .order('order_index', { ascending: false })
+          .limit(1);
+        newOrderIndex = siblings && siblings.length > 0 ? siblings[0].order_index + 1 : 0;
+      } else {
+        // Dropped as sibling (above or below)
+        if (targetTask && targetTask.parentID) {
+          const targetParentUuid = idMapper.current.getUuid(targetTask.parentID);
+          newParentId = targetParentUuid;
+        } else {
+          newParentId = null; // Root level
+        }
+        
+        // Calculate new order based on position relative to target
+        if (targetTask) {
+          if (dropPosition === 'bottomSegment') {
+            newOrderIndex = targetTask.index + 1;
+          } else {
+            newOrderIndex = targetTask.index;
+          }
+        }
+      }
+      
+      // Update the dragged task
+      const { error: updateError } = await supabase
+        .from('project_schedule_tasks')
+        .update({
+          parent_id: newParentId,
+          order_index: newOrderIndex
+        })
+        .eq('id', draggedUuid);
+      
+      if (updateError) {
+        console.error('Error updating dragged task:', updateError);
+        throw updateError;
+      }
+      
+      // For now, we'll rely on the simple update above
+      // A more sophisticated reordering system can be added later if needed
+      
+      console.log('Row drop completed successfully');
+      
+      toast({
+        title: "Success",
+        description: "Task reordered successfully",
+      });
+      
+      // Refresh the data to reflect the changes
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+      
+    } catch (error) {
+      console.error('Error in rowDrop:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder task",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   // Syncfusion field mapping
   const taskFields = {
@@ -359,9 +453,11 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowSelection={true}
         allowResizing={true}
         allowFiltering={true}
+        allowRowDragAndDrop={true}
         gridLines="Both"
         actionBegin={actionBegin}
         actionComplete={actionComplete}
+        rowDrop={rowDrop}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
