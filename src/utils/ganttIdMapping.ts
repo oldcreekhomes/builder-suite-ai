@@ -112,17 +112,15 @@ export class GanttIdMapper {
       endDate.setDate(startDate.getDate() + (task.duration || 1));
     }
     
-    // Handle parent ID conversion with enhanced validation
+    // Handle parent ID conversion - simple text to numeric
     let parentNumericId = null;
     if (task.parent_id) {
-      parentNumericId = this.getNumericId(task.parent_id);
+      parentNumericId = parseInt(task.parent_id);
       console.log(`Converting parent for Syncfusion: ${task.parent_id} -> ${parentNumericId}`);
       
-      if (!parentNumericId) {
-        console.error(`Failed to convert parent UUID to numeric ID: ${task.parent_id}`);
-        // Try to add mapping if it doesn't exist (defensive programming)
-        parentNumericId = this.addTaskMapping(task.parent_id);
-        console.log(`Created defensive mapping for parent: ${parentNumericId}`);
+      if (isNaN(parentNumericId)) {
+        console.error(`Failed to convert parent text to numeric ID: ${task.parent_id}`);
+        parentNumericId = null;
       }
     }
     
@@ -142,7 +140,7 @@ export class GanttIdMapper {
     return syncTask;
   }
 
-  // Convert task data for database (numeric -> UUID) with CRITICAL parent ID fix
+  // Convert task data for database (numeric -> text parent ID)
   convertTaskForDatabase(task: any, projectId: string): any {
     console.log('=== CONVERT TASK FOR DATABASE DEBUG ===');
     console.log('Input task data:', JSON.stringify(task, null, 2));
@@ -157,27 +155,13 @@ export class GanttIdMapper {
       console.log(`Created new mapping for task: ${task.taskID} <-> ${uuid}`);
     }
 
-    // CRITICAL FIX: Enhanced parent ID conversion with validation
-    let parentUuid = null;
+    // Simple parent ID handling - store numeric parent ID as text
+    let parentId = null;
     if (task.parentID !== null && task.parentID !== undefined) {
-      console.log('Processing parentID:', task.parentID);
-      parentUuid = this.getUuid(task.parentID);
-      console.log(`Parent ID conversion: ${task.parentID} -> ${parentUuid}`);
-      
-      if (!parentUuid) {
-        console.error('CRITICAL ERROR: Failed to convert parentID to UUID!', {
-          parentID: task.parentID,
-          parentIDType: typeof task.parentID,
-          availableMappings: this.getAllMappings()
-        });
-        
-        // This should not happen if our mapping is correct
-        throw new Error(`Cannot convert parent ID ${task.parentID} to UUID. Check ID mapping.`);
-      } else {
-        console.log(`SUCCESS: Parent ID converted successfully: ${task.parentID} -> ${parentUuid}`);
-      }
+      parentId = task.parentID.toString();
+      console.log(`Parent ID: ${task.parentID} -> ${parentId}`);
     } else {
-      console.log('No parentID to convert (root level task)');
+      console.log('No parentID (root level task)');
     }
 
     const result = {
@@ -190,7 +174,7 @@ export class GanttIdMapper {
       progress: task.progress || 0,
       assigned_to: this.convertResourceInfoToDatabase(task.resourceInfo),
       predecessor: task.dependency || null,
-      parent_id: parentUuid, // This is the CRITICAL field that was failing
+      parent_id: parentId, // Store numeric parent ID as text
       order_index: 0,
       color: '#3b82f6'
     };
