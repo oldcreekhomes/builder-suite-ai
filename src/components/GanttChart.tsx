@@ -419,6 +419,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
     mode: 'Auto' as any, // This enables both dialog and inline editing
+    newRowPosition: 'Bottom' as any, // Add new tasks at the bottom
   };
 
   // Toolbar with Edit/Update/Cancel buttons like the working example
