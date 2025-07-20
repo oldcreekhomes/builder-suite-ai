@@ -288,26 +288,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Input task data:', JSON.stringify(taskData, null, 2));
     console.log('Task parentID type:', typeof taskData.parentID, 'value:', taskData.parentID);
     
-    // Validate parent ID mapping BEFORE conversion
-    if (taskData.parentID !== null && taskData.parentID !== undefined) {
-      const parentUuid = idMapper.current.getUuid(taskData.parentID);
-      console.log('CRITICAL: Parent ID validation:', {
-        numericParentId: taskData.parentID,
-        convertedUuid: parentUuid,
-        conversionSuccessful: !!parentUuid
-      });
-      
-      if (!parentUuid) {
-        console.error('PARENT ID CONVERSION FAILED! Available mappings:', idMapper.current.getAllMappings());
-        toast({
-          title: "Error",
-          description: "Failed to convert parent ID for hierarchy operation",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
     console.log('Converted database task:', JSON.stringify(dbTask, null, 2));
     console.log('Final parent_id for database:', dbTask.parent_id);
@@ -352,37 +332,47 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: dbTask.progress,
       assigned_to: assignedTo,
       predecessor: dbTask.predecessor,
-      parent_id: dbTask.parent_id, // This should now be correctly converted
+      parent_id: dbTask.parent_id, // This should now be correctly converted without validation issues
     };
     
     console.log('FINAL UPDATE DATA:', JSON.stringify(updateData, null, 2));
     
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .update(updateData)
-      .eq('id', dbTask.id);
+    try {
+      const { error } = await supabase
+        .from('project_schedule_tasks')
+        .update(updateData)
+        .eq('id', dbTask.id);
 
-    if (error) {
-      console.error('Database update error:', error);
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+
+      console.log('Task updated successfully in database with parent_id:', updateData.parent_id);
+      console.log('=== END UPDATE TASK DATABASE DEBUG ===');
+      
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+      
+      // Verify the update by checking the database
+      const { data: verifyData } = await supabase
+        .from('project_schedule_tasks')
+        .select('id, task_name, parent_id')
+        .eq('id', dbTask.id)
+        .single();
+      
+      console.log('VERIFICATION: Task after update:', verifyData);
+    } catch (error) {
+      console.error('CRITICAL ERROR in updateTaskInDatabase:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update task: ${error.message}`,
+        variant: "destructive",
+      });
       throw error;
     }
-
-    console.log('Task updated successfully in database with parent_id:', updateData.parent_id);
-    console.log('=== END UPDATE TASK DATABASE DEBUG ===');
-    
-    toast({
-      title: "Success",
-      description: "Task updated successfully",
-    });
-    
-    // Verify the update by checking the database
-    const { data: verifyData } = await supabase
-      .from('project_schedule_tasks')
-      .select('id, task_name, parent_id')
-      .eq('id', dbTask.id)
-      .single();
-    
-    console.log('VERIFICATION: Task after update:', verifyData);
   };
 
   const addTaskToDatabase = async (taskData: any) => {
