@@ -1,4 +1,3 @@
-
 // Utility for mapping between Syncfusion numeric IDs and database UUIDs
 export class GanttIdMapper {
   private numericToUuid: Map<number, string> = new Map();
@@ -236,14 +235,43 @@ export class GanttIdMapper {
     return null;
   }
 
+  // Fixed dependency conversion to handle proper validation
   private convertDependencies(predecessor: string | null): string {
     if (!predecessor) return '';
     
-    // Convert UUID dependencies to numeric IDs
-    const deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
+    // Handle both string and array formats from database
+    let deps: string[] = [];
+    
+    if (typeof predecessor === 'string') {
+      // If it's a JSON array string like '["2 FS"]', parse it
+      if (predecessor.startsWith('[') && predecessor.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(predecessor);
+          deps = Array.isArray(parsed) ? parsed : [predecessor];
+        } catch {
+          deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
+        }
+      } else {
+        deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
+      }
+    } else if (Array.isArray(predecessor)) {
+      deps = predecessor;
+    }
+    
+    // Convert UUID dependencies to numeric IDs, but keep dependency format intact
     const numericDeps = deps.map(dep => {
-      const numericId = this.getNumericId(dep);
-      return numericId ? numericId.toString() : dep;
+      // Extract UUID part and dependency type (e.g., "uuid FS" -> ["uuid", "FS"])
+      const parts = dep.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        const uuid = parts[0];
+        const depType = parts.slice(1).join(' '); // Handle "FS", "FF", etc.
+        const numericId = this.getNumericId(uuid);
+        return numericId ? `${numericId} ${depType}` : dep;
+      } else {
+        // Simple UUID reference
+        const numericId = this.getNumericId(dep);
+        return numericId ? numericId.toString() : dep;
+      }
     });
     
     return numericDeps.join(',');

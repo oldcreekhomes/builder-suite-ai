@@ -100,48 +100,17 @@ function GanttChart({ projectId }: GanttChartProps) {
         return [];
       }
 
-      // Validate data before processing
-      console.log('Data validation for Gantt chart rendering:');
-      data.forEach((task, index) => {
-        console.log(`Task ${index + 1}:`, {
-          id: task.id,
-          task_name: task.task_name,
-          parent_id: task.parent_id,
-          parent_id_type: typeof task.parent_id,
-          assigned_to: task.assigned_to,
-          predecessor: task.predecessor,
-          start_date: task.start_date,
-          end_date: task.end_date
-        });
-        
-        // Check for invalid parent_id (should be text/numeric, not UUID)
-        if (task.parent_id && task.parent_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          console.error('ERROR: Task has UUID parent_id instead of numeric text:', task.id, task.parent_id);
-        }
-        
-        // Check for invalid assigned_to references
-        if (task.assigned_to) {
-          const assignedUsers = task.assigned_to.split(',');
-          assignedUsers.forEach(userId => {
-            const resourceExists = resources.some(r => r.resourceId === userId.trim());
-            if (!resourceExists) {
-              console.error('ERROR: Task references non-existent user/resource:', task.id, userId);
-            }
-          });
-        }
-      });
-
       // Initialize ID mapper with existing tasks
       idMapper.current.initializeFromTasks(data);
 
-      // Transform tasks for Syncfusion and clean up dependencies
+      // Transform tasks for Syncfusion with improved dependency handling
       const transformedTasks = data.map((task, index) => {
         try {
           const syncTask = idMapper.current.convertTaskForSyncfusion(task);
           
-          // Enhanced dependency validation and cleanup
+          // Fix dependency validation - only validate against actual task IDs
           if (syncTask.dependency && typeof syncTask.dependency === 'string') {
-            // Remove any self-references and validate dependency format
+            const validTaskIds = new Set(data.map((_, idx) => idx + 1));
             const deps = syncTask.dependency.split(',')
               .map(d => d.trim())
               .filter(d => {
@@ -150,9 +119,9 @@ function GanttChart({ projectId }: GanttChartProps) {
                   console.warn('Removed self-reference dependency for task:', syncTask.taskID);
                   return false;
                 }
-                // Check if dependency references a valid task
-                const depTaskId = parseInt(d.replace(/[A-Z]+$/, ''));
-                if (isNaN(depTaskId) || depTaskId <= 0 || depTaskId > data.length) {
+                // Extract numeric ID from dependency (e.g., "2FS" -> 2)
+                const depTaskId = parseInt(d.replace(/[A-Z]+$/i, ''));
+                if (isNaN(depTaskId) || !validTaskIds.has(depTaskId)) {
                   console.warn('Removed invalid dependency reference:', d, 'for task:', syncTask.taskID);
                   return false;
                 }
@@ -161,16 +130,9 @@ function GanttChart({ projectId }: GanttChartProps) {
             syncTask.dependency = deps.length > 0 ? deps.join(',') : '';
           }
           
-          // Validate required fields
-          if (!syncTask.taskName) {
-            console.error('Task missing name:', task.id);
-            syncTask.taskName = `Untitled Task ${index + 1}`;
-          }
-          
           return syncTask;
         } catch (transformError) {
           console.error('Error transforming task:', task.id, transformError);
-          // Return a minimal valid task structure
           return {
             taskID: index + 1,
             taskName: task.task_name || `Task ${index + 1}`,
@@ -185,10 +147,6 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       console.log('Transformed tasks for Gantt:', transformedTasks);
       console.log('Total tasks to render:', transformedTasks.length);
-      
-      if (transformedTasks.length === 0) {
-        console.error('No valid tasks after transformation!');
-      }
       
       return transformedTasks;
     },
@@ -226,11 +184,11 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.log('DELETE: Processing delete operation');
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' && args.modifiedRecords) {
-        console.log('INDENT: Processing indent with immediate updates');
-        await processHierarchyChange(args.modifiedRecords, 'indented');
+        console.log('INDENT: Processing indent with batch updates');
+        await processBatchHierarchyChange(args.modifiedRecords, 'indented');
       } else if (args.requestType === 'outdenting' && args.modifiedRecords) {
-        console.log('OUTDENT: Processing outdent with immediate updates');
-        await processHierarchyChange(args.modifiedRecords, 'outdented');
+        console.log('OUTDENT: Processing outdent with batch updates');
+        await processBatchHierarchyChange(args.modifiedRecords, 'outdented');
       }
     } catch (error) {
       console.error('Error in actionComplete:', error);
@@ -242,6 +200,147 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
     
     console.log('=== END NATIVE ACTION COMPLETE ===');
+  };
+
+  // Enhanced batch processing for hierarchy changes
+  const processBatchHierarchyChange = async (modifiedRecords: any[], operation: string) => {
+    console.log(`=== PROCESS BATCH ${operation.toUpperCase()} HIERARCHY ===`);
+    console.log('Modified records:', modifiedRecords);
+    
+    const updates = [];
+    const errors = [];
+    
+    // Prepare all updates first
+    for (const record of modifiedRecords) {
+      try {
+        console.log(`Preparing ${operation} for task:`, record.taskID, 'parentID:', record.parentID);
+        
+        const taskId = record.taskID;
+        const uuid = idMapper.current.getUuid(taskId);
+        
+        if (!uuid) {
+          throw new Error(`No UUID found for task ID: ${taskId}`);
+        }
+        
+        const dbTask = idMapper.current.convertTaskForDatabase(record, projectId);
+        
+        // Handle resource assignments
+        let assignedTo = null;
+        if (record.resourceInfo) {
+          if (typeof record.resourceInfo === 'string') {
+            const resourceNames = record.resourceInfo.split(',').map(name => name.trim());
+            const resourceUUIDs = [];
+            
+            for (const resourceName of resourceNames) {
+              const resource = resources.find(r => r.resourceName === resourceName);
+              if (resource) {
+                resourceUUIDs.push(resource.resourceId);
+              }
+            }
+            
+            if (resourceUUIDs.length > 0) {
+              assignedTo = resourceUUIDs.join(',');
+            }
+          } else if (Array.isArray(record.resourceInfo)) {
+            const resourceIds = record.resourceInfo.map((resource: any) => resource.resourceId);
+            assignedTo = resourceIds.join(',');
+          }
+        }
+        
+        const updateData = {
+          task_name: dbTask.task_name,
+          start_date: dbTask.start_date,
+          end_date: dbTask.end_date,
+          duration: dbTask.duration,
+          progress: dbTask.progress,
+          assigned_to: assignedTo,
+          predecessor: dbTask.predecessor,
+          parent_id: dbTask.parent_id,
+        };
+        
+        console.log(`Preparing update for task ${taskId} with parent_id: "${updateData.parent_id}"`);
+        
+        updates.push({
+          uuid,
+          taskId,
+          updateData
+        });
+        
+      } catch (error) {
+        console.error(`Failed to prepare update for task ${record.taskID}:`, error);
+        errors.push({ taskId: record.taskID, error: error.message });
+      }
+    }
+    
+    // Execute all updates with proper error handling
+    const results = await Promise.allSettled(
+      updates.map(async ({ uuid, taskId, updateData }) => {
+        console.log(`Executing update for task ${taskId}`);
+        
+        const { error } = await supabase
+          .from('project_schedule_tasks')
+          .update(updateData)
+          .eq('id', uuid);
+        
+        if (error) {
+          console.error(`Database update error for task ${taskId}:`, error);
+          throw new Error(`Task ${taskId}: ${error.message}`);
+        }
+        
+        // Immediate verification
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('project_schedule_tasks')
+          .select('id, task_name, parent_id')
+          .eq('id', uuid)
+          .single();
+        
+        if (verifyError) {
+          console.error(`Verification failed for task ${taskId}:`, verifyError);
+          throw new Error(`Verification failed for task ${taskId}`);
+        }
+        
+        console.log(`✅ Task ${taskId} successfully updated - parent_id: "${verifyData.parent_id}"`);
+        return { taskId, success: true, parentId: verifyData.parent_id };
+      })
+    );
+    
+    // Process results
+    const successful = [];
+    const failed = [];
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successful.push(result.value);
+      } else {
+        failed.push({
+          taskId: updates[index].taskId,
+          error: result.reason.message
+        });
+      }
+    });
+    
+    console.log(`${operation} Results:`, {
+      successful: successful.length,
+      failed: failed.length,
+      successfulTasks: successful.map(s => `${s.taskId}(parent:${s.parentId})`),
+      failedTasks: failed.map(f => `${f.taskId}:${f.error}`)
+    });
+    
+    if (failed.length > 0) {
+      console.error(`Some tasks failed to ${operation}:`, failed);
+      toast({
+        title: "Partial Success",
+        description: `${successful.length} tasks ${operation} successfully, ${failed.length} failed`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `All ${successful.length} tasks ${operation} successfully`,
+      });
+    }
+    
+    console.log(`=== END PROCESS BATCH ${operation.toUpperCase()} HIERARCHY ===`);
   };
 
   // Native Syncfusion cell save handler
