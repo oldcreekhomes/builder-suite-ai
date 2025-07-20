@@ -132,7 +132,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const actionComplete = async (args: any) => {
-    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
+    console.log('=== ACTION COMPLETE BATCH DEBUG ===');
     console.log('Request type:', args.requestType);
     console.log('Args data:', args.data);
     console.log('Args modifiedRecords:', args.modifiedRecords);
@@ -142,7 +142,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Full args object:', args);
     
     try {
-      // Handle ALL possible hierarchy-related request types
+      // Handle ALL possible hierarchy-related request types with batch processing
       if (args.requestType === 'save' && args.data) {
         console.log('SAVE: Processing save operation with data:', args.data);
         await updateTaskInDatabase(args.data);
@@ -154,40 +154,14 @@ function GanttChart({ projectId }: GanttChartProps) {
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' || args.requestType === 'indent') {
         console.log('INDENT: Processing indent operation');
-        if (args.data) {
-          await updateTaskInDatabase(args.data);
-        } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
-          for (const record of args.modifiedRecords) {
-            await updateTaskInDatabase(record);
-          }
-        }
-        toast({
-          title: "Success",
-          description: "Task indented successfully",
-        });
+        await handleBatchHierarchyUpdate(args, 'indent');
       } else if (args.requestType === 'outdenting' || args.requestType === 'outdent') {
         console.log('OUTDENT: Processing outdent operation');
-        if (args.data) {
-          await updateTaskInDatabase(args.data);
-        } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
-          for (const record of args.modifiedRecords) {
-            await updateTaskInDatabase(record);
-          }
-        }
-        toast({
-          title: "Success",
-          description: "Task outdented successfully",
-        });
+        await handleBatchHierarchyUpdate(args, 'outdent');
       } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
         // Catch-all for any hierarchy changes that might use modifiedRecords
         console.log('MODIFIED RECORDS: Processing modified records:', args.modifiedRecords);
-        for (const record of args.modifiedRecords) {
-          await updateTaskInDatabase(record);
-        }
-        toast({
-          title: "Success",
-          description: "Task hierarchy updated successfully",
-        });
+        await handleBatchHierarchyUpdate(args, 'modify');
       } else {
         console.log('UNHANDLED REQUEST TYPE:', args.requestType);
         // Log this so we can identify what request types we're missing
@@ -201,35 +175,160 @@ function GanttChart({ projectId }: GanttChartProps) {
       });
     }
     
-    console.log('=== END ACTION COMPLETE ENHANCED DEBUG ===');
+    console.log('=== END ACTION COMPLETE BATCH DEBUG ===');
   };
 
-  const updateTaskInDatabase = async (taskData: any) => {
-    console.log('=== UPDATE TASK DATABASE DEBUG ===');
-    console.log('Input task data:', JSON.stringify(taskData, null, 2));
-    console.log('Task parentID type:', typeof taskData.parentID, 'value:', taskData.parentID);
+  // New batch hierarchy update handler
+  const handleBatchHierarchyUpdate = async (args: any, operationType: string) => {
+    console.log('=== BATCH HIERARCHY UPDATE DEBUG ===');
+    console.log('Operation type:', operationType);
+    console.log('Args data:', args.data);
+    console.log('Args modifiedRecords:', args.modifiedRecords);
     
-    // Validate parent ID mapping BEFORE conversion
-    if (taskData.parentID !== null && taskData.parentID !== undefined) {
-      const parentUuid = idMapper.current.getUuid(taskData.parentID);
-      console.log('CRITICAL: Parent ID validation:', {
-        numericParentId: taskData.parentID,
-        convertedUuid: parentUuid,
-        conversionSuccessful: !!parentUuid
+    // Determine which tasks need to be updated
+    let tasksToUpdate = [];
+    
+    if (args.data) {
+      tasksToUpdate = Array.isArray(args.data) ? args.data : [args.data];
+    } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+      tasksToUpdate = args.modifiedRecords;
+    }
+    
+    console.log('Tasks to update in batch:', tasksToUpdate.length, tasksToUpdate);
+    
+    if (tasksToUpdate.length === 0) {
+      console.log('No tasks to update');
+      return;
+    }
+    
+    // Process all tasks in a batch with enhanced error handling
+    const results = [];
+    const errors = [];
+    
+    for (let i = 0; i < tasksToUpdate.length; i++) {
+      const task = tasksToUpdate[i];
+      console.log(`Processing task ${i + 1}/${tasksToUpdate.length}:`, {
+        taskID: task.taskID,
+        taskName: task.taskName,
+        parentID: task.parentID,
+        parentIDType: typeof task.parentID
       });
       
-      if (!parentUuid) {
-        console.error('PARENT ID CONVERSION FAILED! Available mappings:', idMapper.current.getAllMappings());
-        toast({
-          title: "Error",
-          description: "Failed to convert parent ID for hierarchy operation",
-          variant: "destructive",
-        });
-        return;
+      try {
+        // Add a small delay between operations to prevent race conditions
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        await updateTaskInDatabase(task);
+        results.push({ taskID: task.taskID, status: 'success' });
+        console.log(`Task ${task.taskID} updated successfully`);
+      } catch (error) {
+        console.error(`Failed to update task ${task.taskID}:`, error);
+        errors.push({ taskID: task.taskID, error: error.message });
+        
+        // Retry once for failed tasks
+        try {
+          console.log(`Retrying task ${task.taskID}...`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await updateTaskInDatabase(task);
+          results.push({ taskID: task.taskID, status: 'success_retry' });
+          console.log(`Task ${task.taskID} updated successfully on retry`);
+        } catch (retryError) {
+          console.error(`Retry failed for task ${task.taskID}:`, retryError);
+          errors.push({ taskID: task.taskID, retryError: retryError.message });
+        }
       }
     }
     
+    console.log('Batch update results:', results);
+    console.log('Batch update errors:', errors);
+    
+    // Show appropriate toast messages
+    if (errors.length === 0) {
+      toast({
+        title: "Success",
+        description: `Successfully updated ${results.length} task(s) hierarchy`,
+      });
+    } else if (results.length > 0) {
+      toast({
+        title: "Partial Success",
+        description: `Updated ${results.length} task(s), ${errors.length} failed`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: `Failed to update task hierarchy`,
+        variant: "destructive",
+      });
+    }
+    
+    console.log('=== END BATCH HIERARCHY UPDATE DEBUG ===');
+  };
+
+  const updateTaskInDatabase = async (taskData: any) => {
+    console.log('=== UPDATE TASK DATABASE ENHANCED DEBUG ===');
+    console.log('Input task data:', JSON.stringify(taskData, null, 2));
+    console.log('Task parentID type:', typeof taskData.parentID, 'value:', taskData.parentID);
+    
+    // Enhanced parent ID validation and mapping
+    let parentValidationResult = null;
+    if (taskData.parentID !== null && taskData.parentID !== undefined) {
+      console.log('PARENT ID VALIDATION - Input parentID:', taskData.parentID);
+      
+      // Check if parentID is already a UUID (for direct database operations)
+      const isUuid = typeof taskData.parentID === 'string' && taskData.parentID.length === 36;
+      
+      if (isUuid) {
+        console.log('ParentID appears to be a UUID, using directly:', taskData.parentID);
+        parentValidationResult = taskData.parentID;
+      } else {
+        // Convert numeric ID to UUID
+        const parentUuid = idMapper.current.getUuid(taskData.parentID);
+        console.log('CRITICAL: Parent ID conversion:', {
+          numericParentId: taskData.parentID,
+          convertedUuid: parentUuid,
+          conversionSuccessful: !!parentUuid
+        });
+        
+        if (!parentUuid) {
+          console.error('PARENT ID CONVERSION FAILED! Available mappings:', idMapper.current.getAllMappings());
+          // Instead of throwing an error, try to refresh ID mappings
+          console.log('Attempting to refresh ID mappings...');
+          
+          // Re-fetch current tasks and reinitialize mappings
+          const { data: currentTasks } = await supabase
+            .from('project_schedule_tasks')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('order_index');
+          
+          if (currentTasks) {
+            idMapper.current.initializeFromTasks(currentTasks);
+            const refreshedParentUuid = idMapper.current.getUuid(taskData.parentID);
+            console.log('After refresh - Parent UUID:', refreshedParentUuid);
+            parentValidationResult = refreshedParentUuid;
+          }
+          
+          if (!parentValidationResult) {
+            throw new Error(`Failed to convert parent ID ${taskData.parentID} to UUID even after refresh`);
+          }
+        } else {
+          parentValidationResult = parentUuid;
+        }
+      }
+    }
+    
+    console.log('Final parent validation result:', parentValidationResult);
+    
     const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    // Override parent_id with validated result
+    if (parentValidationResult) {
+      dbTask.parent_id = parentValidationResult;
+    }
+    
     console.log('Converted database task:', JSON.stringify(dbTask, null, 2));
     console.log('Final parent_id for database:', dbTask.parent_id);
     
@@ -273,7 +372,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: dbTask.progress,
       assigned_to: assignedTo,
       predecessor: dbTask.predecessor,
-      parent_id: dbTask.parent_id, // This should now be correctly converted
+      parent_id: dbTask.parent_id,
     };
     
     console.log('FINAL UPDATE DATA:', JSON.stringify(updateData, null, 2));
@@ -289,12 +388,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
 
     console.log('Task updated successfully in database with parent_id:', updateData.parent_id);
-    console.log('=== END UPDATE TASK DATABASE DEBUG ===');
-    
-    toast({
-      title: "Success",
-      description: "Task updated successfully",
-    });
     
     // Verify the update by checking the database
     const { data: verifyData } = await supabase
@@ -304,6 +397,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       .single();
     
     console.log('VERIFICATION: Task after update:', verifyData);
+    console.log('=== END UPDATE TASK DATABASE ENHANCED DEBUG ===');
   };
 
   const addTaskToDatabase = async (taskData: any) => {
