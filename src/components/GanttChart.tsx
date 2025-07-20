@@ -95,8 +95,8 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       console.log('Raw data from database:', data);
 
-      // Initialize ID mapper with existing tasks - preserve existing mappings
-      idMapper.current.initializeFromTasks(data, true);
+      // Initialize ID mapper with existing tasks
+      idMapper.current.initializeFromTasks(data);
 
       // Transform tasks for Syncfusion and clean up dependencies
       const transformedTasks = data.map((task) => {
@@ -120,20 +120,25 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
-    // Simplified handler - let Syncfusion handle native inline editing
+    
+    // Handle validation and pre-processing
+    if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
+      // Pre-processing for date validation if needed
+    }
   };
 
   const actionComplete = async (args: any) => {
     console.log('Action complete:', args.requestType, args.data);
     
     try {
-      if (args.requestType === 'add' && args.data) {
-        await addTaskToDatabase(args.data);
-      } else if (args.requestType === 'save' && args.data) {
+      // Only handle 'save' (update) and 'delete' operations
+      // Let Syncfusion handle 'add' operations natively to avoid double screen
+      if (args.requestType === 'save' && args.data) {
         await updateTaskInDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
       }
+      // Skip 'add' operations - let Syncfusion handle them natively
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -142,77 +147,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
-  };
-
-  const addTaskToDatabase = async (taskData: any) => {
-    console.log('Adding new task to database:', taskData);
-    
-    // Calculate proper order_index based on current position in the grid
-    const maxOrderIndex = Math.max(...tasks.map(t => t.order_index || 0), 0);
-    const newOrderIndex = maxOrderIndex + 1;
-    
-    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
-    // Override the order_index with calculated value
-    dbTask.order_index = newOrderIndex;
-    
-    // Extract resource assignments from Syncfusion's resourceInfo
-    let assignedTo = null;
-    if (taskData.resourceInfo) {
-      console.log('Raw resourceInfo for new task:', taskData.resourceInfo);
-      
-      if (typeof taskData.resourceInfo === 'string') {
-        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim());
-        const resourceUUIDs = [];
-        
-        for (const resourceName of resourceNames) {
-          const resource = resources.find(r => r.resourceName === resourceName);
-          if (resource) {
-            resourceUUIDs.push(resource.resourceId);
-            console.log('Found resource by name:', resourceName, '-> UUID:', resource.resourceId);
-          }
-        }
-        
-        if (resourceUUIDs.length > 0) {
-          assignedTo = resourceUUIDs.join(',');
-          console.log('Final assigned resources for new task:', assignedTo);
-        }
-      } else if (Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
-        const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
-        assignedTo = resourceIds.join(',');
-        console.log('Extracted resource assignments from array for new task:', assignedTo);
-      }
-    }
-    
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .insert({
-        id: dbTask.id,
-        project_id: dbTask.project_id,
-        task_name: dbTask.task_name,
-        start_date: dbTask.start_date,
-        end_date: dbTask.end_date,
-        duration: dbTask.duration,
-        progress: dbTask.progress,
-        assigned_to: assignedTo,
-        predecessor: dbTask.predecessor,
-        parent_id: dbTask.parent_id,
-        order_index: dbTask.order_index,
-        color: dbTask.color,
-      });
-
-    if (error) {
-      console.error('Error adding task:', error);
-      throw error;
-    }
-
-    console.log('Task added successfully to database with order_index:', dbTask.order_index);
-    toast({
-      title: "Success",
-      description: "Task added successfully",
-    });
-    
-    // Do NOT invalidate queries to prevent double-screen issue
-    // Let Syncfusion handle the UI updates natively
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
@@ -353,14 +287,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure edit settings for inline editing
+  // Configure edit settings to allow Syncfusion's native add functionality
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Normal' as any, // Native inline editing mode
+    mode: 'Auto' as any,
     newRowPosition: 'Bottom' as any,
   };
 
@@ -390,8 +324,9 @@ function GanttChart({ projectId }: GanttChartProps) {
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
-        allowSelection={true}
+        allowSorting={true}
         allowReordering={true}
+        allowSelection={true}
         allowResizing={true}
         allowFiltering={true}
         gridLines="Both"
@@ -407,6 +342,12 @@ function GanttChart({ projectId }: GanttChartProps) {
           <ColumnDirective field='resourceInfo' headerText='Resource' width={200} />
           <ColumnDirective field='dependency' headerText='Predecessor' width={150} />
         </ColumnsDirective>
+        <EditDialogFieldsDirective>
+          <EditDialogFieldDirective type='General' headerText='General' />
+          <EditDialogFieldDirective type='Dependency' />
+          <EditDialogFieldDirective type='Resources' />
+          <EditDialogFieldDirective type='Notes' />
+        </EditDialogFieldsDirective>
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
     </div>
