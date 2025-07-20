@@ -121,7 +121,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Handle validation and pre-processing like in the working example
+    // Handle validation and pre-processing
     if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
       // Pre-processing for date validation if needed
     }
@@ -131,15 +131,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete:', args.requestType, args.data);
     
     try {
-      // Handle task operations
+      // Only handle 'save' (update) and 'delete' operations
+      // Let Syncfusion handle 'add' operations natively to avoid double screen
       if (args.requestType === 'save' && args.data) {
         await updateTaskInDatabase(args.data);
-      } else if (args.requestType === 'add' && args.data) {
-        await addTaskToDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
       }
-      // Resource operations are not needed since we manage resources via users/representatives tables
+      // Skip 'add' operations - let Syncfusion handle them natively
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -195,7 +194,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         end_date: dbTask.end_date,
         duration: dbTask.duration,
         progress: dbTask.progress,
-        assigned_to: assignedTo, // Save the extracted resource assignments
+        assigned_to: assignedTo,
         predecessor: dbTask.predecessor,
         parent_id: dbTask.parent_id,
       })
@@ -212,36 +211,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: "Task updated successfully",
     });
     
-    // DON'T invalidate queries to prevent ID remapping and row shuffling
-    // queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-  };
-
-  const addTaskToDatabase = async (taskData: any) => {
-    console.log('Adding task:', taskData);
-    
-    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
-    
-    // Extract resource assignments for new tasks too
-    if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
-      const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
-      dbTask.assigned_to = resourceIds.join(',');
-    }
-    
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .insert(dbTask);
-
-    if (error) {
-      console.error('Error adding task:', error);
-      throw error;
-    }
-
-    toast({
-      title: "Success",
-      description: "Task added successfully",
-    });
-    
-    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+    // Don't invalidate queries for updates to prevent unnecessary refreshes
   };
 
   const deleteTaskFromDatabase = async (taskData: any) => {
@@ -280,11 +250,10 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: `Deleted ${tasksToDelete.length} task(s) successfully`,
     });
     
+    // Only invalidate queries for deletes since we need to refresh the data
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
-
-  // Syncfusion field mapping
   const taskFields = {
     id: 'taskID',
     name: 'taskName',
@@ -318,17 +287,17 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure edit settings for inline cell editing
+  // Configure edit settings to allow Syncfusion's native add functionality
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Auto' as any, // This enables both dialog and inline editing
+    mode: 'Auto' as any,
   };
 
-  // Toolbar with Edit/Update/Cancel buttons like the working example
+  // Toolbar with native Add button that Syncfusion will handle
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
