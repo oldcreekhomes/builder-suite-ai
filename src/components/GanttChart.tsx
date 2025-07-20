@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -121,11 +120,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
-    
-    // Handle validation and pre-processing
-    if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
-      // Pre-processing for date validation if needed
-    }
+    // Simplified handler - let Syncfusion handle native inline editing
   };
 
   const actionComplete = async (args: any) => {
@@ -365,7 +360,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Normal' as any, // Changed from 'Auto' to 'Normal' for inline editing
+    mode: 'Normal' as any, // Native inline editing mode
     newRowPosition: 'Bottom' as any,
   };
 
