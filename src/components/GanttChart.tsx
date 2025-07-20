@@ -121,42 +121,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Prevent the add dialog and programmatically add a new row
-    if (args.requestType === 'beforeOpenAddDialog') {
-      console.log('Preventing add dialog and adding row programmatically');
-      
-      // Cancel the dialog
-      args.cancel = true;
-      
-      // Add a new record programmatically with default values
-      if (ganttRef.current) {
-        const newTask = {
-          taskID: null, // Will be auto-generated
-          taskName: 'New Task',
-          startDate: new Date(),
-          endDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-          duration: 1,
-          progress: 0,
-          resourceInfo: [],
-          dependency: '',
-          parentID: null,
-        };
-        
-        // Use Syncfusion's native addRecord method to add at bottom
-        ganttRef.current.addRecord(newTask, 'Bottom');
-        
-        // Optionally start editing the task name immediately
-        setTimeout(() => {
-          if (ganttRef.current) {
-            const newRowIndex = ganttRef.current.currentViewData.length - 1;
-            ganttRef.current.selectRow(newRowIndex);
-            ganttRef.current.editCell(newRowIndex, 'taskName');
-          }
-        }, 100);
-      }
-    }
-    
-    // Handle validation and pre-processing for other actions
+    // Handle validation and pre-processing for actions
     if (args.columnName === "endDate" || args.requestType === "beforeOpenEditDialog") {
       // Pre-processing for date validation if needed
     }
@@ -392,14 +357,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure edit settings for batch editing mode
+  // Configure edit settings for native inline editing
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Batch' as any, // Changed from 'Normal' to 'Batch' for inline editing
+    mode: 'Normal' as any, // Normal mode for native inline editing
     newRowPosition: 'Bottom' as any,
   };
 
