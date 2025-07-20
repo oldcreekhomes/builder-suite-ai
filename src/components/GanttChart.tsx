@@ -119,7 +119,11 @@ function GanttChart({ projectId }: GanttChartProps) {
   const isLoading = resourcesLoading || tasksLoading;
 
   const actionBegin = (args: any) => {
-    console.log('Action begin:', args.requestType, args);
+    console.log('=== ACTION BEGIN ===');
+    console.log('Request type:', args.requestType);
+    console.log('Full args:', args);
+    console.log('Args data:', args.data);
+    console.log('=== END ACTION BEGIN ===');
     
     // Handle validation and pre-processing like in the working example
     if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
@@ -128,13 +132,17 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const actionComplete = async (args: any) => {
-    console.log('=== ACTION COMPLETE DEBUG ===');
+    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
     console.log('Request type:', args.requestType);
     console.log('Args data:', args.data);
+    console.log('Args modifiedRecords:', args.modifiedRecords);
+    console.log('Args addedRecords:', args.addedRecords);
+    console.log('Args deletedRecords:', args.deletedRecords);
+    console.log('Full args object keys:', Object.keys(args));
     console.log('Full args object:', args);
     
     try {
-      // Handle task operations including hierarchy changes
+      // Handle ALL possible hierarchy-related request types
       if (args.requestType === 'save' && args.data) {
         console.log('SAVE: Processing save operation with data:', args.data);
         await updateTaskInDatabase(args.data);
@@ -144,11 +152,45 @@ function GanttChart({ projectId }: GanttChartProps) {
       } else if (args.requestType === 'delete' && args.data) {
         console.log('DELETE: Processing delete operation with data:', args.data);
         await deleteTaskFromDatabase(args.data);
-      } else if (args.requestType === 'indenting' || args.requestType === 'outdenting') {
-        console.log('HIERARCHY: Processing hierarchy change:', args.requestType, args.data);
+      } else if (args.requestType === 'indenting' || args.requestType === 'indent') {
+        console.log('INDENT: Processing indent operation');
         if (args.data) {
           await updateTaskInDatabase(args.data);
+        } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+          for (const record of args.modifiedRecords) {
+            await updateTaskInDatabase(record);
+          }
         }
+        toast({
+          title: "Success",
+          description: "Task indented successfully",
+        });
+      } else if (args.requestType === 'outdenting' || args.requestType === 'outdent') {
+        console.log('OUTDENT: Processing outdent operation');
+        if (args.data) {
+          await updateTaskInDatabase(args.data);
+        } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+          for (const record of args.modifiedRecords) {
+            await updateTaskInDatabase(record);
+          }
+        }
+        toast({
+          title: "Success",
+          description: "Task outdented successfully",
+        });
+      } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+        // Catch-all for any hierarchy changes that might use modifiedRecords
+        console.log('MODIFIED RECORDS: Processing modified records:', args.modifiedRecords);
+        for (const record of args.modifiedRecords) {
+          await updateTaskInDatabase(record);
+        }
+        toast({
+          title: "Success",
+          description: "Task hierarchy updated successfully",
+        });
+      } else {
+        console.log('UNHANDLED REQUEST TYPE:', args.requestType);
+        // Log this so we can identify what request types we're missing
       }
     } catch (error) {
       console.error('Error in actionComplete:', error);
@@ -159,7 +201,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       });
     }
     
-    console.log('=== END ACTION COMPLETE DEBUG ===');
+    console.log('=== END ACTION COMPLETE ENHANCED DEBUG ===');
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
@@ -348,7 +390,12 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const rowDrop = async (args: any) => {
+    console.log('=== ROW DROP EVENT ===');
     console.log('Row drop event:', args);
+    console.log('Drop position:', args.dropPosition);
+    console.log('Dragged data:', args.data);
+    console.log('Target data:', args.targetData);
+    console.log('=== END ROW DROP EVENT ===');
     
     try {
       // Get the dragged task data
@@ -375,21 +422,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       
       if (dropPosition === 'child' && targetTask) {
         // Dropped as child of target task
-        const targetUuid = idMapper.current.getUuid(targetTask.taskID);
-        newParentId = targetUuid;
+        newParentId = targetTask.taskID.toString();
         // Get the highest order_index among target's children and add 1
         const { data: siblings } = await supabase
           .from('project_schedule_tasks')
           .select('order_index')
-          .eq('parent_id', targetUuid)
+          .eq('parent_id', newParentId)
           .order('order_index', { ascending: false })
           .limit(1);
         newOrderIndex = siblings && siblings.length > 0 ? siblings[0].order_index + 1 : 0;
       } else {
         // Dropped as sibling (above or below)
         if (targetTask && targetTask.parentID) {
-          const targetParentUuid = idMapper.current.getUuid(targetTask.parentID);
-          newParentId = targetParentUuid;
+          newParentId = targetTask.parentID.toString();
         } else {
           newParentId = null; // Root level
         }
@@ -417,9 +462,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error updating dragged task:', updateError);
         throw updateError;
       }
-      
-      // For now, we'll rely on the simple update above
-      // A more sophisticated reordering system can be added later if needed
       
       console.log('Row drop completed successfully');
       
