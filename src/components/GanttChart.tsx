@@ -121,7 +121,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Handle validation and pre-processing
+    // Handle validation and pre-processing like in the working example
     if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
       // Pre-processing for date validation if needed
     }
@@ -131,13 +131,15 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Action complete:', args.requestType, args.data);
     
     try {
-      if (args.requestType === 'add' && args.data) {
-        await addTaskToDatabase(args.data);
-      } else if (args.requestType === 'save' && args.data) {
+      // Handle task operations
+      if (args.requestType === 'save' && args.data) {
         await updateTaskInDatabase(args.data);
+      } else if (args.requestType === 'add' && args.data) {
+        await addTaskToDatabase(args.data);
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
       }
+      // Resource operations are not needed since we manage resources via users/representatives tables
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -146,71 +148,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
-  };
-
-  const addTaskToDatabase = async (taskData: any) => {
-    console.log('Adding new task to database:', taskData);
-    
-    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
-    
-    // Extract resource assignments from Syncfusion's resourceInfo
-    let assignedTo = null;
-    if (taskData.resourceInfo) {
-      console.log('Raw resourceInfo for new task:', taskData.resourceInfo);
-      
-      if (typeof taskData.resourceInfo === 'string') {
-        const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim());
-        const resourceUUIDs = [];
-        
-        for (const resourceName of resourceNames) {
-          const resource = resources.find(r => r.resourceName === resourceName);
-          if (resource) {
-            resourceUUIDs.push(resource.resourceId);
-            console.log('Found resource by name:', resourceName, '-> UUID:', resource.resourceId);
-          }
-        }
-        
-        if (resourceUUIDs.length > 0) {
-          assignedTo = resourceUUIDs.join(',');
-          console.log('Final assigned resources for new task:', assignedTo);
-        }
-      } else if (Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
-        const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
-        assignedTo = resourceIds.join(',');
-        console.log('Extracted resource assignments from array for new task:', assignedTo);
-      }
-    }
-    
-    const { error } = await supabase
-      .from('project_schedule_tasks')
-      .insert({
-        id: dbTask.id,
-        project_id: dbTask.project_id,
-        task_name: dbTask.task_name,
-        start_date: dbTask.start_date,
-        end_date: dbTask.end_date,
-        duration: dbTask.duration,
-        progress: dbTask.progress,
-        assigned_to: assignedTo,
-        predecessor: dbTask.predecessor,
-        parent_id: dbTask.parent_id,
-        order_index: dbTask.order_index,
-        color: dbTask.color,
-      });
-
-    if (error) {
-      console.error('Error adding task:', error);
-      throw error;
-    }
-
-    console.log('Task added successfully to database with resource assignments:', assignedTo);
-    toast({
-      title: "Success",
-      description: "Task added successfully",
-    });
-    
-    // Do NOT invalidate queries to prevent double-screen issue
-    // Let Syncfusion handle the UI updates natively
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
@@ -258,7 +195,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         end_date: dbTask.end_date,
         duration: dbTask.duration,
         progress: dbTask.progress,
-        assigned_to: assignedTo,
+        assigned_to: assignedTo, // Save the extracted resource assignments
         predecessor: dbTask.predecessor,
         parent_id: dbTask.parent_id,
       })
@@ -275,7 +212,36 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: "Task updated successfully",
     });
     
-    // Don't invalidate queries for updates to prevent unnecessary refreshes
+    // DON'T invalidate queries to prevent ID remapping and row shuffling
+    // queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+  };
+
+  const addTaskToDatabase = async (taskData: any) => {
+    console.log('Adding task:', taskData);
+    
+    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    
+    // Extract resource assignments for new tasks too
+    if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+      const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+      dbTask.assigned_to = resourceIds.join(',');
+    }
+    
+    const { error } = await supabase
+      .from('project_schedule_tasks')
+      .insert(dbTask);
+
+    if (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
+
+    toast({
+      title: "Success",
+      description: "Task added successfully",
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
   const deleteTaskFromDatabase = async (taskData: any) => {
@@ -314,10 +280,11 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: `Deleted ${tasksToDelete.length} task(s) successfully`,
     });
     
-    // Only invalidate queries for deletes since we need to refresh the data
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
+
+  // Syncfusion field mapping
   const taskFields = {
     id: 'taskID',
     name: 'taskName',
@@ -351,18 +318,17 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Configure edit settings to allow Syncfusion's native add functionality
+  // Configure edit settings for inline cell editing
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: 'Auto' as any,
-    newRowPosition: 'Bottom' as any,
+    mode: 'Auto' as any, // This enables both dialog and inline editing
   };
 
-  // Toolbar with native Add button that Syncfusion will handle
+  // Toolbar with Edit/Update/Cancel buttons like the working example
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {

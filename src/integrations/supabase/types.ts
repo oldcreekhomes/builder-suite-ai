@@ -614,6 +614,50 @@ export type Database = {
           },
         ]
       }
+      project_resources: {
+        Row: {
+          availability_percent: number | null
+          created_at: string
+          email: string | null
+          hourly_rate: number | null
+          id: string
+          project_id: string
+          resource_name: string
+          resource_type: string
+          updated_at: string
+        }
+        Insert: {
+          availability_percent?: number | null
+          created_at?: string
+          email?: string | null
+          hourly_rate?: number | null
+          id?: string
+          project_id: string
+          resource_name: string
+          resource_type?: string
+          updated_at?: string
+        }
+        Update: {
+          availability_percent?: number | null
+          created_at?: string
+          email?: string | null
+          hourly_rate?: number | null
+          id?: string
+          project_id?: string
+          resource_name?: string
+          resource_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_resources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_schedule_tasks: {
         Row: {
           assigned_to: string | null
@@ -717,6 +761,83 @@ export type Database = {
             columns: ["manager"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_dependencies: {
+        Row: {
+          created_at: string
+          dependency_type: string
+          id: string
+          lag_days: number | null
+          source_task_id: string
+          target_task_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_type?: string
+          id?: string
+          lag_days?: number | null
+          source_task_id: string
+          target_task_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dependency_type?: string
+          id?: string
+          lag_days?: number | null
+          source_task_id?: string
+          target_task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_source_task_id_fkey"
+            columns: ["source_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_schedule_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_target_task_id_fkey"
+            columns: ["target_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_schedule_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_resource_assignments: {
+        Row: {
+          allocation_percent: number | null
+          created_at: string
+          id: string
+          resource_id: string
+          task_id: string
+        }
+        Insert: {
+          allocation_percent?: number | null
+          created_at?: string
+          id?: string
+          resource_id: string
+          task_id: string
+        }
+        Update: {
+          allocation_percent?: number | null
+          created_at?: string
+          id?: string
+          resource_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_resource_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_schedule_tasks"
             referencedColumns: ["id"]
           },
         ]
