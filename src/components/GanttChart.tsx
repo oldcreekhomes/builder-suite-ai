@@ -412,12 +412,6 @@ function GanttChart({ projectId }: GanttChartProps) {
           <ColumnDirective field='resourceInfo' headerText='Resource' width={200} />
           <ColumnDirective field='dependency' headerText='Predecessor' width={150} />
         </ColumnsDirective>
-        <EditDialogFieldsDirective>
-          <EditDialogFieldDirective type='General' headerText='General' />
-          <EditDialogFieldDirective type='Dependency' />
-          <EditDialogFieldDirective type='Resources' />
-          <EditDialogFieldDirective type='Notes' />
-        </EditDialogFieldsDirective>
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
     </div>
