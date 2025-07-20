@@ -5,13 +5,24 @@ export class GanttIdMapper {
   private uuidToNumeric: Map<string, number> = new Map();
   private nextId: number = 1;
 
-  // Initialize mapping from existing tasks
+  // Initialize mapping from existing tasks with stable, deterministic IDs
   initializeFromTasks(tasks: any[]) {
     this.numericToUuid.clear();
     this.uuidToNumeric.clear();
     this.nextId = 1;
 
-    tasks.forEach((task) => {
+    // Sort tasks by order_index then by UUID to ensure consistent ID assignment
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const orderA = a.order_index || 0;
+      const orderB = b.order_index || 0;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      // If order_index is the same, use UUID for consistent secondary sort
+      return a.id.localeCompare(b.id);
+    });
+
+    sortedTasks.forEach((task) => {
       const numericId = this.nextId++;
       this.numericToUuid.set(numericId, task.id);
       this.uuidToNumeric.set(task.id, numericId);

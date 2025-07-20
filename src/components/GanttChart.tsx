@@ -219,7 +219,22 @@ function GanttChart({ projectId }: GanttChartProps) {
   const addTaskToDatabase = async (taskData: any) => {
     console.log('Adding task:', taskData);
     
-    const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+    // Get the highest order_index for this project to ensure new tasks are added at the end
+    const { data: maxOrderData } = await supabase
+      .from('project_schedule_tasks')
+      .select('order_index')
+      .eq('project_id', projectId)
+      .order('order_index', { ascending: false })
+      .limit(1);
+    
+    const nextOrderIndex = maxOrderData && maxOrderData.length > 0 
+      ? (maxOrderData[0].order_index || 0) + 1 
+      : 0;
+    
+    const dbTask = {
+      ...idMapper.current.convertTaskForDatabase(taskData, projectId),
+      order_index: nextOrderIndex
+    };
     
     // Extract resource assignments for new tasks too
     if (taskData.resourceInfo && Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
