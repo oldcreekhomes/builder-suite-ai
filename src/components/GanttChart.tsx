@@ -139,14 +139,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       } else if (args.requestType === 'delete' && args.data) {
         await deleteTaskFromDatabase(args.data);
       }
-      // Handle resource operations
-      else if (args.requestType === 'resourceAdd' && args.data) {
-        await addResourceToDatabase(args.data);
-      } else if (args.requestType === 'resourceUpdate' && args.data) {
-        await updateResourceInDatabase(args.data);
-      } else if (args.requestType === 'resourceDelete' && args.data) {
-        await deleteResourceFromDatabase(args.data);
-      }
+      // Resource operations are not needed since we manage resources via users/representatives tables
     } catch (error) {
       console.error('Error in actionComplete:', error);
       toast({
@@ -290,81 +283,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
   };
 
-  const addResourceToDatabase = async (resourceData: any) => {
-    console.log('Adding resource:', resourceData);
-    
-    const { error } = await supabase
-      .from('project_resources')
-      .insert({
-        project_id: projectId,
-        resource_name: resourceData.resourceName,
-        resource_type: 'person',
-        email: resourceData.email || null,
-      });
-
-    if (error) {
-      console.error('Error adding resource:', error);
-      throw error;
-    }
-
-    toast({
-      title: "Success",
-      description: "Resource added successfully",
-    });
-    
-    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
-  };
-
-  const updateResourceInDatabase = async (resourceData: any) => {
-    console.log('Updating resource:', resourceData);
-    
-    const { error } = await supabase
-      .from('project_resources')
-      .update({
-        resource_name: resourceData.resourceName,
-        email: resourceData.email || null,
-      })
-      .eq('id', resourceData.resourceId);
-
-    if (error) {
-      console.error('Error updating resource:', error);
-      throw error;
-    }
-
-    toast({
-      title: "Success",
-      description: "Resource updated successfully",
-    });
-    
-    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
-  };
-
-  const deleteResourceFromDatabase = async (resourceData: any) => {
-    console.log('Deleting resource:', resourceData);
-    
-    const resourcesToDelete = Array.isArray(resourceData) ? resourceData : [resourceData];
-    
-    for (const resource of resourcesToDelete) {
-      const { error } = await supabase
-        .from('project_resources')
-        .delete()
-        .eq('id', resource.resourceId);
-
-      if (error) {
-        console.error('Error deleting resource:', error);
-        throw error;
-      }
-      
-      console.log('Successfully deleted resource:', resource.resourceId);
-    }
-
-    toast({
-      title: "Success",
-      description: `Deleted ${resourcesToDelete.length} resource(s) successfully`,
-    });
-    
-    queryClient.invalidateQueries({ queryKey: ['project-resources', projectId] });
-  };
 
   // Syncfusion field mapping
   const taskFields = {
