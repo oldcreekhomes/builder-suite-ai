@@ -232,26 +232,22 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.log('DELETE: Processing delete operation with data:', args.data);
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' || args.requestType === 'indent') {
-        console.log('INDENT: Processing indent operation');
+        console.log('INDENT: Processing indent operation with batch update');
         if (args.data) {
           await updateTaskInDatabase(args.data);
         } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
-          for (const record of args.modifiedRecords) {
-            await updateTaskInDatabase(record);
-          }
+          await batchUpdateTasksInDatabase(args.modifiedRecords);
         }
         toast({
           title: "Success",
           description: "Task indented successfully",
         });
       } else if (args.requestType === 'outdenting' || args.requestType === 'outdent') {
-        console.log('OUTDENT: Processing outdent operation');
+        console.log('OUTDENT: Processing outdent operation with batch update');
         if (args.data) {
           await updateTaskInDatabase(args.data);
         } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
-          for (const record of args.modifiedRecords) {
-            await updateTaskInDatabase(record);
-          }
+          await batchUpdateTasksInDatabase(args.modifiedRecords);
         }
         toast({
           title: "Success",
@@ -259,10 +255,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         });
       } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
         // Catch-all for any hierarchy changes that might use modifiedRecords
-        console.log('MODIFIED RECORDS: Processing modified records:', args.modifiedRecords);
-        for (const record of args.modifiedRecords) {
-          await updateTaskInDatabase(record);
-        }
+        console.log('MODIFIED RECORDS: Processing modified records with batch update:', args.modifiedRecords);
+        await batchUpdateTasksInDatabase(args.modifiedRecords);
         toast({
           title: "Success",
           description: "Task hierarchy updated successfully",
@@ -281,6 +275,103 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
     
     console.log('=== END ACTION COMPLETE ENHANCED DEBUG ===');
+  };
+
+  // Native Syncfusion batch update solution
+  const batchUpdateTasksInDatabase = async (tasks: any[]) => {
+    console.log('=== BATCH UPDATE TASKS DATABASE DEBUG ===');
+    console.log('Processing batch of tasks:', tasks.length);
+    
+    // Prepare all updates as a single transaction
+    const updates = tasks.map(taskData => {
+      console.log('Processing task in batch:', JSON.stringify(taskData, null, 2));
+      
+      const dbTask = idMapper.current.convertTaskForDatabase(taskData, projectId);
+      console.log('Converted database task for batch:', JSON.stringify(dbTask, null, 2));
+      
+      // Extract resource assignments
+      let assignedTo = null;
+      if (taskData.resourceInfo) {
+        if (typeof taskData.resourceInfo === 'string') {
+          const resourceNames = taskData.resourceInfo.split(',').map(name => name.trim());
+          const resourceUUIDs = [];
+          
+          for (const resourceName of resourceNames) {
+            const resource = resources.find(r => r.resourceName === resourceName);
+            if (resource) {
+              resourceUUIDs.push(resource.resourceId);
+            }
+          }
+          
+          if (resourceUUIDs.length > 0) {
+            assignedTo = resourceUUIDs.join(',');
+          }
+        } else if (Array.isArray(taskData.resourceInfo) && taskData.resourceInfo.length > 0) {
+          const resourceIds = taskData.resourceInfo.map((resource: any) => resource.resourceId);
+          assignedTo = resourceIds.join(',');
+        }
+      }
+      
+      return {
+        id: dbTask.id,
+        updateData: {
+          task_name: dbTask.task_name,
+          start_date: dbTask.start_date,
+          end_date: dbTask.end_date,
+          duration: dbTask.duration,
+          progress: dbTask.progress,
+          assigned_to: assignedTo,
+          predecessor: dbTask.predecessor,
+          parent_id: dbTask.parent_id,
+        }
+      };
+    });
+    
+    console.log('BATCH UPDATE DATA:', JSON.stringify(updates, null, 2));
+    
+    try {
+      // Execute all updates in parallel using Promise.all for better performance
+      const updatePromises = updates.map(({ id, updateData }) => 
+        supabase
+          .from('project_schedule_tasks')
+          .update(updateData)
+          .eq('id', id)
+      );
+      
+      const results = await Promise.all(updatePromises);
+      
+      // Check for errors in any of the updates
+      const errors = results.filter(result => result.error);
+      if (errors.length > 0) {
+        console.error('Batch update errors:', errors);
+        throw new Error(`Failed to update ${errors.length} tasks`);
+      }
+      
+      console.log('Batch update completed successfully for', updates.length, 'tasks');
+      
+      // Verification: Check all updated tasks
+      const verificationPromises = updates.map(({ id }) =>
+        supabase
+          .from('project_schedule_tasks')
+          .select('id, task_name, parent_id')
+          .eq('id', id)
+          .single()
+      );
+      
+      const verificationResults = await Promise.all(verificationPromises);
+      console.log('BATCH VERIFICATION: Updated tasks:', verificationResults.map(r => r.data));
+      
+    } catch (error) {
+      console.error('CRITICAL ERROR in batchUpdateTasksInDatabase:', error);
+      toast({
+        title: "Error",
+        description: `Failed to update tasks: ${error.message}`,
+        variant: "destructive",
+      });
+      throw error;
+    }
+    
+    console.log('=== END BATCH UPDATE TASKS DATABASE DEBUG ===');
   };
 
   const updateTaskInDatabase = async (taskData: any) => {
