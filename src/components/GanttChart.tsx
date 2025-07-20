@@ -121,8 +121,43 @@ function GanttChart({ projectId }: GanttChartProps) {
   const actionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
     
-    // Handle validation and pre-processing
-    if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
+    // Prevent the add dialog and programmatically add a new row
+    if (args.requestType === 'beforeOpenAddDialog') {
+      console.log('Preventing add dialog and adding row programmatically');
+      
+      // Cancel the dialog
+      args.cancel = true;
+      
+      // Add a new record programmatically with default values
+      if (ganttRef.current) {
+        const newTask = {
+          taskID: null, // Will be auto-generated
+          taskName: 'New Task',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+          duration: 1,
+          progress: 0,
+          resourceInfo: [],
+          dependency: '',
+          parentID: null,
+        };
+        
+        // Use Syncfusion's native addRecord method to add at bottom
+        ganttRef.current.addRecord(newTask, 'Bottom');
+        
+        // Optionally start editing the task name immediately
+        setTimeout(() => {
+          if (ganttRef.current) {
+            const newRowIndex = ganttRef.current.currentViewData.length - 1;
+            ganttRef.current.selectRow(newRowIndex);
+            ganttRef.current.editCell(newRowIndex, 'taskName');
+          }
+        }, 100);
+      }
+    }
+    
+    // Handle validation and pre-processing for other actions
+    if (args.columnName === "endDate" || args.requestType === "beforeOpenEditDialog") {
       // Pre-processing for date validation if needed
     }
   };
