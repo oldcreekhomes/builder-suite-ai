@@ -241,7 +241,8 @@ function GanttChart({ projectId }: GanttChartProps) {
       description: "Task added successfully",
     });
     
-    queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+    // DON'T invalidate queries to let Syncfusion handle UI updates natively
+    // This prevents the double screen flash and maintains focus
   };
 
   const deleteTaskFromDatabase = async (taskData: any) => {
@@ -377,8 +378,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-
-  // Syncfusion field mapping
   const taskFields = {
     id: 'taskID',
     name: 'taskName',
