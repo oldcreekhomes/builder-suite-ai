@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -160,11 +161,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('Request type:', args.requestType);
     console.log('Args data:', args.data);
     console.log('=== END ACTION BEGIN ===');
-    
-    // Handle validation and pre-processing like in the working example
-    if (args.columnName === "endDate" || args.requestType === "beforeOpenAddDialog" || args.requestType === "beforeOpenEditDialog") {
-      // Pre-processing for date validation if needed
-    }
   };
 
   const actionComplete = async (args: any) => {
@@ -184,11 +180,11 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.log('DELETE: Processing delete operation');
         await deleteTaskFromDatabase(args.data);
       } else if (args.requestType === 'indenting' && args.modifiedRecords) {
-        console.log('INDENT: Processing indent with batch updates');
-        await processBatchHierarchyChange(args.modifiedRecords, 'indented');
+        console.log('INDENT: Processing indent with sequential updates');
+        await processSequentialHierarchyChange(args.modifiedRecords, 'indented');
       } else if (args.requestType === 'outdenting' && args.modifiedRecords) {
-        console.log('OUTDENT: Processing outdent with batch updates');
-        await processBatchHierarchyChange(args.modifiedRecords, 'outdented');
+        console.log('OUTDENT: Processing outdent with sequential updates');
+        await processSequentialHierarchyChange(args.modifiedRecords, 'outdented');
       }
     } catch (error) {
       console.error('Error in actionComplete:', error);
@@ -202,136 +198,49 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('=== END NATIVE ACTION COMPLETE ===');
   };
 
-  // Enhanced batch processing for hierarchy changes
-  const processBatchHierarchyChange = async (modifiedRecords: any[], operation: string) => {
-    console.log(`=== PROCESS BATCH ${operation.toUpperCase()} HIERARCHY ===`);
+  // NEW: Sequential processing to fix concurrency issues
+  const processSequentialHierarchyChange = async (modifiedRecords: any[], operation: string) => {
+    console.log(`=== PROCESS SEQUENTIAL ${operation.toUpperCase()} HIERARCHY ===`);
     console.log('Modified records:', modifiedRecords);
     
-    const updates = [];
-    const errors = [];
+    const results = [];
     
-    // Prepare all updates first
-    for (const record of modifiedRecords) {
+    // Process each task sequentially to avoid race conditions
+    for (let i = 0; i < modifiedRecords.length; i++) {
+      const record = modifiedRecords[i];
+      console.log(`Processing ${operation} for task ${i + 1}/${modifiedRecords.length}:`, record.taskID, 'parentID:', record.parentID);
+      
       try {
-        console.log(`Preparing ${operation} for task:`, record.taskID, 'parentID:', record.parentID);
+        await updateSingleTaskWithRetry(record, 3); // Retry up to 3 times
+        console.log(`✅ Successfully ${operation} task:`, record.taskID);
+        results.push({ taskId: record.taskID, success: true });
         
-        const taskId = record.taskID;
-        const uuid = idMapper.current.getUuid(taskId);
-        
-        if (!uuid) {
-          throw new Error(`No UUID found for task ID: ${taskId}`);
+        // Add small delay between updates to prevent database conflicts
+        if (i < modifiedRecords.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
-        const dbTask = idMapper.current.convertTaskForDatabase(record, projectId);
-        
-        // Handle resource assignments
-        let assignedTo = null;
-        if (record.resourceInfo) {
-          if (typeof record.resourceInfo === 'string') {
-            const resourceNames = record.resourceInfo.split(',').map(name => name.trim());
-            const resourceUUIDs = [];
-            
-            for (const resourceName of resourceNames) {
-              const resource = resources.find(r => r.resourceName === resourceName);
-              if (resource) {
-                resourceUUIDs.push(resource.resourceId);
-              }
-            }
-            
-            if (resourceUUIDs.length > 0) {
-              assignedTo = resourceUUIDs.join(',');
-            }
-          } else if (Array.isArray(record.resourceInfo)) {
-            const resourceIds = record.resourceInfo.map((resource: any) => resource.resourceId);
-            assignedTo = resourceIds.join(',');
-          }
-        }
-        
-        const updateData = {
-          task_name: dbTask.task_name,
-          start_date: dbTask.start_date,
-          end_date: dbTask.end_date,
-          duration: dbTask.duration,
-          progress: dbTask.progress,
-          assigned_to: assignedTo,
-          predecessor: dbTask.predecessor,
-          parent_id: dbTask.parent_id,
-        };
-        
-        console.log(`Preparing update for task ${taskId} with parent_id: "${updateData.parent_id}"`);
-        
-        updates.push({
-          uuid,
-          taskId,
-          updateData
-        });
-        
       } catch (error) {
-        console.error(`Failed to prepare update for task ${record.taskID}:`, error);
-        errors.push({ taskId: record.taskID, error: error.message });
+        console.error(`❌ Failed to ${operation} task ${record.taskID}:`, error);
+        results.push({ taskId: record.taskID, success: false, error: error.message });
       }
     }
     
-    // Execute all updates with proper error handling
-    const results = await Promise.allSettled(
-      updates.map(async ({ uuid, taskId, updateData }) => {
-        console.log(`Executing update for task ${taskId}`);
-        
-        const { error } = await supabase
-          .from('project_schedule_tasks')
-          .update(updateData)
-          .eq('id', uuid);
-        
-        if (error) {
-          console.error(`Database update error for task ${taskId}:`, error);
-          throw new Error(`Task ${taskId}: ${error.message}`);
-        }
-        
-        // Immediate verification
-        const { data: verifyData, error: verifyError } = await supabase
-          .from('project_schedule_tasks')
-          .select('id, task_name, parent_id')
-          .eq('id', uuid)
-          .single();
-        
-        if (verifyError) {
-          console.error(`Verification failed for task ${taskId}:`, verifyError);
-          throw new Error(`Verification failed for task ${taskId}`);
-        }
-        
-        console.log(`✅ Task ${taskId} successfully updated - parent_id: "${verifyData.parent_id}"`);
-        return { taskId, success: true, parentId: verifyData.parent_id };
-      })
-    );
-    
-    // Process results
-    const successful = [];
-    const failed = [];
-    
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        successful.push(result.value);
-      } else {
-        failed.push({
-          taskId: updates[index].taskId,
-          error: result.reason.message
-        });
-      }
-    });
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
     
     console.log(`${operation} Results:`, {
       successful: successful.length,
       failed: failed.length,
-      successfulTasks: successful.map(s => `${s.taskId}(parent:${s.parentId})`),
+      successfulTasks: successful.map(s => s.taskId),
       failedTasks: failed.map(f => `${f.taskId}:${f.error}`)
     });
     
     if (failed.length > 0) {
       console.error(`Some tasks failed to ${operation}:`, failed);
       toast({
-        title: "Partial Success",
+        title: "Partial Success", 
         description: `${successful.length} tasks ${operation} successfully, ${failed.length} failed`,
-        variant: "destructive",
+        variant: failed.length > successful.length ? "destructive" : "default",
       });
     } else {
       toast({
@@ -340,7 +249,32 @@ function GanttChart({ projectId }: GanttChartProps) {
       });
     }
     
-    console.log(`=== END PROCESS BATCH ${operation.toUpperCase()} HIERARCHY ===`);
+    console.log(`=== END PROCESS SEQUENTIAL ${operation.toUpperCase()} HIERARCHY ===`);
+  };
+
+  // NEW: Retry logic for failed updates
+  const updateSingleTaskWithRetry = async (taskData: any, maxRetries: number = 3) => {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}/${maxRetries} for task ${taskData.taskID}`);
+        await updateSingleTask(taskData);
+        console.log(`✅ Task ${taskData.taskID} updated successfully on attempt ${attempt}`);
+        return; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Attempt ${attempt} failed for task ${taskData.taskID}:`, error);
+        
+        if (attempt < maxRetries) {
+          const delay = attempt * 200; // Exponential backoff
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError; // If all retries failed, throw the last error
   };
 
   // Native Syncfusion cell save handler
@@ -382,31 +316,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     console.log('=== END EDIT EVENT ===');
   };
 
-  // Simplified hierarchy change processing
-  const processHierarchyChange = async (modifiedRecords: any[], operation: string) => {
-    console.log(`=== PROCESS ${operation.toUpperCase()} HIERARCHY ===`);
-    console.log('Modified records:', modifiedRecords);
-    
-    for (const record of modifiedRecords) {
-      try {
-        console.log(`Processing ${operation} for task:`, record.taskID);
-        await updateSingleTask(record);
-        console.log(`Successfully ${operation} task:`, record.taskID);
-      } catch (error) {
-        console.error(`Failed to ${operation} task ${record.taskID}:`, error);
-        throw error;
-      }
-    }
-    
-    toast({
-      title: "Success",
-      description: `Tasks ${operation} successfully`,
-    });
-    
-    console.log(`=== END PROCESS ${operation.toUpperCase()} HIERARCHY ===`);
-  };
-
-  // Simplified single task update
+  // Simplified single task update with better error handling
   const updateSingleTask = async (taskData: any) => {
     console.log('=== UPDATE SINGLE TASK ===');
     console.log('Task data:', taskData);
@@ -454,7 +364,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       parent_id: dbTask.parent_id,
     };
     
-    console.log(`Updating task ${taskId} with parent_id: "${updateData.parent_id}"`);
+    console.log(`Updating task ${taskId} (UUID: ${uuid}) with parent_id: "${updateData.parent_id}"`);
     
     const { error } = await supabase
       .from('project_schedule_tasks')
@@ -466,7 +376,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw error;
     }
     
-    // Immediate verification
+    // Simplified verification - just check if the update worked
     const { data: verifyData, error: verifyError } = await supabase
       .from('project_schedule_tasks')
       .select('id, task_name, parent_id')
@@ -478,7 +388,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       throw verifyError;
     }
     
-    console.log(`Verification successful - task ${taskId} parent_id: "${verifyData.parent_id}"`);
+    console.log(`✅ Task ${taskId} verified - parent_id: "${verifyData.parent_id}"`);
     console.log('=== END UPDATE SINGLE TASK ===');
   };
 
@@ -521,9 +431,6 @@ function GanttChart({ projectId }: GanttChartProps) {
       title: "Success",
       description: "Task added successfully",
     });
-    
-    // DON'T invalidate queries to let Syncfusion handle UI updates natively
-    // This prevents the double screen flash and maintains focus
   };
 
   const deleteTaskFromDatabase = async (taskData: any) => {

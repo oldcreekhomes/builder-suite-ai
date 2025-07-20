@@ -1,3 +1,4 @@
+
 // Utility for mapping between Syncfusion numeric IDs and database UUIDs
 export class GanttIdMapper {
   private numericToUuid: Map<number, string> = new Map();
@@ -111,14 +112,14 @@ export class GanttIdMapper {
       endDate.setDate(startDate.getDate() + (task.duration || 1));
     }
     
-    // Handle parent ID conversion - simple text to numeric
+    // FIXED: Simplified parent ID conversion - just use the text value as numeric
     let parentNumericId = null;
-    if (task.parent_id) {
-      parentNumericId = parseInt(task.parent_id);
-      console.log(`Converting parent for Syncfusion: ${task.parent_id} -> ${parentNumericId}`);
+    if (task.parent_id && task.parent_id.toString().trim() !== '') {
+      parentNumericId = parseInt(task.parent_id.toString());
+      console.log(`Converting parent for Syncfusion: "${task.parent_id}" -> ${parentNumericId}`);
       
       if (isNaN(parentNumericId)) {
-        console.error(`Failed to convert parent text to numeric ID: ${task.parent_id}`);
+        console.error(`Failed to convert parent text to numeric ID: "${task.parent_id}"`);
         parentNumericId = null;
       }
     }
@@ -131,7 +132,7 @@ export class GanttIdMapper {
       duration: task.duration || 1,
       progress: task.progress || 0,
       resourceInfo: this.parseResourceInfoForSyncfusion(task.assigned_to),
-      dependency: this.convertDependencies(task.predecessor),
+      dependency: this.convertDependenciesSimple(task.predecessor),
       parentID: parentNumericId,
     };
     
@@ -154,11 +155,11 @@ export class GanttIdMapper {
       console.log(`Created new mapping for task: ${task.taskID} <-> ${uuid}`);
     }
 
-    // Simple parent ID handling - store numeric parent ID as text
+    // FIXED: Simplified parent ID handling - store numeric parent ID as text
     let parentId = null;
-    if (task.parentID !== null && task.parentID !== undefined) {
+    if (task.parentID !== null && task.parentID !== undefined && task.parentID !== '') {
       parentId = task.parentID.toString();
-      console.log(`Parent ID: ${task.parentID} -> ${parentId}`);
+      console.log(`Parent ID: ${task.parentID} -> "${parentId}"`);
     } else {
       console.log('No parentID (root level task)');
     }
@@ -179,7 +180,7 @@ export class GanttIdMapper {
     };
     
     console.log('Final database task:', JSON.stringify(result, null, 2));
-    console.log('CRITICAL CHECK - parent_id value:', result.parent_id);
+    console.log('CRITICAL CHECK - parent_id value:', `"${result.parent_id}"`);
     console.log('=== END CONVERT TASK FOR DATABASE DEBUG ===');
     
     return result;
@@ -235,45 +236,19 @@ export class GanttIdMapper {
     return null;
   }
 
-  // Fixed dependency conversion to handle proper validation
-  private convertDependencies(predecessor: string | null): string {
+  // FIXED: Simplified dependency conversion - just pass through as-is for now
+  private convertDependenciesSimple(predecessor: string | null): string {
     if (!predecessor) return '';
     
-    // Handle both string and array formats from database
-    let deps: string[] = [];
-    
+    // Simple pass-through - let Syncfusion handle dependency validation
     if (typeof predecessor === 'string') {
-      // If it's a JSON array string like '["2 FS"]', parse it
-      if (predecessor.startsWith('[') && predecessor.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(predecessor);
-          deps = Array.isArray(parsed) ? parsed : [predecessor];
-        } catch {
-          deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
-        }
-      } else {
-        deps = predecessor.split(',').map(dep => dep.trim()).filter(dep => dep);
-      }
-    } else if (Array.isArray(predecessor)) {
-      deps = predecessor;
+      return predecessor;
     }
     
-    // Convert UUID dependencies to numeric IDs, but keep dependency format intact
-    const numericDeps = deps.map(dep => {
-      // Extract UUID part and dependency type (e.g., "uuid FS" -> ["uuid", "FS"])
-      const parts = dep.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        const uuid = parts[0];
-        const depType = parts.slice(1).join(' '); // Handle "FS", "FF", etc.
-        const numericId = this.getNumericId(uuid);
-        return numericId ? `${numericId} ${depType}` : dep;
-      } else {
-        // Simple UUID reference
-        const numericId = this.getNumericId(dep);
-        return numericId ? numericId.toString() : dep;
-      }
-    });
+    if (Array.isArray(predecessor)) {
+      return predecessor.join(',');
+    }
     
-    return numericDeps.join(',');
+    return '';
   }
 }
