@@ -23,6 +23,19 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   console.log('GanttChart component mounting with projectId:', projectId);
 
+  // Log container dimensions when component mounts
+  React.useEffect(() => {
+    const container = ganttRef.current?.element;
+    if (container) {
+      console.log('Gantt container dimensions:', {
+        width: container.offsetWidth,
+        height: container.offsetHeight,
+        clientWidth: container.clientWidth,
+        clientHeight: container.clientHeight
+      });
+    }
+  }, []);
+
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['company-resources'],
@@ -353,7 +366,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Standard splitter settings - only position property
+  // Force horizontal layout with standard splitter settings
   const splitterSettings = {
     position: '30%'
   };
