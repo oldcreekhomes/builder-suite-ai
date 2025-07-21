@@ -189,20 +189,20 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             />
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 pt-4">
+          <DialogFooter className="flex gap-3 pt-6 border-t">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="w-full sm:w-auto"
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="w-full sm:w-auto bg-black text-white hover:bg-gray-800"
+              className="flex-1 bg-black text-white hover:bg-gray-800"
             >
               {isLoading ? "Creating..." : "Create Project"}
             </Button>
