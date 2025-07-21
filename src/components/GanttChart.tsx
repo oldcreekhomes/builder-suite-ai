@@ -166,13 +166,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       return;
     }
 
+    // Fix the resource assignment bug
+    let assignedTo = null;
+    if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
+      assignedTo = syncTask.resourceInfo.map((r: any) => r.resourceId).join(',');
+    }
+
     const updateData = {
       task_name: syncTask.taskName,
       start_date: new Date(syncTask.startDate).toISOString(),
       end_date: new Date(syncTask.endDate).toISOString(),
       duration: syncTask.duration || 1,
       progress: syncTask.progress || 0,
-      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
+      assigned_to: assignedTo,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
       parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
     };
@@ -346,7 +352,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     position: '30%'
   };
 
-
   const projectStartDate = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())))
     : new Date();
@@ -377,7 +382,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   console.log('Final render - Tasks available:', tasks.length);
 
   return (
-    <div className="syncfusion-gantt-container" style={{ width: '100%', height: '100%' }}>
+    <div className="syncfusion-gantt-container">
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
