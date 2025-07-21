@@ -108,32 +108,23 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     return digits;
   };
 
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
   const addCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
       const companyData = {
         company_name: data.company_name,
-        business_type: data.business_type,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zip_code: data.zip_code,
+        company_type: data.business_type,
+        address: `${data.address}, ${data.city}, ${data.state} ${data.zip_code}`.trim(),
         phone_number: data.phone_number || null,
-        email: data.email || null,
         website: data.website || null,
-        description: data.description || null,
-        license_number: data.license_number || null,
-        license_class: data.license_class || null,
-        license_expiry: data.license_expiry || null,
-        insurance_carrier: data.insurance_carrier || null,
-        insurance_policy_number: data.insurance_policy_number || null,
-        insurance_expiry: data.insurance_expiry || null,
-        bonding_company: data.bonding_company || null,
-        bond_amount: data.bond_amount || null,
-        bond_expiry: data.bond_expiry || null,
-        workers_comp_carrier: data.workers_comp_carrier || null,
-        workers_comp_policy_number: data.workers_comp_policy_number || null,
-        workers_comp_expiry: data.workers_comp_expiry || null,
-        safety_rating: data.safety_rating || null,
+        owner_id: user?.id || '',
       };
 
       const { error } = await supabase
