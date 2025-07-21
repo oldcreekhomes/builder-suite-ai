@@ -21,27 +21,10 @@ function GanttChart({ projectId }: GanttChartProps) {
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
 
-  console.log('GanttChart component mounting with projectId:', projectId);
-
-  // Log container dimensions when component mounts
-  React.useEffect(() => {
-    const container = ganttRef.current?.element;
-    if (container) {
-      console.log('Gantt container dimensions:', {
-        width: container.offsetWidth,
-        height: container.offsetHeight,
-        clientWidth: container.clientWidth,
-        clientHeight: container.clientHeight
-      });
-    }
-  }, []);
-
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['company-resources'],
     queryFn: async () => {
-      console.log('Fetching company users and representatives');
-      
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -74,7 +57,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         }))
       ];
 
-      console.log('Company resources loaded:', allResources.length, allResources);
       return allResources;
     },
   });
@@ -83,8 +65,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: tasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
-      console.log('Fetching tasks for project:', projectId);
-      
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -95,11 +75,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error fetching schedule tasks:', error);
         throw error;
       }
-
-      console.log('Raw data from database:', data);
       
       if (!data || data.length === 0) {
-        console.log('No tasks found for project:', projectId);
         return [];
       }
 
@@ -119,16 +96,12 @@ function GanttChart({ projectId }: GanttChartProps) {
           // Continue with other tasks instead of failing completely
         }
       }
-
-      console.log('Transformed tasks for Gantt:', transformedTasks);
-      console.log('Total tasks to render:', transformedTasks.length);
       
       return transformedTasks;
     },
     enabled: !!projectId,
   });
 
-  // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
     console.log('=== ActionComplete event ===', args.requestType, 'Full args:', args);
 
@@ -366,7 +339,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Standard splitter settings - only position property
+  // Force horizontal layout with splitter at 30%
   const splitterSettings = {
     position: '30%'
   };
@@ -379,7 +352,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Simple edit settings
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
@@ -387,7 +359,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     allowTaskbarEditing: true,
   };
 
-  // Basic toolbar
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent'];
 
   if (isLoading) {
@@ -403,7 +374,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   console.log('About to render GanttComponent - Resources:', resources.length, 'Tasks:', tasks.length);
 
   return (
-    <div className="syncfusion-gantt-container">
+    <div className="syncfusion-gantt-container" style={{ minWidth: '1000px' }}>
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
@@ -414,6 +385,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         labelSettings={labelSettings} 
         height='100%'
         width='100%'
+        enableAdaptiveUI={false}
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
         editSettings={editSettings}
