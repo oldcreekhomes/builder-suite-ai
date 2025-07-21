@@ -353,10 +353,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Splitter settings to force horizontal layout (grid left, timeline right)
+  // Standard splitter settings - only position property
   const splitterSettings = {
-    position: '30%',
-    columnIndex: 0
+    position: '30%'
   };
 
   const projectStartDate = tasks.length > 0 
