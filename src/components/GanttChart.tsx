@@ -341,8 +341,10 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
+  // Fixed splitter settings to ensure proper layout
   const splitterSettings = {
-    position: "28%"
+    position: "28%",
+    columnIndex: 1
   };
 
   const projectStartDate = tasks.length > 0 
@@ -375,7 +377,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   console.log('Final render - Tasks available:', tasks.length);
 
   return (
-    <div className="syncfusion-gantt-container" style={{ padding: '10px' }}>
+    <div className="syncfusion-gantt-container" style={{ width: '100%', height: '500px', padding: '10px' }}>
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
@@ -384,7 +386,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        height='500px'
+        height='100%'
+        width='100%'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
         editSettings={editSettings}

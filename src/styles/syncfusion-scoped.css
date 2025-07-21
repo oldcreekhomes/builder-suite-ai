@@ -15,6 +15,71 @@
 /* Scope Syncfusion styles to the gantt container */
 .syncfusion-gantt-container {
   /* Apply Syncfusion font family to all Syncfusion components */
+  width: 100% !important;
+  height: 500px !important;
+  min-height: 500px !important;
+  display: block !important;
+}
+
+/* Critical layout fixes for Gantt chart splitter */
+.syncfusion-gantt-container .e-gantt {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-gantt-splitter {
+  flex: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-gantt-left-splitter {
+  width: 28% !important;
+  min-width: 200px !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-gantt-right-splitter {
+  flex: 1 !important;
+  width: 72% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-treegrid {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-gantt-chart {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-gantt-chart-pane {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure splitter bar is visible and functional */
+.syncfusion-gantt-container .e-gantt .e-split-bar {
+  background-color: #e0e0e0 !important;
+  width: 4px !important;
+  cursor: col-resize !important;
+  z-index: 10 !important;
+}
+
+.syncfusion-gantt-container .e-gantt .e-split-bar:hover {
+  background-color: #999 !important;
 }
 
 .syncfusion-gantt-container .e-gantt,
