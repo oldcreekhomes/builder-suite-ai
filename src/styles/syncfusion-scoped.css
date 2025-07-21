@@ -102,23 +102,67 @@
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
 }
 
-/* Override any Syncfusion dialog/modal styles that might interfere with Radix UI */
+/* CRITICAL: Override ALL Syncfusion dialog/modal styles to prevent interference with Radix UI */
+.syncfusion-gantt-container .e-dialog,
+.syncfusion-gantt-container .e-dlg-overlay,
+.syncfusion-gantt-container .e-popup,
+.syncfusion-gantt-container .e-popup-wrapper,
+.syncfusion-gantt-container .e-gantt-dialog,
+.syncfusion-gantt-container .e-gantt-edit-dialog,
+.syncfusion-gantt-container .e-edit-dialog,
+.syncfusion-gantt-container .e-dialog-wrapper,
+.syncfusion-gantt-container .e-dlg-container,
+.syncfusion-gantt-container .e-modal,
+.syncfusion-gantt-container .e-overlay,
 .e-dialog,
 .e-dlg-overlay,
 .e-popup,
-.e-popup-wrapper {
-  z-index: 999 !important; /* Lower than Radix UI dialogs */
+.e-popup-wrapper,
+.e-gantt-dialog,
+.e-gantt-edit-dialog,
+.e-edit-dialog,
+.e-dialog-wrapper,
+.e-dlg-container,
+.e-modal,
+.e-overlay {
+  z-index: 999 !important; /* Much lower than Radix UI dialogs */
+  pointer-events: none !important; /* Disable to prevent blocking */
 }
 
 /* Ensure Radix UI dialogs always have higher z-index and proper positioning */
 [data-radix-portal] {
-  z-index: 1000 !important;
+  z-index: 50000 !important;
 }
 
 [data-radix-portal] .radix-dialog-overlay {
-  z-index: 1001 !important;
+  z-index: 50001 !important;
+  pointer-events: auto !important;
 }
 
 [data-radix-portal] .radix-dialog-content {
-  z-index: 1002 !important;
+  z-index: 50002 !important;
+  pointer-events: auto !important;
+}
+
+/* When Radix dialogs are present, completely disable Syncfusion dialogs */
+body:has([data-radix-portal]) .syncfusion-gantt-container .e-dialog,
+body:has([data-radix-portal]) .syncfusion-gantt-container .e-dlg-overlay,
+body:has([data-radix-portal]) .syncfusion-gantt-container .e-popup,
+body:has([data-radix-portal]) .syncfusion-gantt-container .e-gantt-dialog,
+body:has([data-radix-portal]) .syncfusion-gantt-container .e-edit-dialog {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Additional defensive measures - prevent any element in Syncfusion from blocking dialogs */
+.syncfusion-gantt-container * {
+  position: relative;
+}
+
+.syncfusion-gantt-container .e-dialog *,
+.syncfusion-gantt-container .e-dlg-overlay *,
+.syncfusion-gantt-container .e-popup * {
+  pointer-events: none !important;
 }

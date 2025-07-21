@@ -71,25 +71,26 @@
 
 /* CRITICAL: Ensure Radix UI Dialogs always work properly - these must override any Syncfusion styles */
 [data-radix-portal] {
-  z-index: 9999 !important;
+  z-index: 50000 !important;
   position: fixed !important;
 }
 
-/* Dialog overlay - must be visible and positioned correctly */
+/* Dialog overlay - must be visible and positioned correctly with maximum z-index */
 [data-radix-portal] [data-radix-dialog-overlay] {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 9999 !important;
+  z-index: 50001 !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  pointer-events: auto !important;
 }
 
-/* Dialog content - must be centered and styled correctly */
+/* Dialog content - must be centered and styled correctly with highest z-index */
 [data-radix-portal] [data-radix-dialog-content] {
   position: relative !important;
-  z-index: 10000 !important;
+  z-index: 50002 !important;
   width: 100% !important;
   max-width: var(--radix-dialog-content-width, 32rem) !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -100,32 +101,74 @@
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
-/* Ensure all Radix dialog elements are visible */
+/* Ensure all Radix dialog elements are visible and interactive */
 [data-radix-portal] * {
   visibility: visible !important;
   opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
-/* Reset any conflicting styles from Syncfusion */
+/* Reset any conflicting styles from Syncfusion with maximum specificity */
 .radix-dialog-overlay {
   background-color: rgba(0, 0, 0, 0.8) !important;
-  z-index: 9999 !important;
+  z-index: 50001 !important;
+  pointer-events: auto !important;
 }
 
 .radix-dialog-content {
   background-color: hsl(var(--background)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  z-index: 10000 !important;
+  z-index: 50002 !important;
+  pointer-events: auto !important;
 }
 
-/* Override any Syncfusion z-index that might interfere */
+/* FORCE all Syncfusion overlays/modals to have much lower z-index */
 .e-dialog,
 .e-dlg-overlay,
 .e-popup,
 .e-popup-wrapper,
 .e-tooltip,
-.e-dropdown-popup {
+.e-dropdown-popup,
+.e-gantt-dialog,
+.e-gantt-edit-dialog,
+.e-edit-dialog,
+.e-dialog-wrapper,
+.e-dlg-container,
+.e-modal,
+.e-overlay,
+.e-gantt .e-dialog,
+.e-gantt .e-dlg-overlay,
+.e-gantt .e-popup,
+.e-gantt .e-edit-dialog,
+.e-gantt-edit-dialog-container,
+.e-addnew-form,
+.e-edit-form {
   z-index: 1000 !important; /* Much lower than Radix dialogs */
+  pointer-events: none !important; /* Disable interaction to prevent blocking */
+}
+
+/* When Radix dialogs are open, completely hide/disable conflicting Syncfusion overlays */
+body:has([data-radix-portal]) .e-dialog,
+body:has([data-radix-portal]) .e-dlg-overlay,
+body:has([data-radix-portal]) .e-popup,
+body:has([data-radix-portal]) .e-gantt-dialog,
+body:has([data-radix-portal]) .e-gantt-edit-dialog,
+body:has([data-radix-portal]) .e-edit-dialog {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Defensive CSS - ensure no Syncfusion element can block Radix dialogs */
+.syncfusion-gantt-container .e-dialog,
+.syncfusion-gantt-container .e-dlg-overlay,
+.syncfusion-gantt-container .e-popup,
+.syncfusion-gantt-container .e-gantt-dialog,
+.syncfusion-gantt-container .e-edit-dialog {
+  z-index: 999 !important;
+  pointer-events: none !important;
 }
