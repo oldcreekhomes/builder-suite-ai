@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.handle-bid-response]
 verify_jwt = false
+
+[functions.gantt-tasks]
+verify_jwt = false
