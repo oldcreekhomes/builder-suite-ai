@@ -831,10 +831,6 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
-      delete_gantt_task: {
-        Args: { task_id_param: string }
-        Returns: boolean
-      }
       get_conversation_unread_count: {
         Args: { other_user_id_param: string }
         Returns: number
@@ -852,25 +848,6 @@ export type Database = {
         Returns: {
           is_employee: boolean
           home_builder_id: string
-        }[]
-      }
-      get_gantt_tasks_for_project: {
-        Args: { project_id_param: string }
-        Returns: {
-          id: string
-          project_id: string
-          task_name: string
-          start_date: string
-          end_date: string
-          duration: number
-          progress: number
-          assigned_to: string
-          predecessor: string
-          parent_id: string
-          order_index: number
-          color: string
-          created_at: string
-          updated_at: string
         }[]
       }
       get_home_builders: {
@@ -896,22 +873,6 @@ export type Database = {
           user_home_builder_id: string
         }[]
       }
-      insert_gantt_task: {
-        Args: {
-          project_id_param: string
-          task_name_param: string
-          start_date_param: string
-          end_date_param: string
-          duration_param?: number
-          progress_param?: number
-          assigned_to_param?: string
-          predecessor_param?: string
-          parent_id_param?: string
-          order_index_param?: number
-          color_param?: string
-        }
-        Returns: string
-      }
       mark_conversation_as_read: {
         Args: { other_user_id_param: string }
         Returns: undefined
@@ -919,22 +880,6 @@ export type Database = {
       mark_message_as_read: {
         Args: { message_id_param: string }
         Returns: undefined
-      }
-      update_gantt_task: {
-        Args: {
-          task_id_param: string
-          task_name_param?: string
-          start_date_param?: string
-          end_date_param?: string
-          duration_param?: number
-          progress_param?: number
-          assigned_to_param?: string
-          predecessor_param?: string
-          parent_id_param?: string
-          order_index_param?: number
-          color_param?: string
-        }
-        Returns: boolean
       }
     }
     Enums: {
