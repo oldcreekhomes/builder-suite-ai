@@ -189,23 +189,26 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             />
           </div>
 
-          <DialogFooter className="flex gap-3 pt-6 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="flex-1 bg-black text-white hover:bg-gray-800"
-            >
-              {isLoading ? "Creating..." : "Create Project"}
-            </Button>
+          <DialogFooter>
+            <div className="flex gap-2 w-full">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                className="flex-1 hover:bg-gray-800"
+              >
+                {isLoading ? "Creating..." : "Create Project"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
