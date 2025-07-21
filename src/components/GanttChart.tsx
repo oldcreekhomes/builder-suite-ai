@@ -365,6 +365,9 @@ function GanttChart({ projectId }: GanttChartProps) {
   // Standard toolbar - Syncfusion will handle all operations natively
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
+  // Define custom context menu items excluding TaskInformation
+  const contextMenuItems = ['Add', 'Delete', 'Indent', 'Outdent'];
+
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
@@ -395,6 +398,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         allowRowDragAndDrop={true}
         enableContextMenu={true}
+        contextMenuItems={contextMenuItems}
         gridLines="Both"
         actionComplete={handleActionComplete}
         enableAdaptiveUI={false}
