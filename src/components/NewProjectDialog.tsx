@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -189,24 +188,24 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             />
           </div>
 
-          <DialogFooter className="flex gap-2 !justify-start">
+          <div className="flex gap-3 pt-4">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1"
+              className="w-full"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="flex-1 !bg-black !text-white hover:!bg-gray-800"
+              className="w-full bg-black text-white hover:bg-gray-800"
             >
               {isLoading ? "Creating..." : "Create Project"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
