@@ -63,12 +63,13 @@ export class GanttIdMapper {
       endDate.setDate(startDate.getDate() + (task.duration || 1));
     }
     
-    // Convert parent ID
+    // FIX: Convert parent ID from UUID to numeric properly
     let parentNumericId = null;
     if (task.parent_id && task.parent_id.toString().trim() !== '') {
-      parentNumericId = parseInt(task.parent_id.toString());
-      if (isNaN(parentNumericId)) {
-        console.warn(`Invalid parent ID: "${task.parent_id}"`);
+      // Use getNumericId to convert UUID to numeric instead of parseInt
+      parentNumericId = this.getNumericId(task.parent_id);
+      if (!parentNumericId) {
+        console.warn(`Parent UUID not found in mapping: "${task.parent_id}"`);
         parentNumericId = null;
       }
     }

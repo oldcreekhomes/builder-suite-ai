@@ -51,7 +51,7 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
             </div>
 
-            <div className="bg-background rounded-lg border" style={{ height: '700px' }}>
+            <div className="bg-background rounded-lg border h-[600px]">
               <GanttChart projectId={projectId} />
             </div>
           </div>

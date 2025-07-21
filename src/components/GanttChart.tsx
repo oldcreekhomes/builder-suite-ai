@@ -1,3 +1,4 @@
+
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -65,7 +66,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   });
 
   // Fetch and transform schedule tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
       console.log('Fetching tasks for project:', projectId);
@@ -91,15 +92,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       // Initialize ID mapper with existing tasks
       idMapper.current.initializeFromTasks(data);
 
-      // Transform tasks for Syncfusion
-      const transformedTasks = data.map((task) => {
+      // Transform tasks for Syncfusion with error handling
+      const transformedTasks = [];
+      for (const task of data) {
         try {
-          return idMapper.current.convertTaskForSyncfusion(task);
+          const transformedTask = idMapper.current.convertTaskForSyncfusion(task);
+          if (transformedTask) {
+            transformedTasks.push(transformedTask);
+          }
         } catch (transformError) {
           console.error('Error transforming task:', task.id, transformError);
-          return null;
+          // Continue with other tasks instead of failing completely
         }
-      }).filter(task => task !== null);
+      }
 
       console.log('Transformed tasks for Gantt:', transformedTasks);
       console.log('Total tasks to render:', transformedTasks.length);
@@ -347,10 +352,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Force horizontal layout with explicit splitter position
+  // Simplified splitter settings
   const splitterSettings = {
-    position: '30%',
-    separatorSize: 2
+    position: '30%'
   };
 
   const projectStartDate = tasks.length > 0 
@@ -379,9 +383,12 @@ function GanttChart({ projectId }: GanttChartProps) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
+  if (tasksError) {
+    return <div style={{ padding: '10px', color: 'red' }}>Error loading schedule: {tasksError.message}</div>;
+  }
+
   console.log('Final render - Resources available:', resources.length);
   console.log('Final render - Tasks available:', tasks.length);
-  console.log('Container dimensions check for debugging');
 
   return (
     <div className="syncfusion-gantt-container">
@@ -393,7 +400,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        height='700px'
+        height='100%'
         width='100%'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
@@ -408,7 +415,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         allowRowDragAndDrop={true}
         gridLines="Both"
-        enableRtl={false}
         actionComplete={handleActionComplete}
       >
         <ColumnsDirective>
