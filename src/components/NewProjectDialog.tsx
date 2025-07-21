@@ -194,14 +194,15 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="w-full"
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-black text-white hover:bg-gray-800"
+              className="flex-1"
+              style={{ backgroundColor: 'black', color: 'white' }}
             >
               {isLoading ? "Creating..." : "Create Project"}
             </Button>
