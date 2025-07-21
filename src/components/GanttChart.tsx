@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -109,7 +108,13 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
-    console.log('=== ActionComplete event ===', args.requestType, 'Full args:', args);
+    console.log('=== ActionComplete event ===');
+    console.log('Request Type:', args.requestType);
+    console.log('Full args object:', JSON.stringify(args, null, 2));
+    console.log('Args data:', args.data);
+    console.log('Args modifiedRecords:', args.modifiedRecords);
+    console.log('Args addedRecords:', args.addedRecords);
+    console.log('Args deletedRecords:', args.deletedRecords);
 
     try {
       switch (args.requestType) {
@@ -135,13 +140,62 @@ function GanttChart({ projectId }: GanttChartProps) {
         
         case 'indenting':
         case 'outdenting':
+          console.log('Handling HIERARCHY operation', args.requestType, args.data);
           if (args.data && args.data.length > 0) {
             await handleHierarchyChange(args.data);
+          }
+          break;
+
+        case 'editing':
+        case 'update':
+          console.log('Handling EDITING/UPDATE operation', args.data);
+          if (args.data && args.data.taskID) {
+            await handleTaskUpdate(args.data);
+          }
+          break;
+
+        case 'rowDragAndDrop':
+        case 'taskbarDragAndDrop':
+          console.log('Handling DRAG AND DROP operation', args.data);
+          if (args.data && args.data.length > 0) {
+            // Handle both task updates and hierarchy changes from drag and drop
+            for (const task of args.data) {
+              if (task.taskID) {
+                await handleTaskUpdate(task);
+              }
+            }
           }
           break;
         
         default:
           console.log('Unhandled action type:', args.requestType);
+          console.log('Checking for hierarchy changes in unhandled action...');
+          
+          // Fallback: check for any hierarchy changes in the data
+          if (args.data) {
+            const tasksToCheck = Array.isArray(args.data) ? args.data : [args.data];
+            const hierarchyTasks = tasksToCheck.filter(task => 
+              task && task.taskID && (task.parentID !== undefined || task.parentID === null)
+            );
+            
+            if (hierarchyTasks.length > 0) {
+              console.log('Found hierarchy changes in unhandled action:', hierarchyTasks);
+              await handleHierarchyChange(hierarchyTasks);
+            }
+          }
+      }
+      
+      // Additional fallback: check modifiedRecords for hierarchy changes
+      if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+        console.log('Checking modifiedRecords for hierarchy changes:', args.modifiedRecords);
+        const hierarchyChanges = args.modifiedRecords.filter(task => 
+          task && task.taskID && (task.parentID !== undefined || task.parentID === null)
+        );
+        
+        if (hierarchyChanges.length > 0) {
+          console.log('Found hierarchy changes in modifiedRecords:', hierarchyChanges);
+          await handleHierarchyChange(hierarchyChanges);
+        }
       }
       
       // Invalidate cache to refresh data
@@ -174,6 +228,8 @@ function GanttChart({ projectId }: GanttChartProps) {
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
       parent_id: syncTask.parentID ? syncTask.parentID.toString() : null, // Store numeric ID as string
     };
+
+    console.log('Updating task in database:', uuid, updateData);
 
     const { error } = await supabase
       .from('project_schedule_tasks')
@@ -295,13 +351,21 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const handleHierarchyChange = async (changedTasks: any[]) => {
+    console.log('=== handleHierarchyChange ===');
+    console.log('Changed tasks:', changedTasks);
+    
     for (const task of changedTasks) {
       const uuid = idMapper.current.getUuid(task.taskID);
-      if (!uuid) continue;
+      if (!uuid) {
+        console.warn('No UUID found for task ID during hierarchy change:', task.taskID);
+        continue;
+      }
 
       const updateData = {
         parent_id: task.parentID ? task.parentID.toString() : null, // Store numeric ID as string
       };
+
+      console.log(`Updating hierarchy for task ${task.taskID} (${uuid}):`, updateData);
 
       const { error } = await supabase
         .from('project_schedule_tasks')
@@ -311,9 +375,11 @@ function GanttChart({ projectId }: GanttChartProps) {
       if (error) {
         console.error('Failed to update hierarchy for task:', uuid, error);
         throw error;
+      } else {
+        console.log(`Successfully updated hierarchy for task ${task.taskID} (${uuid})`);
       }
     }
-    console.log('Hierarchy updated successfully');
+    console.log('Hierarchy updated successfully for all tasks');
   };
 
   const isLoading = resourcesLoading || tasksLoading;
