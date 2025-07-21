@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -21,6 +20,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
+  const [splitterPosition, setSplitterPosition] = React.useState<string>('28%');
 
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
@@ -109,6 +109,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
     enabled: !!projectId,
   });
+
+  // Handle splitter resize events
+  const handleSplitterResized = (args: any) => {
+    console.log('Splitter resized:', args);
+    if (args && args.paneSize && args.paneSize.length > 0) {
+      setSplitterPosition(`${args.paneSize[0]}px`);
+    }
+  };
 
   // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
@@ -342,10 +350,10 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Fixed splitter settings to ensure proper layout
+  // Dynamic splitter settings - allow Syncfusion to manage position
   const splitterSettings = {
-    position: "28%",
     columnIndex: 1
+    // Removed hardcoded position to allow dynamic resizing
   };
 
   const projectStartDate = tasks.length > 0 
@@ -402,6 +410,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowRowDragAndDrop={true}
         gridLines="Both"
         actionComplete={handleActionComplete}
+        splitterResized={handleSplitterResized}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
