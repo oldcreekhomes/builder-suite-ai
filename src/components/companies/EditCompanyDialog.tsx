@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -227,12 +228,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   return (
     <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-2xl flex flex-col h-[80vh]">
         <DialogHeader>
           <DialogTitle>Edit Company</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-200px)] overflow-y-auto pr-4">
+        <ScrollArea className="flex-1 pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -336,7 +337,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           </Form>
         </ScrollArea>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

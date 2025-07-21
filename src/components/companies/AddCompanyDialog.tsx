@@ -168,12 +168,12 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-2xl flex flex-col h-[80vh]">
         <DialogHeader>
           <DialogTitle>Add New Company</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-200px)] pr-4">
+        <ScrollArea className="flex-1 pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -274,7 +274,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
           </Form>
         </ScrollArea>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0">
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
