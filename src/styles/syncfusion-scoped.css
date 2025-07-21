@@ -12,11 +12,36 @@
 @import '@syncfusion/ej2-treegrid/styles/material.css';
 @import '@syncfusion/ej2-react-gantt/styles/material.css';
 
-/* Minimal container setup - let Syncfusion handle its native layout */
+/* Force horizontal layout - prevent responsive switching */
 .syncfusion-gantt-container {
   width: 100%;
   height: 100%;
   min-height: 600px;
+}
+
+/* Force horizontal splitter layout */
+.syncfusion-gantt-container .e-gantt {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+/* Ensure splitter panes display horizontally */
+.syncfusion-gantt-container .e-gantt .e-splitter {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+/* Force treegrid and gantt chart to display side by side */
+.syncfusion-gantt-container .e-gantt .e-gantt-splitter {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
+/* Prevent vertical stacking in responsive mode */
+.syncfusion-gantt-container .e-gantt .e-left-label-container,
+.syncfusion-gantt-container .e-gantt .e-right-label-container {
+  display: flex !important;
+  flex-direction: row !important;
 }
 
 /* Apply Montserrat font family to all Syncfusion components */

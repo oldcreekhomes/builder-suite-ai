@@ -347,9 +347,10 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Proper splitter settings to show grid on left (30%) and chart on right (70%)
+  // Force horizontal layout with explicit splitter position
   const splitterSettings = {
-    position: '30%'
+    position: '30%',
+    separatorSize: 2
   };
 
   const projectStartDate = tasks.length > 0 
@@ -380,6 +381,7 @@ function GanttChart({ projectId }: GanttChartProps) {
 
   console.log('Final render - Resources available:', resources.length);
   console.log('Final render - Tasks available:', tasks.length);
+  console.log('Container dimensions check for debugging');
 
   return (
     <div className="syncfusion-gantt-container">
@@ -391,7 +393,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        height='100%'
+        height='700px'
         width='100%'
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
@@ -406,6 +408,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         allowRowDragAndDrop={true}
         gridLines="Both"
+        enableRtl={false}
         actionComplete={handleActionComplete}
       >
         <ColumnsDirective>
