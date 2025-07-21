@@ -1,5 +1,4 @@
-
-import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, Reorder, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -340,7 +339,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           <EditDialogFieldDirective type='Resources' />
           <EditDialogFieldDirective type='Notes' />
         </EditDialogFieldsDirective>
-        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu]} />
+        <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, Reorder]} />
       </GanttComponent>
     </div>
   );
