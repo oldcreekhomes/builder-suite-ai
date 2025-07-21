@@ -366,7 +366,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   // Define custom context menu items excluding TaskInformation
-  const contextMenuItems = ['Add', 'Delete', 'Indent', 'Outdent'];
+  const contextMenuItems = ['Add', 'Delete', 'Indent', 'Outdent'] as any;
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
