@@ -69,26 +69,27 @@
   }
 }
 
-/* Ensure Radix UI Dialogs always work properly */
+/* CRITICAL: Ensure Radix UI Dialogs always work properly - these must override any Syncfusion styles */
 [data-radix-portal] {
-  z-index: 50 !important;
+  z-index: 9999 !important;
+  position: fixed !important;
 }
 
-/* Dialog overlay */
+/* Dialog overlay - must be visible and positioned correctly */
 [data-radix-portal] [data-radix-dialog-overlay] {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 50 !important;
+  z-index: 9999 !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-/* Dialog content */
+/* Dialog content - must be centered and styled correctly */
 [data-radix-portal] [data-radix-dialog-content] {
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  z-index: 50 !important;
-  transform: translate(-50%, -50%) !important;
+  position: relative !important;
+  z-index: 10000 !important;
   width: 100% !important;
   max-width: var(--radix-dialog-content-width, 32rem) !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -96,14 +97,35 @@
   padding: 1.5rem !important;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
   border-radius: calc(var(--radius) * 2) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-/* Reset any conflicting styles */
+/* Ensure all Radix dialog elements are visible */
+[data-radix-portal] * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Reset any conflicting styles from Syncfusion */
 .radix-dialog-overlay {
   background-color: rgba(0, 0, 0, 0.8) !important;
+  z-index: 9999 !important;
 }
 
 .radix-dialog-content {
   background-color: hsl(var(--background)) !important;
   border: 1px solid hsl(var(--border)) !important;
+  z-index: 10000 !important;
+}
+
+/* Override any Syncfusion z-index that might interfere */
+.e-dialog,
+.e-dlg-overlay,
+.e-popup,
+.e-popup-wrapper,
+.e-tooltip,
+.e-dropdown-popup {
+  z-index: 1000 !important; /* Much lower than Radix dialogs */
 }
