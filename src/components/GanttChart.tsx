@@ -1,4 +1,4 @@
-import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective, ContextMenuItemModel } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ContextMenu, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -364,13 +364,8 @@ function GanttChart({ projectId }: GanttChartProps) {
   // Standard toolbar - Syncfusion will handle all operations natively
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
-  // Define custom context menu items with proper Syncfusion typing
-  const contextMenuItems: ContextMenuItemModel[] = [
-    { text: 'Add', target: '.e-content', id: 'add' },
-    { text: 'Delete', target: '.e-content', id: 'delete' },
-    { text: 'Indent', target: '.e-content', id: 'indent' },
-    { text: 'Outdent', target: '.e-content', id: 'outdent' }
-  ];
+  // Define custom context menu items - Syncfusion supports string array natively
+  const contextMenuItems = ['Add', 'Delete', 'Indent', 'Outdent'];
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
@@ -402,7 +397,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowFiltering={true}
         allowRowDragAndDrop={true}
         enableContextMenu={true}
-        contextMenuItems={contextMenuItems}
+        contextMenuItems={contextMenuItems as any}
         gridLines="Both"
         actionComplete={handleActionComplete}
         enableAdaptiveUI={false}
