@@ -1,4 +1,3 @@
-
 import { GanttComponent, Inject, Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath, ColumnsDirective, ColumnDirective, EditDialogFieldsDirective, EditDialogFieldDirective } from '@syncfusion/ej2-react-gantt';
 import { registerLicense } from '@syncfusion/ej2-base';
 import * as React from 'react';
@@ -10,8 +9,8 @@ import { toast } from "@/hooks/use-toast";
 // Import scoped Syncfusion CSS instead of global
 import '../styles/syncfusion-scoped.css';
 
-// Register Syncfusion license - commented out to use community edition
-// registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
+// Register Syncfusion license - restored
+registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
 interface GanttChartProps {
   projectId: string;
@@ -352,9 +351,11 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Simplified splitter settings
+  // Enhanced splitter settings to force horizontal layout
   const splitterSettings = {
-    position: '30%'
+    position: '30%',
+    columnIndex: 0,
+    separatorSize: 4
   };
 
   const projectStartDate = tasks.length > 0 
@@ -416,6 +417,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowRowDragAndDrop={true}
         gridLines="Both"
         actionComplete={handleActionComplete}
+        enableRtl={false}
+        enableAdaptiveUI={false}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
