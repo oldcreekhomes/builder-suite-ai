@@ -346,18 +346,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     position: '30%'
   };
 
-  // Timeline settings for proper Gantt chart display
-  const timelineSettings = {
-    timelineViewMode: 'Week',
-    topTier: {
-      unit: 'Week',
-      format: 'MMM dd, y'
-    },
-    bottomTier: {
-      unit: 'Day',
-      format: 'dd'
-    }
-  };
 
   const projectStartDate = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())))
@@ -405,7 +393,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
-        timelineSettings={timelineSettings}
         viewType='ProjectView'
         allowSorting={true}
         allowReordering={true}
