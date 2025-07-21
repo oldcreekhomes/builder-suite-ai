@@ -377,7 +377,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   console.log('Final render - Tasks available:', tasks.length);
 
   return (
-    <div className="syncfusion-gantt-container" style={{ width: '100%', height: '500px', padding: '10px' }}>
+    <div className="syncfusion-gantt-container" style={{ width: '100%', height: '100%' }}>
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
