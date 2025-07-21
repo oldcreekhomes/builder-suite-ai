@@ -21,6 +21,8 @@ function GanttChart({ projectId }: GanttChartProps) {
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
 
+  console.log('GanttChart component mounting with projectId:', projectId);
+
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['company-resources'],
@@ -351,13 +353,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Enhanced splitter settings to force horizontal layout
-  const splitterSettings = {
-    position: '30%',
-    columnIndex: 0,
-    separatorSize: 4
-  };
-
   const projectStartDate = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())))
     : new Date();
@@ -381,15 +376,17 @@ function GanttChart({ projectId }: GanttChartProps) {
   const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
 
   if (isLoading) {
+    console.log('Loading state - resources:', resourcesLoading, 'tasks:', tasksLoading);
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
   if (tasksError) {
+    console.error('Tasks error:', tasksError);
     return <div style={{ padding: '10px', color: 'red' }}>Error loading schedule: {tasksError.message}</div>;
   }
 
-  console.log('Final render - Resources available:', resources.length);
-  console.log('Final render - Tasks available:', tasks.length);
+  console.log('About to render GanttComponent - Resources:', resources.length, 'Tasks:', tasks.length);
+  console.log('Tasks data:', tasks);
 
   return (
     <div className="syncfusion-gantt-container">
@@ -407,7 +404,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         projectEndDate={projectEndDate}
         editSettings={editSettings}
         toolbar={toolbar}
-        splitterSettings={splitterSettings}
         viewType='ProjectView'
         allowSorting={true}
         allowReordering={true}
