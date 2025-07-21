@@ -6,20 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { GanttIdMapper } from "@/utils/ganttIdMapping";
 import { toast } from "@/hooks/use-toast";
 
-// Import Syncfusion CSS
-import '@syncfusion/ej2-base/styles/material.css';
-import '@syncfusion/ej2-buttons/styles/material.css';
-import '@syncfusion/ej2-calendars/styles/material.css';
-import '@syncfusion/ej2-dropdowns/styles/material.css';
-import '@syncfusion/ej2-inputs/styles/material.css';
-import '@syncfusion/ej2-navigations/styles/material.css';
-import '@syncfusion/ej2-popups/styles/material.css';
-import '@syncfusion/ej2-splitbuttons/styles/material.css';
-import '@syncfusion/ej2-layouts/styles/material.css';
-import '@syncfusion/ej2-grids/styles/material.css';
-import '@syncfusion/ej2-treegrid/styles/material.css';
-import '@syncfusion/ej2-gantt/styles/material.css';
-
 // Register Syncfusion license
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
@@ -409,6 +395,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowRowDragAndDrop={true}
         gridLines="Both"
         actionComplete={handleActionComplete}
+        enableAdaptiveUI={false}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />

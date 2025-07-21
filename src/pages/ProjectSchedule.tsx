@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import GanttChart from "@/components/GanttChart";
+import "@/styles/syncfusion-scoped.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -51,7 +52,7 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Project Schedule</h2>
             </div>
 
-            <div className="bg-background rounded-lg border">
+            <div className="bg-background rounded-lg border syncfusion-gantt-container">
               <GanttChart projectId={projectId} />
             </div>
           </div>
