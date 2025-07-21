@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -8,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -171,7 +173,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
           <DialogTitle>Add New Company</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+        <ScrollArea className="max-h-[calc(90vh-200px)] pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -268,18 +270,23 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                 onCostCodesChange={handleCostCodesChange}
                 error={costCodeError}
               />
-
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createCompanyMutation.isPending}>
-                  {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
-                </Button>
-              </div>
             </form>
           </Form>
         </ScrollArea>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button 
+            type="button" 
+            onClick={form.handleSubmit(onSubmit)} 
+            disabled={createCompanyMutation.isPending}
+            className="bg-black text-white hover:bg-gray-800"
+          >
+            {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
