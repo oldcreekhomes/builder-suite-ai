@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -211,17 +212,17 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                 </FormItem>
               )}
             />
-
-            <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateRepresentativeMutation.isPending}>
-                {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
-              </Button>
-            </div>
           </form>
         </Form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={updateRepresentativeMutation.isPending} onClick={form.handleSubmit(onSubmit)}>
+            {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -166,39 +167,39 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
               )}
             />
 
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select title" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Estimator">Estimator</SelectItem>
-                        <SelectItem value="Foreman">Foreman</SelectItem>
-                        <SelectItem value="Project Manager">Project Manager</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-            <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createRepresentativeMutation.isPending}>
-                {createRepresentativeMutation.isPending ? "Adding..." : "Add Representative"}
-              </Button>
-            </div>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select title" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Estimator">Estimator</SelectItem>
+                      <SelectItem value="Foreman">Foreman</SelectItem>
+                      <SelectItem value="Project Manager">Project Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={createRepresentativeMutation.isPending} onClick={form.handleSubmit(onSubmit)}>
+            {createRepresentativeMutation.isPending ? "Adding..." : "Add Representative"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -9,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeSelector } from "./RepresentativeSelector";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -226,121 +227,123 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   return (
     <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Company</DialogTitle>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="company_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter company name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="company_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+        <ScrollArea className="max-h-[calc(90vh-200px)] overflow-y-auto pr-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="company_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select company type" />
-                        </SelectTrigger>
+                        <Input placeholder="Enter company name" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Subcontractor">Subcontractor</SelectItem>
-                        <SelectItem value="Vendor">Vendor</SelectItem>
-                        <SelectItem value="Municipality">Municipality</SelectItem>
-                        <SelectItem value="Consultant">Consultant</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <AddressAutocomplete
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      placeholder="Enter company address"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="company_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select company type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Subcontractor">Subcontractor</SelectItem>
+                          <SelectItem value="Vendor">Vendor</SelectItem>
+                          <SelectItem value="Municipality">Municipality</SelectItem>
+                          <SelectItem value="Consultant">Consultant</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="phone_number"
+                name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
+                      <AddressAutocomplete
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        placeholder="Enter company address"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="website"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Website</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter website URL" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="phone_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Website</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter website URL" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <CostCodeSelector
+                companyId={stableCompanyId || null}
+                selectedCostCodes={selectedCostCodes}
+                onCostCodesChange={handleCostCodesChange}
               />
-            </div>
 
-            <CostCodeSelector
-              companyId={stableCompanyId || null}
-              selectedCostCodes={selectedCostCodes}
-              onCostCodesChange={handleCostCodesChange}
-            />
+              <RepresentativeSelector
+                companyId={stableCompanyId || null}
+              />
+            </form>
+          </Form>
+        </ScrollArea>
 
-            <RepresentativeSelector
-              companyId={stableCompanyId || null}
-            />
-
-            <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateCompanyMutation.isPending}>
-                {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={updateCompanyMutation.isPending} onClick={form.handleSubmit(onSubmit)}>
+            {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

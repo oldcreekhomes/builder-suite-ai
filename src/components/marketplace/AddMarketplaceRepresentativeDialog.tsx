@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -226,17 +227,17 @@ export function AddMarketplaceRepresentativeDialog({ open, onOpenChange }: AddMa
                 </FormItem>
               )}
             />
-
-            <div className="flex justify-end space-x-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createRepresentativeMutation.isPending}>
-                {createRepresentativeMutation.isPending ? "Adding..." : "Add Representative"}
-              </Button>
-            </div>
           </form>
         </Form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={createRepresentativeMutation.isPending} onClick={form.handleSubmit(onSubmit)}>
+            {createRepresentativeMutation.isPending ? "Adding..." : "Add Representative"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
