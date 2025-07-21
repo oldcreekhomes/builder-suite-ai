@@ -195,14 +195,22 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           {/* BASIC DIV WITH TWO BUTTONS */}
           <div className="pt-6">
             <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="w-full h-11 bg-black text-white rounded-md font-medium hover:bg-gray-800 disabled:opacity-50"
-              >
-                {isLoading ? "Creating..." : "Create Project"}
-              </button>
+              
+              {/* TEST: SIMPLE TEXT FIRST */}
+              <div style={{
+                width: '100%',
+                height: '44px',
+                backgroundColor: 'red',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}>
+                TEST: CREATE PROJECT BUTTON HERE
+              </div>
+              
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
