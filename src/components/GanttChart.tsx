@@ -341,9 +341,22 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Let Syncfusion handle splitter settings with minimal configuration
+  // Proper splitter settings to show grid on left (30%) and chart on right (70%)
   const splitterSettings = {
-    columnIndex: 1
+    position: '30%'
+  };
+
+  // Timeline settings for proper Gantt chart display
+  const timelineSettings = {
+    timelineViewMode: 'Week',
+    topTier: {
+      unit: 'Week',
+      format: 'MMM dd, y'
+    },
+    bottomTier: {
+      unit: 'Day',
+      format: 'dd'
+    }
   };
 
   const projectStartDate = tasks.length > 0 
@@ -392,6 +405,8 @@ function GanttChart({ projectId }: GanttChartProps) {
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
+        timelineSettings={timelineSettings}
+        viewType='ProjectView'
         allowSorting={true}
         allowReordering={true}
         allowSelection={true}
