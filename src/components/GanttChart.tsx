@@ -169,7 +169,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: syncTask.progress || 0,
       assigned_to: assignedTo,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
-      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
+      parent_id: syncTask.parentID ? syncTask.parentID.toString() : null,
     };
 
     const { error } = await supabase
@@ -200,7 +200,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: Math.max(0, Math.min(100, syncTask.progress || 0)),
       assigned_to: assignedTo,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
-      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
+      parent_id: syncTask.parentID ? syncTask.parentID.toString() : null,
       order_index: syncTask.taskID || 0,
     };
 
@@ -234,7 +234,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       if (!uuid) continue;
 
       const updateData = {
-        parent_id: task.parentID ? idMapper.current.getUuid(task.parentID) : null,
+        parent_id: task.parentID ? task.parentID.toString() : null,
       };
 
       const { error } = await supabase
