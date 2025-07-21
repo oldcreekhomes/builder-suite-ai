@@ -206,9 +206,9 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               disabled={isLoading}
               style={{ 
                 flex: 1, 
-                backgroundColor: 'red', 
-                color: 'white',
-                border: '2px solid blue'
+                backgroundColor: '#000000', 
+                color: '#ffffff',
+                border: 'none'
               }}
               onMouseEnter={() => console.log("Create Project button hovered!")}
               onClick={() => console.log("Create Project button clicked!")}
