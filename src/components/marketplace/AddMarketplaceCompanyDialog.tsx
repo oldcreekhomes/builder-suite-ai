@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -51,6 +50,42 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   };
 
   const { companyNameRef, isGoogleLoaded, isLoadingGoogleData } = useGooglePlaces(open, handlePlaceSelected);
+
+  const handleAddSpecialty = () => {
+    const updatedSpecialties = addToArray(specialties, newSpecialty);
+    if (updatedSpecialties !== specialties) {
+      setSpecialties(updatedSpecialties);
+      setNewSpecialty("");
+    }
+  };
+
+  const handleRemoveSpecialty = (specialty: string) => {
+    setSpecialties(removeFromArray(specialties, specialty));
+  };
+
+  const handleAddServiceArea = () => {
+    const updatedServiceAreas = addToArray(serviceAreas, newServiceArea);
+    if (updatedServiceAreas !== serviceAreas) {
+      setServiceAreas(updatedServiceAreas);
+      setNewServiceArea("");
+    }
+  };
+
+  const handleRemoveServiceArea = (area: string) => {
+    setServiceAreas(removeFromArray(serviceAreas, area));
+  };
+
+  const handleAddLicenseNumber = () => {
+    const updatedLicenseNumbers = addToArray(licenseNumbers, newLicenseNumber);
+    if (updatedLicenseNumbers !== licenseNumbers) {
+      setLicenseNumbers(updatedLicenseNumbers);
+      setNewLicenseNumber("");
+    }
+  };
+
+  const handleRemoveLicenseNumber = (license: string) => {
+    setLicenseNumbers(removeFromArray(licenseNumbers, license));
+  };
 
   const resetForm = () => {
     setCompanyName("");
@@ -124,127 +159,84 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
     }
   };
 
-  const handleAddSpecialty = () => {
-    const updatedSpecialties = addToArray(specialties, newSpecialty);
-    if (updatedSpecialties !== specialties) {
-      setSpecialties(updatedSpecialties);
-      setNewSpecialty("");
-    }
-  };
-
-  const handleRemoveSpecialty = (specialty: string) => {
-    setSpecialties(removeFromArray(specialties, specialty));
-  };
-
-  const handleAddServiceArea = () => {
-    const updatedServiceAreas = addToArray(serviceAreas, newServiceArea);
-    if (updatedServiceAreas !== serviceAreas) {
-      setServiceAreas(updatedServiceAreas);
-      setNewServiceArea("");
-    }
-  };
-
-  const handleRemoveServiceArea = (area: string) => {
-    setServiceAreas(removeFromArray(serviceAreas, area));
-  };
-
-  const handleAddLicenseNumber = () => {
-    const updatedLicenseNumbers = addToArray(licenseNumbers, newLicenseNumber);
-    if (updatedLicenseNumbers !== licenseNumbers) {
-      setLicenseNumbers(updatedLicenseNumbers);
-      setNewLicenseNumber("");
-    }
-  };
-
-  const handleRemoveLicenseNumber = (license: string) => {
-    setLicenseNumbers(removeFromArray(licenseNumbers, license));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
         <DialogHeader className="pr-8">
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-200px)] pr-4">
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-            <BasicCompanyInfo
-              companyName={companyName}
-              setCompanyName={setCompanyName}
-              companyType={companyType}
-              setCompanyType={setCompanyType}
-              address={address}
-              setAddress={setAddress}
-              website={website}
-              setWebsite={setWebsite}
-              phoneNumber={phoneNumber}
-              setPhoneNumber={setPhoneNumber}
-              description={description}
-              setDescription={setDescription}
-              companyNameRef={companyNameRef}
-              isGoogleLoaded={isGoogleLoaded}
-              isLoadingGoogleData={isLoadingGoogleData}
-            />
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <BasicCompanyInfo
+            companyName={companyName}
+            setCompanyName={setCompanyName}
+            companyType={companyType}
+            setCompanyType={setCompanyType}
+            address={address}
+            setAddress={setAddress}
+            website={website}
+            setWebsite={setWebsite}
+            phoneNumber={phoneNumber}
+            setPhoneNumber={setPhoneNumber}
+            description={description}
+            setDescription={setDescription}
+            companyNameRef={companyNameRef}
+            isGoogleLoaded={isGoogleLoaded}
+            isLoadingGoogleData={isLoadingGoogleData}
+          />
 
-            <ArrayFieldManager
-              label="Specialties"
-              items={specialties}
-              newItem={newSpecialty}
-              setNewItem={setNewSpecialty}
-              onAddItem={handleAddSpecialty}
-              onRemoveItem={handleRemoveSpecialty}
-              placeholder="Add specialty"
-              badgeVariant="secondary"
-            />
+          <ArrayFieldManager
+            label="Specialties"
+            items={specialties}
+            newItem={newSpecialty}
+            setNewItem={setNewSpecialty}
+            onAddItem={handleAddSpecialty}
+            onRemoveItem={handleRemoveSpecialty}
+            placeholder="Add specialty"
+            badgeVariant="secondary"
+          />
 
-            <ArrayFieldManager
-              label="Service Areas"
-              items={serviceAreas}
-              newItem={newServiceArea}
-              setNewItem={setNewServiceArea}
-              onAddItem={handleAddServiceArea}
-              onRemoveItem={handleRemoveServiceArea}
-              placeholder="Add service area"
-              badgeVariant="outline"
-            />
+          <ArrayFieldManager
+            label="Service Areas"
+            items={serviceAreas}
+            newItem={newServiceArea}
+            setNewItem={setNewServiceArea}
+            onAddItem={handleAddServiceArea}
+            onRemoveItem={handleRemoveServiceArea}
+            placeholder="Add service area"
+            badgeVariant="outline"
+          />
 
-            <ArrayFieldManager
-              label="License Numbers"
-              items={licenseNumbers}
-              newItem={newLicenseNumber}
-              setNewItem={setNewLicenseNumber}
-              onAddItem={handleAddLicenseNumber}
-              onRemoveItem={handleRemoveLicenseNumber}
-              placeholder="Add license number"
-              badgeVariant="outline"
-              badgeClassName="text-xs font-mono"
-            />
+          <ArrayFieldManager
+            label="License Numbers"
+            items={licenseNumbers}
+            newItem={newLicenseNumber}
+            setNewItem={setNewLicenseNumber}
+            onAddItem={handleAddLicenseNumber}
+            onRemoveItem={handleRemoveLicenseNumber}
+            placeholder="Add license number"
+            badgeVariant="outline"
+            badgeClassName="text-xs font-mono"
+          />
 
-            <RatingAndVerification
-              rating={rating}
-              setRating={setRating}
-              reviewCount={reviewCount}
-              setReviewCount={setReviewCount}
-              insuranceVerified={insuranceVerified}
-              setInsuranceVerified={setInsuranceVerified}
-            />
-          </form>
-        </ScrollArea>
+          <RatingAndVerification
+            rating={rating}
+            setRating={setRating}
+            reviewCount={reviewCount}
+            setReviewCount={setReviewCount}
+            insuranceVerified={insuranceVerified}
+            setInsuranceVerified={setInsuranceVerified}
+          />
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            type="button" 
-            onClick={handleSubmit} 
-            disabled={isSubmitting}
-            className="bg-black text-white hover:bg-gray-800"
-          >
-            {isSubmitting ? "Adding..." : "Add Company"}
-          </Button>
-        </DialogFooter>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Company"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

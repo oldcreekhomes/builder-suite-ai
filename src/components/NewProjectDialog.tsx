@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -46,7 +47,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted - Create Project button is working!");
     
     if (!projectName || !status || !manager || !address) {
       toast({
@@ -125,7 +125,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     }
   };
 
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -189,15 +188,25 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               disabled={isLoading}
             />
           </div>
+
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="bg-black hover:bg-gray-800"
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating..." : "Create Project"}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" onClick={handleSubmit} className="bg-black text-white hover:bg-gray-800">
-            {isLoading ? "Creating..." : "Create Project"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

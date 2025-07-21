@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -194,24 +193,23 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
           <p className="text-sm text-gray-500">
             You can confirm employees later when they join your team
           </p>
-        </form>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={addEmployeeMutation.isPending}
-            onClick={handleSubmit}
-          >
-            {addEmployeeMutation.isPending ? "Adding Employee..." : "Add Employee"}
-          </Button>
-        </DialogFooter>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={addEmployeeMutation.isPending}
+            >
+              {addEmployeeMutation.isPending ? "Adding Employee..." : "Add Employee"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -26,7 +26,6 @@ interface Company {
   company_type: string;
   address?: string;
   website?: string;
-  phone_number?: string;
   created_at: string;
   representatives_count?: number;
   cost_codes_count?: number;
@@ -465,29 +464,7 @@ export function CompaniesTable() {
       </div>
 
       <EditCompanyDialog
-        company={editingCompany ? {
-          ...editingCompany,
-          business_type: editingCompany.company_type,
-          address: editingCompany.address || '',
-          city: '',
-          state: '',
-          zip_code: '',
-          email: '',
-          description: '',
-          license_number: '',
-          license_class: '',
-          license_expiry: '',
-          insurance_carrier: '',
-          insurance_policy_number: '',
-          insurance_expiry: '',
-          bonding_company: '',
-          bond_amount: '',
-          bond_expiry: '',
-          workers_comp_carrier: '',
-          workers_comp_policy_number: '',
-          workers_comp_expiry: '',
-          safety_rating: '',
-        } : null}
+        company={editingCompany}
         open={!!editingCompany}
         onOpenChange={(open) => !open && setEditingCompany(null)}
       />
