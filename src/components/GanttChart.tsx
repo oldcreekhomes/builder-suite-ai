@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 // Import scoped Syncfusion CSS instead of global
 import '../styles/syncfusion-scoped.css';
 
-// Register Syncfusion license
+// Register Syncfusion license - restored
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
 interface GanttChartProps {
@@ -25,8 +25,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['company-resources'],
     queryFn: async () => {
-      console.log('Fetching company users and representatives');
-      
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -59,17 +57,14 @@ function GanttChart({ projectId }: GanttChartProps) {
         }))
       ];
 
-      console.log('Company resources loaded:', allResources.length, allResources);
       return allResources;
     },
   });
 
   // Fetch and transform schedule tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
-      console.log('Fetching tasks for project:', projectId);
-      
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -80,36 +75,33 @@ function GanttChart({ projectId }: GanttChartProps) {
         console.error('Error fetching schedule tasks:', error);
         throw error;
       }
-
-      console.log('Raw data from database:', data);
       
       if (!data || data.length === 0) {
-        console.log('No tasks found for project:', projectId);
         return [];
       }
 
       // Initialize ID mapper with existing tasks
       idMapper.current.initializeFromTasks(data);
 
-      // Transform tasks for Syncfusion
-      const transformedTasks = data.map((task) => {
+      // Transform tasks for Syncfusion with error handling
+      const transformedTasks = [];
+      for (const task of data) {
         try {
-          return idMapper.current.convertTaskForSyncfusion(task);
+          const transformedTask = idMapper.current.convertTaskForSyncfusion(task);
+          if (transformedTask) {
+            transformedTasks.push(transformedTask);
+          }
         } catch (transformError) {
           console.error('Error transforming task:', task.id, transformError);
-          return null;
+          // Continue with other tasks instead of failing completely
         }
-      }).filter(task => task !== null);
-
-      console.log('Transformed tasks for Gantt:', transformedTasks);
-      console.log('Total tasks to render:', transformedTasks.length);
+      }
       
       return transformedTasks;
     },
     enabled: !!projectId,
   });
 
-  // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
     console.log('=== ActionComplete event ===', args.requestType, 'Full args:', args);
 
@@ -166,13 +158,19 @@ function GanttChart({ projectId }: GanttChartProps) {
       return;
     }
 
+    // Fix the resource assignment bug
+    let assignedTo = null;
+    if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
+      assignedTo = syncTask.resourceInfo.map((r: any) => r.resourceId).join(',');
+    }
+
     const updateData = {
       task_name: syncTask.taskName,
       start_date: new Date(syncTask.startDate).toISOString(),
       end_date: new Date(syncTask.endDate).toISOString(),
       duration: syncTask.duration || 1,
       progress: syncTask.progress || 0,
-      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
+      assigned_to: assignedTo,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
       parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
     };
@@ -341,8 +339,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
+  // Force horizontal layout with splitter at 30%
   const splitterSettings = {
-    position: "28%"
+    position: '30%'
   };
 
   const projectStartDate = tasks.length > 0 
@@ -353,29 +352,29 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Native Syncfusion edit settings - let Syncfusion handle everything
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
-    mode: 'Auto' as any,
-    newRowPosition: 'Bottom' as any,
   };
 
-  // Standard toolbar - Syncfusion will handle all operations natively
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent'];
 
   if (isLoading) {
+    console.log('Loading state - resources:', resourcesLoading, 'tasks:', tasksLoading);
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
 
-  console.log('Final render - Resources available:', resources.length);
-  console.log('Final render - Tasks available:', tasks.length);
+  if (tasksError) {
+    console.error('Tasks error:', tasksError);
+    return <div style={{ padding: '10px', color: 'red' }}>Error loading schedule: {tasksError.message}</div>;
+  }
+
+  console.log('About to render GanttComponent - Resources:', resources.length, 'Tasks:', tasks.length);
 
   return (
-    <div className="syncfusion-gantt-container" style={{ padding: '10px' }}>
+    <div className="syncfusion-gantt-container" style={{ minWidth: '1000px' }}>
       <GanttComponent 
         ref={ganttRef}
         id='SyncfusionGantt' 
@@ -384,36 +383,25 @@ function GanttChart({ projectId }: GanttChartProps) {
         resourceFields={resourceFields}
         resources={resources}
         labelSettings={labelSettings} 
-        height='500px'
+        height='100%'
+        width='100%'
+        enableAdaptiveUI={false}
         projectStartDate={projectStartDate} 
         projectEndDate={projectEndDate}
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
-        allowSorting={true}
-        allowReordering={true}
-        allowSelection={true}
-        allowResizing={true}
-        allowFiltering={true}
-        allowRowDragAndDrop={true}
-        gridLines="Both"
         actionComplete={handleActionComplete}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
-          <ColumnDirective field='taskName' headerText='Task Name' width={250} clipMode='EllipsisWithTooltip' validationRules={{ required: true, minLength: [3, 'Task name should have a minimum length of 3 characters'] }} />
+          <ColumnDirective field='taskName' headerText='Task Name' width={250} />
           <ColumnDirective field='startDate' headerText='Start Date' width={120} />
           <ColumnDirective field='endDate' headerText='End Date' width={120} />
-          <ColumnDirective field='duration' headerText='Duration' width={100} validationRules={{ required: true }} />
+          <ColumnDirective field='duration' headerText='Duration' width={100} />
           <ColumnDirective field='resourceInfo' headerText='Resource' width={200} />
           <ColumnDirective field='dependency' headerText='Predecessor' width={150} />
         </ColumnsDirective>
-        <EditDialogFieldsDirective>
-          <EditDialogFieldDirective type='General' headerText='General' />
-          <EditDialogFieldDirective type='Dependency' />
-          <EditDialogFieldDirective type='Resources' />
-          <EditDialogFieldDirective type='Notes' />
-        </EditDialogFieldsDirective>
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
     </div>
