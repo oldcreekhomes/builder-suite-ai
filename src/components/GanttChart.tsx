@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 // Import scoped Syncfusion CSS instead of global
 import '../styles/syncfusion-scoped.css';
 
-// Register Syncfusion license
+// Register Syncfusion license - updated
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cWmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXhfeHVRRmhdUEZ1XEpWYEk=');
 
 interface GanttChartProps {
