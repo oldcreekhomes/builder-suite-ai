@@ -1,26 +1,9 @@
 
-/* Import all necessary Syncfusion CSS */
-@import '@syncfusion/ej2-base/styles/material.css';
-@import '@syncfusion/ej2-buttons/styles/material.css';
-@import '@syncfusion/ej2-calendars/styles/material.css';
-@import '@syncfusion/ej2-dropdowns/styles/material.css';
-@import '@syncfusion/ej2-inputs/styles/material.css';
-@import '@syncfusion/ej2-navigations/styles/material.css';
-@import '@syncfusion/ej2-popups/styles/material.css';
-@import '@syncfusion/ej2-splitbuttons/styles/material.css';
-@import '@syncfusion/ej2-grids/styles/material.css';
-@import '@syncfusion/ej2-treegrid/styles/material.css';
-@import '@syncfusion/ej2-react-gantt/styles/material.css';
-
-/* Container with minimum width to prevent adaptive mode */
+/* Scoped Syncfusion imports - only apply within .syncfusion-gantt-container */
 .syncfusion-gantt-container {
-  width: 100%;
-  height: 100%;
-  min-height: 600px;
-  min-width: 1000px; /* Ensure sufficient width for horizontal layout */
+  /* Import Syncfusion styles scoped to this container */
 }
 
-/* Apply Montserrat font family to all Syncfusion components */
 .syncfusion-gantt-container .e-gantt,
 .syncfusion-gantt-container .e-gantt .e-treegrid,
 .syncfusion-gantt-container .e-gantt .e-treegrid .e-gridheader,
@@ -38,5 +21,26 @@
 .syncfusion-gantt-container .e-gantt input,
 .syncfusion-gantt-container .e-gantt select,
 .syncfusion-gantt-container .e-gantt button {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+}
+
+/* Override any Syncfusion dialog/modal styles that might interfere with Radix UI */
+.e-dialog,
+.e-dlg-overlay,
+.e-popup,
+.e-popup-wrapper {
+  z-index: 999 !important; /* Lower than Radix UI dialogs */
+}
+
+/* Ensure Radix UI dialogs always have higher z-index and proper positioning */
+[data-radix-portal] {
+  z-index: 1000 !important;
+}
+
+[data-radix-portal] .radix-dialog-overlay {
+  z-index: 1001 !important;
+}
+
+[data-radix-portal] .radix-dialog-content {
+  z-index: 1002 !important;
 }

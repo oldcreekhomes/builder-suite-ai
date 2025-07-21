@@ -69,28 +69,26 @@
   }
 }
 
-/* Ensure Radix UI Dialogs work properly in the rest of the application */
+/* Ensure Radix UI Dialogs always work properly */
 [data-radix-portal] {
-  z-index: 50000 !important;
-  position: fixed !important;
+  z-index: 50 !important;
 }
 
-/* Dialog overlay - must be visible and positioned correctly with maximum z-index */
+/* Dialog overlay */
 [data-radix-portal] [data-radix-dialog-overlay] {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 50001 !important;
+  z-index: 50 !important;
   background-color: rgba(0, 0, 0, 0.8) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  pointer-events: auto !important;
 }
 
-/* Dialog content - must be centered and styled correctly with highest z-index */
+/* Dialog content */
 [data-radix-portal] [data-radix-dialog-content] {
-  position: relative !important;
-  z-index: 50002 !important;
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 50 !important;
+  transform: translate(-50%, -50%) !important;
   width: 100% !important;
   max-width: var(--radix-dialog-content-width, 32rem) !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -98,29 +96,14 @@
   padding: 1.5rem !important;
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
   border-radius: calc(var(--radius) * 2) !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
 }
 
-/* Ensure all Radix dialog elements are visible and interactive */
-[data-radix-portal] * {
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* Reset any conflicting styles from Syncfusion with maximum specificity */
+/* Reset any conflicting styles */
 .radix-dialog-overlay {
   background-color: rgba(0, 0, 0, 0.8) !important;
-  z-index: 50001 !important;
-  pointer-events: auto !important;
 }
 
 .radix-dialog-content {
   background-color: hsl(var(--background)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  z-index: 50002 !important;
-  pointer-events: auto !important;
 }
