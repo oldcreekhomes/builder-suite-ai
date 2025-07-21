@@ -1,8 +1,10 @@
-
 project_id = "nlmnwlvmmkngrgatnzkj"
 
 [functions.send-password-reset]
 verify_jwt = false
 
 [functions.handle-bid-response]
+verify_jwt = false
+
+[functions.gantt-tasks]
 verify_jwt = false
