@@ -46,6 +46,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted - Create Project button is working!");
     
     if (!projectName || !status || !manager || !address) {
       toast({
@@ -124,6 +125,8 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     }
   };
 
+  console.log("NewProjectDialog rendering, isLoading:", isLoading);
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -188,23 +191,29 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', width: '100%' }}>
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1"
+              style={{ flex: 1 }}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="flex-1"
-              style={{ backgroundColor: 'black', color: 'white' }}
+              style={{ 
+                flex: 1, 
+                backgroundColor: 'red', 
+                color: 'white',
+                border: '2px solid blue'
+              }}
+              onMouseEnter={() => console.log("Create Project button hovered!")}
+              onClick={() => console.log("Create Project button clicked!")}
             >
-              {isLoading ? "Creating..." : "Create Project"}
+              {isLoading ? "Creating..." : "CREATE PROJECT"}
             </Button>
           </div>
         </form>
