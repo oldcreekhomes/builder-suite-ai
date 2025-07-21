@@ -129,7 +129,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
@@ -190,37 +190,44 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               disabled={isLoading}
             />
           </div>
-
-          <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', width: '100%' }}>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              style={{ flex: 1 }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              style={{ 
-                flex: 1, 
-                backgroundColor: '#00FF00 !important', 
-                color: '#000000 !important',
-                border: '3px solid #FF0000 !important',
-                fontSize: '16px !important',
-                fontWeight: 'bold !important',
-                padding: '12px !important',
-                minHeight: '44px !important'
-              }}
-              onMouseEnter={() => console.log("Create Project button hovered!")}
-              onClick={() => console.log("Create Project button clicked!")}
-            >
-              {isLoading ? "Creating..." : "CREATE PROJECT"}
-            </Button>
-          </div>
         </form>
+
+        {/* BUTTONS OUTSIDE FORM - SEPARATE SECTION */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          paddingTop: '24px',
+          borderTop: '1px solid #e5e7eb',
+          marginTop: '24px',
+          position: 'sticky',
+          bottom: '0',
+          backgroundColor: 'white',
+          zIndex: 1000
+        }}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+            style={{ flex: 1, height: '44px' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            onClick={handleSubmit}
+            style={{ 
+              flex: 1, 
+              height: '44px',
+              backgroundColor: '#000000 !important', 
+              color: '#ffffff !important',
+              border: 'none !important'
+            }}
+          >
+            {isLoading ? "Creating..." : "CREATE PROJECT"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
