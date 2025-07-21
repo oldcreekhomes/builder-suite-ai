@@ -69,7 +69,7 @@
   }
 }
 
-/* CRITICAL: Ensure Radix UI Dialogs always work properly */
+/* Ensure Radix UI Dialogs work properly in the rest of the application */
 [data-radix-portal] {
   z-index: 50000 !important;
   position: fixed !important;

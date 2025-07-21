@@ -14,7 +14,6 @@
 
 /* Scope Syncfusion styles to the gantt container */
 .syncfusion-gantt-container {
-  /* Apply Syncfusion font family to all Syncfusion components */
   width: 100% !important;
   height: 500px !important;
   min-height: 500px !important;
@@ -82,6 +81,7 @@
   background-color: #999 !important;
 }
 
+/* Apply Montserrat font family to all Syncfusion components */
 .syncfusion-gantt-container .e-gantt,
 .syncfusion-gantt-container .e-gantt .e-treegrid,
 .syncfusion-gantt-container .e-gantt .e-treegrid .e-gridheader,
@@ -100,23 +100,4 @@
 .syncfusion-gantt-container .e-gantt select,
 .syncfusion-gantt-container .e-gantt button {
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
-}
-
-/* MINIMAL conflict resolution - only target actual problematic modal overlays */
-/* Only disable Syncfusion dialogs when Radix dialogs are actually open */
-body:has([data-radix-portal]) .syncfusion-gantt-container .e-dialog,
-body:has([data-radix-portal]) .syncfusion-gantt-container .e-dlg-overlay {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-/* Ensure all interactive elements continue to work normally */
-.syncfusion-gantt-container .e-gantt * {
-  pointer-events: auto !important;
-}
-
-/* Only disable pointer events for specific overlay elements that might interfere */
-.syncfusion-gantt-container .e-dlg-overlay {
-  pointer-events: none !important;
 }
