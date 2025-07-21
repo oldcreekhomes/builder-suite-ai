@@ -4,13 +4,19 @@ export class GanttIdMapper {
   private numericToUuid: Map<number, string> = new Map();
   private uuidToNumeric: Map<string, number> = new Map();
   private nextId: number = 1;
+  private initialized: boolean = false;
 
-  // Initialize mapping from existing tasks
+  // Initialize mapping from existing tasks - only once per data set
   initializeFromTasks(tasks: any[]) {
-    console.log('=== INITIALIZING ID MAPPER ===');
+    // Skip if already initialized with the same data
+    if (this.initialized && tasks.length === this.numericToUuid.size) {
+      return;
+    }
+
     this.numericToUuid.clear();
     this.uuidToNumeric.clear();
     this.nextId = 1;
+    this.initialized = false;
 
     // Sort tasks by order_index then by UUID for consistent ID assignment
     const sortedTasks = [...tasks].sort((a, b) => {
@@ -26,14 +32,9 @@ export class GanttIdMapper {
       const numericId = this.nextId++;
       this.numericToUuid.set(numericId, task.id);
       this.uuidToNumeric.set(task.id, numericId);
-      console.log(`Mapped: ${numericId} <-> ${task.id} (${task.task_name})`);
     });
     
-    console.log('ID mapping initialized:', {
-      totalTasks: sortedTasks.length,
-      nextId: this.nextId
-    });
-    console.log('=== END INITIALIZING ID MAPPER ===');
+    this.initialized = true;
   }
 
   // Get UUID from numeric ID
@@ -50,7 +51,6 @@ export class GanttIdMapper {
   convertTaskForSyncfusion(task: any): any {
     const numericId = this.getNumericId(task.id);
     if (!numericId) {
-      console.error('No numeric ID found for task:', task.id);
       return null;
     }
     
@@ -68,7 +68,6 @@ export class GanttIdMapper {
     if (task.parent_id && task.parent_id.toString().trim() !== '') {
       parentNumericId = parseInt(task.parent_id.toString());
       if (isNaN(parentNumericId)) {
-        console.warn(`Invalid parent ID: "${task.parent_id}"`);
         parentNumericId = null;
       }
     }
@@ -85,7 +84,6 @@ export class GanttIdMapper {
       parentID: parentNumericId,
     };
     
-    console.log(`Converted task for Syncfusion: ${task.task_name}`, syncTask);
     return syncTask;
   }
 

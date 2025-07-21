@@ -19,12 +19,10 @@ function GanttChart({ projectId }: GanttChartProps) {
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
 
-  // Fetch resources from users and company representatives
+  // Fetch resources from users and company representatives - project-specific caching
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
-    queryKey: ['company-resources'],
+    queryKey: ['project-resources', projectId],
     queryFn: async () => {
-      console.log('Fetching company users and representatives');
-      
       // Fetch company users
       const { data: users, error: usersError } = await supabase
         .from('users')
@@ -57,17 +55,16 @@ function GanttChart({ projectId }: GanttChartProps) {
         }))
       ];
 
-      console.log('Company resources loaded:', allResources.length);
       return allResources;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Fetch and transform schedule tasks
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
-      console.log('Fetching tasks for project:', projectId);
-      
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -79,28 +76,48 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
-      if (!data || data.length === 0) {
-        console.log('No tasks found for project:', projectId);
-        return [];
-      }
-
-      // Initialize ID mapper with existing tasks
-      idMapper.current.initializeFromTasks(data);
-
-      // Transform tasks for Syncfusion
-      const transformedTasks = data.map((task) => {
-        return idMapper.current.convertTaskForSyncfusion(task);
-      }).filter(task => task !== null);
-
-      console.log('Transformed tasks for Gantt:', transformedTasks.length);
-      return transformedTasks;
+      return data || [];
     },
     enabled: !!projectId,
+    staleTime: 1 * 60 * 1000, // 1 minute
   });
 
-  // Simple actionComplete handler - let Syncfusion do the heavy lifting
-  const handleActionComplete = async (args: any) => {
-    console.log('ActionComplete:', args.requestType);
+  // Memoize the transformed tasks to prevent unnecessary re-renders
+  const tasks = React.useMemo(() => {
+    if (!tasksData || tasksData.length === 0) return [];
+
+    // Initialize ID mapper with existing tasks
+    idMapper.current.initializeFromTasks(tasksData);
+
+    // Transform tasks for Syncfusion
+    const transformedTasks = tasksData.map((task) => {
+      return idMapper.current.convertTaskForSyncfusion(task);
+    }).filter(task => task !== null);
+
+    return transformedTasks;
+  }, [tasksData]);
+
+  // Memoize project dates to prevent recalculation
+  const { projectStartDate, projectEndDate } = React.useMemo(() => {
+    if (tasks.length === 0) {
+      return {
+        projectStartDate: new Date(),
+        projectEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      };
+    }
+    
+    return {
+      projectStartDate: new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime()))),
+      projectEndDate: new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
+    };
+  }, [tasks]);
+
+  // Streamlined actionComplete handler - ignore system refresh events
+  const handleActionComplete = React.useCallback(async (args: any) => {
+    // Ignore system refresh events that cause unnecessary re-renders
+    if (args.requestType === 'refresh' || args.requestType === 'filtering' || args.requestType === 'sorting') {
+      return;
+    }
 
     try {
       switch (args.requestType) {
@@ -143,7 +160,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
-  };
+  }, [projectId, queryClient]);
 
   const handleTaskUpdate = async (syncTask: any) => {
     const uuid = idMapper.current.getUuid(syncTask.taskID);
@@ -152,7 +169,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       return;
     }
 
-    // Simple resource processing - let Syncfusion handle the complex stuff
+    // Simple resource processing
     let assignedTo = null;
     if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
       const resourceIds = syncTask.resourceInfo.map((resource: any) => resource.resourceId).filter(id => id);
@@ -178,7 +195,6 @@ function GanttChart({ projectId }: GanttChartProps) {
       .eq('id', uuid);
 
     if (error) throw error;
-    console.log('Task updated successfully');
   };
 
   const handleTaskAdd = async (syncTask: any) => {
@@ -209,7 +225,6 @@ function GanttChart({ projectId }: GanttChartProps) {
       .insert([insertData]);
 
     if (error) throw error;
-    console.log('Task added successfully');
   };
 
   const handleTaskDelete = async (deletedTasks: any[]) => {
@@ -225,7 +240,6 @@ function GanttChart({ projectId }: GanttChartProps) {
       .in('id', uuidsToDelete);
 
     if (error) throw error;
-    console.log('Tasks deleted successfully');
   };
 
   const handleHierarchyChange = async (changedTasks: any[]) => {
@@ -244,13 +258,12 @@ function GanttChart({ projectId }: GanttChartProps) {
 
       if (error) throw error;
     }
-    console.log('Hierarchy updated successfully');
   };
 
   const isLoading = resourcesLoading || tasksLoading;
 
-  // Native Syncfusion configuration - let it handle everything
-  const taskFields = {
+  // Memoize configuration objects to prevent unnecessary re-renders
+  const taskFields = React.useMemo(() => ({
     id: 'taskID',
     name: 'taskName',
     startDate: 'startDate',
@@ -260,14 +273,14 @@ function GanttChart({ projectId }: GanttChartProps) {
     resourceInfo: 'resourceInfo',
     dependency: 'dependency',
     parentID: 'parentID',
-  };
+  }), []);
 
-  const resourceFields = {
+  const resourceFields = React.useMemo(() => ({
     id: 'resourceId',
     name: 'resourceName'
-  };
+  }), []);
 
-  const editSettings = {
+  const editSettings = React.useMemo(() => ({
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
@@ -275,18 +288,10 @@ function GanttChart({ projectId }: GanttChartProps) {
     showDeleteConfirmDialog: true,
     mode: 'Auto' as any,
     newRowPosition: 'Bottom' as any,
-  };
+  }), []);
 
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
-  const contextMenuItems = ['Add', 'Delete', 'Indent', 'Outdent'];
-
-  const projectStartDate = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())))
-    : new Date();
-  
-  const projectEndDate = tasks.length > 0 
-    ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const toolbar = React.useMemo(() => ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'], []);
+  const contextMenuItems = React.useMemo(() => ['Add', 'Delete', 'Indent', 'Outdent'], []);
 
   if (isLoading) {
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
@@ -341,4 +346,4 @@ function GanttChart({ projectId }: GanttChartProps) {
   );
 }
 
-export default GanttChart;
+export default React.memo(GanttChart);
