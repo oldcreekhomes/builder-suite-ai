@@ -63,15 +63,12 @@ export class GanttIdMapper {
       endDate.setDate(startDate.getDate() + (task.duration || 1));
     }
     
-    // Convert parent ID - should already be numeric string from database
+    // Convert parent ID
     let parentNumericId = null;
     if (task.parent_id && task.parent_id.toString().trim() !== '') {
-      const parentIdStr = task.parent_id.toString().trim();
-      // Validate that parent_id is numeric
-      if (/^\d+$/.test(parentIdStr)) {
-        parentNumericId = parseInt(parentIdStr);
-      } else {
-        console.warn(`Invalid parent_id format (should be numeric string): "${task.parent_id}" for task: ${task.task_name}`);
+      parentNumericId = parseInt(task.parent_id.toString());
+      if (isNaN(parentNumericId)) {
+        console.warn(`Invalid parent ID: "${task.parent_id}"`);
         parentNumericId = null;
       }
     }
