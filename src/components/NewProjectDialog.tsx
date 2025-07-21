@@ -191,42 +191,49 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             />
           </div>
         </form>
-
-        {/* BUTTONS OUTSIDE FORM - SEPARATE SECTION */}
+        
+        {/* EACH BUTTON IN SEPARATE CONTAINER */}
         <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
           paddingTop: '24px',
           borderTop: '1px solid #e5e7eb',
-          marginTop: '24px',
-          position: 'sticky',
-          bottom: '0',
-          backgroundColor: 'white',
-          zIndex: 1000
+          marginTop: '24px'
         }}>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-            style={{ flex: 1, height: '44px' }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={isLoading}
-            onClick={handleSubmit}
-            style={{ 
-              flex: 1, 
-              height: '44px',
-              backgroundColor: '#000000 !important', 
-              color: '#ffffff !important',
-              border: 'none !important'
-            }}
-          >
-            {isLoading ? "Creating..." : "CREATE PROJECT"}
-          </Button>
+          {/* CANCEL BUTTON CONTAINER */}
+          <div style={{ marginBottom: '12px' }}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              style={{ width: '100%', height: '44px' }}
+            >
+              Cancel
+            </Button>
+          </div>
+          
+          {/* CREATE PROJECT BUTTON CONTAINER */}
+          <div style={{ marginBottom: '12px' }}>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={handleSubmit}
+              style={{ 
+                width: '100%',
+                height: '44px',
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.5 : 1
+              }}
+              onMouseEnter={() => console.log("Create Project button hovered!")}
+            >
+              {isLoading ? "Creating..." : "CREATE PROJECT"}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
