@@ -125,19 +125,17 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     }
   };
 
-  console.log("NewProjectDialog rendering, isLoading:", isLoading);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto p-6">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
             Fill in the details to create a new construction project.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="projectName">Project Name</Label>
             <Input
@@ -191,37 +189,15 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               disabled={isLoading}
             />
           </div>
-          
-          {/* BASIC DIV WITH TWO BUTTONS */}
-          <div className="pt-6">
-            <div className="flex flex-col gap-3">
-              
-              {/* TEST: SIMPLE TEXT FIRST */}
-              <div style={{
-                width: '100%',
-                height: '44px',
-                backgroundColor: 'red',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                fontWeight: 'bold'
-              }}>
-                TEST: CREATE PROJECT BUTTON HERE
-              </div>
-              
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                className="w-full h-11 border border-gray-300 bg-white text-gray-900 rounded-md font-medium hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit} className="bg-black text-white hover:bg-gray-800">
+            {isLoading ? "Creating..." : "Create Project"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
