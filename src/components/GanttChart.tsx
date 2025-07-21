@@ -366,7 +366,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Force horizontal layout with standard splitter settings
+  // Standard splitter settings - only position property
   const splitterSettings = {
     position: '30%'
   };
@@ -379,19 +379,16 @@ function GanttChart({ projectId }: GanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  // Native Syncfusion edit settings - let Syncfusion handle everything
+  // Simple edit settings
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
-    mode: 'Auto' as any,
-    newRowPosition: 'Bottom' as any,
   };
 
-  // Standard toolbar - Syncfusion will handle all operations natively
-  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent', 'ExpandAll', 'CollapseAll'];
+  // Basic toolbar
+  const toolbar = ['Add', 'Edit', 'Update', 'Delete', 'Cancel', 'Indent', 'Outdent'];
 
   if (isLoading) {
     console.log('Loading state - resources:', resourcesLoading, 'tasks:', tasksLoading);
@@ -404,7 +401,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   }
 
   console.log('About to render GanttComponent - Resources:', resources.length, 'Tasks:', tasks.length);
-  console.log('Tasks data:', tasks);
 
   return (
     <div className="syncfusion-gantt-container">
@@ -423,33 +419,17 @@ function GanttChart({ projectId }: GanttChartProps) {
         editSettings={editSettings}
         toolbar={toolbar}
         splitterSettings={splitterSettings}
-        viewType='ProjectView'
-        allowSorting={true}
-        allowReordering={true}
-        allowSelection={true}
-        allowResizing={true}
-        allowFiltering={true}
-        allowRowDragAndDrop={true}
-        gridLines="Both"
         actionComplete={handleActionComplete}
-        enableRtl={false}
-        enableAdaptiveUI={false}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
-          <ColumnDirective field='taskName' headerText='Task Name' width={250} clipMode='EllipsisWithTooltip' validationRules={{ required: true, minLength: [3, 'Task name should have a minimum length of 3 characters'] }} />
+          <ColumnDirective field='taskName' headerText='Task Name' width={250} />
           <ColumnDirective field='startDate' headerText='Start Date' width={120} />
           <ColumnDirective field='endDate' headerText='End Date' width={120} />
-          <ColumnDirective field='duration' headerText='Duration' width={100} validationRules={{ required: true }} />
+          <ColumnDirective field='duration' headerText='Duration' width={100} />
           <ColumnDirective field='resourceInfo' headerText='Resource' width={200} />
           <ColumnDirective field='dependency' headerText='Predecessor' width={150} />
         </ColumnsDirective>
-        <EditDialogFieldsDirective>
-          <EditDialogFieldDirective type='General' headerText='General' />
-          <EditDialogFieldDirective type='Dependency' />
-          <EditDialogFieldDirective type='Resources' />
-          <EditDialogFieldDirective type='Notes' />
-        </EditDialogFieldsDirective>
         <Inject services={[Selection, Toolbar, Edit, Sort, RowDD, Resize, ColumnMenu, Filter, DayMarkers, CriticalPath]} />
       </GanttComponent>
     </div>
