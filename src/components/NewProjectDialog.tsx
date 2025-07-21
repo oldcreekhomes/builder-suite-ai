@@ -200,7 +200,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             </Button>
             <Button 
               type="submit" 
-              className="bg-black hover:bg-gray-800"
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "Create Project"}
