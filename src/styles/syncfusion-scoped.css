@@ -12,72 +12,11 @@
 @import '@syncfusion/ej2-treegrid/styles/material.css';
 @import '@syncfusion/ej2-react-gantt/styles/material.css';
 
-/* Scope Syncfusion styles to the gantt container */
+/* Minimal container setup - let Syncfusion handle the rest */
 .syncfusion-gantt-container {
-  width: 100% !important;
-  height: 500px !important;
-  min-height: 500px !important;
-  display: block !important;
-}
-
-/* Basic layout fixes for Gantt chart */
-.syncfusion-gantt-container .e-gantt {
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-gantt-splitter {
-  flex: 1 !important;
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: row !important;
-}
-
-/* Remove fixed width constraints that prevent splitter from working */
-.syncfusion-gantt-container .e-gantt .e-gantt-left-splitter {
-  min-width: 200px !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-gantt-right-splitter {
-  flex: 1 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-treegrid {
-  width: 100% !important;
-  height: 100% !important;
-  flex: 1 !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-gantt-chart {
-  width: 100% !important;
-  height: 100% !important;
-  flex: 1 !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-gantt-chart-pane {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Ensure splitter bar is visible and functional */
-.syncfusion-gantt-container .e-gantt .e-split-bar {
-  background-color: #e0e0e0 !important;
-  width: 4px !important;
-  cursor: col-resize !important;
-  z-index: 10 !important;
-}
-
-.syncfusion-gantt-container .e-gantt .e-split-bar:hover {
-  background-color: #999 !important;
+  width: 100%;
+  height: 500px;
+  min-height: 500px;
 }
 
 /* Apply Montserrat font family to all Syncfusion components */

@@ -20,7 +20,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
-  const [splitterPosition, setSplitterPosition] = React.useState<string>('28%');
 
   // Fetch resources from users and company representatives
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
@@ -109,14 +108,6 @@ function GanttChart({ projectId }: GanttChartProps) {
     },
     enabled: !!projectId,
   });
-
-  // Handle splitter resize events
-  const handleSplitterResized = (args: any) => {
-    console.log('Splitter resized:', args);
-    if (args && args.paneSize && args.paneSize.length > 0) {
-      setSplitterPosition(`${args.paneSize[0]}px`);
-    }
-  };
 
   // Handle database persistence for Syncfusion native operations
   const handleActionComplete = async (args: any) => {
@@ -350,10 +341,9 @@ function GanttChart({ projectId }: GanttChartProps) {
     leftLabel: 'taskName'
   };
 
-  // Dynamic splitter settings - allow Syncfusion to manage position
+  // Let Syncfusion handle splitter settings with minimal configuration
   const splitterSettings = {
     columnIndex: 1
-    // Removed hardcoded position to allow dynamic resizing
   };
 
   const projectStartDate = tasks.length > 0 
@@ -410,7 +400,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         allowRowDragAndDrop={true}
         gridLines="Both"
         actionComplete={handleActionComplete}
-        splitterResized={handleSplitterResized}
       >
         <ColumnsDirective>
           <ColumnDirective field='taskID' headerText='ID' width={80} visible={true} isPrimaryKey={true} />
