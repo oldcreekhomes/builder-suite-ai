@@ -172,7 +172,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       progress: syncTask.progress || 0,
       assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
-      parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
+      parent_id: syncTask.parentID ? syncTask.parentID.toString() : null, // Store numeric ID as string
     };
 
     const { error } = await supabase
@@ -219,11 +219,11 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw new Error('Invalid date values provided');
       }
 
-      // Handle parent_id - convert from numeric ID to UUID if provided
-      let parentUuid = null;
+      // Handle parent_id - store numeric ID directly as string
+      let parentId = null;
       if (syncTask.parentID && syncTask.parentID !== null && syncTask.parentID !== undefined) {
-        parentUuid = idMapper.current.getUuid(syncTask.parentID);
-        console.log('Parent ID conversion:', syncTask.parentID, '->', parentUuid);
+        parentId = syncTask.parentID.toString();
+        console.log('Parent ID for storage:', syncTask.parentID, '->', parentId);
       }
 
       // Handle assigned_to field
@@ -251,7 +251,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         progress: Math.max(0, Math.min(100, syncTask.progress || 0)), // Ensure progress is between 0-100
         assigned_to: assignedTo,
         predecessor: predecessor,
-        parent_id: parentUuid,
+        parent_id: parentId,
         order_index: syncTask.taskID || 0,
       };
 
@@ -300,7 +300,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       if (!uuid) continue;
 
       const updateData = {
-        parent_id: task.parentID ? idMapper.current.getUuid(task.parentID) : null,
+        parent_id: task.parentID ? task.parentID.toString() : null, // Store numeric ID as string
       };
 
       const { error } = await supabase
