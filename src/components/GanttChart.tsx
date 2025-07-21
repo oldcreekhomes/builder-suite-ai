@@ -157,10 +157,52 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const handleTaskUpdate = async (syncTask: any) => {
+    console.log('=== Starting handleTaskUpdate ===');
+    console.log('Raw syncTask data:', JSON.stringify(syncTask, null, 2));
+    
     const uuid = idMapper.current.getUuid(syncTask.taskID);
     if (!uuid) {
       console.error('No UUID found for task ID:', syncTask.taskID);
       return;
+    }
+
+    // Enhanced resource debugging
+    console.log('=== RESOURCE DEBUGGING (UPDATE) ===');
+    console.log('syncTask.resourceInfo:', syncTask.resourceInfo);
+    console.log('Type of resourceInfo:', typeof syncTask.resourceInfo);
+    console.log('Is Array:', Array.isArray(syncTask.resourceInfo));
+    
+    if (syncTask.resourceInfo) {
+      console.log('resourceInfo length:', syncTask.resourceInfo.length);
+      syncTask.resourceInfo.forEach((resource: any, index: number) => {
+        console.log(`Resource ${index}:`, JSON.stringify(resource, null, 2));
+        console.log(`Resource ${index} keys:`, Object.keys(resource || {}));
+      });
+    }
+
+    // Process resource assignment with proper validation
+    let assignedTo = null;
+    if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
+      console.log('Processing resource assignment...');
+      
+      // Try different possible structures for resourceInfo
+      const resourceIds = syncTask.resourceInfo.map((resource: any) => {
+        // Check common possible property names
+        const resourceId = resource.resourceId || resource.id || resource.resource_id || resource.resourceUID;
+        console.log('Extracted resourceId:', resourceId, 'from resource:', resource);
+        return resourceId;
+      }).filter(id => id !== undefined && id !== null);
+
+      console.log('Filtered resourceIds:', resourceIds);
+      
+      if (resourceIds.length > 0) {
+        assignedTo = resourceIds.join(',');
+        console.log('Final assigned_to value:', assignedTo);
+      } else {
+        console.warn('No valid resource IDs found in resourceInfo');
+      }
+    } else {
+      console.log('No resourceInfo or empty resourceInfo');
     }
 
     const updateData = {
@@ -169,18 +211,25 @@ function GanttChart({ projectId }: GanttChartProps) {
       end_date: new Date(syncTask.endDate).toISOString(),
       duration: syncTask.duration || 1,
       progress: syncTask.progress || 0,
-      assigned_to: syncTask.resourceInfo?.map((r: any) => r.resourceId).join(',') || null,
+      assigned_to: assignedTo,
       predecessor: Array.isArray(syncTask.dependency) ? syncTask.dependency.join(',') : (syncTask.dependency || ''),
       parent_id: syncTask.parentID ? idMapper.current.getUuid(syncTask.parentID) : null,
     };
+
+    console.log('Update data being sent to database:', JSON.stringify(updateData, null, 2));
 
     const { error } = await supabase
       .from('project_schedule_tasks')
       .update(updateData)
       .eq('id', uuid);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database update error:', error);
+      throw error;
+    }
+    
     console.log('Task updated successfully:', uuid);
+    console.log('=== END handleTaskUpdate ===');
   };
 
   const handleTaskAdd = async (syncTask: any) => {
@@ -193,6 +242,20 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw new Error('Task name is required');
       }
 
+      // Enhanced resource debugging for new tasks
+      console.log('=== RESOURCE DEBUGGING (ADD) ===');
+      console.log('syncTask.resourceInfo:', syncTask.resourceInfo);
+      console.log('Type of resourceInfo:', typeof syncTask.resourceInfo);
+      console.log('Is Array:', Array.isArray(syncTask.resourceInfo));
+      
+      if (syncTask.resourceInfo) {
+        console.log('resourceInfo length:', syncTask.resourceInfo.length);
+        syncTask.resourceInfo.forEach((resource: any, index: number) => {
+          console.log(`Resource ${index}:`, JSON.stringify(resource, null, 2));
+          console.log(`Resource ${index} keys:`, Object.keys(resource || {}));
+        });
+      }
+
       // Handle dates with proper validation
       let startDate: Date;
       let endDate: Date;
@@ -200,38 +263,52 @@ function GanttChart({ projectId }: GanttChartProps) {
       if (syncTask.startDate) {
         startDate = new Date(syncTask.startDate);
       } else {
-        // Default to today if no start date provided
         startDate = new Date();
       }
 
       if (syncTask.endDate) {
         endDate = new Date(syncTask.endDate);
       } else {
-        // Calculate end date based on duration or default to start date + 1 day
         endDate = new Date(startDate);
         const duration = syncTask.duration || 1;
         endDate.setDate(startDate.getDate() + duration);
       }
 
-      // Validate dates
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         throw new Error('Invalid date values provided');
       }
 
-      // Handle parent_id - convert from numeric ID to UUID if provided
       let parentUuid = null;
       if (syncTask.parentID && syncTask.parentID !== null && syncTask.parentID !== undefined) {
         parentUuid = idMapper.current.getUuid(syncTask.parentID);
         console.log('Parent ID conversion:', syncTask.parentID, '->', parentUuid);
       }
 
-      // Handle assigned_to field
+      // Process resource assignment with enhanced validation
       let assignedTo = null;
       if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
-        assignedTo = syncTask.resourceInfo.map((r: any) => r.resourceId).join(',');
+        console.log('Processing resource assignment for new task...');
+        
+        // Try different possible structures for resourceInfo
+        const resourceIds = syncTask.resourceInfo.map((resource: any) => {
+          // Check common possible property names
+          const resourceId = resource.resourceId || resource.id || resource.resource_id || resource.resourceUID;
+          console.log('Extracted resourceId:', resourceId, 'from resource:', resource);
+          return resourceId;
+        }).filter(id => id !== undefined && id !== null);
+
+        console.log('Filtered resourceIds:', resourceIds);
+        
+        if (resourceIds.length > 0) {
+          assignedTo = resourceIds.join(',');
+          console.log('Final assigned_to value for new task:', assignedTo);
+        } else {
+          console.warn('No valid resource IDs found in resourceInfo for new task');
+        }
+      } else {
+        console.log('No resourceInfo or empty resourceInfo for new task');
       }
 
-      // Handle predecessor field - ensure it's a string
       let predecessor = '';
       if (syncTask.dependency) {
         if (Array.isArray(syncTask.dependency)) {
@@ -246,15 +323,15 @@ function GanttChart({ projectId }: GanttChartProps) {
         task_name: syncTask.taskName.trim(),
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        duration: Math.max(1, syncTask.duration || 1), // Ensure minimum duration of 1
-        progress: Math.max(0, Math.min(100, syncTask.progress || 0)), // Ensure progress is between 0-100
+        duration: Math.max(1, syncTask.duration || 1),
+        progress: Math.max(0, Math.min(100, syncTask.progress || 0)),
         assigned_to: assignedTo,
         predecessor: predecessor,
         parent_id: parentUuid,
         order_index: syncTask.taskID || 0,
       };
 
-      console.log('Final insert data:', JSON.stringify(insertData, null, 2));
+      console.log('Insert data being sent to database:', JSON.stringify(insertData, null, 2));
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')
@@ -267,6 +344,7 @@ function GanttChart({ projectId }: GanttChartProps) {
       }
 
       console.log('Task added successfully:', data);
+      console.log('=== END handleTaskAdd ===');
       
     } catch (error) {
       console.error('Error in handleTaskAdd:', error);
