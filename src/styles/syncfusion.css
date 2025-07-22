@@ -1,0 +1,30 @@
+
+/* Syncfusion styles - ONLY imported in ProjectSchedule component */
+/* This file contains all Syncfusion imports and custom overrides */
+/* DO NOT import this file in any other component */
+
+/* Syncfusion theme imports will go here when we add Syncfusion components */
+/* Example: @import '@syncfusion/ej2-base/styles/material.css'; */
+
+/* Custom overrides for Syncfusion components can be added below */
+/* These styles are scoped to .syncfusion-schedule-container */
+
+.syncfusion-schedule-container {
+  /* Container for all Syncfusion components to prevent style leakage */
+  isolation: isolate;
+}
+
+.syncfusion-schedule-container .e-schedule {
+  /* Custom styling for Syncfusion scheduler if needed */
+  font-family: inherit;
+}
+
+.syncfusion-schedule-container .e-gantt {
+  /* Custom styling for Syncfusion Gantt if needed */
+  font-family: inherit;
+}
+
+/* Prevent Syncfusion styles from affecting Tailwind components */
+.syncfusion-schedule-container * {
+  box-sizing: border-box;
+}

@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +8,10 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Import Syncfusion styles ONLY for this component
+import "../styles/syncfusion.css";
+import styles from "../styles/ProjectSchedule.module.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -81,11 +86,18 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Content area - ready for new components */}
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Ready to build your schedule</p>
-              <p className="text-sm">Start adding tasks, milestones, and timeline features</p>
+            {/* Syncfusion content area with proper style isolation */}
+            <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
+              <div className={styles.syncfusionWrapper}>
+                <div className={styles.contentArea}>
+                  {/* Placeholder content - ready for Syncfusion components */}
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">Ready for Syncfusion Schedule</p>
+                    <p className="text-sm">Syncfusion components will be isolated to this container</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </main>

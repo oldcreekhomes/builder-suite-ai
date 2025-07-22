@@ -1,0 +1,30 @@
+
+/* CSS Module for ProjectSchedule component */
+/* Provides additional style isolation using CSS Modules */
+
+.scheduleContainer {
+  /* Main container for the schedule content */
+  min-height: 500px;
+  width: 100%;
+}
+
+.syncfusionWrapper {
+  /* Wrapper specifically for Syncfusion components */
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.contentArea {
+  /* Content area that will house Syncfusion components */
+  padding: 0;
+  margin: 0;
+}
+
+/* Ensure no conflicts with existing Tailwind styles */
+.scheduleContainer :global(.e-schedule),
+.scheduleContainer :global(.e-gantt) {
+  border: none !important;
+}
