@@ -75,6 +75,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
       console.log('Deleting task:', args.data);
+    } else if (args.requestType === 'columnResizing') {
+      console.log('Column resizing:', args);
     }
   };
 
@@ -114,6 +116,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
+  const handleResizeStart = (args: any) => {
+    console.log('Resize start:', args);
+  };
+
+  const handleResizing = (args: any) => {
+    console.log('Resizing:', args);
+  };
+
+  const handleResizeStop = (args: any) => {
+    console.log('Resize stop:', args);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -148,6 +162,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         projectEndDate={projectEndDate}
         actionBegin={handleActionBegin}
         actionComplete={handleActionComplete}
+        resizeStart={handleResizeStart}
+        resizing={handleResizing}
+        resizeStop={handleResizeStop}
         allowSelection={true}
         allowResizing={true}
         gridLines="Both"
