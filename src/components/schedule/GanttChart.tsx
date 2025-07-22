@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
@@ -57,20 +56,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit'
-  ];
-
-  const contextMenuItems: string[] = [
-    'TaskInformation',
-    'NewTask',
-    'Above',
-    'Below',
-    'Indent',
-    'Outdent',
-    'DeleteTask',
-    'Save',
-    'Cancel',
-    'ExpandAll',
-    'CollapseAll'
   ];
 
   const splitterSettings = {
@@ -132,54 +117,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleContextMenuClick = (args: any) => {
     console.log('Context menu clicked:', args.item.text, args);
-    
-    if (args.item.text === 'Above' || args.item.text === 'Add Row Above') {
-      console.log('Adding new task above');
-      const gantt = ganttRef.current;
-      if (gantt && args.rowData) {
-        const selectedOrderIndex = args.rowData.OrderIndex || 0;
-        
-        // Create a new task above the selected task
-        createTask.mutate({
-          project_id: projectId,
-          task_name: 'New Task',
-          start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 86400000).toISOString(),
-          duration: 1,
-          progress: 0,
-          predecessor: null,
-          resources: null,
-          parent_id: args.rowData.ParentID || null,
-          order_index: selectedOrderIndex,
-        });
-      }
-    } else if (args.item.text === 'Below' || args.item.text === 'Add Row Below') {
-      console.log('Adding new task below');
-      const gantt = ganttRef.current;
-      if (gantt && args.rowData) {
-        const selectedOrderIndex = args.rowData.OrderIndex || 0;
-        
-        // Create a new task below the selected task
-        createTask.mutate({
-          project_id: projectId,
-          task_name: 'New Task',
-          start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 86400000).toISOString(),
-          duration: 1,
-          progress: 0,
-          predecessor: null,
-          resources: null,
-          parent_id: args.rowData.ParentID || null,
-          order_index: selectedOrderIndex + 1,
-        });
-      }
-    } else if (args.item.text === 'NewTask') {
-      console.log('Adding new task via context menu');
-    } else if (args.item.text === 'DeleteTask') {
-      console.log('Deleting task via context menu');
-    } else if (args.item.text === 'TaskInformation') {
-      console.log('Opening task information dialog');
-    }
+    // Let Syncfusion handle native context menu operations
+    // The 'Add Row Above' and 'Add Row Below' will be handled automatically
   };
 
   const handleResizeStart = (args: any) => {
@@ -231,7 +170,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         editSettings={editSettings}
         toolbar={toolbarOptions}
         enableContextMenu={true}
-        contextMenuItems={contextMenuItems as any}
         contextMenuClick={handleContextMenuClick}
         splitterSettings={splitterSettings}
         height="600px"
