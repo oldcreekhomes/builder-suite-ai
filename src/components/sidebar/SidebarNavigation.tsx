@@ -1,4 +1,3 @@
-
 import { useLocation } from "react-router-dom";
 
 import { 
@@ -8,7 +7,8 @@ import {
   File,
   Image,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Clock
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -65,6 +65,12 @@ const navigationItems = [
     title: "Bidding",
     url: "/bidding",
     icon: FileText,
+    enabled: true,
+  },
+  {
+    title: "Schedule",
+    url: "/schedule",
+    icon: Clock,
     enabled: true,
   },
 ];
@@ -153,3 +159,5 @@ export function SidebarNavigation() {
     </TooltipProvider>
   );
   }
+
+</initial_code>
