@@ -89,27 +89,34 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Enhanced event handler for adding tasks with intelligent context detection
+  // Comprehensive event handler for ALL task addition scenarios
   const actionBegin = (args: any) => {
     console.log('=== DEBUG: actionBegin triggered ===');
     console.log('Action requestType:', args.requestType);
+    console.log('Action data:', args.data);
     
-    if (args.requestType === 'beforeOpenAddDialog') {
-      // Cancel the default dialog - we'll handle task creation manually
+    // Handle ALL possible add scenarios
+    if (args.requestType === 'beforeOpenAddDialog' || 
+        args.requestType === 'beforeAdd' || 
+        args.requestType === 'add') {
+      
+      console.log('DEBUG: Task addition detected, canceling default behavior');
+      
+      // Cancel ANY default add dialog or behavior - we'll handle it manually
       args.cancel = true;
       
-      // Use intelligent context detection
+      // Use intelligent context detection for proper placement
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
       const addContext = determineAddContext(selectedTask, currentData);
       
       console.log('DEBUG: Add context determined:', addContext);
       
-      // Create and add the new task
+      // Create and add the new task with proper hierarchical ID
       handleAddTask(addContext.type, addContext.parentId);
     }
   };
 
-  // Manual task addition with explicit context
+  // Manual task addition with explicit context and immediate ID regeneration
   const handleAddTask = (type: 'root' | 'child' | 'sibling', explicitParentId?: string) => {
     console.log('=== DEBUG: handleAddTask triggered ===');
     console.log('Add type:', type, 'Parent ID:', explicitParentId);
@@ -156,56 +163,57 @@ export default function ProjectSchedule() {
     // Add the task to the Gantt chart
     ganttInstance.addRecord(newTask);
     
-    // Force regeneration of hierarchical IDs to ensure proper sequencing
+    // IMMEDIATELY regenerate ALL hierarchical IDs to ensure proper order
     setTimeout(() => {
-      console.log('DEBUG: Post-add ID regeneration started');
-      const updatedData = ganttInstance.currentViewData;
-      if (updatedData && updatedData.length > 0) {
-        const regeneratedData = regenerateHierarchicalIds(updatedData);
-        ganttInstance.dataSource = regeneratedData;
-        ganttInstance.refresh();
-        console.log('DEBUG: Post-add ID regeneration completed');
-      }
-    }, 100);
+      console.log('DEBUG: IMMEDIATE post-add ID regeneration started');
+      forceCompleteIdRegeneration();
+    }, 50);
   };
 
-  // Enhanced event handler for completed actions (including row reordering and new task additions)
+  // Force complete regeneration of all hierarchical IDs
+  const forceCompleteIdRegeneration = () => {
+    if (!ganttRef.current) return;
+    
+    console.log('=== DEBUG: forceCompleteIdRegeneration START ===');
+    const ganttInstance = ganttRef.current as any;
+    const currentData = ganttInstance.currentViewData || ganttInstance.dataSource;
+    
+    if (currentData && currentData.length > 0) {
+      console.log('DEBUG: Current data length before regeneration:', currentData.length);
+      
+      // Regenerate ALL hierarchical IDs from scratch
+      const regeneratedData = regenerateHierarchicalIds(currentData);
+      
+      console.log('DEBUG: Regenerated data length:', regeneratedData.length);
+      console.log('DEBUG: Sample regenerated IDs:', regeneratedData.slice(0, 5).map(t => ({ id: t.TaskID, name: t.TaskName })));
+      
+      // Update the data source with properly ordered hierarchical IDs
+      ganttInstance.dataSource = regeneratedData;
+      ganttInstance.refresh();
+      
+      console.log('DEBUG: Gantt chart refreshed with new hierarchical IDs');
+    }
+    console.log('=== DEBUG: forceCompleteIdRegeneration END ===');
+  };
+
+  // Enhanced event handler for completed actions - catch ALL completion scenarios
   const actionComplete = (args: any) => {
     console.log('=== DEBUG: actionComplete triggered ===');
     console.log('Action requestType:', args.requestType);
     
-    if (args.requestType === 'rowDropped' || args.requestType === 'rowdrop') {
-      console.log('DEBUG: Row reordering detected, regenerating hierarchical IDs');
+    // Handle ALL scenarios that might result in data changes requiring ID regeneration
+    if (args.requestType === 'rowDropped' || 
+        args.requestType === 'rowdrop' ||
+        args.requestType === 'delete' ||
+        args.requestType === 'save' ||
+        args.requestType === 'add') {
       
-      if (ganttRef.current) {
-        const ganttInstance = ganttRef.current as any;
-        const currentData = ganttInstance.currentViewData;
-        
-        // Regenerate hierarchical IDs based on new order
-        const updatedData = regenerateHierarchicalIds(currentData);
-        
-        // Update the data source with new hierarchical structure
-        if (updatedData && updatedData.length > 0) {
-          ganttInstance.dataSource = updatedData;
-          ganttInstance.refresh();
-          console.log('DEBUG: Hierarchical IDs regenerated after reordering');
-        }
-      }
-    } else if (args.requestType === 'delete') {
-      console.log('DEBUG: Task deletion detected, regenerating hierarchical IDs');
+      console.log('DEBUG: Data-changing action completed, forcing ID regeneration');
       
-      if (ganttRef.current) {
-        const ganttInstance = ganttRef.current as any;
-        const currentData = ganttInstance.currentViewData;
-        
-        // Regenerate hierarchical IDs after deletion
-        if (currentData && currentData.length > 0) {
-          const updatedData = regenerateHierarchicalIds(currentData);
-          ganttInstance.dataSource = updatedData;
-          ganttInstance.refresh();
-          console.log('DEBUG: Hierarchical IDs regenerated after deletion');
-        }
-      }
+      // Force immediate hierarchical ID regeneration for ANY data change
+      setTimeout(() => {
+        forceCompleteIdRegeneration();
+      }, 100);
     }
   };
 
@@ -223,7 +231,7 @@ export default function ProjectSchedule() {
     }
   };
 
-  // Updated toolbar options
+  // Updated toolbar options - keeping Add for now but it will be intercepted
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PdfExport'
@@ -307,7 +315,7 @@ export default function ProjectSchedule() {
               )}
             </div>
 
-            {/* Enhanced Syncfusion Gantt Chart with improved hierarchical ID management */}
+            {/* Enhanced Syncfusion Gantt Chart with comprehensive ID management */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
