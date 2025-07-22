@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { generateHierarchicalIds, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
 
 interface GanttChartProps {
   projectId: string;
@@ -12,19 +13,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
 
-  // Transform tasks for Syncfusion Gantt format
-  const ganttData = tasks.map((task: ProjectTask) => ({
-    TaskID: task.id,
-    TaskName: task.task_name,
-    StartDate: new Date(task.start_date),
-    EndDate: new Date(task.end_date),
-    Duration: task.duration,
-    Progress: task.progress,
-    Predecessor: task.predecessor,
-    Resources: task.resources,
-    ParentID: task.parent_id,
-    OrderIndex: task.order_index,
-  }));
+  // Transform tasks with hierarchical IDs
+  const ganttData = useMemo(() => {
+    return generateHierarchicalIds(tasks);
+  }, [tasks]);
 
   const taskFields = {
     id: 'TaskID',
@@ -77,6 +69,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
+      const parentOriginalId = taskData.ParentID ? findOriginalTaskId(taskData.ParentID, ganttData) : null;
+      
       createTask.mutate({
         project_id: projectId,
         task_name: taskData.TaskName || 'New Task',
@@ -84,27 +78,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
         duration: taskData.Duration || 1,
         progress: taskData.Progress || 0,
-        predecessor: taskData.Predecessor || null,
+        predecessor: null, // Will be handled separately
         resources: taskData.Resources || null,
-        parent_id: taskData.ParentID || null,
-        order_index: taskData.OrderIndex || tasks.length,
+        parent_id: parentOriginalId,
+        order_index: tasks.length,
       });
     } else if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
-      updateTask.mutate({
-        id: taskData.TaskID,
-        task_name: taskData.TaskName,
-        start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
-        end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-        duration: taskData.Duration,
-        progress: taskData.Progress,
-        predecessor: taskData.Predecessor,
-        resources: taskData.Resources,
-        parent_id: taskData.ParentID,
-        order_index: taskData.OrderIndex,
-      });
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      const parentOriginalId = taskData.ParentID ? findOriginalTaskId(taskData.ParentID, ganttData) : null;
+      
+      if (originalTaskId) {
+        // Transform predecessor back to original UUIDs for database storage
+        let predecessorUUIDs = null;
+        if (taskData.Predecessor && taskData.Predecessor.trim()) {
+          const hierarchicalPreds = taskData.Predecessor.split(',').map((p: string) => p.trim());
+          const uuidPreds = hierarchicalPreds.map((pred: string) => findOriginalTaskId(pred, ganttData)).filter(Boolean);
+          predecessorUUIDs = uuidPreds.length > 0 ? uuidPreds.join(',') : null;
+        }
+        
+        updateTask.mutate({
+          id: originalTaskId,
+          task_name: taskData.TaskName,
+          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
+          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
+          duration: taskData.Duration,
+          progress: taskData.Progress,
+          predecessor: predecessorUUIDs,
+          resources: taskData.Resources,
+          parent_id: parentOriginalId,
+          order_index: taskData.OrderIndex,
+        });
+      }
     } else if (args.requestType === 'delete' && args.data) {
-      deleteTask.mutate(args.data[0].TaskID);
+      const taskData = args.data[0];
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      if (originalTaskId) {
+        deleteTask.mutate(originalTaskId);
+      }
     }
   };
 
