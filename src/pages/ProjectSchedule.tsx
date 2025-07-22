@@ -36,6 +36,10 @@ export default function ProjectSchedule() {
   // NEW: Flag to prevent infinite loop when we programmatically add tasks
   const [isAddingTask, setIsAddingTask] = useState(false);
 
+  // NEW: Debouncing for regeneration to prevent multiple rapid calls
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const regenerationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -180,20 +184,41 @@ export default function ProjectSchedule() {
     setTimeout(() => {
       setIsAddingTask(false);
       console.log('DEBUG: isAddingTask flag cleared');
-    }, 100);
+    }, 20); // REDUCED from 100ms to 20ms
     
     // IMMEDIATELY regenerate ALL hierarchical IDs to ensure proper order
     setTimeout(() => {
       console.log('DEBUG: IMMEDIATE post-add ID regeneration started');
-      forceCompleteIdRegeneration();
-    }, 150);
+      debouncedForceCompleteIdRegeneration();
+    }, 50); // REDUCED from 150ms to 50ms
   };
 
-  // Force complete regeneration of all hierarchical IDs
-  const forceCompleteIdRegeneration = () => {
-    if (!ganttRef.current) return;
+  // NEW: Debounced version of forceCompleteIdRegeneration
+  const debouncedForceCompleteIdRegeneration = () => {
+    // Clear any existing timeout to prevent multiple rapid calls
+    if (regenerationTimeoutRef.current) {
+      clearTimeout(regenerationTimeoutRef.current);
+    }
     
+    // Skip if already regenerating
+    if (isRegenerating) {
+      console.log('DEBUG: Already regenerating, skipping duplicate call');
+      return;
+    }
+    
+    // Set timeout for actual regeneration
+    regenerationTimeoutRef.current = setTimeout(() => {
+      forceCompleteIdRegeneration();
+    }, 10); // VERY short delay to batch multiple calls
+  };
+
+  // IMPROVED: Force complete regeneration of all hierarchical IDs with performance optimizations
+  const forceCompleteIdRegeneration = () => {
+    if (!ganttRef.current || isRegenerating) return;
+    
+    setIsRegenerating(true);
     console.log('=== DEBUG: forceCompleteIdRegeneration START ===');
+    
     const ganttInstance = ganttRef.current as any;
     const currentData = ganttInstance.currentViewData || ganttInstance.dataSource;
     
@@ -206,11 +231,18 @@ export default function ProjectSchedule() {
       console.log('DEBUG: Regenerated data length:', regeneratedData.length);
       console.log('DEBUG: Sample regenerated IDs:', regeneratedData.slice(0, 5).map(t => ({ id: t.TaskID, name: t.TaskName })));
       
-      // Update the data source with properly ordered hierarchical IDs
+      // TRY: Update data source directly first (faster than refresh)
       ganttInstance.dataSource = regeneratedData;
-      ganttInstance.refresh();
       
-      console.log('DEBUG: Gantt chart refreshed with new hierarchical IDs');
+      // MINIMAL delay before allowing next regeneration
+      setTimeout(() => {
+        setIsRegenerating(false);
+        console.log('DEBUG: Regeneration flag cleared');
+      }, 10);
+      
+      console.log('DEBUG: Gantt chart data updated with new hierarchical IDs');
+    } else {
+      setIsRegenerating(false);
     }
     console.log('=== DEBUG: forceCompleteIdRegeneration END ===');
   };
@@ -230,10 +262,10 @@ export default function ProjectSchedule() {
       
       console.log('DEBUG: Data-changing action completed, forcing ID regeneration');
       
-      // Force immediate hierarchical ID regeneration for ANY data change
+      // Use debounced regeneration with minimal delay
       setTimeout(() => {
-        forceCompleteIdRegeneration();
-      }, 100);
+        debouncedForceCompleteIdRegeneration();
+      }, 20); // REDUCED from 100ms to 20ms
     }
   };
 
@@ -335,7 +367,7 @@ export default function ProjectSchedule() {
               )}
             </div>
 
-            {/* Enhanced Syncfusion Gantt Chart with comprehensive ID management */}
+            {/* Enhanced Syncfusion Gantt Chart with optimized ID management */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
