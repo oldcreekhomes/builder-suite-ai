@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { registerLicense } from '@syncfusion/ej2-base';
@@ -58,6 +58,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PrevTimeSpan', 'NextTimeSpan'
   ];
+
+  const columnMenuItems = ['SortAscending', 'SortDescending', 'AutoFit', 'AutoFitAll', 'ColumnChooser'];
 
   const splitterSettings = {
     columnIndex: 3
@@ -128,6 +130,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Resize stop:', args);
   };
 
+  const handleColumnMenuOpen = (args: any) => {
+    console.log('Column menu opened:', args);
+  };
+
+  const handleColumnMenuClick = (args: any) => {
+    console.log('Column menu clicked:', args);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -167,6 +177,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         resizeStop={handleResizeStop}
         allowSelection={true}
         allowResizing={true}
+        showColumnMenu={true}
+        columnMenuItems={columnMenuItems}
+        columnMenuOpen={handleColumnMenuOpen}
+        columnMenuClick={handleColumnMenuClick}
         gridLines="Both"
         timelineSettings={{
           timelineUnitSize: 60,
@@ -190,7 +204,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
           <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
         </ColumnsDirective>
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu]} />
       </GanttComponent>
     </div>
   );
