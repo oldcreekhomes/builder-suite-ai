@@ -150,7 +150,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         actionComplete={handleActionComplete}
         allowSelection={true}
         allowResizing={true}
-        allowAutoFit={true}
         gridLines="Both"
         timelineSettings={{
           timelineUnitSize: 60,
