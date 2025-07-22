@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Syncfusion Gantt imports
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD } from '@syncfusion/ej2-react-gantt';
 
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
@@ -142,7 +141,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with proper style isolation */}
+            {/* Syncfusion Gantt Chart with row drag and drop enabled */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -156,6 +155,7 @@ export default function ProjectSchedule() {
                     allowFiltering={true}
                     allowExcelExport={true}
                     allowPdfExport={true}
+                    allowRowDragAndDrop={true}
                     showColumnMenu={true}
                     highlightWeekends={true}
                     toolbar={toolbarOptions}
@@ -175,7 +175,7 @@ export default function ProjectSchedule() {
                       <ColumnDirective field='Progress' headerText='Progress' width='100' />
                       <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
                     </ColumnsDirective>
-                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport]} />
+                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD]} />
                   </GanttComponent>
                 </div>
               </div>
