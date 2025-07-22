@@ -18,7 +18,7 @@ import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
 import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
 import { GanttAddTaskButtons } from "@/components/GanttAddTaskButtons";
-import { generateHierarchicalIds, getNextHierarchicalId, determineAddContext, regenerateHierarchicalIds, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
+import { generateHierarchicalIds, getNextHierarchicalId, regenerateHierarchicalIds, determineAddContext, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -33,7 +33,7 @@ export default function ProjectSchedule() {
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Flag to prevent infinite loop when we programmatically add tasks
+  // NEW: Flag to prevent infinite loop when we programmatically add tasks
   const [isAddingTask, setIsAddingTask] = useState(false);
 
   // Fetch project data to get the address
@@ -92,10 +92,16 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Optimized event handler to prevent infinite loops
+  // Enhanced event handler to prevent infinite loops
   const actionBegin = (args: any) => {
+    console.log('=== DEBUG: actionBegin triggered ===');
+    console.log('Action requestType:', args.requestType);
+    console.log('Action data:', args.data);
+    console.log('isAddingTask flag:', isAddingTask);
+    
     // CRITICAL: Only intercept if we're NOT already in the middle of adding a task programmatically
     if (isAddingTask) {
+      console.log('DEBUG: Already adding task programmatically, allowing action to proceed');
       return; // Let the programmatic addition proceed normally
     }
     
@@ -104,6 +110,8 @@ export default function ProjectSchedule() {
         args.requestType === 'beforeAdd' || 
         args.requestType === 'add') {
       
+      console.log('DEBUG: User-initiated task addition detected, canceling default behavior');
+      
       // Cancel user-initiated add dialog or behavior - we'll handle it manually
       args.cancel = true;
       
@@ -111,13 +119,18 @@ export default function ProjectSchedule() {
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
       const addContext = determineAddContext(selectedTask, currentData);
       
+      console.log('DEBUG: Add context determined:', addContext);
+      
       // Create and add the new task with proper hierarchical ID
       handleAddTask(addContext.type, addContext.parentId);
     }
   };
 
-  // Manual task addition with proper hierarchical ID management
+  // Manual task addition with explicit context and immediate ID regeneration
   const handleAddTask = (type: 'root' | 'child' | 'sibling', explicitParentId?: string) => {
+    console.log('=== DEBUG: handleAddTask triggered ===');
+    console.log('Add type:', type, 'Parent ID:', explicitParentId);
+    
     if (!ganttRef.current) return;
     
     // Set flag to prevent re-entry
@@ -141,8 +154,11 @@ export default function ProjectSchedule() {
         break;
     }
     
+    console.log('DEBUG: Final parent ID for new task:', parentId);
+    
     // Generate the next hierarchical ID
     const nextId = getNextHierarchicalId(currentData, parentId);
+    console.log('DEBUG: Generated next ID:', nextId);
     
     // Create new task with proper hierarchical ID and default values
     const newTask = {
@@ -155,49 +171,83 @@ export default function ProjectSchedule() {
       Resources: [1] // Default to Project Manager
     };
     
-    // Add the task to the Gantt chart
+    console.log('DEBUG: Creating new task:', newTask);
+    
+    // Add the task to the Gantt chart (this will NOT trigger actionBegin due to our flag)
     ganttInstance.addRecord(newTask);
     
-    // Regenerate hierarchical IDs after a brief delay to ensure Gantt has processed the addition
+    // Clear the flag after a brief delay to allow the addition to complete
     setTimeout(() => {
-      const currentFullData = ganttInstance.dataSource || ganttInstance.currentViewData;
-      const reorderedData = regenerateHierarchicalIds(currentFullData);
-      ganttInstance.dataSource = reorderedData;
-      
-      // Clear the flag after regeneration
       setIsAddingTask(false);
+      console.log('DEBUG: isAddingTask flag cleared');
     }, 100);
+    
+    // IMMEDIATELY regenerate ALL hierarchical IDs to ensure proper order
+    setTimeout(() => {
+      console.log('DEBUG: IMMEDIATE post-add ID regeneration started');
+      forceCompleteIdRegeneration();
+    }, 150);
   };
 
-  // Event handler for completed actions
+  // Force complete regeneration of all hierarchical IDs
+  const forceCompleteIdRegeneration = () => {
+    if (!ganttRef.current) return;
+    
+    console.log('=== DEBUG: forceCompleteIdRegeneration START ===');
+    const ganttInstance = ganttRef.current as any;
+    const currentData = ganttInstance.currentViewData || ganttInstance.dataSource;
+    
+    if (currentData && currentData.length > 0) {
+      console.log('DEBUG: Current data length before regeneration:', currentData.length);
+      
+      // Regenerate ALL hierarchical IDs from scratch
+      const regeneratedData = regenerateHierarchicalIds(currentData);
+      
+      console.log('DEBUG: Regenerated data length:', regeneratedData.length);
+      console.log('DEBUG: Sample regenerated IDs:', regeneratedData.slice(0, 5).map(t => ({ id: t.TaskID, name: t.TaskName })));
+      
+      // Update the data source with properly ordered hierarchical IDs
+      ganttInstance.dataSource = regeneratedData;
+      ganttInstance.refresh();
+      
+      console.log('DEBUG: Gantt chart refreshed with new hierarchical IDs');
+    }
+    console.log('=== DEBUG: forceCompleteIdRegeneration END ===');
+  };
+
+  // Enhanced event handler for completed actions - catch ALL completion scenarios
   const actionComplete = (args: any) => {
-    // Handle scenarios that might result in data changes requiring ID regeneration
+    console.log('=== DEBUG: actionComplete triggered ===');
+    console.log('Action requestType:', args.requestType);
+    console.log('isAddingTask flag:', isAddingTask);
+    
+    // Handle ALL scenarios that might result in data changes requiring ID regeneration
     if (args.requestType === 'rowDropped' || 
         args.requestType === 'rowdrop' ||
         args.requestType === 'delete' ||
-        args.requestType === 'save') {
+        args.requestType === 'save' ||
+        args.requestType === 'add') {
       
-      // Only regenerate if not already adding (to avoid conflicts)
-      if (!isAddingTask && ganttRef.current) {
-        const ganttInstance = ganttRef.current as any;
-        
-        // Regenerate hierarchical IDs after a brief delay to ensure Gantt has processed the change
-        setTimeout(() => {
-          const currentData = ganttInstance.dataSource || ganttInstance.currentViewData;
-          const reorderedData = regenerateHierarchicalIds(currentData);
-          ganttInstance.dataSource = reorderedData;
-        }, 100);
-      }
+      console.log('DEBUG: Data-changing action completed, forcing ID regeneration');
+      
+      // Force immediate hierarchical ID regeneration for ANY data change
+      setTimeout(() => {
+        forceCompleteIdRegeneration();
+      }, 100);
     }
   };
 
   // Selection change handler to track selected task
   const onSelectionChange = (args: any) => {
+    console.log('=== DEBUG: Selection changed ===');
+    
     if (args.data && args.data.length > 0) {
       const selected = args.data[0];
       setSelectedTask(selected);
+      console.log('DEBUG: Selected task:', selected.TaskID, selected.TaskName);
     } else {
       setSelectedTask(null);
+      console.log('DEBUG: No task selected');
     }
   };
 
@@ -285,7 +335,7 @@ export default function ProjectSchedule() {
               )}
             </div>
 
-            {/* Optimized Syncfusion Gantt Chart with fast ID management */}
+            {/* Enhanced Syncfusion Gantt Chart with comprehensive ID management */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
