@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
-import { registerLicense } from '@syncfusion/ej2-base';
 
 interface GanttChartProps {
   projectId: string;
@@ -12,12 +11,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttRef = useRef<GanttComponent>(null);
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
-
-  useEffect(() => {
-    // Register Syncfusion license
-    const licenseKey = 'Ngo9BigBOggjHTQxAR8/V1NDaF1cWWhIfEx1RHxQdld5ZFRHallYTnNWUj0eQnxTdEFiWH9YcnZXRmhcUkVzWQ==';
-    registerLicense(licenseKey);
-  }, []);
 
   // Transform tasks for Syncfusion Gantt format
   const ganttData = tasks.map((task: ProjectTask) => ({
