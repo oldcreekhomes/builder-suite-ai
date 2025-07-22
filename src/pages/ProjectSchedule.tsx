@@ -1,7 +1,5 @@
 
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -9,6 +7,8 @@ import { Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRef, useState } from "react";
+import { useProject } from "@/hooks/useProject";
+import { useProjectTasks, useCreateTask, useUpdateTask, useDeleteTask } from "@/hooks/useProjectTasks";
 
 // Syncfusion Gantt imports
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD } from '@syncfusion/ej2-react-gantt';
@@ -16,7 +16,6 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
-import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -26,30 +25,25 @@ export default function ProjectSchedule() {
   // State for tracking selected task
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
-  // Fetch project data to get the address
-  const { data: project, isLoading: projectLoading } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      if (!projectId) return null;
+  // Fetch project data and tasks
+  const { data: project, isLoading: projectLoading } = useProject(projectId || "");
+  const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useProjectTasks(projectId || "");
+  
+  // Mutations for CRUD operations
+  const createTaskMutation = useCreateTask();
+  const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
 
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
+  // Create simple resource collection for tasks
+  const resourceCollection = [
+    { resourceId: 1, resourceName: 'Project Manager', resourceUnit: 100, resourceGroup: 'Management' },
+    { resourceId: 2, resourceName: 'Developer', resourceUnit: 100, resourceGroup: 'Development' },
+    { resourceId: 3, resourceName: 'Designer', resourceUnit: 100, resourceGroup: 'Design' },
+    { resourceId: 4, resourceName: 'Tester', resourceUnit: 100, resourceGroup: 'QA' }
+  ];
 
-      if (error) {
-        console.error('Error fetching project:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    enabled: !!projectId,
-  });
-
-  // Use sample data as-is - let Syncfusion handle IDs natively
-  const projectData = sampleProjectData;
+  // Use tasks from database or empty array if none exist
+  const projectData = tasks;
 
   // Gantt configuration
   const taskFields = {
@@ -79,6 +73,64 @@ export default function ProjectSchedule() {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true
+  };
+
+  // Database event handlers for Syncfusion CRUD operations
+  const handleActionBegin = async (args: any) => {
+    if (!projectId) return;
+
+    try {
+      if (args.requestType === 'add') {
+        // Handle task creation
+        const newTask = args.data;
+        const taskData = {
+          project_id: projectId,
+          task_name: newTask.TaskName || 'New Task',
+          start_date: newTask.StartDate?.toISOString() || new Date().toISOString(),
+          end_date: newTask.EndDate?.toISOString() || new Date().toISOString(),
+          duration: newTask.Duration || 1,
+          progress: newTask.Progress || 0,
+          predecessor: newTask.Predecessor || null,
+          resources: newTask.Resources || null,
+          parent_id: newTask.parentID || null,
+          order_index: tasks.length,
+        };
+
+        const result = await createTaskMutation.mutateAsync(taskData);
+        // Update the task with the new ID from database
+        args.data.TaskID = result.id;
+        
+      } else if (args.requestType === 'save') {
+        // Handle task update
+        const updatedTask = args.data;
+        await updateTaskMutation.mutateAsync({
+          id: updatedTask.TaskID,
+          task_name: updatedTask.TaskName,
+          start_date: updatedTask.StartDate?.toISOString(),
+          end_date: updatedTask.EndDate?.toISOString(),
+          duration: updatedTask.Duration,
+          progress: updatedTask.Progress,
+          predecessor: updatedTask.Predecessor,
+          resources: updatedTask.Resources,
+          parent_id: updatedTask.parentID,
+        });
+        
+      } else if (args.requestType === 'delete') {
+        // Handle task deletion
+        const deletedTask = args.data[0];
+        await deleteTaskMutation.mutateAsync(deletedTask.TaskID);
+      }
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      args.cancel = true; // Cancel the operation if database fails
+    }
+  };
+
+  const handleActionComplete = (args: any) => {
+    // Refetch data after successful operations
+    if (['add', 'save', 'delete'].includes(args.requestType)) {
+      refetchTasks();
+    }
   };
 
   // Simple native task addition - let Syncfusion handle it
@@ -235,6 +287,8 @@ export default function ProjectSchedule() {
                     timelineSettings={timelineSettings}
                     rowSelected={onSelectionChange}
                     rowDeselected={() => setSelectedTask(null)}
+                    actionBegin={handleActionBegin}
+                    actionComplete={handleActionComplete}
                     height="600px"
                     gridLines="Both"
                   >

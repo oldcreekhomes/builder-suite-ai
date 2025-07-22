@@ -772,6 +772,25 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
+      create_project_task: {
+        Args: {
+          project_id_param: string
+          task_name_param: string
+          start_date_param: string
+          end_date_param: string
+          duration_param?: number
+          progress_param?: number
+          predecessor_param?: string
+          resources_param?: string
+          parent_id_param?: string
+          order_index_param?: number
+        }
+        Returns: string
+      }
+      delete_project_task: {
+        Args: { task_id_param: string }
+        Returns: boolean
+      }
       get_conversation_unread_count: {
         Args: { other_user_id_param: string }
         Returns: number
@@ -807,6 +826,24 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_project_tasks: {
+        Args: { project_id_param: string }
+        Returns: {
+          id: string
+          project_id: string
+          task_name: string
+          start_date: string
+          end_date: string
+          duration: number
+          progress: number
+          predecessor: string
+          resources: string
+          parent_id: string
+          order_index: number
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_user_role_and_home_builder: {
         Args: { user_id: string }
         Returns: {
@@ -821,6 +858,21 @@ export type Database = {
       mark_message_as_read: {
         Args: { message_id_param: string }
         Returns: undefined
+      }
+      update_project_task: {
+        Args: {
+          id_param: string
+          task_name_param?: string
+          start_date_param?: string
+          end_date_param?: string
+          duration_param?: number
+          progress_param?: number
+          predecessor_param?: string
+          resources_param?: string
+          parent_id_param?: string
+          order_index_param?: number
+        }
+        Returns: boolean
       }
     }
     Enums: {

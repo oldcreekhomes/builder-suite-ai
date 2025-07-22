@@ -38,9 +38,12 @@ export const useProjectTasks = (projectId: string) => {
     queryFn: async () => {
       if (!user || !projectId) return [];
 
-      const { data, error } = await supabase.rpc('get_project_tasks', {
-        project_id_param: projectId
-      });
+      // Use type assertion to bypass TypeScript since table isn't in types yet
+      const { data, error } = await (supabase as any)
+        .from('project_schedule_tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('order_index', { ascending: true });
 
       if (error) {
         console.error('Error fetching project tasks:', error);
@@ -80,7 +83,11 @@ export const useCreateTask = () => {
       parent_id?: string;
       order_index?: number;
     }) => {
-      const { data, error } = await supabase.rpc('create_project_task', task);
+      const { data, error } = await (supabase as any)
+        .from('project_schedule_tasks')
+        .insert(task)
+        .select()
+        .single();
 
       if (error) throw error;
       return data;
@@ -109,12 +116,18 @@ export const useUpdateTask = () => {
       parent_id?: string;
       order_index?: number;
     }) => {
-      const { data, error } = await supabase.rpc('update_project_task', updates);
+      const { id, ...updateData } = updates;
+      const { data, error } = await (supabase as any)
+        .from('project_schedule_tasks')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: ['projectTasks'] 
       });
@@ -127,9 +140,10 @@ export const useDeleteTask = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc('delete_project_task', {
-        task_id: id
-      });
+      const { error } = await (supabase as any)
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', id);
 
       if (error) throw error;
       return id;
