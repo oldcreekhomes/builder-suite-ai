@@ -9,9 +9,13 @@ import { Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Syncfusion Gantt imports
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ExcelExport, PdfExport } from '@syncfusion/ej2-react-gantt';
+
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
+import { sampleProjectData } from "../data/sampleProjectData";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -38,6 +42,57 @@ export default function ProjectSchedule() {
     },
     enabled: !!projectId,
   });
+
+  // Gantt configuration
+  const taskFields = {
+    id: 'TaskID',
+    name: 'TaskName',
+    startDate: 'StartDate',
+    endDate: 'EndDate',
+    duration: 'Duration',
+    progress: 'Progress',
+    dependency: 'Predecessor',
+    parentID: 'parentID',
+    child: 'subtasks'
+  };
+
+  const editSettings = {
+    allowAdding: true,
+    allowEditing: true,
+    allowDeleting: true,
+    allowTaskbarEditing: true,
+    showDeleteConfirmDialog: true
+  };
+
+  const toolbarOptions = [
+    'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
+    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PrevTimeSpan', 'NextTimeSpan',
+    'ExcelExport', 'CsvExport', 'PdfExport'
+  ];
+
+  const splitterSettings = {
+    columnIndex: 4
+  };
+
+  const projectStartDate = new Date('2024-01-15');
+  const projectEndDate = new Date('2024-04-15');
+
+  const labelSettings = {
+    leftLabel: 'TaskName',
+    rightLabel: 'Progress'
+  };
+
+  const timelineSettings = {
+    showTooltip: true,
+    topTier: {
+      unit: 'Week',
+      format: 'dd/MM/yyyy'
+    },
+    bottomTier: {
+      unit: 'Day',
+      count: 1
+    }
+  };
 
   if (!projectId) {
     return <div>Project not found</div>;
@@ -86,16 +141,41 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion content area with proper style isolation */}
+            {/* Syncfusion Gantt Chart with proper style isolation */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
-                  {/* Placeholder content - ready for Syncfusion components */}
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">Ready for Syncfusion Schedule</p>
-                    <p className="text-sm">Syncfusion components will be isolated to this container</p>
-                  </div>
+                  <GanttComponent 
+                    dataSource={sampleProjectData}
+                    taskFields={taskFields}
+                    editSettings={editSettings}
+                    allowSelection={true}
+                    allowResizing={true}
+                    allowReordering={true}
+                    allowFiltering={true}
+                    allowExcelExport={true}
+                    allowPdfExport={true}
+                    showColumnMenu={true}
+                    highlightWeekends={true}
+                    toolbar={toolbarOptions}
+                    splitterSettings={splitterSettings}
+                    projectStartDate={projectStartDate}
+                    projectEndDate={projectEndDate}
+                    labelSettings={labelSettings}
+                    timelineSettings={timelineSettings}
+                    height="600px"
+                    gridLines="Both"
+                  >
+                    <ColumnsDirective>
+                      <ColumnDirective field='TaskID' headerText='ID' width='50' />
+                      <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
+                      <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
+                      <ColumnDirective field='Duration' headerText='Duration' width='100' />
+                      <ColumnDirective field='Progress' headerText='Progress' width='100' />
+                      <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
+                    </ColumnsDirective>
+                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ExcelExport, PdfExport]} />
+                  </GanttComponent>
                 </div>
               </div>
             </div>

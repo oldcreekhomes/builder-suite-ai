@@ -3,10 +3,22 @@
 /* This file contains all Syncfusion imports and custom overrides */
 /* DO NOT import this file in any other component */
 
-/* Syncfusion theme imports will go here when we add Syncfusion components */
-/* Example: @import '@syncfusion/ej2-base/styles/material.css'; */
+/* Syncfusion Material theme imports */
+@import '@syncfusion/ej2-base/styles/material.css';
+@import '@syncfusion/ej2-buttons/styles/material.css';
+@import '@syncfusion/ej2-calendars/styles/material.css';
+@import '@syncfusion/ej2-dropdowns/styles/material.css';
+@import '@syncfusion/ej2-inputs/styles/material.css';
+@import '@syncfusion/ej2-navigations/styles/material.css';
+@import '@syncfusion/ej2-popups/styles/material.css';
+@import '@syncfusion/ej2-splitbuttons/styles/material.css';
+@import '@syncfusion/ej2-grids/styles/material.css';
+@import '@syncfusion/ej2-treegrid/styles/material.css';
+@import '@syncfusion/ej2-layouts/styles/material.css';
+@import '@syncfusion/ej2-gantt/styles/material.css';
+@import '@syncfusion/ej2-react-gantt/styles/material.css';
 
-/* Custom overrides for Syncfusion components can be added below */
+/* Custom overrides for Syncfusion components */
 /* These styles are scoped to .syncfusion-schedule-container */
 
 .syncfusion-schedule-container {
@@ -14,17 +26,30 @@
   isolation: isolate;
 }
 
-.syncfusion-schedule-container .e-schedule {
-  /* Custom styling for Syncfusion scheduler if needed */
+.syncfusion-schedule-container .e-gantt {
+  /* Custom styling for Syncfusion Gantt */
   font-family: inherit;
+  border-radius: 8px;
 }
 
-.syncfusion-schedule-container .e-gantt {
-  /* Custom styling for Syncfusion Gantt if needed */
-  font-family: inherit;
+.syncfusion-schedule-container .e-gantt .e-gridheader {
+  background: #f8f9fa;
+}
+
+.syncfusion-schedule-container .e-gantt .e-gridcontent {
+  background: white;
 }
 
 /* Prevent Syncfusion styles from affecting Tailwind components */
 .syncfusion-schedule-container * {
   box-sizing: border-box;
+}
+
+/* Override Syncfusion default colors to match our theme */
+.syncfusion-schedule-container .e-gantt .e-taskbar-main {
+  background: #3b82f6;
+}
+
+.syncfusion-schedule-container .e-gantt .e-taskbar-progress {
+  background: #1d4ed8;
 }
