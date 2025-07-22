@@ -16,6 +16,7 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
 import { sampleProjectData } from "../data/sampleProjectData";
+import { generateHierarchicalIds, getNextHierarchicalId, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -44,6 +45,9 @@ export default function ProjectSchedule() {
     enabled: !!projectId,
   });
 
+  // Process sample data with hierarchical IDs
+  const processedProjectData = generateHierarchicalIds(sampleProjectData);
+
   // Gantt configuration
   const taskFields = {
     id: 'TaskID',
@@ -66,17 +70,21 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Event handler to intercept and cancel the add dialog
+  // Updated event handler to generate hierarchical IDs for new tasks
   const actionBegin = (args: any) => {
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
       
-      // Add task with default values directly
+      // Get the current data to determine next ID
+      const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
+      const nextId = getNextHierarchicalId(currentData);
+      
+      // Add task with hierarchical ID and 1-day duration
       const newTask = {
-        TaskID: Date.now(),
+        TaskID: nextId,
         TaskName: 'New Task',
         StartDate: new Date(),
-        Duration: 5,
+        Duration: 1,
         Progress: 0
       };
       
@@ -164,13 +172,13 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with native context menu enabled */}
+            {/* Syncfusion Gantt Chart with hierarchical IDs */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
                   <GanttComponent 
                     ref={ganttRef}
-                    dataSource={sampleProjectData}
+                    dataSource={processedProjectData}
                     taskFields={taskFields}
                     editSettings={editSettings}
                     allowSelection={true}
@@ -194,7 +202,7 @@ export default function ProjectSchedule() {
                     gridLines="Both"
                   >
                     <ColumnsDirective>
-                      <ColumnDirective field='TaskID' headerText='ID' width='50' />
+                      <ColumnDirective field='TaskID' headerText='ID' width='80' />
                       <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
                       <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
                       <ColumnDirective field='Duration' headerText='Duration' width='100' />
