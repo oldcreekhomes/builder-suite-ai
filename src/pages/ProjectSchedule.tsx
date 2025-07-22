@@ -18,8 +18,7 @@ import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
 import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
 import { GanttAddTaskButtons } from "@/components/GanttAddTaskButtons";
-import { generateHierarchicalIds, getNextHierarchicalId, determineAddContext, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
-import { optimizedRegenerateHierarchicalIds } from "../utils/hierarchicalIdsOptimized";
+import { generateHierarchicalIds, getNextHierarchicalId, determineAddContext, regenerateHierarchicalIds, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -164,12 +163,12 @@ export default function ProjectSchedule() {
       // Add the task to the Gantt chart
       ganttInstance.addRecord(newTask);
       
-      // Immediately regenerate hierarchical IDs with optimized algorithm
+      // Immediately regenerate hierarchical IDs with the original working algorithm
       const currentFullData = ganttInstance.dataSource || ganttInstance.currentViewData;
-      const optimizedData = optimizedRegenerateHierarchicalIds(currentFullData);
+      const reorderedData = regenerateHierarchicalIds(currentFullData);
       
       // Update data source efficiently
-      ganttInstance.dataSource = optimizedData;
+      ganttInstance.dataSource = reorderedData;
     } finally {
       // Complete the batch update for smooth rendering
       ganttInstance.endUpdate();
@@ -192,14 +191,14 @@ export default function ProjectSchedule() {
       if (!isAddingTask && ganttRef.current) {
         const ganttInstance = ganttRef.current as any;
         
-        // Use optimized regeneration for immediate updates
+        // Use the original working regeneration algorithm with performance batching
         ganttInstance.showSpinner();
         ganttInstance.beginUpdate();
         
         try {
           const currentData = ganttInstance.dataSource || ganttInstance.currentViewData;
-          const optimizedData = optimizedRegenerateHierarchicalIds(currentData);
-          ganttInstance.dataSource = optimizedData;
+          const reorderedData = regenerateHierarchicalIds(currentData);
+          ganttInstance.dataSource = reorderedData;
         } finally {
           ganttInstance.endUpdate();
           ganttInstance.hideSpinner();
