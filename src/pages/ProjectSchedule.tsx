@@ -116,7 +116,7 @@ export default function ProjectSchedule() {
     }
   };
 
-  // Optimized manual task addition with immediate updates
+  // Manual task addition with proper hierarchical ID management
   const handleAddTask = (type: 'root' | 'child' | 'sibling', explicitParentId?: string) => {
     if (!ganttRef.current) return;
     
@@ -155,31 +155,21 @@ export default function ProjectSchedule() {
       Resources: [1] // Default to Project Manager
     };
     
-    // Use Syncfusion's batching for smooth updates
-    ganttInstance.showSpinner();
-    ganttInstance.beginUpdate();
+    // Add the task to the Gantt chart
+    ganttInstance.addRecord(newTask);
     
-    try {
-      // Add the task to the Gantt chart
-      ganttInstance.addRecord(newTask);
-      
-      // Immediately regenerate hierarchical IDs with the original working algorithm
+    // Regenerate hierarchical IDs after a brief delay to ensure Gantt has processed the addition
+    setTimeout(() => {
       const currentFullData = ganttInstance.dataSource || ganttInstance.currentViewData;
       const reorderedData = regenerateHierarchicalIds(currentFullData);
-      
-      // Update data source efficiently
       ganttInstance.dataSource = reorderedData;
-    } finally {
-      // Complete the batch update for smooth rendering
-      ganttInstance.endUpdate();
-      ganttInstance.hideSpinner();
       
-      // Clear the flag immediately - no delay needed
+      // Clear the flag after regeneration
       setIsAddingTask(false);
-    }
+    }, 100);
   };
 
-  // Optimized event handler for completed actions
+  // Event handler for completed actions
   const actionComplete = (args: any) => {
     // Handle scenarios that might result in data changes requiring ID regeneration
     if (args.requestType === 'rowDropped' || 
@@ -191,18 +181,12 @@ export default function ProjectSchedule() {
       if (!isAddingTask && ganttRef.current) {
         const ganttInstance = ganttRef.current as any;
         
-        // Use the original working regeneration algorithm with performance batching
-        ganttInstance.showSpinner();
-        ganttInstance.beginUpdate();
-        
-        try {
+        // Regenerate hierarchical IDs after a brief delay to ensure Gantt has processed the change
+        setTimeout(() => {
           const currentData = ganttInstance.dataSource || ganttInstance.currentViewData;
           const reorderedData = regenerateHierarchicalIds(currentData);
           ganttInstance.dataSource = reorderedData;
-        } finally {
-          ganttInstance.endUpdate();
-          ganttInstance.hideSpinner();
-        }
+        }, 100);
       }
     }
   };
