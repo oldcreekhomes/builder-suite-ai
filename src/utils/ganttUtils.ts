@@ -1,3 +1,4 @@
+
 import { ProjectTask } from '@/hooks/useProjectTasks';
 
 export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
@@ -14,13 +15,22 @@ export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
   OrderIndex: number;
 }
 
-// Convert flat array to nested hierarchy with hierarchical IDs
+// Convert flat array to nested hierarchy with hierarchical IDs and comprehensive debugging
 export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] => {
-  if (!tasks || tasks.length === 0) return [];
+  console.log('=== GENERATE NESTED HIERARCHY START ===');
+  console.log('Input tasks:', tasks);
+  
+  if (!tasks || tasks.length === 0) {
+    console.log('No tasks to process, returning empty array');
+    return [];
+  }
 
   // First, create a map of tasks by their UUID
   const taskMap = new Map<string, ProjectTask>();
-  tasks.forEach(task => taskMap.set(task.id, task));
+  tasks.forEach(task => {
+    taskMap.set(task.id, task);
+    console.log(`Task mapped: ${task.id} -> ${task.task_name} (parent: ${task.parent_id})`);
+  });
 
   // Build the nested structure
   const rootTasks: ProjectTask[] = [];
@@ -30,13 +40,18 @@ export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] =
   tasks.forEach(task => {
     if (!task.parent_id) {
       rootTasks.push(task);
+      console.log(`Root task identified: ${task.task_name} (${task.id})`);
     } else {
       if (!childrenMap.has(task.parent_id)) {
         childrenMap.set(task.parent_id, []);
       }
       childrenMap.get(task.parent_id)!.push(task);
+      console.log(`Child task mapped: ${task.task_name} (${task.id}) -> parent: ${task.parent_id}`);
     }
   });
+
+  console.log('Root tasks count:', rootTasks.length);
+  console.log('Children map:', Object.fromEntries(childrenMap));
 
   // Sort all tasks by order_index
   rootTasks.sort((a, b) => a.order_index - b.order_index);
@@ -45,9 +60,12 @@ export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] =
   });
 
   // Recursively process tasks to create hierarchical structure
-  const processTasksRecursive = (taskList: ProjectTask[], parentId: string = ''): ProcessedTask[] => {
+  const processTasksRecursive = (taskList: ProjectTask[], parentId: string = '', depth: number = 0): ProcessedTask[] => {
+    console.log(`Processing ${taskList.length} tasks at depth ${depth}, parent: ${parentId}`);
+    
     return taskList.map((task, index) => {
       const hierarchicalId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`;
+      console.log(`Creating hierarchical ID: ${hierarchicalId} for task: ${task.task_name}`);
       
       const processedTask: ProcessedTask = {
         TaskID: hierarchicalId,
@@ -77,21 +95,31 @@ export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] =
       // Process children if they exist
       const children = childrenMap.get(task.id) || [];
       if (children.length > 0) {
-        processedTask.subtasks = processTasksRecursive(children, hierarchicalId);
+        console.log(`Processing ${children.length} children for task: ${task.task_name}`);
+        processedTask.subtasks = processTasksRecursive(children, hierarchicalId, depth + 1);
       }
 
       return processedTask;
     });
   };
 
-  return processTasksRecursive(rootTasks);
+  const result = processTasksRecursive(rootTasks);
+  console.log('=== GENERATE NESTED HIERARCHY RESULT ===');
+  console.log('Final hierarchical structure:', result);
+  console.log('=== GENERATE NESTED HIERARCHY END ===');
+  
+  return result;
 };
 
-// Helper function to find original task ID from hierarchical ID
+// Helper function to find original task ID from hierarchical ID with debugging
 export const findOriginalTaskId = (hierarchicalId: string, processedTasks: ProcessedTask[]): string | null => {
+  console.log(`Finding original task ID for hierarchical ID: ${hierarchicalId}`);
+  
   const findInTasks = (tasks: ProcessedTask[]): string | null => {
     for (const task of tasks) {
+      console.log(`Checking task: ${task.TaskID} (original: ${task.OriginalTaskID})`);
       if (task.TaskID === hierarchicalId) {
+        console.log(`Found match! Hierarchical: ${hierarchicalId} -> Original: ${task.OriginalTaskID}`);
         return task.OriginalTaskID;
       }
       if (task.subtasks) {
@@ -102,11 +130,14 @@ export const findOriginalTaskId = (hierarchicalId: string, processedTasks: Proce
     return null;
   };
   
-  return findInTasks(processedTasks);
+  const result = findInTasks(processedTasks);
+  console.log(`Original task ID search result: ${hierarchicalId} -> ${result}`);
+  return result;
 };
 
 // Convert nested hierarchy back to flat array for database operations
 export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] => {
+  console.log('Flattening hierarchy for database storage:', nestedTasks);
   const flatTasks: ProjectTask[] = [];
   
   const flattenRecursive = (tasks: ProcessedTask[], parentOriginalId: string | null = null) => {
@@ -127,6 +158,7 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
         updated_at: task.updated_at,
       };
       
+      console.log(`Flattened task: ${task.task_name} -> parent_id: ${parentOriginalId}`);
       flatTasks.push(flatTask);
       
       if (task.subtasks && task.subtasks.length > 0) {
@@ -136,6 +168,7 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
   };
   
   flattenRecursive(nestedTasks);
+  console.log('Flattened tasks result:', flatTasks);
   return flatTasks;
 };
 

@@ -13,9 +13,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
 
-  // Transform tasks with nested hierarchical structure
+  // Transform tasks with nested hierarchical structure and comprehensive debugging
   const ganttData = useMemo(() => {
-    return generateNestedHierarchy(tasks);
+    console.log('=== GANTT DATA TRANSFORMATION START ===');
+    console.log('Raw tasks from database:', tasks);
+    console.log('Task count:', tasks.length);
+    
+    // Log parent-child relationships in raw data
+    const parentChildMap = new Map();
+    tasks.forEach(task => {
+      if (task.parent_id) {
+        if (!parentChildMap.has(task.parent_id)) {
+          parentChildMap.set(task.parent_id, []);
+        }
+        parentChildMap.get(task.parent_id).push(task.id);
+      }
+    });
+    console.log('Parent-child relationships in database:', Object.fromEntries(parentChildMap));
+    
+    const transformedData = generateNestedHierarchy(tasks);
+    console.log('Transformed hierarchical data:', transformedData);
+    console.log('=== GANTT DATA TRANSFORMATION END ===');
+    
+    return transformedData;
   }, [tasks]);
 
   const taskFields = {
@@ -27,7 +47,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     progress: 'Progress',
     dependency: 'Predecessor',
     resourceInfo: 'Resources',
-    child: 'subtasks', // Use subtasks for nested hierarchy instead of parentID
+    child: 'subtasks', // Use subtasks for nested hierarchy
   };
 
   const editSettings = {
@@ -50,49 +70,64 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const projectStartDate = new Date('2024-01-01');
   const projectEndDate = new Date('2024-12-31');
 
-  // Helper function to determine parent ID from hierarchical structure
-  const getParentIdFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
-    const findParent = (tasks: ProcessedTask[], targetId: string): string | null => {
+  // Helper function to find parent task ID from hierarchical position
+  const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
+    console.log(`Finding parent for task ID: ${taskId}`);
+    
+    const findParentRecursive = (tasks: ProcessedTask[], targetId: string): string | null => {
       for (const task of tasks) {
         if (task.subtasks) {
+          // Check if target is a direct child
           for (const subtask of task.subtasks) {
             if (subtask.TaskID === targetId) {
+              console.log(`Found parent: ${task.TaskID} (Original: ${task.OriginalTaskID}) for child: ${targetId}`);
               return task.OriginalTaskID;
             }
           }
-          const found = findParent(task.subtasks, targetId);
+          // Recursively check deeper levels
+          const found = findParentRecursive(task.subtasks, targetId);
           if (found) return found;
         }
       }
       return null;
     };
     
-    return findParent(allTasks, taskId);
+    const parentId = findParentRecursive(allTasks, taskId);
+    console.log(`Parent search result for ${taskId}:`, parentId);
+    return parentId;
   };
 
   const handleActionBegin = (args: any) => {
-    console.log('Action begin:', args.requestType, args);
+    console.log('=== ACTION BEGIN ===');
+    console.log('Request type:', args.requestType);
+    console.log('Action data:', args.data);
+    console.log('===================');
     
     if (args.requestType === 'beforeAdd') {
-      console.log('Adding new task:', args.data);
+      console.log('Before adding new task:', args.data);
     } else if (args.requestType === 'beforeEdit') {
-      console.log('Editing task:', args.data);
+      console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
-      console.log('Deleting task:', args.data);
+      console.log('Before deleting task:', args.data);
     }
   };
 
   const handleActionComplete = (args: any) => {
-    console.log('Action complete:', args.requestType, args);
+    console.log('=== ACTION COMPLETE ===');
+    console.log('Request type:', args.requestType);
+    console.log('Action data:', args.data);
+    console.log('Current gantt data structure:', ganttData);
+    console.log('========================');
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      console.log('Creating new task with data:', taskData);
+      console.log('CREATING NEW TASK:', taskData);
       
       // Determine parent based on the task's position in hierarchy
-      const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+      const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+      console.log('Determined parent ID for new task:', parentId);
       
-      createTask.mutate({
+      const createParams = {
         project_id: projectId,
         task_name: taskData.TaskName || 'New Task',
         start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
@@ -103,16 +138,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         resources: taskData.Resources || null,
         parent_id: parentId,
         order_index: tasks.length,
-      });
-    } else if (args.requestType === 'save' && args.data) {
+      };
+      
+      console.log('CREATE TASK PARAMS:', createParams);
+      createTask.mutate(createParams);
+    } 
+    else if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('Updating task with data:', taskData, 'Original ID:', originalTaskId);
+      console.log('UPDATING TASK:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        console.log('Determined parent ID for update:', parentId);
         
-        updateTask.mutate({
+        const updateParams = {
           id: originalTaskId,
           task_name: taskData.TaskName,
           start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
@@ -123,26 +163,49 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           resources: taskData.Resources,
           parent_id: parentId,
           order_index: taskData.OrderIndex,
-        });
+        };
+        
+        console.log('UPDATE TASK PARAMS:', updateParams);
+        updateTask.mutate(updateParams);
       }
-    } else if (args.requestType === 'delete' && args.data) {
+    } 
+    else if (args.requestType === 'delete' && args.data) {
       const taskData = args.data[0];
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
+      
       if (originalTaskId) {
         deleteTask.mutate(originalTaskId);
       }
-    } else if (args.requestType === 'indenting' || args.requestType === 'outdenting') {
-      // Handle indent/outdent operations
-      console.log('Task hierarchy changed:', args);
+    } 
+    else if (args.requestType === 'indenting' && args.data) {
+      console.log('INDENTING TASK (making it a child):', args.data);
       const taskData = args.data[0];
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
       if (originalTaskId) {
-        const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        console.log('Indenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
           id: originalTaskId,
           parent_id: parentId,
+          order_index: taskData.OrderIndex || 0,
+        });
+      }
+    } 
+    else if (args.requestType === 'outdenting' && args.data) {
+      console.log('OUTDENTING TASK (making it a parent/root):', args.data);
+      const taskData = args.data[0];
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      if (originalTaskId) {
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        console.log('Outdenting - setting parent_id to:', parentId);
+        
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: parentId, // This might be null for root-level tasks
           order_index: taskData.OrderIndex || 0,
         });
       }
@@ -194,6 +257,37 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   return (
     <div className="w-full h-full">
+      {/* Debug Panel - Remove in production */}
+      <div className="mb-4 p-4 bg-gray-100 rounded-lg border">
+        <h4 className="font-bold mb-2">Debug Information</h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <strong>Raw Tasks Count:</strong> {tasks.length}
+          </div>
+          <div>
+            <strong>Processed Tasks Count:</strong> {ganttData.length}
+          </div>
+          <div>
+            <strong>Tasks with Parents:</strong> {tasks.filter(t => t.parent_id).length}
+          </div>
+          <div>
+            <strong>Root Tasks:</strong> {ganttData.length}
+          </div>
+        </div>
+        <div className="mt-2">
+          <strong>Database Parent-Child Relationships:</strong>
+          <pre className="text-xs bg-white p-2 rounded mt-1 max-h-32 overflow-auto">
+            {JSON.stringify(
+              tasks
+                .filter(t => t.parent_id)
+                .map(t => ({ id: t.id.slice(-8), parent: t.parent_id?.slice(-8), name: t.task_name })),
+              null,
+              2
+            )}
+          </pre>
+        </div>
+      </div>
+
       <GanttComponent
         ref={ganttRef}
         id="gantt"
