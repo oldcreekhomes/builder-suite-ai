@@ -59,7 +59,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PrevTimeSpan', 'NextTimeSpan'
   ];
 
-  const columnMenuItems = ['SortAscending', 'SortDescending', 'AutoFit', 'AutoFitAll', 'ColumnChooser'];
+  
 
   const splitterSettings = {
     columnIndex: 3
@@ -178,7 +178,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         allowSelection={true}
         allowResizing={true}
         showColumnMenu={true}
-        columnMenuItems={columnMenuItems}
         columnMenuOpen={handleColumnMenuOpen}
         columnMenuClick={handleColumnMenuClick}
         gridLines="Both"
