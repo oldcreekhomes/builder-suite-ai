@@ -81,51 +81,11 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            <div className="grid gap-6">
-              {/* Upcoming Tasks */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5" />
-                    <span>Upcoming Tasks</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">No scheduled tasks yet</p>
-                    <p className="text-sm">Start by adding your first task or milestone</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Calendar View */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Calendar View</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">Calendar integration coming soon</p>
-                    <p className="text-sm">View and manage your project timeline</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Project Timeline */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">Timeline view coming soon</p>
-                    <p className="text-sm">Track project milestones and dependencies</p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Content area - ready for new components */}
+            <div className="text-center py-12 text-muted-foreground">
+              <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Ready to build your schedule</p>
+              <p className="text-sm">Start adding tasks, milestones, and timeline features</p>
             </div>
           </div>
         </main>
