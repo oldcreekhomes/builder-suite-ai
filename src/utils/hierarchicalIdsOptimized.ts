@@ -42,6 +42,9 @@ export const optimizedRegenerateHierarchicalIds = (data: TaskWithHierarchicalId[
     children.forEach((child, index) => {
       const newId = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
       
+      // CRITICAL FIX: Store the original child ID before updating
+      const originalChildId = child.TaskID;
+      
       const updatedTask: TaskWithHierarchicalId = {
         ...child,
         TaskID: newId,
@@ -50,8 +53,8 @@ export const optimizedRegenerateHierarchicalIds = (data: TaskWithHierarchicalId[
       
       result.push(updatedTask);
       
-      // Process children recursively
-      processLevel(child.TaskID, newId);
+      // CRITICAL FIX: Use original ID for recursive lookup, not the new ID
+      processLevel(originalChildId, newId);
     });
   };
 
