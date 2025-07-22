@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
-import { generateHierarchicalIds, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
+import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
 
 interface GanttChartProps {
   projectId: string;
@@ -13,9 +13,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
 
-  // Transform tasks with hierarchical IDs
+  // Transform tasks with nested hierarchical structure
   const ganttData = useMemo(() => {
-    return generateHierarchicalIds(tasks);
+    return generateNestedHierarchy(tasks);
   }, [tasks]);
 
   const taskFields = {
@@ -27,7 +27,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     progress: 'Progress',
     dependency: 'Predecessor',
     resourceInfo: 'Resources',
-    parentID: 'ParentID',
+    child: 'subtasks', // Use subtasks for nested hierarchy instead of parentID
   };
 
   const editSettings = {
@@ -40,7 +40,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
-    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit'
+    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'Indent', 'Outdent'
   ];
 
   const splitterSettings = {
@@ -49,6 +49,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const projectStartDate = new Date('2024-01-01');
   const projectEndDate = new Date('2024-12-31');
+
+  // Helper function to determine parent ID from hierarchical structure
+  const getParentIdFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
+    const findParent = (tasks: ProcessedTask[], targetId: string): string | null => {
+      for (const task of tasks) {
+        if (task.subtasks) {
+          for (const subtask of task.subtasks) {
+            if (subtask.TaskID === targetId) {
+              return task.OriginalTaskID;
+            }
+          }
+          const found = findParent(task.subtasks, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    return findParent(allTasks, taskId);
+  };
 
   const handleActionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
@@ -59,8 +79,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
       console.log('Deleting task:', args.data);
-    } else if (args.requestType === 'columnResizing') {
-      console.log('Column resizing:', args);
     }
   };
 
@@ -71,6 +89,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const taskData = args.data;
       console.log('Creating new task with data:', taskData);
       
+      // Determine parent based on the task's position in hierarchy
+      const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+      
       createTask.mutate({
         project_id: projectId,
         task_name: taskData.TaskName || 'New Task',
@@ -80,7 +101,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         progress: taskData.Progress || 0,
         predecessor: taskData.Predecessor || null,
         resources: taskData.Resources || null,
-        parent_id: taskData.ParentID || null, // Store hierarchical ID directly
+        parent_id: parentId,
         order_index: tasks.length,
       });
     } else if (args.requestType === 'save' && args.data) {
@@ -89,6 +110,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Updating task with data:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
+        const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+        
         updateTask.mutate({
           id: originalTaskId,
           task_name: taskData.TaskName,
@@ -98,7 +121,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: taskData.Progress,
           predecessor: taskData.Predecessor || null,
           resources: taskData.Resources,
-          parent_id: taskData.ParentID || null, // Store hierarchical ID directly
+          parent_id: parentId,
           order_index: taskData.OrderIndex,
         });
       }
@@ -108,13 +131,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       if (originalTaskId) {
         deleteTask.mutate(originalTaskId);
       }
+    } else if (args.requestType === 'indenting' || args.requestType === 'outdenting') {
+      // Handle indent/outdent operations
+      console.log('Task hierarchy changed:', args);
+      const taskData = args.data[0];
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      if (originalTaskId) {
+        const parentId = getParentIdFromHierarchy(taskData.TaskID, ganttData);
+        
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: parentId,
+          order_index: taskData.OrderIndex || 0,
+        });
+      }
     }
   };
 
   const handleContextMenuClick = (args: any) => {
     console.log('Context menu clicked:', args.item.text, args);
-    // Let Syncfusion handle native context menu operations
-    // The 'Add Row Above' and 'Add Row Below' will be handled automatically
   };
 
   const handleResizeStart = (args: any) => {
