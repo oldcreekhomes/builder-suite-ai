@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, FileText, DollarSign, Clock } from "lucide-react";
+import { FileText, DollarSign, Clock } from "lucide-react";
 
 const activities = [
   {
@@ -15,39 +15,39 @@ const activities = [
   },
   {
     id: 2,
-    type: "schedule",
-    title: "Schedule Updated",
-    description: "Sunset Villa - Framing phase moved up",
-    time: "4 hours ago",
-    icon: Calendar,
-    status: "updated"
-  },
-  {
-    id: 3,
     type: "budget",
     title: "Budget Alert",
     description: "Green Meadows approaching 80% budget",
-    time: "6 hours ago",
+    time: "4 hours ago",
     icon: DollarSign,
     status: "alert"
   },
   {
-    id: 4,
+    id: 3,
     type: "deadline",
     title: "Milestone Achieved",
     description: "Riverside Townhomes - Foundation complete",
-    time: "1 day ago",
+    time: "6 hours ago",
     icon: Clock,
     status: "completed"
   },
   {
-    id: 5,
+    id: 4,
     type: "bid",
     title: "New Bid Submitted",
     description: "Oak Street Apartments - $2.3M",
-    time: "2 days ago",
+    time: "1 day ago",
     icon: FileText,
     status: "pending"
+  },
+  {
+    id: 5,
+    type: "estimate",
+    title: "Cost Estimate Updated",
+    description: "Maple Grove Homes - Electrical work",
+    time: "2 days ago",
+    icon: FileText,
+    status: "updated"
   }
 ];
 
