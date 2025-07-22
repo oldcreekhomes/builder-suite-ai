@@ -11,9 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // Syncfusion Gantt imports
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD } from '@syncfusion/ej2-react-gantt';
 
-// TreeGrid RowDragAndDrop import - needed for internal TreeGrid drag and drop functionality
-import { RowDragAndDrop } from '@syncfusion/ej2-react-treegrid';
-
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
@@ -178,7 +175,7 @@ export default function ProjectSchedule() {
                       <ColumnDirective field='Progress' headerText='Progress' width='100' />
                       <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
                     </ColumnsDirective>
-                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD, RowDragAndDrop]} />
+                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD]} />
                   </GanttComponent>
                 </div>
               </div>
