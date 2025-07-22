@@ -65,6 +65,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         }))
       ];
 
+      console.log('Gantt: Loaded', allResources.length, 'resources');
       return allResources;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -87,35 +88,50 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw error;
       }
 
+      console.log('Gantt: Fetched', (data || []).length, 'raw tasks');
       return data || [];
     },
     enabled: !!projectId,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 
-  // Initialize ID mapper when tasks data changes
-  React.useEffect(() => {
-    if (tasksData && tasksData.length >= 0) {
-      console.log('Gantt: Initializing ID mapper with', tasksData.length, 'tasks');
-      idMapper.current.initializeFromTasks(tasksData);
-    }
-  }, [tasksData]);
-
-  // Memoize the transformed tasks with stable dependencies
+  // Memoize the transformed tasks with ID mapper initialization
   const tasks = React.useMemo(() => {
     if (!tasksData || tasksData.length === 0) {
       console.log('Gantt: No tasks data, returning empty array');
       return [];
     }
 
-    console.log('Gantt: Transforming', tasksData.length, 'tasks');
+    console.log('Gantt: Starting task transformation with', tasksData.length, 'tasks');
+    
+    // Initialize ID mapper first, before any transformation
+    console.log('Gantt: Initializing ID mapper within memoization');
+    idMapper.current.initializeFromTasks(tasksData);
     
     // Transform tasks for Syncfusion
-    const transformedTasks = tasksData.map((task) => {
-      return idMapper.current.convertTaskForSyncfusion(task);
-    }).filter(task => task !== null);
+    const transformedTasks = tasksData.map((task, index) => {
+      console.log(`Gantt: Transforming task ${index + 1}/${tasksData.length}: ${task.task_name} (${task.id})`);
+      const numericId = idMapper.current.getNumericId(task.id);
+      console.log(`Gantt: Got numeric ID ${numericId} for UUID ${task.id}`);
+      
+      if (!numericId) {
+        console.error(`Gantt: No numeric ID found for task ${task.id} - ${task.task_name}`);
+        return null;
+      }
+      
+      const convertedTask = idMapper.current.convertTaskForSyncfusion(task);
+      console.log(`Gantt: Converted task:`, convertedTask);
+      return convertedTask;
+    }).filter(task => {
+      const isValid = task !== null;
+      if (!isValid) {
+        console.warn('Gantt: Filtered out null task');
+      }
+      return isValid;
+    });
 
-    console.log('Gantt: Transformed to', transformedTasks.length, 'tasks');
+    console.log('Gantt: Final transformed tasks count:', transformedTasks.length);
+    console.log('Gantt: Sample transformed task:', transformedTasks[0]);
     return transformedTasks;
   }, [tasksData]);
 
@@ -141,13 +157,21 @@ function GanttChart({ projectId }: GanttChartProps) {
     };
   }, [tasks]);
 
-  // Set component ready when data is loaded
+  // Set component ready when data is loaded and stable
   React.useEffect(() => {
-    if (!resourcesLoading && !tasksLoading && tasks.length >= 0) {
-      console.log('Gantt: Component ready');
+    const shouldBeReady = !resourcesLoading && !tasksLoading && tasks.length >= 0;
+    console.log('Gantt: Component ready check:', {
+      resourcesLoading,
+      tasksLoading,
+      tasksLength: tasks.length,
+      shouldBeReady
+    });
+    
+    if (shouldBeReady && !isComponentReady) {
+      console.log('Gantt: Setting component ready');
       setIsComponentReady(true);
     }
-  }, [resourcesLoading, tasksLoading, tasks.length]);
+  }, [resourcesLoading, tasksLoading, tasks.length, isComponentReady]);
 
   // Optimized actionComplete handler - minimal cache invalidation
   const handleActionComplete = React.useCallback(async (args: any) => {
@@ -163,6 +187,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         case 'save':
           if (args.data && args.data.taskID) {
             await handleTaskUpdate(args.data);
+            // Don't invalidate cache for simple updates
           }
           break;
         
@@ -170,6 +195,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           if (args.data) {
             await handleTaskAdd(args.data);
             // Only invalidate on structural changes
+            console.log('Gantt: Invalidating cache due to task add');
             debouncedInvalidate();
           }
           break;
@@ -178,6 +204,7 @@ function GanttChart({ projectId }: GanttChartProps) {
           if (args.data && args.data.length > 0) {
             await handleTaskDelete(args.data);
             // Only invalidate on structural changes
+            console.log('Gantt: Invalidating cache due to task delete');
             debouncedInvalidate();
           }
           break;
@@ -186,6 +213,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         case 'outdenting':
           if (args.data && args.data.length > 0) {
             await handleHierarchyChange(args.data);
+            // Don't invalidate cache for hierarchy changes
           }
           break;
       }
