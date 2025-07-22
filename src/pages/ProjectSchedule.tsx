@@ -8,6 +8,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRef } from "react";
 
 // Syncfusion Gantt imports
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD } from '@syncfusion/ej2-react-gantt';
@@ -20,6 +21,7 @@ import { sampleProjectData } from "../data/sampleProjectData";
 export default function ProjectSchedule() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const ganttRef = useRef(null);
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -62,8 +64,27 @@ export default function ProjectSchedule() {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    mode: "Cell" as any,
     newRowPosition: "Bottom" as any
+  };
+
+  // Event handler to intercept and cancel the add dialog
+  const actionBegin = (args: any) => {
+    if (args.requestType === 'beforeOpenAddDialog') {
+      args.cancel = true;
+      
+      // Add task with default values directly
+      const newTask = {
+        TaskID: Date.now(),
+        TaskName: 'New Task',
+        StartDate: new Date(),
+        Duration: 5,
+        Progress: 0
+      };
+      
+      if (ganttRef.current) {
+        (ganttRef.current as any).addRecord(newTask);
+      }
+    }
   };
 
   // Updated toolbar options with disabled items removed
@@ -149,6 +170,7 @@ export default function ProjectSchedule() {
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
                   <GanttComponent 
+                    ref={ganttRef}
                     dataSource={sampleProjectData}
                     taskFields={taskFields}
                     editSettings={editSettings}
@@ -168,6 +190,7 @@ export default function ProjectSchedule() {
                     projectEndDate={projectEndDate}
                     labelSettings={labelSettings}
                     timelineSettings={timelineSettings}
+                    actionBegin={actionBegin}
                     height="600px"
                     gridLines="Both"
                   >
