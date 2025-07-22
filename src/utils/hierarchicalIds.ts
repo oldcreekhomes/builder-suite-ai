@@ -1,4 +1,3 @@
-
 export interface TaskWithHierarchicalId {
   TaskID: string;
   TaskName: string;
@@ -10,6 +9,11 @@ export interface TaskWithHierarchicalId {
   parentID?: string;
   Resources?: number[];
   subtasks?: TaskWithHierarchicalId[];
+}
+
+export interface AddContext {
+  type: 'root' | 'child' | 'sibling';
+  parentId: string | undefined;
 }
 
 export const generateHierarchicalIds = (data: any[], parentId = ''): TaskWithHierarchicalId[] => {
@@ -65,7 +69,7 @@ export const getNextHierarchicalId = (data: TaskWithHierarchicalId[], parentId?:
   }
 };
 
-export const determineAddContext = (selectedTask: TaskWithHierarchicalId | null, data: TaskWithHierarchicalId[]) => {
+export const determineAddContext = (selectedTask: TaskWithHierarchicalId | null, data: TaskWithHierarchicalId[]): AddContext => {
   console.log('=== DEBUG determineAddContext START ===');
   console.log('Selected task:', selectedTask?.TaskID, selectedTask?.TaskName);
   
