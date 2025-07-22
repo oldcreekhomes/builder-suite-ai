@@ -7,7 +7,8 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 // Syncfusion Gantt imports
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD } from '@syncfusion/ej2-react-gantt';
@@ -22,6 +23,11 @@ export default function ProjectSchedule() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const ganttRef = useRef(null);
+  
+  // State for custom delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -75,14 +81,25 @@ export default function ProjectSchedule() {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
+    showDeleteConfirmDialog: false,
     newRowPosition: "Bottom" as any
   };
 
-  // Enhanced event handler for adding tasks
+  // Enhanced event handler for adding tasks and intercepting delete operations
   const actionBegin = (args: any) => {
     console.log('=== DEBUG: actionBegin triggered ===');
     console.log('Action requestType:', args.requestType);
+    
+    if (args.requestType === 'beforeDelete') {
+      // Intercept delete operation and show custom dialog
+      args.cancel = true;
+      
+      if (args.data && args.data.length > 0) {
+        setTaskToDelete(args.data[0]);
+        setShowDeleteDialog(true);
+      }
+      return;
+    }
     
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
@@ -118,6 +135,36 @@ export default function ProjectSchedule() {
       if (ganttRef.current) {
         (ganttRef.current as any).addRecord(newTask);
       }
+    }
+  };
+
+  // Handle custom delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!taskToDelete || !ganttRef.current) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      const ganttInstance = ganttRef.current as any;
+      
+      // Delete the task using Syncfusion's API
+      ganttInstance.deleteRecord(taskToDelete.TaskID);
+      
+      // Regenerate hierarchical IDs after deletion
+      const currentData = ganttInstance.currentViewData;
+      if (currentData && currentData.length > 0) {
+        const updatedData = regenerateHierarchicalIds(currentData);
+        ganttInstance.dataSource = updatedData;
+        ganttInstance.refresh();
+      }
+      
+      console.log('DEBUG: Task deleted and hierarchical IDs regenerated');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -297,7 +344,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Enhanced Syncfusion Gantt Chart with dynamic ID reordering */}
+            {/* Enhanced Syncfusion Gantt Chart with custom delete dialog */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -347,6 +394,16 @@ export default function ProjectSchedule() {
           </div>
         </main>
       </div>
+
+      {/* Custom Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${taskToDelete?.TaskName}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+      />
     </SidebarProvider>
   );
 }
