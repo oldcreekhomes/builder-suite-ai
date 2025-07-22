@@ -121,10 +121,11 @@ export default function ProjectSchedule() {
     }
   };
 
-  // New event handler for completed actions (including row reordering)
+  // Enhanced event handler for completed actions (including row reordering)
   const actionComplete = (args: any) => {
     console.log('=== DEBUG: actionComplete triggered ===');
     console.log('Action requestType:', args.requestType);
+    console.log('Action data:', args.data);
     
     if (args.requestType === 'rowDropped' || args.requestType === 'rowdrop') {
       console.log('DEBUG: Row reordering detected, regenerating hierarchical IDs');
@@ -134,16 +135,20 @@ export default function ProjectSchedule() {
         const currentData = ganttInstance.currentViewData;
         
         console.log('DEBUG: Current data before ID regeneration:', currentData?.length);
+        console.log('DEBUG: Sample current data structure:', currentData?.slice(0, 3));
         
         // Regenerate hierarchical IDs based on new order
         const updatedData = regenerateHierarchicalIds(currentData);
         
         console.log('DEBUG: Updated data after ID regeneration:', updatedData?.length);
+        console.log('DEBUG: Sample updated data structure:', updatedData?.slice(0, 3));
         
-        // Update each record with new hierarchical ID
-        updatedData.forEach((task: TaskWithHierarchicalId) => {
-          ganttInstance.updateRecordByID(task.TaskID, task);
-        });
+        // Update the data source with new hierarchical structure
+        if (updatedData && updatedData.length > 0) {
+          console.log('DEBUG: Updating Gantt data source with regenerated IDs');
+          ganttInstance.dataSource = updatedData;
+          ganttInstance.refresh();
+        }
         
         console.log('DEBUG: Hierarchical IDs regenerated successfully');
       }
