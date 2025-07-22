@@ -42,8 +42,12 @@ export default function ProjectSchedule() {
     { resourceId: 4, resourceName: 'Tester', resourceUnit: 100, resourceGroup: 'QA' }
   ];
 
-  // Use tasks from database or empty array if none exist
-  const projectData = tasks;
+  // Transform tasks to show sequential numbering for display
+  const projectData = tasks.map((task, index) => ({
+    ...task,
+    TaskID: task.TaskID, // Keep original UUID for database operations
+    DisplayID: index + 1, // Sequential number for display
+  }));
 
   // Gantt configuration
   const taskFields = {
@@ -72,7 +76,8 @@ export default function ProjectSchedule() {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true
+    showDeleteConfirmDialog: true,
+    newRowPosition: 'Bottom' // Add new tasks at the bottom
   };
 
   // Database event handlers for Syncfusion CRUD operations
@@ -80,6 +85,29 @@ export default function ProjectSchedule() {
     if (!projectId) return;
 
     try {
+      // Cancel dialog for direct task creation
+      if (args.requestType === 'beforeOpenAddDialog') {
+        args.cancel = true;
+        
+        // Create new task directly at bottom
+        const newTaskData = {
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+          duration: 1,
+          progress: 0,
+          predecessor: null,
+          resources: null,
+          parent_id: null,
+          order_index: tasks.length, // Position at bottom
+        };
+
+        const result = await createTaskMutation.mutateAsync(newTaskData);
+        console.log('Task created:', result);
+        return;
+      }
+      
       if (args.requestType === 'add') {
         // Handle task creation
         const newTask = args.data;
@@ -128,28 +156,34 @@ export default function ProjectSchedule() {
 
   const handleActionComplete = (args: any) => {
     // Refetch data after successful operations
-    if (['add', 'save', 'delete'].includes(args.requestType)) {
+    if (['add', 'save', 'delete', 'beforeOpenAddDialog'].includes(args.requestType)) {
       refetchTasks();
     }
   };
 
-  // Simple native task addition - let Syncfusion handle it
-  const handleAddRootTask = () => {
-    if (!ganttRef.current) return;
-    const ganttInstance = ganttRef.current as any;
-    ganttInstance.openAddDialog();
-  };
+  // Direct task addition without dialog
+  const handleAddTask = async () => {
+    if (!projectId) return;
+    
+    try {
+      const newTaskData = {
+        project_id: projectId,
+        task_name: 'New Task',
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        duration: 1,
+        progress: 0,
+        predecessor: null,
+        resources: null,
+        parent_id: null,
+        order_index: tasks.length,
+      };
 
-  const handleAddChildTask = () => {
-    if (!ganttRef.current || !selectedTask) return;
-    const ganttInstance = ganttRef.current as any;
-    ganttInstance.openAddDialog();
-  };
-
-  const handleAddSiblingTask = () => {
-    if (!ganttRef.current || !selectedTask) return;
-    const ganttInstance = ganttRef.current as any;
-    ganttInstance.openAddDialog();
+      await createTaskMutation.mutateAsync(newTaskData);
+      console.log('Task added directly');
+    } catch (error) {
+      console.error('Failed to add task:', error);
+    }
   };
 
   // Simple selection handler
@@ -224,22 +258,10 @@ export default function ProjectSchedule() {
               </div>
               
               <div className="flex items-center space-x-2">
-                <Button onClick={handleAddRootTask} className="flex items-center space-x-2">
+                <Button onClick={handleAddTask} className="flex items-center space-x-2">
                   <Plus className="h-4 w-4" />
-                  <span>Add Root Task</span>
+                  <span>Add Task</span>
                 </Button>
-                {selectedTask && (
-                  <>
-                    <Button onClick={handleAddChildTask} variant="outline" className="flex items-center space-x-2">
-                      <Plus className="h-4 w-4" />
-                      <span>Add Child</span>
-                    </Button>
-                    <Button onClick={handleAddSiblingTask} variant="outline" className="flex items-center space-x-2">
-                      <Plus className="h-4 w-4" />
-                      <span>Add Sibling</span>
-                    </Button>
-                  </>
-                )}
               </div>
             </div>
           </header>
@@ -253,12 +275,12 @@ export default function ProjectSchedule() {
               
               {selectedTask && (
                 <div className="text-sm text-gray-600">
-                  Selected: <span className="font-medium">{selectedTask.TaskName}</span> ({selectedTask.TaskID})
+                  Selected: <span className="font-medium">{selectedTask.TaskName}</span> (#{selectedTask.DisplayID})
                 </div>
               )}
             </div>
 
-            {/* Simple Native Syncfusion Gantt Chart */}
+            {/* Syncfusion Gantt Chart with restored functionality */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -293,7 +315,7 @@ export default function ProjectSchedule() {
                     gridLines="Both"
                   >
                     <ColumnsDirective>
-                      <ColumnDirective field='TaskID' headerText='ID' width='80' isPrimaryKey={true} />
+                      <ColumnDirective field='DisplayID' headerText='#' width='60' isPrimaryKey={false} />
                       <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
                       <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
                       <ColumnDirective field='Duration' headerText='Duration' width='100' />
