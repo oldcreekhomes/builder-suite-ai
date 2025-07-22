@@ -158,6 +158,4 @@ export function SidebarNavigation() {
       </SidebarContent>
     </TooltipProvider>
   );
-  }
-
-</initial_code>
+}
