@@ -12,7 +12,7 @@ import ProjectDashboard from "./pages/ProjectDashboard";
 import ProjectPhotos from "./pages/ProjectPhotos";
 import ProjectFiles from "./pages/ProjectFiles";
 import ProjectBudget from "./pages/ProjectBudget";
-
+import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
@@ -62,6 +62,9 @@ const AppContent = () => {
           
           {/* Project Bidding route */}
           <Route path="/project/:projectId/bidding" element={<ProtectedRoute><ProjectBidding /></ProtectedRoute>} />
+          
+          {/* Project Schedule route */}
+          <Route path="/project/:projectId/schedule" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
           
           
           {/* Messages route - both global and project-specific */}
