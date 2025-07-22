@@ -61,7 +61,7 @@ export default function ProjectSchedule() {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: true,
-    newRowPosition: "Bottom"
+    newRowPosition: "Bottom" as any
   };
 
   // Updated toolbar options with disabled items removed
