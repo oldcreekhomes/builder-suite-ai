@@ -121,7 +121,7 @@ export default function ProjectSchedule() {
     }
   };
 
-  // Enhanced event handler for completed actions (including row reordering)
+  // Enhanced event handler for completed actions (including row reordering and new task additions)
   const actionComplete = (args: any) => {
     console.log('=== DEBUG: actionComplete triggered ===');
     console.log('Action requestType:', args.requestType);
@@ -151,6 +151,71 @@ export default function ProjectSchedule() {
         }
         
         console.log('DEBUG: Hierarchical IDs regenerated successfully');
+      }
+    } else if (args.requestType === 'save' || args.requestType === 'add') {
+      console.log('DEBUG: New task addition detected, assigning hierarchical ID');
+      
+      if (ganttRef.current) {
+        const ganttInstance = ganttRef.current as any;
+        const currentData = ganttInstance.currentViewData;
+        
+        // Find tasks with non-hierarchical IDs (numeric only, like "23", "24")
+        const tasksNeedingHierarchicalIds = currentData.filter((task: any) => {
+          const idStr = String(task.TaskID);
+          // Check if it's purely numeric (no dots) and greater than expected hierarchical range
+          return /^\d+$/.test(idStr) && parseInt(idStr) > 20;
+        });
+        
+        console.log('DEBUG: Tasks needing hierarchical IDs:', tasksNeedingHierarchicalIds.length);
+        
+        if (tasksNeedingHierarchicalIds.length > 0) {
+          // For each task needing a hierarchical ID, determine its proper position
+          tasksNeedingHierarchicalIds.forEach((task: any) => {
+            console.log('DEBUG: Processing task for hierarchical ID:', task.TaskID, task.TaskName);
+            
+            // Find the task's position in the current data to determine context
+            const taskIndex = currentData.findIndex((t: any) => t.TaskID === task.TaskID);
+            let parentId: string | undefined = undefined;
+            
+            // Look for parent context by examining surrounding tasks
+            if (taskIndex > 0) {
+              // Check previous tasks to find a potential parent
+              for (let i = taskIndex - 1; i >= 0; i--) {
+                const prevTask = currentData[i];
+                // If previous task has no parent, it could be our parent
+                if (!prevTask.parentID) {
+                  parentId = prevTask.TaskID;
+                  break;
+                }
+                // If previous task has the same parent as we should have
+                if (prevTask.parentID && !task.parentID) {
+                  parentId = prevTask.parentID;
+                  break;
+                }
+              }
+            }
+            
+            // If we found a parent context, assign it to the task
+            if (parentId) {
+              task.parentID = parentId;
+            }
+            
+            console.log('DEBUG: Determined parent context for task:', task.TaskID, 'parent:', parentId);
+          });
+          
+          // Now regenerate all hierarchical IDs to ensure proper sequential numbering
+          const updatedData = regenerateHierarchicalIds(currentData);
+          
+          console.log('DEBUG: Regenerated hierarchical IDs after new task addition');
+          console.log('DEBUG: Sample updated tasks:', updatedData.slice(0, 10).map(t => ({ id: t.TaskID, name: t.TaskName, parent: t.parentID })));
+          
+          // Update the data source with new hierarchical structure
+          if (updatedData && updatedData.length > 0) {
+            ganttInstance.dataSource = updatedData;
+            ganttInstance.refresh();
+            console.log('DEBUG: Gantt chart refreshed with new hierarchical IDs');
+          }
+        }
       }
     }
   };
