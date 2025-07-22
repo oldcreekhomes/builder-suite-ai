@@ -1,48 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { registerLicense } from '@syncfusion/ej2-base';
-import { 
-  ContextMenu, 
-  ContextMenuContent, 
-  ContextMenuItem, 
-  ContextMenuSeparator, 
-  ContextMenuTrigger 
-} from '@/components/ui/context-menu';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  ChevronRight, 
-  ChevronLeft, 
-  ExpandIcon, 
-  Minimize2, 
-  RefreshCw 
-} from 'lucide-react';
 
 interface GanttChartProps {
   projectId: string;
-}
-
-interface ContextMenuState {
-  isOpen: boolean;
-  taskData: any | null;
-  mousePosition: { x: number; y: number };
-  contextType: 'task' | 'empty' | 'header';
 }
 
 export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttRef = useRef<GanttComponent>(null);
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
-  
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    isOpen: false,
-    taskData: null,
-    mousePosition: { x: 0, y: 0 },
-    contextType: 'empty'
-  });
 
   useEffect(() => {
     // Register Syncfusion license
@@ -95,119 +65,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const projectStartDate = new Date('2024-01-01');
   const projectEndDate = new Date('2024-12-31');
-
-  // Context menu handlers
-  const handleContextMenu = (event: React.MouseEvent) => {
-    event.preventDefault();
-    
-    const target = event.target as HTMLElement;
-    const taskRow = target.closest('.e-row');
-    
-    let contextType: 'task' | 'empty' | 'header' = 'empty';
-    let taskData = null;
-    
-    if (taskRow) {
-      const rowIndex = parseInt(taskRow.getAttribute('aria-rowindex') || '0');
-      if (rowIndex > 0 && ganttData[rowIndex - 1]) {
-        contextType = 'task';
-        taskData = ganttData[rowIndex - 1];
-      }
-    }
-    
-    setContextMenu({
-      isOpen: true,
-      taskData,
-      mousePosition: { x: event.clientX, y: event.clientY },
-      contextType
-    });
-  };
-
-  const handleAddTask = () => {
-    const newTask = {
-      project_id: projectId,
-      task_name: 'New Task',
-      start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + 86400000).toISOString(),
-      duration: 1,
-      progress: 0,
-      predecessor: null,
-      resources: null,
-      parent_id: contextMenu.taskData?.ParentID || null,
-      order_index: tasks.length,
-    };
-    
-    createTask.mutate(newTask);
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleAddSubtask = () => {
-    if (!contextMenu.taskData) return;
-    
-    const newTask = {
-      project_id: projectId,
-      task_name: 'New Subtask',
-      start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + 86400000).toISOString(),
-      duration: 1,
-      progress: 0,
-      predecessor: null,
-      resources: null,
-      parent_id: contextMenu.taskData.TaskID,
-      order_index: tasks.length,
-    };
-    
-    createTask.mutate(newTask);
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleEditTask = () => {
-    if (!contextMenu.taskData || !ganttRef.current) return;
-    
-    ganttRef.current.editModule.dialogModule.openEditDialog(contextMenu.taskData.TaskID);
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleDeleteTask = () => {
-    if (!contextMenu.taskData) return;
-    
-    deleteTask.mutate(contextMenu.taskData.TaskID);
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleExpandAll = () => {
-    if (ganttRef.current) {
-      ganttRef.current.expandAll();
-    }
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleCollapseAll = () => {
-    if (ganttRef.current) {
-      ganttRef.current.collapseAll();
-    }
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleIndentTask = () => {
-    if (!contextMenu.taskData || !ganttRef.current) return;
-    
-    ganttRef.current.indent();
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleOutdentTask = () => {
-    if (!contextMenu.taskData || !ganttRef.current) return;
-    
-    ganttRef.current.outdent();
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const handleRefresh = () => {
-    if (ganttRef.current) {
-      ganttRef.current.refresh();
-    }
-    setContextMenu(prev => ({ ...prev, isOpen: false }));
-  };
 
   const handleActionBegin = (args: any) => {
     console.log('Action begin:', args.requestType, args);
@@ -300,112 +157,52 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   return (
     <div className="w-full h-full">
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div onContextMenu={handleContextMenu}>
-            <GanttComponent
-              ref={ganttRef}
-              id="gantt"
-              dataSource={ganttData}
-              taskFields={taskFields}
-              editSettings={editSettings}
-              toolbar={toolbarOptions}
-              splitterSettings={splitterSettings}
-              height="600px"
-              projectStartDate={projectStartDate}
-              projectEndDate={projectEndDate}
-              actionBegin={handleActionBegin}
-              actionComplete={handleActionComplete}
-              resizeStart={handleResizeStart}
-              resizing={handleResizing}
-              resizeStop={handleResizeStop}
-              allowSelection={true}
-              allowResizing={true}
-              showColumnMenu={true}
-              columnMenuOpen={handleColumnMenuOpen}
-              columnMenuClick={handleColumnMenuClick}
-              gridLines="Both"
-              timelineSettings={{
-                timelineUnitSize: 60,
-                topTier: {
-                  unit: 'Month',
-                  format: 'MMM yyyy'
-                },
-                bottomTier: {
-                  unit: 'Day',
-                  format: 'dd'
-                }
-              }}
-            >
-              <ColumnsDirective>
-                <ColumnDirective field="TaskID" headerText="ID" width="80" allowResizing={true} />
-                <ColumnDirective field="TaskName" headerText="Task Name" width="280" allowResizing={true} />
-                <ColumnDirective field="StartDate" headerText="Start Date" width="140" allowResizing={true} />
-                <ColumnDirective field="EndDate" headerText="End Date" width="140" allowResizing={true} />
-                <ColumnDirective field="Duration" headerText="Duration" width="110" allowResizing={true} />
-                <ColumnDirective field="Progress" headerText="Progress" width="110" allowResizing={true} />
-                <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
-                <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
-              </ColumnsDirective>
-              <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu]} />
-            </GanttComponent>
-          </div>
-        </ContextMenuTrigger>
-        
-        <ContextMenuContent className="w-64">
-          {contextMenu.contextType === 'task' && contextMenu.taskData && (
-            <>
-              <ContextMenuItem onClick={handleEditTask}>
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit Task
-              </ContextMenuItem>
-              <ContextMenuItem onClick={handleDeleteTask} className="text-red-600">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Task
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={handleAddSubtask}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Subtask
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={handleIndentTask}>
-                <ChevronRight className="h-4 w-4 mr-2" />
-                Indent Task
-              </ContextMenuItem>
-              <ContextMenuItem onClick={handleOutdentTask}>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Outdent Task
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-            </>
-          )}
-          
-          {contextMenu.contextType === 'empty' && (
-            <>
-              <ContextMenuItem onClick={handleAddTask}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Task
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-            </>
-          )}
-          
-          <ContextMenuItem onClick={handleExpandAll}>
-            <ExpandIcon className="h-4 w-4 mr-2" />
-            Expand All
-          </ContextMenuItem>
-          <ContextMenuItem onClick={handleCollapseAll}>
-            <Minimize2 className="h-4 w-4 mr-2" />
-            Collapse All
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
+      <GanttComponent
+        ref={ganttRef}
+        id="gantt"
+        dataSource={ganttData}
+        taskFields={taskFields}
+        editSettings={editSettings}
+        toolbar={toolbarOptions}
+        splitterSettings={splitterSettings}
+        height="600px"
+        projectStartDate={projectStartDate}
+        projectEndDate={projectEndDate}
+        actionBegin={handleActionBegin}
+        actionComplete={handleActionComplete}
+        resizeStart={handleResizeStart}
+        resizing={handleResizing}
+        resizeStop={handleResizeStop}
+        allowSelection={true}
+        allowResizing={true}
+        showColumnMenu={true}
+        columnMenuOpen={handleColumnMenuOpen}
+        columnMenuClick={handleColumnMenuClick}
+        gridLines="Both"
+        timelineSettings={{
+          timelineUnitSize: 60,
+          topTier: {
+            unit: 'Month',
+            format: 'MMM yyyy'
+          },
+          bottomTier: {
+            unit: 'Day',
+            format: 'dd'
+          }
+        }}
+      >
+        <ColumnsDirective>
+          <ColumnDirective field="TaskID" headerText="ID" width="80" allowResizing={true} />
+          <ColumnDirective field="TaskName" headerText="Task Name" width="280" allowResizing={true} />
+          <ColumnDirective field="StartDate" headerText="Start Date" width="140" allowResizing={true} />
+          <ColumnDirective field="EndDate" headerText="End Date" width="140" allowResizing={true} />
+          <ColumnDirective field="Duration" headerText="Duration" width="110" allowResizing={true} />
+          <ColumnDirective field="Progress" headerText="Progress" width="110" allowResizing={true} />
+          <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
+          <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
+        </ColumnsDirective>
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu]} />
+      </GanttComponent>
     </div>
   );
 };
