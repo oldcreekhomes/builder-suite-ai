@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { registerLicense } from '@syncfusion/ej2-base';
@@ -57,6 +57,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit'
+  ];
+
+  const contextMenuItems = [
+    'TaskInformation',
+    'NewTask',
+    'Indent',
+    'Outdent',
+    'DeleteTask',
+    'Save',
+    'Cancel',
+    'ExpandAll',
+    'CollapseAll'
   ];
 
   const splitterSettings = {
@@ -116,6 +128,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
+  const handleContextMenuClick = (args: any) => {
+    console.log('Context menu clicked:', args.item.text, args);
+    
+    // The context menu actions are automatically handled by Syncfusion
+    // but we can add custom logic here if needed
+    if (args.item.text === 'NewTask') {
+      console.log('Adding new task via context menu');
+    } else if (args.item.text === 'DeleteTask') {
+      console.log('Deleting task via context menu');
+    } else if (args.item.text === 'TaskInformation') {
+      console.log('Opening task information dialog');
+    }
+  };
+
   const handleResizeStart = (args: any) => {
     console.log('Resize start:', args);
   };
@@ -164,6 +190,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         taskFields={taskFields}
         editSettings={editSettings}
         toolbar={toolbarOptions}
+        enableContextMenu={true}
+        contextMenuItems={contextMenuItems}
+        contextMenuClick={handleContextMenuClick}
         splitterSettings={splitterSettings}
         height="600px"
         projectStartDate={projectStartDate}
@@ -201,7 +230,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
           <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
         </ColumnsDirective>
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu]} />
       </GanttComponent>
     </div>
   );
