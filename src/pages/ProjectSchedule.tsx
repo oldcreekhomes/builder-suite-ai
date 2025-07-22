@@ -6,6 +6,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/useProject";
+import "../styles/syncfusion.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
