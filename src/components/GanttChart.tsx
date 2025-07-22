@@ -17,12 +17,25 @@ function GanttChart({ projectId }: GanttChartProps) {
   const ganttRef = React.useRef<any>(null);
   const idMapper = React.useRef(new GanttIdMapper());
   const queryClient = useQueryClient();
+  const [isComponentReady, setIsComponentReady] = React.useState(false);
+
+  // Debounced cache invalidation to prevent rapid-fire updates
+  const invalidationTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const debouncedInvalidate = React.useCallback(() => {
+    if (invalidationTimeoutRef.current) {
+      clearTimeout(invalidationTimeoutRef.current);
+    }
+    invalidationTimeoutRef.current = setTimeout(() => {
+      console.log('Gantt: Invalidating cache after debounce');
+      queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
+    }, 500);
+  }, [projectId, queryClient]);
 
   // Fetch resources from users and company representatives - project-specific caching
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['project-resources', projectId],
     queryFn: async () => {
-      // Fetch company users
+      console.log('Gantt: Fetching resources');
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, first_name, last_name, email');
@@ -32,7 +45,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw usersError;
       }
 
-      // Fetch company representatives
       const { data: representatives, error: repsError } = await supabase
         .from('company_representatives')
         .select('id, first_name, last_name, email');
@@ -42,7 +54,6 @@ function GanttChart({ projectId }: GanttChartProps) {
         throw repsError;
       }
 
-      // Transform to Syncfusion resource format
       const allResources = [
         ...(users || []).map(user => ({
           resourceId: user.id,
@@ -64,6 +75,7 @@ function GanttChart({ projectId }: GanttChartProps) {
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
     queryKey: ['project-schedule-tasks', projectId],
     queryFn: async () => {
+      console.log('Gantt: Fetching tasks data');
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
@@ -81,38 +93,66 @@ function GanttChart({ projectId }: GanttChartProps) {
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 
-  // Memoize the transformed tasks to prevent unnecessary re-renders
+  // Initialize ID mapper when tasks data changes
+  React.useEffect(() => {
+    if (tasksData && tasksData.length >= 0) {
+      console.log('Gantt: Initializing ID mapper with', tasksData.length, 'tasks');
+      idMapper.current.initializeFromTasks(tasksData);
+    }
+  }, [tasksData]);
+
+  // Memoize the transformed tasks with stable dependencies
   const tasks = React.useMemo(() => {
-    if (!tasksData || tasksData.length === 0) return [];
+    if (!tasksData || tasksData.length === 0) {
+      console.log('Gantt: No tasks data, returning empty array');
+      return [];
+    }
 
-    // Initialize ID mapper with existing tasks
-    idMapper.current.initializeFromTasks(tasksData);
-
+    console.log('Gantt: Transforming', tasksData.length, 'tasks');
+    
     // Transform tasks for Syncfusion
     const transformedTasks = tasksData.map((task) => {
       return idMapper.current.convertTaskForSyncfusion(task);
     }).filter(task => task !== null);
 
+    console.log('Gantt: Transformed to', transformedTasks.length, 'tasks');
     return transformedTasks;
   }, [tasksData]);
 
-  // Memoize project dates to prevent recalculation
+  // Memoize project dates with stable dependencies
   const { projectStartDate, projectEndDate } = React.useMemo(() => {
     if (tasks.length === 0) {
+      const defaultStart = new Date();
+      const defaultEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      console.log('Gantt: Using default project dates');
       return {
-        projectStartDate: new Date(),
-        projectEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        projectStartDate: defaultStart,
+        projectEndDate: defaultEnd
       };
     }
     
+    const startDate = new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime())));
+    const endDate = new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())));
+    
+    console.log('Gantt: Calculated project dates:', startDate, endDate);
     return {
-      projectStartDate: new Date(Math.min(...tasks.map(t => new Date(t.startDate).getTime()))),
-      projectEndDate: new Date(Math.max(...tasks.map(t => new Date(t.endDate).getTime())))
+      projectStartDate: startDate,
+      projectEndDate: endDate
     };
   }, [tasks]);
 
-  // Streamlined actionComplete handler - ignore system refresh events
+  // Set component ready when data is loaded
+  React.useEffect(() => {
+    if (!resourcesLoading && !tasksLoading && tasks.length >= 0) {
+      console.log('Gantt: Component ready');
+      setIsComponentReady(true);
+    }
+  }, [resourcesLoading, tasksLoading, tasks.length]);
+
+  // Optimized actionComplete handler - minimal cache invalidation
   const handleActionComplete = React.useCallback(async (args: any) => {
+    console.log('Gantt: Action complete:', args.requestType);
+    
     // Ignore system refresh events that cause unnecessary re-renders
     if (args.requestType === 'refresh' || args.requestType === 'filtering' || args.requestType === 'sorting') {
       return;
@@ -129,12 +169,16 @@ function GanttChart({ projectId }: GanttChartProps) {
         case 'add':
           if (args.data) {
             await handleTaskAdd(args.data);
+            // Only invalidate on structural changes
+            debouncedInvalidate();
           }
           break;
         
         case 'delete':
           if (args.data && args.data.length > 0) {
             await handleTaskDelete(args.data);
+            // Only invalidate on structural changes
+            debouncedInvalidate();
           }
           break;
         
@@ -146,11 +190,6 @@ function GanttChart({ projectId }: GanttChartProps) {
           break;
       }
       
-      // Only refresh when necessary - not on every operation
-      if (['add', 'delete'].includes(args.requestType)) {
-        queryClient.invalidateQueries({ queryKey: ['project-schedule-tasks', projectId] });
-      }
-      
     } catch (error) {
       console.error('Database operation failed:', error);
       toast({
@@ -159,7 +198,7 @@ function GanttChart({ projectId }: GanttChartProps) {
         variant: "destructive",
       });
     }
-  }, [projectId, queryClient]);
+  }, [debouncedInvalidate]);
 
   const handleTaskUpdate = async (syncTask: any) => {
     const uuid = idMapper.current.getUuid(syncTask.taskID);
@@ -168,7 +207,6 @@ function GanttChart({ projectId }: GanttChartProps) {
       return;
     }
 
-    // Simple resource processing
     let assignedTo = null;
     if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
       const resourceIds = syncTask.resourceInfo.map((resource: any) => resource.resourceId).filter(id => id);
@@ -197,7 +235,6 @@ function GanttChart({ projectId }: GanttChartProps) {
   };
 
   const handleTaskAdd = async (syncTask: any) => {
-    // Simple resource processing for new tasks
     let assignedTo = null;
     if (syncTask.resourceInfo && Array.isArray(syncTask.resourceInfo) && syncTask.resourceInfo.length > 0) {
       const resourceIds = syncTask.resourceInfo.map((resource: any) => resource.resourceId).filter(id => id);
@@ -259,7 +296,7 @@ function GanttChart({ projectId }: GanttChartProps) {
     }
   };
 
-  const isLoading = resourcesLoading || tasksLoading;
+  const isLoading = resourcesLoading || tasksLoading || !isComponentReady;
 
   // Memoize configuration objects to prevent unnecessary re-renders
   const taskFields = React.useMemo(() => ({
@@ -293,8 +330,11 @@ function GanttChart({ projectId }: GanttChartProps) {
   const contextMenuItems = React.useMemo(() => ['Add', 'Delete', 'Indent', 'Outdent'], []);
 
   if (isLoading) {
+    console.log('Gantt: Still loading...');
     return <div style={{ padding: '10px' }}>Loading schedule...</div>;
   }
+
+  console.log('Gantt: Rendering component with', tasks.length, 'tasks');
 
   return (
     <div style={{ padding: '10px' }}>

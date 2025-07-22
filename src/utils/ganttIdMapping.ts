@@ -1,18 +1,24 @@
-
 // Simplified utility for mapping between Syncfusion numeric IDs and database UUIDs
 export class GanttIdMapper {
   private numericToUuid: Map<number, string> = new Map();
   private uuidToNumeric: Map<string, number> = new Map();
   private nextId: number = 1;
   private initialized: boolean = false;
+  private lastDataHash: string = '';
 
-  // Initialize mapping from existing tasks - only once per data set
+  // Initialize mapping from existing tasks - only once per unique data set
   initializeFromTasks(tasks: any[]) {
-    // Skip if already initialized with the same data
-    if (this.initialized && tasks.length === this.numericToUuid.size) {
+    // Create a hash of the task data to detect actual changes
+    const dataHash = this.createDataHash(tasks);
+    
+    // Skip if already initialized with the exact same data
+    if (this.initialized && this.lastDataHash === dataHash) {
+      console.log('ID Mapper: Skipping re-initialization - data unchanged');
       return;
     }
 
+    console.log('ID Mapper: Initializing with', tasks.length, 'tasks');
+    
     this.numericToUuid.clear();
     this.uuidToNumeric.clear();
     this.nextId = 1;
@@ -35,6 +41,20 @@ export class GanttIdMapper {
     });
     
     this.initialized = true;
+    this.lastDataHash = dataHash;
+    console.log('ID Mapper: Initialization complete');
+  }
+
+  // Create a hash of the task data to detect changes
+  private createDataHash(tasks: any[]): string {
+    if (!tasks || tasks.length === 0) return 'empty';
+    
+    const sortedIds = tasks
+      .map(task => task.id)
+      .sort()
+      .join(',');
+    
+    return `${tasks.length}-${sortedIds.substring(0, 50)}`;
   }
 
   // Get UUID from numeric ID
