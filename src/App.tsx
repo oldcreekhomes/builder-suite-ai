@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,13 +22,57 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import PasswordReset from "./pages/PasswordReset";
 import Index from "./pages/Index";
-
 import NotFound from "./pages/NotFound";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
+import { supabase } from "@/integrations/supabase/client";
+import { registerLicense } from '@syncfusion/ej2-base';
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
+  const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
+
+  // Register Syncfusion license at application startup
+  useEffect(() => {
+    const registerSyncfusionLicense = async () => {
+      try {
+        console.log('Registering Syncfusion license...');
+        const { data, error } = await supabase.functions.invoke('get-syncfusion-key');
+        
+        if (error) {
+          console.error('Error fetching Syncfusion license:', error);
+          setSyncfusionLicenseRegistered(true); // Allow app to continue even if license fails
+          return;
+        }
+        
+        if (data?.key) {
+          registerLicense(data.key);
+          console.log('Syncfusion license registered successfully');
+        } else {
+          console.warn('No Syncfusion license key found');
+        }
+      } catch (error) {
+        console.error('Failed to register Syncfusion license:', error);
+      } finally {
+        setSyncfusionLicenseRegistered(true);
+      }
+    };
+
+    registerSyncfusionLicense();
+  }, []);
+
+  // Show loading while license is being registered
+  if (!syncfusionLicenseRegistered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Initializing application...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
         <Routes>

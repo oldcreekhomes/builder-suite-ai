@@ -1,5 +1,4 @@
 
-import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Syncfusion Gantt imports
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ExcelExport, PdfExport } from '@syncfusion/ej2-react-gantt';
-import { registerLicense } from '@syncfusion/ej2-base';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport } from '@syncfusion/ej2-react-gantt';
 
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
@@ -44,22 +42,6 @@ export default function ProjectSchedule() {
     },
     enabled: !!projectId,
   });
-
-  // Register Syncfusion license key
-  useEffect(() => {
-    const registerSyncfusionLicense = async () => {
-      try {
-        const { data } = await supabase.functions.invoke('get-syncfusion-key');
-        if (data?.key) {
-          registerLicense(data.key);
-        }
-      } catch (error) {
-        console.error('Failed to register Syncfusion license:', error);
-      }
-    };
-
-    registerSyncfusionLicense();
-  }, []);
 
   // Gantt configuration
   const taskFields = {
@@ -192,7 +174,7 @@ export default function ProjectSchedule() {
                       <ColumnDirective field='Progress' headerText='Progress' width='100' />
                       <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
                     </ColumnsDirective>
-                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ExcelExport, PdfExport]} />
+                    <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport]} />
                   </GanttComponent>
                 </div>
               </div>
