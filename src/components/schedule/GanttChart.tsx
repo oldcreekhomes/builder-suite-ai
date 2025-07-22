@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { registerLicense } from '@syncfusion/ej2-base';
@@ -149,6 +149,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         actionBegin={handleActionBegin}
         actionComplete={handleActionComplete}
         allowSelection={true}
+        allowResizing={true}
+        allowAutoFit={true}
         gridLines="Both"
         timelineSettings={{
           timelineUnitSize: 60,
@@ -163,16 +165,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         }}
       >
         <ColumnsDirective>
-          <ColumnDirective field="TaskID" headerText="ID" width="70" />
-          <ColumnDirective field="TaskName" headerText="Task Name" width="250" />
-          <ColumnDirective field="StartDate" headerText="Start Date" width="120" />
-          <ColumnDirective field="EndDate" headerText="End Date" width="120" />
-          <ColumnDirective field="Duration" headerText="Duration" width="100" />
-          <ColumnDirective field="Progress" headerText="Progress" width="100" />
-          <ColumnDirective field="Predecessor" headerText="Dependency" width="120" />
-          <ColumnDirective field="Resources" headerText="Resources" width="150" />
+          <ColumnDirective field="TaskID" headerText="ID" width="80" allowResizing={true} />
+          <ColumnDirective field="TaskName" headerText="Task Name" width="280" allowResizing={true} />
+          <ColumnDirective field="StartDate" headerText="Start Date" width="140" allowResizing={true} />
+          <ColumnDirective field="EndDate" headerText="End Date" width="140" allowResizing={true} />
+          <ColumnDirective field="Duration" headerText="Duration" width="110" allowResizing={true} />
+          <ColumnDirective field="Progress" headerText="Progress" width="110" allowResizing={true} />
+          <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
+          <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
         </ColumnsDirective>
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize]} />
       </GanttComponent>
     </div>
   );
