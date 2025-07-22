@@ -71,35 +71,50 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Enhanced event handler with context-based hierarchical ID generation
+  // Enhanced event handler with detailed debugging
   const actionBegin = (args: any) => {
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
       
-      console.log('Adding new task - checking selection context...');
+      console.log('=== DEBUG: Adding new task - checking selection context ===');
       
       // Get currently selected task to determine parent context
       let parentId: string | undefined = undefined;
       
       if (ganttRef.current) {
         const selectedRecords = (ganttRef.current as any).getSelectedRecords();
-        console.log('Selected records:', selectedRecords);
+        console.log('DEBUG: Selected records count:', selectedRecords?.length);
+        console.log('DEBUG: Selected records data:', selectedRecords);
         
         if (selectedRecords && selectedRecords.length > 0) {
           // Use the first selected task as the parent
           const selectedTask = selectedRecords[0];
           parentId = selectedTask.TaskID;
-          console.log('Selected task ID for parent context:', parentId);
+          console.log('DEBUG: Selected task for parent context:');
+          console.log('  - TaskID:', selectedTask.TaskID);
+          console.log('  - TaskName:', selectedTask.TaskName);
+          console.log('  - parentID:', selectedTask.parentID);
+          console.log('DEBUG: Using parentId:', parentId);
         } else {
-          console.log('No task selected - creating root-level task');
+          console.log('DEBUG: No task selected - creating root-level task');
         }
+      } else {
+        console.log('DEBUG: ganttRef.current is null');
       }
       
       // Get the current data to determine next ID
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
+      console.log('DEBUG: Current data source length:', currentData?.length);
+      console.log('DEBUG: Current data structure sample:', currentData?.slice(0, 3));
+      
+      // Debug the ID generation process
+      console.log('DEBUG: Calling getNextHierarchicalId with:');
+      console.log('  - data length:', currentData?.length);
+      console.log('  - parentId:', parentId);
+      
       const nextId = getNextHierarchicalId(currentData, parentId);
       
-      console.log('Generated next ID:', nextId, 'with parent:', parentId);
+      console.log('DEBUG: Generated next ID:', nextId);
       
       // Create new task with proper hierarchical ID and parent relationship
       const newTask = {
@@ -111,7 +126,8 @@ export default function ProjectSchedule() {
         parentID: parentId // Set parent relationship for proper tree structure
       };
       
-      console.log('Adding new task:', newTask);
+      console.log('DEBUG: Final new task object:', newTask);
+      console.log('=== END DEBUG ===');
       
       if (ganttRef.current) {
         (ganttRef.current as any).addRecord(newTask);
@@ -197,7 +213,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with context-aware hierarchical IDs */}
+            {/* Syncfusion Gantt Chart with enhanced debugging */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
