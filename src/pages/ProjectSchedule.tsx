@@ -17,13 +17,17 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
 import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
-import { generateHierarchicalIds, getNextHierarchicalId, regenerateHierarchicalIds, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
+import { GanttAddTaskButtons } from "@/components/GanttAddTaskButtons";
+import { generateHierarchicalIds, getNextHierarchicalId, regenerateHierarchicalIds, determineAddContext, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const ganttRef = useRef(null);
   
+  // State for tracking selected task for better add context
+  const [selectedTask, setSelectedTask] = useState<TaskWithHierarchicalId | null>(null);
+
   // State for custom delete confirmation dialog
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
@@ -85,53 +89,90 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Enhanced event handler for adding tasks
+  // Enhanced event handler for adding tasks with intelligent context detection
   const actionBegin = (args: any) => {
     console.log('=== DEBUG: actionBegin triggered ===');
     console.log('Action requestType:', args.requestType);
     
     if (args.requestType === 'beforeOpenAddDialog') {
+      // Cancel the default dialog - we'll handle task creation manually
       args.cancel = true;
       
-      // Get currently selected task to determine parent context
-      let parentId: string | undefined = undefined;
-      
-      if (ganttRef.current) {
-        const ganttInstance = ganttRef.current as any;
-        const selectedRecords = ganttInstance.getSelectedRecords();
-        
-        if (selectedRecords && selectedRecords.length > 0) {
-          const selectedTask = selectedRecords[0];
-          parentId = selectedTask.TaskID;
-        }
-      }
-      
-      // Get the current data to determine next ID
+      // Use intelligent context detection
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
-      const nextId = getNextHierarchicalId(currentData, parentId);
+      const addContext = determineAddContext(selectedTask, currentData);
       
-      // Create new task with proper hierarchical ID, parent relationship, and default resource
-      const newTask = {
-        TaskID: nextId,
-        TaskName: 'New Task',
-        StartDate: new Date(),
-        Duration: 1,
-        Progress: 0,
-        parentID: parentId,
-        Resources: [1] // Default to Project Manager
-      };
+      console.log('DEBUG: Add context determined:', addContext);
       
-      if (ganttRef.current) {
-        (ganttRef.current as any).addRecord(newTask);
-      }
+      // Create and add the new task
+      handleAddTask(addContext.type, addContext.parentId);
     }
+  };
+
+  // Manual task addition with explicit context
+  const handleAddTask = (type: 'root' | 'child' | 'sibling', explicitParentId?: string) => {
+    console.log('=== DEBUG: handleAddTask triggered ===');
+    console.log('Add type:', type, 'Parent ID:', explicitParentId);
+    
+    if (!ganttRef.current) return;
+    
+    const ganttInstance = ganttRef.current as any;
+    const currentData = ganttInstance.currentViewData || processedProjectData;
+    
+    let parentId: string | undefined = undefined;
+    
+    // Determine parent ID based on add type
+    switch (type) {
+      case 'root':
+        parentId = undefined;
+        break;
+      case 'child':
+        parentId = explicitParentId || selectedTask?.TaskID;
+        break;
+      case 'sibling':
+        parentId = explicitParentId || selectedTask?.parentID;
+        break;
+    }
+    
+    console.log('DEBUG: Final parent ID for new task:', parentId);
+    
+    // Generate the next hierarchical ID
+    const nextId = getNextHierarchicalId(currentData, parentId);
+    console.log('DEBUG: Generated next ID:', nextId);
+    
+    // Create new task with proper hierarchical ID and default values
+    const newTask = {
+      TaskID: nextId,
+      TaskName: `New Task ${nextId}`,
+      StartDate: new Date(),
+      Duration: 1,
+      Progress: 0,
+      parentID: parentId,
+      Resources: [1] // Default to Project Manager
+    };
+    
+    console.log('DEBUG: Creating new task:', newTask);
+    
+    // Add the task to the Gantt chart
+    ganttInstance.addRecord(newTask);
+    
+    // Force regeneration of hierarchical IDs to ensure proper sequencing
+    setTimeout(() => {
+      console.log('DEBUG: Post-add ID regeneration started');
+      const updatedData = ganttInstance.currentViewData;
+      if (updatedData && updatedData.length > 0) {
+        const regeneratedData = regenerateHierarchicalIds(updatedData);
+        ganttInstance.dataSource = regeneratedData;
+        ganttInstance.refresh();
+        console.log('DEBUG: Post-add ID regeneration completed');
+      }
+    }, 100);
   };
 
   // Enhanced event handler for completed actions (including row reordering and new task additions)
   const actionComplete = (args: any) => {
     console.log('=== DEBUG: actionComplete triggered ===');
     console.log('Action requestType:', args.requestType);
-    console.log('Action data:', args.data);
     
     if (args.requestType === 'rowDropped' || args.requestType === 'rowdrop') {
       console.log('DEBUG: Row reordering detected, regenerating hierarchical IDs');
@@ -140,89 +181,45 @@ export default function ProjectSchedule() {
         const ganttInstance = ganttRef.current as any;
         const currentData = ganttInstance.currentViewData;
         
-        console.log('DEBUG: Current data before ID regeneration:', currentData?.length);
-        console.log('DEBUG: Sample current data structure:', currentData?.slice(0, 3));
-        
         // Regenerate hierarchical IDs based on new order
         const updatedData = regenerateHierarchicalIds(currentData);
         
-        console.log('DEBUG: Updated data after ID regeneration:', updatedData?.length);
-        console.log('DEBUG: Sample updated data structure:', updatedData?.slice(0, 3));
-        
         // Update the data source with new hierarchical structure
         if (updatedData && updatedData.length > 0) {
-          console.log('DEBUG: Updating Gantt data source with regenerated IDs');
           ganttInstance.dataSource = updatedData;
           ganttInstance.refresh();
+          console.log('DEBUG: Hierarchical IDs regenerated after reordering');
         }
-        
-        console.log('DEBUG: Hierarchical IDs regenerated successfully');
       }
-    } else if (args.requestType === 'save' || args.requestType === 'add') {
-      console.log('DEBUG: New task addition detected, assigning hierarchical ID');
+    } else if (args.requestType === 'delete') {
+      console.log('DEBUG: Task deletion detected, regenerating hierarchical IDs');
       
       if (ganttRef.current) {
         const ganttInstance = ganttRef.current as any;
         const currentData = ganttInstance.currentViewData;
         
-        // Find tasks with non-hierarchical IDs (numeric only, like "23", "24")
-        const tasksNeedingHierarchicalIds = currentData.filter((task: any) => {
-          const idStr = String(task.TaskID);
-          // Check if it's purely numeric (no dots) and greater than expected hierarchical range
-          return /^\d+$/.test(idStr) && parseInt(idStr) > 20;
-        });
-        
-        console.log('DEBUG: Tasks needing hierarchical IDs:', tasksNeedingHierarchicalIds.length);
-        
-        if (tasksNeedingHierarchicalIds.length > 0) {
-          // For each task needing a hierarchical ID, determine its proper position
-          tasksNeedingHierarchicalIds.forEach((task: any) => {
-            console.log('DEBUG: Processing task for hierarchical ID:', task.TaskID, task.TaskName);
-            
-            // Find the task's position in the current data to determine context
-            const taskIndex = currentData.findIndex((t: any) => t.TaskID === task.TaskID);
-            let parentId: string | undefined = undefined;
-            
-            // Look for parent context by examining surrounding tasks
-            if (taskIndex > 0) {
-              // Check previous tasks to find a potential parent
-              for (let i = taskIndex - 1; i >= 0; i--) {
-                const prevTask = currentData[i];
-                // If previous task has no parent, it could be our parent
-                if (!prevTask.parentID) {
-                  parentId = prevTask.TaskID;
-                  break;
-                }
-                // If previous task has the same parent as we should have
-                if (prevTask.parentID && !task.parentID) {
-                  parentId = prevTask.parentID;
-                  break;
-                }
-              }
-            }
-            
-            // If we found a parent context, assign it to the task
-            if (parentId) {
-              task.parentID = parentId;
-            }
-            
-            console.log('DEBUG: Determined parent context for task:', task.TaskID, 'parent:', parentId);
-          });
-          
-          // Now regenerate all hierarchical IDs to ensure proper sequential numbering
+        // Regenerate hierarchical IDs after deletion
+        if (currentData && currentData.length > 0) {
           const updatedData = regenerateHierarchicalIds(currentData);
-          
-          console.log('DEBUG: Regenerated hierarchical IDs after new task addition');
-          console.log('DEBUG: Sample updated tasks:', updatedData.slice(0, 10).map(t => ({ id: t.TaskID, name: t.TaskName, parent: t.parentID })));
-          
-          // Update the data source with new hierarchical structure
-          if (updatedData && updatedData.length > 0) {
-            ganttInstance.dataSource = updatedData;
-            ganttInstance.refresh();
-            console.log('DEBUG: Gantt chart refreshed with new hierarchical IDs');
-          }
+          ganttInstance.dataSource = updatedData;
+          ganttInstance.refresh();
+          console.log('DEBUG: Hierarchical IDs regenerated after deletion');
         }
       }
+    }
+  };
+
+  // Selection change handler to track selected task
+  const onSelectionChange = (args: any) => {
+    console.log('=== DEBUG: Selection changed ===');
+    
+    if (args.data && args.data.length > 0) {
+      const selected = args.data[0];
+      setSelectedTask(selected);
+      console.log('DEBUG: Selected task:', selected.TaskID, selected.TaskName);
+    } else {
+      setSelectedTask(null);
+      console.log('DEBUG: No task selected');
     }
   };
 
@@ -287,10 +284,11 @@ export default function ProjectSchedule() {
               </div>
               
               <div className="flex items-center space-x-4">
-                <Button className="flex items-center space-x-2">
-                  <Plus className="h-4 w-4" />
-                  <span>Add Task</span>
-                </Button>
+                <GanttAddTaskButtons
+                  onAddTask={handleAddTask}
+                  selectedTaskName={selectedTask?.TaskName}
+                  hasSelection={!!selectedTask}
+                />
               </div>
             </div>
           </header>
@@ -301,9 +299,15 @@ export default function ProjectSchedule() {
                 <Calendar className="h-6 w-6" />
                 <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
               </div>
+              
+              {selectedTask && (
+                <div className="text-sm text-gray-600">
+                  Selected: <span className="font-medium">{selectedTask.TaskName}</span> ({selectedTask.TaskID})
+                </div>
+              )}
             </div>
 
-            {/* Enhanced Syncfusion Gantt Chart with native delete dialog */}
+            {/* Enhanced Syncfusion Gantt Chart with improved hierarchical ID management */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -332,6 +336,8 @@ export default function ProjectSchedule() {
                     timelineSettings={timelineSettings}
                     actionBegin={actionBegin}
                     actionComplete={actionComplete}
+                    rowSelected={onSelectionChange}
+                    rowDeselected={() => setSelectedTask(null)}
                     height="600px"
                     gridLines="Both"
                   >

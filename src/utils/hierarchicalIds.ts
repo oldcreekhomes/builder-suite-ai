@@ -65,6 +65,30 @@ export const getNextHierarchicalId = (data: TaskWithHierarchicalId[], parentId?:
   }
 };
 
+export const determineAddContext = (selectedTask: TaskWithHierarchicalId | null, data: TaskWithHierarchicalId[]) => {
+  console.log('=== DEBUG determineAddContext START ===');
+  console.log('Selected task:', selectedTask?.TaskID, selectedTask?.TaskName);
+  
+  if (!selectedTask) {
+    console.log('DEBUG: No selection - adding root task');
+    return { type: 'root', parentId: undefined };
+  }
+  
+  // Check if selected task has children (subtasks)
+  const hasChildren = data.some(task => task.parentID === selectedTask.TaskID);
+  console.log('DEBUG: Selected task has children:', hasChildren);
+  
+  if (hasChildren) {
+    // If task has children, default to adding a child
+    console.log('DEBUG: Adding child to task with existing children');
+    return { type: 'child', parentId: selectedTask.TaskID };
+  } else {
+    // If task has no children, add a sibling at the same level
+    console.log('DEBUG: Adding sibling to task without children');
+    return { type: 'sibling', parentId: selectedTask.parentID };
+  }
+};
+
 export const regenerateHierarchicalIds = (data: TaskWithHierarchicalId[]): TaskWithHierarchicalId[] => {
   console.log('=== DEBUG regenerateHierarchicalIds START ===');
   console.log('Input data length:', data?.length);
