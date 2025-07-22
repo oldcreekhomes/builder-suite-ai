@@ -8,7 +8,7 @@ export interface TaskWithHierarchicalId {
   Progress: number;
   Predecessor?: string;
   parentID?: string;
-  Resources?: number[]; // Added Resources field
+  Resources?: number[];
   subtasks?: TaskWithHierarchicalId[];
 }
 
@@ -28,29 +28,12 @@ export const getNextHierarchicalId = (data: TaskWithHierarchicalId[], parentId?:
   console.log('=== DEBUG getNextHierarchicalId START ===');
   console.log('Input data length:', data?.length);
   console.log('Input parentId:', parentId);
-  console.log('Data sample (first 5 items):');
-  data?.slice(0, 5).forEach((task, index) => {
-    console.log(`  [${index}]:`, {
-      TaskID: task.TaskID,
-      TaskName: task.TaskName,
-      parentID: task.parentID,
-      Resources: task.Resources
-    });
-  });
   
   if (!parentId) {
     // Root level - find the highest number
     console.log('DEBUG: Generating root-level ID');
     const rootTasks = data.filter(task => !task.parentID);
     console.log('DEBUG: Root tasks found:', rootTasks.length);
-    console.log('DEBUG: Root task details:');
-    rootTasks.forEach((task, index) => {
-      console.log(`  Root[${index}]:`, {
-        TaskID: task.TaskID,
-        TaskName: task.TaskName,
-        parentID: task.parentID
-      });
-    });
     
     const maxId = rootTasks.reduce((max, task) => {
       const idNum = parseInt(task.TaskID);
@@ -67,14 +50,6 @@ export const getNextHierarchicalId = (data: TaskWithHierarchicalId[], parentId?:
     console.log('DEBUG: Generating child-level ID for parent:', parentId);
     const siblings = data.filter(task => task.parentID === parentId);
     console.log('DEBUG: Siblings found for parent', parentId, ':', siblings.length);
-    console.log('DEBUG: Sibling details:');
-    siblings.forEach((sibling, index) => {
-      console.log(`  Sibling[${index}]:`, {
-        TaskID: sibling.TaskID,
-        TaskName: sibling.TaskName,
-        parentID: sibling.parentID
-      });
-    });
     
     const maxSubId = siblings.reduce((max, task) => {
       const parts = task.TaskID.split('.');
@@ -88,4 +63,87 @@ export const getNextHierarchicalId = (data: TaskWithHierarchicalId[], parentId?:
     console.log('=== DEBUG getNextHierarchicalId END (CHILD) ===');
     return nextChildId;
   }
+};
+
+export const regenerateHierarchicalIds = (data: TaskWithHierarchicalId[]): TaskWithHierarchicalId[] => {
+  console.log('=== DEBUG regenerateHierarchicalIds START ===');
+  console.log('Input data length:', data?.length);
+  
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Create a tree structure from the flat data
+  const createTreeStructure = (tasks: TaskWithHierarchicalId[]) => {
+    const rootTasks: TaskWithHierarchicalId[] = [];
+    const taskMap = new Map<string, TaskWithHierarchicalId>();
+    
+    // First pass: create map of all tasks
+    tasks.forEach(task => {
+      taskMap.set(task.TaskID, { ...task, subtasks: [] });
+    });
+    
+    // Second pass: build tree structure
+    tasks.forEach(task => {
+      const taskCopy = taskMap.get(task.TaskID);
+      if (!taskCopy) return;
+      
+      if (!task.parentID) {
+        rootTasks.push(taskCopy);
+      } else {
+        const parent = taskMap.get(task.parentID);
+        if (parent) {
+          if (!parent.subtasks) parent.subtasks = [];
+          parent.subtasks.push(taskCopy);
+        }
+      }
+    });
+    
+    return rootTasks;
+  };
+
+  // Convert tree structure back to flat array with new hierarchical IDs
+  const flattenWithNewIds = (tasks: TaskWithHierarchicalId[], parentId = ''): TaskWithHierarchicalId[] => {
+    const result: TaskWithHierarchicalId[] = [];
+    
+    tasks.forEach((task, index) => {
+      const newId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`;
+      const updatedTask: TaskWithHierarchicalId = {
+        ...task,
+        TaskID: newId,
+        parentID: parentId || undefined
+      };
+      
+      result.push(updatedTask);
+      
+      // Process children recursively
+      if (task.subtasks && task.subtasks.length > 0) {
+        const childTasks = flattenWithNewIds(task.subtasks, newId);
+        result.push(...childTasks);
+      }
+    });
+    
+    return result;
+  };
+
+  // Build tree structure
+  const treeStructure = createTreeStructure(data);
+  console.log('DEBUG: Tree structure created with', treeStructure.length, 'root tasks');
+  
+  // Flatten with new hierarchical IDs
+  const result = flattenWithNewIds(treeStructure);
+  
+  console.log('DEBUG: Regenerated', result.length, 'tasks with new hierarchical IDs');
+  console.log('DEBUG: Sample of regenerated IDs:');
+  result.slice(0, 10).forEach((task, index) => {
+    console.log(`  [${index}]:`, {
+      oldID: data.find(d => d.TaskName === task.TaskName)?.TaskID,
+      newID: task.TaskID,
+      TaskName: task.TaskName,
+      parentID: task.parentID
+    });
+  });
+  
+  console.log('=== DEBUG regenerateHierarchicalIds END ===');
+  return result;
 };

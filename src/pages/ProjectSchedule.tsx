@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,7 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
 import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
-import { generateHierarchicalIds, getNextHierarchicalId, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
+import { generateHierarchicalIds, getNextHierarchicalId, regenerateHierarchicalIds, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -60,7 +59,7 @@ export default function ProjectSchedule() {
     dependency: 'Predecessor',
     parentID: 'parentID',
     child: 'subtasks',
-    resourceInfo: 'Resources' // Map to Resources field
+    resourceInfo: 'Resources'
   };
 
   // Resource fields configuration
@@ -80,17 +79,13 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Enhanced event handler with detailed debugging
+  // Enhanced event handler for adding tasks
   const actionBegin = (args: any) => {
     console.log('=== DEBUG: actionBegin triggered ===');
     console.log('Action requestType:', args.requestType);
-    console.log('Args data:', args.data);
-    console.log('Args cancel:', args.cancel);
     
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
-      
-      console.log('=== DEBUG: Adding new task - checking selection context ===');
       
       // Get currently selected task to determine parent context
       let parentId: string | undefined = undefined;
@@ -98,48 +93,16 @@ export default function ProjectSchedule() {
       if (ganttRef.current) {
         const ganttInstance = ganttRef.current as any;
         const selectedRecords = ganttInstance.getSelectedRecords();
-        console.log('DEBUG: Gantt instance available:', !!ganttInstance);
-        console.log('DEBUG: Selected records count:', selectedRecords?.length);
-        console.log('DEBUG: Selected records data:', selectedRecords);
         
         if (selectedRecords && selectedRecords.length > 0) {
-          // Use the first selected task as the parent
           const selectedTask = selectedRecords[0];
           parentId = selectedTask.TaskID;
-          console.log('DEBUG: Selected task for parent context:');
-          console.log('  - TaskID:', selectedTask.TaskID);
-          console.log('  - TaskName:', selectedTask.TaskName);
-          console.log('  - parentID:', selectedTask.parentID);
-          console.log('  - Resources:', selectedTask.Resources);
-          console.log('DEBUG: Using parentId for new task:', parentId);
-        } else {
-          console.log('DEBUG: No task selected - creating root-level task');
         }
-      } else {
-        console.log('DEBUG: ganttRef.current is null');
       }
       
       // Get the current data to determine next ID
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
-      console.log('DEBUG: Current data source length:', currentData?.length);
-      console.log('DEBUG: Current data structure sample (first 3 items):');
-      currentData?.slice(0, 3).forEach((item: any, index: number) => {
-        console.log(`  [${index}]:`, {
-          TaskID: item.TaskID,
-          TaskName: item.TaskName,
-          parentID: item.parentID,
-          Resources: item.Resources
-        });
-      });
-      
-      // Debug the ID generation process
-      console.log('DEBUG: Calling getNextHierarchicalId with:');
-      console.log('  - data length:', currentData?.length);
-      console.log('  - parentId:', parentId);
-      
       const nextId = getNextHierarchicalId(currentData, parentId);
-      
-      console.log('DEBUG: Generated next ID:', nextId);
       
       // Create new task with proper hierarchical ID, parent relationship, and default resource
       const newTask = {
@@ -148,12 +111,9 @@ export default function ProjectSchedule() {
         StartDate: new Date(),
         Duration: 1,
         Progress: 0,
-        parentID: parentId, // Set parent relationship for proper tree structure
+        parentID: parentId,
         Resources: [1] // Default to Project Manager
       };
-      
-      console.log('DEBUG: Final new task object:', newTask);
-      console.log('=== END DEBUG ===');
       
       if (ganttRef.current) {
         (ganttRef.current as any).addRecord(newTask);
@@ -161,8 +121,36 @@ export default function ProjectSchedule() {
     }
   };
 
-  // Updated toolbar options with disabled items removed
-  // Removed: PrevTimeSpan, NextTimeSpan, ExcelExport, CsvExport
+  // New event handler for completed actions (including row reordering)
+  const actionComplete = (args: any) => {
+    console.log('=== DEBUG: actionComplete triggered ===');
+    console.log('Action requestType:', args.requestType);
+    
+    if (args.requestType === 'rowDropped' || args.requestType === 'rowdrop') {
+      console.log('DEBUG: Row reordering detected, regenerating hierarchical IDs');
+      
+      if (ganttRef.current) {
+        const ganttInstance = ganttRef.current as any;
+        const currentData = ganttInstance.currentViewData;
+        
+        console.log('DEBUG: Current data before ID regeneration:', currentData?.length);
+        
+        // Regenerate hierarchical IDs based on new order
+        const updatedData = regenerateHierarchicalIds(currentData);
+        
+        console.log('DEBUG: Updated data after ID regeneration:', updatedData?.length);
+        
+        // Update each record with new hierarchical ID
+        updatedData.forEach((task: TaskWithHierarchicalId) => {
+          ganttInstance.updateRecordByID(task.TaskID, task);
+        });
+        
+        console.log('DEBUG: Hierarchical IDs regenerated successfully');
+      }
+    }
+  };
+
+  // Updated toolbar options
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PdfExport'
@@ -239,7 +227,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with enhanced debugging and resource support */}
+            {/* Enhanced Syncfusion Gantt Chart with dynamic ID reordering */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -267,11 +255,12 @@ export default function ProjectSchedule() {
                     labelSettings={labelSettings}
                     timelineSettings={timelineSettings}
                     actionBegin={actionBegin}
+                    actionComplete={actionComplete}
                     height="600px"
                     gridLines="Both"
                   >
                     <ColumnsDirective>
-                      <ColumnDirective field='TaskID' headerText='ID' width='80' />
+                      <ColumnDirective field='TaskID' headerText='ID' width='80' isPrimaryKey={true} />
                       <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
                       <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
                       <ColumnDirective field='Duration' headerText='Duration' width='100' />
