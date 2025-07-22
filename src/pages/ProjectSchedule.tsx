@@ -33,6 +33,9 @@ export default function ProjectSchedule() {
   const [taskToDelete, setTaskToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // NEW: Flag to prevent infinite loop when we programmatically add tasks
+  const [isAddingTask, setIsAddingTask] = useState(false);
+
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -89,20 +92,27 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Comprehensive event handler for ALL task addition scenarios
+  // Enhanced event handler to prevent infinite loops
   const actionBegin = (args: any) => {
     console.log('=== DEBUG: actionBegin triggered ===');
     console.log('Action requestType:', args.requestType);
     console.log('Action data:', args.data);
+    console.log('isAddingTask flag:', isAddingTask);
     
-    // Handle ALL possible add scenarios
+    // CRITICAL: Only intercept if we're NOT already in the middle of adding a task programmatically
+    if (isAddingTask) {
+      console.log('DEBUG: Already adding task programmatically, allowing action to proceed');
+      return; // Let the programmatic addition proceed normally
+    }
+    
+    // Handle ALL possible user-initiated add scenarios
     if (args.requestType === 'beforeOpenAddDialog' || 
         args.requestType === 'beforeAdd' || 
         args.requestType === 'add') {
       
-      console.log('DEBUG: Task addition detected, canceling default behavior');
+      console.log('DEBUG: User-initiated task addition detected, canceling default behavior');
       
-      // Cancel ANY default add dialog or behavior - we'll handle it manually
+      // Cancel user-initiated add dialog or behavior - we'll handle it manually
       args.cancel = true;
       
       // Use intelligent context detection for proper placement
@@ -122,6 +132,9 @@ export default function ProjectSchedule() {
     console.log('Add type:', type, 'Parent ID:', explicitParentId);
     
     if (!ganttRef.current) return;
+    
+    // Set flag to prevent re-entry
+    setIsAddingTask(true);
     
     const ganttInstance = ganttRef.current as any;
     const currentData = ganttInstance.currentViewData || processedProjectData;
@@ -160,14 +173,20 @@ export default function ProjectSchedule() {
     
     console.log('DEBUG: Creating new task:', newTask);
     
-    // Add the task to the Gantt chart
+    // Add the task to the Gantt chart (this will NOT trigger actionBegin due to our flag)
     ganttInstance.addRecord(newTask);
+    
+    // Clear the flag after a brief delay to allow the addition to complete
+    setTimeout(() => {
+      setIsAddingTask(false);
+      console.log('DEBUG: isAddingTask flag cleared');
+    }, 100);
     
     // IMMEDIATELY regenerate ALL hierarchical IDs to ensure proper order
     setTimeout(() => {
       console.log('DEBUG: IMMEDIATE post-add ID regeneration started');
       forceCompleteIdRegeneration();
-    }, 50);
+    }, 150);
   };
 
   // Force complete regeneration of all hierarchical IDs
@@ -200,6 +219,7 @@ export default function ProjectSchedule() {
   const actionComplete = (args: any) => {
     console.log('=== DEBUG: actionComplete triggered ===');
     console.log('Action requestType:', args.requestType);
+    console.log('isAddingTask flag:', isAddingTask);
     
     // Handle ALL scenarios that might result in data changes requiring ID regeneration
     if (args.requestType === 'rowDropped' || 
