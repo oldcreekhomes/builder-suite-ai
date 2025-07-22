@@ -1,4 +1,5 @@
 
+
 /* Syncfusion styles - ONLY imported in ProjectSchedule component */
 /* This file contains all Syncfusion imports and custom overrides */
 /* DO NOT import this file in any other component */
@@ -53,3 +54,44 @@
 .syncfusion-schedule-container .e-gantt .e-taskbar-progress {
   background: #1d4ed8;
 }
+
+/* Center Syncfusion delete confirmation dialog on viewport */
+.syncfusion-schedule-container .e-dialog.e-dlg-modal {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1050 !important;
+  margin: 0 !important;
+}
+
+/* Ensure dialog overlay covers entire viewport */
+.syncfusion-schedule-container .e-dlg-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1040 !important;
+}
+
+/* Ensure dialog header is properly styled */
+.syncfusion-schedule-container .e-dialog .e-dlg-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Style dialog content area */
+.syncfusion-schedule-container .e-dialog .e-dlg-content {
+  padding: 20px 24px;
+}
+
+/* Style dialog footer buttons */
+.syncfusion-schedule-container .e-dialog .e-footer-content {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
