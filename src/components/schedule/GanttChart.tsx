@@ -300,7 +300,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   return (
     <div className="w-full h-full">
-      <ContextMenu open={contextMenu.isOpen} onOpenChange={(open) => setContextMenu(prev => ({ ...prev, isOpen: open }))}>
+      <ContextMenu>
         <ContextMenuTrigger asChild>
           <div onContextMenu={handleContextMenu}>
             <GanttComponent
