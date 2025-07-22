@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -16,6 +15,29 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
+
+// Claude's hierarchical ID generation function
+const generateHierarchicalIds = (data: any[], parentId = '', startIndex = 1) => {
+  return data.map((item, index) => {
+    // Generate the hierarchical ID
+    const currentId = parentId ? `${parentId}.${index + startIndex}` : `${index + startIndex}`;
+    
+    // Create the updated item
+    const updatedItem = {
+      ...item,
+      TaskID: currentId,
+      // Keep original UUID as reference for database operations
+      OriginalID: item.TaskID
+    };
+    
+    // Recursively process children/subtasks
+    if (item.subtasks && item.subtasks.length > 0) {
+      updatedItem.subtasks = generateHierarchicalIds(item.subtasks, currentId, 1);
+    }
+    
+    return updatedItem;
+  });
+};
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -42,12 +64,8 @@ export default function ProjectSchedule() {
     { resourceId: 4, resourceName: 'Tester', resourceUnit: 100, resourceGroup: 'QA' }
   ];
 
-  // Transform tasks to show sequential numbering for display
-  const projectData = tasks.map((task, index) => ({
-    ...task,
-    TaskID: task.TaskID, // Keep original UUID for database operations
-    DisplayID: index + 1, // Sequential number for display
-  }));
+  // Transform tasks with Claude's hierarchical ID system
+  const projectData = generateHierarchicalIds(tasks);
 
   // Gantt configuration
   const taskFields = {
@@ -71,13 +89,13 @@ export default function ProjectSchedule() {
     group: 'resourceGroup'
   };
 
+  // Fixed editSettings - removed invalid newRowPosition property
   const editSettings = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
-    newRowPosition: 'Bottom' // Add new tasks at the bottom
+    showDeleteConfirmDialog: true
   };
 
   // Database event handlers for Syncfusion CRUD operations
@@ -126,13 +144,15 @@ export default function ProjectSchedule() {
 
         const result = await createTaskMutation.mutateAsync(taskData);
         // Update the task with the new ID from database
-        args.data.TaskID = result.id;
+        args.data.OriginalID = result.id;
         
       } else if (args.requestType === 'save') {
-        // Handle task update
+        // Handle task update - use OriginalID for database operations
         const updatedTask = args.data;
+        const originalId = updatedTask.OriginalID || updatedTask.TaskID;
+        
         await updateTaskMutation.mutateAsync({
-          id: updatedTask.TaskID,
+          id: originalId,
           task_name: updatedTask.TaskName,
           start_date: updatedTask.StartDate?.toISOString(),
           end_date: updatedTask.EndDate?.toISOString(),
@@ -144,9 +164,10 @@ export default function ProjectSchedule() {
         });
         
       } else if (args.requestType === 'delete') {
-        // Handle task deletion
+        // Handle task deletion - use OriginalID for database operations
         const deletedTask = args.data[0];
-        await deleteTaskMutation.mutateAsync(deletedTask.TaskID);
+        const originalId = deletedTask.OriginalID || deletedTask.TaskID;
+        await deleteTaskMutation.mutateAsync(originalId);
       }
     } catch (error) {
       console.error('Database operation failed:', error);
@@ -275,12 +296,12 @@ export default function ProjectSchedule() {
               
               {selectedTask && (
                 <div className="text-sm text-gray-600">
-                  Selected: <span className="font-medium">{selectedTask.TaskName}</span> (#{selectedTask.DisplayID})
+                  Selected: <span className="font-medium">{selectedTask.TaskName}</span> (#{selectedTask.TaskID})
                 </div>
               )}
             </div>
 
-            {/* Syncfusion Gantt Chart with restored functionality */}
+            {/* Syncfusion Gantt Chart with hierarchical numbering */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -315,7 +336,7 @@ export default function ProjectSchedule() {
                     gridLines="Both"
                   >
                     <ColumnsDirective>
-                      <ColumnDirective field='DisplayID' headerText='#' width='60' isPrimaryKey={false} />
+                      <ColumnDirective field='TaskID' headerText='ID' width='60' isPrimaryKey={false} />
                       <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
                       <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
                       <ColumnDirective field='Duration' headerText='Duration' width='100' />
