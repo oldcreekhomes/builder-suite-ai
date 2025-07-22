@@ -257,36 +257,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   return (
     <div className="w-full h-full">
-      {/* Debug Panel - Remove in production */}
-      <div className="mb-4 p-4 bg-gray-100 rounded-lg border">
-        <h4 className="font-bold mb-2">Debug Information</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <strong>Raw Tasks Count:</strong> {tasks.length}
-          </div>
-          <div>
-            <strong>Processed Tasks Count:</strong> {ganttData.length}
-          </div>
-          <div>
-            <strong>Tasks with Parents:</strong> {tasks.filter(t => t.parent_id).length}
-          </div>
-          <div>
-            <strong>Root Tasks:</strong> {ganttData.length}
-          </div>
-        </div>
-        <div className="mt-2">
-          <strong>Database Parent-Child Relationships:</strong>
-          <pre className="text-xs bg-white p-2 rounded mt-1 max-h-32 overflow-auto">
-            {JSON.stringify(
-              tasks
-                .filter(t => t.parent_id)
-                .map(t => ({ id: t.id.slice(-8), parent: t.parent_id?.slice(-8), name: t.task_name })),
-              null,
-              2
-            )}
-          </pre>
-        </div>
-      </div>
 
       <GanttComponent
         ref={ganttRef}
