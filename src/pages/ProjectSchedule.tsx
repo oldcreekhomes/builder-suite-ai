@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,23 +71,47 @@ export default function ProjectSchedule() {
     newRowPosition: "Bottom" as any
   };
 
-  // Updated event handler to generate hierarchical IDs for new tasks
+  // Enhanced event handler with context-based hierarchical ID generation
   const actionBegin = (args: any) => {
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
       
+      console.log('Adding new task - checking selection context...');
+      
+      // Get currently selected task to determine parent context
+      let parentId: string | undefined = undefined;
+      
+      if (ganttRef.current) {
+        const selectedRecords = (ganttRef.current as any).getSelectedRecords();
+        console.log('Selected records:', selectedRecords);
+        
+        if (selectedRecords && selectedRecords.length > 0) {
+          // Use the first selected task as the parent
+          const selectedTask = selectedRecords[0];
+          parentId = selectedTask.TaskID;
+          console.log('Selected task ID for parent context:', parentId);
+        } else {
+          console.log('No task selected - creating root-level task');
+        }
+      }
+      
       // Get the current data to determine next ID
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
-      const nextId = getNextHierarchicalId(currentData);
+      const nextId = getNextHierarchicalId(currentData, parentId);
       
-      // Add task with hierarchical ID and 1-day duration
+      console.log('Generated next ID:', nextId, 'with parent:', parentId);
+      
+      // Create new task with proper hierarchical ID and parent relationship
       const newTask = {
         TaskID: nextId,
         TaskName: 'New Task',
         StartDate: new Date(),
         Duration: 1,
-        Progress: 0
+        Progress: 0,
+        parentID: parentId // Set parent relationship for proper tree structure
       };
+      
+      console.log('Adding new task:', newTask);
       
       if (ganttRef.current) {
         (ganttRef.current as any).addRecord(newTask);
@@ -172,7 +197,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with hierarchical IDs */}
+            {/* Syncfusion Gantt Chart with context-aware hierarchical IDs */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
