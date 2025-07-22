@@ -8,8 +8,34 @@ export interface ProjectTask {
   Progress: number;
   Predecessor?: string;
   parentID?: number;
+  Resources?: number[]; // Array of resource IDs
   subtasks?: ProjectTask[];
 }
+
+// Define resource collection for Syncfusion Gantt
+export interface ResourceData {
+  resourceId: number;
+  resourceName: string;
+  resourceGroup: string;
+  resourceUnit?: string;
+}
+
+export const resourceCollection: ResourceData[] = [
+  { resourceId: 1, resourceName: 'John Smith', resourceGroup: 'Project Manager' },
+  { resourceId: 2, resourceName: 'Construction Team', resourceGroup: 'Construction' },
+  { resourceId: 3, resourceName: 'Site Supervisor', resourceGroup: 'Management' },
+  { resourceId: 4, resourceName: 'Excavation Crew', resourceGroup: 'Construction' },
+  { resourceId: 5, resourceName: 'Foundation Team', resourceGroup: 'Construction' },
+  { resourceId: 6, resourceName: 'Steel Workers', resourceGroup: 'Construction' },
+  { resourceId: 7, resourceName: 'Concrete Team', resourceGroup: 'Construction' },
+  { resourceId: 8, resourceName: 'Electricians', resourceGroup: 'MEP' },
+  { resourceId: 9, resourceName: 'Plumbers', resourceGroup: 'MEP' },
+  { resourceId: 10, resourceName: 'HVAC Team', resourceGroup: 'MEP' },
+  { resourceId: 11, resourceName: 'Drywall Crew', resourceGroup: 'Finishing' },
+  { resourceId: 12, resourceName: 'Painters', resourceGroup: 'Finishing' },
+  { resourceId: 13, resourceName: 'Flooring Team', resourceGroup: 'Finishing' },
+  { resourceId: 14, resourceName: 'Inspector', resourceGroup: 'Quality Control' }
+];
 
 export const sampleProjectData: ProjectTask[] = [
   {
@@ -18,6 +44,7 @@ export const sampleProjectData: ProjectTask[] = [
     StartDate: new Date('2024-01-15'),
     Duration: 15,
     Progress: 85,
+    Resources: [1, 2],
     subtasks: [
       {
         TaskID: 2,
@@ -25,7 +52,8 @@ export const sampleProjectData: ProjectTask[] = [
         StartDate: new Date('2024-01-15'),
         Duration: 3,
         Progress: 100,
-        parentID: 1
+        parentID: 1,
+        Resources: [3, 2]
       },
       {
         TaskID: 3,
@@ -34,7 +62,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 4,
         Progress: 100,
         Predecessor: '2',
-        parentID: 1
+        parentID: 1,
+        Resources: [4]
       },
       {
         TaskID: 4,
@@ -43,7 +72,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 5,
         Progress: 90,
         Predecessor: '3',
-        parentID: 1
+        parentID: 1,
+        Resources: [5, 7]
       },
       {
         TaskID: 5,
@@ -52,7 +82,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 3,
         Progress: 50,
         Predecessor: '4',
-        parentID: 1
+        parentID: 1,
+        Resources: [5]
       }
     ]
   },
@@ -63,6 +94,7 @@ export const sampleProjectData: ProjectTask[] = [
     Duration: 20,
     Progress: 30,
     Predecessor: '1',
+    Resources: [1, 6],
     subtasks: [
       {
         TaskID: 7,
@@ -70,7 +102,8 @@ export const sampleProjectData: ProjectTask[] = [
         StartDate: new Date('2024-01-30'),
         Duration: 8,
         Progress: 60,
-        parentID: 6
+        parentID: 6,
+        Resources: [6]
       },
       {
         TaskID: 8,
@@ -79,7 +112,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 6,
         Progress: 20,
         Predecessor: '7',
-        parentID: 6
+        parentID: 6,
+        Resources: [7]
       },
       {
         TaskID: 9,
@@ -88,7 +122,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 6,
         Progress: 0,
         Predecessor: '8',
-        parentID: 6
+        parentID: 6,
+        Resources: [6, 2]
       }
     ]
   },
@@ -99,6 +134,7 @@ export const sampleProjectData: ProjectTask[] = [
     Duration: 18,
     Progress: 0,
     Predecessor: '6',
+    Resources: [1],
     subtasks: [
       {
         TaskID: 11,
@@ -106,7 +142,8 @@ export const sampleProjectData: ProjectTask[] = [
         StartDate: new Date('2024-02-19'),
         Duration: 6,
         Progress: 0,
-        parentID: 10
+        parentID: 10,
+        Resources: [8]
       },
       {
         TaskID: 12,
@@ -114,7 +151,8 @@ export const sampleProjectData: ProjectTask[] = [
         StartDate: new Date('2024-02-19'),
         Duration: 6,
         Progress: 0,
-        parentID: 10
+        parentID: 10,
+        Resources: [9]
       },
       {
         TaskID: 13,
@@ -123,7 +161,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 8,
         Progress: 0,
         Predecessor: '11,12',
-        parentID: 10
+        parentID: 10,
+        Resources: [10]
       }
     ]
   },
@@ -134,6 +173,7 @@ export const sampleProjectData: ProjectTask[] = [
     Duration: 15,
     Progress: 0,
     Predecessor: '10',
+    Resources: [1],
     subtasks: [
       {
         TaskID: 15,
@@ -141,7 +181,8 @@ export const sampleProjectData: ProjectTask[] = [
         StartDate: new Date('2024-03-09'),
         Duration: 5,
         Progress: 0,
-        parentID: 14
+        parentID: 14,
+        Resources: [11]
       },
       {
         TaskID: 16,
@@ -150,7 +191,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 4,
         Progress: 0,
         Predecessor: '15',
-        parentID: 14
+        parentID: 14,
+        Resources: [12]
       },
       {
         TaskID: 17,
@@ -159,7 +201,8 @@ export const sampleProjectData: ProjectTask[] = [
         Duration: 6,
         Progress: 0,
         Predecessor: '16',
-        parentID: 14
+        parentID: 14,
+        Resources: [13]
       }
     ]
   },
@@ -169,6 +212,7 @@ export const sampleProjectData: ProjectTask[] = [
     StartDate: new Date('2024-03-24'),
     Duration: 2,
     Progress: 0,
-    Predecessor: '14'
+    Predecessor: '14',
+    Resources: [14, 1]
   }
 ];

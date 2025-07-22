@@ -16,7 +16,7 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Selection, T
 // Import Syncfusion styles ONLY for this component
 import "../styles/syncfusion.css";
 import styles from "../styles/ProjectSchedule.module.css";
-import { sampleProjectData } from "../data/sampleProjectData";
+import { sampleProjectData, resourceCollection } from "../data/sampleProjectData";
 import { generateHierarchicalIds, getNextHierarchicalId, type TaskWithHierarchicalId } from "../utils/hierarchicalIds";
 
 export default function ProjectSchedule() {
@@ -59,7 +59,16 @@ export default function ProjectSchedule() {
     progress: 'Progress',
     dependency: 'Predecessor',
     parentID: 'parentID',
-    child: 'subtasks'
+    child: 'subtasks',
+    resourceInfo: 'Resources' // Map to Resources field
+  };
+
+  // Resource fields configuration
+  const resourceFields = {
+    id: 'resourceId',
+    name: 'resourceName',
+    unit: 'resourceUnit',
+    group: 'resourceGroup'
   };
 
   const editSettings = {
@@ -73,6 +82,11 @@ export default function ProjectSchedule() {
 
   // Enhanced event handler with detailed debugging
   const actionBegin = (args: any) => {
+    console.log('=== DEBUG: actionBegin triggered ===');
+    console.log('Action requestType:', args.requestType);
+    console.log('Args data:', args.data);
+    console.log('Args cancel:', args.cancel);
+    
     if (args.requestType === 'beforeOpenAddDialog') {
       args.cancel = true;
       
@@ -82,7 +96,9 @@ export default function ProjectSchedule() {
       let parentId: string | undefined = undefined;
       
       if (ganttRef.current) {
-        const selectedRecords = (ganttRef.current as any).getSelectedRecords();
+        const ganttInstance = ganttRef.current as any;
+        const selectedRecords = ganttInstance.getSelectedRecords();
+        console.log('DEBUG: Gantt instance available:', !!ganttInstance);
         console.log('DEBUG: Selected records count:', selectedRecords?.length);
         console.log('DEBUG: Selected records data:', selectedRecords);
         
@@ -94,7 +110,8 @@ export default function ProjectSchedule() {
           console.log('  - TaskID:', selectedTask.TaskID);
           console.log('  - TaskName:', selectedTask.TaskName);
           console.log('  - parentID:', selectedTask.parentID);
-          console.log('DEBUG: Using parentId:', parentId);
+          console.log('  - Resources:', selectedTask.Resources);
+          console.log('DEBUG: Using parentId for new task:', parentId);
         } else {
           console.log('DEBUG: No task selected - creating root-level task');
         }
@@ -105,7 +122,15 @@ export default function ProjectSchedule() {
       // Get the current data to determine next ID
       const currentData = ganttRef.current ? (ganttRef.current as any).currentViewData : processedProjectData;
       console.log('DEBUG: Current data source length:', currentData?.length);
-      console.log('DEBUG: Current data structure sample:', currentData?.slice(0, 3));
+      console.log('DEBUG: Current data structure sample (first 3 items):');
+      currentData?.slice(0, 3).forEach((item: any, index: number) => {
+        console.log(`  [${index}]:`, {
+          TaskID: item.TaskID,
+          TaskName: item.TaskName,
+          parentID: item.parentID,
+          Resources: item.Resources
+        });
+      });
       
       // Debug the ID generation process
       console.log('DEBUG: Calling getNextHierarchicalId with:');
@@ -116,14 +141,15 @@ export default function ProjectSchedule() {
       
       console.log('DEBUG: Generated next ID:', nextId);
       
-      // Create new task with proper hierarchical ID and parent relationship
+      // Create new task with proper hierarchical ID, parent relationship, and default resource
       const newTask = {
         TaskID: nextId,
         TaskName: 'New Task',
         StartDate: new Date(),
         Duration: 1,
         Progress: 0,
-        parentID: parentId // Set parent relationship for proper tree structure
+        parentID: parentId, // Set parent relationship for proper tree structure
+        Resources: [1] // Default to Project Manager
       };
       
       console.log('DEBUG: Final new task object:', newTask);
@@ -213,14 +239,16 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with enhanced debugging */}
+            {/* Syncfusion Gantt Chart with enhanced debugging and resource support */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
                   <GanttComponent 
                     ref={ganttRef}
                     dataSource={processedProjectData}
+                    resources={resourceCollection}
                     taskFields={taskFields}
+                    resourceFields={resourceFields}
                     editSettings={editSettings}
                     allowSelection={true}
                     allowResizing={true}
@@ -250,6 +278,7 @@ export default function ProjectSchedule() {
                       <ColumnDirective field='EndDate' headerText='End Date' width='120' />
                       <ColumnDirective field='Progress' headerText='Progress' width='100' />
                       <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
+                      <ColumnDirective field='Resources' headerText='Resources' width='150' />
                     </ColumnsDirective>
                     <Inject services={[Selection, Toolbar, Edit, Filter, Reorder, Resize, ContextMenu, ColumnMenu, ExcelExport, PdfExport, RowDD]} />
                   </GanttComponent>
