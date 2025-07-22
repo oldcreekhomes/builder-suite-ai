@@ -64,10 +64,11 @@ export default function ProjectSchedule() {
     showDeleteConfirmDialog: true
   };
 
+  // Updated toolbar options with disabled items removed
+  // Removed: PrevTimeSpan, NextTimeSpan, ExcelExport, CsvExport
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
-    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PrevTimeSpan', 'NextTimeSpan',
-    'ExcelExport', 'CsvExport', 'PdfExport'
+    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'PdfExport'
   ];
 
   const splitterSettings = {
