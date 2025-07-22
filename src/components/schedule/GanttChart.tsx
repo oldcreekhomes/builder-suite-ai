@@ -69,8 +69,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      // Store hierarchical parent ID directly instead of converting to UUID
-      const parentHierarchicalId = taskData.ParentID;
+      console.log('Creating new task with data:', taskData);
       
       createTask.mutate({
         project_id: projectId,
@@ -79,26 +78,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
         duration: taskData.Duration || 1,
         progress: taskData.Progress || 0,
-        predecessor: null, // Will be handled separately
+        predecessor: taskData.Predecessor || null,
         resources: taskData.Resources || null,
-        parent_id: parentHierarchicalId, // Store hierarchical ID directly
+        parent_id: taskData.ParentID || null, // Store hierarchical ID directly
         order_index: tasks.length,
       });
     } else if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      // Store hierarchical parent ID directly
-      const parentHierarchicalId = taskData.ParentID;
+      console.log('Updating task with data:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        // Transform predecessor back to original UUIDs for database storage
-        let predecessorUUIDs = null;
-        if (taskData.Predecessor && taskData.Predecessor.trim()) {
-          const hierarchicalPreds = taskData.Predecessor.split(',').map((p: string) => p.trim());
-          const uuidPreds = hierarchicalPreds.map((pred: string) => findOriginalTaskId(pred, ganttData)).filter(Boolean);
-          predecessorUUIDs = uuidPreds.length > 0 ? uuidPreds.join(',') : null;
-        }
-        
         updateTask.mutate({
           id: originalTaskId,
           task_name: taskData.TaskName,
@@ -106,9 +96,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
           duration: taskData.Duration,
           progress: taskData.Progress,
-          predecessor: predecessorUUIDs,
+          predecessor: taskData.Predecessor || null,
           resources: taskData.Resources,
-          parent_id: parentHierarchicalId, // Store hierarchical ID directly
+          parent_id: taskData.ParentID || null, // Store hierarchical ID directly
           order_index: taskData.OrderIndex,
         });
       }

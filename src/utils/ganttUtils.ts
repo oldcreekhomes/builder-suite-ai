@@ -22,7 +22,7 @@ export const generateHierarchicalIds = (tasks: ProjectTask[]): ProcessedTask[] =
   const hierarchicalIdMap = new Map<string, string>(); // Maps UUID to hierarchical ID
   const childrenMap = new Map<string, ProjectTask[]>(); // Maps parent UUID/hierarchical ID to children
   
-  // Build children map
+  // Build children map - support both UUID and hierarchical parent IDs
   tasks.forEach(task => {
     if (task.parent_id) {
       if (!childrenMap.has(task.parent_id)) {
@@ -78,13 +78,18 @@ export const generateHierarchicalIds = (tasks: ProjectTask[]): ProcessedTask[] =
 
       processedTasks.push(processedTask);
 
-      // Process children using both UUID and hierarchical ID
+      // Process children - check both UUID and hierarchical ID
       const childrenByUUID = childrenMap.get(task.id) || [];
       const childrenByHierarchicalId = childrenMap.get(hierarchicalId) || [];
       const allChildren = [...childrenByUUID, ...childrenByHierarchicalId];
       
-      if (allChildren.length > 0) {
-        processTasksRecursive(allChildren, hierarchicalId);
+      // Remove duplicates
+      const uniqueChildren = allChildren.filter((child, index, arr) => 
+        arr.findIndex(c => c.id === child.id) === index
+      );
+      
+      if (uniqueChildren.length > 0) {
+        processTasksRecursive(uniqueChildren, hierarchicalId);
       }
     });
   };
