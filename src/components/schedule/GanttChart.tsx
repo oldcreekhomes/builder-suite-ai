@@ -59,7 +59,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit'
   ];
 
-  const contextMenuItems = [
+  const contextMenuItems: string[] = [
     'TaskInformation',
     'NewTask',
     'Indent',
@@ -191,7 +191,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         editSettings={editSettings}
         toolbar={toolbarOptions}
         enableContextMenu={true}
-        contextMenuItems={contextMenuItems}
+        contextMenuItems={contextMenuItems as any}
         contextMenuClick={handleContextMenuClick}
         splitterSettings={splitterSettings}
         height="600px"
