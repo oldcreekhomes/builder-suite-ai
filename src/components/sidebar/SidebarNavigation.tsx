@@ -7,7 +7,6 @@ import {
   Home, 
   File,
   Image,
-  Clock,
   MessageSquare,
   HelpCircle
 } from "lucide-react";
@@ -66,12 +65,6 @@ const navigationItems = [
     title: "Bidding",
     url: "/bidding",
     icon: FileText,
-    enabled: true,
-  },
-  {
-    title: "Schedule",
-    url: "/schedule",
-    icon: Clock,
     enabled: true,
   },
 ];
