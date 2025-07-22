@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,6 +198,7 @@ export default function ProjectSchedule() {
                       <ColumnDirective field='TaskName' headerText='Task Name' width='250' />
                       <ColumnDirective field='StartDate' headerText='Start Date' width='120' />
                       <ColumnDirective field='Duration' headerText='Duration' width='100' />
+                      <ColumnDirective field='EndDate' headerText='End Date' width='120' />
                       <ColumnDirective field='Progress' headerText='Progress' width='100' />
                       <ColumnDirective field='Predecessor' headerText='Dependency' width='120' />
                     </ColumnsDirective>
