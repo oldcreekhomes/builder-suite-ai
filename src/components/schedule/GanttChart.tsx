@@ -69,7 +69,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      const parentOriginalId = taskData.ParentID ? findOriginalTaskId(taskData.ParentID, ganttData) : null;
+      // Store hierarchical parent ID directly instead of converting to UUID
+      const parentHierarchicalId = taskData.ParentID;
       
       createTask.mutate({
         project_id: projectId,
@@ -80,13 +81,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         progress: taskData.Progress || 0,
         predecessor: null, // Will be handled separately
         resources: taskData.Resources || null,
-        parent_id: parentOriginalId,
+        parent_id: parentHierarchicalId, // Store hierarchical ID directly
         order_index: tasks.length,
       });
     } else if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      const parentOriginalId = taskData.ParentID ? findOriginalTaskId(taskData.ParentID, ganttData) : null;
+      // Store hierarchical parent ID directly
+      const parentHierarchicalId = taskData.ParentID;
       
       if (originalTaskId) {
         // Transform predecessor back to original UUIDs for database storage
@@ -106,7 +108,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: taskData.Progress,
           predecessor: predecessorUUIDs,
           resources: taskData.Resources,
-          parent_id: parentOriginalId,
+          parent_id: parentHierarchicalId, // Store hierarchical ID directly
           order_index: taskData.OrderIndex,
         });
       }
