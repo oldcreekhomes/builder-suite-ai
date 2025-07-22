@@ -6,6 +6,8 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/useProject";
+import { GanttChart } from "@/components/schedule/GanttChart";
+import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
 import "../styles/syncfusion.css";
 
 export default function ProjectSchedule() {
@@ -47,19 +49,16 @@ export default function ProjectSchedule() {
           </header>
           
           <div className="flex-1 p-6 space-y-6">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-6 w-6" />
-              <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-6 w-6" />
+                <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
+              </div>
+              <AddTaskDialog projectId={projectId} />
             </div>
 
-            <div className="flex items-center justify-center min-h-[400px] bg-white border-2 border-dashed border-gray-300 rounded-lg">
-              <div className="text-center">
-                <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Schedule Module</h3>
-                <p className="text-gray-600 max-w-md">
-                  Schedule functionality will be implemented here. This page is ready for a fresh start.
-                </p>
-              </div>
+            <div className="bg-white rounded-lg border shadow-sm p-4">
+              <GanttChart projectId={projectId} />
             </div>
           </div>
         </main>
