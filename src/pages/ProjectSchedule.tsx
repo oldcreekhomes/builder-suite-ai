@@ -141,7 +141,7 @@ export default function ProjectSchedule() {
               </div>
             </div>
 
-            {/* Syncfusion Gantt Chart with row drag and drop enabled */}
+            {/* Syncfusion Gantt Chart with native context menu enabled */}
             <div className={`${styles.scheduleContainer} syncfusion-schedule-container`}>
               <div className={styles.syncfusionWrapper}>
                 <div className={styles.contentArea}>
@@ -156,6 +156,7 @@ export default function ProjectSchedule() {
                     allowExcelExport={true}
                     allowPdfExport={true}
                     allowRowDragAndDrop={true}
+                    enableContextMenu={true}
                     showColumnMenu={true}
                     highlightWeekends={true}
                     toolbar={toolbarOptions}
