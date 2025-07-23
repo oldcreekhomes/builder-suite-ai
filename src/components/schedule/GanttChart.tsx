@@ -47,18 +47,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return transformedData;
   }, [tasks]);
 
-  // Auto-fit columns on page load
-  useEffect(() => {
-    if (ganttRef.current && ganttData.length > 0) {
-      // Use a small delay to ensure the component is fully rendered
-      const timer = setTimeout(() => {
-        ganttRef.current?.autoFitColumns();
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [ganttData]);
-
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName',
@@ -137,15 +125,31 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const minStartDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date();
     const maxEndDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date();
     
-    // Add some buffer - start 1 week before earliest task, end 2 weeks after latest task
-    const bufferStart = new Date(minStartDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const bufferEnd = new Date(maxEndDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    // Minimal buffer - start at earliest task date, end 1 week after latest task
+    const bufferStart = minStartDate; // No buffer at start to align with tree grid
+    const bufferEnd = new Date(maxEndDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     
     return {
       projectStartDate: bufferStart,
       projectEndDate: bufferEnd
     };
   }, [ganttData]);
+
+  // Auto-fit columns and scroll to project start date
+  useEffect(() => {
+    if (ganttRef.current && ganttData.length > 0) {
+      // Use a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        ganttRef.current?.autoFitColumns();
+        // Scroll to project start date to align timeline with tree grid
+        if (projectStartDate) {
+          ganttRef.current?.scrollToDate(projectStartDate.toISOString().split('T')[0]);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [ganttData, projectStartDate]);
 
   // Helper function to find parent task ID from hierarchical position or Syncfusion event data
   const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[], eventData?: any): string | null => {
@@ -540,10 +544,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         columnMenuClick={handleColumnMenuClick}
         gridLines="Both"
         timelineSettings={{
-          timelineUnitSize: 60,
+          timelineUnitSize: 40,
           topTier: {
-            unit: 'Month',
-            format: 'MMM yyyy'
+            unit: 'Week',
+            format: 'MMM dd, \'yy'
           },
           bottomTier: {
             unit: 'Day',
