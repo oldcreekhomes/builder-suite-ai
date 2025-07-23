@@ -40,18 +40,34 @@ const convertResourceNamesToIds = (resourceString: string | null, resources: Pro
 };
 
 // Helper function to convert resource IDs to names
-export const convertResourceIdsToNames = (resourceIds: string[] | null, resources: ProjectResource[]): string | null => {
+export const convertResourceIdsToNames = (resourceIds: string[] | string | null, resources: ProjectResource[]): string | null => {
   console.log('=== convertResourceIdsToNames DEBUG START ===');
   console.log('Input resourceIds:', resourceIds);
+  console.log('Type of resourceIds:', typeof resourceIds);
   console.log('Available resources:', resources);
   console.log('Resource count:', resources?.length || 0);
   
-  if (!resourceIds || resourceIds.length === 0) {
+  if (!resourceIds) {
     console.log('No resource IDs provided, returning null');
     console.log('=== convertResourceIdsToNames DEBUG END ===');
     return null;
   }
   
+  // If resourceIds is already a string (names), return it directly
+  if (typeof resourceIds === 'string') {
+    console.log('Resource IDs is already a string of names, returning directly:', resourceIds);
+    console.log('=== convertResourceIdsToNames DEBUG END ===');
+    return resourceIds;
+  }
+  
+  // If resourceIds is an empty array, return null
+  if (Array.isArray(resourceIds) && resourceIds.length === 0) {
+    console.log('Empty array provided, returning null');
+    console.log('=== convertResourceIdsToNames DEBUG END ===');
+    return null;
+  }
+  
+  // Convert array of IDs to names
   const resourceNames: string[] = [];
   resourceIds.forEach(id => {
     console.log(`Looking for resource with ID: "${id}"`);
