@@ -3,6 +3,7 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Select
 import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useProjectResources } from '@/hooks/useProjectResources';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
@@ -16,6 +17,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttRef = useRef<GanttComponent>(null);
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
+  const { resources, isLoading: resourcesLoading } = useProjectResources();
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     taskData: any;
@@ -57,6 +59,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     dependency: 'Predecessor',
     resourceInfo: 'Resources',
     child: 'subtasks', // Use subtasks for nested hierarchy
+  };
+
+  const resourceFields = {
+    id: 'resourceId',
+    name: 'resourceName',
+    group: 'resourceGroup'
   };
 
   const editSettings: EditSettingsModel = {
@@ -511,7 +519,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Column menu clicked:', args);
   };
 
-  if (isLoading) {
+  if (isLoading || resourcesLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -546,6 +554,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         id="gantt"
         dataSource={ganttData}
         taskFields={taskFields}
+        resourceFields={resourceFields}
+        resources={resources}
         editSettings={editSettings}
         columns={columns}
         addDialogFields={[]}
