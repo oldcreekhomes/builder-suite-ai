@@ -1,5 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu } from '@syncfusion/ej2-react-gantt';
+import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, EditSettingsModel } from '@syncfusion/ej2-react-gantt';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
@@ -50,12 +50,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     child: 'subtasks', // Use subtasks for nested hierarchy
   };
 
-  const editSettings = {
+  const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: true,
+    mode: 'Auto' as any // Enable inline cell editing (no dialog)
   };
 
   const toolbarOptions = [
@@ -67,8 +67,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     columnIndex: 3
   };
 
-  const projectStartDate = new Date('2024-01-01');
-  const projectEndDate = new Date('2024-12-31');
+  const projectStartDate = new Date(); // Use today's date
+  const projectEndDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // One year from today
 
   // Helper function to find parent task ID from hierarchical position
   const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
@@ -105,6 +105,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'beforeAdd') {
       console.log('Before adding new task:', args.data);
+      // Set today's date for new tasks
+      const today = new Date();
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      
+      if (args.data) {
+        args.data.StartDate = today;
+        args.data.EndDate = tomorrow;
+        args.data.Duration = 1;
+      }
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
