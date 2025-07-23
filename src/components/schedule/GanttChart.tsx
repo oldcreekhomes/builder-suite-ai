@@ -1,10 +1,11 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, EditSettingsModel } from '@syncfusion/ej2-react-gantt';
 import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 
 interface GanttChartProps {
   projectId: string;
@@ -14,6 +15,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttRef = useRef<GanttComponent>(null);
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    taskData: any;
+    taskName: string;
+  }>({ isOpen: false, taskData: null, taskName: '' });
 
   // Transform tasks with nested hierarchical structure and comprehensive debugging
   const ganttData = useMemo(() => {
@@ -59,7 +65,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowTaskbarEditing: true,
     mode: 'Auto' as any, // Auto mode enables cell editing by double-clicking
     newRowPosition: 'Bottom' as any,
-    showDeleteConfirmDialog: true
+    showDeleteConfirmDialog: false // Disable Syncfusion's native delete confirmation
   };
 
   const columns = [
@@ -130,6 +136,43 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
       console.log('Before deleting task:', args.data);
+      // Cancel the default delete and show custom confirmation
+      args.cancel = true;
+      const taskData = args.data[0];
+      setDeleteConfirmation({
+        isOpen: true,
+        taskData: taskData,
+        taskName: taskData.TaskName || 'Unknown Task'
+      });
+    }
+  };
+
+  const handleDeleteConfirmation = () => {
+    if (deleteConfirmation.taskData) {
+      const taskData = deleteConfirmation.taskData;
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
+      
+      if (originalTaskId) {
+        deleteTask.mutate(originalTaskId, {
+          onSuccess: () => {
+            toast({
+              title: "Success",
+              description: "Task deleted successfully",
+            });
+            setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+          },
+          onError: (error) => {
+            console.error('Delete failed:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Failed to delete task: ${error.message}`,
+            });
+            setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+          }
+        });
+      }
     }
   };
 
@@ -237,18 +280,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     }
-    else if (args.requestType === 'delete' && args.data) {
-      const taskData = args.data[0];
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
-      
-      if (originalTaskId) {
-        deleteTask.mutate(originalTaskId, {
-          onSuccess: () => handleMutationSuccess('Delete'),
-          onError: (error) => handleMutationError(error, 'Delete')
-        });
-      }
-    } 
+    // Note: Delete handling is now moved to handleDeleteConfirmation via custom dialog
     else if (args.requestType === 'indenting' && args.data) {
       console.log('INDENTING TASK (making it a child):', args.data);
       const taskData = args.data[0];
@@ -331,6 +363,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   return (
     <div className="w-full h-full">
+      <DeleteConfirmationDialog
+        open={deleteConfirmation.isOpen}
+        onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, isOpen: open }))}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${deleteConfirmation.taskName}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirmation}
+        isLoading={deleteTask.isPending}
+      />
 
       <GanttComponent
         ref={ganttRef}
