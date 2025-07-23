@@ -92,10 +92,54 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const projectStartDate = new Date(); // Use today's date
   const projectEndDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // One year from today
 
-  // Helper function to find parent task ID from hierarchical position
-  const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
+  // Helper function to find parent task ID from hierarchical position or Syncfusion event data
+  const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[], eventData?: any): string | null => {
     console.log(`Finding parent for task ID: ${taskId}`);
+    console.log('Event data for parent detection:', eventData);
     
+    // First, check if Syncfusion provides parent information directly in the event
+    if (eventData) {
+      // Check for parentItem property (Syncfusion often provides this)
+      if (eventData.parentItem && eventData.parentItem.TaskID) {
+        console.log('Found parent from parentItem:', eventData.parentItem.TaskID);
+        const parentId = findOriginalTaskId(eventData.parentItem.TaskID, allTasks);
+        if (parentId) {
+          console.log(`Parent found via parentItem: ${parentId}`);
+          return parentId;
+        }
+      }
+      
+      // Check for level-based hierarchy detection
+      if (eventData.level && eventData.level > 0) {
+        // Look for the task immediately above this one with level-1
+        const targetLevel = eventData.level - 1;
+        console.log(`Looking for parent at level ${targetLevel} for task at level ${eventData.level}`);
+        
+        // This requires accessing the Gantt component's flat data
+        const ganttInstance = ganttRef.current;
+        if (ganttInstance) {
+          const flatData = ganttInstance.flatData || ganttInstance.currentViewData;
+          if (flatData) {
+            const currentIndex = flatData.findIndex((item: any) => item.TaskID === taskId);
+            if (currentIndex > 0) {
+              // Look backwards for a task at the parent level
+              for (let i = currentIndex - 1; i >= 0; i--) {
+                const item = flatData[i];
+                if (item.level === targetLevel) {
+                  console.log(`Found parent via level detection: ${(item as any).TaskID}`);
+                  const parentId = findOriginalTaskId((item as any).TaskID, allTasks);
+                  if (parentId) {
+                    return parentId;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback to the original recursive search
     const findParentRecursive = (tasks: ProcessedTask[], targetId: string): string | null => {
       for (const task of tasks) {
         if (task.subtasks) {
@@ -249,7 +293,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('CREATING NEW TASK:', taskData);
       
       // Determine parent based on the task's position in hierarchy
-      const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+      const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
       console.log('Determined parent ID for new task:', parentId);
       
       const createParams = {
@@ -277,7 +321,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
         console.log('Determined parent ID for update:', parentId);
         
         const updateParams = {
@@ -328,7 +372,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
       if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
         console.log('Indenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
@@ -344,7 +388,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
       if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
         console.log('Outdenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
