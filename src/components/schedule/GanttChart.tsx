@@ -125,9 +125,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const minStartDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date();
     const maxEndDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date();
     
-    // Minimal buffer - start at earliest task date, end 1 week after latest task
-    const bufferStart = minStartDate; // No buffer at start to align with tree grid
-    const bufferEnd = new Date(maxEndDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // No buffers - use exact task dates for tight ZoomToFit
+    const bufferStart = minStartDate;
+    const bufferEnd = maxEndDate;
     
     return {
       projectStartDate: bufferStart,
@@ -237,7 +237,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                        args.item?.id === 'Add' ||
                        args.item?.tooltipText === 'Add';
     
+    // Check for ZoomToFit button to override default behavior
+    const isZoomToFitButton = args.item?.id === 'gantt_zoomtofit' || 
+                             args.item?.text === 'ZoomToFit' || 
+                             args.item?.id === 'ZoomToFit' ||
+                             args.item?.tooltipText === 'Zoom to fit';
+    
     console.log('Is Add button?', isAddButton);
+    console.log('Is ZoomToFit button?', isZoomToFitButton);
     
     if (isAddButton) {
       console.log('Add button detected! Preventing default and adding task...');
@@ -255,8 +262,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       }
       
       return;
+    } else if (isZoomToFitButton) {
+      console.log('ZoomToFit button detected! Using custom fit logic...');
+      // Prevent default ZoomToFit behavior that adds extra padding
+      args.cancel = true;
+      
+      if (ganttRef.current && projectStartDate && projectEndDate) {
+        console.log('Custom ZoomToFit - setting exact project timeline...');
+        // Set the exact project dates without any buffer
+        ganttRef.current.timelineSettings = {
+          ...ganttRef.current.timelineSettings,
+          timelineUnitSize: 40
+        };
+        
+        // Use fitToProject method which should respect our exact dates
+        ganttRef.current.fitToProject();
+      }
+      
+      return;
     } else {
-      console.log('Not the Add button, continuing...');
+      console.log('Other toolbar action, continuing...');
     }
   };
 
