@@ -121,13 +121,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleToolbarClick = (args: any) => {
     console.log('=== TOOLBAR CLICK ===');
-    console.log('Toolbar item clicked:', args.item?.id, args);
+    console.log('Full args object:', JSON.stringify(args, null, 2));
+    console.log('args.item:', args.item);
+    console.log('args.item?.id:', args.item?.id);
+    console.log('args.item?.text:', args.item?.text);
     console.log('===================');
     
-    if (args.item?.id === 'gantt_add' || args.item?.text === 'Add') {
+    // Check multiple possible ways the Add button might be identified
+    const isAddButton = args.item?.id === 'gantt_add' || 
+                       args.item?.text === 'Add' || 
+                       args.item?.id === 'Add' ||
+                       args.item?.tooltipText === 'Add';
+    
+    console.log('Is Add button?', isAddButton);
+    
+    if (isAddButton) {
+      console.log('Add button detected! Preventing default and adding task...');
       // Prevent the default add dialog from opening
       args.cancel = true;
-      console.log('Adding new task at bottom...');
       
       // Generate unique TaskID
       const newTaskId = 'Task_' + Date.now();
@@ -145,15 +156,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       };
       
       console.log('New task object:', newTask);
+      console.log('ganttRef.current exists?', !!ganttRef.current);
       
       // Add the new record at the bottom of the tree
       if (ganttRef.current) {
-        console.log('Adding record to Gantt...');
-        ganttRef.current.addRecord(newTask);
-        console.log('Record added successfully');
+        console.log('Calling addRecord...');
+        try {
+          ganttRef.current.addRecord(newTask);
+          console.log('addRecord called successfully');
+        } catch (error) {
+          console.error('Error calling addRecord:', error);
+        }
+      } else {
+        console.error('ganttRef.current is null or undefined');
       }
       
       return;
+    } else {
+      console.log('Not the Add button, continuing...');
     }
   };
 
