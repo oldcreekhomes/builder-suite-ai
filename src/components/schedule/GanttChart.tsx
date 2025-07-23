@@ -162,8 +162,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Helper function to find parent task ID from hierarchical position or Syncfusion event data
   const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[], eventData?: any): string | null => {
+    console.log('=== FIND PARENT DEBUG START ===');
     console.log(`Finding parent for task ID: ${taskId}`);
-    console.log('Event data for parent detection:', eventData);
+    console.log('Event data:', eventData);
+    console.log('Event data keys:', eventData ? Object.keys(eventData) : 'No event data');
+    console.log('Available allTasks count:', allTasks?.length);
+    console.log('ganttRef.current available:', !!ganttRef.current);
     
     // First, check if Syncfusion provides parent information directly in the event
     if (eventData) {
@@ -173,30 +177,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         const parentId = findOriginalTaskId(eventData.parentItem.TaskID, allTasks);
         if (parentId) {
           console.log(`Parent found via parentItem: ${parentId}`);
+          console.log('=== FIND PARENT DEBUG END - SUCCESS METHOD 1 ===');
           return parentId;
         }
       }
       
-      // Check for level-based hierarchy detection
+      // Check for level-based hierarchy detection using gantt instance data
       if (eventData.level && eventData.level > 0) {
-        // Look for the task immediately above this one with level-1
         const targetLevel = eventData.level - 1;
         console.log(`Looking for parent at level ${targetLevel} for task at level ${eventData.level}`);
         
-        // This requires accessing the Gantt component's flat data
         const ganttInstance = ganttRef.current;
         if (ganttInstance) {
-          const flatData = ganttInstance.flatData || ganttInstance.currentViewData;
-          if (flatData) {
+          // Try multiple ways to access flat data
+          const flatData = ganttInstance.flatData || 
+                           ganttInstance.currentViewData || 
+                           ganttInstance.dataSource;
+          console.log('FlatData available:', !!flatData);
+          console.log('FlatData length:', flatData ? (Array.isArray(flatData) ? flatData.length : 'Not array') : 0);
+          
+          if (flatData && Array.isArray(flatData)) {
             const currentIndex = flatData.findIndex((item: any) => item.TaskID === taskId);
+            console.log(`Current task index in flatData: ${currentIndex}`);
+            
             if (currentIndex > 0) {
               // Look backwards for a task at the parent level
               for (let i = currentIndex - 1; i >= 0; i--) {
                 const item = flatData[i];
+                console.log(`Checking item at index ${i}:`, {
+                  TaskID: item?.TaskID,
+                  level: item?.level,
+                  TaskName: item?.TaskName
+                });
+                
                 if (item.level === targetLevel) {
-                  console.log(`Found parent via level detection: ${(item as any).TaskID}`);
-                  const parentId = findOriginalTaskId((item as any).TaskID, allTasks);
+                  console.log(`Found parent via level detection: ${item.TaskID}`);
+                  const parentId = findOriginalTaskId(item.TaskID, allTasks);
                   if (parentId) {
+                    console.log('=== FIND PARENT DEBUG END - SUCCESS METHOD 2 ===');
                     return parentId;
                   }
                 }
@@ -205,14 +223,39 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           }
         }
       }
+      
+      // Method 3: Try to find parent using TaskID hierarchical pattern
+      if (eventData.TaskID) {
+        console.log('Analyzing TaskID pattern:', eventData.TaskID);
+        const taskIdStr = String(eventData.TaskID);
+        const taskIdParts = taskIdStr.split('.');
+        console.log('TaskID parts:', taskIdParts);
+        
+        if (taskIdParts.length > 1) {
+          // Remove the last part to get parent ID
+          const parentTaskId = taskIdParts.slice(0, -1).join('.');
+          console.log('Calculated parent TaskID:', parentTaskId);
+          
+          // Find the parent in allTasks
+          const parentOriginalId = findOriginalTaskId(parentTaskId, allTasks);
+          console.log('Parent original ID from TaskID pattern:', parentOriginalId);
+          if (parentOriginalId) {
+            console.log('=== FIND PARENT DEBUG END - SUCCESS METHOD 3 ===');
+            return parentOriginalId;
+          }
+        }
+      }
     }
     
     // Fallback to the original recursive search
+    console.log('Falling back to recursive search');
     const findParentRecursive = (tasks: ProcessedTask[], targetId: string): string | null => {
       for (const task of tasks) {
+        console.log(`Checking task: ${task.TaskID} with ${task.subtasks?.length || 0} subtasks`);
         if (task.subtasks) {
           // Check if target is a direct child
           for (const subtask of task.subtasks) {
+            console.log(`Checking subtask: ${subtask.TaskID} against target: ${targetId}`);
             if (subtask.TaskID === targetId) {
               console.log(`Found parent: ${task.TaskID} (Original: ${task.OriginalTaskID}) for child: ${targetId}`);
               return task.OriginalTaskID;
@@ -227,7 +270,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     };
     
     const parentId = findParentRecursive(allTasks, taskId);
-    console.log(`Parent search result for ${taskId}:`, parentId);
+    console.log(`Recursive search result for ${taskId}:`, parentId);
+    console.log('=== FIND PARENT DEBUG END - RESULT:', parentId, '===');
     return parentId;
   };
 
