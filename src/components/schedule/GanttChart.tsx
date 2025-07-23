@@ -126,13 +126,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('===================');
     
     if (args.requestType === 'beforeAdd') {
-      args.data = {
-        ...args.data,
+      // Cancel the native Syncfusion add dialog
+      args.cancel = true;
+      
+      // Programmatically add a new row at the bottom with default values
+      const newTask = {
+        TaskName: 'New Task',
         StartDate: new Date(),
+        EndDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
         Duration: 1,
         Progress: 0,
-        TaskName: args.data.TaskName || 'New Task'
+        Resources: null,
+        Predecessor: null
       };
+      
+      // Add the new record at the bottom of the tree
+      if (ganttRef.current) {
+        ganttRef.current.addRecord(newTask);
+      }
+      
+      return;
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
