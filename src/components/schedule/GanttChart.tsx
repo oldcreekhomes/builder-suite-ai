@@ -185,8 +185,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('===================');
     
     if (args.requestType === 'beforeAdd') {
-      // Cancel the native Syncfusion add dialog as backup
-      args.cancel = true;
+      // Only cancel if this is NOT a programmatic add (from our custom button)
+      // Our programmatic adds will have the TaskID starting with 'Task_'
+      const isOurProgrammaticAdd = args.data?.TaskID?.startsWith('Task_');
+      
+      if (!isOurProgrammaticAdd) {
+        // Cancel the native Syncfusion add dialog as backup
+        args.cancel = true;
+        return;
+      }
+      // Let our programmatic adds proceed
       return;
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
