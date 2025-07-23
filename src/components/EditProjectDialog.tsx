@@ -154,7 +154,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                 <SelectItem value="Permitting">Permitting</SelectItem>
                 <SelectItem value="Under Construction">Under Construction</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Template">Template</SelectItem>
               </SelectContent>
             </Select>
           </div>
