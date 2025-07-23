@@ -6,6 +6,7 @@ import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import '@/utils/syncfusionOverrides';
 
 interface GanttChartProps {
   projectId: string;
@@ -183,7 +184,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Modified records:', args.modifiedRecords);
     console.log('Changed records:', args.changedRecords);
     console.log('Current gantt data structure:', ganttData);
+    console.log('All event args:', args);
     console.log('========================');
+    
+    // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
+    if (args.requestType === 'delete' || args.requestType === 'save' || args.requestType === 'add') {
+      console.log('Attempting to cancel default notification behavior');
+      args.cancel = true; // Try to cancel any default behavior
+      if (args.preventDefault) args.preventDefault();
+      if (args.stopPropagation) args.stopPropagation();
+    }
     
     // Add mutation error handling
     const handleMutationError = (error: any, operation: string) => {
