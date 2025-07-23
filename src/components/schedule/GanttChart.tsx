@@ -101,8 +101,51 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     columnIndex: 3
   };
 
-  const projectStartDate = new Date(); // Use today's date
-  const projectEndDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // One year from today
+  // Calculate dynamic project dates based on actual task data
+  const { projectStartDate, projectEndDate } = useMemo(() => {
+    if (ganttData.length === 0) {
+      // Fallback dates when no tasks exist
+      const today = new Date();
+      return {
+        projectStartDate: today,
+        projectEndDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from today
+      };
+    }
+
+    // Find all start and end dates from the flat task structure
+    const getAllDates = (tasks: ProcessedTask[]): { starts: Date[], ends: Date[] } => {
+      const starts: Date[] = [];
+      const ends: Date[] = [];
+      
+      const collectDates = (taskList: ProcessedTask[]) => {
+        taskList.forEach(task => {
+          if (task.StartDate) starts.push(new Date(task.StartDate));
+          if (task.EndDate) ends.push(new Date(task.EndDate));
+          if (task.subtasks && task.subtasks.length > 0) {
+            collectDates(task.subtasks);
+          }
+        });
+      };
+      
+      collectDates(tasks);
+      return { starts, ends };
+    };
+
+    const { starts, ends } = getAllDates(ganttData);
+    
+    // Calculate min start date and max end date
+    const minStartDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date();
+    const maxEndDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date();
+    
+    // Add some buffer - start 1 week before earliest task, end 2 weeks after latest task
+    const bufferStart = new Date(minStartDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const bufferEnd = new Date(maxEndDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    return {
+      projectStartDate: bufferStart,
+      projectEndDate: bufferEnd
+    };
+  }, [ganttData]);
 
   // Helper function to find parent task ID from hierarchical position or Syncfusion event data
   const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[], eventData?: any): string | null => {
