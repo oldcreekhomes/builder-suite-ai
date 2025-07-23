@@ -141,7 +141,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Prevent the default add dialog from opening
       args.cancel = true;
       
-      // Generate the next sequential TaskID based on existing tasks
+      // Generate the next sequential TaskID based on existing tasks  
       const existingIds = ganttData.map(task => {
         // Extract numeric part from TaskID (handles both numbers and "Task_" prefixed ones)
         const idStr = task.TaskID.toString();
@@ -150,7 +150,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       });
       const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
       const nextId = maxId + 1;
-      const newTaskId = nextId.toString();
+      const newTaskId = `TEMP_${nextId}_${Date.now()}`; // Use unique temp ID
       
       console.log('Existing IDs:', existingIds, 'Max ID:', maxId, 'Next ID:', nextId);
       
@@ -196,10 +196,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'beforeAdd') {
       // Only cancel if this is NOT a programmatic add (from our custom button)
-      // Our programmatic adds will have numeric TaskIDs that don't exist in the database yet
+      // Our programmatic adds will have TaskIDs starting with 'TEMP_'
       const taskId = args.data?.TaskID?.toString();
-      const isOurProgrammaticAdd = taskId && /^\d+$/.test(taskId) && 
-                                   parseInt(taskId) > Math.max(...tasks.map(t => parseInt(t.id) || 0));
+      const isOurProgrammaticAdd = taskId && taskId.startsWith('TEMP_');
       
       if (!isOurProgrammaticAdd) {
         // Cancel the native Syncfusion add dialog as backup
@@ -294,8 +293,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       // Skip database creation for our programmatic adds (they're just visual)
       const taskId = taskData.TaskID?.toString();
-      const isOurProgrammaticAdd = taskId && /^\d+$/.test(taskId) && 
-                                   parseInt(taskId) > Math.max(...tasks.map(t => parseInt(t.id) || 0));
+      const isOurProgrammaticAdd = taskId && taskId.startsWith('TEMP_');
       if (isOurProgrammaticAdd) {
         console.log('Skipping database creation for programmatic add - visual only');
         return;
