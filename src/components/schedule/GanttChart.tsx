@@ -119,14 +119,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return parentId;
   };
 
-  const handleActionBegin = (args: any) => {
-    console.log('=== ACTION BEGIN ===');
-    console.log('Request type:', args.requestType);
-    console.log('Action data:', args.data);
+  const handleToolbarClick = (args: any) => {
+    console.log('=== TOOLBAR CLICK ===');
+    console.log('Toolbar item clicked:', args.item?.id, args);
     console.log('===================');
     
-    if (args.requestType === 'beforeAdd') {
-      // Cancel the native Syncfusion add dialog
+    if (args.item?.id === 'gantt_add' || args.item?.text === 'Add') {
+      // Prevent the default add dialog from opening
       args.cancel = true;
       
       // Programmatically add a new row at the bottom with default values
@@ -142,9 +141,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       // Add the new record at the bottom of the tree
       if (ganttRef.current) {
-        ganttRef.current.addRecord(newTask);
+        setTimeout(() => {
+          ganttRef.current.addRecord(newTask);
+        }, 0);
       }
       
+      return;
+    }
+  };
+
+  const handleActionBegin = (args: any) => {
+    console.log('=== ACTION BEGIN ===');
+    console.log('Request type:', args.requestType);
+    console.log('Action data:', args.data);
+    console.log('===================');
+    
+    if (args.requestType === 'beforeAdd') {
+      // Cancel the native Syncfusion add dialog as backup
+      args.cancel = true;
       return;
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
@@ -410,6 +424,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         height="600px"
         projectStartDate={projectStartDate}
         projectEndDate={projectEndDate}
+        toolbarClick={handleToolbarClick}
         actionBegin={handleActionBegin}
         actionComplete={handleActionComplete}
         resizeStart={handleResizeStart}
