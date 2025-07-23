@@ -3,7 +3,7 @@ import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Select
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface GanttChartProps {
   projectId: string;
@@ -149,33 +149,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         // Check self-reference
         if (!validateSelfReference(taskId, predecessor)) {
           args.cancel = true;
-          toast({
-            title: "Invalid Dependency",
-            description: "Task cannot depend on itself",
-            variant: "destructive"
-          });
+          toast.error("Task cannot depend on itself");
           return;
         }
 
         // Check if referenced tasks exist
         if (!validateTaskExists(predecessor, ganttData)) {
           args.cancel = true;
-          toast({
-            title: "Invalid Dependency",
-            description: "Referenced task ID does not exist",
-            variant: "destructive"
-          });
+          toast.error("Referenced task ID does not exist");
           return;
         }
 
         // Check for circular dependencies
         if (!validateCircularDependency(taskId, predecessor, ganttData)) {
           args.cancel = true;
-          toast({
-            title: "Invalid Dependency",
-            description: "Circular dependency detected",
-            variant: "destructive"
-          });
+          toast.error("Circular dependency detected");
           return;
         }
       }
@@ -225,7 +213,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       };
       
       console.log('CREATE TASK PARAMS:', createParams);
-      createTask.mutate(createParams);
+      createTask.mutate(createParams, {
+        onError: (error) => {
+          console.error('Failed to create task:', error);
+          console.error('Create params that failed:', createParams);
+        }
+      });
     } 
     else if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
@@ -250,7 +243,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         };
         
         console.log('UPDATE TASK PARAMS:', updateParams);
-        updateTask.mutate(updateParams);
+        updateTask.mutate(updateParams, {
+          onError: (error) => {
+            console.error('Failed to update task:', error);
+            console.error('Update params that failed:', updateParams);
+          }
+        });
       }
     } 
     else if (args.requestType === 'delete' && args.data) {
@@ -259,7 +257,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        deleteTask.mutate(originalTaskId);
+        deleteTask.mutate(originalTaskId, {
+          onError: (error) => {
+            console.error('Failed to delete task:', error);
+            console.error('Delete task ID that failed:', originalTaskId);
+          }
+        });
       }
     } 
     else if (args.requestType === 'indenting' && args.data) {
@@ -275,6 +278,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           id: originalTaskId,
           parent_id: parentId,
           order_index: taskData.OrderIndex || 0,
+        }, {
+          onError: (error) => {
+            console.error('Failed to indent task:', error);
+            console.error('Indent params that failed:', { id: originalTaskId, parent_id: parentId });
+          }
         });
       }
     } 
@@ -291,6 +299,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           id: originalTaskId,
           parent_id: parentId, // This might be null for root-level tasks
           order_index: taskData.OrderIndex || 0,
+        }, {
+          onError: (error) => {
+            console.error('Failed to outdent task:', error);
+            console.error('Outdent params that failed:', { id: originalTaskId, parent_id: parentId });
+          }
         });
       }
     }
