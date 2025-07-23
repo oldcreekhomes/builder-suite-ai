@@ -17,7 +17,10 @@
 /* Hide all Syncfusion toast notifications */
 .e-toast-container,
 .e-toast,
-.e-notification {
+.e-notification,
+.e-gantt .e-toast-container,
+.e-gantt .e-toast,
+.e-gantt .e-notification {
   display: none !important;
 }
 
