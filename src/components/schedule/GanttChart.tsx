@@ -411,6 +411,47 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Data level:', args.data.level);
       console.log('Data hasChildRecords:', args.data.hasChildRecords);
       console.log('Data isParent:', args.data.isParent);
+      console.log('Data index:', args.data.index);
+      console.log('Data parentUniqueID:', args.data.parentUniqueID);
+      console.log('Data uniqueID:', args.data.uniqueID);
+    }
+    
+    // Enhanced gantt instance inspection
+    if (ganttRef.current) {
+      const ganttInstance = ganttRef.current;
+      console.log('=== GANTT INSTANCE STATE ===');
+      console.log('Current view data length:', ganttInstance.currentViewData?.length);
+      console.log('Flat data length:', ganttInstance.flatData?.length);
+      console.log('Selected row index:', ganttInstance.selectedRowIndex);
+      
+      // Check if we have a selected task (potential parent)
+      if (ganttInstance.selectedRowIndex >= 0) {
+        const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
+        console.log('Selected task (potential parent):', {
+          TaskID: (selectedTask as any)?.TaskID,
+          TaskName: (selectedTask as any)?.TaskName,
+          level: (selectedTask as any)?.level,
+          hasChildRecords: (selectedTask as any)?.hasChildRecords
+        });
+      }
+      
+      // Look for the newly created task in the data
+      if (args.data?.TaskID) {
+        const foundTask = ganttInstance.flatData?.find((task: any) => 
+          task.TaskID === args.data.TaskID || task.ganttProperties?.taskId === args.data.TaskID
+        );
+        console.log('Found task in flatData:', {
+          TaskID: (foundTask as any)?.TaskID,
+          parentItem: (foundTask as any)?.parentItem,
+          level: (foundTask as any)?.level,
+          parentUniqueID: (foundTask as any)?.parentUniqueID,
+          ganttProperties: (foundTask as any)?.ganttProperties ? {
+            parentId: (foundTask as any).ganttProperties.parentId,
+            level: (foundTask as any).ganttProperties.level,
+            parentItem: (foundTask as any).ganttProperties.parentItem
+          } : null
+        });
+      }
     }
     
     console.log('========================');
