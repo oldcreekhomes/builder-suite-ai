@@ -44,6 +44,7 @@
     "@syncfusion/ej2-grids": "^30.1.40",
     "@syncfusion/ej2-layouts": "^30.1.40",
     "@syncfusion/ej2-react-gantt": "^30.1.39",
+    "@syncfusion/ej2-react-treegrid": "^30.1.38",
     "@syncfusion/ej2-treegrid": "^30.1.38",
     "@tanstack/react-query": "^5.56.2",
     "@tanstack/react-query-devtools": "^5.83.0",

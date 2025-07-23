@@ -1,5 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, EditSettingsModel } from '@syncfusion/ej2-react-gantt';
+import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
@@ -312,7 +313,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
           <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
         </ColumnsDirective>
-        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu]} />
+        <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, TreeGridEdit]} />
       </GanttComponent>
     </div>
   );
