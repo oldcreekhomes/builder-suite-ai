@@ -4,7 +4,7 @@ import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectResources } from '@/hooks/useProjectResources';
-import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
+import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask, convertResourceIdsToNames } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import '@/utils/syncfusionOverrides';
@@ -29,6 +29,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('=== GANTT DATA TRANSFORMATION START ===');
     console.log('Raw tasks from database:', tasks);
     console.log('Task count:', tasks.length);
+    console.log('Resources available:', resources);
     
     // Log parent-child relationships in raw data
     const parentChildMap = new Map();
@@ -42,12 +43,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
     console.log('Parent-child relationships in database:', Object.fromEntries(parentChildMap));
     
-    const transformedData = generateNestedHierarchy(tasks);
+    const transformedData = generateNestedHierarchy(tasks, resources);
     console.log('Transformed hierarchical data:', transformedData);
     console.log('=== GANTT DATA TRANSFORMATION END ===');
     
     return transformedData;
-  }, [tasks]);
+  }, [tasks, resources]);
 
   const taskFields = {
     id: 'TaskID',
@@ -388,18 +389,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
       console.log('Determined parent ID for new task:', parentId);
       
-      const createParams = {
-        project_id: projectId,
-        task_name: taskData.TaskName || 'New Task',
-        start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
-        end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
-        duration: taskData.Duration || 1,
-        progress: taskData.Progress || 0,
-        predecessor: taskData.Predecessor || null,
-        resources: taskData.Resources || null,
-        parent_id: parentId,
-        order_index: tasks.length,
-      };
+        const createParams = {
+          project_id: projectId,
+          task_name: taskData.TaskName || 'New Task',
+          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
+          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
+          duration: taskData.Duration || 1,
+          progress: taskData.Progress || 0,
+          predecessor: taskData.Predecessor || null,
+          resources: convertResourceIdsToNames(taskData.Resources, resources) || null,
+          parent_id: parentId,
+          order_index: tasks.length,
+        };
       
       console.log('CREATE TASK PARAMS:', createParams);
       createTask.mutate(createParams, {
@@ -424,7 +425,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           duration: taskData.Duration,
           progress: taskData.Progress,
           predecessor: taskData.Predecessor || null,
-          resources: taskData.Resources,
+          resources: convertResourceIdsToNames(taskData.Resources, resources),
           parent_id: parentId,
           order_index: taskData.OrderIndex,
         };

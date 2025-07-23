@@ -1,6 +1,13 @@
 
 import { ProjectTask } from '@/hooks/useProjectTasks';
 
+export interface ProjectResource {
+  resourceId: string;
+  resourceName: string;
+  resourceGroup?: string;
+  type?: string;
+}
+
 export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
   TaskID: string; // Hierarchical ID like "1", "1.1", "1.2"
   OriginalTaskID: string; // Original UUID from database
@@ -10,13 +17,45 @@ export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
   Duration: number;
   Progress: number;
   Predecessor: string | null;
-  Resources: string | null;
+  Resources: string[] | null; // Array of resource IDs for Syncfusion
   subtasks?: ProcessedTask[]; // Nested children instead of ParentID
   OrderIndex: number;
 }
 
+// Helper function to convert resource names to IDs
+const convertResourceNamesToIds = (resourceString: string | null, resources: ProjectResource[]): string[] | null => {
+  if (!resourceString || resourceString.trim() === '') return null;
+  
+  const resourceNames = resourceString.split(',').map(name => name.trim());
+  const resourceIds: string[] = [];
+  
+  resourceNames.forEach(name => {
+    const resource = resources.find(r => r.resourceName === name);
+    if (resource) {
+      resourceIds.push(resource.resourceId);
+    }
+  });
+  
+  return resourceIds.length > 0 ? resourceIds : null;
+};
+
+// Helper function to convert resource IDs to names
+export const convertResourceIdsToNames = (resourceIds: string[] | null, resources: ProjectResource[]): string | null => {
+  if (!resourceIds || resourceIds.length === 0) return null;
+  
+  const resourceNames: string[] = [];
+  resourceIds.forEach(id => {
+    const resource = resources.find(r => r.resourceId === id);
+    if (resource) {
+      resourceNames.push(resource.resourceName);
+    }
+  });
+  
+  return resourceNames.length > 0 ? resourceNames.join(',') : null;
+};
+
 // Convert flat array to nested hierarchy with hierarchical IDs and comprehensive debugging
-export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] => {
+export const generateNestedHierarchy = (tasks: ProjectTask[], resources: ProjectResource[] = []): ProcessedTask[] => {
   console.log('=== GENERATE NESTED HIERARCHY START ===');
   console.log('Input tasks:', tasks);
   
@@ -84,7 +123,7 @@ export const generateNestedHierarchy = (tasks: ProjectTask[]): ProcessedTask[] =
         predecessor: task.predecessor,
         Predecessor: task.predecessor,
         resources: task.resources,
-        Resources: task.resources,
+        Resources: convertResourceNamesToIds(task.resources, resources),
         parent_id: task.parent_id,
         order_index: task.order_index,
         OrderIndex: task.order_index,
