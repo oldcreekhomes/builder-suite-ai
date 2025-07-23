@@ -397,7 +397,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           duration: taskData.Duration || 1,
           progress: taskData.Progress || 0,
           predecessor: taskData.Predecessor || null,
-          resources: convertResourceIdsToNames(taskData.Resources, resources) || null,
+          resources: (() => {
+            console.log('=== CREATE TASK RESOURCES DEBUG ===');
+            console.log('taskData.Resources:', taskData.Resources);
+            console.log('Available resources for conversion:', resources);
+            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
+            console.log('Converted resources result:', convertedResources);
+            console.log('=== CREATE TASK RESOURCES DEBUG END ===');
+            return convertedResources || null;
+          })(),
           parent_id: parentId,
           order_index: tasks.length,
         };
@@ -425,7 +433,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           duration: taskData.Duration,
           progress: taskData.Progress,
           predecessor: taskData.Predecessor || null,
-          resources: convertResourceIdsToNames(taskData.Resources, resources),
+          resources: (() => {
+            console.log('=== UPDATE TASK RESOURCES DEBUG ===');
+            console.log('taskData.Resources:', taskData.Resources);
+            console.log('Available resources for conversion:', resources);
+            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
+            console.log('Converted resources result:', convertedResources);
+            console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
+            return convertedResources;
+          })(),
           parent_id: parentId,
           order_index: taskData.OrderIndex,
         };

@@ -41,17 +41,34 @@ const convertResourceNamesToIds = (resourceString: string | null, resources: Pro
 
 // Helper function to convert resource IDs to names
 export const convertResourceIdsToNames = (resourceIds: string[] | null, resources: ProjectResource[]): string | null => {
-  if (!resourceIds || resourceIds.length === 0) return null;
+  console.log('=== convertResourceIdsToNames DEBUG START ===');
+  console.log('Input resourceIds:', resourceIds);
+  console.log('Available resources:', resources);
+  console.log('Resource count:', resources?.length || 0);
+  
+  if (!resourceIds || resourceIds.length === 0) {
+    console.log('No resource IDs provided, returning null');
+    console.log('=== convertResourceIdsToNames DEBUG END ===');
+    return null;
+  }
   
   const resourceNames: string[] = [];
   resourceIds.forEach(id => {
+    console.log(`Looking for resource with ID: "${id}"`);
     const resource = resources.find(r => r.resourceId === id);
     if (resource) {
+      console.log(`Found matching resource: ${resource.resourceName} (ID: ${resource.resourceId})`);
       resourceNames.push(resource.resourceName);
+    } else {
+      console.log(`NO MATCH FOUND for resource ID: "${id}"`);
+      console.log('Available resource IDs:', resources.map(r => ({ id: r.resourceId, name: r.resourceName })));
     }
   });
   
-  return resourceNames.length > 0 ? resourceNames.join(',') : null;
+  const result = resourceNames.length > 0 ? resourceNames.join(',') : null;
+  console.log('Final result:', result);
+  console.log('=== convertResourceIdsToNames DEBUG END ===');
+  return result;
 };
 
 // Convert flat array to nested hierarchy with hierarchical IDs and comprehensive debugging
