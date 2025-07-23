@@ -121,10 +121,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleToolbarClick = (args: any) => {
     console.log('=== TOOLBAR CLICK ===');
-    console.log('Full args object:', JSON.stringify(args, null, 2));
-    console.log('args.item:', args.item);
-    console.log('args.item?.id:', args.item?.id);
-    console.log('args.item?.text:', args.item?.text);
+    console.log('args.item details:', {
+      id: args.item?.id,
+      text: args.item?.text,
+      tooltipText: args.item?.tooltipText
+    });
     console.log('===================');
     
     // Check multiple possible ways the Add button might be identified
