@@ -21,7 +21,6 @@ const getStatusColor = (status: string) => {
     case "Permitting": return "bg-blue-100 text-blue-800";
     case "Under Construction": return "bg-orange-100 text-orange-800";
     case "Completed": return "bg-green-100 text-green-800";
-    case "Template": return "bg-purple-100 text-purple-800";
     default: return "bg-gray-100 text-gray-800";
   }
 };
@@ -32,12 +31,11 @@ const getProgressValue = (status: string) => {
     case "Permitting": return 25;
     case "Under Construction": return 65;
     case "Completed": return 100;
-    case "Template": return 0;
     default: return 0;
   }
 };
 
-const statusTabs = ["In Design", "Permitting", "Under Construction", "Completed", "Template"];
+const statusTabs = ["In Design", "Permitting", "Under Construction", "Completed"];
 
 export function ProjectsOverview() {
   const { data: projects = [], isLoading } = useProjects();
@@ -190,7 +188,7 @@ export function ProjectsOverview() {
         
         <div className="flex-1 p-6">
           <Tabs defaultValue="In Design" className="w-full h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               {statusTabs.map((status) => (
                 <TabsTrigger key={status} value={status} className="text-xs">
                   {status} ({getProjectCount(status)})
