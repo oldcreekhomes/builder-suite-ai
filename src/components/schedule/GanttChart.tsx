@@ -163,11 +163,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Action data:', args.data);
     console.log('===================');
     
-    if (args.requestType === 'beforeAdd') {
-      // Cancel the native Syncfusion add dialog (we want toolbar button only)
-      args.cancel = true;
-      return;
-    } else if (args.requestType === 'beforeEdit') {
+    // Remove the beforeAdd cancellation - let Syncfusion handle it naturally
+    if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
       console.log('Before deleting task:', args.data);
