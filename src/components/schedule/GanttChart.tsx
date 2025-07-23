@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, EditSettingsModel } from '@syncfusion/ej2-react-gantt';
 import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
@@ -46,6 +46,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     return transformedData;
   }, [tasks]);
+
+  // Auto-fit columns on page load
+  useEffect(() => {
+    if (ganttRef.current && ganttData.length > 0) {
+      // Use a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        ganttRef.current?.autoFitColumns();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [ganttData]);
 
   const taskFields = {
     id: 'TaskID',
