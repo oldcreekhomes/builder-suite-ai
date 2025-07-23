@@ -127,9 +127,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     if (args.item?.id === 'gantt_add' || args.item?.text === 'Add') {
       // Prevent the default add dialog from opening
       args.cancel = true;
+      console.log('Adding new task at bottom...');
+      
+      // Generate unique TaskID
+      const newTaskId = 'Task_' + Date.now();
       
       // Programmatically add a new row at the bottom with default values
       const newTask = {
+        TaskID: newTaskId,
         TaskName: 'New Task',
         StartDate: new Date(),
         EndDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
@@ -139,11 +144,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Predecessor: null
       };
       
+      console.log('New task object:', newTask);
+      
       // Add the new record at the bottom of the tree
       if (ganttRef.current) {
-        setTimeout(() => {
-          ganttRef.current.addRecord(newTask);
-        }, 0);
+        console.log('Adding record to Gantt...');
+        ganttRef.current.addRecord(newTask);
+        console.log('Record added successfully');
       }
       
       return;
