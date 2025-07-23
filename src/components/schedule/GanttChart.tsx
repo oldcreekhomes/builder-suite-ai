@@ -104,16 +104,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('===================');
     
     if (args.requestType === 'beforeAdd') {
-      console.log('Before adding new task:', args.data);
-      // Set today's date for new tasks
-      const today = new Date();
-      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-      
-      if (args.data) {
-        args.data.StartDate = today;
-        args.data.EndDate = tomorrow;
-        args.data.Duration = 1;
-      }
+      args.data = {
+        ...args.data,
+        StartDate: new Date(),
+        Duration: 1,
+        Progress: 0,
+        TaskName: args.data.TaskName || 'New Task'
+      };
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
     } else if (args.requestType === 'beforeDelete') {
@@ -273,6 +270,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         dataSource={ganttData}
         taskFields={taskFields}
         editSettings={editSettings}
+        addDialogFields={[]}
         toolbar={toolbarOptions}
         enableContextMenu={true}
         contextMenuClick={handleContextMenuClick}
