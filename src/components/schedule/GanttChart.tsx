@@ -55,8 +55,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Cell' as any, // Force cell editing to bypass dialogs
-    newRowPosition: 'Bottom' as any
+    mode: 'Auto' as any // Enable proper inline editing
   };
 
   const toolbarOptions = [
