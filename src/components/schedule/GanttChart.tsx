@@ -280,6 +280,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const taskData = args.data;
       console.log('CREATING NEW TASK:', taskData);
       
+      // Skip database creation for our programmatic adds (they're just visual)
+      const isOurProgrammaticAdd = taskData.TaskID?.startsWith('Task_');
+      if (isOurProgrammaticAdd) {
+        console.log('Skipping database creation for programmatic add - visual only');
+        return;
+      }
+      
       // Determine parent based on the task's position in hierarchy
       const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
       console.log('Determined parent ID for new task:', parentId);
