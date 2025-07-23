@@ -401,15 +401,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Args keys:', Object.keys(args));
     console.log('Modified records:', args.modifiedRecords);
     console.log('Changed records:', args.changedRecords);
-    // Safe logging without circular references
-    const safeArgs = {
-      requestType: args.requestType,
-      action: args.action,
-      data: args.data,
-      modifiedRecords: args.modifiedRecords,
-      changedRecords: args.changedRecords
-    };
-    console.log('Safe args object:', safeArgs);
+    console.log('All event args (full):', JSON.stringify(args, (key, value) => {
+      if (key === 'ganttData' || key === 'flatData') return '[Large Data Array]';
+      if (typeof value === 'function') return '[Function]';
+      return value;
+    }, 2));
     console.log('========================');
     
     // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
