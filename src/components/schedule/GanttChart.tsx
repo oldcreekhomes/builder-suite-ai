@@ -56,13 +56,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Cell' as any, // Force cell editing to bypass dialogs
+    mode: 'Auto' as any, // 'Auto' enables cell editing by double-clicking TreeGrid cells
     newRowPosition: 'Bottom' as any,
     showDeleteConfirmDialog: false // Streamline editing experience
   };
 
   const selectionSettings = {
-    mode: 'Cell' as any,
+    mode: 'Row' as any, // Use Row selection for Gantt
     type: 'Single' as any
   };
 
