@@ -62,14 +62,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   const columns = [
-    { field: 'TaskID', headerText: 'ID', width: 80 },
-    { field: 'TaskName', headerText: 'Task Name', width: 250 },
-    { field: 'StartDate', headerText: 'Start Date', width: 140 },
-    { field: 'EndDate', headerText: 'End Date', width: 140 },
-    { field: 'Duration', headerText: 'Duration', width: 110 },
-    { field: 'Progress', headerText: 'Progress', width: 110 },
-    { field: 'Predecessor', headerText: 'Dependency', width: 140 },
-    { field: 'Resources', headerText: 'Resources', width: 180 }
+    { field: 'TaskID', headerText: 'ID', width: 80, isPrimaryKey: true },
+    { field: 'TaskName', headerText: 'Task Name', width: 250, allowEditing: true },
+    { field: 'StartDate', headerText: 'Start Date', width: 140, allowEditing: true },
+    { field: 'EndDate', headerText: 'End Date', width: 140, allowEditing: true },
+    { field: 'Duration', headerText: 'Duration', width: 110, allowEditing: true },
+    { field: 'Progress', headerText: 'Progress', width: 110, allowEditing: true },
+    { field: 'Predecessor', headerText: 'Dependency', width: 140, allowEditing: true },
+    { field: 'Resources', headerText: 'Resources', width: 180, allowEditing: true }
   ];
 
   const toolbarOptions = [
@@ -136,6 +136,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('=== ACTION COMPLETE ===');
     console.log('Request type:', args.requestType);
     console.log('Action data:', args.data);
+    console.log('Modified records:', args.modifiedRecords);
+    console.log('Changed records:', args.changedRecords);
     console.log('Current gantt data structure:', ganttData);
     console.log('========================');
     
@@ -163,10 +165,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('CREATE TASK PARAMS:', createParams);
       createTask.mutate(createParams);
     } 
-    else if (args.requestType === 'save' && args.data) {
+    else if ((args.requestType === 'save' || args.requestType === 'cellSave') && args.data) {
       const taskData = args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('UPDATING TASK:', taskData, 'Original ID:', originalTaskId);
+      console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
         const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
@@ -188,7 +190,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         console.log('UPDATE TASK PARAMS:', updateParams);
         updateTask.mutate(updateParams);
       }
-    } 
+    }
+    else if (args.requestType === 'taskbarEdited' && args.data) {
+      console.log('TASKBAR EDITED:', args.data);
+      const taskData = args.data;
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      if (originalTaskId) {
+        const updateParams = {
+          id: originalTaskId,
+          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
+          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
+          duration: taskData.Duration,
+          progress: taskData.Progress,
+        };
+        
+        console.log('TASKBAR UPDATE PARAMS:', updateParams);
+        updateTask.mutate(updateParams);
+      }
+    }
     else if (args.requestType === 'delete' && args.data) {
       const taskData = args.data[0];
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
@@ -229,6 +249,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           order_index: taskData.OrderIndex || 0,
         });
       }
+    }
+    else {
+      console.log('UNHANDLED REQUEST TYPE:', args.requestType);
     }
   };
 
