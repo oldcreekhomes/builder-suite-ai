@@ -110,9 +110,10 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
 
   // Separate root tasks and build children map
   tasks.forEach(task => {
-    if (!task.parent_id) {
+    // Treat tasks with no parent_id OR self-referencing parent_id as root tasks
+    if (!task.parent_id || task.parent_id === task.id) {
       rootTasks.push(task);
-      console.log(`Root task identified: ${task.task_name} (${task.id})`);
+      console.log(`Root task identified: ${task.task_name} (${task.id}) - parent_id: ${task.parent_id}`);
     } else {
       if (!childrenMap.has(task.parent_id)) {
         childrenMap.set(task.parent_id, []);

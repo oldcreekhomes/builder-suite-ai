@@ -191,7 +191,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       }
     }
     
-    console.log('No parent found - will be root level task');
+    console.log('No parent found - will be root level task (parent_id will be null)');
     return null;
   };
 
