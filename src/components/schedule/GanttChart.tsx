@@ -141,45 +141,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Prevent the default add dialog from opening
       args.cancel = true;
       
-      // Generate the next sequential TaskID based on existing tasks  
-      const existingIds = ganttData.map(task => {
-        // Extract numeric part from TaskID (handles both numbers and "Task_" prefixed ones)
-        const idStr = task.TaskID.toString();
-        const numericPart = idStr.startsWith('Task_') ? 0 : parseInt(idStr);
-        return isNaN(numericPart) ? 0 : numericPart;
-      });
-      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-      const nextId = maxId + 1;
-      const newTaskId = `TEMP_${nextId}_${Date.now()}`; // Use unique temp ID
-      
-      console.log('Existing IDs:', existingIds, 'Max ID:', maxId, 'Next ID:', nextId);
-      
-      // Programmatically add a new row at the bottom with default values
-      const newTask = {
-        TaskID: newTaskId,
-        TaskName: 'New Task',
-        StartDate: new Date(),
-        EndDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-        Duration: 1,
-        Progress: 0,
-        Resources: null,
-        Predecessor: null
-      };
-      
-      console.log('New task object:', newTask);
-      console.log('ganttRef.current exists?', !!ganttRef.current);
-      
-      // Add the new record at the bottom of the tree
+      // Use Syncfusion's native addRecord with minimal data
       if (ganttRef.current) {
-        console.log('Calling addRecord...');
-        try {
-          ganttRef.current.addRecord(newTask);
-          console.log('addRecord called successfully');
-        } catch (error) {
-          console.error('Error calling addRecord:', error);
-        }
-      } else {
-        console.error('ganttRef.current is null or undefined');
+        console.log('Adding record using native Syncfusion method...');
+        ganttRef.current.addRecord({
+          TaskName: 'New Task',
+          Duration: 1,
+          Progress: 0
+        }, 'Bottom');
       }
       
       return;
@@ -195,17 +164,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('===================');
     
     if (args.requestType === 'beforeAdd') {
-      // Only cancel if this is NOT a programmatic add (from our custom button)
-      // Our programmatic adds will have TaskIDs starting with 'TEMP_'
-      const taskId = args.data?.TaskID?.toString();
-      const isOurProgrammaticAdd = taskId && taskId.startsWith('TEMP_');
-      
-      if (!isOurProgrammaticAdd) {
-        // Cancel the native Syncfusion add dialog as backup
-        args.cancel = true;
-        return;
-      }
-      // Let our programmatic adds proceed
+      // Cancel the native Syncfusion add dialog (we want toolbar button only)
+      args.cancel = true;
       return;
     } else if (args.requestType === 'beforeEdit') {
       console.log('Before editing task:', args.data);
@@ -290,14 +250,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
       console.log('CREATING NEW TASK:', taskData);
-      
-      // Skip database creation for our programmatic adds (they're just visual)
-      const taskId = taskData.TaskID?.toString();
-      const isOurProgrammaticAdd = taskId && taskId.startsWith('TEMP_');
-      if (isOurProgrammaticAdd) {
-        console.log('Skipping database creation for programmatic add - visual only');
-        return;
-      }
       
       // Determine parent based on the task's position in hierarchy
       const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
