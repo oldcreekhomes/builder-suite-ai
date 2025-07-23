@@ -71,68 +71,50 @@ export const useProjectResources = () => {
         allResources.push(...userResources);
       }
 
-      // Try to find company representatives
-      // First, try to find the company in the companies table by matching company_name
-      let companyReps: any[] = [];
-      
-      const { data: company } = await supabase
+      // Determine the home builder owner ID
+      let homeBuilderOwnerId: string;
+      if (currentUserProfile.role === 'owner') {
+        homeBuilderOwnerId = currentUserProfile.id;
+      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
+        homeBuilderOwnerId = currentUserProfile.home_builder_id;
+      } else {
+        console.log('Unable to determine home builder owner ID');
+        setResources(allResources);
+        return;
+      }
+
+      console.log('Fetching representatives for home builder owner:', homeBuilderOwnerId);
+
+      // Fetch all companies owned by the home builder
+      const { data: ownedCompanies } = await supabase
         .from('companies')
         .select('id')
-        .eq('company_name', companyName)
-        .maybeSingle();
+        .eq('owner_id', homeBuilderOwnerId);
 
-      if (company) {
-        console.log('Found company in companies table:', company.id);
-        // Fetch company representatives
+      if (ownedCompanies && ownedCompanies.length > 0) {
+        console.log('Found owned companies:', ownedCompanies);
+        
+        // Fetch all representatives from all owned companies
+        const companyIds = ownedCompanies.map(c => c.id);
         const { data: representatives } = await supabase
           .from('company_representatives')
           .select('id, first_name, last_name, email, phone_number')
-          .eq('company_id', company.id);
+          .in('company_id', companyIds);
 
-        if (representatives) {
-          companyReps = representatives;
+        if (representatives && representatives.length > 0) {
+          console.log('Found representatives:', representatives);
+          const repResources = representatives.map(rep => ({
+            resourceId: rep.id,
+            resourceName: `${rep.first_name} ${rep.last_name}`.trim(),
+            resourceGroup: 'External' as const,
+            email: rep.email,
+            phone: rep.phone_number,
+            type: 'representative' as const
+          }));
+          allResources.push(...repResources);
         }
       } else {
-        // If company not found in companies table, try to fetch all representatives
-        // and filter by any companies that might match
-        console.log('Company not found in companies table, fetching all representatives');
-        const { data: allCompanies } = await supabase
-          .from('companies')
-          .select('id, company_name');
-        
-        if (allCompanies) {
-          // Find companies with similar names (case insensitive)
-          const matchingCompany = allCompanies.find(c => 
-            c.company_name.toLowerCase() === companyName.toLowerCase()
-          );
-          
-          if (matchingCompany) {
-            const { data: representatives } = await supabase
-              .from('company_representatives')
-              .select('id, first_name, last_name, email, phone_number')
-              .eq('company_id', matchingCompany.id);
-
-            if (representatives) {
-              companyReps = representatives;
-            }
-          }
-        }
-      }
-
-      // Add representatives as external resources
-      if (companyReps.length > 0) {
-        console.log('Found representatives:', companyReps);
-        const repResources = companyReps.map(rep => ({
-          resourceId: rep.id,
-          resourceName: `${rep.first_name} ${rep.last_name}`.trim(),
-          resourceGroup: 'External' as const,
-          email: rep.email,
-          phone: rep.phone_number,
-          type: 'representative' as const
-        }));
-        allResources.push(...repResources);
-      } else {
-        console.log('No representatives found for company:', companyName);
+        console.log('No owned companies found for home builder owner:', homeBuilderOwnerId);
       }
 
       console.log('Fetched resources:', allResources);
