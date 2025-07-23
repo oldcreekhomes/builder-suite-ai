@@ -108,7 +108,7 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
   const rootTasks: ProjectTask[] = [];
   const childrenMap = new Map<string, ProjectTask[]>();
 
-  // Separate root tasks and build children map
+  // Separate root tasks and build children map with enhanced logic
   tasks.forEach(task => {
     // Treat tasks with no parent_id OR self-referencing parent_id as root tasks
     if (!task.parent_id || task.parent_id === task.id) {
@@ -126,10 +126,10 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
   console.log('Root tasks count:', rootTasks.length);
   console.log('Children map:', Object.fromEntries(childrenMap));
 
-  // Sort all tasks by order_index
-  rootTasks.sort((a, b) => a.order_index - b.order_index);
+  // Sort all tasks by order_index to maintain proper hierarchy
+  rootTasks.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   childrenMap.forEach(children => {
-    children.sort((a, b) => a.order_index - b.order_index);
+    children.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   });
 
   // Recursively process tasks to create hierarchical structure
