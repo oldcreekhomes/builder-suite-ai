@@ -4,6 +4,7 @@ import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask } from '@/utils/ganttUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface GanttChartProps {
   projectId: string;
@@ -141,6 +142,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Current gantt data structure:', ganttData);
     console.log('========================');
     
+    // Add mutation error handling
+    const handleMutationError = (error: any, operation: string) => {
+      console.error(`${operation} failed:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to ${operation.toLowerCase()}: ${error.message}`,
+      });
+    };
+    
+    const handleMutationSuccess = (operation: string) => {
+      console.log(`${operation} succeeded`);
+      toast({
+        title: "Success",
+        description: `Task ${operation.toLowerCase()} successfully`,
+      });
+    };
+    
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
       console.log('CREATING NEW TASK:', taskData);
@@ -163,7 +182,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       };
       
       console.log('CREATE TASK PARAMS:', createParams);
-      createTask.mutate(createParams);
+      createTask.mutate(createParams, {
+        onSuccess: () => handleMutationSuccess('Create'),
+        onError: (error) => handleMutationError(error, 'Create')
+      });
     } 
     else if ((args.requestType === 'save' || args.requestType === 'cellSave') && args.data) {
       const taskData = args.data;
@@ -188,7 +210,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         };
         
         console.log('UPDATE TASK PARAMS:', updateParams);
-        updateTask.mutate(updateParams);
+        updateTask.mutate(updateParams, {
+          onSuccess: () => handleMutationSuccess('Update'),
+          onError: (error) => handleMutationError(error, 'Update')
+        });
       }
     }
     else if (args.requestType === 'taskbarEdited' && args.data) {
@@ -206,7 +231,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         };
         
         console.log('TASKBAR UPDATE PARAMS:', updateParams);
-        updateTask.mutate(updateParams);
+        updateTask.mutate(updateParams, {
+          onSuccess: () => handleMutationSuccess('Update'),
+          onError: (error) => handleMutationError(error, 'Update')
+        });
       }
     }
     else if (args.requestType === 'delete' && args.data) {
@@ -215,7 +243,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        deleteTask.mutate(originalTaskId);
+        deleteTask.mutate(originalTaskId, {
+          onSuccess: () => handleMutationSuccess('Delete'),
+          onError: (error) => handleMutationError(error, 'Delete')
+        });
       }
     } 
     else if (args.requestType === 'indenting' && args.data) {
