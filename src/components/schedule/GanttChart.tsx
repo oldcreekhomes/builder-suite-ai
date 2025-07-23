@@ -57,7 +57,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowDeleting: true,
     allowTaskbarEditing: true,
     mode: 'Cell' as any, // Force cell editing to bypass dialogs
-    newRowPosition: 'Bottom' as any
+    newRowPosition: 'Bottom' as any,
+    showDeleteConfirmDialog: false // Streamline editing experience
+  };
+
+  const selectionSettings = {
+    mode: 'Cell' as any,
+    type: 'Single' as any
   };
 
   const toolbarOptions = [
@@ -272,6 +278,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         dataSource={ganttData}
         taskFields={taskFields}
         editSettings={editSettings}
+        selectionSettings={selectionSettings}
         addDialogFields={[]}
         toolbar={toolbarOptions}
         enableContextMenu={true}
@@ -304,14 +311,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         }}
       >
         <ColumnsDirective>
-          <ColumnDirective field="TaskID" headerText="ID" width="80" allowResizing={true} />
-          <ColumnDirective field="TaskName" headerText="Task Name" width="280" allowResizing={true} />
-          <ColumnDirective field="StartDate" headerText="Start Date" width="140" allowResizing={true} />
-          <ColumnDirective field="EndDate" headerText="End Date" width="140" allowResizing={true} />
-          <ColumnDirective field="Duration" headerText="Duration" width="110" allowResizing={true} />
-          <ColumnDirective field="Progress" headerText="Progress" width="110" allowResizing={true} />
-          <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} />
-          <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} />
+          <ColumnDirective field="TaskID" headerText="ID" width="80" allowResizing={true} isPrimaryKey={true} />
+          <ColumnDirective field="TaskName" headerText="Task Name" width="280" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="StartDate" headerText="Start Date" width="140" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="EndDate" headerText="End Date" width="140" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="Duration" headerText="Duration" width="110" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="Progress" headerText="Progress" width="110" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="Predecessor" headerText="Dependency" width="140" allowResizing={true} allowEditing={true} />
+          <ColumnDirective field="Resources" headerText="Resources" width="180" allowResizing={true} allowEditing={true} />
         </ColumnsDirective>
         <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, TreeGridEdit]} />
       </GanttComponent>
