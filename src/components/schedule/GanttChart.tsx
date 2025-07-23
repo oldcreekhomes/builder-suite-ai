@@ -390,13 +390,22 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   const handleActionComplete = (args: any) => {
-    console.log('=== ACTION COMPLETE ===');
+    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
     console.log('Request type:', args.requestType);
+    console.log('Action:', args.action);
     console.log('Action data:', args.data);
+    console.log('Action data keys:', args.data ? Object.keys(args.data) : 'No data');
+    console.log('TaskID:', args.data?.TaskID);
+    console.log('Task level:', args.data?.level);
+    console.log('Parent item:', args.data?.parentItem);
+    console.log('Args keys:', Object.keys(args));
     console.log('Modified records:', args.modifiedRecords);
     console.log('Changed records:', args.changedRecords);
-    console.log('Current gantt data structure:', ganttData);
-    console.log('All event args:', args);
+    console.log('All event args (full):', JSON.stringify(args, (key, value) => {
+      if (key === 'ganttData' || key === 'flatData') return '[Large Data Array]';
+      if (typeof value === 'function') return '[Function]';
+      return value;
+    }, 2));
     console.log('========================');
     
     // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
@@ -427,11 +436,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      console.log('CREATING NEW TASK:', taskData);
+      console.log('=== CREATING NEW TASK ENHANCED DEBUG ===');
+      console.log('Task data structure:', taskData);
+      console.log('Task data keys:', Object.keys(taskData));
+      console.log('TaskID:', taskData.TaskID);
+      console.log('Parent from taskData:', taskData.parentItem);
+      console.log('Level from taskData:', taskData.level);
+      console.log('Gantt instance available:', !!ganttRef.current);
+      if (ganttRef.current) {
+        console.log('Gantt flatData available:', !!ganttRef.current.flatData);
+        console.log('Gantt currentViewData available:', !!ganttRef.current.currentViewData);
+      }
+      console.log('=== CREATING NEW TASK ENHANCED DEBUG END ===');
       
       // Determine parent based on the task's position in hierarchy
       const parentId = findParentFromHierarchy(taskData.TaskID, ganttData, taskData);
+      console.log('=== FINAL PARENT DETERMINATION ===');
       console.log('Determined parent ID for new task:', parentId);
+      console.log('=== FINAL PARENT DETERMINATION END ===');
       
         const createParams = {
           project_id: projectId,
