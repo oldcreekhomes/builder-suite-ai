@@ -399,13 +399,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Task level:', args.data?.level);
     console.log('Parent item:', args.data?.parentItem);
     console.log('Args keys:', Object.keys(args));
+    console.log('Request Type:', args.requestType);
+    console.log('Action:', args.action);
     console.log('Modified records:', args.modifiedRecords);
     console.log('Changed records:', args.changedRecords);
-    console.log('All event args (full):', JSON.stringify(args, (key, value) => {
-      if (key === 'ganttData' || key === 'flatData') return '[Large Data Array]';
-      if (typeof value === 'function') return '[Function]';
-      return value;
-    }, 2));
+    
+    // Safe logging of data without circular references
+    if (args.data) {
+      console.log('Data TaskID:', args.data.TaskID);
+      console.log('Data parentItem:', args.data.parentItem);
+      console.log('Data level:', args.data.level);
+      console.log('Data hasChildRecords:', args.data.hasChildRecords);
+      console.log('Data isParent:', args.data.isParent);
+    }
+    
     console.log('========================');
     
     // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
