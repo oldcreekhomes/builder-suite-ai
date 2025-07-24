@@ -622,7 +622,6 @@ export type Database = {
           id: string
           order_index: number | null
           parent_id: string | null
-          parent_task_number: number | null
           predecessor: string | null
           progress: number | null
           project_id: string
@@ -639,7 +638,6 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
-          parent_task_number?: number | null
           predecessor?: string | null
           progress?: number | null
           project_id: string
@@ -656,7 +654,6 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
-          parent_task_number?: number | null
           predecessor?: string | null
           progress?: number | null
           project_id?: string
@@ -667,13 +664,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_parent_task_number"
-            columns: ["project_id", "parent_task_number"]
-            isOneToOne: false
-            referencedRelation: "project_schedule_tasks"
-            referencedColumns: ["project_id", "task_number"]
-          },
           {
             foreignKeyName: "project_schedule_tasks_project_id_fkey"
             columns: ["project_id"]

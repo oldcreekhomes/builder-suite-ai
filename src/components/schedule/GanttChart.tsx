@@ -32,17 +32,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Task count:', tasks.length);
     console.log('Resources available:', resources);
     
-    // Log parent-child relationships in raw data using task_number system
+    // Log parent-child relationships in raw data using parent_id system
     const parentChildMap = new Map();
     tasks.forEach(task => {
-      if (task.parent_task_number) {
-        if (!parentChildMap.has(task.parent_task_number)) {
-          parentChildMap.set(task.parent_task_number, []);
+      if (task.parent_id) {
+        if (!parentChildMap.has(task.parent_id)) {
+          parentChildMap.set(task.parent_id, []);
         }
-        parentChildMap.get(task.parent_task_number).push(task.task_number);
+        parentChildMap.get(task.parent_id).push(task.id);
       }
     });
-    console.log('Parent-child relationships in database (task_number):', Object.fromEntries(parentChildMap));
+    console.log('Parent-child relationships in database (parent_id):', Object.fromEntries(parentChildMap));
     
     const transformedData = generateNestedHierarchy(tasks, resources);
     console.log('Transformed hierarchical data:', transformedData);

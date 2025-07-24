@@ -18,7 +18,6 @@ export interface ProjectTask {
   created_at: string;
   updated_at: string;
   task_number: number; // Keep for legacy support
-  parent_task_number: number | null; // Keep for legacy support
 }
 
 export interface GanttTask {

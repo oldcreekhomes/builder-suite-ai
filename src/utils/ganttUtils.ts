@@ -168,7 +168,6 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         task_number: task.task_number,
-        parent_task_number: null, // Not used in simplified system
       };
       
       console.log(`Flattened task: ${task.TaskName} -> parent_id: ${parentId}`);
