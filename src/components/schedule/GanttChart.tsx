@@ -463,8 +463,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Determined parent ID for new task:', parentId);
       console.log('=== FINAL PARENT DETERMINATION END ===');
       
-        // Find parent task number if parentId exists
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
         
         const createParams = {
           project_id: projectId,
@@ -483,7 +481,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             console.log('=== CREATE TASK RESOURCES DEBUG END ===');
             return convertedResources || null;
           })(),
-          parent_task_number: parentTaskNumber,
+          parent_id: parentId,
           order_index: tasks.length,
         };
       
@@ -500,8 +498,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       if (originalTaskId) {
         const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        console.log('Determined parent ID for update:', parentId, 'parent_task_number:', parentTaskNumber);
+        console.log('Determined parent ID for update:', parentId);
         
         const updateParams = {
           id: originalTaskId,
@@ -520,7 +517,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
             return convertedResources;
           })(),
-          parent_task_number: parentTaskNumber,
+          parent_id: parentId,
           order_index: taskData.OrderIndex,
         };
         
@@ -619,23 +616,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           }
         }
         
-        // Get the parent task number if we found a parent
+        // Get the parent task if we found one
         if (parentId) {
           const parentTask = tasks.find(t => t.id === parentId);
-          parentTaskNumber = parentTask?.task_number || null;
           console.log('Found parent task:', parentTask);
-          console.log('Parent task number:', parentTaskNumber);
         }
         
-        console.log('Final indenting - setting parent_task_number to:', parentTaskNumber);
+        console.log('Final indenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
           id: originalTaskId,
-          parent_task_number: parentTaskNumber,
+          parent_id: parentId,
           order_index: taskData.OrderIndex || 0,
         }, {
           onSuccess: () => {
-            console.log('Indenting successful - parent_task_number saved to database:', parentTaskNumber);
+            console.log('Indenting successful - parent_id saved to database:', parentId);
             handleMutationSuccess('Indent');
           },
           onError: (error) => {
@@ -669,12 +664,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('Outdenting - making task a root level task (parent_id = null)');
         }
         
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        console.log('Outdenting - setting parent_task_number to:', parentTaskNumber);
+        
+        console.log('Outdenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
           id: originalTaskId,
-          parent_task_number: parentTaskNumber, // This might be null for root-level tasks
+          parent_id: parentId, // This might be null for root-level tasks
           order_index: taskData.OrderIndex || 0,
         }, {
           onSuccess: () => {
