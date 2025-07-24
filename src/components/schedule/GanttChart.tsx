@@ -553,32 +553,81 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       }
     }
     // Enhanced handling for indenting and outdenting operations
-    else if (args.requestType === 'indenting' && args.data) {
-      console.log('=== INDENTING TASK (making it a child) ===');
-      console.log('Indenting data:', args.data);
-      const taskData = args.data[0];
+    else if (args.requestType === 'indented' && args.data) {
+      console.log('=== INDENTED TASK (making it a child) ===');
+      console.log('Indented data:', args.data);
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      console.log('Indented task ID:', taskData.TaskID);
+      console.log('Original task ID:', originalTaskId);
       
       if (originalTaskId && ganttRef.current) {
         // Enhanced parent detection for indenting
         const ganttInstance = ganttRef.current;
+        console.log('Gantt flatData length:', ganttInstance.flatData?.length);
+        
+        // Find the current task in the Gantt data
         const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
+        console.log('Current task found:', !!currentTask);
+        console.log('Current task details:', {
+          TaskID: (currentTask as any)?.TaskID,
+          level: (currentTask as any)?.level,
+          parentItem: (currentTask as any)?.parentItem,
+          parentUniqueID: (currentTask as any)?.parentUniqueID
+        });
         
         let parentId = null;
+        let parentTaskNumber = null;
+        
+        // Method 1: Check parentItem from the Gantt instance
         if (currentTask && (currentTask as any).parentItem) {
           const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
+          console.log('Found parent TaskID from parentItem:', parentTaskId);
           if (parentTaskId) {
             parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Indenting - found parent from Gantt instance:', parentId);
+            console.log('Converted parent TaskID to original ID:', parentId);
           }
-        } else {
-          // Fallback: use previous sibling as parent if available
-          parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-          console.log('Indenting - fallback parent detection:', parentId);
         }
         
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        console.log('Indenting - setting parent_task_number to:', parentTaskNumber);
+        // Method 2: Find parent by looking at task hierarchy level
+        if (!parentId && currentTask) {
+          const taskLevel = (currentTask as any).level || 0;
+          console.log('Task level:', taskLevel);
+          
+          if (taskLevel > 0) {
+            // Find the previous task at one level higher to be the parent
+            const taskIndex = ganttInstance.flatData?.findIndex((task: any) => task.TaskID === taskData.TaskID);
+            console.log('Task index in flat data:', taskIndex);
+            
+            if (taskIndex && taskIndex > 0) {
+              // Look backwards for a task at level - 1
+              for (let i = taskIndex - 1; i >= 0; i--) {
+                const potentialParent = ganttInstance.flatData?.[i];
+                const parentLevel = (potentialParent as any)?.level || 0;
+                console.log(`Checking potential parent at index ${i}, level: ${parentLevel}`);
+                
+                if (parentLevel === taskLevel - 1) {
+                  const potentialParentId = (potentialParent as any)?.TaskID;
+                  console.log('Found potential parent TaskID:', potentialParentId);
+                  parentId = findOriginalTaskId(potentialParentId, ganttData);
+                  console.log('Converted potential parent to original ID:', parentId);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Get the parent task number if we found a parent
+        if (parentId) {
+          const parentTask = tasks.find(t => t.id === parentId);
+          parentTaskNumber = parentTask?.task_number || null;
+          console.log('Found parent task:', parentTask);
+          console.log('Parent task number:', parentTaskNumber);
+        }
+        
+        console.log('Final indenting - setting parent_task_number to:', parentTaskNumber);
         
         updateTask.mutate({
           id: originalTaskId,
@@ -586,14 +635,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           order_index: taskData.OrderIndex || 0,
         }, {
           onSuccess: () => {
-            console.log('Indenting successful - parent_id saved to database');
+            console.log('Indenting successful - parent_task_number saved to database:', parentTaskNumber);
             handleMutationSuccess('Indent');
           },
-          onError: (error) => handleMutationError(error, 'Indent')
+          onError: (error) => {
+            console.error('Indenting failed:', error);
+            handleMutationError(error, 'Indent');
+          }
         });
       }
-    } 
-    else if (args.requestType === 'outdenting' && args.data) {
+    }
+    else if (args.requestType === 'outdented' && args.data) {
       console.log('=== OUTDENTING TASK (making it a parent/root) ===');
       console.log('Outdenting data:', args.data);
       const taskData = args.data[0];
