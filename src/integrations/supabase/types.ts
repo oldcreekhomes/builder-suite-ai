@@ -898,6 +898,7 @@ export type Database = {
           order_index: number
           created_at: string
           updated_at: string
+          task_number: number
         }[]
       }
       get_user_role_and_home_builder: {
@@ -918,6 +919,22 @@ export type Database = {
       update_project_task: {
         Args: {
           id_param: string
+          task_name_param?: string
+          start_date_param?: string
+          end_date_param?: string
+          duration_param?: number
+          progress_param?: number
+          predecessor_param?: string
+          resources_param?: string
+          parent_id_param?: string
+          order_index_param?: number
+        }
+        Returns: boolean
+      }
+      update_project_task_by_number: {
+        Args: {
+          task_number_param: number
+          project_id_param: string
           task_name_param?: string
           start_date_param?: string
           end_date_param?: string
