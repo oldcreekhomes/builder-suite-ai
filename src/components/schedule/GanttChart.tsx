@@ -560,69 +560,46 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Original task ID:', originalTaskId);
       
       if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for indenting
         const ganttInstance = ganttRef.current;
-        console.log('Gantt flatData length:', ganttInstance.flatData?.length);
-        
-        // Find the current task in the Gantt data
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        console.log('Current task found:', !!currentTask);
-        console.log('Current task details:', {
-          TaskID: (currentTask as any)?.TaskID,
-          level: (currentTask as any)?.level,
-          parentItem: (currentTask as any)?.parentItem,
-          parentUniqueID: (currentTask as any)?.parentUniqueID
-        });
-        
         let parentId = null;
-        let parentTaskNumber = null;
         
-        // Method 1: Check parentItem from the Gantt instance
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          console.log('Found parent TaskID from parentItem:', parentTaskId);
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Converted parent TaskID to original ID:', parentId);
-          }
+        // IMPROVED: Use parentItem property directly from task data for more reliable parent detection
+        if (taskData.parentItem && (taskData.parentItem as any).TaskID) {
+          parentId = findOriginalTaskId((taskData.parentItem as any).TaskID, ganttData);
+          console.log('Found parent via taskData.parentItem:', parentId);
         }
         
-        // Method 2: Find parent by looking at task hierarchy level
-        if (!parentId && currentTask) {
-          const taskLevel = (currentTask as any).level || 0;
-          console.log('Task level:', taskLevel);
+        // IMPROVED: Fallback method using flatData with better logic
+        if (!parentId) {
+          const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
+          const taskIndex = ganttInstance.flatData?.findIndex((task: any) => task.TaskID === taskData.TaskID);
           
-          if (taskLevel > 0) {
-            // Find the previous task at one level higher to be the parent
-            const taskIndex = ganttInstance.flatData?.findIndex((task: any) => task.TaskID === taskData.TaskID);
-            console.log('Task index in flat data:', taskIndex);
+          console.log('Fallback: Current task found:', !!currentTask);
+          console.log('Fallback: Task index:', taskIndex);
+          
+          if (currentTask && taskIndex !== undefined && taskIndex > 0) {
+            const taskLevel = (currentTask as any).level || 0;
+            console.log('Fallback: Task level:', taskLevel);
             
-            if (taskIndex && taskIndex > 0) {
-              // Look backwards for a task at level - 1
-              for (let i = taskIndex - 1; i >= 0; i--) {
-                const potentialParent = ganttInstance.flatData?.[i];
-                const parentLevel = (potentialParent as any)?.level || 0;
-                console.log(`Checking potential parent at index ${i}, level: ${parentLevel}`);
-                
-                if (parentLevel === taskLevel - 1) {
-                  const potentialParentId = (potentialParent as any)?.TaskID;
-                  console.log('Found potential parent TaskID:', potentialParentId);
-                  parentId = findOriginalTaskId(potentialParentId, ganttData);
-                  console.log('Converted potential parent to original ID:', parentId);
-                  break;
-                }
+            // NEW: Find the immediate previous task at the parent level (level - 1)
+            for (let i = taskIndex - 1; i >= 0; i--) {
+              const potentialParent = ganttInstance.flatData?.[i];
+              const parentLevel = (potentialParent as any)?.level || 0;
+              
+              if (parentLevel === taskLevel - 1) {
+                const potentialParentTaskId = (potentialParent as any)?.TaskID;
+                console.log('Fallback: Found parent TaskID at correct level:', potentialParentTaskId);
+                parentId = findOriginalTaskId(potentialParentTaskId, ganttData);
+                console.log('Fallback: Converted to original ID:', parentId);
+                break;
               }
             }
           }
         }
         
-        // Get the parent task if we found one
-        if (parentId) {
-          const parentTask = tasks.find(t => t.id === parentId);
-          console.log('Found parent task:', parentTask);
-        }
-        
-        console.log('Final indenting - setting parent_id to:', parentId);
+        console.log('=== INDENTING FINAL RESULT ===');
+        console.log('Final parent_id for indenting:', parentId);
+        console.log('Will save to database...');
         
         updateTask.mutate({
           id: originalTaskId,
@@ -630,12 +607,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           order_index: taskData.OrderIndex || 0,
         }, {
           onSuccess: () => {
-            console.log('Indenting successful - parent_id saved to database:', parentId);
-            handleMutationSuccess('Indent');
+            console.log('✅ INDENTING SUCCESS - Parent relationship saved to database');
+            toast({
+              title: "Success",
+              description: `Task indented successfully${parentId ? ' as child task' : ' (no parent found)'}`,
+            });
           },
           onError: (error) => {
-            console.error('Indenting failed:', error);
-            handleMutationError(error, 'Indent');
+            console.error('❌ INDENTING FAILED:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Failed to indent task: ${error.message}`,
+            });
           }
         });
       }
