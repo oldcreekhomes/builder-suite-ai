@@ -549,120 +549,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     }
-    // Enhanced handling for indenting and outdenting operations
+    // SIMPLE indenting and outdenting
     else if (args.requestType === 'indented' && args.data) {
-      console.log('=== INDENTED TASK (making it a child) ===');
-      console.log('Indented data:', args.data);
+      console.log('=== SIMPLE INDENT ===');
       const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      console.log('Indented task ID:', taskData.TaskID);
-      console.log('Original task ID:', originalTaskId);
+      if (!originalTaskId) return;
       
-      if (originalTaskId && ganttRef.current) {
-        const ganttInstance = ganttRef.current;
-        let parentId = null;
-        
-        // IMPROVED: Use parentItem property directly from task data for more reliable parent detection
-        if (taskData.parentItem && (taskData.parentItem as any).TaskID) {
-          parentId = findOriginalTaskId((taskData.parentItem as any).TaskID, ganttData);
-          console.log('Found parent via taskData.parentItem:', parentId);
+      // Find the task immediately above this one and make it the parent
+      let parentId = null;
+      if (ganttRef.current?.flatData) {
+        const currentIndex = ganttRef.current.flatData.findIndex((task: any) => (task as any).TaskID === taskData.TaskID);
+        if (currentIndex > 0) {
+          const taskAbove = ganttRef.current.flatData[currentIndex - 1];
+          parentId = findOriginalTaskId((taskAbove as any).TaskID, ganttData);
         }
-        
-        // IMPROVED: Fallback method using flatData with better logic
-        if (!parentId) {
-          const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-          const taskIndex = ganttInstance.flatData?.findIndex((task: any) => task.TaskID === taskData.TaskID);
-          
-          console.log('Fallback: Current task found:', !!currentTask);
-          console.log('Fallback: Task index:', taskIndex);
-          
-          if (currentTask && taskIndex !== undefined && taskIndex > 0) {
-            const taskLevel = (currentTask as any).level || 0;
-            console.log('Fallback: Task level:', taskLevel);
-            
-            // NEW: Find the immediate previous task at the parent level (level - 1)
-            for (let i = taskIndex - 1; i >= 0; i--) {
-              const potentialParent = ganttInstance.flatData?.[i];
-              const parentLevel = (potentialParent as any)?.level || 0;
-              
-              if (parentLevel === taskLevel - 1) {
-                const potentialParentTaskId = (potentialParent as any)?.TaskID;
-                console.log('Fallback: Found parent TaskID at correct level:', potentialParentTaskId);
-                parentId = findOriginalTaskId(potentialParentTaskId, ganttData);
-                console.log('Fallback: Converted to original ID:', parentId);
-                break;
-              }
-            }
-          }
-        }
-        
-        console.log('=== INDENTING FINAL RESULT ===');
-        console.log('Final parent_id for indenting:', parentId);
-        console.log('Will save to database...');
-        
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: parentId,
-          order_index: taskData.OrderIndex || 0,
-        }, {
-          onSuccess: () => {
-            console.log('✅ INDENTING SUCCESS - Parent relationship saved to database');
-            toast({
-              title: "Success",
-              description: `Task indented successfully${parentId ? ' as child task' : ' (no parent found)'}`,
-            });
-          },
-          onError: (error) => {
-            console.error('❌ INDENTING FAILED:', error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: `Failed to indent task: ${error.message}`,
-            });
-          }
-        });
       }
+      
+      updateTask.mutate({ id: originalTaskId, parent_id: parentId }, {
+        onSuccess: () => toast({ title: "Success", description: "Task indented successfully" }),
+        onError: (error) => toast({ variant: "destructive", title: "Error", description: `Failed to indent: ${error.message}` })
+      });
     }
     else if (args.requestType === 'outdented' && args.data) {
-      console.log('=== OUTDENTING TASK (making it a parent/root) ===');
-      console.log('Outdenting data:', args.data);
-      const taskData = args.data[0];
+      console.log('=== SIMPLE OUTDENT ===');
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for outdenting
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        let parentId = null;
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Outdenting - found parent from Gantt instance:', parentId);
-          }
-        } else {
-          // When outdenting to root level, parent_id should be null
-          parentId = null;
-          console.log('Outdenting - making task a root level task (parent_id = null)');
-        }
-        
-        
-        console.log('Outdenting - setting parent_id to:', parentId);
-        
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: parentId, // This might be null for root-level tasks
-          order_index: taskData.OrderIndex || 0,
-        }, {
-          onSuccess: () => {
-            console.log('Outdenting successful - parent_id updated in database');
-            handleMutationSuccess('Outdent');
-          },
-          onError: (error) => handleMutationError(error, 'Outdent')
-        });
-      }
+      if (!originalTaskId) return;
+      
+      updateTask.mutate({ id: originalTaskId, parent_id: null }, {
+        onSuccess: () => toast({ title: "Success", description: "Task outdented successfully" }),
+        onError: (error) => toast({ variant: "destructive", title: "Error", description: `Failed to outdent: ${error.message}` })
+      });
     }
     else {
       console.log('UNHANDLED REQUEST TYPE:', args.requestType);
