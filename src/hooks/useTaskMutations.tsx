@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -12,12 +13,12 @@ interface CreateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string; // UUID-based parent reference
+  parent_id?: string;
   order_index?: number;
 }
 
 interface UpdateTaskParams {
-  id: string; // UUID for database lookup
+  id: string;
   task_name?: string;
   start_date?: string;
   end_date?: string;
@@ -25,21 +26,7 @@ interface UpdateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string; // UUID-based parent reference
-  order_index?: number;
-}
-
-interface UpdateTaskByNumberParams {
-  task_number: number; // For Gantt component usage
-  project_id: string;
-  task_name?: string;
-  start_date?: string;
-  end_date?: string;
-  duration?: number;
-  progress?: number;
-  predecessor?: string;
-  resources?: string;
-  parent_id?: string; // UUID-based parent reference
+  parent_id?: string;
   order_index?: number;
 }
 
@@ -60,7 +47,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress || 0,
         predecessor_param: params.predecessor || null,
         resources_param: params.resources || null,
-        parent_id_param: params.parent_id || null,
+        parent_id_param: params.parent_id ? params.parent_id : null,
         order_index_param: params.order_index || 0,
       });
 
@@ -115,41 +102,6 @@ export const useTaskMutations = (projectId: string) => {
     },
   });
 
-  const updateTaskByNumber = useMutation({
-    mutationFn: async (params: UpdateTaskByNumberParams) => {
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase.rpc('update_project_task_by_number', {
-        task_number_param: params.task_number,
-        project_id_param: params.project_id,
-        task_name_param: params.task_name,
-        start_date_param: params.start_date,
-        end_date_param: params.end_date,
-        duration_param: params.duration,
-        progress_param: params.progress,
-        predecessor_param: params.predecessor,
-        resources_param: params.resources,
-        parent_id_param: params.parent_id,
-        order_index_param: params.order_index,
-      });
-
-      if (error) {
-        console.error('Error updating task by number:', error);
-        throw error;
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-      toast.success('Task updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating task by number:', error);
-      toast.error('Failed to update task');
-    },
-  });
-
   const deleteTask = useMutation({
     mutationFn: async (taskId: string) => {
       if (!user) throw new Error('User not authenticated');
@@ -178,7 +130,6 @@ export const useTaskMutations = (projectId: string) => {
   return {
     createTask,
     updateTask,
-    updateTaskByNumber,
     deleteTask,
   };
 };
