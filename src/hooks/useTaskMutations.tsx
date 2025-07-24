@@ -63,7 +63,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress || 0,
         predecessor_param: params.predecessor || null,
         resources_param: params.resources || null,
-        parent_id_param: params.parent_task_number?.toString() || null,
+        parent_task_number_param: params.parent_task_number || null,
         order_index_param: params.order_index || 0,
       });
 
@@ -97,7 +97,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress,
         predecessor_param: params.predecessor,
         resources_param: params.resources,
-        parent_id_param: params.parent_task_number?.toString() || null,
+        parent_task_number_param: params.parent_task_number,
         order_index_param: params.order_index,
       });
 
