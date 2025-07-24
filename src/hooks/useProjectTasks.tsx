@@ -13,17 +13,16 @@ export interface ProjectTask {
   progress: number;
   predecessor: string | null;
   resources: string | null;
-  parent_id: string | null; // Still UUID for legacy support
+  parent_id: string | null; // UUID-based parent reference
   order_index: number;
   created_at: string;
   updated_at: string;
-  task_number: number; // Integer for Gantt hierarchy
-  parent_task_number: number | null; // Integer reference to parent
+  task_number: number; // Keep for legacy support
+  parent_task_number: number | null; // Keep for legacy support
 }
 
 export interface GanttTask {
-  id: number; // task_number for Gantt component
-  uuid: string; // Original UUID for database operations
+  id: string; // Use UUID as Gantt ID
   project_id: string;
   task_name: string;
   start_date: string;
@@ -32,7 +31,7 @@ export interface GanttTask {
   progress: number;
   predecessor: string | null;
   resources: string | null;
-  parentID: number | null; // parent_task_number for Gantt
+  parentID: string | null; // UUID-based parent reference
   order_index: number;
   created_at: string;
   updated_at: string;
@@ -41,8 +40,7 @@ export interface GanttTask {
 // Data mapping functions
 export const formatDataForGantt = (supabaseData: ProjectTask[]): GanttTask[] => {
   return supabaseData.map(task => ({
-    id: task.task_number,
-    uuid: task.id,
+    id: task.id, // Use UUID as Gantt ID
     project_id: task.project_id,
     task_name: task.task_name,
     start_date: task.start_date,
@@ -51,7 +49,7 @@ export const formatDataForGantt = (supabaseData: ProjectTask[]): GanttTask[] => 
     progress: task.progress,
     predecessor: task.predecessor,
     resources: task.resources,
-    parentID: task.parent_task_number,
+    parentID: task.parent_id, // Map parent_id to parentID
     order_index: task.order_index,
     created_at: task.created_at,
     updated_at: task.updated_at,
@@ -60,8 +58,7 @@ export const formatDataForGantt = (supabaseData: ProjectTask[]): GanttTask[] => 
 
 export const formatDataForSupabase = (ganttData: GanttTask): Partial<ProjectTask> => {
   return {
-    id: ganttData.uuid,
-    task_number: ganttData.id,
+    id: ganttData.id, // UUID remains the same
     project_id: ganttData.project_id,
     task_name: ganttData.task_name,
     start_date: ganttData.start_date,
@@ -70,7 +67,7 @@ export const formatDataForSupabase = (ganttData: GanttTask): Partial<ProjectTask
     progress: ganttData.progress,
     predecessor: ganttData.predecessor,
     resources: ganttData.resources,
-    parent_task_number: ganttData.parentID,
+    parent_id: ganttData.parentID, // Map parentID back to parent_id
     order_index: ganttData.order_index,
   };
 };
