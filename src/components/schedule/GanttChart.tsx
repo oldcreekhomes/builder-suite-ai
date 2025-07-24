@@ -25,24 +25,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }>({ isOpen: false, taskData: null, taskName: '' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  // Transform tasks with nested hierarchical structure and comprehensive debugging
+  // Transform tasks with nested hierarchical structure
   const ganttData = useMemo(() => {
     console.log('=== GANTT DATA TRANSFORMATION START ===');
     console.log('Raw tasks from database:', tasks);
-    console.log('Task count:', tasks.length);
     console.log('Resources available:', resources);
-    
-    // Log parent-child relationships in raw data using task_number system
-    const parentChildMap = new Map();
-    tasks.forEach(task => {
-      if (task.parent_task_number) {
-        if (!parentChildMap.has(task.parent_task_number)) {
-          parentChildMap.set(task.parent_task_number, []);
-        }
-        parentChildMap.get(task.parent_task_number).push(task.task_number);
-      }
-    });
-    console.log('Parent-child relationships in database (task_number):', Object.fromEntries(parentChildMap));
     
     const transformedData = generateNestedHierarchy(tasks, resources);
     console.log('Transformed hierarchical data:', transformedData);
@@ -52,7 +39,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }, [tasks, resources]);
 
   const taskFields = {
-    id: 'task_number', // Use task_number for Gantt component IDs
+    id: 'TaskID', // Use hierarchical TaskID
     name: 'TaskName',
     startDate: 'StartDate',
     endDate: 'EndDate',
@@ -74,13 +61,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Auto' as any, // Auto mode enables cell editing by double-clicking
+    mode: 'Auto' as any,
     newRowPosition: 'Bottom' as any,
-    showDeleteConfirmDialog: false // Disable Syncfusion's native delete confirmation
+    showDeleteConfirmDialog: false
   };
 
   const columns = [
-    { field: 'task_number', headerText: 'ID', width: 80, isPrimaryKey: true },
+    { field: 'TaskID', headerText: 'ID', width: 80, isPrimaryKey: true },
     { field: 'TaskName', headerText: 'Task Name', width: 250, allowEditing: true },
     { field: 'StartDate', headerText: 'Start Date', width: 140, allowEditing: true },
     { field: 'EndDate', headerText: 'End Date', width: 140, allowEditing: true },
@@ -99,304 +86,118 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     columnIndex: 3
   };
 
-  // Calculate dynamic project dates based on actual task data
-  const { projectStartDate, projectEndDate } = useMemo(() => {
-    if (ganttData.length === 0) {
-      // Fallback dates when no tasks exist
-      const today = new Date();
-      return {
-        projectStartDate: today,
-        projectEndDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from today
-      };
-    }
-
-    // Find all start and end dates from the flat task structure
-    const getAllDates = (tasks: ProcessedTask[]): { starts: Date[], ends: Date[] } => {
-      const starts: Date[] = [];
-      const ends: Date[] = [];
-      
-      const collectDates = (taskList: ProcessedTask[]) => {
-        taskList.forEach(task => {
-          if (task.StartDate) starts.push(new Date(task.StartDate));
-          if (task.EndDate) ends.push(new Date(task.EndDate));
-          if (task.subtasks && task.subtasks.length > 0) {
-            collectDates(task.subtasks);
-          }
-        });
-      };
-      
-      collectDates(tasks);
-      return { starts, ends };
+  // Calculate project start and end dates
+  const projectDates = useMemo(() => {
+    if (!ganttData || ganttData.length === 0) return null;
+    
+    const getAllTasks = (tasks: ProcessedTask[]): ProcessedTask[] => {
+      let allTasks: ProcessedTask[] = [];
+      tasks.forEach(task => {
+        allTasks.push(task);
+        if (task.subtasks && task.subtasks.length > 0) {
+          allTasks = allTasks.concat(getAllTasks(task.subtasks));
+        }
+      });
+      return allTasks;
     };
-
-    const { starts, ends } = getAllDates(ganttData);
     
-    // Calculate min start date and max end date
-    const minStartDate = starts.length > 0 ? new Date(Math.min(...starts.map(d => d.getTime()))) : new Date();
-    const maxEndDate = ends.length > 0 ? new Date(Math.max(...ends.map(d => d.getTime()))) : new Date();
-    
-    // No buffers - use exact task dates for tight ZoomToFit
-    const bufferStart = minStartDate;
-    const bufferEnd = maxEndDate;
+    const allTasks = getAllTasks(ganttData);
+    const startDates = allTasks.map(task => new Date(task.StartDate));
+    const endDates = allTasks.map(task => new Date(task.EndDate));
     
     return {
-      projectStartDate: bufferStart,
-      projectEndDate: bufferEnd
+      start: new Date(Math.min(...startDates.map(d => d.getTime()))),
+      end: new Date(Math.max(...endDates.map(d => d.getTime())))
     };
   }, [ganttData]);
 
-  // Auto-fit columns and scroll to project start date
+  // Auto-fit columns and scroll to project start after data loads
   useEffect(() => {
     if (ganttRef.current && ganttData.length > 0) {
-      // Use a small delay to ensure the component is fully rendered
-      const timer = setTimeout(() => {
-        ganttRef.current?.autoFitColumns();
-        // Scroll to project start date to align timeline with tree grid
-        if (projectStartDate) {
-          ganttRef.current?.scrollToDate(projectStartDate.toISOString().split('T')[0]);
+      setTimeout(() => {
+        ganttRef.current?.fitToProject();
+        if (projectDates?.start) {
+          ganttRef.current?.scrollToDate(projectDates.start.toISOString());
         }
       }, 100);
-      
-      return () => clearTimeout(timer);
     }
-  }, [ganttData, projectStartDate]);
+  }, [ganttData, projectDates]);
 
-  // Simplified parent detection using selected task and TaskID pattern
-  const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
-    console.log('=== SIMPLIFIED PARENT DETECTION ===');
-    console.log(`Finding parent for task ID: ${taskId}`);
-    console.log('Selected task ID:', selectedTaskId);
-    
-    // Method 1: Use the currently selected task as parent (most reliable)
-    if (selectedTaskId) {
-      console.log(`Using selected task as parent: ${selectedTaskId}`);
-      return selectedTaskId;
-    }
-    
-    // Method 2: Parse TaskID pattern for hierarchical structure
-    const taskIdStr = String(taskId);
-    const taskIdParts = taskIdStr.split('.');
-    console.log('TaskID parts:', taskIdParts);
-    
-    if (taskIdParts.length > 1) {
-      // Remove the last part to get parent TaskID
-      const parentTaskId = taskIdParts.slice(0, -1).join('.');
-      console.log('Calculated parent TaskID from pattern:', parentTaskId);
-      
-      // Find the parent's original ID
-      const parentOriginalId = findOriginalTaskId(parentTaskId, allTasks);
-      if (parentOriginalId) {
-        console.log(`Parent found via TaskID pattern: ${parentOriginalId}`);
-        return parentOriginalId;
-      }
-    }
-    
-    console.log('No parent found - will be root level task (parent_id will be null)');
-    return null;
-  };
-
-  // Handle row selection to track potential parent tasks
   const handleRowSelected = (args: any) => {
-    console.log('=== ROW SELECTED ===');
-    console.log('Selected task data:', args.data);
-    
-    if (args.data?.TaskID) {
+    if (args.data) {
       const originalId = findOriginalTaskId(args.data.TaskID, ganttData);
-      console.log(`Setting selected task ID: ${originalId} (from TaskID: ${args.data.TaskID})`);
       setSelectedTaskId(originalId);
+      console.log('Row selected - TaskID:', args.data.TaskID, 'Original ID:', originalId);
     }
   };
 
   const handleToolbarClick = (args: any) => {
-    console.log('=== TOOLBAR CLICK ===');
-    console.log('args.item details:', {
-      id: args.item?.id,
-      text: args.item?.text,
-      tooltipText: args.item?.tooltipText
-    });
-    console.log('===================');
+    console.log('Toolbar clicked:', args.item.id);
     
-    // Check multiple possible ways the Add button might be identified
-    const isAddButton = args.item?.id === 'gantt_add' || 
-                       args.item?.text === 'Add' || 
-                       args.item?.id === 'Add' ||
-                       args.item?.tooltipText === 'Add';
-    
-    // Check for ZoomToFit button to override default behavior
-    const isZoomToFitButton = args.item?.id === 'gantt_zoomtofit' || 
-                             args.item?.text === 'ZoomToFit' || 
-                             args.item?.id === 'ZoomToFit' ||
-                             args.item?.tooltipText === 'Zoom to fit';
-    
-    console.log('Is Add button?', isAddButton);
-    console.log('Is ZoomToFit button?', isZoomToFitButton);
-    
-    if (isAddButton) {
-      console.log('Add button detected! Preventing default and adding task...');
-      // Prevent the default add dialog from opening
-      args.cancel = true;
-      
-      // Use Syncfusion's native addRecord with minimal data
-      if (ganttRef.current) {
-        console.log('Adding record using native Syncfusion method...');
-        ganttRef.current.addRecord({
-          TaskName: 'New Task',
-          Duration: 1,
-          Progress: 0
-        }, 'Bottom');
-      }
-      
-      return;
-    } else if (isZoomToFitButton) {
-      console.log('ZoomToFit button detected! Using custom fit logic...');
-      // Prevent default ZoomToFit behavior that adds extra padding
-      args.cancel = true;
-      
-      if (ganttRef.current && projectStartDate && projectEndDate) {
-        console.log('Custom ZoomToFit - setting exact project timeline...');
-        // Set the exact project dates without any buffer
-        ganttRef.current.timelineSettings = {
-          ...ganttRef.current.timelineSettings,
-          timelineUnitSize: 40
-        };
-        
-        // Use fitToProject method which should respect our exact dates
-        ganttRef.current.fitToProject();
-      }
-      
-      return;
-    } else {
-      console.log('Other toolbar action, continuing...');
+    if (args.item.id === ganttRef.current?.element.id + '_add') {
+      console.log('Add button clicked - custom handling');
+    } else if (args.item.id === ganttRef.current?.element.id + '_zoomtofit') {
+      console.log('ZoomToFit clicked');
+      setTimeout(() => {
+        ganttRef.current?.fitToProject();
+      }, 100);
     }
   };
 
   const handleActionBegin = (args: any) => {
-    console.log('=== ACTION BEGIN ===');
-    console.log('Request type:', args.requestType);
-    console.log('Action data:', args.data);
-    console.log('===================');
+    console.log('Action begin:', args.requestType, args);
     
-    // Remove the beforeAdd cancellation - let Syncfusion handle it naturally
-    if (args.requestType === 'beforeEdit') {
-      console.log('Before editing task:', args.data);
-    } else if (args.requestType === 'beforeDelete') {
-      console.log('Before deleting task:', args.data);
-      // Cancel the default delete and show custom confirmation
-      args.cancel = true;
-      const taskData = args.data[0];
+    if (args.requestType === 'delete' && args.data) {
+      args.cancel = true; // Cancel the default delete
+      const taskName = args.data[0]?.TaskName || 'Unknown Task';
       setDeleteConfirmation({
         isOpen: true,
-        taskData: taskData,
-        taskName: taskData.TaskName || 'Unknown Task'
+        taskData: args.data[0],
+        taskName: taskName
       });
     }
   };
 
   const handleDeleteConfirmation = () => {
     if (deleteConfirmation.taskData) {
-      const taskData = deleteConfirmation.taskData;
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('DELETING TASK:', taskData, 'Original ID:', originalTaskId);
-      
-      if (originalTaskId) {
-        deleteTask.mutate(originalTaskId, {
+      const originalId = findOriginalTaskId(deleteConfirmation.taskData.TaskID, ganttData);
+      if (originalId) {
+        deleteTask.mutate(originalId, {
           onSuccess: () => {
             toast({
               title: "Success",
               description: "Task deleted successfully",
             });
-            setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
           },
           onError: (error) => {
-            console.error('Delete failed:', error);
             toast({
               variant: "destructive",
               title: "Error",
               description: `Failed to delete task: ${error.message}`,
             });
-            setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
           }
         });
       }
     }
+    setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+  };
+
+  // Helper function to find parent UUID from hierarchical TaskID
+  const findParentFromHierarchy = (hierarchicalId: string, ganttData: ProcessedTask[]): string | null => {
+    const parts = hierarchicalId.split('.');
+    if (parts.length <= 1) return null; // Root task has no parent
+    
+    const parentHierarchicalId = parts.slice(0, -1).join('.');
+    return findOriginalTaskId(parentHierarchicalId, ganttData);
   };
 
   const handleActionComplete = (args: any) => {
-    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
+    console.log('=== ACTION COMPLETE ===');
     console.log('Request type:', args.requestType);
-    console.log('Action:', args.action);
-    console.log('Action data:', args.data);
-    console.log('Action data keys:', args.data ? Object.keys(args.data) : 'No data');
-    console.log('TaskID:', args.data?.TaskID);
-    console.log('Task level:', args.data?.level);
-    console.log('Parent item:', args.data?.parentItem);
-    console.log('Args keys:', Object.keys(args));
-    console.log('Request Type:', args.requestType);
-    console.log('Action:', args.action);
-    console.log('Modified records:', args.modifiedRecords);
-    console.log('Changed records:', args.changedRecords);
-    
-    // Safe logging of data without circular references
-    if (args.data) {
-      console.log('Data TaskID:', args.data.TaskID);
-      console.log('Data parentItem:', args.data.parentItem);
-      console.log('Data level:', args.data.level);
-      console.log('Data hasChildRecords:', args.data.hasChildRecords);
-      console.log('Data isParent:', args.data.isParent);
-      console.log('Data index:', args.data.index);
-      console.log('Data parentUniqueID:', args.data.parentUniqueID);
-      console.log('Data uniqueID:', args.data.uniqueID);
-    }
-    
-    // Enhanced gantt instance inspection
-    if (ganttRef.current) {
-      const ganttInstance = ganttRef.current;
-      console.log('=== GANTT INSTANCE STATE ===');
-      console.log('Current view data length:', ganttInstance.currentViewData?.length);
-      console.log('Flat data length:', ganttInstance.flatData?.length);
-      console.log('Selected row index:', ganttInstance.selectedRowIndex);
-      
-      // Check if we have a selected task (potential parent)
-      if (ganttInstance.selectedRowIndex >= 0) {
-        const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-        console.log('Selected task (potential parent):', {
-          TaskID: (selectedTask as any)?.TaskID,
-          TaskName: (selectedTask as any)?.TaskName,
-          level: (selectedTask as any)?.level,
-          hasChildRecords: (selectedTask as any)?.hasChildRecords
-        });
-      }
-      
-      // Look for the newly created task in the data
-      if (args.data?.TaskID) {
-        const foundTask = ganttInstance.flatData?.find((task: any) => 
-          task.TaskID === args.data.TaskID || task.ganttProperties?.taskId === args.data.TaskID
-        );
-        console.log('Found task in flatData:', {
-          TaskID: (foundTask as any)?.TaskID,
-          parentItem: (foundTask as any)?.parentItem,
-          level: (foundTask as any)?.level,
-          parentUniqueID: (foundTask as any)?.parentUniqueID,
-          ganttProperties: (foundTask as any)?.ganttProperties ? {
-            parentId: (foundTask as any).ganttProperties.parentId,
-            level: (foundTask as any).ganttProperties.level,
-            parentItem: (foundTask as any).ganttProperties.parentItem
-          } : null
-        });
-      }
-    }
-    
+    console.log('Args data:', args.data);
+    console.log('Args modifiedRecords:', args.modifiedRecords);
     console.log('========================');
     
-    // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
-    if (args.requestType === 'delete' || args.requestType === 'save' || args.requestType === 'add') {
-      console.log('Attempting to cancel default notification behavior');
-      args.cancel = true; // Try to cancel any default behavior
-      if (args.preventDefault) args.preventDefault();
-      if (args.stopPropagation) args.stopPropagation();
-    }
-    
-    // Add mutation error handling
     const handleMutationError = (error: any, operation: string) => {
       console.error(`${operation} failed:`, error);
       toast({
@@ -416,76 +217,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG ===');
-      console.log('Task data structure:', taskData);
-      console.log('Task data keys:', Object.keys(taskData));
-      console.log('TaskID:', taskData.TaskID);
-      console.log('Parent from taskData:', taskData.parentItem);
-      console.log('Level from taskData:', taskData.level);
-      console.log('Gantt instance available:', !!ganttRef.current);
-      if (ganttRef.current) {
-        console.log('Gantt flatData available:', !!ganttRef.current.flatData);
-        console.log('Gantt currentViewData available:', !!ganttRef.current.currentViewData);
-      }
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG END ===');
+      console.log('=== CREATING NEW TASK ===');
+      console.log('Task data:', taskData);
       
-      // Enhanced parent determination logic
+      // Find parent ID from hierarchical structure
       let parentId = null;
-      
-      // Method 1: Check if task was created as a child (has hierarchical TaskID like "1.1")
       if (taskData.TaskID && taskData.TaskID.includes('.')) {
-        console.log('Task has hierarchical TaskID, extracting parent...');
         parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
       }
-      // Method 2: Check Gantt instance state for parent relationships
-      else if (ganttRef.current) {
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        if (currentTask && (currentTask as any).parentItem) {
-          console.log('Found parent from Gantt instance parentItem');
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-          }
-        }
-        // Method 3: Use selected task as parent if available
-        else if (ganttInstance.selectedRowIndex >= 0) {
-          const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-          if (selectedTask) {
-            console.log('Using selected task as parent for new task');
-            parentId = findOriginalTaskId((selectedTask as any).TaskID, ganttData);
-          }
-        }
-      }
       
-      console.log('=== FINAL PARENT DETERMINATION ===');
-      console.log('Determined parent ID for new task:', parentId);
-      console.log('=== FINAL PARENT DETERMINATION END ===');
+      console.log('Determined parent ID:', parentId);
       
-        // Find parent task number if parentId exists
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        
-        const createParams = {
-          project_id: projectId,
-          task_name: taskData.TaskName || 'New Task',
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
-          duration: taskData.Duration || 1,
-          progress: taskData.Progress || 0,
-          predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== CREATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== CREATE TASK RESOURCES DEBUG END ===');
-            return convertedResources || null;
-          })(),
-          parent_task_number: parentTaskNumber,
-          order_index: tasks.length,
-        };
+      const createParams = {
+        project_id: projectId,
+        task_name: taskData.TaskName || 'New Task',
+        start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
+        end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
+        duration: taskData.Duration || 1,
+        progress: taskData.Progress || 0,
+        predecessor: taskData.Predecessor || null,
+        resources: convertResourceIdsToNames(taskData.Resources, resources) || null,
+        parent_id: parentId,
+        order_index: tasks.length,
+      };
       
       console.log('CREATE TASK PARAMS:', createParams);
       createTask.mutate(createParams, {
@@ -496,13 +250,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     else if ((args.requestType === 'save' || args.requestType === 'cellSave') && args.data) {
       const taskData = args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
+      console.log('UPDATING TASK:', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        console.log('Determined parent ID for update:', parentId, 'parent_task_number:', parentTaskNumber);
-        
         const updateParams = {
           id: originalTaskId,
           task_name: taskData.TaskName,
@@ -511,17 +261,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           duration: taskData.Duration,
           progress: taskData.Progress,
           predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== UPDATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
-            return convertedResources;
-          })(),
-          parent_task_number: parentTaskNumber,
-          order_index: taskData.OrderIndex,
+          resources: convertResourceIdsToNames(taskData.Resources, resources) || null,
         };
         
         console.log('UPDATE TASK PARAMS:', updateParams);
@@ -531,261 +271,143 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     }
-    else if (args.requestType === 'taskbarEdited' && args.data) {
-      console.log('TASKBAR EDITED:', args.data);
-      const taskData = args.data;
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      
-      if (originalTaskId) {
-        const updateParams = {
-          id: originalTaskId,
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-          duration: taskData.Duration,
-          progress: taskData.Progress,
-        };
-        
-        console.log('TASKBAR UPDATE PARAMS:', updateParams);
-        updateTask.mutate(updateParams, {
-          onSuccess: () => handleMutationSuccess('Update'),
-          onError: (error) => handleMutationError(error, 'Update')
-        });
-      }
-    }
-    // Enhanced handling for indenting and outdenting operations
-    else if (args.requestType === 'indented' && args.data) {
-      console.log('=== INDENTED TASK (making it a child) ===');
-      console.log('Indented data:', args.data);
-      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      
-      console.log('Indented task ID:', taskData.TaskID);
-      console.log('Original task ID:', originalTaskId);
-      
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for indenting
-        const ganttInstance = ganttRef.current;
-        console.log('Gantt flatData length:', ganttInstance.flatData?.length);
-        
-        // Find the current task in the Gantt data
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        console.log('Current task found:', !!currentTask);
-        console.log('Current task details:', {
-          TaskID: (currentTask as any)?.TaskID,
-          level: (currentTask as any)?.level,
-          parentItem: (currentTask as any)?.parentItem,
-          parentUniqueID: (currentTask as any)?.parentUniqueID
-        });
-        
-        let parentId = null;
-        let parentTaskNumber = null;
-        
-        // Method 1: Check parentItem from the Gantt instance
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          console.log('Found parent TaskID from parentItem:', parentTaskId);
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Converted parent TaskID to original ID:', parentId);
-          }
-        }
-        
-        // Method 2: Find parent by looking at task hierarchy level
-        if (!parentId && currentTask) {
-          const taskLevel = (currentTask as any).level || 0;
-          console.log('Task level:', taskLevel);
-          
-          if (taskLevel > 0) {
-            // Find the previous task at one level higher to be the parent
-            const taskIndex = ganttInstance.flatData?.findIndex((task: any) => task.TaskID === taskData.TaskID);
-            console.log('Task index in flat data:', taskIndex);
-            
-            if (taskIndex && taskIndex > 0) {
-              // Look backwards for a task at level - 1
-              for (let i = taskIndex - 1; i >= 0; i--) {
-                const potentialParent = ganttInstance.flatData?.[i];
-                const parentLevel = (potentialParent as any)?.level || 0;
-                console.log(`Checking potential parent at index ${i}, level: ${parentLevel}`);
-                
-                if (parentLevel === taskLevel - 1) {
-                  const potentialParentId = (potentialParent as any)?.TaskID;
-                  console.log('Found potential parent TaskID:', potentialParentId);
-                  parentId = findOriginalTaskId(potentialParentId, ganttData);
-                  console.log('Converted potential parent to original ID:', parentId);
-                  break;
-                }
-              }
-            }
-          }
-        }
-        
-        // Get the parent task number if we found a parent
-        if (parentId) {
-          const parentTask = tasks.find(t => t.id === parentId);
-          parentTaskNumber = parentTask?.task_number || null;
-          console.log('Found parent task:', parentTask);
-          console.log('Parent task number:', parentTaskNumber);
-        }
-        
-        console.log('Final indenting - setting parent_task_number to:', parentTaskNumber);
-        
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_task_number: parentTaskNumber,
-          order_index: taskData.OrderIndex || 0,
-        }, {
-          onSuccess: () => {
-            console.log('Indenting successful - parent_task_number saved to database:', parentTaskNumber);
-            handleMutationSuccess('Indent');
-          },
-          onError: (error) => {
-            console.error('Indenting failed:', error);
-            handleMutationError(error, 'Indent');
-          }
-        });
-      }
-    }
-    else if (args.requestType === 'outdented' && args.data) {
-      console.log('=== OUTDENTING TASK (making it a parent/root) ===');
-      console.log('Outdenting data:', args.data);
+    else if (args.requestType === 'indented' && args.data && args.data.length > 0) {
+      console.log('=== INDENTING TASK ===');
       const taskData = args.data[0];
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for outdenting
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        let parentId = null;
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Outdenting - found parent from Gantt instance:', parentId);
-          }
-        } else {
-          // When outdenting to root level, parent_id should be null
-          parentId = null;
-          console.log('Outdenting - making task a root level task (parent_id = null)');
-        }
-        
-        const parentTaskNumber = parentId ? tasks.find(t => t.id === parentId)?.task_number || null : null;
-        console.log('Outdenting - setting parent_task_number to:', parentTaskNumber);
-        
+      // Find the new parent (the task above this one at the same level)
+      const parentTaskId = findParentFromHierarchy(taskData.TaskID, ganttData);
+      
+      console.log('Indenting task:', taskData.TaskName, 'Original ID:', originalTaskId, 'New parent ID:', parentTaskId);
+      
+      if (originalTaskId) {
         updateTask.mutate({
           id: originalTaskId,
-          parent_task_number: parentTaskNumber, // This might be null for root-level tasks
-          order_index: taskData.OrderIndex || 0,
+          parent_id: parentTaskId
         }, {
-          onSuccess: () => {
-            console.log('Outdenting successful - parent_id updated in database');
-            handleMutationSuccess('Outdent');
-          },
+          onSuccess: () => handleMutationSuccess('Indent'),
+          onError: (error) => handleMutationError(error, 'Indent')
+        });
+      }
+    }
+    else if (args.requestType === 'outdented' && args.data && args.data.length > 0) {
+      console.log('=== OUTDENTING TASK ===');
+      const taskData = args.data[0];
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      // For outdenting, find the grandparent or set to null if becoming root
+      const currentParentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+      let newParentId = null;
+      
+      if (currentParentId) {
+        // Find the grandparent
+        const currentParentTask = ganttData.find(t => findOriginalTaskId(t.TaskID, ganttData) === currentParentId);
+        if (currentParentTask && currentParentTask.TaskID.includes('.')) {
+          newParentId = findParentFromHierarchy(currentParentTask.TaskID, ganttData);
+        }
+      }
+      
+      console.log('Outdenting task:', taskData.TaskName, 'Original ID:', originalTaskId, 'New parent ID:', newParentId);
+      
+      if (originalTaskId) {
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentId
+        }, {
+          onSuccess: () => handleMutationSuccess('Outdent'),
           onError: (error) => handleMutationError(error, 'Outdent')
         });
       }
     }
-    else {
-      console.log('UNHANDLED REQUEST TYPE:', args.requestType);
-    }
   };
 
-  const handleContextMenuClick = (args: any) => {
-    console.log('Context menu clicked:', args.item.text, args);
+  const handleResizeStart = () => {
+    console.log('Resize start');
   };
 
-  const handleResizeStart = (args: any) => {
-    console.log('Resize start:', args);
+  const handleResizeStop = () => {
+    console.log('Resize stop');
   };
 
-  const handleResizing = (args: any) => {
-    console.log('Resizing:', args);
+  const handleSplitterResized = () => {
+    console.log('Splitter resized');
   };
 
-  const handleResizeStop = (args: any) => {
-    console.log('Resize stop:', args);
+  const handleColumnMenuClick = () => {
+    console.log('Column menu clicked');
   };
 
-  const handleColumnMenuOpen = (args: any) => {
-    console.log('Column menu opened:', args);
+  const handleColumnMenuOpen = () => {
+    console.log('Column menu opened');
   };
 
-  const handleColumnMenuClick = (args: any) => {
-    console.log('Column menu clicked:', args);
+  const handleContextMenuClick = () => {
+    console.log('Context menu clicked');
+  };
+
+  const handleContextMenuOpen = () => {
+    console.log('Context menu opened');
   };
 
   if (isLoading || resourcesLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64">Loading Gantt chart...</div>;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <p className="text-red-600 mb-2">Error loading tasks</p>
-          <p className="text-sm text-gray-600">{error.message}</p>
-        </div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-red-500">Error loading tasks: {error.message}</div>;
   }
 
   return (
     <div className="w-full h-full">
       <DeleteConfirmationDialog
         open={deleteConfirmation.isOpen}
-        onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, isOpen: open }))}
+        onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' })}
+        onConfirm={handleDeleteConfirmation}
         title="Delete Task"
         description={`Are you sure you want to delete "${deleteConfirmation.taskName}"? This action cannot be undone.`}
-        onConfirm={handleDeleteConfirmation}
-        isLoading={deleteTask.isPending}
       />
-
+      
       <GanttComponent
         ref={ganttRef}
-        id="gantt"
         dataSource={ganttData}
         taskFields={taskFields}
         resourceFields={resourceFields}
         resources={resources}
         editSettings={editSettings}
         columns={columns}
-        addDialogFields={[]}
         toolbar={toolbarOptions}
-        enableContextMenu={true}
-        contextMenuClick={handleContextMenuClick}
         splitterSettings={splitterSettings}
         height="600px"
-        projectStartDate={projectStartDate}
-        projectEndDate={projectEndDate}
-        toolbarClick={handleToolbarClick}
+        allowSelection={true}
+        allowResizing={true}
+        allowSorting={true}
+        allowReordering={true}
+        allowFiltering={true}
+        allowExcelExport={true}
+        allowPdfExport={true}
+        showColumnMenu={true}
+        highlightWeekends={true}
+        enableContextMenu={true}
+        allowKeyboard={true}
+        allowRowDragAndDrop={true}
         actionBegin={handleActionBegin}
         actionComplete={handleActionComplete}
         rowSelected={handleRowSelected}
+        toolbarClick={handleToolbarClick}
         resizeStart={handleResizeStart}
-        resizing={handleResizing}
         resizeStop={handleResizeStop}
-        allowSelection={true}
-        allowResizing={true}
-        showColumnMenu={true}
-        columnMenuOpen={handleColumnMenuOpen}
+        splitterResized={handleSplitterResized}
         columnMenuClick={handleColumnMenuClick}
-        gridLines="Both"
-        timelineSettings={{
-          timelineUnitSize: 40,
-          topTier: {
-            unit: 'Week',
-            format: 'MMM dd, \'yy'
-          },
-          bottomTier: {
-            unit: 'Day',
-            format: 'dd'
-          }
-        }}
+        columnMenuOpen={handleColumnMenuOpen}
+        contextMenuClick={handleContextMenuClick}
+        contextMenuOpen={handleContextMenuOpen}
       >
+        <ColumnsDirective>
+          {columns.map((col, index) => (
+            <ColumnDirective key={index} {...col} />
+          ))}
+        </ColumnsDirective>
         <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, TreeGridEdit]} />
       </GanttComponent>
     </div>
