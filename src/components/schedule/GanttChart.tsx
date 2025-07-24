@@ -549,27 +549,55 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     }
-    // SIMPLE indenting and outdenting
+    // FIXED indenting logic - find the proper parent task
     else if (args.requestType === 'indented' && args.data) {
-      console.log('=== SIMPLE INDENT ===');
+      console.log('=== IMPROVED INDENT LOGIC ===');
       const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (!originalTaskId) return;
+      if (!originalTaskId) {
+        console.log('No original task ID found for:', taskData.TaskID);
+        return;
+      }
       
-      // Find the task immediately above this one and make it the parent
+      console.log('Indenting task:', { TaskID: taskData.TaskID, originalId: originalTaskId, currentLevel: taskData.level });
+      
+      // Find the appropriate parent by traversing backward in the flat data
       let parentId = null;
       if (ganttRef.current?.flatData) {
         const currentIndex = ganttRef.current.flatData.findIndex((task: any) => (task as any).TaskID === taskData.TaskID);
-        if (currentIndex > 0) {
-          const taskAbove = ganttRef.current.flatData[currentIndex - 1];
-          parentId = findOriginalTaskId((taskAbove as any).TaskID, ganttData);
+        console.log('Current task index:', currentIndex, 'of', ganttRef.current.flatData.length);
+        
+        // Look backward to find a task that can be a parent
+        for (let i = currentIndex - 1; i >= 0; i--) {
+          const candidateParent = ganttRef.current.flatData[i] as any;
+          console.log(`Checking candidate parent at index ${i}:`, {
+            TaskID: candidateParent.TaskID,
+            TaskName: candidateParent.TaskName,
+            level: candidateParent.level
+          });
+          
+          // The parent should be at a level that can logically contain this task
+          // When indenting, we want the task above us (or a suitable ancestor)
+          if (candidateParent.level <= taskData.level) {
+            parentId = findOriginalTaskId(candidateParent.TaskID, ganttData);
+            console.log('Selected parent:', { TaskID: candidateParent.TaskID, originalId: parentId });
+            break;
+          }
         }
       }
       
+      console.log('Final parent_id for indentation:', parentId);
+      
       updateTask.mutate({ id: originalTaskId, parent_id: parentId }, {
-        onSuccess: () => toast({ title: "Success", description: "Task indented successfully" }),
-        onError: (error) => toast({ variant: "destructive", title: "Error", description: `Failed to indent: ${error.message}` })
+        onSuccess: () => {
+          console.log('Indent mutation succeeded');
+          toast({ title: "Success", description: "Task indented successfully" });
+        },
+        onError: (error) => {
+          console.error('Indent mutation failed:', error);
+          toast({ variant: "destructive", title: "Error", description: `Failed to indent: ${error.message}` });
+        }
       });
     }
     else if (args.requestType === 'outdented' && args.data) {
