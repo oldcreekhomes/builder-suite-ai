@@ -20,6 +20,8 @@ export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
   Resources: string[] | null; // Array of resource IDs for Syncfusion
   subtasks?: ProcessedTask[]; // Nested children instead of ParentID
   OrderIndex: number;
+  task_number: number; // Add required field from ProjectTask
+  parent_task_number: number | null; // Add required field from ProjectTask
 }
 
 // Helper function to convert resource names to IDs
@@ -163,6 +165,9 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
         OrderIndex: task.order_index,
         created_at: task.created_at,
         updated_at: task.updated_at,
+        task_number: task.task_number || 0, // Add with fallback
+        parent_task_number: task.parent_task_number || null, // Add with fallback
+        subtasks: processTasksRecursive(childrenMap.get(task.id) || [], hierarchicalId, depth + 1)
       };
 
       // Process children if they exist
@@ -229,6 +234,8 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
         order_index: index,
         created_at: task.created_at,
         updated_at: task.updated_at,
+        task_number: task.task_number || 0, // Add with fallback
+        parent_task_number: task.parent_task_number || null, // Add with fallback
       };
       
       console.log(`Flattened task: ${task.task_name} -> parent_id: ${parentOriginalId}`);

@@ -930,6 +930,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_project_task_by_number: {
+        Args: {
+          task_number_param: number
+          project_id_param: string
+          task_name_param?: string
+          start_date_param?: string
+          end_date_param?: string
+          duration_param?: number
+          progress_param?: number
+          predecessor_param?: string
+          resources_param?: string
+          parent_task_number_param?: number
+          order_index_param?: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       user_type: "home_builder" | "employee"
