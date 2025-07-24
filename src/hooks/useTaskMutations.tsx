@@ -12,8 +12,10 @@ interface CreateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string; // UUID of parent task
+  parent_task_number?: number; // New: integer parent reference
   order_index?: number;
+  // Legacy support - will be converted to parent_task_number
+  parent_id?: string;
 }
 
 interface UpdateTaskParams {
@@ -25,12 +27,14 @@ interface UpdateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string; // UUID of parent task
+  parent_task_number?: number; // New: integer parent reference
   order_index?: number;
+  // Legacy support - will be converted to parent_task_number
+  parent_id?: string;
 }
 
 interface UpdateTaskByNumberParams {
-  id: string; // UUID for database lookup
+  task_number: number; // For Gantt component usage
   task_name?: string;
   start_date?: string;
   end_date?: string;
@@ -38,7 +42,7 @@ interface UpdateTaskByNumberParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string; // UUID of parent task
+  parent_task_number?: number;
   order_index?: number;
 }
 
@@ -59,7 +63,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress || 0,
         predecessor_param: params.predecessor || null,
         resources_param: params.resources || null,
-        parent_id_param: params.parent_id || null,
+        parent_task_number_param: params.parent_task_number || null,
         order_index_param: params.order_index || 0,
       });
 
@@ -93,7 +97,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress,
         predecessor_param: params.predecessor,
         resources_param: params.resources,
-        parent_id_param: params.parent_id,
+        parent_task_number_param: params.parent_task_number,
         order_index_param: params.order_index,
       });
 
@@ -118,8 +122,9 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: UpdateTaskByNumberParams) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('update_project_task', {
-        id_param: params.id,
+      const { data, error } = await supabase.rpc('update_project_task_by_number', {
+        task_number_param: params.task_number,
+        project_id_param: projectId,
         task_name_param: params.task_name,
         start_date_param: params.start_date,
         end_date_param: params.end_date,
@@ -127,7 +132,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress,
         predecessor_param: params.predecessor,
         resources_param: params.resources,
-        parent_id_param: params.parent_id,
+        parent_task_number_param: params.parent_task_number,
         order_index_param: params.order_index,
       });
 
