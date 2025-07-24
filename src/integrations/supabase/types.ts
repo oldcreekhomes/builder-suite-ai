@@ -898,7 +898,6 @@ export type Database = {
           order_index: number
           created_at: string
           updated_at: string
-          task_number: number
         }[]
       }
       get_user_role_and_home_builder: {
