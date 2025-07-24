@@ -322,232 +322,55 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   const handleActionComplete = (args: any) => {
-    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
+    console.log('=== ACTION COMPLETE SIMPLIFIED ===');
     console.log('Request type:', args.requestType);
-    console.log('Action:', args.action);
     console.log('Action data:', args.data);
-    console.log('Action data keys:', args.data ? Object.keys(args.data) : 'No data');
-    console.log('TaskID:', args.data?.TaskID);
-    console.log('Task level:', args.data?.level);
-    console.log('Parent item:', args.data?.parentItem);
-    console.log('Args keys:', Object.keys(args));
-    console.log('Request Type:', args.requestType);
-    console.log('Action:', args.action);
-    console.log('Modified records:', args.modifiedRecords);
-    console.log('Changed records:', args.changedRecords);
-    
-    // Safe logging of data without circular references
-    if (args.data) {
-      console.log('Data TaskID:', args.data.TaskID);
-      console.log('Data parentItem:', args.data.parentItem);
-      console.log('Data level:', args.data.level);
-      console.log('Data hasChildRecords:', args.data.hasChildRecords);
-      console.log('Data isParent:', args.data.isParent);
-      console.log('Data index:', args.data.index);
-      console.log('Data parentUniqueID:', args.data.parentUniqueID);
-      console.log('Data uniqueID:', args.data.uniqueID);
-    }
-    
-    // Enhanced gantt instance inspection
-    if (ganttRef.current) {
-      const ganttInstance = ganttRef.current;
-      console.log('=== GANTT INSTANCE STATE ===');
-      console.log('Current view data length:', ganttInstance.currentViewData?.length);
-      console.log('Flat data length:', ganttInstance.flatData?.length);
-      console.log('Selected row index:', ganttInstance.selectedRowIndex);
-      
-      // Check if we have a selected task (potential parent)
-      if (ganttInstance.selectedRowIndex >= 0) {
-        const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-        console.log('Selected task (potential parent):', {
-          TaskID: (selectedTask as any)?.TaskID,
-          TaskName: (selectedTask as any)?.TaskName,
-          level: (selectedTask as any)?.level,
-          hasChildRecords: (selectedTask as any)?.hasChildRecords
-        });
-      }
-      
-      // Look for the newly created task in the data
-      if (args.data?.TaskID) {
-        const foundTask = ganttInstance.flatData?.find((task: any) => 
-          task.TaskID === args.data.TaskID || task.ganttProperties?.taskId === args.data.TaskID
-        );
-        console.log('Found task in flatData:', {
-          TaskID: (foundTask as any)?.TaskID,
-          parentItem: (foundTask as any)?.parentItem,
-          level: (foundTask as any)?.level,
-          parentUniqueID: (foundTask as any)?.parentUniqueID,
-          ganttProperties: (foundTask as any)?.ganttProperties ? {
-            parentId: (foundTask as any).ganttProperties.parentId,
-            level: (foundTask as any).ganttProperties.level,
-            parentItem: (foundTask as any).ganttProperties.parentItem
-          } : null
-        });
-      }
-    }
-    
-    console.log('========================');
-    
-    // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
-    if (args.requestType === 'delete' || args.requestType === 'save' || args.requestType === 'add') {
-      console.log('Attempting to cancel default notification behavior');
-      args.cancel = true; // Try to cancel any default behavior
-      if (args.preventDefault) args.preventDefault();
-      if (args.stopPropagation) args.stopPropagation();
-    }
-    
-    // Add mutation error handling
-    const handleMutationError = (error: any, operation: string) => {
-      console.error(`${operation} failed:`, error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to ${operation.toLowerCase()}: ${error.message}`,
-      });
-    };
-    
-    const handleMutationSuccess = (operation: string) => {
-      console.log(`${operation} succeeded`);
-      toast({
-        title: "Success",
-        description: `Task ${operation.toLowerCase()} successfully`,
-      });
-    };
     
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG ===');
-      console.log('Task data structure:', taskData);
-      console.log('Task data keys:', Object.keys(taskData));
-      console.log('TaskID:', taskData.TaskID);
-      console.log('Parent from taskData:', taskData.parentItem);
-      console.log('Level from taskData:', taskData.level);
-      console.log('Gantt instance available:', !!ganttRef.current);
-      if (ganttRef.current) {
-        console.log('Gantt flatData available:', !!ganttRef.current.flatData);
-        console.log('Gantt currentViewData available:', !!ganttRef.current.currentViewData);
-      }
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG END ===');
+      console.log('Creating new task:', taskData.TaskName);
       
-      // Enhanced parent determination logic
+      // Simple parent detection - only for hierarchical TaskIDs
       let parentId = null;
-      
-      // Method 1: Check if task was created as a child (has hierarchical TaskID like "1.1")
       if (taskData.TaskID && taskData.TaskID.includes('.')) {
-        console.log('Task has hierarchical TaskID, extracting parent...');
         parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
       }
-      // Method 2: Check Gantt instance state for parent relationships
-      else if (ganttRef.current) {
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        if (currentTask && (currentTask as any).parentItem) {
-          console.log('Found parent from Gantt instance parentItem');
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-          }
-        }
-        // Method 3: Use selected task as parent if available
-        else if (ganttInstance.selectedRowIndex >= 0) {
-          const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-          if (selectedTask) {
-            console.log('Using selected task as parent for new task');
-            parentId = findOriginalTaskId((selectedTask as any).TaskID, ganttData);
-          }
-        }
-      }
       
-      console.log('=== FINAL PARENT DETERMINATION ===');
-      console.log('Determined parent ID for new task:', parentId);
-      console.log('=== FINAL PARENT DETERMINATION END ===');
-      
-        
-        const createParams = {
-          project_id: projectId,
-          task_name: taskData.TaskName || 'New Task',
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
-          duration: taskData.Duration || 1,
-          progress: taskData.Progress || 0,
-          predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== CREATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== CREATE TASK RESOURCES DEBUG END ===');
-            return convertedResources || null;
-          })(),
-          parent_id: parentId,
-          order_index: tasks.length,
-        };
-      
-      console.log('CREATE TASK PARAMS:', createParams);
-      createTask.mutate(createParams, {
-        onSuccess: () => handleMutationSuccess('Create'),
-        onError: (error) => handleMutationError(error, 'Create')
+      createTask.mutate({
+        project_id: projectId,
+        task_name: taskData.TaskName || 'New Task',
+        start_date: taskData.StartDate || new Date().toISOString(),
+        end_date: taskData.EndDate || new Date().toISOString(),
+        duration: taskData.Duration || 1,
+        progress: taskData.Progress || 0,
+        parent_id: parentId,
+        predecessor: taskData.Predecessor,
+        resources: taskData.Resources
+      }, {
+        onSuccess: () => toast({ title: "Success", description: "Task created successfully" }),
+        onError: (error) => toast({ variant: "destructive", title: "Error", description: `Failed to create task: ${error.message}` })
       });
-    } 
-    else if ((args.requestType === 'save' || args.requestType === 'cellSave') && args.data) {
-      const taskData = args.data;
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
-      console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
-      
-      if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-        console.log('Determined parent ID for update:', parentId);
-        
-        const updateParams = {
-          id: originalTaskId,
-          task_name: taskData.TaskName,
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-          duration: taskData.Duration,
-          progress: taskData.Progress,
-          predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== UPDATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
-            return convertedResources;
-          })(),
-          parent_id: parentId,
-          order_index: taskData.OrderIndex,
-        };
-        
-        console.log('UPDATE TASK PARAMS:', updateParams);
-        updateTask.mutate(updateParams, {
-          onSuccess: () => handleMutationSuccess('Update'),
-          onError: (error) => handleMutationError(error, 'Update')
-        });
-      }
     }
-    else if (args.requestType === 'taskbarEdited' && args.data) {
-      console.log('TASKBAR EDITED:', args.data);
-      const taskData = args.data;
-      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+    else if (args.requestType === 'save' && args.data) {
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      console.log('Saving task:', taskData.TaskName);
       
-      if (originalTaskId) {
-        const updateParams = {
-          id: originalTaskId,
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined,
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-          duration: taskData.Duration,
-          progress: taskData.Progress,
-        };
-        
-        console.log('TASKBAR UPDATE PARAMS:', updateParams);
-        updateTask.mutate(updateParams, {
-          onSuccess: () => handleMutationSuccess('Update'),
-          onError: (error) => handleMutationError(error, 'Update')
-        });
-      }
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      if (!originalTaskId) return;
+      
+      const updateData: any = {};
+      if (taskData.TaskName !== undefined) updateData.task_name = taskData.TaskName;
+      if (taskData.StartDate !== undefined) updateData.start_date = taskData.StartDate;
+      if (taskData.EndDate !== undefined) updateData.end_date = taskData.EndDate;
+      if (taskData.Duration !== undefined) updateData.duration = taskData.Duration;
+      if (taskData.Progress !== undefined) updateData.progress = taskData.Progress;
+      if (taskData.Resources !== undefined) updateData.resources = taskData.Resources;
+      if (taskData.Predecessor !== undefined) updateData.predecessor = taskData.Predecessor;
+      
+      updateTask.mutate({ id: originalTaskId, ...updateData }, {
+        onSuccess: () => toast({ title: "Success", description: "Task saved successfully" }),
+        onError: (error) => toast({ variant: "destructive", title: "Error", description: `Failed to save task: ${error.message}` })
+      });
     }
     // FIXED indenting logic - find the proper parent task
     else if (args.requestType === 'indented' && args.data) {
