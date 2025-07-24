@@ -622,12 +622,14 @@ export type Database = {
           id: string
           order_index: number | null
           parent_id: string | null
+          parent_task_number: number | null
           predecessor: string | null
           progress: number | null
           project_id: string
           resources: string | null
           start_date: string
           task_name: string
+          task_number: number
           updated_at: string
         }
         Insert: {
@@ -637,12 +639,14 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
+          parent_task_number?: number | null
           predecessor?: string | null
           progress?: number | null
           project_id: string
           resources?: string | null
           start_date: string
           task_name: string
+          task_number?: number
           updated_at?: string
         }
         Update: {
@@ -652,15 +656,24 @@ export type Database = {
           id?: string
           order_index?: number | null
           parent_id?: string | null
+          parent_task_number?: number | null
           predecessor?: string | null
           progress?: number | null
           project_id?: string
           resources?: string | null
           start_date?: string
           task_name?: string
+          task_number?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_parent_task_number"
+            columns: ["project_id", "parent_task_number"]
+            isOneToOne: false
+            referencedRelation: "project_schedule_tasks"
+            referencedColumns: ["project_id", "task_number"]
+          },
           {
             foreignKeyName: "project_schedule_tasks_project_id_fkey"
             columns: ["project_id"]
@@ -911,6 +924,8 @@ export type Database = {
           order_index: number
           created_at: string
           updated_at: string
+          task_number: number
+          parent_task_number: number
         }[]
       }
       get_user_role_and_home_builder: {
