@@ -20,8 +20,8 @@ export interface ProcessedTask extends Omit<ProjectTask, 'id'> {
   Resources: string[] | null; // Array of resource IDs for Syncfusion
   subtasks?: ProcessedTask[]; // Nested children instead of ParentID
   OrderIndex: number;
-  task_number: number; // Add required field from ProjectTask
-  parent_task_number: number | null; // Add required field from ProjectTask
+  task_number: number; // Use task_number as the primary ID for Gantt
+  parent_task_number: number | null; // Use parent_task_number for relationships
 }
 
 // Helper function to convert resource names to IDs
@@ -99,29 +99,29 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
     return [];
   }
 
-  // First, create a map of tasks by their UUID
-  const taskMap = new Map<string, ProjectTask>();
+  // First, create a map of tasks by their task_number for faster lookups
+  const taskMap = new Map<number, ProjectTask>();
   tasks.forEach(task => {
-    taskMap.set(task.id, task);
-    console.log(`Task mapped: ${task.id} -> ${task.task_name} (parent: ${task.parent_id})`);
+    taskMap.set(task.task_number, task);
+    console.log(`Task mapped: ${task.task_number} -> ${task.task_name} (parent_task_number: ${task.parent_task_number})`);
   });
 
-  // Build the nested structure
+  // Build the nested structure using task_number and parent_task_number
   const rootTasks: ProjectTask[] = [];
-  const childrenMap = new Map<string, ProjectTask[]>();
+  const childrenMap = new Map<number, ProjectTask[]>();
 
-  // Separate root tasks and build children map with enhanced logic
+  // Separate root tasks and build children map using parent_task_number
   tasks.forEach(task => {
-    // Treat tasks with no parent_id OR self-referencing parent_id as root tasks
-    if (!task.parent_id || task.parent_id === task.id) {
+    // Treat tasks with no parent_task_number as root tasks
+    if (!task.parent_task_number) {
       rootTasks.push(task);
-      console.log(`Root task identified: ${task.task_name} (${task.id}) - parent_id: ${task.parent_id}`);
+      console.log(`Root task identified: ${task.task_name} (${task.task_number}) - parent_task_number: ${task.parent_task_number}`);
     } else {
-      if (!childrenMap.has(task.parent_id)) {
-        childrenMap.set(task.parent_id, []);
+      if (!childrenMap.has(task.parent_task_number)) {
+        childrenMap.set(task.parent_task_number, []);
       }
-      childrenMap.get(task.parent_id)!.push(task);
-      console.log(`Child task mapped: ${task.task_name} (${task.id}) -> parent: ${task.parent_id}`);
+      childrenMap.get(task.parent_task_number)!.push(task);
+      console.log(`Child task mapped: ${task.task_name} (${task.task_number}) -> parent_task_number: ${task.parent_task_number}`);
     }
   });
 
@@ -165,13 +165,13 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
         OrderIndex: task.order_index,
         created_at: task.created_at,
         updated_at: task.updated_at,
-        task_number: task.task_number || 0, // Add with fallback
-        parent_task_number: task.parent_task_number || null, // Add with fallback
-        subtasks: processTasksRecursive(childrenMap.get(task.id) || [], hierarchicalId, depth + 1)
+        task_number: task.task_number, // Use actual task_number from database
+        parent_task_number: task.parent_task_number, // Use actual parent_task_number from database
+        subtasks: undefined // Will be set below
       };
 
-      // Process children if they exist
-      const children = childrenMap.get(task.id) || [];
+      // Process children if they exist using task_number
+      const children = childrenMap.get(task.task_number) || [];
       if (children.length > 0) {
         console.log(`Processing ${children.length} children for task: ${task.task_name}`);
         processedTask.subtasks = processTasksRecursive(children, hierarchicalId, depth + 1);
@@ -218,8 +218,14 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
   console.log('Flattening hierarchy for database storage:', nestedTasks);
   const flatTasks: ProjectTask[] = [];
   
-  const flattenRecursive = (tasks: ProcessedTask[], parentOriginalId: string | null = null) => {
+  // Create a map to track parent task numbers
+  const taskNumberMap = new Map<string, number>();
+  
+  const flattenRecursive = (tasks: ProcessedTask[], parentTaskNumber: number | null = null) => {
     tasks.forEach((task, index) => {
+      // Store the task number for parent relationships
+      taskNumberMap.set(task.OriginalTaskID, task.task_number);
+      
       const flatTask: ProjectTask = {
         id: task.OriginalTaskID,
         project_id: task.project_id,
@@ -230,19 +236,19 @@ export const flattenHierarchy = (nestedTasks: ProcessedTask[]): ProjectTask[] =>
         progress: task.progress,
         predecessor: task.predecessor,
         resources: task.resources,
-        parent_id: parentOriginalId,
+        parent_id: parentTaskNumber ? Array.from(taskNumberMap.entries()).find(([_, num]) => num === parentTaskNumber)?.[0] || null : null, // Legacy compatibility
         order_index: index,
         created_at: task.created_at,
         updated_at: task.updated_at,
-        task_number: task.task_number || 0, // Add with fallback
-        parent_task_number: task.parent_task_number || null, // Add with fallback
+        task_number: task.task_number,
+        parent_task_number: parentTaskNumber,
       };
       
-      console.log(`Flattened task: ${task.task_name} -> parent_id: ${parentOriginalId}`);
+      console.log(`Flattened task: ${task.task_name} -> parent_task_number: ${parentTaskNumber}`);
       flatTasks.push(flatTask);
       
       if (task.subtasks && task.subtasks.length > 0) {
-        flattenRecursive(task.subtasks, task.OriginalTaskID);
+        flattenRecursive(task.subtasks, task.task_number);
       }
     });
   };
