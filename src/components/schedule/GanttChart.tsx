@@ -496,8 +496,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-        console.log('Determined parent ID for update:', parentId);
+        // For regular save/cellSave operations, don't pass parent_id to avoid self-referencing
+        // Only pass parent_id for hierarchy operations (indent/outdent)
+        console.log('Regular task update - not changing hierarchy, skipping parent_id');
+        
+        // Safety check: ensure we're not accidentally passing the task's own ID as parent
+        const safeParentId = null; // Don't change hierarchy for regular updates
         
         const updateParams = {
           id: originalTaskId,
@@ -516,11 +520,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
             return convertedResources;
           })(),
-          parent_id: parentId,
+          // Don't pass parent_id for regular updates - let it remain unchanged
           order_index: taskData.OrderIndex,
         };
         
-        console.log('UPDATE TASK PARAMS:', updateParams);
+        console.log('UPDATE TASK PARAMS (no parent_id):', updateParams);
         updateTask.mutate(updateParams, {
           onSuccess: () => handleMutationSuccess('Update'),
           onError: (error) => handleMutationError(error, 'Update')
