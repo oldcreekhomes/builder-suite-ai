@@ -30,6 +30,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
     uploading: boolean;
     relativePath: string;
   }>>([]);
+  const [draggedFileCount, setDraggedFileCount] = useState(0);
 
   // Filter out system files and unwanted files
   const isValidFile = (file: File, relativePath: string = '') => {
@@ -168,6 +169,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Count dragged files for better visual feedback
+    const fileCount = e.dataTransfer.items ? e.dataTransfer.items.length : 0;
+    setDraggedFileCount(fileCount);
     setIsDragOver(true);
   };
 
@@ -175,12 +180,14 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+    setDraggedFileCount(0);
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+    setDraggedFileCount(0);
 
     const filesWithPaths = await processFilesFromDataTransfer(e.dataTransfer);
     
@@ -311,17 +318,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
     onDrop,
     multiple: true,
     noClick: true, // Disable click on the dropzone, we'll handle it separately
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'text/plain': ['.txt'],
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
-    }
+    // Removed accept property to allow all file types during drag/drop
   });
 
   const handleMultipleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,13 +522,24 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isDragOver ? 'Drop files or folders here' : 'Upload files or nested folders'}
+              {isDragOver 
+                ? draggedFileCount > 1 
+                  ? `Drop ${draggedFileCount} files here`
+                  : 'Drop file here'
+                : 'Upload files or folders'
+              }
             </h3>
             <p className="text-gray-600 mb-4">
-              Drag and drop files here to upload them as loose files, or drop complete folder structures to preserve organization.
+              {isDragOver 
+                ? 'Release to upload all files with their folder structure preserved'
+                : 'Drag multiple files or entire folders here. All file types supported.'
+              }
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              Supports: PDF, Word, Excel, PowerPoint, Text, and Images. System files (.DS_Store, etc.) are automatically filtered out.
+              {isDragOver
+                ? 'Files will be organized exactly as they appear in your folders'
+                : 'System files (.DS_Store, etc.) are automatically filtered out. Folder structures are preserved.'
+              }
             </p>
           </div>
         </FileOperationsContextMenu>
@@ -539,7 +547,12 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, onCreateFolder 
 
       {uploadingFiles.length > 0 && (
         <Card className="p-4">
-          <h4 className="font-semibold mb-3">Uploading Files ({uploadingFiles.length})</h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold">Uploading Files</h4>
+            <div className="text-sm text-muted-foreground">
+              {uploadingFiles.filter(f => !f.uploading).length} / {uploadingFiles.length} complete
+            </div>
+          </div>
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {uploadingFiles.map((upload, index) => (
               <div key={index} className="flex items-center space-x-3">
