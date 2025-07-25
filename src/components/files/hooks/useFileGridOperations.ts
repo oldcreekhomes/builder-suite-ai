@@ -19,47 +19,72 @@ export function useFileGridOperations(onRefresh: () => void) {
     const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
     
     console.log(`Starting upload for file: ${file.name} (${file.size} bytes) to folder: ${folderName}`);
+    console.log(`Generated fileId: ${fileId}`);
     
     try {
-      // Generate timestamp right before upload to ensure uniqueness for each file
+      // Generate timestamp and add random component to ensure absolute uniqueness
       const timestamp = Date.now();
-      const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${timestamp}_${relativePath}`;
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${timestamp}_${randomSuffix}_${relativePath}`;
+      
+      console.log(`Generated fileName: ${fileName}`);
       
       // Upload to Supabase Storage
+      console.log(`Uploading to storage: ${file.name}`);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false // Prevent overwriting existing files
+        });
 
       if (uploadError) {
         console.error(`Storage upload failed for ${file.name}:`, uploadError);
         throw uploadError;
       }
 
-      console.log(`Storage upload successful for ${file.name}, inserting into database...`);
+      console.log(`Storage upload successful for ${file.name}, uploadData:`, uploadData);
+      console.log(`Storage path: ${uploadData.path}`);
 
       // Insert into database
-      const { error: dbError } = await supabase
+      console.log(`Inserting into database: ${file.name}`);
+      const dbInsertData = {
+        project_id: window.location.pathname.split('/')[2],
+        filename: fileName,
+        original_filename: relativePath,
+        file_size: file.size,
+        file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
+        mime_type: file.type,
+        storage_path: uploadData.path,
+        uploaded_by: user.id,
+      };
+      
+      console.log(`Database insert data for ${file.name}:`, dbInsertData);
+      
+      const { data: dbData, error: dbError } = await supabase
         .from('project_files')
-        .insert({
-          project_id: window.location.pathname.split('/')[2],
-          filename: fileName,
-          original_filename: relativePath,
-          file_size: file.size,
-          file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
-          mime_type: file.type,
-          storage_path: uploadData.path,
-          uploaded_by: user.id,
-        });
+        .insert(dbInsertData);
 
       if (dbError) {
         console.error(`Database insert failed for ${file.name}:`, dbError);
+        // Clean up storage if database insert fails
+        await supabase.storage
+          .from('project-files')
+          .remove([fileName]);
         throw dbError;
       }
 
+      console.log(`Database insert successful for ${file.name}:`, dbData);
       console.log(`Upload completed successfully for: ${file.name}`);
       return true;
     } catch (error) {
       console.error(`Upload error for ${file.name}:`, error);
+      console.error(`Error details:`, {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       toast({
         title: "Upload Error",
         description: `Failed to upload ${file.name}: ${error.message || 'Unknown error'}`,
