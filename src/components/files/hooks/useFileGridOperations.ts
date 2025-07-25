@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,13 +16,15 @@ export function useFileGridOperations(onRefresh: () => void) {
     }
 
     const fileId = crypto.randomUUID();
-    const timestamp = Date.now();
     const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
-    const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${timestamp}_${relativePath}`;
     
     console.log(`Starting upload for file: ${file.name} (${file.size} bytes) to folder: ${folderName}`);
     
     try {
+      // Generate timestamp right before upload to ensure uniqueness for each file
+      const timestamp = Date.now();
+      const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${timestamp}_${relativePath}`;
+      
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
