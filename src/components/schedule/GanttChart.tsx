@@ -565,7 +565,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       }
     }
     // Enhanced handling for indenting and outdenting operations
-    else if (args.requestType === 'indenting' && args.data) {
+    else if (args.requestType === 'indented' && args.data) {
       console.log('=== INDENTING TASK (making it a child) ===');
       console.log('Indenting data:', args.data);
       const taskData = args.data[0];
@@ -604,7 +604,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     } 
-    else if (args.requestType === 'outdenting' && args.data) {
+    else if (args.requestType === 'outdented' && args.data) {
       console.log('=== OUTDENTING TASK (making it a parent/root) ===');
       console.log('Outdenting data:', args.data);
       const taskData = args.data[0];
