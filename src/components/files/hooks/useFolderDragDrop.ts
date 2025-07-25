@@ -14,8 +14,35 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     const files: Array<{ file: File; relativePath: string }> = [];
     const folderPaths = new Set<string>();
     
+    console.log('=== PROCESSING DRAG DATA ===');
+    console.log('DataTransfer has files:', dataTransfer.files.length);
+    console.log('DataTransfer has items:', dataTransfer.items.length);
+    
+    // First, try the simple approach for individual files
+    if (dataTransfer.files && dataTransfer.files.length > 0) {
+      console.log('Using simple file processing for individual files');
+      const fileList = Array.from(dataTransfer.files);
+      
+      for (const file of fileList) {
+        console.log('Processing file:', file.name, 'size:', file.size);
+        const baseFolder = targetFolder === 'Root' ? '' : targetFolder + '/';
+        const relativePath = baseFolder + file.name;
+        
+        if (isValidFile(file, relativePath)) {
+          console.log('File is valid, adding:', relativePath);
+          files.push({ file, relativePath });
+        } else {
+          console.log('File is invalid, skipping:', file.name);
+        }
+      }
+      
+      console.log('Simple processing complete. Files found:', files.length);
+      return files;
+    }
+    
+    // Fallback to complex folder processing if needed
     const items = Array.from(dataTransfer.items);
-    console.log('Processing drag items:', items.length);
+    console.log('Using complex folder processing for items:', items.length);
     
     for (const item of items) {
       if (item.kind === 'file') {
@@ -28,11 +55,12 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       }
     }
     
-    console.log('All detected folder paths:', Array.from(folderPaths));
+    console.log('Complex processing complete. All detected folder paths:', Array.from(folderPaths));
     console.log('All files to upload:', files.map(f => f.relativePath));
     
     // Filter out invalid files
     const validFiles = files.filter(({ file, relativePath }) => isValidFile(file, relativePath));
+    console.log('Valid files after filtering:', validFiles.length);
     
     return validFiles;
   };
@@ -116,16 +144,27 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     const systemFiles = ['.DS_Store', 'Thumbs.db', '.gitkeep', '.gitignore'];
     const hiddenFiles = fileName.startsWith('.');
     
+    console.log('Validating file:', fileName, 'size:', file.size);
+    
     // Allow .gitignore and .gitkeep as they're legitimate files
     if (fileName === '.gitignore' || fileName === '.gitkeep') {
+      console.log('File allowed - legitimate dotfile:', fileName);
       return true;
     }
     
     // Filter out system files and other hidden files
     if (systemFiles.includes(fileName) || (hiddenFiles && fileName !== '.gitignore' && fileName !== '.gitkeep')) {
+      console.log('File rejected - system/hidden file:', fileName);
       return false;
     }
     
+    // Filter out empty files
+    if (file.size === 0) {
+      console.log('File rejected - empty file:', fileName);
+      return false;
+    }
+    
+    console.log('File accepted:', fileName);
     return true;
   };
 
@@ -160,9 +199,18 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     e.stopPropagation();
     setDragOverFolder(null);
 
+    console.log('=== FOLDER DROP EVENT ===');
+    console.log('Target folder:', folderName);
+
     const filesWithPaths = await processFilesFromDataTransfer(e.dataTransfer, folderName);
     
+    console.log('=== FILES TO UPLOAD ===');
+    filesWithPaths.forEach((item, index) => {
+      console.log(`File ${index + 1}: ${item.file.name} -> ${item.relativePath}`);
+    });
+    
     if (filesWithPaths.length === 0) {
+      console.log('No valid files found');
       toast({
         title: "No Valid Files",
         description: "No valid files found to upload (system files like .DS_Store are filtered out)",
@@ -174,6 +222,8 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       title: "Uploading files",
       description: `Uploading ${filesWithPaths.length} file(s) to ${folderName}...`,
     });
+
+    console.log('=== STARTING UPLOADS ===');
 
     // Get all unique folder paths from the dragged files AND ensure all parent paths exist
     const folderPaths = new Set<string>();
@@ -211,18 +261,26 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
       createFolderKeeper(folderPath)
     );
 
-    const uploadPromises = filesWithPaths.map(({ file, relativePath }) => 
-      uploadFileToFolder(file, relativePath)
-    );
+    // Upload all files
+    const uploadPromises = filesWithPaths.map(({ file, relativePath }) => {
+      console.log('=== UPLOADING FILE ===', file.name, 'to', relativePath);
+      return uploadFileToFolder(file, relativePath);
+    });
     
     const allPromises = [...folderPromises, ...uploadPromises];
     const results = await Promise.all(allPromises);
-    const successCount = results.filter(Boolean).length;
+    const fileUploadResults = results.slice(folderPromises.length); // Only count file uploads, not folder creation
+    const successCount = fileUploadResults.filter(Boolean).length;
+
+    console.log('=== UPLOAD RESULTS ===');
+    console.log('Total files attempted:', filesWithPaths.length);
+    console.log('Successful uploads:', successCount);
+    console.log('Failed uploads:', filesWithPaths.length - successCount);
 
     if (successCount > 0) {
       toast({
         title: "Upload Complete",
-        description: `Successfully uploaded ${filesWithPaths.length} file(s) to ${folderName}`,
+        description: `Successfully uploaded ${successCount} file(s) to ${folderName}${successCount < filesWithPaths.length ? ` (${filesWithPaths.length - successCount} failed)` : ''}`,
       });
       onRefresh();
     } else {
