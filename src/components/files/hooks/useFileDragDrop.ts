@@ -30,6 +30,9 @@ export function useFileDragDrop({ moveFileToFolder, onRefresh, selectedFiles }: 
       fileIds: filesToDrag
     }));
     
+    // Add marker to identify internal file moves
+    e.dataTransfer.setData('application/x-internal-file-move', 'true');
+    
     // Set drag effect
     e.dataTransfer.effectAllowed = 'move';
   };

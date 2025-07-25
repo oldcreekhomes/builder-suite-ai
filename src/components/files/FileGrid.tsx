@@ -175,18 +175,37 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
         return (
           <div key={folderPath} className="space-y-3">
             <div
-              {...getFolderDropProps(folderPath)}
               onDragOver={(e) => {
-                getFolderDropProps(folderPath).onDragOver(e);
-                handleUploadDragOver(e, folderPath);
+                // Detect if this is external files (from desktop) or internal files (app files being moved)
+                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
+                
+                if (isExternalFiles) {
+                  // External files - handle upload
+                  handleUploadDragOver(e, folderPath);
+                } else {
+                  // Internal files - handle move
+                  getFolderDropProps(folderPath).onDragOver(e);
+                }
               }}
               onDragLeave={(e) => {
-                getFolderDropProps(folderPath).onDragLeave(e);
-                handleUploadDragLeave(e);
+                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
+                
+                if (isExternalFiles) {
+                  handleUploadDragLeave(e);
+                } else {
+                  getFolderDropProps(folderPath).onDragLeave(e);
+                }
               }}
               onDrop={(e) => {
-                getFolderDropProps(folderPath).onDrop(e);
-                handleUploadDrop(e, folderPath);
+                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
+                
+                if (isExternalFiles) {
+                  // External files - upload to folder
+                  handleUploadDrop(e, folderPath);
+                } else {
+                  // Internal files - move to folder
+                  getFolderDropProps(folderPath).onDrop(e);
+                }
               }}
             >
               <FileGridFolder
