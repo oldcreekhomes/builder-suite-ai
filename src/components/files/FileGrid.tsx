@@ -37,6 +37,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
 
   const {
     dragOverFolder: uploadDragOverFolder,
+    draggedFileCount,
     handleFolderDragOver: handleUploadDragOver,
     handleFolderDragLeave: handleUploadDragLeave,
     handleFolderDrop: handleUploadDrop,
@@ -193,6 +194,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
                 folderFiles={folderFiles}
                 isExpanded={isExpanded}
                 isDragOver={isDragOver}
+                draggedFileCount={draggedFileCount}
                 onToggleFolder={toggleFolder}
                 onDragOver={() => {}}
                 onDragLeave={() => {}}

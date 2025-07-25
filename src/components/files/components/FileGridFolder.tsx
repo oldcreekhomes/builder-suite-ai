@@ -18,6 +18,7 @@ interface FileGridFolderProps {
   folderFiles: any[];
   isExpanded: boolean;
   isDragOver: boolean;
+  draggedFileCount?: number;
   onToggleFolder: (folderPath: string) => void;
   onDragOver: (e: React.DragEvent, folderName: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
@@ -32,6 +33,7 @@ export function FileGridFolder({
   folderFiles,
   isExpanded,
   isDragOver,
+  draggedFileCount = 0,
   onToggleFolder,
   onDragOver,
   onDragLeave,
@@ -185,8 +187,11 @@ export function FileGridFolder({
               <p className="text-sm text-gray-500">
                 {folderFiles.length} file{folderFiles.length !== 1 ? 's' : ''}
                 {isDragOver && (
-                  <span className="text-blue-600 ml-2">
-                    • Drop files here to upload to this folder
+                  <span className="text-blue-600 ml-2 font-medium">
+                    {draggedFileCount > 1 
+                      ? `• Drop ${draggedFileCount} files here` 
+                      : '• Drop file here'
+                    }
                   </span>
                 )}
               </p>
