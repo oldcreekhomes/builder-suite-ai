@@ -662,13 +662,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_parent_task"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "project_schedule_tasks"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "project_schedule_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
