@@ -75,32 +75,64 @@ export function useFileGridDragDrop({ uploadFileToFolder, onRefresh }: UseFileGr
   const [draggedFileCount, setDraggedFileCount] = useState(0);
 
   const handleFolderDragOver = (e: React.DragEvent, folderName: string) => {
+    console.log("DRAG OVER EVENT - folder:", folderName);
     e.preventDefault();
     e.stopPropagation();
+    
+    // Set the correct drop effect
+    e.dataTransfer.dropEffect = 'copy';
     
     // Count dragged files for better visual feedback
     const fileCount = e.dataTransfer.items ? 
       Array.from(e.dataTransfer.items).filter(item => item.kind === 'file').length : 
       e.dataTransfer.files?.length || 0;
     
+    console.log("Files being dragged:", fileCount);
     setDraggedFileCount(fileCount);
     setDragOverFolder(folderName);
   };
 
-  const handleFolderDragLeave = (e: React.DragEvent) => {
+  const handleFolderDragEnter = (e: React.DragEvent, folderName: string) => {
+    console.log("DRAG ENTER EVENT - folder:", folderName);
     e.preventDefault();
     e.stopPropagation();
-    setDragOverFolder(null);
-    setDraggedFileCount(0);
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleFolderDragLeave = (e: React.DragEvent) => {
+    console.log("DRAG LEAVE EVENT");
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only clear if we're actually leaving the drop zone
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isStillInside = (
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom
+    );
+    
+    if (!isStillInside) {
+      setDragOverFolder(null);
+      setDraggedFileCount(0);
+    }
   };
 
   const handleFolderDrop = async (e: React.DragEvent, folderName: string) => {
+    console.log("=== DROP EVENT TRIGGERED ===");
+    console.log("Event type:", e.type);
+    console.log("Target:", e.target);
+    console.log("CurrentTarget:", e.currentTarget);
+    
+    // Prevent all default behaviors
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
+    
     setDragOverFolder(null);
     setDraggedFileCount(0);
 
-    console.log("=== DROP EVENT TRIGGERED ===");
     console.log("Raw files count:", e.dataTransfer.files.length);
     console.log("Target folder:", folderName);
 
@@ -174,6 +206,7 @@ export function useFileGridDragDrop({ uploadFileToFolder, onRefresh }: UseFileGr
     dragOverFolder,
     draggedFileCount,
     handleFolderDragOver,
+    handleFolderDragEnter,
     handleFolderDragLeave,
     handleFolderDrop,
   };
