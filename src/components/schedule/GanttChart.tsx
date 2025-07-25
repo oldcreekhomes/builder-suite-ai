@@ -51,6 +51,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return transformedData;
   }, [tasks, resources]);
 
+  // FIXED: Added parentID mapping
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName',
@@ -60,6 +61,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     progress: 'Progress',
     dependency: 'Predecessor',
     resourceInfo: 'Resources',
+    parentID: 'ParentID', // CRITICAL: Added this line for parent-child relationships
     child: 'subtasks', // Use subtasks for nested hierarchy
   };
 
@@ -321,94 +323,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
+  // FIXED: Complete replacement of handleActionComplete function
   const handleActionComplete = (args: any) => {
-    console.log('=== ACTION COMPLETE ENHANCED DEBUG ===');
+    console.log('=== ACTION COMPLETE FIXED VERSION ===');
     console.log('Request type:', args.requestType);
-    console.log('Action:', args.action);
     console.log('Action data:', args.data);
-    console.log('Action data keys:', args.data ? Object.keys(args.data) : 'No data');
-    console.log('TaskID:', args.data?.TaskID);
-    console.log('Task level:', args.data?.level);
-    console.log('Parent item:', args.data?.parentItem);
-    console.log('Args keys:', Object.keys(args));
-    console.log('Request Type:', args.requestType);
-    console.log('Action:', args.action);
-    console.log('Modified records:', args.modifiedRecords);
-    console.log('Changed records:', args.changedRecords);
-    
-    // *** CRITICAL INDENT/OUTDENT DEBUG LOGGING ***
-    console.log('*** INDENT/OUTDENT DETECTION ***');
-    console.log('Is indenting action?', args.requestType === 'indenting');
-    console.log('Is outdenting action?', args.requestType === 'outdenting');
-    console.log('Is indent action?', args.requestType === 'indent');
-    console.log('Is outdent action?', args.requestType === 'outdent');
-    console.log('Is editing action?', args.requestType === 'save');
-    console.log('Action type:', args.action);
-    console.log('Request name:', args.name);
-    console.log('All args properties:', Object.keys(args));
-    console.log('*** END INDENT/OUTDENT DETECTION ***');
-    
-    // Safe logging of data without circular references
-    if (args.data) {
-      console.log('Data TaskID:', args.data.TaskID);
-      console.log('Data parentItem:', args.data.parentItem);
-      console.log('Data level:', args.data.level);
-      console.log('Data hasChildRecords:', args.data.hasChildRecords);
-      console.log('Data isParent:', args.data.isParent);
-      console.log('Data index:', args.data.index);
-      console.log('Data parentUniqueID:', args.data.parentUniqueID);
-      console.log('Data uniqueID:', args.data.uniqueID);
-    }
-    
-    // Enhanced gantt instance inspection
-    if (ganttRef.current) {
-      const ganttInstance = ganttRef.current;
-      console.log('=== GANTT INSTANCE STATE ===');
-      console.log('Current view data length:', ganttInstance.currentViewData?.length);
-      console.log('Flat data length:', ganttInstance.flatData?.length);
-      console.log('Selected row index:', ganttInstance.selectedRowIndex);
-      
-      // Check if we have a selected task (potential parent)
-      if (ganttInstance.selectedRowIndex >= 0) {
-        const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-        console.log('Selected task (potential parent):', {
-          TaskID: (selectedTask as any)?.TaskID,
-          TaskName: (selectedTask as any)?.TaskName,
-          level: (selectedTask as any)?.level,
-          hasChildRecords: (selectedTask as any)?.hasChildRecords
-        });
-      }
-      
-      // Look for the newly created task in the data
-      if (args.data?.TaskID) {
-        const foundTask = ganttInstance.flatData?.find((task: any) => 
-          task.TaskID === args.data.TaskID || task.ganttProperties?.taskId === args.data.TaskID
-        );
-        console.log('Found task in flatData:', {
-          TaskID: (foundTask as any)?.TaskID,
-          parentItem: (foundTask as any)?.parentItem,
-          level: (foundTask as any)?.level,
-          parentUniqueID: (foundTask as any)?.parentUniqueID,
-          ganttProperties: (foundTask as any)?.ganttProperties ? {
-            parentId: (foundTask as any).ganttProperties.parentId,
-            level: (foundTask as any).ganttProperties.level,
-            parentItem: (foundTask as any).ganttProperties.parentItem
-          } : null
-        });
-      }
-    }
-    
-    console.log('========================');
     
     // CRITICAL: Cancel/prevent any default Syncfusion notification behavior
     if (args.requestType === 'delete' || args.requestType === 'save' || args.requestType === 'add') {
-      console.log('Attempting to cancel default notification behavior');
-      args.cancel = true; // Try to cancel any default behavior
+      args.cancel = true;
       if (args.preventDefault) args.preventDefault();
       if (args.stopPropagation) args.stopPropagation();
     }
     
-    // Add mutation error handling
     const handleMutationError = (error: any, operation: string) => {
       console.error(`${operation} failed:`, error);
       toast({
@@ -426,75 +353,67 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       });
     };
     
+    // *** FIXED: Enhanced parent ID detection ***
+    const getParentIdForTask = (taskData: any): string | null => {
+      console.log('=== GETTING PARENT ID FOR TASK ===');
+      console.log('Task data:', taskData);
+      
+      if (!ganttRef.current) return null;
+      
+      const ganttInstance = ganttRef.current;
+      
+      // Method 1: Use parentItem from task data
+      if (taskData.parentItem && taskData.parentItem.TaskID) {
+        const parentOriginalId = findOriginalTaskId(taskData.parentItem.TaskID, ganttData);
+        console.log('Parent found via parentItem:', parentOriginalId);
+        return parentOriginalId;
+      }
+      
+      // Method 2: Find task in flatData and get parent
+      const currentTask = ganttInstance.flatData?.find((task: any) => 
+        task.TaskID === taskData.TaskID
+      );
+      
+      if (currentTask && (currentTask as any).parentItem) {
+        const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
+        if (parentTaskId) {
+          const parentOriginalId = findOriginalTaskId(parentTaskId, ganttData);
+          console.log('Parent found via flatData:', parentOriginalId);
+          return parentOriginalId;
+        }
+      }
+      
+      // Method 3: Check for hierarchical TaskID pattern
+      if (taskData.TaskID && typeof taskData.TaskID === 'string' && taskData.TaskID.includes('.')) {
+        const parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
+        console.log('Parent found via TaskID hierarchy:', parentId);
+        return parentId;
+      }
+      
+      console.log('No parent found - root level task');
+      return null;
+    };
+    
     if (args.requestType === 'add' && args.data) {
       const taskData = args.data;
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG ===');
-      console.log('Task data structure:', taskData);
-      console.log('Task data keys:', Object.keys(taskData));
-      console.log('TaskID:', taskData.TaskID);
-      console.log('Parent from taskData:', taskData.parentItem);
-      console.log('Level from taskData:', taskData.level);
-      console.log('Gantt instance available:', !!ganttRef.current);
-      if (ganttRef.current) {
-        console.log('Gantt flatData available:', !!ganttRef.current.flatData);
-        console.log('Gantt currentViewData available:', !!ganttRef.current.currentViewData);
-      }
-      console.log('=== CREATING NEW TASK ENHANCED DEBUG END ===');
+      console.log('=== CREATING NEW TASK ===');
       
-      // Enhanced parent determination logic
-      let parentId = null;
-      
-      // Method 1: Check if task was created as a child (has hierarchical TaskID like "1.1")
-      if (taskData.TaskID && taskData.TaskID.includes('.')) {
-        console.log('Task has hierarchical TaskID, extracting parent...');
-        parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-      }
-      // Method 2: Check Gantt instance state for parent relationships
-      else if (ganttRef.current) {
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        if (currentTask && (currentTask as any).parentItem) {
-          console.log('Found parent from Gantt instance parentItem');
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-          }
-        }
-        // Method 3: Use selected task as parent if available
-        else if (ganttInstance.selectedRowIndex >= 0) {
-          const selectedTask = ganttInstance.currentViewData?.[ganttInstance.selectedRowIndex];
-          if (selectedTask) {
-            console.log('Using selected task as parent for new task');
-            parentId = findOriginalTaskId((selectedTask as any).TaskID, ganttData);
-          }
-        }
-      }
-      
-      console.log('=== FINAL PARENT DETERMINATION ===');
+      // FIXED: Get parent ID using enhanced method
+      const parentId = getParentIdForTask(taskData);
       console.log('Determined parent ID for new task:', parentId);
-      console.log('=== FINAL PARENT DETERMINATION END ===');
       
-        const createParams = {
-          project_id: projectId,
-          task_name: taskData.TaskName || 'New Task',
-          start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
-          end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
-          duration: taskData.Duration || 1,
-          progress: taskData.Progress || 0,
-          predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== CREATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== CREATE TASK RESOURCES DEBUG END ===');
-            return convertedResources || null;
-          })(),
-          parent_id: parentId,
-          order_index: tasks.length,
-        };
+      const createParams = {
+        project_id: projectId,
+        task_name: taskData.TaskName || 'New Task',
+        start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
+        end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
+        duration: taskData.Duration || 1,
+        progress: taskData.Progress || 0,
+        predecessor: taskData.Predecessor || null,
+        resources: convertResourceIdsToNames(taskData.Resources, resources) || null,
+        parent_id: parentId, // FIXED: Use enhanced parent detection
+        order_index: tasks.length,
+      };
       
       console.log('CREATE TASK PARAMS:', createParams);
       createTask.mutate(createParams, {
@@ -508,13 +427,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('UPDATING TASK (save/cellSave):', taskData, 'Original ID:', originalTaskId);
       
       if (originalTaskId) {
-        // For regular save/cellSave operations, don't pass parent_id to avoid self-referencing
-        // Only pass parent_id for hierarchy operations (indent/outdent)
-        console.log('Regular task update - not changing hierarchy, skipping parent_id');
-        
-        // Safety check: ensure we're not accidentally passing the task's own ID as parent
-        const safeParentId = null; // Don't change hierarchy for regular updates
-        
         const updateParams = {
           id: originalTaskId,
           task_name: taskData.TaskName,
@@ -523,20 +435,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           duration: taskData.Duration,
           progress: taskData.Progress,
           predecessor: taskData.Predecessor || null,
-          resources: (() => {
-            console.log('=== UPDATE TASK RESOURCES DEBUG ===');
-            console.log('taskData.Resources:', taskData.Resources);
-            console.log('Available resources for conversion:', resources);
-            const convertedResources = convertResourceIdsToNames(taskData.Resources, resources);
-            console.log('Converted resources result:', convertedResources);
-            console.log('=== UPDATE TASK RESOURCES DEBUG END ===');
-            return convertedResources;
-          })(),
-          // Don't pass parent_id for regular updates - let it remain unchanged
+          resources: convertResourceIdsToNames(taskData.Resources, resources),
           order_index: taskData.OrderIndex,
         };
         
-        console.log('UPDATE TASK PARAMS (no parent_id):', updateParams);
+        console.log('UPDATE TASK PARAMS:', updateParams);
         updateTask.mutate(updateParams, {
           onSuccess: () => handleMutationSuccess('Update'),
           onError: (error) => handleMutationError(error, 'Update')
@@ -564,70 +467,48 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     }
-    // Enhanced handling for indenting and outdenting operations
+    // *** FIXED: Corrected indent/outdent handling ***
     else if (args.requestType === 'indented' && args.data) {
       console.log('=== INDENTING TASK (making it a child) ===');
-      console.log('Indenting data:', args.data);
-      const taskData = args.data[0];
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for indenting
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        let parentId = null;
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Indenting - found parent from Gantt instance:', parentId);
-          }
-        } else {
-          // Fallback: use previous sibling as parent if available
-          parentId = findParentFromHierarchy(taskData.TaskID, ganttData);
-          console.log('Indenting - fallback parent detection:', parentId);
-        }
-        
+      if (originalTaskId) {
+        // FIXED: Get parent ID using enhanced method
+        const parentId = getParentIdForTask(taskData);
         console.log('Indenting - setting parent_id to:', parentId);
         
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: parentId,
-          order_index: taskData.OrderIndex || 0,
-        }, {
-          onSuccess: () => {
-            console.log('Indenting successful - parent_id saved to database');
-            handleMutationSuccess('Indent');
-          },
-          onError: (error) => handleMutationError(error, 'Indent')
-        });
+        // CRITICAL FIX: Ensure we're not setting a task as its own parent
+        if (parentId && parentId !== originalTaskId) {
+          updateTask.mutate({
+            id: originalTaskId,
+            parent_id: parentId,
+            order_index: taskData.OrderIndex || 0,
+          }, {
+            onSuccess: () => {
+              console.log('Indenting successful - parent_id saved to database');
+              handleMutationSuccess('Indent');
+            },
+            onError: (error) => handleMutationError(error, 'Indent')
+          });
+        } else {
+          console.error('Cannot set task as its own parent or parent is null');
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Cannot indent task - invalid parent relationship",
+          });
+        }
       }
     } 
     else if (args.requestType === 'outdented' && args.data) {
       console.log('=== OUTDENTING TASK (making it a parent/root) ===');
-      console.log('Outdenting data:', args.data);
-      const taskData = args.data[0];
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for outdenting
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
-        
-        let parentId = null;
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Outdenting - found parent from Gantt instance:', parentId);
-          }
-        } else {
-          // When outdenting to root level, parent_id should be null
-          parentId = null;
-          console.log('Outdenting - making task a root level task (parent_id = null)');
-        }
-        
+      if (originalTaskId) {
+        // FIXED: For outdenting, get the new parent (or null for root)
+        const parentId = getParentIdForTask(taskData);
         console.log('Outdenting - setting parent_id to:', parentId);
         
         updateTask.mutate({
