@@ -128,7 +128,6 @@ export function useFileGridDragDrop({ uploadFileToFolder, onRefresh }: UseFileGr
     // Prevent all default behaviors
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
     
     setDragOverFolder(null);
     setDraggedFileCount(0);

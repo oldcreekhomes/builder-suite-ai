@@ -187,7 +187,7 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
             title={displayInfo.fullPath}
             onClick={() => onFileSelect(file)}
           >
-            {displayInfo.pathWithinFolder || displayInfo.fileName}
+            {displayInfo.fileName}
           </h3>
         )}
         

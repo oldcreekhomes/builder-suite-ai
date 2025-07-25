@@ -153,7 +153,7 @@ export function FileRow({
             />
           ) : (
             <div className="font-medium">
-              {displayInfo.pathWithinFolder || displayInfo.fileName}
+              {displayInfo.fileName}
             </div>
           )}
           {file.description && !isEditing && (
