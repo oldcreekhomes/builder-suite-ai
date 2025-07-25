@@ -72,6 +72,11 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: UpdateTaskParams) => {
       if (!user) throw new Error('User not authenticated');
 
+      console.log('=== UPDATING TASK IN DATABASE ===');
+      console.log('Task ID:', params.id);
+      console.log('Parent ID being sent:', params.parent_id);
+      console.log('All update params:', params);
+
       const { data, error } = await supabase.rpc('update_project_task', {
         id_param: params.id,
         task_name_param: params.task_name,
@@ -90,6 +95,7 @@ export const useTaskMutations = (projectId: string) => {
         throw error;
       }
 
+      console.log('Task update successful, database response:', data);
       return data;
     },
     onSuccess: () => {

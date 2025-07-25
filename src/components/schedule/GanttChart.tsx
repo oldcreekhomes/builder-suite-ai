@@ -610,20 +610,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       const taskData = args.data[0];
       const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
       
-      if (originalTaskId && ganttRef.current) {
-        // Enhanced parent detection for outdenting
-        const ganttInstance = ganttRef.current;
-        const currentTask = ganttInstance.flatData?.find((task: any) => task.TaskID === taskData.TaskID);
+      if (originalTaskId) {
+        console.log('Outdenting - originalTaskId found:', originalTaskId);
         
+        // For outdenting, determine the new parent level based on the current hierarchy
         let parentId = null;
-        if (currentTask && (currentTask as any).parentItem) {
-          const parentTaskId = ((currentTask as any).parentItem as any)?.TaskID;
-          if (parentTaskId) {
-            parentId = findOriginalTaskId(parentTaskId, ganttData);
-            console.log('Outdenting - found parent from Gantt instance:', parentId);
-          }
+        
+        // Check the current task's hierarchical level to determine new parent
+        const taskIdStr = String(taskData.TaskID);
+        const taskIdParts = taskIdStr.split('.');
+        console.log('Task ID parts for outdenting:', taskIdParts);
+        
+        if (taskIdParts.length > 2) {
+          // Task is nested more than one level, move it up one level
+          const newParentTaskId = taskIdParts.slice(0, -2).join('.');
+          parentId = findOriginalTaskId(newParentTaskId, ganttData);
+          console.log(`Outdenting - moving to parent level: ${newParentTaskId} -> ${parentId}`);
         } else {
-          // When outdenting to root level, parent_id should be null
+          // Task is at the second level or already at root, make it root level
           parentId = null;
           console.log('Outdenting - making task a root level task (parent_id = null)');
         }
@@ -632,11 +636,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         
         updateTask.mutate({
           id: originalTaskId,
-          parent_id: parentId, // This might be null for root-level tasks
+          parent_id: parentId,
           order_index: taskData.OrderIndex || 0,
         }, {
           onSuccess: () => {
-            console.log('Outdenting successful - parent_id updated in database');
+            console.log('Outdenting successful - parent_id updated in database:', parentId);
             handleMutationSuccess('Outdent');
           },
           onError: (error) => handleMutationError(error, 'Outdent')
