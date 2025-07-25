@@ -8,7 +8,6 @@ import { ArrowLeft, Search, Grid, List, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 import { FileList } from "@/components/files/FileList";
 import { FileGrid } from "@/components/files/FileGrid";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
@@ -93,59 +92,6 @@ export default function ProjectFiles() {
     setShowNewFolderModal(true);
   };
 
-  const handleCreateFolder = async (folderName: string, parentPath?: string) => {
-    if (!user) return;
-
-    const fullPath = parentPath && parentPath !== 'Root' ? `${parentPath}/${folderName}` : folderName;
-    
-    try {
-      // Create a placeholder file in the folder to make it visible
-      const placeholderContent = new Blob([''], { type: 'text/plain' });
-      const placeholderFile = new File([placeholderContent], '.folderkeeper', {
-        type: 'text/plain'
-      });
-
-      const fileId = crypto.randomUUID();
-      const fileName = `${user.id}/${projectId}/${fileId}_${fullPath}/.folderkeeper`;
-      
-      // Upload placeholder to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(fileName, placeholderFile);
-
-      if (uploadError) throw uploadError;
-
-      // Save file metadata to database
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          project_id: projectId,
-          filename: fileName,
-          original_filename: `${fullPath}/.folderkeeper`,
-          file_size: placeholderFile.size,
-          file_type: 'folderkeeper',
-          mime_type: 'text/plain',
-          storage_path: uploadData.path,
-          uploaded_by: user.id,
-        });
-
-      if (dbError) throw dbError;
-
-      refetch();
-      toast({
-        title: "Success",
-        description: `Folder "${folderName}" created successfully in ${parentPath || 'Root'}`,
-      });
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create folder",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (!projectId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -225,12 +171,6 @@ export default function ProjectFiles() {
           </header>
 
           <div className="flex-1 p-6 space-y-6">
-            <FileUploadDropzone
-              projectId={projectId}
-              onUploadSuccess={handleUploadSuccess}
-              onCreateFolder={handleCreateFolder}
-            />
-
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
@@ -242,10 +182,6 @@ export default function ProjectFiles() {
                     files={filteredFiles}
                     onFileSelect={handleFileSelect}
                     onRefresh={refetch}
-                    onUploadToFolder={(folderName, files) => {
-                      // Handle folder upload
-                      console.log('Upload to folder:', folderName, files);
-                    }}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
                     onCreateSubfolder={handleCreateSubfolder}
@@ -255,10 +191,6 @@ export default function ProjectFiles() {
                     files={filteredFiles}
                     onFileSelect={handleFileSelect}
                     onRefresh={refetch}
-                    onUploadToFolder={(folderName, files) => {
-                      // Handle folder upload
-                      console.log('Upload to folder:', folderName, files);
-                    }}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
                     onCreateSubfolder={handleCreateSubfolder}
@@ -295,7 +227,10 @@ export default function ProjectFiles() {
             setShowNewFolderModal(false);
             setParentFolderPath(undefined);
           }}
-          onCreateFolder={handleCreateFolder}
+          onCreateFolder={(folderName: string, parentPath?: string) => {
+            // Folder creation is now handled by the individual components
+            refetch();
+          }}
           parentPath={parentFolderPath}
         />
       </div>

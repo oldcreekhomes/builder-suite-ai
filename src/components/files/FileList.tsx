@@ -16,13 +16,12 @@ interface FileListProps {
   files: any[];
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
-  onUploadToFolder?: (folderName: string, files: File[]) => void;
   onShare: (file: any) => void;
   onShareFolder: (folderPath: string, files: any[]) => void;
   onCreateSubfolder: (parentPath: string) => void;
 }
 
-export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onShare, onShareFolder, onCreateSubfolder }: FileListProps) {
+export function FileList({ files, onFileSelect, onRefresh, onShare, onShareFolder, onCreateSubfolder }: FileListProps) {
   // Start with empty Set - all folders collapsed by default
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 

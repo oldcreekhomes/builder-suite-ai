@@ -16,13 +16,12 @@ interface FileGridProps {
   files: any[];
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
-  onUploadToFolder?: (folderName: string, files: File[]) => void;
   onShare: (file: any) => void;
   onShareFolder: (folderPath: string, files: any[]) => void;
   onCreateSubfolder: (parentPath: string) => void;
 }
 
-export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onShare, onShareFolder, onCreateSubfolder }: FileGridProps) {
+export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolder, onCreateSubfolder }: FileGridProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const {
