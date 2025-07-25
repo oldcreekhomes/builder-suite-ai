@@ -227,15 +227,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         console.log('Found task in currentViewData:', currentTaskRecord);
         
         // Check parent properties
-        if (currentTaskRecord.parentItem && currentTaskRecord.parentItem.TaskID) {
-          const parentOriginalId = findOriginalTaskId(currentTaskRecord.parentItem.TaskID, ganttData);
+        if (currentTaskRecord.parentItem && currentTaskRecord.parentItem.taskId) {
+          const parentOriginalId = findOriginalTaskId(currentTaskRecord.parentItem.taskId, ganttData);
           console.log('Method 2a - Parent via currentViewData parentItem:', parentOriginalId);
           if (parentOriginalId) return parentOriginalId;
         }
         
         // Check for parent task ID property
-        if (currentTaskRecord.ParentID) {
-          const parentOriginalId = findOriginalTaskId(currentTaskRecord.ParentID, ganttData);
+        if ((currentTaskRecord as any).ParentID) {
+          const parentOriginalId = findOriginalTaskId((currentTaskRecord as any).ParentID, ganttData);
           console.log('Method 2b - Parent via ParentID property:', parentOriginalId);
           if (parentOriginalId) return parentOriginalId;
         }
@@ -253,8 +253,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       if (flatDataTask) {
         console.log('Found task in flatData:', flatDataTask);
         
-        if (flatDataTask.parentItem && flatDataTask.parentItem.TaskID) {
-          const parentOriginalId = findOriginalTaskId(flatDataTask.parentItem.TaskID, ganttData);
+        if (flatDataTask.parentItem && flatDataTask.parentItem.taskId) {
+          const parentOriginalId = findOriginalTaskId(flatDataTask.parentItem.taskId, ganttData);
           console.log('Method 3 - Parent via flatData:', parentOriginalId);
           if (parentOriginalId) return parentOriginalId;
         }
@@ -456,12 +456,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       // Additional check: if task was added as a child via UI, it should have parent info
       if (!parentId && ganttRef.current) {
-        // Check if this task was added under a selected parent
-        const selectedRecord = ganttRef.current.getSelectedRecords();
-        if (selectedRecord && selectedRecord.length > 0) {
-          const selectedParent = selectedRecord[0];
-          parentId = findOriginalTaskId(selectedParent.TaskID, ganttData);
-          console.log('Using selected record as parent:', parentId);
+        // Check if this task was added under a selected parent - simplified approach
+        if (selectedTaskId) {
+          parentId = selectedTaskId;
+          console.log('Using pre-selected task as parent:', parentId);
         }
       }
       
@@ -560,7 +558,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('Current task in view data:', currentTask);
           
           if (currentTask && currentTask.parentItem) {
-            parentId = findOriginalTaskId(currentTask.parentItem.TaskID, ganttData);
+            parentId = findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
             console.log('Parent found from current view data:', parentId);
           }
         }
@@ -626,7 +624,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         if (ganttRef.current && ganttRef.current.currentViewData) {
           const currentTask = ganttRef.current.currentViewData.find((t: any) => t.TaskID === taskData.TaskID);
           if (currentTask && currentTask.parentItem) {
-            newParentId = findOriginalTaskId(currentTask.parentItem.TaskID, ganttData);
+            newParentId = findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
           }
         }
         
