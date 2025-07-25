@@ -27,6 +27,8 @@ interface FileRowProps {
   onDelete: (file: any) => void;
   onRefresh?: () => void;
   onShare: (file: any) => void;
+  isDragging?: boolean;
+  fileDragProps?: any;
 }
 
 export function FileRow({
@@ -38,6 +40,8 @@ export function FileRow({
   onDelete,
   onRefresh,
   onShare,
+  isDragging = false,
+  fileDragProps = {},
 }: FileRowProps) {
   const displayInfo = getDisplayName(file.original_filename);
   const { toast } = useToast();
@@ -121,7 +125,10 @@ export function FileRow({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <TableRow className="hover:bg-gray-50">
+        <TableRow 
+          className={`hover:bg-gray-50 ${isDragging ? 'opacity-50' : ''}`}
+          {...fileDragProps}
+        >
       <TableCell>
         <Checkbox
           checked={isSelected}

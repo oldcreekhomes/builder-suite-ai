@@ -8,6 +8,7 @@ import { getDisplayName } from "./utils/fileGridUtils";
 import { groupFilesByFolder, sortFolders } from "./utils/fileUtils";
 import { useFileGridOperations } from "./hooks/useFileGridOperations";
 import { useFileGridDragDrop } from "./hooks/useFileGridDragDrop";
+import { useFileDragDrop } from "./hooks/useFileDragDrop";
 import { FileGridFolder } from "./components/FileGridFolder";
 import { FileGridCard } from "./components/FileGridCard";
 
@@ -28,17 +29,26 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     selectedFiles,
     isDeleting,
     uploadFileToFolder,
+    moveFileToFolder,
     handleSelectAll,
     handleSelectFile,
     handleBulkDelete,
   } = useFileGridOperations(onRefresh);
 
   const {
-    dragOverFolder,
-    handleFolderDragOver,
-    handleFolderDragLeave,
-    handleFolderDrop,
+    dragOverFolder: uploadDragOverFolder,
+    handleFolderDragOver: handleUploadDragOver,
+    handleFolderDragLeave: handleUploadDragLeave,
+    handleFolderDrop: handleUploadDrop,
   } = useFileGridDragDrop({ uploadFileToFolder, onRefresh });
+
+  const {
+    isDragging,
+    draggedFiles,
+    dragOverFolder: moveDragOverFolder,
+    getFileDragProps,
+    getFolderDropProps,
+  } = useFileDragDrop({ moveFileToFolder, onRefresh, selectedFiles });
 
   // Group files by folder
   const groupedFiles = groupFilesByFolder(files);
@@ -138,15 +148,17 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
             <div key={folderPath} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {folderFiles.map((file) => (
-                  <FileGridCard
-                    key={file.id}
-                    file={file}
-                    isSelected={selectedFiles.has(file.id)}
-                    onSelectFile={handleSelectFile}
-                    onFileSelect={onFileSelect}
-                    onRefresh={onRefresh}
-                    onShare={onShare}
-                  />
+                  <div key={file.id} {...getFileDragProps(file.id)}>
+                    <FileGridCard
+                      file={file}
+                      isSelected={selectedFiles.has(file.id)}
+                      onSelectFile={handleSelectFile}
+                      onFileSelect={onFileSelect}
+                      onRefresh={onRefresh}
+                      onShare={onShare}
+                      isDragging={isDragging && draggedFiles.includes(file.id)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -155,36 +167,56 @@ export function FileGrid({ files, onFileSelect, onRefresh, onUploadToFolder, onS
         
         // Handle regular folders
         const isExpanded = expandedFolders.has(folderPath);
-        const isDragOver = dragOverFolder === folderPath;
+        const isUploadDragOver = uploadDragOverFolder === folderPath;
+        const isMoveDragOver = moveDragOverFolder === folderPath;
+        const isDragOver = isUploadDragOver || isMoveDragOver;
         
         return (
           <div key={folderPath} className="space-y-3">
-            <FileGridFolder
-              folderPath={folderPath}
-              folderFiles={folderFiles}
-              isExpanded={isExpanded}
-              isDragOver={isDragOver}
-              onToggleFolder={toggleFolder}
-              onDragOver={handleFolderDragOver}
-              onDragLeave={handleFolderDragLeave}
-              onDrop={handleFolderDrop}
-              onShareFolder={onShareFolder}
-              onCreateSubfolder={onCreateSubfolder}
-              onRefresh={onRefresh}
-            />
+            <div
+              {...getFolderDropProps(folderPath)}
+              onDragOver={(e) => {
+                getFolderDropProps(folderPath).onDragOver(e);
+                handleUploadDragOver(e, folderPath);
+              }}
+              onDragLeave={(e) => {
+                getFolderDropProps(folderPath).onDragLeave(e);
+                handleUploadDragLeave(e);
+              }}
+              onDrop={(e) => {
+                getFolderDropProps(folderPath).onDrop(e);
+                handleUploadDrop(e, folderPath);
+              }}
+            >
+              <FileGridFolder
+                folderPath={folderPath}
+                folderFiles={folderFiles}
+                isExpanded={isExpanded}
+                isDragOver={isDragOver}
+                onToggleFolder={toggleFolder}
+                onDragOver={() => {}}
+                onDragLeave={() => {}}
+                onDrop={() => {}}
+                onShareFolder={onShareFolder}
+                onCreateSubfolder={onCreateSubfolder}
+                onRefresh={onRefresh}
+              />
+            </div>
 
             {isExpanded && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ml-8">
                 {folderFiles.map((file) => (
-                  <FileGridCard
-                    key={file.id}
-                    file={file}
-                    isSelected={selectedFiles.has(file.id)}
-                    onSelectFile={handleSelectFile}
-                    onFileSelect={onFileSelect}
-                    onRefresh={onRefresh}
-                    onShare={onShare}
-                  />
+                  <div key={file.id} {...getFileDragProps(file.id)}>
+                    <FileGridCard
+                      file={file}
+                      isSelected={selectedFiles.has(file.id)}
+                      onSelectFile={handleSelectFile}
+                      onFileSelect={onFileSelect}
+                      onRefresh={onRefresh}
+                      onShare={onShare}
+                      isDragging={isDragging && draggedFiles.includes(file.id)}
+                    />
+                  </div>
                 ))}
               </div>
             )}

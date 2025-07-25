@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { useFileOperations } from "./hooks/useFileOperations";
 import { useFolderDragDrop } from "./hooks/useFolderDragDrop";
+import { useFileDragDrop } from "./hooks/useFileDragDrop";
 import { groupFilesByFolder, sortFolders } from "./utils/fileUtils";
 import { FolderHeader } from "./components/FolderHeader";
 import { FileRow } from "./components/FileRow";
@@ -30,6 +31,7 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
     selectedFolders,
     isDeleting,
     uploadFileToFolder,
+    moveFileToFolder,
     handleDownload,
     handleDelete,
     handleFolderDelete,
@@ -40,11 +42,19 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
   } = useFileOperations(onRefresh);
 
   const {
-    dragOverFolder,
-    handleFolderDragOver,
-    handleFolderDragLeave,
-    handleFolderDrop,
+    dragOverFolder: uploadDragOverFolder,
+    handleFolderDragOver: handleUploadDragOver,
+    handleFolderDragLeave: handleUploadDragLeave,
+    handleFolderDrop: handleUploadDrop,
   } = useFolderDragDrop({ uploadFileToFolder, onRefresh });
+
+  const {
+    isDragging,
+    draggedFiles,
+    dragOverFolder: moveDragOverFolder,
+    getFileDragProps,
+    getFolderDropProps,
+  } = useFileDragDrop({ moveFileToFolder, onRefresh, selectedFiles });
 
   // Reset to collapsed state when files change
   useEffect(() => {
@@ -169,6 +179,8 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
                     onDelete={handleDelete}
                     onRefresh={onRefresh}
                     onShare={onShare}
+                    isDragging={isDragging && draggedFiles.includes(file.id)}
+                    fileDragProps={getFileDragProps(file.id)}
                   />
                 ));
               }
@@ -176,7 +188,9 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
               // Handle regular folders
               // Ensure folders are collapsed by default - only expanded if explicitly in the set
               const isExpanded = expandedFolders.has(folderPath);
-              const isDragOver = dragOverFolder === folderPath;
+              const isUploadDragOver = uploadDragOverFolder === folderPath;
+              const isMoveDragOver = moveDragOverFolder === folderPath;
+              const isDragOver = isUploadDragOver || isMoveDragOver;
               const isFolderSelected = selectedFolders.has(folderPath);
               
               console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
@@ -191,9 +205,18 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
                   isSelected={isFolderSelected}
                   onToggleFolder={toggleFolder}
                   onSelectFolder={handleSelectFolder}
-                  onDragOver={handleFolderDragOver}
-                  onDragLeave={handleFolderDragLeave}
-                  onDrop={handleFolderDrop}
+                  onDragOver={(e, path) => {
+                    getFolderDropProps(path).onDragOver(e);
+                    handleUploadDragOver(e, path);
+                  }}
+                  onDragLeave={(e) => {
+                    getFolderDropProps(folderPath).onDragLeave(e);
+                    handleUploadDragLeave(e);
+                  }}
+                  onDrop={(e, path) => {
+                    getFolderDropProps(path).onDrop(e);
+                    handleUploadDrop(e, path);
+                  }}
                   onShareFolder={onShareFolder}
                   onCreateSubfolder={onCreateSubfolder}
                   onRefresh={onRefresh}
@@ -213,6 +236,8 @@ export function FileList({ files, onFileSelect, onRefresh, onUploadToFolder, onS
                       onDelete={handleDelete}
                       onRefresh={onRefresh}
                       onShare={onShare}
+                      isDragging={isDragging && draggedFiles.includes(file.id)}
+                      fileDragProps={getFileDragProps(file.id)}
                     />
                   );
                 });

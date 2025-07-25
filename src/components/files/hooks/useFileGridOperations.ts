@@ -45,6 +45,59 @@ export function useFileGridOperations(onRefresh: () => void) {
     }
   };
 
+  const moveFileToFolder = async (fileId: string, targetFolder: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Get the current file data
+      const { data: fileData, error: fetchError } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Calculate the new filename path
+      let newFilename: string;
+      const originalFileName = fileData.original_filename.split('/').pop() || fileData.original_filename;
+      
+      if (targetFolder === '__LOOSE_FILES__') {
+        // Moving to root - just use the original filename
+        newFilename = originalFileName;
+      } else {
+        // Moving to a folder - prepend the folder path
+        newFilename = `${targetFolder}/${originalFileName}`;
+      }
+
+      // Don't move if it's already in the target folder
+      if (fileData.original_filename === newFilename) {
+        return false;
+      }
+
+      // Update the file's path in the database
+      const { error: updateError } = await supabase
+        .from('project_files')
+        .update({ 
+          original_filename: newFilename,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fileId);
+
+      if (updateError) throw updateError;
+
+      return true;
+    } catch (error) {
+      console.error('Error moving file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move file",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const handleSelectAll = (checked: boolean, files: any[]) => {
     if (checked) {
       setSelectedFiles(new Set(files.map(file => file.id)));
@@ -97,6 +150,7 @@ export function useFileGridOperations(onRefresh: () => void) {
     selectedFiles,
     isDeleting,
     uploadFileToFolder,
+    moveFileToFolder,
     handleSelectAll,
     handleSelectFile,
     handleBulkDelete,

@@ -25,9 +25,10 @@ interface FileGridCardProps {
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
   onShare: (file: any) => void;
+  isDragging?: boolean;
 }
 
-export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onRefresh, onShare }: FileGridCardProps) {
+export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onRefresh, onShare, isDragging = false }: FileGridCardProps) {
   const { toast } = useToast();
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>('');
@@ -150,7 +151,9 @@ export function FileGridCard({ file, isSelected, onSelectFile, onFileSelect, onR
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Card className="p-4 hover:shadow-md transition-shadow relative">
+        <Card className={`p-4 hover:shadow-md transition-shadow relative ${
+          isDragging ? 'opacity-50 scale-95' : ''
+        }`}>
       <div className="absolute top-2 left-2 z-10">
         <Checkbox
           checked={isSelected}
