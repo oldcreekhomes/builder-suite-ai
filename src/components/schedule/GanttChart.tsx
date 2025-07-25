@@ -336,6 +336,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('Modified records:', args.modifiedRecords);
     console.log('Changed records:', args.changedRecords);
     
+    // *** CRITICAL INDENT/OUTDENT DEBUG LOGGING ***
+    console.log('*** INDENT/OUTDENT DETECTION ***');
+    console.log('Is indenting action?', args.requestType === 'indenting');
+    console.log('Is outdenting action?', args.requestType === 'outdenting');
+    console.log('Is indent action?', args.requestType === 'indent');
+    console.log('Is outdent action?', args.requestType === 'outdent');
+    console.log('Is editing action?', args.requestType === 'save');
+    console.log('Action type:', args.action);
+    console.log('Request name:', args.name);
+    console.log('All args properties:', Object.keys(args));
+    console.log('*** END INDENT/OUTDENT DETECTION ***');
+    
     // Safe logging of data without circular references
     if (args.data) {
       console.log('Data TaskID:', args.data.TaskID);
