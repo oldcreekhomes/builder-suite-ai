@@ -11,19 +11,32 @@ export function useFileGridOperations(onRefresh: () => void) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const uploadFileToFolder = async (file: File, folderName: string) => {
-    if (!user) return false;
+    if (!user) {
+      console.error('Upload failed: No user authenticated');
+      return false;
+    }
 
     const fileId = crypto.randomUUID();
+    const timestamp = Date.now();
     const relativePath = folderName === 'Root' ? file.name : `${folderName}/${file.name}`;
-    const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${relativePath}`;
+    const fileName = `${user.id}/${window.location.pathname.split('/')[2]}/${fileId}_${timestamp}_${relativePath}`;
+    
+    console.log(`Starting upload for file: ${file.name} (${file.size} bytes) to folder: ${folderName}`);
     
     try {
+      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error(`Storage upload failed for ${file.name}:`, uploadError);
+        throw uploadError;
+      }
 
+      console.log(`Storage upload successful for ${file.name}, inserting into database...`);
+
+      // Insert into database
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
@@ -37,10 +50,20 @@ export function useFileGridOperations(onRefresh: () => void) {
           uploaded_by: user.id,
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error(`Database insert failed for ${file.name}:`, dbError);
+        throw dbError;
+      }
+
+      console.log(`Upload completed successfully for: ${file.name}`);
       return true;
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error(`Upload error for ${file.name}:`, error);
+      toast({
+        title: "Upload Error",
+        description: `Failed to upload ${file.name}: ${error.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
       return false;
     }
   };

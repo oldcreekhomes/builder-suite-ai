@@ -87,6 +87,11 @@ export function useFileGridDragDrop({ uploadFileToFolder, onRefresh }: UseFileGr
       // Process files from the drag event properly
       const droppedFiles = await processFilesFromDragEvent(e.dataTransfer);
       
+      console.log(`Drag event processed: ${droppedFiles.length} valid files found`);
+      droppedFiles.forEach((file, index) => {
+        console.log(`File ${index + 1}: ${file.name} (${file.size} bytes, type: ${file.type})`);
+      });
+      
       if (droppedFiles.length === 0) {
         toast({
           title: "No files to upload",
@@ -101,11 +106,23 @@ export function useFileGridDragDrop({ uploadFileToFolder, onRefresh }: UseFileGr
         description: `Uploading ${droppedFiles.length} file(s) to ${folderName === 'Root' ? 'root folder' : folderName}...`,
       });
 
-      // Upload all files concurrently
-      const uploadPromises = droppedFiles.map(file => uploadFileToFolder(file, folderName));
-      const results = await Promise.all(uploadPromises);
-      const successCount = results.filter(Boolean).length;
-      const failedCount = droppedFiles.length - successCount;
+      console.log(`Processing ${droppedFiles.length} files for upload to folder: ${folderName}`);
+      
+      // Upload files sequentially to avoid race conditions
+      let successCount = 0;
+      let failedCount = 0;
+      
+      for (const file of droppedFiles) {
+        console.log(`Uploading file ${successCount + failedCount + 1} of ${droppedFiles.length}: ${file.name}`);
+        const success = await uploadFileToFolder(file, folderName);
+        if (success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      }
+      
+      console.log(`Upload completed: ${successCount} successful, ${failedCount} failed`);
 
       if (successCount > 0) {
         toast({
