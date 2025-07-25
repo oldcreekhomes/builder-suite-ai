@@ -37,7 +37,16 @@ const AppContent = () => {
     const registerSyncfusionLicense = async () => {
       try {
         console.log('Registering Syncfusion license...');
-        const { data, error } = await supabase.functions.invoke('get-syncfusion-key');
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('License registration timeout')), 5000)
+        );
+        
+        const licensePromise = supabase.functions.invoke('get-syncfusion-key');
+        
+        const result = await Promise.race([licensePromise, timeoutPromise]) as any;
+        const { data, error } = result;
         
         if (error) {
           console.error('Error fetching Syncfusion license:', error);
