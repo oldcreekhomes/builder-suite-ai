@@ -76,9 +76,8 @@ export function PublishScheduleDialog({
               name="daysFromToday"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notification Settings</FormLabel>
-                  <div className="flex items-center space-x-2">
-                    <Label>Notifications should be sent to all users who start date is within</Label>
+                  <div className="space-y-3">
+                    <Label>Notifications should be sent to all users who start date is within days of today?</Label>
                     <FormControl>
                       <Input
                         {...field}
@@ -88,7 +87,6 @@ export function PublishScheduleDialog({
                         min="1"
                       />
                     </FormControl>
-                    <Label>days of today</Label>
                   </div>
                   <FormMessage />
                 </FormItem>
