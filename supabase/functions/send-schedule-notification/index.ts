@@ -18,6 +18,7 @@ interface ScheduleNotificationRequest {
   projectManagerPhone: string;
   projectManagerEmail: string;
   tasks: Array<{
+    id: string;
     task_name: string;
     start_date: string;
     end_date: string;
@@ -25,6 +26,8 @@ interface ScheduleNotificationRequest {
   }>;
   timeframe: string;
   customMessage?: string;
+  companyId: string;
+  representativeId: string;
 }
 
 const formatDate = (dateString: string): string => {
@@ -38,13 +41,24 @@ const formatDate = (dateString: string): string => {
 };
 
 const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
-  const { recipientName, projectName, projectAddress, projectManagerName, projectManagerPhone, projectManagerEmail, tasks, timeframe, customMessage } = data;
+  const { recipientName, projectName, projectAddress, projectManagerName, projectManagerPhone, projectManagerEmail, tasks, timeframe, customMessage, companyId, representativeId } = data;
   
   const tasksList = tasks.map(task => `
     <tr style="border-bottom: 1px solid #e5e5e5;">
       <td style="padding: 12px; font-weight: 600; color: #374151;">${task.task_name}</td>
       <td style="padding: 12px; color: #6b7280;">${formatDate(task.start_date)}</td>
       <td style="padding: 12px; color: #6b7280;">${formatDate(task.end_date)}</td>
+      <td style="padding: 12px; color: #6b7280;">${task.resources || 'Not specified'}</td>
+      <td style="padding: 12px; text-align: center;">
+        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" 
+           style="display: inline-block; background-color: #22c55e; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; margin-right: 8px;">
+          Confirm
+        </a>
+        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" 
+           style="display: inline-block; background-color: #ef4444; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
+          Deny
+        </a>
+      </td>
     </tr>
   `).join('');
 
@@ -84,6 +98,8 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
                 <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5;">Task Name</th>
                 <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5;">Start Date</th>
                 <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5;">End Date</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5;">Resources</th>
+                <th style="padding: 12px; text-align: center; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5;">Action</th>
               </tr>
             </thead>
             <tbody>

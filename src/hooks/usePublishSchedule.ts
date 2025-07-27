@@ -121,7 +121,7 @@ export const usePublishSchedule = (projectId: string) => {
           .select('id, first_name, last_name, email, company_name'),
         supabase
           .from('company_representatives')
-          .select('id, first_name, last_name, email, receive_schedule_notifications')
+          .select('id, first_name, last_name, email, receive_schedule_notifications, company_id')
       ]);
 
       if (usersResult.error) {
@@ -194,6 +194,8 @@ export const usePublishSchedule = (projectId: string) => {
             },
             resourceName: matchedRep.resourceName,
             type: 'representative',
+            representativeId: matchedRep.representative.id,
+            companyId: matchedRep.representative.company_id,
             tasksAssigned: upcomingTasks.filter((task: any) => 
               task.resources && parseResources(task.resources).includes(matchedRep.resourceName)
             )
@@ -254,9 +256,17 @@ export const usePublishSchedule = (projectId: string) => {
               projectManagerName: projectManagerName,
               projectManagerPhone: projectManagerPhone,
               projectManagerEmail: projectManagerEmail,
-              tasks: userToNotify.tasksAssigned,
+              tasks: userToNotify.tasksAssigned.map(task => ({
+                id: task.id,
+                task_name: task.task_name,
+                start_date: task.start_date,
+                end_date: task.end_date,
+                resources: task.resources
+              })),
               timeframe: `${data.daysFromToday} weeks`,
-              customMessage: data.message
+              customMessage: data.message,
+              companyId: userToNotify.type === 'representative' ? userToNotify.companyId || '' : '',
+              representativeId: userToNotify.type === 'representative' ? userToNotify.representativeId || '' : ''
             };
 
             const { data: emailResponse, error: emailError } = await supabase.functions.invoke(

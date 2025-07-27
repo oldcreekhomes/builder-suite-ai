@@ -616,6 +616,7 @@ export type Database = {
       }
       project_schedule_tasks: {
         Row: {
+          confirmed: boolean | null
           created_at: string
           duration: number
           end_date: string
@@ -631,6 +632,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          confirmed?: boolean | null
           created_at?: string
           duration?: number
           end_date: string
@@ -646,6 +648,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          confirmed?: boolean | null
           created_at?: string
           duration?: number
           end_date?: string

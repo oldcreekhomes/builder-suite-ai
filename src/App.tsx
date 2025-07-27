@@ -24,6 +24,7 @@ import PasswordReset from "./pages/PasswordReset";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
+import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
 
@@ -133,6 +134,9 @@ const AppContent = () => {
           
           {/* Bid Response Confirmation - no auth required */}
           <Route path="/bid-response-confirmation" element={<BidResponseConfirmation />} />
+          
+          {/* Schedule Response Confirmation - no auth required */}
+          <Route path="/schedule-response-confirmation" element={<ScheduleResponseConfirmation />} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (
