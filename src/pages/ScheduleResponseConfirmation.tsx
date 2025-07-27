@@ -12,36 +12,21 @@ export default function ScheduleResponseConfirmation() {
   const taskName = searchParams.get("task_name");
   const projectName = searchParams.get("project_name");
   const companyName = searchParams.get("company_name");
-  const status = searchParams.get("status");
 
   useEffect(() => {
+    console.log("ScheduleResponseConfirmation loaded - NEW VERSION");
+    console.log("Response:", response);
+    console.log("Task:", taskName);
+    console.log("Project:", projectName);
+    console.log("Company:", companyName);
+    
     // Simulate a brief loading state for better UX
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []);
-
-  // Check for status success - same as BidResponseConfirmation
-  if (status !== "success") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <CardTitle className="text-2xl font-bold text-red-600">Error</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-gray-600 mb-6">
-              There was an error processing your schedule response.
-            </p>
-            <Button onClick={() => window.close()}>Close Window</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  }, [response, taskName, projectName, companyName]);
 
   if (isLoading) {
     return (
@@ -99,7 +84,7 @@ export default function ScheduleResponseConfirmation() {
                 <MapPin className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Company</p>
-                  <p className="text-gray-600">{companyName || "Unknown Company"}</p>
+                  <p className="text-sm text-gray-600">{companyName || "Unknown Company"}</p>
                 </div>
               </div>
             </div>
