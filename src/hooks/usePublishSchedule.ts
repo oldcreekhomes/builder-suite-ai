@@ -33,6 +33,16 @@ const matchResourceToUser = (resourceName: string, users: any[]): any | null => 
   });
 };
 
+// Match resource names to company representatives
+const matchResourceToRepresentative = (resourceName: string, representatives: any[]): any | null => {
+  const normalizedResourceName = resourceName.toLowerCase().trim();
+  
+  return representatives.find(rep => {
+    const fullName = `${rep.first_name || ''} ${rep.last_name || ''}`.toLowerCase().trim();
+    return fullName === normalizedResourceName;
+  });
+};
+
 export const usePublishSchedule = (projectId: string) => {
   const queryClient = useQueryClient();
 
@@ -104,63 +114,92 @@ export const usePublishSchedule = (projectId: string) => {
         };
       }
 
-      // 3. Get all users to match against resource names
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email, company_name');
+      // 3. Get all users and company representatives to match against resource names
+      const [usersResult, representativesResult] = await Promise.all([
+        supabase
+          .from('users')
+          .select('id, first_name, last_name, email, company_name'),
+        supabase
+          .from('company_representatives')
+          .select('id, first_name, last_name, email, receive_schedule_notifications')
+      ]);
 
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
+      if (usersResult.error) {
+        console.error('Error fetching users:', usersResult.error);
         throw new Error('Failed to fetch users');
       }
 
-      console.log('All users:', users);
+      if (representativesResult.error) {
+        console.error('Error fetching representatives:', representativesResult.error);
+        throw new Error('Failed to fetch company representatives');
+      }
 
-      // 4. Match resource names to actual users
+      const users = usersResult.data || [];
+      const representatives = representativesResult.data || [];
+
+      console.log('All users:', users);
+      console.log('All company representatives:', representatives);
+
+      // 4. Match resource names to both users and representatives
       const matchedUsers = [];
+      const matchedRepresentatives = [];
       const unmatchedResources = [];
 
       for (const resourceName of allResourceNames) {
+        // First try to match to users
         const matchedUser = matchResourceToUser(resourceName, users);
         if (matchedUser) {
-          matchedUsers.push({ resourceName, user: matchedUser });
-        } else {
-          unmatchedResources.push(resourceName);
+          matchedUsers.push({ resourceName, user: matchedUser, type: 'user' });
+          continue;
         }
+
+        // Then try to match to company representatives
+        const matchedRep = matchResourceToRepresentative(resourceName, representatives);
+        if (matchedRep) {
+          matchedRepresentatives.push({ resourceName, representative: matchedRep, type: 'representative' });
+          continue;
+        }
+
+        // If no match found in either table
+        unmatchedResources.push(resourceName);
       }
 
       console.log('Matched users:', matchedUsers);
+      console.log('Matched representatives:', matchedRepresentatives);
       console.log('Unmatched resources:', unmatchedResources);
 
-      // 5. Check notification preferences for matched users
+      // 5. Prepare notifications for both users and representatives
       const usersToNotify = [];
       
-      if (matchedUsers.length > 0) {
-        const userIds = matchedUsers.map(mu => mu.user.id);
-        
-        // Check company representatives for notification preferences
-        const { data: representatives, error: repsError } = await supabase
-          .from('company_representatives')
-          .select('*')
-          .in('id', userIds); // This might not work directly, we need to match by user info
+      // Add matched users (assuming they want notifications - could add preference check later)
+      for (const matchedUser of matchedUsers) {
+        usersToNotify.push({
+          user: matchedUser.user,
+          resourceName: matchedUser.resourceName,
+          type: 'user',
+          tasksAssigned: upcomingTasks.filter((task: any) => 
+            task.resources && parseResources(task.resources).includes(matchedUser.resourceName)
+          )
+        });
+      }
 
-        if (repsError) {
-          console.error('Error fetching representatives:', repsError);
-        } else {
-          console.log('Representatives:', representatives);
-        }
-
-        // For now, let's check all matched users and assume they want notifications
-        // In a real implementation, you'd need to link users to representatives or add
-        // notification preferences directly to the users table
-        for (const matchedUser of matchedUsers) {
+      // Add matched representatives who have notifications enabled
+      for (const matchedRep of matchedRepresentatives) {
+        if (matchedRep.representative.receive_schedule_notifications) {
           usersToNotify.push({
-            user: matchedUser.user,
-            resourceName: matchedUser.resourceName,
+            user: {
+              email: matchedRep.representative.email,
+              first_name: matchedRep.representative.first_name,
+              last_name: matchedRep.representative.last_name
+            },
+            resourceName: matchedRep.resourceName,
+            type: 'representative',
             tasksAssigned: upcomingTasks.filter((task: any) => 
-              task.resources && parseResources(task.resources).includes(matchedUser.resourceName)
+              task.resources && parseResources(task.resources).includes(matchedRep.resourceName)
             )
           });
+        } else {
+          console.log(`Representative ${matchedRep.representative.first_name} ${matchedRep.representative.last_name} has notifications disabled`);
         }
       }
 
