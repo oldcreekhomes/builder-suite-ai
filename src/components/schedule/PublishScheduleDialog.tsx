@@ -77,7 +77,7 @@ export function PublishScheduleDialog({
               render={({ field }) => (
                 <FormItem>
                   <div className="space-y-3">
-                    <Label>Notifications should be sent to all users who start date is within days of today?</Label>
+                    <Label>Notifications should be sent to all resources who are scheduled for tasks to begin in the next:</Label>
                     <FormControl>
                       <Input
                         {...field}
