@@ -228,15 +228,17 @@ export const usePublishSchedule = (projectId: string) => {
         let projectManagerName = 'Project Manager';
         let projectManagerPhone = 'N/A';
         let projectManagerEmail = 'N/A';
+        let manager = null;
         
         if (project?.manager) {
-          const { data: manager, error: managerError } = await supabase
+          const { data: managerData, error: managerError } = await supabase
             .from('users')
-            .select('first_name, last_name, phone_number, email')
+            .select('first_name, last_name, phone_number, email, company_name')
             .eq('id', project.manager)
             .single();
             
-          if (manager && !managerError) {
+          if (managerData && !managerError) {
+            manager = managerData;
             projectManagerName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
             projectManagerPhone = manager.phone_number || 'N/A';
             projectManagerEmail = manager.email || 'N/A';
@@ -256,6 +258,7 @@ export const usePublishSchedule = (projectId: string) => {
               projectManagerName: projectManagerName,
               projectManagerPhone: projectManagerPhone,
               projectManagerEmail: projectManagerEmail,
+              senderCompanyName: manager?.company_name || 'BuilderSuite AI',
               tasks: userToNotify.tasksAssigned.map(task => ({
                 id: task.id,
                 task_name: task.task_name,

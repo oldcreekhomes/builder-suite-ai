@@ -17,6 +17,7 @@ interface ScheduleNotificationRequest {
   projectManagerName: string;
   projectManagerPhone: string;
   projectManagerEmail: string;
+  senderCompanyName: string;
   tasks: Array<{
     id: string;
     task_name: string;
@@ -141,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHTML = generateEmailHTML(requestData);
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: `${requestData.senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
       to: [requestData.recipientEmail],
       subject: `Schedule Updates - ${requestData.projectAddress}`,
       html: emailHTML,
