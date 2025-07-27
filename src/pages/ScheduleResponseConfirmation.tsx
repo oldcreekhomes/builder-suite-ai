@@ -12,6 +12,7 @@ export default function ScheduleResponseConfirmation() {
   const taskName = searchParams.get("task_name");
   const projectName = searchParams.get("project_name");
   const companyName = searchParams.get("company_name");
+  const status = searchParams.get("status");
 
   useEffect(() => {
     console.log("ScheduleResponseConfirmation loaded - NEW VERSION");
@@ -32,6 +33,28 @@ export default function ScheduleResponseConfirmation() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show error page if status is not success
+  if (status !== "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
+          <p className="text-gray-600 mb-6">
+            There was an error processing your schedule response. Please try again or contact support.
+          </p>
+          <Button 
+            onClick={() => window.close()} 
+            variant="destructive"
+            className="px-6"
+          >
+            Close Window
+          </Button>
+        </div>
       </div>
     );
   }

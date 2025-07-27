@@ -107,6 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
     confirmationUrl.searchParams.set('task_name', taskDetails?.task_name || 'Unknown Task');
     confirmationUrl.searchParams.set('project_name', taskDetails?.projects?.name || 'Unknown Project');
     confirmationUrl.searchParams.set('company_name', company?.company_name || 'Unknown Company');
+    confirmationUrl.searchParams.set('status', 'success');
 
     console.log('Redirecting to:', confirmationUrl.toString());
 
