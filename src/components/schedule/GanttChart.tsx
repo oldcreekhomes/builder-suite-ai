@@ -4,6 +4,7 @@ import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectResources } from '@/hooks/useProjectResources';
+import { usePublishSchedule } from '@/hooks/usePublishSchedule';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask, convertResourceIdsToNames } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
@@ -19,6 +20,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources, isLoading: resourcesLoading } = useProjectResources();
+  const { publishSchedule, isLoading: isPublishing } = usePublishSchedule(projectId);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     taskData: any;
@@ -788,10 +790,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         onOpenChange={setPublishDialogOpen}
         onPublish={(data) => {
           console.log('Publishing schedule with data:', data);
-          toast({
-            title: "Schedule Published",
-            description: `Notifications sent to users starting within ${data.daysFromToday} days`,
-          });
+          if (data.daysFromToday) {
+            publishSchedule({
+              daysFromToday: data.daysFromToday,
+              message: data.message
+            });
+          }
         }}
       />
     </div>
