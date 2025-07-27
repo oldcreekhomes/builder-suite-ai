@@ -77,7 +77,7 @@ export function PublishScheduleDialog({
               render={({ field }) => (
                 <FormItem>
                   <div className="space-y-3">
-                    <Label>Notifications should be sent to all resources who are scheduled for tasks to begin in the next:</Label>
+                    <Label>Notifications will be sent to all resources with tasks starting in the next:</Label>
                     <div className="flex items-center space-x-2">
                       <FormControl>
                         <Input
