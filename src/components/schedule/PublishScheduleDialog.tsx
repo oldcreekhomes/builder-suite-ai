@@ -78,15 +78,18 @@ export function PublishScheduleDialog({
                 <FormItem>
                   <div className="space-y-3">
                     <Label>Notifications should be sent to all resources who are scheduled for tasks to begin in the next:</Label>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder="7"
-                        className="w-20"
-                        min="1"
-                      />
-                    </FormControl>
+                    <div className="flex items-center space-x-2">
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="7"
+                          className="w-20"
+                          min="1"
+                        />
+                      </FormControl>
+                      <Label>weeks</Label>
+                    </div>
                   </div>
                   <FormMessage />
                 </FormItem>
