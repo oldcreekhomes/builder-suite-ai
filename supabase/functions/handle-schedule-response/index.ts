@@ -102,10 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Redirect to confirmation page with details
-    // Use the request origin to dynamically determine the correct domain
-    const requestUrl = new URL(req.url);
-    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || `${requestUrl.protocol}//${requestUrl.host}`;
-    const confirmationUrl = new URL(`${origin}/schedule-response-confirmation`);
+    const confirmationUrl = new URL('https://buildersuiteai.com/schedule-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('task_name', taskDetails?.task_name || 'Unknown Task');
     confirmationUrl.searchParams.set('project_name', taskDetails?.projects?.name || 'Unknown Project');
