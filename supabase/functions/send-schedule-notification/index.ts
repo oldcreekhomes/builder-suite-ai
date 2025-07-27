@@ -30,11 +30,11 @@ interface ScheduleNotificationRequest {
   representativeId: string;
 }
 
+// Format date for display (without year to save space)
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
-    year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
@@ -48,13 +48,13 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
       <td style="padding: 12px; font-weight: 600; color: #374151;">${task.task_name}</td>
       <td style="padding: 12px; color: #6b7280;">${formatDate(task.start_date)}</td>
       <td style="padding: 12px; color: #6b7280;">${formatDate(task.end_date)}</td>
-      <td style="padding: 12px; text-align: center;">
+      <td style="padding: 12px; text-align: center; white-space: nowrap;">
         <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" 
-           style="display: inline-block; background-color: #22c55e; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; margin-right: 8px;">
+           style="display: inline-block; background-color: #22c55e; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500; margin-right: 4px;">
           Confirm
         </a>
         <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" 
-           style="display: inline-block; background-color: #ef4444; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
+           style="display: inline-block; background-color: #ef4444; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500;">
           Deny
         </a>
       </td>
