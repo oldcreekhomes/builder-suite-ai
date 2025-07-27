@@ -57,13 +57,22 @@ export const usePublishSchedule = (projectId: string) => {
 
       console.log('All project tasks:', tasks);
 
-      // Filter tasks that start within the specified days
+      // Filter tasks that overlap with the specified date range
       const upcomingTasks = tasks.filter((task: any) => {
         const taskStartDate = new Date(task.start_date);
+        const taskEndDate = new Date(task.end_date);
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Start of today
         
-        return taskStartDate >= today && taskStartDate <= cutoffDate;
+        // Task overlaps with the date range if:
+        // 1. Task starts within the range, OR
+        // 2. Task ends within the range, OR  
+        // 3. Task spans the entire range
+        return (
+          (taskStartDate >= today && taskStartDate <= cutoffDate) ||
+          (taskEndDate >= today && taskEndDate <= cutoffDate) ||
+          (taskStartDate <= today && taskEndDate >= cutoffDate)
+        );
       });
 
       console.log('Upcoming tasks within timeframe:', upcomingTasks);
