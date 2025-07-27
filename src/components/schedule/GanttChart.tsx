@@ -94,7 +94,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
-    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 'Indent', 'Outdent'
+    'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 
+    { text: 'Publish', id: 'publish', prefixIcon: 'e-mail' },
+    'Indent', 'Outdent'
   ];
 
   const splitterSettings = {
@@ -322,8 +324,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                              args.item?.id === 'ZoomToFit' ||
                              args.item?.tooltipText === 'Zoom to fit';
     
+    // Check for Publish button
+    const isPublishButton = args.item?.id === 'publish' || 
+                           args.item?.text === 'Publish';
+    
     console.log('Is Add button?', isAddButton);
     console.log('Is ZoomToFit button?', isZoomToFitButton);
+    console.log('Is Publish button?', isPublishButton);
     
     if (isAddButton) {
       console.log('Add button detected! Preventing default and adding ROOT task...');
@@ -364,6 +371,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         // Use fitToProject method which should respect our exact dates
         ganttRef.current.fitToProject();
       }
+      
+      return;
+    } else if (isPublishButton) {
+      console.log('Publish button clicked! Future functionality placeholder...');
+      // Placeholder for future email functionality
+      toast({
+        title: "Publish Schedule",
+        description: "Email functionality coming soon!",
+      });
       
       return;
     } else {
