@@ -790,7 +790,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('Publishing schedule with data:', data);
           toast({
             title: "Schedule Published",
-            description: `Notifications: ${data.notificationType === 'none' ? 'None' : `Users within ${data.daysFromToday} days`}`,
+            description: `Notifications sent to users starting within ${data.daysFromToday} days`,
           });
         }}
       />

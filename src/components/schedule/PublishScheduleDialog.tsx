@@ -17,15 +17,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
-  notificationType: z.enum(["none", "withinDays"]),
-  daysFromToday: z.string().optional(),
+  daysFromToday: z.string().min(1, "Please enter number of days"),
   message: z.string().optional(),
 });
 
@@ -45,13 +44,12 @@ export function PublishScheduleDialog({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      notificationType: "none",
       daysFromToday: "",
       message: "",
     },
   });
 
-  const notificationType = form.watch("notificationType");
+  
 
   const handleSubmit = (data: FormData) => {
     onPublish(data);
@@ -75,56 +73,27 @@ export function PublishScheduleDialog({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="notificationType"
+              name="daysFromToday"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Notification Settings</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="space-y-3"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="none" id="none" />
-                        <Label htmlFor="none">No notifications</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="withinDays" id="withinDays" />
-                        <Label htmlFor="withinDays">
-                          Notifications should be sent to all users who start date is within
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
+                  <div className="flex items-center space-x-2">
+                    <Label>Notifications should be sent to all users who start date is within</Label>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="7"
+                        className="w-20"
+                        min="1"
+                      />
+                    </FormControl>
+                    <Label>days of today</Label>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {notificationType === "withinDays" && (
-              <FormField
-                control={form.control}
-                name="daysFromToday"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center space-x-2">
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="7"
-                          className="w-20"
-                          min="1"
-                        />
-                      </FormControl>
-                      <Label>days of today</Label>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <FormField
               control={form.control}
