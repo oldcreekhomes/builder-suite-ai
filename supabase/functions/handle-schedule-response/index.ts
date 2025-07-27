@@ -102,7 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Redirect to confirmation page with details
-    const confirmationUrl = new URL('/schedule-response-confirmation', req.url);
+    const confirmationUrl = new URL('https://buildersuiteai.com/schedule-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('task_name', taskDetails?.task_name || 'Unknown Task');
     confirmationUrl.searchParams.set('project_name', taskDetails?.projects?.name || 'Unknown Project');
