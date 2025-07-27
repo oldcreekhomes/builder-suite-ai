@@ -166,12 +166,74 @@ export const usePublishSchedule = (projectId: string) => {
 
       console.log('Users to notify:', usersToNotify);
 
+      // Send email notifications to users who should be notified
+      const emailResults = [];
+      if (usersToNotify.length > 0) {
+        // Get project details for the email
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('name')
+          .eq('id', projectId)
+          .single();
+
+        if (projectError) {
+          console.error('Error fetching project details:', projectError);
+        }
+
+        const projectName = project?.name || 'Your Project';
+
+        // Send emails to each user
+        for (const userToNotify of usersToNotify) {
+          try {
+            console.log(`Sending email to ${userToNotify.user.email}...`);
+            
+            const emailData = {
+              recipientEmail: userToNotify.user.email,
+              recipientName: `${userToNotify.user.first_name} ${userToNotify.user.last_name}`.trim() || userToNotify.user.email,
+              projectName: projectName,
+              tasks: userToNotify.tasksAssigned,
+              timeframe: `${data.daysFromToday} weeks`,
+              customMessage: data.message
+            };
+
+            const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
+              'send-schedule-notification',
+              { body: emailData }
+            );
+
+            if (emailError) {
+              console.error('Email sending error:', emailError);
+              emailResults.push({
+                user: userToNotify.user.email,
+                success: false,
+                error: emailError.message
+              });
+            } else {
+              console.log('Email sent successfully:', emailResponse);
+              emailResults.push({
+                user: userToNotify.user.email,
+                success: true,
+                messageId: emailResponse.messageId
+              });
+            }
+          } catch (emailError) {
+            console.error('Error sending email to', userToNotify.user.email, ':', emailError);
+            emailResults.push({
+              user: userToNotify.user.email,
+              success: false,
+              error: emailError.message
+            });
+          }
+        }
+      }
+
       return {
         success: true,
         message: `Found ${usersToNotify.length} users to notify about upcoming tasks`,
         notifiedUsers: usersToNotify,
         unmatchedResources,
-        totalTasks: upcomingTasks.length
+        totalTasks: upcomingTasks.length,
+        emailResults
       };
     },
 
@@ -185,7 +247,20 @@ export const usePublishSchedule = (projectId: string) => {
           .map((nu: any) => nu.user.first_name + ' ' + nu.user.last_name)
           .join(', ');
         
-        toastMessage += `\n\nUsers to notify: ${usersList}`;
+        toastMessage += `\n\nNotified users: ${usersList}`;
+        
+        // Add email sending results
+        if (result.emailResults && result.emailResults.length > 0) {
+          const successfulEmails = result.emailResults.filter((er: any) => er.success).length;
+          const failedEmails = result.emailResults.filter((er: any) => !er.success).length;
+          
+          if (successfulEmails > 0) {
+            toastMessage += `\n✅ Emails sent: ${successfulEmails}`;
+          }
+          if (failedEmails > 0) {
+            toastMessage += `\n❌ Email failures: ${failedEmails}`;
+          }
+        }
       }
       
       if (result.unmatchedResources && result.unmatchedResources.length > 0) {
@@ -193,7 +268,7 @@ export const usePublishSchedule = (projectId: string) => {
       }
 
       toast({
-        title: "Schedule Analysis Complete",
+        title: "Schedule Notifications Sent",
         description: toastMessage,
       });
     },
