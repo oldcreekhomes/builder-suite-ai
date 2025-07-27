@@ -95,7 +95,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 
-    { text: 'Publish', id: 'publish', prefixIcon: 'e-mail' },
+    { text: 'Publish', id: 'publish', prefixIcon: 'e-send' },
     'Indent', 'Outdent'
   ];
 
