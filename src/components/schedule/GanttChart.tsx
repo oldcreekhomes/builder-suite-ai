@@ -7,6 +7,7 @@ import { useProjectResources } from '@/hooks/useProjectResources';
 import { generateNestedHierarchy, findOriginalTaskId, ProcessedTask, convertResourceIdsToNames } from '@/utils/ganttUtils';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { PublishScheduleDialog } from './PublishScheduleDialog';
 import '@/utils/syncfusionOverrides';
 
 interface GanttChartProps {
@@ -24,6 +25,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: string;
   }>({ isOpen: false, taskData: null, taskName: '' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
   // Transform tasks with nested hierarchical structure and comprehensive debugging
   const ganttData = useMemo(() => {
@@ -374,13 +376,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       return;
     } else if (isPublishButton) {
-      console.log('Publish button clicked! Future functionality placeholder...');
-      // Placeholder for future email functionality
-      toast({
-        title: "Publish Schedule",
-        description: "Email functionality coming soon!",
-      });
-      
+      console.log('Publish button clicked! Opening dialog...');
+      setPublishDialogOpen(true);
       return;
     } else {
       console.log('Other toolbar action, continuing...');
@@ -785,6 +782,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       >
         <Inject services={[Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, TreeGridEdit]} />
       </GanttComponent>
+
+      <PublishScheduleDialog
+        open={publishDialogOpen}
+        onOpenChange={setPublishDialogOpen}
+        onPublish={(data) => {
+          console.log('Publishing schedule with data:', data);
+          toast({
+            title: "Schedule Published",
+            description: `Notifications: ${data.notificationType === 'none' ? 'None' : `Users within ${data.daysFromToday} days`}`,
+          });
+        }}
+      />
     </div>
   );
 };
