@@ -211,7 +211,7 @@ export const usePublishSchedule = (projectId: string) => {
         // Get project details for the email
         const { data: project, error: projectError } = await supabase
           .from('projects')
-          .select('name')
+          .select('name, address, manager')
           .eq('id', projectId)
           .single();
 
@@ -220,6 +220,26 @@ export const usePublishSchedule = (projectId: string) => {
         }
 
         const projectName = project?.name || 'Your Project';
+        const projectAddress = project?.address || 'Project Address';
+        
+        // Get project manager details
+        let projectManagerName = 'Project Manager';
+        let projectManagerPhone = 'N/A';
+        let projectManagerEmail = 'N/A';
+        
+        if (project?.manager) {
+          const { data: manager, error: managerError } = await supabase
+            .from('users')
+            .select('first_name, last_name, phone_number, email')
+            .eq('id', project.manager)
+            .single();
+            
+          if (manager && !managerError) {
+            projectManagerName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
+            projectManagerPhone = manager.phone_number || 'N/A';
+            projectManagerEmail = manager.email || 'N/A';
+          }
+        }
 
         // Send emails to each user
         for (const userToNotify of usersToNotify) {
@@ -230,6 +250,10 @@ export const usePublishSchedule = (projectId: string) => {
               recipientEmail: userToNotify.user.email,
               recipientName: `${userToNotify.user.first_name} ${userToNotify.user.last_name}`.trim() || userToNotify.user.email,
               projectName: projectName,
+              projectAddress: projectAddress,
+              projectManagerName: projectManagerName,
+              projectManagerPhone: projectManagerPhone,
+              projectManagerEmail: projectManagerEmail,
               tasks: userToNotify.tasksAssigned,
               timeframe: `${data.daysFromToday} weeks`,
               customMessage: data.message

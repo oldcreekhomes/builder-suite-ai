@@ -13,6 +13,10 @@ interface ScheduleNotificationRequest {
   recipientEmail: string;
   recipientName: string;
   projectName: string;
+  projectAddress: string;
+  projectManagerName: string;
+  projectManagerPhone: string;
+  projectManagerEmail: string;
   tasks: Array<{
     task_name: string;
     start_date: string;
@@ -34,7 +38,7 @@ const formatDate = (dateString: string): string => {
 };
 
 const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
-  const { recipientName, projectName, tasks, timeframe, customMessage } = data;
+  const { recipientName, projectName, projectAddress, projectManagerName, projectManagerPhone, projectManagerEmail, tasks, timeframe, customMessage } = data;
   
   const tasksList = tasks.map(task => `
     <tr style="border-bottom: 1px solid #e5e5e5;">
@@ -55,7 +59,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 30px;">
           <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Upcoming Tasks</h1>
-          <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0 0; font-size: 16px;">Project: ${projectName}</p>
+          <p style="color: rgba(255, 255, 255, 0.9); margin: 10px 0 0 0; font-size: 16px;">${projectAddress}</p>
         </div>
 
         <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
@@ -88,19 +92,18 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
           </table>
         </div>
 
-        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-          <h4 style="margin: 0 0 10px 0; color: #92400e; font-size: 16px;">📅 Important Reminders</h4>
-          <ul style="margin: 0; padding-left: 20px; color: #92400e;">
-            <li>Review all task requirements and materials needed</li>
-            <li>Coordinate with team members and subcontractors</li>
-            <li>Ensure all permits and approvals are in place</li>
-            <li>Check weather conditions for outdoor tasks</li>
-          </ul>
+        <div style="background: #f3f4f6; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+          <h4 style="margin: 0 0 15px 0; color: #374151; font-size: 16px;">Project Manager Contact</h4>
+          <div style="color: #6b7280; font-size: 14px;">
+            <p style="margin: 0 0 8px 0;"><strong>${projectManagerName}</strong></p>
+            <p style="margin: 0 0 8px 0;">📞 ${projectManagerPhone}</p>
+            <p style="margin: 0;">📧 ${projectManagerEmail}</p>
+          </div>
         </div>
 
         <div style="text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; color: #6b7280; font-size: 14px;">
           <p style="margin: 0;">This is an automated notification from your project management system.</p>
-          <p style="margin: 5px 0 0 0;">If you have questions, please contact your project manager.</p>
+          <p style="margin: 5px 0 0 0;">If you have questions, please contact your project manager above.</p>
         </div>
       </body>
     </html>
