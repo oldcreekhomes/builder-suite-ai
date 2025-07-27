@@ -124,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailHTML = generateEmailHTML(requestData);
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <notifications@buildersuiteai.com>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [requestData.recipientEmail],
       subject: `Upcoming Tasks - ${requestData.projectName}`,
       html: emailHTML,
