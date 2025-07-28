@@ -2,6 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Company {
   id: string;
@@ -36,6 +37,20 @@ export function ConfirmPODialog({
     onClose();
   };
 
+  const handleFilePreview = async (fileName: string) => {
+    try {
+      const { data } = await supabase.storage
+        .from('project_proposals')
+        .getPublicUrl(fileName);
+      
+      if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error previewing file:', error);
+    }
+  };
+
   if (!biddingCompany) return null;
 
   return (
@@ -54,17 +69,20 @@ export function ConfirmPODialog({
           {biddingCompany.proposals && biddingCompany.proposals.length > 0 && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">Attached Proposals:</label>
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 flex gap-2">
                 {biddingCompany.proposals.map((fileName, index) => {
-                  const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-                  const IconComponent = getFileIcon(fileExtension);
-                  const iconColor = getFileIconColor(fileExtension);
+                  const IconComponent = getFileIcon(fileName);
+                  const iconColor = getFileIconColor(fileName);
                   
                   return (
-                    <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-gray-50">
-                      <IconComponent className={`h-4 w-4 ${iconColor}`} />
-                      <span className="text-sm truncate">{fileName}</span>
-                    </div>
+                    <button
+                      key={index}
+                      onClick={() => handleFilePreview(fileName)}
+                      className="flex items-center justify-center w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer"
+                      title={`Preview ${fileName.split('.').pop()?.toUpperCase()} file`}
+                    >
+                      <IconComponent className={`h-6 w-6 ${iconColor}`} />
+                    </button>
                   );
                 })}
               </div>
