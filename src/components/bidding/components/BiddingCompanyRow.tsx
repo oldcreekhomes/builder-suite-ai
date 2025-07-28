@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +6,7 @@ import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
 import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
+import { ConfirmPODialog } from '../ConfirmPODialog';
 
 interface Company {
   id: string;
@@ -49,6 +50,12 @@ export function BiddingCompanyRow({
   onSendEmail,
   isReadOnly = false
 }: BiddingCompanyRowProps) {
+  const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
+
+  const handleSendPO = () => {
+    console.log('Send PO confirmed for company:', biddingCompany.company_id);
+    // TODO: Implement PO sending logic
+  };
   return (
     <TableRow className="bg-gray-50/50">
       <TableCell className="w-12 py-1"></TableCell>
@@ -120,9 +127,7 @@ export function BiddingCompanyRow({
       <TableCell className="py-1">
         {!isReadOnly && (
           <Button
-            onClick={() => {
-              console.log('Send PO clicked for company:', biddingCompany.company_id);
-            }}
+            onClick={() => setShowConfirmPODialog(true)}
             size="sm"
             variant="outline"
             className="h-8 px-3 text-sm bg-background border border-border hover:bg-accent"
@@ -132,6 +137,13 @@ export function BiddingCompanyRow({
           </Button>
         )}
       </TableCell>
+
+      <ConfirmPODialog
+        isOpen={showConfirmPODialog}
+        onClose={() => setShowConfirmPODialog(false)}
+        biddingCompany={biddingCompany}
+        onConfirm={handleSendPO}
+      />
     </TableRow>
   );
 }
