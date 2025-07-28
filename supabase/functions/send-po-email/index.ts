@@ -207,15 +207,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Use the sender company name or fallback
-    const fromCompanyName = senderCompanyName || 'BuilderSuite AI';
+    // Validate that we have a sender company name
+    if (!senderCompanyName) {
+      console.error('❌ No sender company name provided');
+      return new Response(
+        JSON.stringify({ error: 'Sender company name is required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
+    }
+
+    console.log('🏢 Using sender company name:', senderCompanyName);
 
     // Generate email HTML
     const emailHTML = generatePOEmailHTML({
       companyName: biddingCompany.companies.company_name,
       projectAddress,
       proposals,
-      senderCompany: fromCompanyName,
+      senderCompany: senderCompanyName,
     });
 
     // Send emails to all recipients
@@ -223,7 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
       return await resend.emails.send({
-        from: `${fromCompanyName} <noreply@transactional.buildersuiteai.com>`,
+        from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
         subject: `Purchase Order Issued - ${projectAddress}`,
         html: emailHTML,
