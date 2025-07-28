@@ -97,6 +97,7 @@ export type Database = {
           last_name: string
           phone_number: string | null
           receive_bid_notifications: boolean | null
+          receive_po_notifications: boolean | null
           receive_schedule_notifications: boolean | null
           title: string | null
           updated_at: string
@@ -111,6 +112,7 @@ export type Database = {
           last_name: string
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
+          receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
           title?: string | null
           updated_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           last_name?: string
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
+          receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
           title?: string | null
           updated_at?: string
