@@ -35,6 +35,8 @@ interface BiddingCompanyRowProps {
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   onSendEmail?: (companyId: string) => void;
   isReadOnly?: boolean;
+  bidPackageId: string;
+  projectAddress: string;
 }
 
 export function BiddingCompanyRow({
@@ -48,7 +50,9 @@ export function BiddingCompanyRow({
   onDeleteAllFiles,
   onDeleteCompany,
   onSendEmail,
-  isReadOnly = false
+  isReadOnly = false,
+  bidPackageId,
+  projectAddress
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
 
@@ -143,6 +147,8 @@ export function BiddingCompanyRow({
         onClose={() => setShowConfirmPODialog(false)}
         biddingCompany={biddingCompany}
         onConfirm={handleSendPO}
+        bidPackageId={bidPackageId}
+        projectAddress={projectAddress}
       />
     </TableRow>
   );

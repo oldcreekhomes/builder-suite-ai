@@ -136,6 +136,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         isDeleting={deletingItems.has(item.id)}
                         isReadOnly={isReadOnly}
                         isCompanyReadOnly={status === 'closed'}
+                        projectAddress={projectAddress}
                       />
                     ))}
                   </React.Fragment>

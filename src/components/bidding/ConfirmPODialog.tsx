@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { usePOMutations } from '@/hooks/usePOMutations';
 
 interface Company {
   id: string;
@@ -24,17 +25,38 @@ interface ConfirmPODialogProps {
   onClose: () => void;
   biddingCompany: BiddingCompany | null;
   onConfirm: () => void;
+  bidPackageId: string;
+  projectAddress: string;
 }
 
 export function ConfirmPODialog({
   isOpen,
   onClose,
   biddingCompany,
-  onConfirm
+  onConfirm,
+  bidPackageId,
+  projectAddress
 }: ConfirmPODialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const { sendPOAndUpdateStatus, isLoading } = usePOMutations('project-id');
+
+  const handleConfirm = async () => {
+    if (!biddingCompany) return;
+
+    try {
+      await sendPOAndUpdateStatus.mutateAsync({
+        biddingCompanyId: biddingCompany.id,
+        bidPackageId,
+        projectAddress,
+        companyName: biddingCompany.companies.company_name,
+        proposals: biddingCompany.proposals || []
+      });
+      
+      onConfirm();
+      onClose();
+    } catch (error) {
+      console.error('Error sending PO:', error);
+      // Error is already handled in the mutation
+    }
   };
 
   const handleFilePreview = async (fileName: string) => {
@@ -101,15 +123,17 @@ export function ConfirmPODialog({
           <Button
             variant="outline"
             onClick={onClose}
+            disabled={isLoading}
             className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
           >
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
+            disabled={isLoading}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
-            Send PO
+            {isLoading ? "Sending..." : "Send PO"}
           </Button>
         </div>
       </DialogContent>

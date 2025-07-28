@@ -26,6 +26,7 @@ interface BiddingTableRowProps {
   isDeleting?: boolean;
   isReadOnly?: boolean;
   isCompanyReadOnly?: boolean;
+  projectAddress?: string;
 }
 
 export function BiddingTableRow({ 
@@ -45,7 +46,8 @@ export function BiddingTableRow({
   onCheckboxChange,
   isDeleting = false,
   isReadOnly = false,
-  isCompanyReadOnly = false
+  isCompanyReadOnly = false,
+  projectAddress
 }: BiddingTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -89,6 +91,7 @@ export function BiddingTableRow({
           onDeleteCompany={onDeleteCompany}
           onSendEmail={handleSendEmailToCompany}
           isReadOnly={isCompanyReadOnly}
+          projectAddress={projectAddress}
         />
       )}
       
