@@ -12,12 +12,14 @@ export const usePOMutations = (projectId: string) => {
       biddingCompanyId, 
       projectAddress, 
       companyName, 
-      proposals 
+      proposals,
+      senderCompanyName
     }: { 
       biddingCompanyId: string; 
       projectAddress: string; 
       companyName: string; 
       proposals?: string[];
+      senderCompanyName?: string;
     }) => {
       console.log('Sending PO email:', { biddingCompanyId, projectAddress, companyName, proposals });
       
@@ -26,7 +28,8 @@ export const usePOMutations = (projectId: string) => {
           biddingCompanyId,
           projectAddress,
           companyName,
-          proposals
+          proposals,
+          senderCompanyName
         }
       });
 
@@ -98,20 +101,23 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId,
       projectAddress, 
       companyName, 
-      proposals 
+      proposals,
+      senderCompanyName
     }: { 
       biddingCompanyId: string; 
       bidPackageId: string;
       projectAddress: string; 
       companyName: string; 
       proposals?: string[];
+      senderCompanyName?: string;
     }) => {
       // First send the PO email
       const emailData = await sendPOEmail.mutateAsync({
         biddingCompanyId,
         projectAddress,
         companyName,
-        proposals
+        proposals,
+        senderCompanyName
       });
 
       // Then update the bid package status

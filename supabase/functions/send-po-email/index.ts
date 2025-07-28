@@ -28,6 +28,7 @@ interface POEmailRequest {
   projectAddress: string;
   companyName: string;
   proposals?: string[];
+  senderCompanyName?: string;
 }
 
 const generatePOEmailHTML = (data: { 
@@ -150,9 +151,9 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('📧 Processing PO email request...');
-    const { biddingCompanyId, projectAddress, companyName, proposals }: POEmailRequest = await req.json();
+    const { biddingCompanyId, projectAddress, companyName, proposals, senderCompanyName }: POEmailRequest = await req.json();
 
-    console.log('📝 Request data:', { biddingCompanyId, projectAddress, companyName, proposalsCount: proposals?.length || 0 });
+    console.log('📝 Request data:', { biddingCompanyId, projectAddress, companyName, proposalsCount: proposals?.length || 0, senderCompanyName });
 
     // Get the bidding company details to find the company ID
     const { data: biddingCompany, error: biddingError } = await supabase
@@ -206,11 +207,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Use the sender company name or fallback
+    const fromCompanyName = senderCompanyName || 'BuilderSuite AI';
+
     // Generate email HTML
     const emailHTML = generatePOEmailHTML({
       companyName: biddingCompany.companies.company_name,
       projectAddress,
       proposals,
+      senderCompany: fromCompanyName,
     });
 
     // Send emails to all recipients
@@ -218,7 +223,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
       return await resend.emails.send({
-        from: `${biddingCompany.companies.company_name} <noreply@transactional.buildersuiteai.com>`,
+        from: `${fromCompanyName} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
         subject: `Purchase Order Issued - ${projectAddress}`,
         html: emailHTML,

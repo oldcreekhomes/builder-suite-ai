@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface Company {
   id: string;
@@ -38,6 +39,7 @@ export function ConfirmPODialog({
   projectAddress
 }: ConfirmPODialogProps) {
   const { sendPOAndUpdateStatus, isLoading } = usePOMutations('project-id');
+  const { profile } = useUserProfile();
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
@@ -48,7 +50,8 @@ export function ConfirmPODialog({
         bidPackageId,
         projectAddress,
         companyName: biddingCompany.companies.company_name,
-        proposals: biddingCompany.proposals || []
+        proposals: biddingCompany.proposals || [],
+        senderCompanyName: profile?.company_name
       });
       
       onConfirm();
