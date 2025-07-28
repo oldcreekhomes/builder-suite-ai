@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileShareModal } from "@/components/files/components/FileShareModal";
 import { FolderShareModal } from "@/components/files/components/FolderShareModal";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
+import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -177,6 +178,11 @@ export default function ProjectFiles() {
               </div>
             ) : (
               <>
+                <FileUploadDropzone
+                  projectId={projectId}
+                  onUploadSuccess={handleUploadSuccess}
+                />
+                
                 {viewMode === 'list' ? (
                   <FileList
                     files={filteredFiles}
