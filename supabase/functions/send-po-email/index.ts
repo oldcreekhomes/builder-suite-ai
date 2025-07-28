@@ -218,7 +218,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
       return await resend.emails.send({
-        from: "BuilderSuite AI <noreply@buildersuiteai.com>",
+        from: `${biddingCompany.companies.company_name} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
         subject: `Purchase Order Issued - ${projectAddress}`,
         html: emailHTML,
