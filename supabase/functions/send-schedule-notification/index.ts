@@ -46,12 +46,12 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
   
   const tasksList = tasks.map(task => `
     <tr>
-      <td class="task-name">${task.task_name}</td>
-      <td>${formatDate(task.start_date)}</td>
-      <td>${formatDate(task.end_date)}</td>
-      <td class="center">
-        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" class="btn btn-confirm">Confirm</a>
-        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" class="btn btn-deny">Deny</a>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #000000; white-space: nowrap; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${task.task_name}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #333333; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${formatDate(task.start_date)}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #333333; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${formatDate(task.end_date)}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; text-align: center; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">
+        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" style="display: inline-block; background-color: #22c55e; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; font-weight: 600; margin: 0 3px 0 0; text-align: center; min-width: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.2;">Confirm</a>
+        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" style="display: inline-block; background-color: #ef4444; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; font-weight: 600; margin: 0; text-align: center; min-width: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.2;">Deny</a>
       </td>
     </tr>
   `).join('');
@@ -73,340 +73,125 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
             </xml>
         </noscript>
         <![endif]-->
-        <style type="text/css">
-            /* Reset styles */
-            body, table, td, p, a, li, blockquote {
-                -webkit-text-size-adjust: 100%;
-                -ms-text-size-adjust: 100%;
-            }
-            table, td {
-                mso-table-lspace: 0pt;
-                mso-table-rspace: 0pt;
-            }
-            img {
-                -ms-interpolation-mode: bicubic;
-                border: 0;
-                height: auto;
-                line-height: 100%;
-                outline: none;
-                text-decoration: none;
-            }
-            
-            /* Base styles */
-            body {
-                margin: 0 !important;
-                padding: 0 !important;
-                background-color: #f5f5f5;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            }
-            
-            .email-container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #ffffff;
-            }
-            
-            .header {
-                background-color: #000000;
-                padding: 40px 30px;
-                text-align: center;
-            }
-            
-            .header h1 {
-                color: #ffffff;
-                font-size: 28px;
-                font-weight: 700;
-                margin: 0 0 10px 0;
-                line-height: 1.2;
-            }
-            
-            .header p {
-                color: #cccccc;
-                font-size: 16px;
-                margin: 0;
-                line-height: 1.4;
-            }
-            
-            .content {
-                padding: 30px;
-            }
-            
-            .greeting {
-                background-color: #f8f8f8;
-                padding: 25px;
-                margin-bottom: 30px;
-                border-left: 4px solid #000000;
-            }
-            
-            .greeting h2 {
-                color: #000000;
-                font-size: 20px;
-                font-weight: 600;
-                margin: 0 0 15px 0;
-                line-height: 1.3;
-            }
-            
-            .greeting p {
-                color: #666666;
-                font-size: 16px;
-                margin: 0;
-                line-height: 1.5;
-            }
-            
-            .custom-message {
-                margin-top: 20px;
-                padding: 15px;
-                background: #e0f2fe;
-                border-left: 4px solid #0284c7;
-                border-radius: 4px;
-            }
-            
-            .custom-message p {
-                margin: 0;
-                color: #0c4a6e;
-                font-style: italic;
-            }
-            
-            .task-section {
-                margin-bottom: 30px;
-            }
-            
-            .task-header {
-                background-color: #000000;
-                color: #ffffff;
-                padding: 15px 20px;
-                font-size: 16px;
-                font-weight: 600;
-                margin: 0;
-            }
-            
-            .task-table {
-                width: 100%;
-                border-collapse: collapse;
-                background-color: #ffffff;
-                border: 1px solid #e5e5e5;
-            }
-            
-            .task-table th {
-                background-color: #f8f8f8;
-                padding: 10px 8px;
-                text-align: left;
-                font-weight: 600;
-                color: #000000;
-                font-size: 13px;
-                border-bottom: 1px solid #e5e5e5;
-                white-space: nowrap;
-            }
-            
-            .task-table th.center {
-                text-align: center;
-            }
-            
-            .task-table td {
-                padding: 10px 8px;
-                border-bottom: 1px solid #e5e5e5;
-                font-size: 13px;
-                color: #333333;
-                white-space: nowrap;
-            }
-            
-            .task-table td.center {
-                text-align: center;
-            }
-            
-            .task-name {
-                font-weight: 600;
-                color: #000000;
-            }
-            
-            .btn {
-                display: inline-block;
-                padding: 6px 12px;
-                text-decoration: none;
-                font-size: 11px;
-                font-weight: 600;
-                border-radius: 3px;
-                margin: 0 3px 0 0;
-                text-align: center;
-                min-width: 50px;
-            }
-            
-            .btn-confirm {
-                background-color: #22c55e;
-                color: #ffffff;
-            }
-            
-            .btn-deny {
-                background-color: #ef4444;
-                color: #ffffff;
-            }
-            
-            .contact-section {
-                background-color: #ffffff;
-                border: 1px solid #e5e5e5;
-                padding: 0;
-                margin-bottom: 30px;
-            }
-            
-            .contact-header {
-                background-color: #000000;
-                color: #ffffff;
-                padding: 15px 20px;
-                font-size: 16px;
-                font-weight: 600;
-                margin: 0;
-            }
-            
-            .contact-content {
-                padding: 20px;
-            }
-            
-            .contact-card {
-                display: table;
-                width: 100%;
-            }
-            
-            .contact-info {
-                color: #333333;
-                font-size: 14px;
-                line-height: 1.6;
-            }
-            
-            .contact-row {
-                margin-bottom: 8px;
-            }
-            
-            .contact-label {
-                color: #666666;
-                font-weight: 500;
-                display: inline-block;
-                width: 60px;
-            }
-            
-            .contact-value {
-                color: #000000;
-                font-weight: 600;
-            }
-            
-            .footer {
-                text-align: center;
-                padding: 25px 30px;
-                border-top: 1px solid #e5e5e5;
-                background-color: #f8f8f8;
-            }
-            
-            .footer p {
-                color: #666666;
-                font-size: 12px;
-                margin: 0 0 5px 0;
-                line-height: 1.4;
-            }
-            
-            /* Mobile responsive */
-            @media only screen and (max-width: 600px) {
-                .email-container {
-                    width: 100% !important;
-                }
-                
-                .header, .content {
-                    padding: 20px !important;
-                }
-                
-                .header h1 {
-                    font-size: 24px !important;
-                }
-                
-                .greeting {
-                    padding: 20px !important;
-                }
-                
-                .contact-content {
-                    padding: 20px !important;
-                }
-                
-                .task-table th, .task-table td {
-                    padding: 8px 6px !important;
-                    font-size: 11px !important;
-                }
-                
-                .btn {
-                    padding: 5px 10px !important;
-                    font-size: 10px !important;
-                    margin: 0 2px 0 0 !important;
-                }
-            }
-        </style>
     </head>
-    
-    <body>
-        <div class="email-container">
-            <!-- Header -->
-            <div class="header">
-                <h1>Schedule Updates</h1>
-                <p>${projectAddress}</p>
-            </div>
-            
-            <!-- Main Content -->
-            <div class="content">
-                <!-- Greeting -->
-                <div class="greeting">
-                    <h2>Hello ${recipientName},</h2>
-                    <p>You have tasks scheduled to start in the next ${timeframe}. Please review the details below and prepare accordingly.</p>
-                    ${customMessage ? `
-                        <div class="custom-message">
-                            <p>"${customMessage}"</p>
-                        </div>
-                    ` : ''}
-                </div>
-                
-                <!-- Task Section -->
-                <div class="task-section">
-                    <h3 class="task-header">Your Scheduled Tasks</h3>
-                    <table class="task-table">
-                        <thead>
-                            <tr>
-                                <th>Task Name</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th class="center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${tasksList}
-                        </tbody>
+
+    <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+        <!-- Wrapper Table -->
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+            <tr>
+                <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
+                    
+                    <!-- Main Container -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                        
+                        <!-- Header -->
+                        <tr>
+                            <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
+                                <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Schedule Updates</h1>
+                                <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Main Content -->
+                        <tr>
+                            <td style="padding: 30px; margin: 0;">
+                                
+                                <!-- Greeting Section -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="background-color: #f8f8f8; padding: 25px; border-left: 4px solid #000000; margin: 0;">
+                                            <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Hello ${recipientName},</h2>
+                                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">You have tasks scheduled to start in the next ${timeframe}. Please review the details below and prepare accordingly.</p>
+                                            ${customMessage ? `
+                                                <div style="margin-top: 20px; padding: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
+                                                    <p style="margin: 0; color: #0c4a6e; font-style: italic; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">"${customMessage}"</p>
+                                                </div>
+                                            ` : ''}
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <!-- Task Section -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                    <!-- Task Header -->
+                                    <tr>
+                                        <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                            Your Scheduled Tasks
+                                        </td>
+                                    </tr>
+                                    <!-- Task Table -->
+                                    <tr>
+                                        <td style="padding: 0; margin: 0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                                <!-- Table Header -->
+                                                <thead>
+                                                    <tr style="background-color: #f8f8f8;">
+                                                        <td style="padding: 10px 8px; text-align: left; font-weight: 600; color: #000000; font-size: 13px; border-bottom: 1px solid #e5e5e5; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">Task Name</td>
+                                                        <td style="padding: 10px 8px; text-align: left; font-weight: 600; color: #000000; font-size: 13px; border-bottom: 1px solid #e5e5e5; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">Start Date</td>
+                                                        <td style="padding: 10px 8px; text-align: left; font-weight: 600; color: #000000; font-size: 13px; border-bottom: 1px solid #e5e5e5; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">End Date</td>
+                                                        <td style="padding: 10px 8px; text-align: center; font-weight: 600; color: #000000; font-size: 13px; border-bottom: 1px solid #e5e5e5; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">Action</td>
+                                                    </tr>
+                                                </thead>
+                                                <!-- Table Body -->
+                                                <tbody>
+                                                    ${tasksList}
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <!-- Contact Section -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                    <!-- Contact Header -->
+                                    <tr>
+                                        <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                            Project Manager
+                                        </td>
+                                    </tr>
+                                    <!-- Contact Content -->
+                                    <tr>
+                                        <td style="padding: 20px; margin: 0;">
+                                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                <tr>
+                                                    <td style="margin: 0; padding: 0 0 8px 0;">
+                                                        <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Name:</span>
+                                                        <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerName}</span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="margin: 0; padding: 0 0 8px 0;">
+                                                        <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Phone:</span>
+                                                        <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerPhone}</span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="margin: 0; padding: 0;">
+                                                        <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Email:</span>
+                                                        <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerEmail}</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
+                                <p style="color: #666666; font-size: 12px; margin: 0 0 5px 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">This is an automated notification from your project management system.</p>
+                                <p style="color: #666666; font-size: 12px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">If you have questions, please contact your project manager above.</p>
+                            </td>
+                        </tr>
+                        
                     </table>
-                </div>
-                
-                <!-- Contact Section -->
-                <div class="contact-section">
-                    <h3 class="contact-header">Project Manager</h3>
-                    <div class="contact-content">
-                        <div class="contact-card">
-                            <div class="contact-info">
-                                <div class="contact-row">
-                                    <span class="contact-label">Name:</span>
-                                    <span class="contact-value">${projectManagerName}</span>
-                                </div>
-                                <div class="contact-row">
-                                    <span class="contact-label">Phone:</span>
-                                    <span class="contact-value">${projectManagerPhone}</span>
-                                </div>
-                                <div class="contact-row">
-                                    <span class="contact-label">Email:</span>
-                                    <span class="contact-value">${projectManagerEmail}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div class="footer">
-                <p>This is an automated notification from your project management system.</p>
-                <p>If you have questions, please contact your project manager above.</p>
-            </div>
-        </div>
+                    
+                </td>
+            </tr>
+        </table>
     </body>
     </html>
   `;
