@@ -27,7 +27,6 @@ interface BiddingCompanyListProps {
   onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   onSendEmail?: (biddingItemId: string, companyId: string) => void;
-  onCheckboxClick?: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -40,7 +39,6 @@ export function BiddingCompanyList({
   onDeleteAllProposals,
   onDeleteCompany,
   onSendEmail,
-  onCheckboxClick,
   isReadOnly = false
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
@@ -112,6 +110,7 @@ export function BiddingCompanyList({
         <TableCell className="font-bold py-2 text-sm">Price</TableCell>
         <TableCell className="font-bold py-2 text-sm">Proposals</TableCell>
         <TableCell className="font-bold py-2 text-sm">Actions</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Accept PO</TableCell>
       </TableRow>
       
       {companies.map((biddingCompany) => (
@@ -127,7 +126,6 @@ export function BiddingCompanyList({
           onDeleteAllFiles={handleDeleteAllFiles}
           onDeleteCompany={onDeleteCompany}
           onSendEmail={onSendEmail ? (companyId) => onSendEmail(biddingItemId, companyId) : undefined}
-          onCheckboxClick={onCheckboxClick ? (companyId) => onCheckboxClick(biddingItemId, companyId) : undefined}
           isReadOnly={isReadOnly}
         />
       ))}

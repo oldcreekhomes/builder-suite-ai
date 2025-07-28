@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
-import { Send, Check } from 'lucide-react';
+import { Send, Download } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 
 interface Company {
@@ -33,7 +33,6 @@ interface BiddingCompanyRowProps {
   onDeleteAllFiles: (companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   onSendEmail?: (companyId: string) => void;
-  onCheckboxClick?: (companyId: string) => void;
   isReadOnly?: boolean;
 }
 
@@ -48,7 +47,6 @@ export function BiddingCompanyRow({
   onDeleteAllFiles,
   onDeleteCompany,
   onSendEmail,
-  onCheckboxClick,
   isReadOnly = false
 }: BiddingCompanyRowProps) {
   return (
@@ -96,17 +94,6 @@ export function BiddingCompanyRow({
       </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center gap-1">
-          {!isReadOnly && onCheckboxClick && (
-            <Button
-              onClick={() => onCheckboxClick(biddingCompany.company_id)}
-              size="sm"
-              variant="ghost"
-              title="Mark as Selected"
-              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-            >
-              <Check className="h-3 w-3" />
-            </Button>
-          )}
           {!isReadOnly && onSendEmail && (
             <Button
               onClick={() => onSendEmail(biddingCompany.company_id)}
@@ -129,6 +116,21 @@ export function BiddingCompanyRow({
             />
           )}
         </div>
+      </TableCell>
+      <TableCell className="py-1">
+        {!isReadOnly && (
+          <Button
+            onClick={() => {
+              console.log('Send PO clicked for company:', biddingCompany.company_id);
+            }}
+            size="sm"
+            variant="outline"
+            className="h-8 px-3 text-sm bg-background border border-border hover:bg-accent"
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Send PO
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   );
