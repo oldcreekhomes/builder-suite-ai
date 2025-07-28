@@ -46,9 +46,8 @@ export function ProposalCell({
                 <button
                   key={index}
                   onClick={() => handleFilePreview(fileName)}
-                  className={`${iconColorClass} transition-colors p-1`}
-                  disabled={isReadOnly}
-                  title={fileName}
+                  className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                  title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
                 >
                   <IconComponent className="h-4 w-4" />
                 </button>
