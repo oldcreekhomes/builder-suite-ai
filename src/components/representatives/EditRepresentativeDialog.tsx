@@ -45,6 +45,7 @@ const representativeSchema = z.object({
   title: z.enum(["estimator", "project manager", "foreman"]),
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
+  receive_po_notifications: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -59,6 +60,7 @@ interface Representative {
   company_id: string;
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
+  receive_po_notifications?: boolean;
   companies: {
     company_name: string;
   };
@@ -86,6 +88,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       title: "estimator",
       receive_bid_notifications: false,
       receive_schedule_notifications: false,
+      receive_po_notifications: false,
     },
   });
 
@@ -115,6 +118,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         title: (representative.title as "estimator" | "project manager" | "foreman") || "estimator",
         receive_bid_notifications: representative.receive_bid_notifications || false,
         receive_schedule_notifications: representative.receive_schedule_notifications || false,
+        receive_po_notifications: representative.receive_po_notifications || false,
       });
       setCompanySearch("");
     }
@@ -156,6 +160,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         title: data.title,
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
+        receive_po_notifications: data.receive_po_notifications,
       };
 
       const { error } = await supabase
@@ -383,6 +388,24 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Receive Schedule Notifications</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receive_po_notifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Receive PO Notifications</FormLabel>
                       </div>
                     </FormItem>
                   )}
