@@ -58,6 +58,11 @@ export function BiddingTableRow({
     setShowSingleCompanyModal(true);
   };
 
+  const handleCompanyCheckboxClick = (biddingItemId: string, companyId: string) => {
+    console.log('Company checkbox clicked:', { biddingItemId, companyId });
+    // Add your checkbox logic here
+  };
+
   return (
     <>
       <BiddingTableRowContent
@@ -87,6 +92,7 @@ export function BiddingTableRow({
           onDeleteAllProposals={onDeleteAllProposals}
           onDeleteCompany={onDeleteCompany}
           onSendEmail={handleSendEmailToCompany}
+          onCheckboxClick={handleCompanyCheckboxClick}
           isReadOnly={isCompanyReadOnly}
         />
       )}
