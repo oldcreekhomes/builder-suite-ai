@@ -27,6 +27,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,6 +36,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     if (profile) {
       setFirstName(profile.first_name || "");
       setLastName(profile.last_name || "");
+      setPhoneNumber(profile.phone_number || "");
       setAvatarUrl(profile.avatar_url || "");
     }
   }, [profile]);
@@ -114,6 +116,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         .update({
           first_name: firstName,
           last_name: lastName,
+          phone_number: phoneNumber,
           avatar_url: avatarUrl,
         })
         .eq('id', user.id);
@@ -227,6 +230,17 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                   value={user?.email || ""}
                   disabled
                   className="bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter phone number"
                 />
               </div>
             </div>
