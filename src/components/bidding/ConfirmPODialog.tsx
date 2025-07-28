@@ -40,8 +40,8 @@ export function ConfirmPODialog({
   const handleFilePreview = async (fileName: string) => {
     try {
       const { data } = await supabase.storage
-        .from('project_proposals')
-        .getPublicUrl(fileName);
+        .from('project-files')
+        .getPublicUrl(`proposals/${fileName}`);
       
       if (data?.publicUrl) {
         window.open(data.publicUrl, '_blank');
@@ -78,7 +78,7 @@ export function ConfirmPODialog({
                     <button
                       key={index}
                       onClick={() => handleFilePreview(fileName)}
-                      className="flex items-center justify-center w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                       title={`Preview ${fileName.split('.').pop()?.toUpperCase()} file`}
                     >
                       <IconComponent className={`h-6 w-6 ${iconColor}`} />
