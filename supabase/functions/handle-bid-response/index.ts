@@ -31,24 +31,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!bidPackageId || !companyId || !response) {
       console.error('Missing required parameters');
-      return new Response(
-        generateErrorHTML("Missing required parameters"),
-        {
-          status: 400,
-          headers: { "Content-Type": "text/html", ...corsHeaders },
-        }
-      );
+      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      errorUrl.searchParams.set('status', 'error');
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+      });
     }
 
     if (response !== "will_bid" && response !== "will_not_bid") {
       console.error('Invalid response value');
-      return new Response(
-        generateErrorHTML("Invalid response value"),
-        {
-          status: 400,
-          headers: { "Content-Type": "text/html", ...corsHeaders },
-        }
-      );
+      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      errorUrl.searchParams.set('status', 'error');
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+      });
     }
 
     // Update the bid status in the database
@@ -63,13 +61,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error('Error updating bid status:', updateError);
-      return new Response(
-        generateErrorHTML("Failed to update bid status"),
-        {
-          status: 500,
-          headers: { "Content-Type": "text/html", ...corsHeaders },
-        }
-      );
+      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      errorUrl.searchParams.set('status', 'error');
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+      });
     }
 
     console.log('Bid status updated successfully');
@@ -91,69 +88,15 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error("Error in handle-bid-response function:", error);
-    return new Response(
-      generateErrorHTML("An unexpected error occurred"),
-      {
-        status: 500,
-        headers: { "Content-Type": "text/html", ...corsHeaders },
-      }
-    );
+    const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+    errorUrl.searchParams.set('status', 'error');
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+    });
   }
 };
 
 
-function generateErrorHTML(errorMessage: string): string {
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Error</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .error-container {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      text-align: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      max-width: 500px;
-    }
-    .error-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      color: #dc2626;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #64748b;
-      margin-bottom: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="error-container">
-    <div class="error-icon">❌</div>
-    <h1>Error</h1>
-    <p>${errorMessage}</p>
-    <button onclick="window.close()" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-      Close
-    </button>
-  </div>
-</body>
-</html>`;
-}
 
 serve(handler);
