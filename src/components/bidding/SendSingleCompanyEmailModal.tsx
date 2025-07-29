@@ -155,7 +155,9 @@ export function SendSingleCompanyEmailModal({
         },
         project: projectData ? {
           address: projectData.address,
-          manager: projectData.manager
+          manager: projectData.manager,
+          managerEmail: undefined, // Will need to be fetched if needed
+          managerPhone: undefined // Will need to be fetched if needed
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,

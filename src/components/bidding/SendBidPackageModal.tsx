@@ -133,6 +133,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
     try {
       // Get project manager's details from company users
       let managerEmail = undefined;
+      let managerPhone = undefined;
       let managerFullName = 'Project Manager'; // Default fallback
       
       if (projectData?.manager) {
@@ -140,6 +141,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         if (manager) {
           managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
           managerEmail = manager.email;
+          managerPhone = manager.phone_number;
         }
       }
 
@@ -156,7 +158,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         project: projectData ? {
           address: projectData.address,
           manager: managerFullName,
-          managerEmail: managerEmail
+          managerEmail: managerEmail,
+          managerPhone: managerPhone
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,

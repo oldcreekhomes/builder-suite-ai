@@ -34,6 +34,7 @@ interface BidPackageEmailRequest {
     address: string;
     manager?: string;
     managerEmail?: string;
+    managerPhone?: string;
   };
   senderCompany?: {
     company_name: string;
@@ -103,7 +104,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   // Get project manager information from the project data
   const managerName = project?.manager || 'Project Manager';
   const managerEmail = project?.managerEmail || 'contact@buildersuiteai.com';
-  const managerPhone = 'N/A'; // Add phone if available in data structure
+  const managerPhone = project?.managerPhone || 'N/A';
 
   // Use sender company name if provided, otherwise fallback to first company
   const companyName = senderCompany?.company_name || companies[0]?.company_name || 'Your Company';
@@ -205,15 +206,14 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${formatDate(bidPackage.due_date)}</span>
                                                             </td>
                                                         </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 15px 0 0 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: block; font-size: 14px; margin-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Scope of Work:</span>
-                                                                <div style="margin-left: 20px;">
-                                                                    <div style="color: #000000; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-weight: 600; margin-bottom: 10px;">${bidPackage.costCode?.name || bidPackage.name}</div>
-                                                                    ${formattedSpecifications}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
+                                                         <tr>
+                                                             <td style="margin: 0; padding: 15px 0 0 0;">
+                                                                 <span style="color: #666666; font-weight: 500; display: block; font-size: 14px; margin-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Scope of Work:</span>
+                                                                 <div style="margin-left: 20px;">
+                                                                     ${formattedSpecifications}
+                                                                 </div>
+                                                             </td>
+                                                         </tr>
                                                     </table>
                                                 </td>
                                             </tr>
@@ -363,7 +363,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send emails to each company individually with their specific company ID
     const emailPromises = companies.map(async (company) => {
       const emailHTML = generateEmailHTML(requestData, company.id);
-      const subject = `Bid Package Request - ${bidPackage.costCode.code}: ${bidPackage.costCode.name}`;
+      const subject = `Bid Invitation - ${requestData.project?.address || 'Project Address'}`;
       
       // Get recipients for this specific company
       const companyRecipients = company.representatives

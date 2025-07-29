@@ -8,6 +8,7 @@ export interface User {
   role?: string;
   avatar_url?: string;
   email: string;
+  phone_number?: string;
 }
 
 export const useCompanyUsers = () => {
@@ -64,7 +65,8 @@ export const useCompanyUsers = () => {
             last_name: currentUserProfile.last_name || '',
             role: 'owner',
             avatar_url: currentUserProfile.avatar_url,
-            email: currentUser.user.email || ''
+            email: currentUser.user.email || '',
+            phone_number: currentUserProfile.phone_number
           },
           ...(employees?.map(emp => ({
             id: emp.id,
@@ -72,7 +74,8 @@ export const useCompanyUsers = () => {
             last_name: emp.last_name,
             role: emp.role,
             avatar_url: emp.avatar_url,
-            email: emp.email
+            email: emp.email,
+            phone_number: emp.phone_number
           })) || [])
         ];
       } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
@@ -106,7 +109,8 @@ export const useCompanyUsers = () => {
             last_name: owner.last_name || '',
             role: 'owner',
             avatar_url: owner.avatar_url,
-            email: owner.email
+            email: owner.email,
+            phone_number: owner.phone_number
           }] : []),
           ...(employees?.map(emp => ({
             id: emp.id,
@@ -114,7 +118,8 @@ export const useCompanyUsers = () => {
             last_name: emp.last_name,
             role: emp.role,
             avatar_url: emp.avatar_url,
-            email: emp.email
+            email: emp.email,
+            phone_number: emp.phone_number
           })) || [])
         ];
       }
