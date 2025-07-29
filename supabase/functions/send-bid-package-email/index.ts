@@ -104,9 +104,9 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   const { bidPackage, companies, project, senderCompany } = data;
 
   // Get project manager information from the project data
-  const managerName = project?.managerName || project?.manager || 'Project Manager';
-  const managerEmail = project?.managerEmail || 'contact@buildersuiteai.com';
-  const managerPhone = project?.managerPhone || 'N/A';
+  const managerName = project?.managerName || project?.manager_name || 'Project Manager';
+  const managerEmail = project?.managerEmail || project?.manager_email || 'contact@buildersuiteai.com';
+  const managerPhone = project?.managerPhone || project?.manager_phone || 'N/A';
 
   // Get the first company for the greeting
   const contractorCompanyName = companies[0]?.company_name || 'Contractor';
