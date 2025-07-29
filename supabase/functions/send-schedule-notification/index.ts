@@ -182,8 +182,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
                         <!-- Footer -->
                         <tr>
                             <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
-                                <p style="color: #666666; font-size: 12px; margin: 0 0 5px 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">This is an automated notification from your project management system.</p>
-                                <p style="color: #666666; font-size: 12px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">If you have questions, please contact your project manager above.</p>
+                                <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666666; font-size: 12px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none;">www.buildersuiteai.com</a>
                             </td>
                         </tr>
                         

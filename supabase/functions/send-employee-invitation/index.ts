@@ -43,6 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
         </p>
         <p>This invitation will expire in 7 days. If you have any questions, please contact your company administrator.</p>
         <p>Best regards,<br>The BuilderSuite AI Team</p>
+        <p><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
         <hr>
         <p style="font-size: 12px; color: #666;">
           If the button above doesn't work, copy and paste this link into your browser:<br>

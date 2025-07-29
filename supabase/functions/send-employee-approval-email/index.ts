@@ -47,6 +47,7 @@ const handler = async (req: Request): Promise<Response> => {
           </a>
         </p>
         <p>Best regards,<br>The BuildCore Team</p>
+        <p><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
       `,
     });
 
@@ -62,6 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
         <p>You will receive another email once your company administrator has approved your access.</p>
         <p>If you have any questions, please contact your company administrator.</p>
         <p>Best regards,<br>The BuildCore Team</p>
+        <p><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
       `,
     });
 

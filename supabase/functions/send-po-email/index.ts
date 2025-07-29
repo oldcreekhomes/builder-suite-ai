@@ -127,9 +127,7 @@ const generatePOEmailHTML = (data: {
               <!-- Footer -->
               <tr>
                 <td style="padding: 20px; background-color: #F8F9FA; border-top: 1px solid #E0E0E0; text-align: center;">
-                  <p style="color: #666; font-size: 12px; margin: 0;">
-                    This is an automated notification. Please do not reply to this email.
-                  </p>
+                   <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; font-size: 12px; margin: 0; text-decoration: none;">www.buildersuiteai.com</a>
                 </td>
               </tr>
             </tbody>

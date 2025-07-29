@@ -147,9 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
                   Best regards,<br>
                   The BuilderSuite AI Team
                 </p>
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                  This email was sent by BuilderSuite AI. If you have questions, contact your system administrator.
-                </p>
+                 <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #94a3b8; font-size: 12px; margin: 0; text-decoration: none;">www.buildersuiteai.com</a>
               </div>
             </div>
           </body>

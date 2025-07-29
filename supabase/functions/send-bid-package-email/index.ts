@@ -423,9 +423,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                       <tr>
                                         <td>
                                           <div class="footer">
-                                            <p style="color: #4A4A4A; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: 300; word-break: break-word; word-wrap: break-word; font-size: 12px; line-height: 20px; text-align: center; margin: 0;" align="center">
-                                              © 2025 ${companyName}
-                                            </p>
+                                             <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #4A4A4A; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 12px; line-height: 20px; text-align: center; margin: 0; text-decoration: none;" align="center">www.buildersuiteai.com</a>
                                           </div>
                                         </td>
                                       </tr>
