@@ -358,35 +358,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleQueryTaskbarInfo = (args: any) => {
     console.log('=== TASKBAR INFO QUERY ===');
     console.log('Task data:', args.data);
-    console.log('taskData Confirmed:', args.data?.taskData?.Confirmed);
-    console.log('Direct Confirmed:', args.data?.Confirmed);
+    console.log('TaskID:', args.data?.TaskID);
     
     // Check multiple possible locations for the Confirmed field
-    const confirmed = args.data?.taskData?.confirmed || 
-                     args.data?.taskData?.Confirmed || 
-                     args.data?.confirmed || 
-                     args.data?.Confirmed;
+    let confirmed = args.data?.taskData?.confirmed || 
+                   args.data?.taskData?.Confirmed || 
+                   args.data?.confirmed || 
+                   args.data?.Confirmed;
+    
+    // If not found in direct data, look up by TaskID in ganttData
+    if (typeof confirmed === 'undefined' || confirmed === null) {
+      const taskId = args.data?.TaskID;
+      if (taskId && ganttData) {
+        const task = ganttData.find(t => t.TaskID === taskId);
+        confirmed = task?.Confirmed;
+        console.log('Found via TaskID lookup:', confirmed);
+      }
+    }
     
     console.log('Final confirmed value:', confirmed, 'type:', typeof confirmed);
     
-    if (typeof confirmed !== 'undefined' && confirmed !== null) {
-      if (confirmed === true) {
-        console.log('Setting GREEN for confirmed task');
-        // Green for confirmed tasks
-        args.taskbarBgColor = '#22c55e'; // green-500
-        args.taskbarBorderColor = '#16a34a'; // green-600
-        args.progressBarBgColor = '#15803d'; // green-700
-      } else if (confirmed === false) {
-        console.log('Setting RED for denied task');
-        // Red for denied tasks
-        args.taskbarBgColor = '#ef4444'; // red-500
-        args.taskbarBorderColor = '#dc2626'; // red-600
-        args.progressBarBgColor = '#b91c1c'; // red-700
-      } else {
-        console.log('Confirmed status is neither true nor false:', confirmed);
-      }
+    // Handle boolean and string representations
+    if (confirmed === true || confirmed === 'true') {
+      console.log('Setting GREEN for confirmed task');
+      // Green for confirmed tasks
+      args.taskbarBgColor = '#22c55e'; // green-500
+      args.taskbarBorderColor = '#16a34a'; // green-600
+      args.progressBarBgColor = '#15803d'; // green-700
+    } else if (confirmed === false || confirmed === 'false') {
+      console.log('Setting RED for denied task');
+      // Red for denied tasks
+      args.taskbarBgColor = '#ef4444'; // red-500
+      args.taskbarBorderColor = '#dc2626'; // red-600
+      args.progressBarBgColor = '#b91c1c'; // red-700
     } else {
-      console.log('No Confirmed field found in task data - using default blue');
+      console.log('No confirmed status found or pending - using default blue');
       // Default blue for pending tasks
       args.taskbarBgColor = '#3b82f6'; // blue-500
       args.taskbarBorderColor = '#2563eb'; // blue-600
