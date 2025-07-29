@@ -183,16 +183,16 @@ export default function SubmitBid() {
                 </h3>
                 <div className="border border-gray-200 p-4 space-y-2">
                   <div className="flex">
-                    <span className="text-gray-600 font-medium w-40">Project Address:</span>
+                    <span className="text-gray-600 font-medium w-48">Project Address:</span>
                     <span className="font-semibold">{bidPackage.projects?.address}</span>
                   </div>
                   <div className="flex">
-                    <span className="text-gray-600 font-medium w-40">Project Type:</span>
+                    <span className="text-gray-600 font-medium w-48">Project Type:</span>
                     <span className="font-semibold">{bidPackage.cost_codes?.name}</span>
                   </div>
                   {bidPackage.due_date && (
                     <div className="flex">
-                      <span className="text-gray-600 font-medium w-40">Bid Due Date:</span>
+                      <span className="text-gray-600 font-medium w-48">Bid Due Date:</span>
                       <span className="font-semibold">
                         {new Date(bidPackage.due_date).toLocaleDateString()}
                       </span>
@@ -200,7 +200,7 @@ export default function SubmitBid() {
                   )}
                   {company && (
                     <div className="flex">
-                      <span className="text-gray-600 font-medium w-40">Your Company:</span>
+                      <span className="text-gray-600 font-medium w-48">Your Company:</span>
                       <span className="font-semibold">{company.company_name}</span>
                     </div>
                   )}
