@@ -100,13 +100,47 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
   }).join(' ');
 };
 
-const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => {
+const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string) => {
   const { bidPackage, companies, project, senderCompany } = data;
 
-  // Get project manager information from the project data
-  const managerName = project?.managerName || project?.manager_name || 'Project Manager';
-  const managerEmail = project?.managerEmail || project?.manager_email || 'contact@buildersuiteai.com';
-  const managerPhone = project?.managerPhone || project?.manager_phone || 'N/A';
+  // Get project manager information - look up user details if we have an ID
+  let managerName = 'Project Manager';
+  let managerEmail = 'contact@buildersuiteai.com';
+  let managerPhone = 'N/A';
+
+  if (project?.manager) {
+    try {
+      // Create a simple Supabase client for server-side use
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.50.0');
+      const supabaseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co';
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('first_name, last_name, email, phone_number')
+          .eq('id', project.manager)
+          .single();
+
+        if (userData && !error) {
+          managerName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Project Manager';
+          managerEmail = userData.email || 'contact@buildersuiteai.com';
+          managerPhone = userData.phone_number || 'N/A';
+        } else {
+          console.log('Failed to fetch manager details:', error);
+        }
+      }
+    } catch (error) {
+      console.log('Error looking up manager details:', error);
+    }
+  }
+
+  // Use provided values if available, otherwise use looked-up values
+  managerName = project?.managerName || project?.manager_name || managerName;
+  managerEmail = project?.managerEmail || project?.manager_email || managerEmail;
+  managerPhone = project?.managerPhone || project?.manager_phone || managerPhone;
 
   // Get the first company for the greeting
   const contractorCompanyName = companies[0]?.company_name || 'Contractor';
@@ -123,6 +157,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   const noUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_not_bid`;
 
   console.log('Generating email with URLs:', { yesUrl, noUrl, bidPackageId: bidPackage.id, companyId });
+  console.log('Manager details:', { managerName, managerEmail, managerPhone });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -348,7 +383,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Send emails to each company individually with their specific company ID
     const emailPromises = companies.map(async (company) => {
-      const emailHTML = generateEmailHTML(requestData, company.id);
+      const emailHTML = await generateEmailHTML(requestData, company.id);
       const subject = `Bid Invitation - ${requestData.project?.address || 'Project Address'}`;
       
       // Get recipients for this specific company
