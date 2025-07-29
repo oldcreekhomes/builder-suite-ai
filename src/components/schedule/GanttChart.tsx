@@ -320,6 +320,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return null;
   };
 
+  // Handle row selection to track potential parent tasks
+  const handleRowSelected = (args: any) => {
+    console.log('=== ROW SELECTED ===');
+    console.log('Selected task data:', args.data);
+    
+    if (args.data?.TaskID) {
+      const originalId = findOriginalTaskId(args.data.TaskID, ganttData);
+      console.log(`Setting selected task ID: ${originalId} (from TaskID: ${args.data.TaskID})`);
+      setSelectedTaskId(originalId);
+    }
+  };
+
   // Handle taskbar styling based on confirmation status
   const handleQueryTaskbarInfo = (args: any) => {
     if (args.data && typeof args.data.Confirmed !== 'undefined') {
@@ -335,18 +347,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         args.progressBarBgColor = '#b91c1c'; // red-700
       }
       // Leave default colors for null/undefined (pending tasks)
-    }
-  };
-
-  // Handle row selection to track potential parent tasks
-  const handleRowSelected = (args: any) => {
-    console.log('=== ROW SELECTED ===');
-    console.log('Selected task data:', args.data);
-    
-    if (args.data?.TaskID) {
-      const originalId = findOriginalTaskId(args.data.TaskID, ganttData);
-      console.log(`Setting selected task ID: ${originalId} (from TaskID: ${args.data.TaskID})`);
-      setSelectedTaskId(originalId);
     }
   };
 
