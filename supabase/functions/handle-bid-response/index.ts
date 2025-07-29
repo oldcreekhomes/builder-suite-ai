@@ -71,6 +71,44 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Bid status updated successfully');
 
+    // If they will bid, send the submission email
+    if (response === 'will_bid') {
+      try {
+        // Get company representative email for the bid submission email
+        const { data: companyRep, error: repError } = await supabase
+          .from('company_representatives')
+          .select('email, first_name, last_name')
+          .eq('company_id', companyId)
+          .eq('is_primary', true)
+          .single();
+
+        if (companyRep?.email) {
+          console.log('Sending bid submission email to:', companyRep.email);
+          
+          const { error: emailError } = await supabase.functions.invoke('send-bid-submission-email', {
+            body: {
+              bidPackageId,
+              companyId,
+              recipientEmail: companyRep.email,
+              recipientName: `${companyRep.first_name} ${companyRep.last_name}`
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending bid submission email:', emailError);
+            // Don't fail the whole process if email fails
+          } else {
+            console.log('Bid submission email sent successfully');
+          }
+        } else {
+          console.log('No primary company representative email found for company:', companyId);
+        }
+      } catch (emailError) {
+        console.error('Error in email sending process:', emailError);
+        // Continue with redirect even if email fails
+      }
+    }
+
     // Redirect to confirmation page
     const confirmationUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
