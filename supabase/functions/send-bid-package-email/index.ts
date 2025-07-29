@@ -92,7 +92,16 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
   return files.map(file => {
     // Extract filename and use the full file path as provided
     const fileName = file.split('/').pop() || file;
-    const downloadUrl = `${baseUrl}/${file}`;
+    
+    // Check if the file path already contains project-files, if not add it
+    let downloadUrl;
+    if (file.includes('project-files/')) {
+      // File path already includes the bucket structure
+      downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/${file}`;
+    } else {
+      // File path is just the filename, need to add the bucket path
+      downloadUrl = `${baseUrl}/${file}`;
+    }
     
     console.log('🔗 Generating file link:', { originalFile: file, fileName, downloadUrl });
     
@@ -241,7 +250,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                                 <div style="display: inline-block; vertical-align: top;">
                                                                     <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerName}</div>
                                                                     <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerPhone}</div>
-                                                                    <div style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4; text-decoration: none !important;">${managerEmail}</div>
+                                                                    <div style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerEmail}</div>
                                                                 </div>
                                                             </td>
                                                         </tr>
