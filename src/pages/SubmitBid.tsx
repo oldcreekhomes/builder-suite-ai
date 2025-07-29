@@ -136,14 +136,8 @@ export default function SubmitBid() {
 
       const result = await response.json();
       
-      toast({
-        title: "Success",
-        description: "Your bid has been submitted successfully!"
-      });
-
-      // Reset form
-      setPrice('');
-      setFiles([]);
+      // Redirect to confirmation page
+      window.location.href = '/bid-submission-confirmation?status=success';
       
     } catch (error) {
       console.error('Error submitting bid:', error);
