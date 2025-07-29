@@ -15,7 +15,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     }: { 
       biddingItemId: string; 
       companyId: string; 
-      newStatus: string; 
+      newStatus: string | null; 
     }) => {
       
       // Check if record exists
@@ -179,7 +179,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
           .insert({
             bid_package_id: biddingItemId,
             company_id: companyId,
-            bid_status: 'will_bid',
+            bid_status: null,
             proposals: uploadedFileNames
           });
         
@@ -299,7 +299,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
   });
 
   return {
-    toggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string) => {
+    toggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string | null) => {
       updateBidStatus.mutate({ biddingItemId, companyId, newStatus });
     },
     updatePrice: (biddingItemId: string, companyId: string, price: number | null) => {

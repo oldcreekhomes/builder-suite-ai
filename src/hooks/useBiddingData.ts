@@ -24,7 +24,7 @@ interface SimpleCompany {
 interface BiddingCompany {
   id: string;
   company_id: string;
-  bid_status: 'will_bid' | 'will_not_bid';
+  bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
   companies: SimpleCompany;

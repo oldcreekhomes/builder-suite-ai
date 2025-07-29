@@ -17,7 +17,7 @@ interface Company {
 interface BiddingCompany {
   id: string;
   company_id: string;
-  bid_status: 'will_bid' | 'will_not_bid';
+  bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
   companies: Company;
@@ -27,7 +27,7 @@ interface BiddingCompanyRowProps {
   biddingItemId: string;
   biddingCompany: BiddingCompany;
   localPrice: string;
-  onBidStatusChange: (companyId: string, newStatus: string) => void;
+  onBidStatusChange: (companyId: string, newStatus: string | null) => void;
   onPriceChange: (companyId: string, value: string) => void;
   onPriceBlur: (companyId: string, value: string) => void;
   onFileUpload: (companyId: string) => void;
@@ -70,14 +70,15 @@ export function BiddingCompanyRow({
       </TableCell>
       <TableCell className="py-1">
         <Select 
-          value={biddingCompany.bid_status} 
-          onValueChange={(value) => onBidStatusChange(biddingCompany.company_id, value)}
+          value={biddingCompany.bid_status || "sent"} 
+          onValueChange={(value) => onBidStatusChange(biddingCompany.company_id, value === "sent" ? null : value)}
           disabled={isReadOnly}
         >
           <SelectTrigger className="w-20 h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
+            <SelectItem value="sent">Sent</SelectItem>
             <SelectItem value="will_bid">Yes</SelectItem>
             <SelectItem value="will_not_bid">No</SelectItem>
           </SelectContent>

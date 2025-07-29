@@ -153,7 +153,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
             biddingCompanies.push({
               project_bidding_id: biddingItem.id,
               company_id: companyCostCode.company_id,
-              bid_status: 'will_bid'
+              bid_status: null
             });
           }
         }
