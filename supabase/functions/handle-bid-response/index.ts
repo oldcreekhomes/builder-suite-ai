@@ -146,162 +146,102 @@ function generateSuccessHTML(
   project: any
 ): string {
   const willBid = response === "will_bid";
-  const statusText = willBid ? "Yes, we will bid" : "No, we will not bid";
-  const statusColor = willBid ? "#10B981" : "#EF4444";
-  const iconEmoji = willBid ? "✅" : "❌";
-
+  
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bid Response Confirmed</title>
+  <title>Bid ${willBid ? 'Confirmed' : 'Declined'}</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
-      padding: 20px;
-      background-color: #f8fafc;
-      color: #334155;
+      padding: 16px;
+      background-color: #f9fafb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
     }
     .container {
-      max-width: 600px;
-      margin: 0 auto;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+      max-width: 448px;
+      width: 100%;
       text-align: center;
     }
-    .content {
-      padding: 30px;
-    }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background-color: ${statusColor};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 16px;
-      margin: 20px 0;
-    }
-    .project-details {
-      background-color: #f1f5f9;
-      padding: 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    .detail-row {
+    .icon {
+      margin: 0 auto;
       display: flex;
-      margin-bottom: 8px;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      width: 48px;
+      border-radius: 50%;
+      margin-bottom: 16px;
     }
-    .detail-label {
-      font-weight: 600;
-      min-width: 120px;
-      color: #475569;
+    .success-icon {
+      color: #059669;
     }
-    .detail-value {
-      color: #334155;
+    .decline-icon {
+      color: #dc2626;
     }
-    .close-button {
-      background: #667eea;
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 16px;
+      margin-top: 0;
+    }
+    p {
+      color: #6b7280;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    button {
+      background-color: #111827;
       color: white;
-      border: none;
-      padding: 12px 24px;
+      font-weight: 500;
+      padding: 8px 24px;
       border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
+      border: none;
       cursor: pointer;
-      margin-top: 20px;
+      transition: background-color 0.2s;
+      margin-bottom: 16px;
     }
-    .close-button:hover {
-      background: #5a67d8;
+    button:hover {
+      background-color: #1f2937;
     }
-    .footer {
-      text-align: center;
-      padding: 20px;
-      background-color: #f8fafc;
-      color: #64748b;
+    .website {
       font-size: 14px;
+      color: #111827;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Bid Response Confirmed</h1>
-      <p>Thank you for your response!</p>
+    <div class="icon">
+      ${willBid 
+        ? '<svg class="success-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>'
+        : '<svg class="decline-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>'
+      }
     </div>
-    
-    <div class="content">
-      <div style="text-align: center;">
-        <div class="status-badge">
-          <span style="font-size: 20px;">${iconEmoji}</span>
-          ${statusText}
-        </div>
-      </div>
-      
-      <p><strong>${companyName}</strong>, your bid response has been successfully recorded.</p>
-      
-      <div class="project-details">
-        <h3 style="margin-top: 0; color: #1e293b;">Project Details</h3>
-        <div class="detail-row">
-          <span class="detail-label">Project:</span>
-          <span class="detail-value">${project?.name || 'N/A'}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Address:</span>
-          <span class="detail-value">${project?.address || 'N/A'}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Bid Package:</span>
-          <span class="detail-value">${bidPackageName}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Cost Code:</span>
-          <span class="detail-value">${costCode?.code || 'N/A'} - ${costCode?.name || 'N/A'}</span>
-        </div>
-      </div>
-      
-      <p style="color: #64748b; font-size: 14px;">
-        Your response has been recorded and the project team will be notified. 
-        ${willBid ? 'Please watch for further communications regarding this project.' : 'Thank you for letting us know.'}
-      </p>
-      
-      <div style="text-align: center;">
-        <button class="close-button" onclick="window.close()">Close Window</button>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>This response was recorded on ${new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })}</p>
+    <h1>Bid ${willBid ? 'Confirmed' : 'Declined'}</h1>
+    <p>
+      ${willBid 
+        ? 'Thank you for confirming you will bid on this project.'
+        : 'We have recorded that you declined this bid. The project manager will be notified.'
+      }
+    </p>
+    <button onclick="window.close()">Close Window</button>
+    <div>
+      <span class="website">www.buildersuiteai.com</span>
     </div>
   </div>
-  
-  <script>
-    // Auto-close after 30 seconds if not manually closed
-    setTimeout(function() {
-      if (confirm('Close this window?')) {
-        window.close();
-      }
-    }, 30000);
-  </script>
 </body>
 </html>`;
 }
@@ -318,43 +258,82 @@ function generateErrorHTML(errorMessage: string): string {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
-      padding: 20px;
-      background-color: #f8fafc;
+      padding: 16px;
+      background-color: #f9fafb;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
     }
-    .error-container {
+    .container {
       background: white;
-      padding: 40px;
-      border-radius: 12px;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+      max-width: 448px;
+      width: 100%;
       text-align: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      max-width: 500px;
+    }
+    .icon {
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      width: 48px;
+      border-radius: 50%;
+      margin-bottom: 16px;
     }
     .error-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
+      color: #dc2626;
     }
     h1 {
-      color: #dc2626;
-      margin-bottom: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #111827;
+      margin-bottom: 16px;
+      margin-top: 0;
     }
     p {
-      color: #64748b;
-      margin-bottom: 20px;
+      color: #6b7280;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    button {
+      background-color: #111827;
+      color: white;
+      font-weight: 500;
+      padding: 8px 24px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-bottom: 16px;
+    }
+    button:hover {
+      background-color: #1f2937;
+    }
+    .website {
+      font-size: 14px;
+      color: #111827;
     }
   </style>
 </head>
 <body>
-  <div class="error-container">
-    <div class="error-icon">❌</div>
+  <div class="container">
+    <div class="icon">
+      <svg class="error-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="m15 9-6 6"/>
+        <path d="m9 9 6 6"/>
+      </svg>
+    </div>
     <h1>Error</h1>
-    <p>${errorMessage}</p>
-    <button onclick="window.close()" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-      Close
-    </button>
+    <p>There was an error processing your bid response. Please try again or contact support.</p>
+    <button onclick="window.close()">Close Window</button>
+    <div>
+      <span class="website">www.buildersuiteai.com</span>
+    </div>
   </div>
 </body>
 </html>`;
