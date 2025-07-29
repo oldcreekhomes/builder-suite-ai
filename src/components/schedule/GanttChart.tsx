@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { GanttComponent, ColumnsDirective, ColumnDirective, Inject, Edit, Selection, Toolbar, DayMarkers, Resize, ColumnMenu, ContextMenu, EditSettingsModel } from '@syncfusion/ej2-react-gantt';
 import { Edit as TreeGridEdit } from '@syncfusion/ej2-react-treegrid';
+import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks, ProjectTask } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectResources } from '@/hooks/useProjectResources';
@@ -28,6 +29,30 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }>({ isOpen: false, taskData: null, taskName: '' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+
+  // Set up real-time updates for task confirmations
+  useEffect(() => {
+    const channel = supabase
+      .channel('schedule-task-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'project_schedule_tasks',
+          filter: `project_id=eq.${projectId}`
+        },
+        (payload) => {
+          console.log('Task confirmation updated via realtime:', payload);
+          // The task query will automatically refetch due to real-time update
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId]);
 
   // Transform tasks with nested hierarchical structure and comprehensive debugging
   const ganttData = useMemo(() => {
@@ -293,6 +318,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     console.log('No parent found - will be root level task');
     return null;
+  };
+
+  // Handle taskbar styling based on confirmation status
+  const handleQueryTaskbarInfo = (args: any) => {
+    if (args.data && typeof args.data.Confirmed !== 'undefined') {
+      if (args.data.Confirmed === true) {
+        // Green for confirmed tasks
+        args.taskbarBgColor = '#22c55e'; // green-500
+        args.taskbarBorderColor = '#16a34a'; // green-600
+        args.progressBarBgColor = '#15803d'; // green-700
+      } else if (args.data.Confirmed === false) {
+        // Red for denied tasks
+        args.taskbarBgColor = '#ef4444'; // red-500
+        args.taskbarBorderColor = '#dc2626'; // red-600
+        args.progressBarBgColor = '#b91c1c'; // red-700
+      }
+      // Leave default colors for null/undefined (pending tasks)
+    }
   };
 
   // Handle row selection to track potential parent tasks
@@ -761,6 +804,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         actionBegin={handleActionBegin}
         actionComplete={handleActionComplete}
         rowSelected={handleRowSelected}
+        queryTaskbarInfo={handleQueryTaskbarInfo}
         resizeStart={handleResizeStart}
         resizing={handleResizing}
         resizeStop={handleResizeStop}

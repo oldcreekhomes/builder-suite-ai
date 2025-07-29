@@ -17,6 +17,7 @@ export interface ProjectTask {
   order_index: number;
   created_at: string;
   updated_at: string;
+  confirmed: boolean | null;
 }
 
 export const useProjectTasks = (projectId: string) => {
