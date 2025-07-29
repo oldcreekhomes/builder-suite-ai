@@ -81,46 +81,18 @@ export default function ScheduleResponseConfirmation() {
             <div className="text-center">
               <p className="text-gray-600 mb-6">
                 {isConfirmed
-                  ? "Thank you for confirming your schedule. We have recorded your response."
+                  ? "Thank you for confirming your schedule."
                   : "We have recorded that you declined this schedule. The project manager will be notified."}
               </p>
             </div>
 
-            <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center space-x-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Task</p>
-                  <p className="text-sm text-gray-600">{taskName || "Unknown Task"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Building className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Project</p>
-                  <p className="text-sm text-gray-600">{projectName || "Unknown Project"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Company</p>
-                  <p className="text-sm text-gray-600">{companyName || "Unknown Company"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4 text-center">
-              <p className="text-xs text-gray-500">
-                This response has been recorded on {new Date().toLocaleDateString()}
+            <div className="text-center">
+              <Button onClick={() => window.close()} className="px-8 mb-4">
+                Close Window
+              </Button>
+              <p className="text-sm text-gray-500">
+                www.buildersuiteai.com
               </p>
-              <div className="mt-4">
-                <Button onClick={() => window.close()} className="px-8">
-                  Close Window
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
