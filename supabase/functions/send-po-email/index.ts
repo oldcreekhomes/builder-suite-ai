@@ -39,6 +39,7 @@ const generatePOEmailHTML = (data: {
   projectManagerName?: string;
   projectManagerPhone?: string;
   projectManagerEmail?: string;
+  price?: number;
 }) => {
   const { 
     companyName, 
@@ -47,7 +48,8 @@ const generatePOEmailHTML = (data: {
     senderCompany = 'BuilderSuite AI',
     projectManagerName = 'Project Manager',
     projectManagerPhone = 'N/A',
-    projectManagerEmail = 'contact@buildersuiteai.com'
+    projectManagerEmail = 'contact@buildersuiteai.com',
+    price
   } = data;
 
   // Generate downloadable proposal links with new styling
@@ -148,11 +150,19 @@ const generatePOEmailHTML = (data: {
                                                             </td>
                                                         </tr>
                                                         <tr>
-                                                            <td style="margin: 0; padding: 0;">
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Status:</span>
                                                                 <span style="color: #22c55e; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Contract Awarded</span>
                                                             </td>
                                                         </tr>
+                                                        ${price ? `
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Price:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${price.toLocaleString()}</span>
+                                                            </td>
+                                                        </tr>
+                                                        ` : ''}
                                                     </table>
                                                 </td>
                                             </tr>
@@ -252,11 +262,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('📝 Request data:', { biddingCompanyId, projectAddress, companyName, proposalsCount: proposals?.length || 0, senderCompanyName });
 
-    // Get the bidding company details to find the company ID
+    // Get the bidding company details to find the company ID and price
     const { data: biddingCompany, error: biddingError } = await supabase
       .from('project_bid_package_companies')
       .select(`
         company_id,
+        price,
         companies!inner(
           company_name,
           company_representatives(
@@ -269,7 +280,7 @@ const handler = async (req: Request): Promise<Response> => {
         )
       `)
       .eq('id', biddingCompanyId)
-      .single();
+      .maybeSingle();
 
     if (biddingError) {
       console.error('❌ Error fetching bidding company:', biddingError);
@@ -364,6 +375,7 @@ const handler = async (req: Request): Promise<Response> => {
       projectManagerName,
       projectManagerPhone,
       projectManagerEmail,
+      price: biddingCompany.price,
     });
 
     // Send emails to all recipients
