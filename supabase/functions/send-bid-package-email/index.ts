@@ -209,22 +209,13 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <tr>
                         <td style="padding: 30px; margin: 0;">
                             
-                            <!-- Greeting Section -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
-                                <tr>
-                                    <td style="background-color: #f8f8f8; padding: 25px; margin: 0;">
-                                        <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${contractorCompanyName},</h2>
-                                        <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">We are inviting you to submit a bid for the following project.</p>
-                                    </td>
-                                </tr>
-                            </table>
                             
                             <!-- Project Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                 <!-- Project Header -->
                                 <tr>
                                     <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Project Details
+                                        Project Details - You've been invited to bid on the following project.
                                     </td>
                                 </tr>
                                 <!-- Project Content -->
