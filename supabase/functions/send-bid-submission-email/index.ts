@@ -55,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
       .select(`
         *,
         cost_codes (name, code),
-        projects (name, address)
+        projects (name, address, owner_id)
       `)
       .eq('id', bidPackageId)
       .single();
@@ -64,6 +64,20 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Error fetching bid package:', bidError);
       throw new Error('Bid package not found');
     }
+
+    // Fetch the sender company information
+    const { data: senderUser, error: senderError } = await supabase
+      .from('users')
+      .select('company_name')
+      .eq('id', bidPackage.projects.owner_id)
+      .single();
+
+    if (senderError || !senderUser) {
+      console.error('Error fetching sender company:', senderError);
+      throw new Error('Sender company not found');
+    }
+
+    const senderCompanyName = senderUser.company_name;
 
     // Create the bid submission URL
     const bidSubmissionUrl = `https://buildersuiteai.com/submit-bid?bid_package_id=${bidPackageId}&company_id=${companyId}`;
@@ -196,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'BuilderSuite AI <noreply@buildersuiteai.com>',
+      from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
       to: [recipientEmail],
       subject: `Submit Your Bid - ${bidPackage.projects?.address}: ${bidPackage.cost_codes?.name}`,
       html: htmlContent
