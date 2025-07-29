@@ -99,7 +99,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
                                 <!-- Greeting Section -->
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                     <tr>
-                                        <td style="background-color: #f8f8f8; padding: 25px; border-left: 4px solid #000000; margin: 0;">
+                                        <td style="background-color: #f8f8f8; padding: 25px; border: 4px solid #000000; margin: 0;">
                                             <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Hello ${recipientName},</h2>
                                             <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">You have tasks scheduled to start in the next ${timeframe}. Please review the details below and prepare accordingly.</p>
                                             ${customMessage ? `
