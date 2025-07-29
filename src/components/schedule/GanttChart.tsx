@@ -29,6 +29,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }>({ isOpen: false, taskData: null, taskName: '' });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [forceRefreshKey, setForceRefreshKey] = useState(0);
 
   // Set up real-time updates for task confirmations
   useEffect(() => {
@@ -44,7 +45,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         },
         (payload) => {
           console.log('Task confirmation updated via realtime:', payload);
-          // The task query will automatically refetch due to real-time update
+          // Force Gantt component refresh when task confirmations change
+          setForceRefreshKey(prev => prev + 1);
         }
       )
       .subscribe();
@@ -125,6 +127,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Add', 'Edit', 'Update', 'Delete', 'Cancel', 'ExpandAll', 'CollapseAll',
     'Search', 'ZoomIn', 'ZoomOut', 'ZoomToFit', 
     { text: 'Publish', id: 'publish', prefixIcon: 'e-export' },
+    { text: 'Refresh Colors', id: 'refresh', prefixIcon: 'e-refresh' },
     'Indent', 'Outdent'
   ];
 
@@ -193,6 +196,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       return () => clearTimeout(timer);
     }
   }, [ganttData, projectStartDate]);
+
+  // Force refresh when data changes to ensure taskbar colors update
+  useEffect(() => {
+    if (ganttRef.current && ganttData.length > 0) {
+      console.log('=== FORCING GANTT REFRESH ===');
+      console.log('Tasks with confirmation status:', ganttData.map(t => ({ 
+        id: t.TaskID, 
+        name: t.TaskName, 
+        confirmed: t.Confirmed 
+      })));
+      
+      const timer = setTimeout(() => {
+        ganttRef.current?.refresh();
+        console.log('Gantt component refreshed to update taskbar colors');
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [ganttData, forceRefreshKey]);
 
   // Simplified parent detection using selected task and TaskID pattern
   const findParentFromHierarchy = (taskId: string, allTasks: ProcessedTask[]): string | null => {
@@ -336,28 +358,39 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleQueryTaskbarInfo = (args: any) => {
     console.log('=== TASKBAR INFO QUERY ===');
     console.log('Task data:', args.data);
-    console.log('Confirmed status:', args.data?.Confirmed);
-    console.log('Confirmed type:', typeof args.data?.Confirmed);
+    console.log('taskData Confirmed:', args.data?.taskData?.Confirmed);
+    console.log('Direct Confirmed:', args.data?.Confirmed);
     
-    if (args.data && typeof args.data.Confirmed !== 'undefined') {
-      if (args.data.Confirmed === true) {
+    // Check multiple possible locations for the Confirmed field
+    const confirmed = args.data?.taskData?.confirmed || 
+                     args.data?.taskData?.Confirmed || 
+                     args.data?.confirmed || 
+                     args.data?.Confirmed;
+    
+    console.log('Final confirmed value:', confirmed, 'type:', typeof confirmed);
+    
+    if (typeof confirmed !== 'undefined' && confirmed !== null) {
+      if (confirmed === true) {
         console.log('Setting GREEN for confirmed task');
         // Green for confirmed tasks
         args.taskbarBgColor = '#22c55e'; // green-500
         args.taskbarBorderColor = '#16a34a'; // green-600
         args.progressBarBgColor = '#15803d'; // green-700
-      } else if (args.data.Confirmed === false) {
+      } else if (confirmed === false) {
         console.log('Setting RED for denied task');
         // Red for denied tasks
         args.taskbarBgColor = '#ef4444'; // red-500
         args.taskbarBorderColor = '#dc2626'; // red-600
         args.progressBarBgColor = '#b91c1c'; // red-700
       } else {
-        console.log('Confirmed status is neither true nor false:', args.data.Confirmed);
+        console.log('Confirmed status is neither true nor false:', confirmed);
       }
-      // Leave default colors for null/undefined (pending tasks)
     } else {
-      console.log('No Confirmed field found in task data');
+      console.log('No Confirmed field found in task data - using default blue');
+      // Default blue for pending tasks
+      args.taskbarBgColor = '#3b82f6'; // blue-500
+      args.taskbarBorderColor = '#2563eb'; // blue-600
+      args.progressBarBgColor = '#1d4ed8'; // blue-700
     }
   };
 
@@ -386,9 +419,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const isPublishButton = args.item?.id === 'publish' || 
                            args.item?.text === 'Publish';
     
+    // Check for manual refresh button
+    const isRefreshButton = args.item?.id === 'refresh' || 
+                           args.item?.text === 'Refresh Colors';
+    
     console.log('Is Add button?', isAddButton);
     console.log('Is ZoomToFit button?', isZoomToFitButton);
     console.log('Is Publish button?', isPublishButton);
+    console.log('Is Refresh button?', isRefreshButton);
     
     if (isAddButton) {
       console.log('Add button detected! Preventing default and adding ROOT task...');
@@ -434,6 +472,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     } else if (isPublishButton) {
       console.log('Publish button clicked! Opening dialog...');
       setPublishDialogOpen(true);
+      return;
+    } else if (isRefreshButton) {
+      console.log('Manual refresh button clicked! Forcing taskbar color refresh...');
+      setForceRefreshKey(prev => prev + 1);
+      if (ganttRef.current) {
+        ganttRef.current.refresh();
+      }
       return;
     } else {
       console.log('Other toolbar action, continuing...');
