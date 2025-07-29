@@ -215,7 +215,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                 <!-- Project Header -->
                                 <tr>
                                     <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Project Details - You've been invited to bid on the following project.
+                                        You have been invited to bid on the following project:
                                     </td>
                                 </tr>
                                 <!-- Project Content -->
@@ -250,7 +250,9 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${attachmentsHtml}</span>
+                                                                <div style="display: inline-block; vertical-align: top;">
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${attachmentsHtml}</div>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
