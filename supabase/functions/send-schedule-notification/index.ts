@@ -50,8 +50,28 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
       <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #333333; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${formatDate(task.start_date)}</td>
       <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #333333; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${formatDate(task.end_date)}</td>
       <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; text-align: center; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">
-        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" style="display: inline-block; background-color: #22c55e; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; font-weight: 600; margin: 0 3px 0 0; text-align: center; min-width: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.2;">Confirm</a>
-        <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" style="display: inline-block; background-color: #ef4444; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 3px; font-size: 11px; font-weight: 600; margin: 0; text-align: center; min-width: 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.2;">Deny</a>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="display: inline-table; border-collapse: separate; margin: 0;">
+          <tr>
+            <td style="margin: 0; padding: 0 2px 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #22c55e;">
+                <tr>
+                  <td style="margin: 0; padding: 6px 12px;">
+                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" style="color: #ffffff; text-decoration: none; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Confirm</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+            <td style="margin: 0; padding: 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #ef4444;">
+                <tr>
+                  <td style="margin: 0; padding: 6px 12px;">
+                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" style="color: #ffffff; text-decoration: none; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Deny</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   `).join('');
