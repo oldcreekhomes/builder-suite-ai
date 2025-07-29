@@ -201,7 +201,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                                 <div style="display: inline-block; vertical-align: top;">
                                                                     <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">{{project_manager_name}}</div>
                                                                     <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">{{project_manager_phone}}</div>
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">{{project_manager_email}}</div>
+                                                                    <div style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4; text-decoration: none !important;">{{project_manager_email}}</div>
                                                                 </div>
                                                             </td>
                                                         </tr>
