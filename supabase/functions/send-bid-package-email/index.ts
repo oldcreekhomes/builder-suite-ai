@@ -89,7 +89,7 @@ const formatSpecifications = (specifications: string | undefined) => {
 const generateFileDownloadLinks = (files: string[]) => {
   if (!files || files.length === 0) return 'No files attached';
   
-  return files.map(file => {
+  const fileLinks = files.map(file => {
     // Extract filename for display
     const fileName = file.split('/').pop() || file;
     
@@ -98,8 +98,11 @@ const generateFileDownloadLinks = (files: string[]) => {
     
     console.log('🔗 Generating file link:', { originalFile: file, fileName, downloadUrl });
     
-    return `<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
+    return `<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
   }).join(' ');
+  
+  // Wrap in container div for proper alignment
+  return `<div style="display: inline-block; vertical-align: top;">${fileLinks}</div>`;
 };
 
 const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string) => {
