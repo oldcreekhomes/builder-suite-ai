@@ -167,6 +167,8 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
         confirmed: task.confirmed,
         Confirmed: task.confirmed,
       };
+      
+      console.log('Processing task:', task.task_name, 'confirmed:', task.confirmed, 'Confirmed:', processedTask.Confirmed);
 
       // Process children if they exist
       const children = childrenMap.get(task.id) || [];

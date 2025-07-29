@@ -334,19 +334,30 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Handle taskbar styling based on confirmation status
   const handleQueryTaskbarInfo = (args: any) => {
+    console.log('=== TASKBAR INFO QUERY ===');
+    console.log('Task data:', args.data);
+    console.log('Confirmed status:', args.data?.Confirmed);
+    console.log('Confirmed type:', typeof args.data?.Confirmed);
+    
     if (args.data && typeof args.data.Confirmed !== 'undefined') {
       if (args.data.Confirmed === true) {
+        console.log('Setting GREEN for confirmed task');
         // Green for confirmed tasks
         args.taskbarBgColor = '#22c55e'; // green-500
         args.taskbarBorderColor = '#16a34a'; // green-600
         args.progressBarBgColor = '#15803d'; // green-700
       } else if (args.data.Confirmed === false) {
+        console.log('Setting RED for denied task');
         // Red for denied tasks
         args.taskbarBgColor = '#ef4444'; // red-500
         args.taskbarBorderColor = '#dc2626'; // red-600
         args.progressBarBgColor = '#b91c1c'; // red-700
+      } else {
+        console.log('Confirmed status is neither true nor false:', args.data.Confirmed);
       }
       // Leave default colors for null/undefined (pending tasks)
+    } else {
+      console.log('No Confirmed field found in task data');
     }
   };
 
