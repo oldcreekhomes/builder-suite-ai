@@ -15,14 +15,19 @@ interface BiddingTableRowFilesProps {
 
 export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteFiles }: BiddingTableRowFilesProps) {
   const handleFileUpload = () => {
+    console.log('File upload clicked, onFileUpload function:', !!onFileUpload);
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
     input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
+      console.log('Files selected:', files.length, files.map(f => f.name));
       if (files.length > 0 && onFileUpload) {
+        console.log('Calling onFileUpload with item.id:', item.id);
         onFileUpload(item.id, files);
+      } else if (!onFileUpload) {
+        console.error('onFileUpload is not provided');
       }
     };
     input.click();
