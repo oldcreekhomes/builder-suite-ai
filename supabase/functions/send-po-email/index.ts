@@ -57,10 +57,11 @@ const generatePOEmailHTML = (data: {
         const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${filePath}`;
         const fileName = file.split('/').pop() || file;
         return `
-          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #f8f8f8; padding: 15px; width: 100%; margin-bottom: 10px;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #f8f8f8; padding: 15px; width: 100%;">
             <tr>
               <td style="margin: 0; padding: 0;">
-                <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 Proposal Document</a>
+                <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 ${fileName}</a>
+                <p style="color: #666666; font-size: 12px; margin: 5px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</p>
               </td>
             </tr>
           </table>
@@ -182,7 +183,6 @@ const generatePOEmailHTML = (data: {
                                     </td>
                                 </tr>
                             </table>
-
                             
                             <!-- Contact Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
