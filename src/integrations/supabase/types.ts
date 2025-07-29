@@ -329,7 +329,7 @@ export type Database = {
       project_bid_package_companies: {
         Row: {
           bid_package_id: string
-          bid_status: string | null
+          bid_status: string
           company_id: string
           created_at: string
           due_date: string | null
@@ -341,7 +341,7 @@ export type Database = {
         }
         Insert: {
           bid_package_id: string
-          bid_status?: string | null
+          bid_status?: string
           company_id: string
           created_at?: string
           due_date?: string | null
@@ -353,7 +353,7 @@ export type Database = {
         }
         Update: {
           bid_package_id?: string
-          bid_status?: string | null
+          bid_status?: string
           company_id?: string
           created_at?: string
           due_date?: string | null
