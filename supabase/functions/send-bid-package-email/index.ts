@@ -106,77 +106,13 @@ const generateFileDownloadLinks = (files: string[]) => {
 };
 
 const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string) => {
-  const { bidPackage, companies, project, senderCompany } = data;
-
-  // Get project manager information - look up user details if we have an ID
-  let managerName = 'Project Manager';
-  let managerEmail = 'contact@buildersuiteai.com';
-  let managerPhone = 'N/A';
-
-  if (project?.manager) {
-    try {
-      // Create a simple Supabase client for server-side use
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.50.0');
-      const supabaseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co';
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      if (supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('first_name, last_name, email, phone_number')
-          .eq('id', project.manager)
-          .single();
-
-        if (userData && !error) {
-          const firstName = userData.first_name || '';
-          const lastName = userData.last_name || '';
-          const fullName = `${firstName} ${lastName}`.trim();
-          
-          managerName = fullName || 'Project Manager';
-          managerEmail = userData.email || 'contact@buildersuiteai.com';
-          managerPhone = userData.phone_number || 'N/A';
-          
-          console.log('Manager lookup successful:', { firstName, lastName, fullName, email: userData.email, phone: userData.phone_number });
-        } else {
-          console.log('Failed to fetch manager details:', error);
-        }
-      }
-    } catch (error) {
-      console.log('Error looking up manager details:', error);
-    }
-  }
-
-  // Use provided values if available, otherwise use looked-up values
-  managerName = project?.managerName || project?.manager_name || managerName;
-  managerEmail = project?.managerEmail || project?.manager_email || managerEmail;
-  managerPhone = project?.managerPhone || project?.manager_phone || managerPhone;
-
-  // Get the first company for the greeting
-  const contractorCompanyName = companies[0]?.company_name || 'Contractor';
-
-  // Format specifications with bullet points and numbered lists
-  const formattedSpecifications = formatSpecifications(bidPackage.specifications);
-
-  // Generate downloadable file links
-  const attachmentsHtml = generateFileDownloadLinks(bidPackage.files);
-
-  // Generate Yes/No button URLs - ensure we have valid IDs
-  const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response';
-  const yesUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_bid`;
-  const noUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_not_bid`;
-
-  console.log('Generating email with URLs:', { yesUrl, noUrl, bidPackageId: bidPackage.id, companyId });
-  console.log('Manager details:', { managerName, managerEmail, managerPhone });
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Bid Package Request - ${project?.address || 'Project'}: ${bidPackage.costCode?.name || 'Scope'}</title>
+    <title>Bid Package Request - 6119 11th Street, Arlington, Va 22205: Siding</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -201,7 +137,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
                             <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Invitation</h1>
-                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${project?.address || 'Project Address'}</p>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">6119 11th Street, Arlington, Va 22205</p>
                         </td>
                     </tr>
                     
@@ -228,37 +164,31 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${project?.address || 'Not specified'}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">6119 11th Street, Arlington, Va 22205</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Contact:</span>
-                                                                <div style="display: inline-block; vertical-align: top;">
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerName}</div>
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerPhone}</div>
-                                                                    <span style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerEmail}</span>
-                                                                </div>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contact:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; line-height: 1.4;">Matt Gray<br>571-405-7671<br>mgray@oldcreekhomes.com</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Due Date:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${formatDate(bidPackage.due_date)}</span>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
-                                                                <div style="display: inline-block; vertical-align: top;">
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${attachmentsHtml}</div>
-                                                                </div>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">August 1, 2025</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Scope of Work:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;">${formattedSpecifications}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;"><p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 0;">• Siding is good.</p><p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 0;">• Siding is bad.</p><p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 0;">• Why is siding good.</p></span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/bidding_926bea07-e39b-4989-a54b-744232fa742c_1753813482999_T-2278%20Old%20Chesterbrook%20Rd%20%286300%29%20TSC%20INV%2025536.pdf" style="color: #059669; text-decoration: underline;" target="_blank" download>📎 T-2278 Old Chesterbrook Rd (6300) TSC INV 25536.pdf</a></span>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -289,12 +219,12 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                                                         <tr>
                                                             <td style="padding-right: 15px;">
-                                                                <a href="${yesUrl}" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=926bea07-e39b-4989-a54b-744232fa742c&company_id=ec053f04-bf8d-4f73-b187-9b4025220306&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
                                                                     Yes, I will bid
                                                                 </a>
                                                             </td>
                                                             <td style="padding-left: 15px;">
-                                                                <a href="${noUrl}" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=926bea07-e39b-4989-a54b-744232fa742c&company_id=ec053f04-bf8d-4f73-b187-9b4025220306&response=will_not_bid" style="background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
                                                                     No, I will not bid
                                                                 </a>
                                                             </td>
