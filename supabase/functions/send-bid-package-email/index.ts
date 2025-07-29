@@ -124,14 +124,13 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
 
   console.log('Generating email with URLs:', { yesUrl, noUrl, bidPackageId: bidPackage.id, companyId });
 
-  // Email template with template variables
-  const emailTemplate = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Bid Package Request - {{project_address}}: {{scope_category}}</title>
+    <title>Bid Package Request - ${project?.address || 'Project'}: ${bidPackage.costCode?.name || 'Scope'}</title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -156,7 +155,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
                             <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Invitation</h1>
-                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">{{project_address}}</p>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${project?.address || 'Project Address'}</p>
                         </td>
                     </tr>
                     
@@ -168,7 +167,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                 <tr>
                                     <td style="background-color: #f8f8f8; padding: 25px; margin: 0;">
-                                        <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">{{contractor_company_name}},</h2>
+                                        <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${contractorCompanyName},</h2>
                                         <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">We are inviting you to submit a bid for the following project.</p>
                                     </td>
                                 </tr>
@@ -192,35 +191,35 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">{{project_address}}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${project?.address || 'Not specified'}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Contact:</span>
                                                                 <div style="display: inline-block; vertical-align: top;">
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">{{project_manager_name}}</div>
-                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">{{project_manager_phone}}</div>
-                                                                    <div style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4; text-decoration: none !important;">{{project_manager_email}}</div>
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerName}</div>
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerPhone}</div>
+                                                                    <div style="color: #000000 !important; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4; text-decoration: none !important;">${managerEmail}</div>
                                                                 </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Due Date:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">{{due_date}}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${formatDate(bidPackage.due_date)}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">{{project_files_html}}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${attachmentsHtml}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Scope of Work:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;">{{scope_of_work_html}}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;">${formattedSpecifications}</span>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -251,12 +250,12 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                                                         <tr>
                                                             <td style="padding-right: 15px;">
-                                                                <a href="{{yes_bid_url}}" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                <a href="${yesUrl}" style="background-color: #10B981; border: 2px solid #10B981; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
                                                                     Yes, I will bid
                                                                 </a>
                                                             </td>
                                                             <td style="padding-left: 15px;">
-                                                                <a href="{{no_bid_url}}" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                <a href="${noUrl}" style="background-color: #DC2626; border: 2px solid #DC2626; border-radius: 6px; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
                                                                     No, I will not bid
                                                                 </a>
                                                             </td>
@@ -288,20 +287,6 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
     </table>
 </body>
 </html>`;
-
-  // Replace template variables with actual values
-  return emailTemplate
-    .replace(/{{project_address}}/g, project?.address || 'Not specified')
-    .replace(/{{scope_category}}/g, bidPackage.costCode?.name || 'Scope')
-    .replace(/{{contractor_company_name}}/g, contractorCompanyName)
-    .replace(/{{project_manager_name}}/g, managerName)
-    .replace(/{{project_manager_phone}}/g, managerPhone)
-    .replace(/{{project_manager_email}}/g, managerEmail)
-    .replace(/{{due_date}}/g, formatDate(bidPackage.due_date))
-    .replace(/{{project_files_html}}/g, attachmentsHtml)
-    .replace(/{{scope_of_work_html}}/g, formattedSpecifications)
-    .replace(/{{yes_bid_url}}/g, yesUrl)
-    .replace(/{{no_bid_url}}/g, noUrl);
 };
 
 const handler = async (req: Request): Promise<Response> => {
