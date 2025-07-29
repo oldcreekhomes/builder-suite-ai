@@ -90,9 +90,14 @@ export default function ScheduleResponseConfirmation() {
               <Button onClick={() => window.close()} className="px-8 mb-4">
                 Close Window
               </Button>
-              <p className="text-sm text-gray-500">
+              <a 
+                href="https://www.buildersuiteai.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-gray-500 no-underline hover:text-gray-700 transition-colors"
+              >
                 www.buildersuiteai.com
-              </p>
+              </a>
             </div>
           </CardContent>
         </Card>
