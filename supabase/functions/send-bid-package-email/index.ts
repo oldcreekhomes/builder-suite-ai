@@ -104,7 +104,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   const { bidPackage, companies, project, senderCompany } = data;
 
   // Get project manager information from the project data
-  const managerName = project?.manager || 'Project Manager';
+  const managerName = project?.managerName || project?.manager || 'Project Manager';
   const managerEmail = project?.managerEmail || 'contact@buildersuiteai.com';
   const managerPhone = project?.managerPhone || 'N/A';
 
