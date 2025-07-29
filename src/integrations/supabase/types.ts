@@ -904,6 +904,7 @@ export type Database = {
           order_index: number
           created_at: string
           updated_at: string
+          confirmed: boolean
         }[]
       }
       get_user_role_and_home_builder: {
