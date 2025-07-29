@@ -219,14 +219,14 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                                                         <tr>
                                                             <td style="padding-right: 15px;">
-                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=926bea07-e39b-4989-a54b-744232fa742c&company_id=ec053f04-bf8d-4f73-b187-9b4025220306&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
-                                                                    Yes, I will bid
-                                                                </a>
-                                                            </td>
-                                                            <td style="padding-left: 15px;">
-                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=926bea07-e39b-4989-a54b-744232fa742c&company_id=ec053f04-bf8d-4f73-b187-9b4025220306&response=will_not_bid" style="background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
-                                                                    No, I will not bid
-                                                                </a>
+                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                     Yes, I will bid
+                                                                 </a>
+                                                             </td>
+                                                             <td style="padding-left: 15px;">
+                                                                 <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_not_bid" style="background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                                                     No, I will not bid
+                                                                 </a>
                                                             </td>
                                                         </tr>
                                                     </table>
