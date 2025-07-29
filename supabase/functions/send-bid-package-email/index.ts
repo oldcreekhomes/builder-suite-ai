@@ -125,9 +125,15 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
           .single();
 
         if (userData && !error) {
-          managerName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Project Manager';
+          const firstName = userData.first_name || '';
+          const lastName = userData.last_name || '';
+          const fullName = `${firstName} ${lastName}`.trim();
+          
+          managerName = fullName || 'Project Manager';
           managerEmail = userData.email || 'contact@buildersuiteai.com';
           managerPhone = userData.phone_number || 'N/A';
+          
+          console.log('Manager lookup successful:', { firstName, lastName, fullName, email: userData.email, phone: userData.phone_number });
         } else {
           console.log('Failed to fetch manager details:', error);
         }
