@@ -36,106 +36,207 @@ const generatePOEmailHTML = (data: {
   projectAddress: string; 
   proposals?: string[];
   senderCompany?: string;
+  projectManagerName?: string;
+  projectManagerPhone?: string;
+  projectManagerEmail?: string;
 }) => {
-  const { companyName, projectAddress, proposals = [], senderCompany = 'BuilderSuite AI' } = data;
+  const { 
+    companyName, 
+    projectAddress, 
+    proposals = [], 
+    senderCompany = 'BuilderSuite AI',
+    projectManagerName = 'Project Manager',
+    projectManagerPhone = 'N/A',
+    projectManagerEmail = 'contact@buildersuiteai.com'
+  } = data;
 
-  // Generate downloadable proposal links
+  // Generate downloadable proposal links with new styling
   const attachmentsHtml = proposals && proposals.length > 0 
     ? proposals.map(file => {
         const filePath = file.includes('/') ? file : `proposals/${file}`;
         const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${filePath}`;
         const fileName = file.split('/').pop() || file;
-        return `<p style="margin: 5px 0;"><a href="${downloadUrl}" style="color: #059669; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></p>`;
+        return `
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #f8f8f8; padding: 15px; width: 100%; margin-bottom: 10px;">
+            <tr>
+              <td style="margin: 0; padding: 0;">
+                <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 ${fileName}</a>
+                <p style="color: #666666; font-size: 12px; margin: 5px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</p>
+              </td>
+            </tr>
+          </table>
+        `;
       }).join('')
-    : '<p style="margin: 5px 0; color: #666;">No proposals attached</p>';
+    : `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #f8f8f8; padding: 15px; width: 100%;">
+        <tr>
+          <td style="margin: 0; padding: 0;">
+            <p style="color: #666666; font-size: 14px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">No proposals attached</p>
+          </td>
+        </tr>
+      </table>
+    `;
 
   return `
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" style="-ms-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: none; height: 100% !important; width: 100% !important; margin: 0; padding: 0;">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width">
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Purchase Order Notification - ${senderCompany}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Purchase Order Notification</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
 </head>
-<body style="background-color: #F6F6F6; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; margin: 0; padding: 0;">
-  <table style="border-collapse: collapse; border-spacing: 0; min-width: 100%; width: 100%;" cellpadding="0" cellspacing="0">
-    <tbody>
-      <tr>
-        <td style="padding: 20px 0;" align="center">
-          <table style="border-collapse: collapse; border-spacing: 0; max-width: 600px; width: 100%; background-color: #FFFFFF; border: 1px solid #E0E0E0;" cellpadding="0" cellspacing="0">
-            <tbody>
-              <!-- Header -->
-              <tr>
-                <td style="padding: 30px; text-align: center; border-bottom: 1px solid #E0E0E0;">
-                  <h1 style="color: #059669; font-size: 28px; margin: 0; font-weight: bold;">${senderCompany}</h1>
-                  <h2 style="color: #4D4D4D; font-size: 20px; margin: 10px 0 0 0; font-weight: normal;">Purchase Order Notification</h2>
-                </td>
-              </tr>
-              
-              <!-- Main Content -->
-              <tr>
-                <td style="padding: 30px;">
-                  <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 0 0 20px 0;">
-                    Dear ${companyName} Team,
-                  </p>
-                  
-                  <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 0 0 20px 0;">
-                    We are pleased to inform you that a <strong>Purchase Order (PO)</strong> has been issued for your services on the following project:
-                  </p>
-                  
-                  <!-- Project Details Box -->
-                  <div style="background-color: #F8F9FA; padding: 20px; border-left: 4px solid #059669; margin: 20px 0;">
-                    <h3 style="color: #059669; font-size: 18px; margin: 0 0 10px 0;">Project Information</h3>
-                    <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 0;">
-                      <strong>Project Address:</strong> ${projectAddress}
-                    </p>
-                  </div>
-                  
-                  <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 20px 0;">
-                    This notification confirms that your proposal has been accepted and you have been awarded the contract for this project.
-                  </p>
-                  
-                  <!-- Proposals Section -->
-                  <div style="margin: 25px 0;">
-                    <h3 style="color: #4D4D4D; font-size: 16px; margin: 0 0 10px 0; font-weight: bold;">Your Submitted Proposals:</h3>
-                    <div style="background-color: #F8F9FA; padding: 15px; border-radius: 5px;">
-                      ${attachmentsHtml}
-                    </div>
-                  </div>
-                  
-                  <!-- Next Steps -->
-                  <div style="background-color: #E8F5E8; padding: 20px; border-radius: 5px; margin: 25px 0;">
-                    <h3 style="color: #059669; font-size: 16px; margin: 0 0 10px 0;">Next Steps</h3>
-                    <p style="color: #4D4D4D; font-size: 14px; line-height: 20px; margin: 0;">
-                      • You will receive the formal Purchase Order documentation separately<br>
-                      • Please prepare to begin work as scheduled<br>
-                      • Contact us if you have any questions about the project scope or timeline
-                    </p>
-                  </div>
-                  
-                  <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 20px 0 0 0;">
-                    Thank you for your partnership. We look forward to working with you on this project.
-                  </p>
-                  
-                  <p style="color: #4D4D4D; font-size: 16px; line-height: 24px; margin: 20px 0 0 0;">
-                    Best regards,<br>
-                    <strong>The ${senderCompany} Team</strong>
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 20px; background-color: #F8F9FA; border-top: 1px solid #E0E0E0; text-align: center;">
-                   <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; font-size: 12px; margin: 0; text-decoration: none;">www.buildersuiteai.com</a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <!-- Wrapper Table -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
+                
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Purchase Order Issued</h1>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px; margin: 0;">
+                            
+                            <!-- Greeting Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <tr>
+                                    <td style="background-color: #f8f8f8; padding: 25px; margin: 0;">
+                                        <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${companyName} Team,</h2>
+                                        <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">We are pleased to inform you that a Purchase Order (PO) has been issued for your services on the following project.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Project Information Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <!-- Project Header -->
+                                <tr>
+                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Project Information
+                                    </td>
+                                </tr>
+                                <!-- Project Content -->
+                                <tr>
+                                    <td style="padding: 0; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                            <tr>
+                                                <td style="padding: 20px; margin: 0;">
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Status:</span>
+                                                                <span style="color: #22c55e; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Contract Awarded</span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Proposals Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <!-- Proposals Header -->
+                                <tr>
+                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Your Submitted Proposals
+                                    </td>
+                                </tr>
+                                <!-- Proposals Content -->
+                                <tr>
+                                    <td style="padding: 0; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                            <tr>
+                                                <td style="padding: 20px; margin: 0;">
+                                                    ${attachmentsHtml}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            
+                            <!-- Contact Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                <!-- Contact Header -->
+                                <tr>
+                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Project Manager
+                                    </td>
+                                </tr>
+                                <!-- Contact Content -->
+                                <tr>
+                                    <td style="padding: 20px; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 8px 0;">
+                                                    <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Name:</span>
+                                                    <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerName}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 8px 0;">
+                                                    <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Phone:</span>
+                                                    <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerPhone}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0;">
+                                                    <span style="color: #666666; font-weight: 500; display: inline-block; width: 60px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Email:</span>
+                                                    <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectManagerEmail}</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
+                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+                
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
   `;
