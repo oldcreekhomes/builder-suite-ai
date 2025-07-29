@@ -202,7 +202,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
                         <!-- Footer -->
                         <tr>
                             <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
-                                <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666666; font-size: 12px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none;">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #000000; font-size: 12px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none;">www.buildersuiteai.com</a>
                             </td>
                         </tr>
                         
