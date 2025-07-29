@@ -77,10 +77,10 @@ const formatSpecifications = (specifications: string | undefined) => {
     
     // Check if line starts with bullet point markers
     if (trimmed.match(/^[•·-]\s*/) || trimmed.match(/^\d+\.\s*/)) {
-      return `<p style="line-height: 20px; color: #4D4D4D; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
+      return `<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
     }
     
-    return `<p style="line-height: 20px; color: #4D4D4D; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
+    return `<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
   });
   
   return formattedLines.filter(line => line).join('');
