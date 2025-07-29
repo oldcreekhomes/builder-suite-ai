@@ -69,7 +69,7 @@ export default function BidResponseConfirmation() {
               )}
             </div>
             <CardTitle className="text-xl font-semibold text-gray-900">
-              Bid {willBid ? "Confirmed" : "Declined"}
+              {willBid ? "Bidding Confirmed" : "Bidding Declined"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
