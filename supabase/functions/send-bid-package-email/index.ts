@@ -77,10 +77,10 @@ const formatSpecifications = (specifications: string | undefined) => {
     
     // Check if line starts with bullet point markers
     if (trimmed.match(/^[•·-]\s*/) || trimmed.match(/^\d+\.\s*/)) {
-      return `<p style="line-height: 20px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
+      return `<p style="line-height: 20px; color: #4D4D4D; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
     }
     
-    return `<p style="line-height: 20px; color: #4D4D4D; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
+    return `<p style="line-height: 20px; color: #4D4D4D; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
   });
   
   return formattedLines.filter(line => line).join('');
@@ -94,8 +94,8 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
     const filePath = file.includes('/') ? file : `specifications/${file}`;
     const downloadUrl = `${baseUrl}/${filePath}`;
     const fileName = file.split('/').pop() || file;
-    return `<p style="margin: 5px 0;"><a href="${downloadUrl}" style="color: #059669; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></p>`;
-  }).join('');
+    return `<a href="${downloadUrl}" style="color: #059669; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
+  }).join(' ');
 };
 
 const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => {
@@ -106,9 +106,6 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   const managerEmail = project?.managerEmail || 'contact@buildersuiteai.com';
   const managerPhone = project?.managerPhone || 'N/A';
 
-  // Use sender company name if provided, otherwise fallback to first company
-  const companyName = senderCompany?.company_name || companies[0]?.company_name || 'Your Company';
-
   // Get the first company for the greeting
   const contractorCompanyName = companies[0]?.company_name || 'Contractor';
 
@@ -118,13 +115,14 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
   // Generate downloadable file links
   const attachmentsHtml = generateFileDownloadLinks(bidPackage.files);
 
-  // Generate Yes/No button URLs
+  // Generate Yes/No button URLs - ensure we have valid IDs
   const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response';
   const yesUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_bid`;
   const noUrl = `${baseUrl}?bid_package_id=${bidPackage.id}&company_id=${companyId}&response=will_not_bid`;
 
-  return `
-<!DOCTYPE html>
+  console.log('Generating email with URLs:', { yesUrl, noUrl, bidPackageId: bidPackage.id, companyId });
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -197,7 +195,11 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Contact:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${managerName} - ${managerPhone} - ${managerEmail}</span>
+                                                                <div style="display: inline-block; vertical-align: top;">
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerName}</div>
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerPhone}</div>
+                                                                    <div style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.4;">${managerEmail}</div>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                         <tr>
@@ -206,14 +208,20 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${formatDate(bidPackage.due_date)}</span>
                                                             </td>
                                                         </tr>
-                                                         <tr>
-                                                             <td style="margin: 0; padding: 15px 0 0 0;">
-                                                                 <span style="color: #666666; font-weight: 500; display: block; font-size: 14px; margin-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Scope of Work:</span>
-                                                                 <div style="margin-left: 20px;">
-                                                                     ${formattedSpecifications}
-                                                                 </div>
-                                                             </td>
-                                                         </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${attachmentsHtml}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 15px 0 0 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: block; font-size: 14px; margin-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Scope of Work:</span>
+                                                                <div style="margin-left: 20px;">
+                                                                    ${formattedSpecifications}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
                                                     </table>
                                                 </td>
                                             </tr>
@@ -222,28 +230,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
                                 </tr>
                             </table>
                             
-                            <!-- Project Files Section -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
-                                <!-- Files Header -->
-                                <tr>
-                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Project Files
-                                    </td>
-                                </tr>
-                                <!-- Files Content -->
-                                <tr>
-                                    <td style="padding: 0; margin: 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
-                                            <tr>
-                                                <td style="padding: 20px; margin: 0;">
-                                                    ${attachmentsHtml}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            
+
                             <!-- Bid Response Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                 <!-- Response Header -->
@@ -299,8 +286,7 @@ const generateEmailHTML = (data: BidPackageEmailRequest, companyId?: string) => 
         </tr>
     </table>
 </body>
-</html>
-  `;
+</html>`;
 };
 
 const handler = async (req: Request): Promise<Response> => {
