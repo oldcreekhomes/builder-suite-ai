@@ -73,16 +73,6 @@ export default function ScheduleResponseConfirmation() {
                 <XCircle className="h-8 w-8 text-red-600" />
               )}
             </div>
-            <div className="mb-4">
-              <a 
-                href="https://www.buildersuiteai.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm text-black no-underline hover:text-gray-700 transition-colors"
-              >
-                www.buildersuiteai.com
-              </a>
-            </div>
             <CardTitle className="text-xl font-semibold text-gray-900">
               Schedule {isConfirmed ? "Confirmed" : "Declined"}
             </CardTitle>
@@ -97,9 +87,19 @@ export default function ScheduleResponseConfirmation() {
             </div>
 
             <div className="text-center">
-              <Button onClick={() => window.close()} className="px-8">
+              <Button onClick={() => window.close()} className="px-8 mb-4">
                 Close Window
               </Button>
+              <div>
+                <a 
+                  href="https://www.buildersuiteai.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-black no-underline hover:text-gray-700 transition-colors"
+                >
+                  www.buildersuiteai.com
+                </a>
+              </div>
             </div>
           </CardContent>
         </Card>
