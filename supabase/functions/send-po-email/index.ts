@@ -61,7 +61,6 @@ const generatePOEmailHTML = (data: {
             <tr>
               <td style="margin: 0; padding: 0;">
                 <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 ${fileName}</a>
-                <p style="color: #666666; font-size: 12px; margin: 5px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</p>
               </td>
             </tr>
           </table>
