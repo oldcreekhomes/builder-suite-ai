@@ -93,8 +93,8 @@ const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://n
     // Extract filename and use the full file path as provided
     const fileName = file.split('/').pop() || file;
     
-    // Simple URL construction - files are stored directly in the project-files bucket
-    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${encodeURIComponent(file)}`;
+    // Files are stored in specifications subfolder within project-files bucket
+    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURIComponent(file)}`;
     
     console.log('🔗 Generating file link:', { originalFile: file, fileName, downloadUrl });
     
