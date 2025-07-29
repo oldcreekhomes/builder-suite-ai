@@ -56,7 +56,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #22c55e;">
                 <tr>
                   <td style="margin: 0; padding: 6px 12px;">
-                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" style="color: #ffffff; text-decoration: none; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Confirm</a>
+                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=confirm" style="color: #ffffff !important; text-decoration: none !important; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Confirm</a>
                   </td>
                 </tr>
               </table>
@@ -65,7 +65,7 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #ef4444;">
                 <tr>
                   <td style="margin: 0; padding: 6px 12px;">
-                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" style="color: #ffffff; text-decoration: none; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Deny</a>
+                    <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-schedule-response?task_id=${task.id}&company_id=${companyId}&representative_id=${representativeId}&response=deny" style="color: #ffffff !important; text-decoration: none !important; font-size: 11px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;">Deny</a>
                   </td>
                 </tr>
               </table>
@@ -119,9 +119,9 @@ const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
                                 <!-- Greeting Section -->
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                     <tr>
-                                        <td style="background-color: #f8f8f8; padding: 25px; border: 4px solid #000000; margin: 0;">
+                                        <td style="background-color: #f8f8f8; padding: 25px; margin: 0;">
                                             <h2 style="color: #000000; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Hello ${recipientName},</h2>
-                                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">You have tasks scheduled to start in the next ${timeframe}. Please review the details below and prepare accordingly.</p>
+                                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">You have tasks scheduled to start in the next ${timeframe}. Please confirm or deny by clicking the buttons below.</p>
                                             ${customMessage ? `
                                                 <div style="margin-top: 20px; padding: 15px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
                                                     <p style="margin: 0; color: #0c4a6e; font-style: italic; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">"${customMessage}"</p>
