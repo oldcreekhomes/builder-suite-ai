@@ -76,7 +76,7 @@ export default function BidResponseConfirmation() {
             <div className="text-center">
               <p className="text-gray-600 mb-6">
                 {willBid
-                  ? "Thank you for confirming you will bid on this project."
+                  ? "Thank you. You will receive a 2nd email to submit your bid in a few minutes."
                   : "We have recorded that you declined this bid. The project manager will be notified."}
               </p>
             </div>
