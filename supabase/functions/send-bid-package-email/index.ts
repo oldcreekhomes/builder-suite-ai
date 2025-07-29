@@ -86,20 +86,42 @@ const formatSpecifications = (specifications: string | undefined) => {
   return formattedLines.filter(line => line).join('');
 };
 
-const generateFileDownloadLinks = (files: string[], baseUrl: string = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files') => {
+const generateFileDownloadLinks = async (files: string[], supabase: any) => {
   if (!files || files.length === 0) return 'No files attached';
   
-  return files.map(file => {
-    // Extract filename and use the full file path as provided
-    const fileName = file.split('/').pop() || file;
-    
-    // Files are stored in specifications subfolder within project-files bucket
-    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURIComponent(file)}`;
-    
-    console.log('🔗 Generating file link:', { originalFile: file, fileName, downloadUrl });
-    
-    return `<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
-  }).join(' ');
+  const fileLinks = [];
+  
+  for (const file of files) {
+    try {
+      // Look up the actual file path from the database
+      const { data: fileData, error } = await supabase
+        .from('project_files')
+        .select('storage_path, original_filename')
+        .eq('filename', file)
+        .single();
+
+      if (fileData && !error) {
+        const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${fileData.storage_path}`;
+        const displayName = fileData.original_filename || file;
+        
+        console.log('🔗 Found file in database:', { file, storage_path: fileData.storage_path, downloadUrl });
+        
+        fileLinks.push(`<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${displayName}</a>`);
+      } else {
+        console.log('⚠️ File not found in database:', file, error);
+        // Fallback to simple filename
+        const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${file}`;
+        fileLinks.push(`<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${file}</a>`);
+      }
+    } catch (error) {
+      console.log('Error looking up file:', file, error);
+      // Fallback to simple filename
+      const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${file}`;
+      fileLinks.push(`<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; display: inline-block; margin-right: 15px;" target="_blank" download>📎 ${file}</a>`);
+    }
+  }
+  
+  return fileLinks.join(' ');
 };
 
 const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string) => {
@@ -157,7 +179,11 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
   const formattedSpecifications = formatSpecifications(bidPackage.specifications);
 
   // Generate downloadable file links
-  const attachmentsHtml = generateFileDownloadLinks(bidPackage.files);
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.50.0');
+  const supabaseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co';
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const attachmentsHtml = await generateFileDownloadLinks(bidPackage.files, supabase);
 
   // Generate Yes/No button URLs - ensure we have valid IDs
   const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response';
