@@ -148,6 +148,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       // Prepare email data
       const emailData = {
         bidPackage: {
+          id: bidPackage.id,
           name: bidPackage.name,
           costCode: bidPackage.cost_codes,
           due_date: bidPackage.due_date,
@@ -166,6 +167,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
         companies: companiesData.map(company => ({
+          id: company.companies.id,
           company_name: company.companies.company_name,
           address: company.companies.address,
           phone_number: company.companies.phone_number,
