@@ -60,8 +60,7 @@ const generatePOEmailHTML = (data: {
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-radius: 3px; background-color: #f8f8f8; padding: 15px; width: 100%; margin-bottom: 10px;">
             <tr>
               <td style="margin: 0; padding: 0;">
-                <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 ${fileName}</a>
-                <p style="color: #666666; font-size: 12px; margin: 5px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</p>
+                <a href="${downloadUrl}" style="color: #000000 !important; text-decoration: none !important; font-size: 14px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: block;" target="_blank" download>📎 Proposal Document</a>
               </td>
             </tr>
           </table>
@@ -320,12 +319,52 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('🏢 Using sender company name:', senderCompanyName);
 
+    // Get project and project manager details
+    const { data: projectData, error: projectError } = await supabase
+      .from('project_bid_package_companies')
+      .select(`
+        bid_package_id,
+        project_bid_packages!inner(
+          project_id,
+          projects!inner(
+            manager,
+            users!inner(
+              first_name,
+              last_name,
+              email,
+              phone_number
+            )
+          )
+        )
+      `)
+      .eq('id', biddingCompanyId)
+      .single();
+
+    console.log('🔍 Project data query result:', { projectData, projectError });
+
+    let projectManagerName = 'Project Manager';
+    let projectManagerPhone = 'N/A';
+    let projectManagerEmail = 'contact@buildersuiteai.com';
+
+    if (projectData && !projectError && projectData.project_bid_packages?.projects?.users) {
+      const manager = projectData.project_bid_packages.projects.users;
+      projectManagerName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
+      projectManagerPhone = manager.phone_number || 'N/A';
+      projectManagerEmail = manager.email || 'contact@buildersuiteai.com';
+      console.log('👤 Project Manager found:', { projectManagerName, projectManagerPhone, projectManagerEmail });
+    } else {
+      console.log('⚠️ No project manager found, using defaults');
+    }
+
     // Generate email HTML
     const emailHTML = generatePOEmailHTML({
       companyName: biddingCompany.companies.company_name,
       projectAddress,
       proposals,
       senderCompany: senderCompanyName,
+      projectManagerName,
+      projectManagerPhone,
+      projectManagerEmail,
     });
 
     // Send emails to all recipients
