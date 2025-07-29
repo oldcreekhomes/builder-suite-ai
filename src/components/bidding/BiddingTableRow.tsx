@@ -27,10 +27,12 @@ interface BiddingTableRowProps {
   isReadOnly?: boolean;
   isCompanyReadOnly?: boolean;
   projectAddress?: string;
+  onFileUpload?: (itemId: string, files: File[]) => void;
+  onDeleteFiles?: (itemId: string) => void;
 }
 
-export function BiddingTableRow({ 
-  item, 
+export function BiddingTableRow({
+  item,
   onDelete,
   onUpdateStatus,
   onUpdateDueDate,
@@ -47,7 +49,9 @@ export function BiddingTableRow({
   isDeleting = false,
   isReadOnly = false,
   isCompanyReadOnly = false,
-  projectAddress
+  projectAddress,
+  onFileUpload,
+  onDeleteFiles
 }: BiddingTableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -78,6 +82,8 @@ export function BiddingTableRow({
         onUpdateSpecifications={onUpdateSpecifications}
         onDelete={onDelete}
         onSendClick={() => setShowSendModal(true)}
+        onFileUpload={onFileUpload}
+        onDeleteFiles={onDeleteFiles}
       />
       
       {isExpanded && (

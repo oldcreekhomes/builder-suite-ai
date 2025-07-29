@@ -9,9 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 interface BiddingTableRowFilesProps {
   item: any;
   isReadOnly?: boolean;
+  onFileUpload?: (itemId: string, files: File[]) => void;
+  onDeleteFiles?: (itemId: string) => void;
 }
 
-export function BiddingTableRowFiles({ item, isReadOnly = false }: BiddingTableRowFilesProps) {
+export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteFiles }: BiddingTableRowFilesProps) {
   const handleFileUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -19,12 +21,17 @@ export function BiddingTableRowFiles({ item, isReadOnly = false }: BiddingTableR
     input.accept = '.pdf,.doc,.docx,.xls,.xlsx';
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
-      if (files.length > 0) {
-        // Handle bid package file upload - we'll need to implement this
-        console.log('Bid package files:', files);
+      if (files.length > 0 && onFileUpload) {
+        onFileUpload(item.id, files);
       }
     };
     input.click();
+  };
+
+  const handleDeleteFiles = () => {
+    if (onDeleteFiles) {
+      onDeleteFiles(item.id);
+    }
   };
 
   const handleFilePreview = async (fileName: string) => {
@@ -65,7 +72,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false }: BiddingTableR
             </div>
             {!isReadOnly && (
               <DeleteButton
-                onDelete={handleFileUpload} // This would be delete all files function
+                onDelete={handleDeleteFiles}
                 title="Delete All Files"
                 description="Are you sure you want to delete all files? This action cannot be undone."
                 size="sm"

@@ -36,7 +36,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     removeGroupFromExpanded
   } = useBudgetGroups(groupedBiddingItems);
   
-  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
@@ -137,6 +137,8 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                         isReadOnly={isReadOnly}
                         isCompanyReadOnly={status === 'closed'}
                         projectAddress={projectAddress}
+                        onFileUpload={handleFileUpload}
+                        onDeleteFiles={handleDeleteFiles}
                       />
                     ))}
                   </React.Fragment>

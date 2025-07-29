@@ -219,6 +219,116 @@ export const useBiddingMutations = (projectId: string) => {
     updateBiddingSpecifications.mutate({ itemId, specifications });
   };
 
+  // Upload files to bidding package
+  const uploadBiddingFiles = useMutation({
+    mutationFn: async ({ itemId, files }: { itemId: string; files: File[] }) => {
+      const uploadedFileNames: string[] = [];
+      
+      for (const file of files) {
+        const fileName = `bidding_${itemId}_${Date.now()}_${file.name}`;
+        const filePath = `specifications/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, file);
+          
+        if (uploadError) throw uploadError;
+        uploadedFileNames.push(fileName);
+      }
+      
+      // Get current files array and append new files
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_bid_packages')
+        .select('files')
+        .eq('id', itemId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const currentFiles = currentData?.files || [];
+      const updatedFiles = [...currentFiles, ...uploadedFileNames];
+      
+      const { error } = await supabase
+        .from('project_bid_packages')
+        .update({ files: updatedFiles })
+        .eq('id', itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Files uploaded successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload files",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete all files from bidding package
+  const deleteBiddingFiles = useMutation({
+    mutationFn: async (itemId: string) => {
+      // Get current files to delete from storage
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_bid_packages')
+        .select('files')
+        .eq('id', itemId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const currentFiles = currentData?.files || [];
+      
+      // Delete files from storage
+      if (currentFiles.length > 0) {
+        const filePaths = currentFiles.map((fileName: string) => `specifications/${fileName}`);
+        const { error: deleteError } = await supabase.storage
+          .from('project-files')
+          .remove(filePaths);
+          
+        if (deleteError) console.error('Error deleting files from storage:', deleteError);
+      }
+      
+      // Clear files array in database
+      const { error } = await supabase
+        .from('project_bid_packages')
+        .update({ files: [] })
+        .eq('id', itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Files deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete files",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileUpload = (itemId: string, files: File[]) => {
+    uploadBiddingFiles.mutate({ itemId, files });
+  };
+
+  const handleDeleteFiles = (itemId: string) => {
+    deleteBiddingFiles.mutate(itemId);
+  };
+
   return {
     deletingGroups,
     deletingItems,
@@ -228,5 +338,7 @@ export const useBiddingMutations = (projectId: string) => {
     handleUpdateDueDate,
     handleUpdateReminderDate,
     handleUpdateSpecifications,
+    handleFileUpload,
+    handleDeleteFiles,
   };
 };

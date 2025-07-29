@@ -27,6 +27,8 @@ interface BiddingTableRowContentProps {
   onUpdateSpecifications: (itemId: string, specifications: string) => void;
   onDelete: (itemId: string) => void;
   onSendClick: () => void;
+  onFileUpload?: (itemId: string, files: File[]) => void;
+  onDeleteFiles?: (itemId: string) => void;
 }
 
 export function BiddingTableRowContent({
@@ -43,7 +45,9 @@ export function BiddingTableRowContent({
   onUpdateReminderDate,
   onUpdateSpecifications,
   onDelete,
-  onSendClick
+  onSendClick,
+  onFileUpload,
+  onDeleteFiles
 }: BiddingTableRowContentProps) {
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
@@ -116,6 +120,8 @@ export function BiddingTableRowContent({
       <BiddingTableRowFiles
         item={item}
         isReadOnly={isReadOnly}
+        onFileUpload={onFileUpload}
+        onDeleteFiles={onDeleteFiles}
       />
       <BiddingTableRowActions
         item={item}
