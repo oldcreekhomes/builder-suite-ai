@@ -33,13 +33,17 @@ interface SimpleFileListProps {
   files: SimpleFile[];
   onFolderClick: (path: string) => void;
   onRefresh: () => void;
+  projectId: string;
+  currentPath: string;
 }
 
 export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   folders,
   files,
   onFolderClick,
-  onRefresh
+  onRefresh,
+  projectId,
+  currentPath
 }) => {
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
@@ -176,9 +180,65 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleFolderDownload = async (folder: SimpleFolder) => {
     try {
-      // This would require implementing a zip functionality
-      // For now, we'll show a message that this feature is coming soon
-      toast.success('Folder download feature coming soon!');
+      const { data: allFiles = [], error: fetchError } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('project_id', projectId)
+        .neq('file_type', 'folderkeeper')
+        .eq('is_deleted', false);
+
+      if (fetchError) throw fetchError;
+
+      // Filter files that belong to this folder
+      const folderFiles = allFiles.filter(file => {
+        const filePath = file.original_filename;
+        const expectedPrefix = `${folder.path}/`;
+        return filePath.startsWith(expectedPrefix);
+      });
+
+      if (folderFiles.length === 0) {
+        toast.error('No files found in this folder');
+        return;
+      }
+
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Download each file and add to zip
+      for (const file of folderFiles) {
+        try {
+          const { data, error } = await supabase.storage
+            .from('project-files')
+            .download(file.storage_path);
+
+          if (error) {
+            console.error(`Error downloading ${file.filename}:`, error);
+            continue;
+          }
+
+          // Get the relative path within the folder for the zip
+          const expectedPrefix = `${folder.path}/`;
+          const relativePath = file.original_filename.substring(expectedPrefix.length);
+          
+          zip.file(relativePath, data);
+        } catch (error) {
+          console.error(`Error processing ${file.filename}:`, error);
+        }
+      }
+
+      // Generate and download the zip file
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${folder.name}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`Folder "${folder.name}" downloaded successfully`);
     } catch (error) {
       console.error('Error downloading folder:', error);
       toast.error('Failed to download folder');
