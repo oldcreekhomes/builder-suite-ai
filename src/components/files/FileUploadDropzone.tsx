@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
+import { useFolderDragDrop } from "@/components/files/hooks/useFolderDragDrop";
 
 interface FileUploadDropzoneProps {
   projectId: string;
@@ -27,6 +28,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     progress: number;
     uploading: boolean;
   }>>([]);
+
+  // Use the folder drag drop hook for sophisticated folder handling
+  const uploadFileToFolder = async (file: File, relativePath: string): Promise<boolean> => {
+    return await uploadFile(file, relativePath);
+  };
+
+  const { handleFolderDrop } = useFolderDragDrop({
+    uploadFileToFolder,
+    onRefresh: onUploadSuccess
+  });
 
   const uploadFile = async (file: File, relativePath: string = '') => {
     if (!user) return false;
@@ -130,6 +141,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     // Call onUploadSuccess after all uploads complete
     onUploadSuccess();
   }, [projectId, user, onUploadSuccess, toast]);
+
+  // Handle drop events with sophisticated folder detection
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Use the sophisticated folder drop handler for true drag events
+    const targetFolder = currentPath || 'Root';
+    await handleFolderDrop(e, targetFolder);
+  }, [handleFolderDrop, currentPath]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -237,6 +258,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
             className={`p-8 text-center cursor-pointer ${
               isDragActive ? 'bg-blue-50 border-blue-400' : ''
             }`}
+            onDrop={handleDrop}
           >
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
