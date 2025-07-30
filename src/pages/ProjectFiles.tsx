@@ -19,6 +19,7 @@ import { FileShareModal } from "@/components/files/components/FileShareModal";
 import { FolderShareModal } from "@/components/files/components/FolderShareModal";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
 import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
+import { useCreateFolder } from "@/hooks/useProjectFolders";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -39,6 +40,7 @@ export default function ProjectFiles() {
 
   const { data: files = [], isLoading, refetch } = useProjectFiles(projectId || '');
   const { data: project } = useProject(projectId || '');
+  const createFolder = useCreateFolder();
 
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -233,9 +235,19 @@ export default function ProjectFiles() {
             setShowNewFolderModal(false);
             setParentFolderPath(undefined);
           }}
-          onCreateFolder={(folderName: string, parentPath?: string) => {
-            // Folder creation is now handled by the individual components
-            refetch();
+          onCreateFolder={async (folderName: string, parentPath?: string) => {
+            try {
+              await createFolder.mutateAsync({
+                projectId: projectId!,
+                folderName,
+                parentPath
+              });
+              setShowNewFolderModal(false);
+              setParentFolderPath(undefined);
+              refetch();
+            } catch (error) {
+              console.error('Error creating folder:', error);
+            }
           }}
           parentPath={parentFolderPath}
         />
