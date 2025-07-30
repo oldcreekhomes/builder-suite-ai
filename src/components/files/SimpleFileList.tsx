@@ -127,7 +127,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             <Folder className="h-5 w-5 text-blue-500" />
             <div className="flex-1">
               <p className="font-medium">{folder.name}</p>
-              <p className="text-sm text-muted-foreground">Folder</p>
             </div>
           </div>
         ))}
