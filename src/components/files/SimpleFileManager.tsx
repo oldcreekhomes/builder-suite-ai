@@ -22,12 +22,12 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
   const { user } = useAuth();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
 
-  // Get files and folders for current path
+  // Get files and folders for current path (filter out folderkeeper files)
   const getCurrentItems = () => {
     const folders = new Set<string>();
     const files: any[] = [];
 
-    allFiles.forEach(file => {
+    allFiles.filter(file => file.file_type !== 'folderkeeper').forEach(file => {
       const filePath = file.original_filename;
       
       if (currentPath) {
