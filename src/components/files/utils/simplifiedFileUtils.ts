@@ -50,14 +50,18 @@ const extractFoldersFromFiles = (files: ProjectFile[]): ProjectFolder[] => {
 };
 
 export const buildFileTree = (files: ProjectFile[], folders: ProjectFolder[]): FileTreeNode[] => {
+  console.log('buildFileTree: Starting with files:', files.length, 'folders:', folders.length);
+  
   const tree: FileTreeNode[] = [];
   const nodeMap = new Map<string, FileTreeNode>();
 
   // If no explicit folders, extract from files for backward compatibility
   const allFolders = folders.length > 0 ? folders : extractFoldersFromFiles(files);
+  console.log('buildFileTree: All folders to process:', allFolders.length);
 
   // Create folder nodes
   allFolders.forEach(folder => {
+    console.log('buildFileTree: Creating folder node:', folder.folder_path);
     const node: FileTreeNode = {
       type: 'folder',
       name: folder.folder_name,
@@ -69,10 +73,16 @@ export const buildFileTree = (files: ProjectFile[], folders: ProjectFolder[]): F
     nodeMap.set(folder.folder_path, node);
   });
 
+  console.log('buildFileTree: Created folder nodes, nodeMap size:', nodeMap.size);
+
   // Create file nodes (skip folderkeeper files)
-  files.filter(file => file.file_type !== 'folderkeeper').forEach(file => {
+  const validFiles = files.filter(file => file.file_type !== 'folderkeeper');
+  console.log('buildFileTree: Processing files:', validFiles.length);
+  
+  validFiles.forEach(file => {
     const filePath = getFilePath(file.original_filename);
     const parentPath = getParentPath(filePath);
+    console.log('buildFileTree: Processing file:', filePath, 'parent:', parentPath);
     
     const node: FileTreeNode = {
       type: 'file',
@@ -82,25 +92,35 @@ export const buildFileTree = (files: ProjectFile[], folders: ProjectFolder[]): F
       file,
     };
     
-    if (parentPath) {
-      nodeMap.set(filePath, node);
-    } else {
-      // Root level file
+    // Always add files to nodeMap for processing
+    nodeMap.set(filePath, node);
+    
+    // If no parent path, add directly to root
+    if (!parentPath) {
+      console.log('buildFileTree: Adding root file:', filePath);
       tree.push(node);
     }
   });
 
-  // Build tree structure
-  nodeMap.forEach(node => {
+  console.log('buildFileTree: Total nodes in map:', nodeMap.size);
+
+  // Build tree structure by connecting children to parents
+  nodeMap.forEach((node, path) => {
     if (node.parentPath) {
       const parent = nodeMap.get(node.parentPath);
       if (parent && parent.children) {
+        console.log('buildFileTree: Adding', path, 'to parent', node.parentPath);
         parent.children.push(node);
+      } else {
+        console.log('buildFileTree: Parent not found for', path, 'parent should be:', node.parentPath);
       }
     } else if (node.type === 'folder') {
+      console.log('buildFileTree: Adding root folder:', path);
       tree.push(node);
     }
   });
+
+  console.log('buildFileTree: Final tree has', tree.length, 'root items');
 
   // Sort each level
   const sortNodes = (nodes: FileTreeNode[]) => {
@@ -122,6 +142,7 @@ export const buildFileTree = (files: ProjectFile[], folders: ProjectFolder[]): F
   };
 
   sortNodes(tree);
+  console.log('buildFileTree: Returning tree:', tree);
   return tree;
 };
 
