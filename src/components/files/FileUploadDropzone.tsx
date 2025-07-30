@@ -13,9 +13,10 @@ import { NewFolderModal } from "@/components/files/NewFolderModal";
 interface FileUploadDropzoneProps {
   projectId: string;
   onUploadSuccess: () => void;
+  currentPath?: string;
 }
 
-export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDropzoneProps) {
+export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '' }: FileUploadDropzoneProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +48,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: relativePath || file.name,
+          original_filename: currentPath ? `${currentPath}/${relativePath || file.name}` : (relativePath || file.name),
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -197,7 +198,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess }: FileUploadDro
         .insert({
           project_id: projectId,
           filename: keeperFileName,
-          original_filename: `${folderName}/.folderkeeper`,
+          original_filename: currentPath ? `${currentPath}/${folderName}/.folderkeeper` : `${folderName}/.folderkeeper`,
           file_size: 0,
           file_type: 'folderkeeper',
           mime_type: 'text/plain',
