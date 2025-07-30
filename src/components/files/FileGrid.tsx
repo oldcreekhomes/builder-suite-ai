@@ -1,83 +1,89 @@
-
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Trash2 } from "lucide-react";
-import { getDisplayName } from "./utils/fileGridUtils";
-import { groupFilesByFolder, sortFolders } from "./utils/fileUtils";
-import { useFileGridOperations } from "./hooks/useFileGridOperations";
-import { useFileGridDragDrop } from "./hooks/useFileGridDragDrop";
-import { useFileDragDrop } from "./hooks/useFileDragDrop";
-import { FileGridFolder } from "./components/FileGridFolder";
-import { FileGridCard } from "./components/FileGridCard";
+import { Trash2 } from "lucide-react";
+import { FileGridCard } from './components/FileGridCard';
+import { FileGridFolder } from './components/FileGridFolder';
+import { useFileGridOperations } from './hooks/useFileGridOperations';
+import { useFileGridDragDrop } from './hooks/useFileGridDragDrop';
+import { useFileDragDrop } from './hooks/useFileDragDrop';
+import { FileTreeNode } from './utils/simplifiedFileUtils';
 
-interface FileGridProps {
-  files: any[];
-  onFileSelect: (file: any) => void;
-  onRefresh: () => void;
-  onShare: (file: any) => void;
-  onShareFolder: (folderPath: string, files: any[]) => void;
-  onCreateSubfolder: (parentPath: string) => void;
+interface ProjectFile {
+  id: string;
+  project_id: string;
+  filename: string;
+  original_filename: string;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  uploaded_by: string;
+  uploaded_at: string;
 }
 
-export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolder, onCreateSubfolder }: FileGridProps) {
+interface FileGridProps {
+  fileTree: FileTreeNode[];
+  onFileSelect: (file: ProjectFile) => void;
+  onRefresh: () => void;
+  onShare: (files: ProjectFile[]) => void;
+  onShareFolder: (folderPath: string) => void;
+  onCreateSubfolder: (parentFolderPath: string) => void;
+}
+
+export function FileGrid({ 
+  fileTree, 
+  onFileSelect, 
+  onRefresh, 
+  onShare, 
+  onShareFolder, 
+  onCreateSubfolder 
+}: FileGridProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  // Extract all files from the tree for operations
+  const getAllFiles = (nodes: FileTreeNode[]): ProjectFile[] => {
+    const files: ProjectFile[] = [];
+    const traverse = (nodes: FileTreeNode[]) => {
+      nodes.forEach(node => {
+        if (node.type === 'file' && node.file) {
+          files.push(node.file);
+        } else if (node.type === 'folder' && node.children) {
+          traverse(node.children);
+        }
+      });
+    };
+    traverse(nodes);
+    return files;
+  };
+
+  const allFiles = getAllFiles(fileTree);
 
   const {
     selectedFiles,
     isDeleting,
-    uploadFileToFolder,
-    moveFileToFolder,
     handleSelectAll,
     handleSelectFile,
-    handleBulkDelete,
+    handleBulkDelete
   } = useFileGridOperations(onRefresh);
 
-  const {
-    dragOverFolder: uploadDragOverFolder,
-    draggedFileCount,
-    handleFolderDragOver: handleUploadDragOver,
-    handleFolderDragLeave: handleUploadDragLeave,
-    handleFolderDrop: handleUploadDrop,
-  } = useFileGridDragDrop({ uploadFileToFolder, onRefresh });
-
-  const {
-    isDragging,
-    draggedFiles,
-    dragOverFolder: moveDragOverFolder,
-    getFileDragProps,
-    getFolderDropProps,
-  } = useFileDragDrop({ moveFileToFolder, onRefresh, selectedFiles });
-
-  // Group files by folder
-  const groupedFiles = groupFilesByFolder(files);
-  const folderPaths = Object.keys(groupedFiles);
-  const sortedFolders = sortFolders(folderPaths);
-
-  // Filter folders to only show top-level and expanded folders
-  const getVisibleFolders = () => {
-    return sortedFolders.filter(folderPath => {
-      if (folderPath === '__LOOSE_FILES__') return true;
-      
-      const pathParts = folderPath.split('/');
-      
-      // Always show top-level folders
-      if (pathParts.length === 1) return true;
-      
-      // For nested folders, check if all parent folders are expanded
-      for (let i = 1; i < pathParts.length; i++) {
-        const parentPath = pathParts.slice(0, i).join('/');
-        if (!expandedFolders.has(parentPath)) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
+  const isFileSelected = (fileId: string) => selectedFiles.has(fileId);
+  const toggleFileSelection = (fileId: string) => {
+    handleSelectFile(fileId, !selectedFiles.has(fileId));
+  };
+  const selectAllFiles = (checked: boolean) => {
+    handleSelectAll(checked, allFiles);
   };
 
-  const visibleFolders = getVisibleFolders();
+  const dragDropProps = useFileGridDragDrop({ 
+    uploadFileToFolder: async () => true, 
+    onRefresh 
+  });
+
+  const fileDragProps = useFileDragDrop({ 
+    moveFileToFolder: async () => true, 
+    onRefresh, 
+    selectedFiles 
+  });
 
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -89,21 +95,67 @@ export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolde
     setExpandedFolders(newExpanded);
   };
 
-  if (files.length === 0) {
+  // Recursive function to render tree nodes
+  const renderTreeNodes = (nodes: FileTreeNode[], level: number = 0): React.ReactNode => {
+    return nodes.map(node => {
+      if (node.type === 'folder') {
+        const isExpanded = expandedFolders.has(node.path);
+        const folderFiles = node.children?.filter(child => child.type === 'file').map(child => child.file!) || [];
+        
+        return (
+          <div key={node.path}>
+            <FileGridFolder
+              folderPath={node.path}
+              folderFiles={folderFiles}
+              isExpanded={isExpanded}
+              isDragOver={false}
+              onToggleFolder={toggleFolder}
+              onDragOver={() => {}}
+              onDragLeave={() => {}}
+              onDrop={() => {}}
+              onShareFolder={(folderPath, files) => onShareFolder(folderPath)}
+              onCreateSubfolder={() => onCreateSubfolder(node.path)}
+              onRefresh={onRefresh}
+            />
+            {isExpanded && node.children && (
+              <div className="ml-4">
+                {renderTreeNodes(node.children, level + 1)}
+              </div>
+            )}
+          </div>
+        );
+      } else if (node.file) {
+        return (
+          <FileGridCard
+            key={node.file.id}
+            file={node.file}
+            isSelected={isFileSelected(node.file.id)}
+            onSelectFile={(fileId, checked) => handleSelectFile(fileId, checked)}
+            onFileSelect={() => onFileSelect(node.file!)}
+            onRefresh={onRefresh}
+            onShare={(file) => onShare([file])}
+            isDragging={false}
+          />
+        );
+      }
+      return null;
+    });
+  };
+
+  if (fileTree.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No files found</h3>
-        <p className="text-gray-600">Upload files to get started</p>
-      </Card>
+      <div className="text-center py-12 text-gray-500">
+        <p>No files found</p>
+      </div>
     );
   }
 
-  const allSelected = files.length > 0 && selectedFiles.size === files.length;
-  const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
+  const allSelected = allFiles.length > 0 && selectedFiles.size === allFiles.length;
+  const someSelected = selectedFiles.size > 0 && selectedFiles.size < allFiles.length;
 
   return (
     <div className="space-y-6">
+      {/* Selection controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Checkbox
@@ -116,7 +168,7 @@ export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolde
                 }
               }
             }}
-            onCheckedChange={(checked) => handleSelectAll(checked as boolean, files)}
+            onCheckedChange={(checked) => selectAllFiles(checked as boolean)}
           />
           <span className="text-sm text-gray-600">Select All</span>
         </div>
@@ -130,7 +182,6 @@ export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolde
               variant="destructive"
               size="sm"
               onClick={handleBulkDelete}
-              disabled={isDeleting}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Selected
@@ -139,110 +190,9 @@ export function FileGrid({ files, onFileSelect, onRefresh, onShare, onShareFolde
         )}
       </div>
 
-      {visibleFolders.map((folderPath) => {
-        const folderFiles = groupedFiles[folderPath];
-        
-        // Handle loose files differently - render them directly without folder header
-        if (folderPath === '__LOOSE_FILES__') {
-          return (
-            <div key={folderPath} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {folderFiles.map((file) => (
-                  <div key={file.id} {...getFileDragProps(file.id)}>
-                    <FileGridCard
-                      file={file}
-                      isSelected={selectedFiles.has(file.id)}
-                      onSelectFile={handleSelectFile}
-                      onFileSelect={onFileSelect}
-                      onRefresh={onRefresh}
-                      onShare={onShare}
-                      isDragging={isDragging && draggedFiles.includes(file.id)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        }
-        
-        // Handle regular folders
-        const isExpanded = expandedFolders.has(folderPath);
-        const isUploadDragOver = uploadDragOverFolder === folderPath;
-        const isMoveDragOver = moveDragOverFolder === folderPath;
-        const isDragOver = isUploadDragOver || isMoveDragOver;
-        
-        return (
-          <div key={folderPath} className="space-y-3">
-            <div
-              onDragOver={(e) => {
-                // Detect if this is external files (from desktop) or internal files (app files being moved)
-                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
-                
-                if (isExternalFiles) {
-                  // External files - handle upload
-                  handleUploadDragOver(e, folderPath);
-                } else {
-                  // Internal files - handle move
-                  getFolderDropProps(folderPath).onDragOver(e);
-                }
-              }}
-              onDragLeave={(e) => {
-                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
-                
-                if (isExternalFiles) {
-                  handleUploadDragLeave(e);
-                } else {
-                  getFolderDropProps(folderPath).onDragLeave(e);
-                }
-              }}
-              onDrop={(e) => {
-                const isExternalFiles = !e.dataTransfer.types.includes('application/x-internal-file-move');
-                
-                if (isExternalFiles) {
-                  // External files - upload to folder
-                  handleUploadDrop(e, folderPath);
-                } else {
-                  // Internal files - move to folder
-                  getFolderDropProps(folderPath).onDrop(e);
-                }
-              }}
-            >
-              <FileGridFolder
-                folderPath={folderPath}
-                folderFiles={folderFiles}
-                isExpanded={isExpanded}
-                isDragOver={isDragOver}
-                draggedFileCount={draggedFileCount}
-                onToggleFolder={toggleFolder}
-                onDragOver={() => {}}
-                onDragLeave={() => {}}
-                onDrop={() => {}}
-                onShareFolder={onShareFolder}
-                onCreateSubfolder={onCreateSubfolder}
-                onRefresh={onRefresh}
-              />
-            </div>
-
-            {isExpanded && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 ml-8">
-                {folderFiles.map((file) => (
-                  <div key={file.id} {...getFileDragProps(file.id)}>
-                    <FileGridCard
-                      file={file}
-                      isSelected={selectedFiles.has(file.id)}
-                      onSelectFile={handleSelectFile}
-                      onFileSelect={onFileSelect}
-                      onRefresh={onRefresh}
-                      onShare={onShare}
-                      isDragging={isDragging && draggedFiles.includes(file.id)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {renderTreeNodes(fileTree)}
+      </div>
     </div>
   );
 }

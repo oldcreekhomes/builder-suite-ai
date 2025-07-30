@@ -21,7 +21,7 @@ import { FolderShareModal } from "@/components/files/components/FolderShareModal
 import { NewFolderModal } from "@/components/files/NewFolderModal";
 import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 import { useCreateFolder } from "@/hooks/useProjectFolders";
-import { buildFileTree } from "@/components/files/utils/simplifiedFileUtils";
+import { buildFileTree, filterFileTree } from "@/components/files/utils/simplifiedFileUtils";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -50,18 +50,14 @@ export default function ProjectFiles() {
     refetchFolders();
   };
 
-  // Filter files first, then build the file tree
-  const filteredFiles = files.filter(file => {
-    const matchesSearch = file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         file.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = fileTypeFilter === 'all' || file.file_type === fileTypeFilter;
-    return matchesSearch && matchesType && !file.is_deleted;
-  });
+  // Build integrated file tree from all files and folders first
+  const allFiles = files.filter(file => !file.is_deleted);
+  const fileTree = buildFileTree(allFiles, folders);
+  
+  // Then apply filters to the tree structure
+  const filteredFileTree = filterFileTree(fileTree, searchQuery, fileTypeFilter);
 
-  // Build integrated file tree from filtered files and all folders
-  const fileTree = buildFileTree(filteredFiles, folders);
-
-  const fileTypes = [...new Set(files.map(file => file.file_type))];
+  const fileTypes = [...new Set(allFiles.map(file => file.file_type))];
 
   const handleFileSelect = async (file: any) => {
     try {
@@ -199,8 +195,8 @@ export default function ProjectFiles() {
                 
                 {viewMode === 'list' ? (
                   <FileList
-                    files={filteredFiles}
-                    fileTree={fileTree}
+                    files={allFiles}
+                    fileTree={filteredFileTree}
                     onFileSelect={handleFileSelect}
                     onRefresh={handleRefresh}
                     onShare={handleFileShare}
@@ -209,11 +205,11 @@ export default function ProjectFiles() {
                   />
                 ) : (
                   <FileGrid
-                    files={filteredFiles}
+                    fileTree={filteredFileTree}
                     onFileSelect={handleFileSelect}
                     onRefresh={handleRefresh}
-                    onShare={handleFileShare}
-                    onShareFolder={handleFolderShare}
+                    onShare={(files) => handleFileShare(files[0])}
+                    onShareFolder={(folderPath) => handleFolderShare(folderPath, [])}
                     onCreateSubfolder={handleCreateSubfolder}
                   />
                 )}

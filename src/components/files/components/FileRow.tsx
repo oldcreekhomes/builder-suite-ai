@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Download, Edit, Check, X, Share2, Eye } from "lucide-react";
 import { format } from "date-fns";
-import { getDisplayName, formatFileSize, getFileTypeColor } from "../utils/fileUtils";
+import { getFileName, formatFileSize, getFileTypeColor } from "../utils/simplifiedFileUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -43,10 +43,10 @@ export function FileRow({
   isDragging = false,
   fileDragProps = {},
 }: FileRowProps) {
-  const displayInfo = getDisplayName(file.original_filename);
+  const fileName = getFileName(file.original_filename);
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(displayInfo.pathWithinFolder || displayInfo.fileName);
+  const [editName, setEditName] = useState(fileName);
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
@@ -94,7 +94,7 @@ export function FileRow({
   };
 
   const handleCancelEdit = () => {
-    setEditName(displayInfo.pathWithinFolder || displayInfo.fileName);
+    setEditName(fileName);
     setIsEditing(false);
   };
 
@@ -153,7 +153,7 @@ export function FileRow({
             />
           ) : (
             <div className="font-medium">
-              {displayInfo.fileName}
+              {fileName}
             </div>
           )}
           {file.description && !isEditing && (
@@ -213,7 +213,7 @@ export function FileRow({
               <DeleteButton
                 onDelete={handleDelete}
                 title="Delete File"
-                description={`Are you sure you want to delete "${displayInfo.pathWithinFolder || displayInfo.fileName}"? This action cannot be undone.`}
+                description={`Are you sure you want to delete "${fileName}"? This action cannot be undone.`}
                 size="sm"
                 variant="ghost"
                 showIcon={true}

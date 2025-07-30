@@ -184,3 +184,40 @@ export const getFileTypeColor = (fileType: string): string => {
   if (type.includes('archive') || type.includes('zip')) return 'text-yellow-600';
   return 'text-gray-500';
 };
+
+// Filter functions for file tree
+export const filterFileTree = (
+  nodes: FileTreeNode[], 
+  searchQuery: string, 
+  fileTypeFilter: string
+): FileTreeNode[] => {
+  return nodes.map(node => {
+    if (node.type === 'folder') {
+      // For folders, filter children and keep folder if it has matching children
+      const filteredChildren = node.children ? 
+        filterFileTree(node.children, searchQuery, fileTypeFilter) : [];
+      
+      return {
+        ...node,
+        children: filteredChildren
+      };
+    } else {
+      // For files, check if they match the filters
+      const file = node.file!;
+      const matchesSearch = !searchQuery || 
+        file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = fileTypeFilter === 'all' || file.file_type === fileTypeFilter;
+      
+      return matchesSearch && matchesType ? node : null;
+    }
+  }).filter((node): node is FileTreeNode => {
+    if (!node) return false;
+    if (node.type === 'file') return true;
+    // Keep folders that have children or match search in their name
+    const hasMatchingChildren = node.children && node.children.length > 0;
+    const folderMatchesSearch = !searchQuery || 
+      node.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return hasMatchingChildren || folderMatchesSearch;
+  });
+};
