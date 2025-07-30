@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, Folder, Download, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   onFolderClick,
   onRefresh
 }) => {
+  const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -76,22 +78,28 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
-  const handleFileDelete = async (file: SimpleFile) => {
-    if (!confirm(`Are you sure you want to delete "${file.displayName}"?`)) return;
+  const handleFileDelete = (file: SimpleFile) => {
+    setDeleteFile(file);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteFile) return;
 
     try {
       const { error } = await supabase
         .from('project_files')
         .update({ is_deleted: true })
-        .eq('id', file.id);
+        .eq('id', deleteFile.id);
 
       if (error) throw error;
       
       toast.success('File deleted successfully');
+      setDeleteFile(null);
       onRefresh();
     } catch (error) {
       console.error('Error deleting file:', error);
       toast.error('Failed to delete file');
+      setDeleteFile(null);
     }
   };
 
@@ -181,6 +189,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
           </div>
         ))}
       </div>
+
+      <DeleteConfirmationDialog
+        open={!!deleteFile}
+        onOpenChange={(open) => !open && setDeleteFile(null)}
+        onConfirm={confirmDelete}
+        title="Delete File"
+        description={`Are you sure you want to delete "${deleteFile?.displayName}"? This action cannot be undone.`}
+      />
     </div>
   );
 };
