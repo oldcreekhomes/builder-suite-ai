@@ -271,13 +271,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     console.log('All processed files:', allFiles.map(f => ({ name: f.file.name, path: f.relativePath })));
 
     if (allFiles.length > 0) {
-      const files = allFiles.map(f => {
-        // Create a file with the relativePath property set
-        const file = f.file as any;
-        file.webkitRelativePath = f.relativePath;
-        return file;
+      // Create File objects with webkitRelativePath set and process them
+      const filesWithRelativePath = allFiles.map(({ file, relativePath }) => {
+        // Create a copy of the file with the webkitRelativePath property
+        const fileWithPath = file as any;
+        fileWithPath.webkitRelativePath = relativePath;
+        return fileWithPath;
       });
-      await onDrop(files);
+      
+      // Use the existing onDrop function which handles folder structure properly
+      await onDrop(filesWithRelativePath);
     }
   }, [onDrop]);
 
