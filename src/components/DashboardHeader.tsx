@@ -55,11 +55,9 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
-                {project?.address ? (
+                {project?.address && (
                   <p className="text-sm text-gray-600">{project.address}</p>
-                ) : projectLoading ? (
-                  <div className="h-5 w-32 bg-gray-200 animate-pulse rounded"></div>
-                ) : null}
+                )}
               </div>
             </div>
           </div>
