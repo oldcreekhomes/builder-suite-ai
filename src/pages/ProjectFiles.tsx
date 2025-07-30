@@ -17,6 +17,7 @@ const ProjectFiles = () => {
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title="Project Files" 
+            projectId={projectId}
           />
           
           <div className="flex-1">

@@ -2,16 +2,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useProject } from "@/hooks/useProject";
 
 interface DashboardHeaderProps {
   title?: string;
+  projectId?: string;
 }
 
-export function DashboardHeader({ title }: DashboardHeaderProps) {
+export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
+  const navigate = useNavigate();
+  const { data: project } = useProject(projectId || '');
 
   // Get company name - handle both home builders and employees
   const getCompanyName = () => {
@@ -31,14 +36,43 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
   // Use provided title or fallback to company name
   const displayTitle = title || companyName;
 
+  // If this is a project page, show project-specific header
+  if (projectId && project) {
+    return (
+      <>
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <SidebarTrigger className="text-gray-600 hover:text-black" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/project/${projectId}`)}
+                className="text-gray-600 hover:text-black"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Project
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
+                {project.address && (
+                  <p className="text-sm text-gray-600">{project.address}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+      </>
+    );
+  }
+
+  // Default dashboard header
   return (
     <>
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <SidebarTrigger className="text-gray-600 hover:text-black h-8 w-8 flex items-center justify-center">
-              <ArrowLeft className="h-4 w-4" />
-            </SidebarTrigger>
+            <SidebarTrigger className="text-gray-600 hover:text-black" />
             <div>
               <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
             </div>
