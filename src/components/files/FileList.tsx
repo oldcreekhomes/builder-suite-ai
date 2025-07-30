@@ -6,14 +6,15 @@ import { Card } from "@/components/ui/card";
 import { useFileOperations } from "./hooks/useFileOperations";
 import { useFolderDragDrop } from "./hooks/useFolderDragDrop";
 import { useFileDragDrop } from "./hooks/useFileDragDrop";
-import { groupFilesByFolder, sortFolders } from "./utils/fileUtils";
 import { FolderHeader } from "./components/FolderHeader";
 import { FileRow } from "./components/FileRow";
 import { BulkActionBar } from "./components/BulkActionBar";
 import { EmptyState } from "./components/EmptyState";
+import { FileTreeNode } from "./utils/simplifiedFileUtils";
 
 interface FileListProps {
   files: any[];
+  fileTree: FileTreeNode[];
   onFileSelect: (file: any) => void;
   onRefresh: () => void;
   onShare: (file: any) => void;
@@ -21,7 +22,7 @@ interface FileListProps {
   onCreateSubfolder: (parentPath: string) => void;
 }
 
-export function FileList({ files, onFileSelect, onRefresh, onShare, onShareFolder, onCreateSubfolder }: FileListProps) {
+export function FileList({ files, fileTree, onFileSelect, onRefresh, onShare, onShareFolder, onCreateSubfolder }: FileListProps) {
   // Start with empty Set - all folders collapsed by default
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
@@ -86,42 +87,78 @@ export function FileList({ files, onFileSelect, onRefresh, onShare, onShareFolde
     });
   };
 
-  if (files.length === 0) {
+  if (files.length === 0 && fileTree.length === 0) {
     return <EmptyState />;
   }
 
-  const groupedFiles = groupFilesByFolder(files);
-  const sortedFolders = sortFolders(Object.keys(groupedFiles));
+  // Render tree nodes recursively
+  const renderTreeNodes = (nodes: FileTreeNode[], level: number = 0): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
 
-  // Filter folders to only show top-level and expanded folders
-  const getVisibleFolders = () => {
-    return sortedFolders.filter(folderPath => {
-      if (folderPath === '__LOOSE_FILES__') return true;
-      
-      const pathParts = folderPath.split('/');
-      
-      // Always show top-level folders
-      if (pathParts.length === 1) return true;
-      
-      // For nested folders, check if all parent folders are expanded
-      for (let i = 1; i < pathParts.length; i++) {
-        const parentPath = pathParts.slice(0, i).join('/');
-        if (!expandedFolders.has(parentPath)) {
-          return false;
+    nodes.forEach(node => {
+      if (node.type === 'folder') {
+        const isExpanded = expandedFolders.has(node.path);
+        const isUploadDragOver = uploadDragOverFolder === node.path;
+        const isMoveDragOver = moveDragOverFolder === node.path;
+        const isDragOver = isUploadDragOver || isMoveDragOver;
+        const isFolderSelected = selectedFolders.has(node.path);
+
+        // Get folder files for compatibility with existing components
+        const folderFiles = node.children?.filter(child => child.type === 'file').map(child => child.file).filter(Boolean) || [];
+
+        elements.push(
+          <FolderHeader
+            key={`folder-${node.path}`}
+            folderPath={node.path}
+            folderFiles={folderFiles}
+            isExpanded={isExpanded}
+            isDragOver={isDragOver}
+            isSelected={isFolderSelected}
+            onToggleFolder={toggleFolder}
+            onSelectFolder={handleSelectFolder}
+            onDragOver={(e, path) => {
+              getFolderDropProps(path).onDragOver(e);
+              handleUploadDragOver(e, path);
+            }}
+            onDragLeave={(e) => {
+              getFolderDropProps(node.path).onDragLeave(e);
+              handleUploadDragLeave(e);
+            }}
+            onDrop={(e, path) => {
+              getFolderDropProps(path).onDrop(e);
+              handleUploadDrop(e, path);
+            }}
+            onShareFolder={onShareFolder}
+            onCreateSubfolder={onCreateSubfolder}
+            onRefresh={onRefresh}
+          />
+        );
+
+        // If expanded, render children
+        if (isExpanded && node.children) {
+          elements.push(...renderTreeNodes(node.children, level + 1));
         }
+      } else if (node.type === 'file' && node.file) {
+        elements.push(
+          <FileRow
+            key={node.file.id}
+            file={node.file}
+            isSelected={selectedFiles.has(node.file.id)}
+            onSelectFile={handleSelectFile}
+            onFileSelect={onFileSelect}
+            onDownload={handleDownload}
+            onDelete={handleDelete}
+            onRefresh={onRefresh}
+            onShare={onShare}
+            isDragging={isDragging && draggedFiles.includes(node.file.id)}
+            fileDragProps={getFileDragProps(node.file.id)}
+          />
+        );
       }
-      
-      return true;
     });
+
+    return elements;
   };
-
-  const visibleFolders = getVisibleFolders();
-
-  console.log('Grouped files by folder:', groupedFiles);
-  console.log('Sorted folders:', sortedFolders);
-  console.log('Visible folders:', visibleFolders);
-  console.log('Current expanded folders in render:', Array.from(expandedFolders));
-  console.log('All folders should be collapsed by default');
 
   const allSelected = files.length > 0 && selectedFiles.size === files.length;
   const someSelected = selectedFiles.size > 0 && selectedFiles.size < files.length;
@@ -162,88 +199,7 @@ export function FileList({ files, onFileSelect, onRefresh, onShare, onShareFolde
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleFolders.map((folderPath) => {
-              const folderFiles = groupedFiles[folderPath];
-              
-              // Handle loose files differently - render them as individual files
-              if (folderPath === '__LOOSE_FILES__') {
-                return folderFiles.map((file) => (
-                  <FileRow
-                    key={file.id}
-                    file={file}
-                    isSelected={selectedFiles.has(file.id)}
-                    onSelectFile={handleSelectFile}
-                    onFileSelect={onFileSelect}
-                    onDownload={handleDownload}
-                    onDelete={handleDelete}
-                    onRefresh={onRefresh}
-                    onShare={onShare}
-                    isDragging={isDragging && draggedFiles.includes(file.id)}
-                    fileDragProps={getFileDragProps(file.id)}
-                  />
-                ));
-              }
-              
-              // Handle regular folders
-              // Ensure folders are collapsed by default - only expanded if explicitly in the set
-              const isExpanded = expandedFolders.has(folderPath);
-              const isUploadDragOver = uploadDragOverFolder === folderPath;
-              const isMoveDragOver = moveDragOverFolder === folderPath;
-              const isDragOver = isUploadDragOver || isMoveDragOver;
-              const isFolderSelected = selectedFolders.has(folderPath);
-              
-              console.log(`Rendering folder ${folderPath}: expanded=${isExpanded}, files=${folderFiles.length}`);
-              
-              const folderItems = [
-                <FolderHeader
-                  key={`folder-${folderPath}`}
-                  folderPath={folderPath}
-                  folderFiles={folderFiles}
-                  isExpanded={isExpanded}
-                  isDragOver={isDragOver}
-                  isSelected={isFolderSelected}
-                  onToggleFolder={toggleFolder}
-                  onSelectFolder={handleSelectFolder}
-                  onDragOver={(e, path) => {
-                    getFolderDropProps(path).onDragOver(e);
-                    handleUploadDragOver(e, path);
-                  }}
-                  onDragLeave={(e) => {
-                    getFolderDropProps(folderPath).onDragLeave(e);
-                    handleUploadDragLeave(e);
-                  }}
-                  onDrop={(e, path) => {
-                    getFolderDropProps(path).onDrop(e);
-                    handleUploadDrop(e, path);
-                  }}
-                  onShareFolder={onShareFolder}
-                  onCreateSubfolder={onCreateSubfolder}
-                  onRefresh={onRefresh}
-                />
-              ];
-              
-              if (isExpanded) {
-                folderFiles.forEach((file) => {
-                  folderItems.push(
-                    <FileRow
-                      key={file.id}
-                      file={file}
-                      isSelected={selectedFiles.has(file.id)}
-                      onSelectFile={handleSelectFile}
-                      onFileSelect={onFileSelect}
-                      onDownload={handleDownload}
-                      onDelete={handleDelete}
-                      onRefresh={onRefresh}
-                      onShare={onShare}
-                      isDragging={isDragging && draggedFiles.includes(file.id)}
-                      fileDragProps={getFileDragProps(file.id)}
-                    />
-                  );
-                });
-              }
-              
-              return folderItems;
-            })}
+            {renderTreeNodes(fileTree)}
           </TableBody>
         </Table>
       </Card>

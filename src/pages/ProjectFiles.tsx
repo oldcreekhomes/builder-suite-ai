@@ -12,6 +12,7 @@ import { FileList } from "@/components/files/FileList";
 import { FileGrid } from "@/components/files/FileGrid";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
 import { useProject } from "@/hooks/useProject";
+import { useProjectFolders } from "@/hooks/useProjectFolders";
 import { FilePreviewModal } from "@/components/files/FilePreviewModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ import { FolderShareModal } from "@/components/files/components/FolderShareModal
 import { NewFolderModal } from "@/components/files/NewFolderModal";
 import { FileUploadDropzone } from "@/components/files/FileUploadDropzone";
 import { useCreateFolder } from "@/hooks/useProjectFolders";
+import { buildFileTree } from "@/components/files/utils/simplifiedFileUtils";
 
 export default function ProjectFiles() {
   const { projectId } = useParams();
@@ -39,8 +41,17 @@ export default function ProjectFiles() {
   const [parentFolderPath, setParentFolderPath] = useState<string | undefined>(undefined);
 
   const { data: files = [], isLoading, refetch } = useProjectFiles(projectId || '');
+  const { data: folders = [], refetch: refetchFolders } = useProjectFolders(projectId || '');
   const { data: project } = useProject(projectId || '');
   const createFolder = useCreateFolder();
+  
+  const handleRefresh = () => {
+    refetch();
+    refetchFolders();
+  };
+
+  // Build integrated file tree from both files and folders
+  const fileTree = buildFileTree(files, folders);
 
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,7 +84,7 @@ export default function ProjectFiles() {
   };
 
   const handleUploadSuccess = () => {
-    refetch();
+    handleRefresh();
     toast({
       title: "Success",
       description: "File uploaded successfully",
@@ -188,8 +199,9 @@ export default function ProjectFiles() {
                 {viewMode === 'list' ? (
                   <FileList
                     files={filteredFiles}
+                    fileTree={fileTree}
                     onFileSelect={handleFileSelect}
-                    onRefresh={refetch}
+                    onRefresh={handleRefresh}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
                     onCreateSubfolder={handleCreateSubfolder}
@@ -198,7 +210,7 @@ export default function ProjectFiles() {
                   <FileGrid
                     files={filteredFiles}
                     onFileSelect={handleFileSelect}
-                    onRefresh={refetch}
+                    onRefresh={handleRefresh}
                     onShare={handleFileShare}
                     onShareFolder={handleFolderShare}
                     onCreateSubfolder={handleCreateSubfolder}
@@ -244,7 +256,7 @@ export default function ProjectFiles() {
               });
               setShowNewFolderModal(false);
               setParentFolderPath(undefined);
-              refetch();
+              handleRefresh();
             } catch (error) {
               console.error('Error creating folder:', error);
             }
