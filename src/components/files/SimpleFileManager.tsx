@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FolderPlus, Search } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
@@ -17,7 +17,6 @@ interface SimpleFileManagerProps {
 
 export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId }) => {
   const [currentPath, setCurrentPath] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const { user } = useAuth();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
@@ -39,15 +38,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         
         if (nextSlash === -1) {
           // It's a file in current folder
-          if (!searchQuery || remainingPath.toLowerCase().includes(searchQuery.toLowerCase())) {
-            files.push({ ...file, displayName: remainingPath });
-          }
+          files.push({ ...file, displayName: remainingPath });
         } else {
           // It's a subfolder
           const folderName = remainingPath.substring(0, nextSlash);
-          if (!searchQuery || folderName.toLowerCase().includes(searchQuery.toLowerCase())) {
-            folders.add(folderName);
-          }
+          folders.add(folderName);
         }
       } else {
         // We're at root
@@ -55,15 +50,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         
         if (firstSlash === -1) {
           // Root level file
-          if (!searchQuery || filePath.toLowerCase().includes(searchQuery.toLowerCase())) {
-            files.push({ ...file, displayName: filePath });
-          }
+          files.push({ ...file, displayName: filePath });
         } else {
           // Root level folder
           const folderName = filePath.substring(0, firstSlash);
-          if (!searchQuery || folderName.toLowerCase().includes(searchQuery.toLowerCase())) {
-            folders.add(folderName);
-          }
+          folders.add(folderName);
         }
       }
     });
@@ -143,18 +134,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         />
         
         <div className="flex gap-2">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search files and folders..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          
           <Button 
             variant="outline" 
             onClick={() => setShowNewFolderModal(true)}
