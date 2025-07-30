@@ -245,6 +245,77 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
   }, [projectId, user, onUploadSuccess, toast, currentPath]);
 
 
+  // Enhanced drag event handler that processes DataTransfer items directly
+  const handleDropEvent = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    
+    console.log('=== ENHANCED DRAG EVENT DETECTED ===');
+    
+    const items = Array.from(event.dataTransfer?.items || []);
+    console.log('DataTransfer items:', items.length);
+    
+    if (items.length === 0) return;
+
+    const allFiles: { file: File; relativePath: string }[] = [];
+
+    // Process each item using the FileSystem API
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          await processEntry(entry, '', allFiles);
+        }
+      }
+    }
+
+    console.log('All processed files:', allFiles.map(f => ({ name: f.file.name, path: f.relativePath })));
+
+    if (allFiles.length > 0) {
+      // Create File objects with webkitRelativePath set and process them
+      const filesWithRelativePath = allFiles.map(({ file, relativePath }) => {
+        // Create a copy of the file with the webkitRelativePath property
+        const fileWithPath = file as any;
+        fileWithPath.webkitRelativePath = relativePath;
+        return fileWithPath;
+      });
+      
+      // Use the existing onDrop function which handles folder structure properly
+      await onDrop(filesWithRelativePath);
+    }
+  }, [onDrop]);
+
+  // Recursive function to process file system entries
+  const processEntry = async (
+    entry: FileSystemEntry, 
+    currentPath: string, 
+    allFiles: { file: File; relativePath: string }[]
+  ): Promise<void> => {
+    if (entry.isFile) {
+      const fileEntry = entry as FileSystemFileEntry;
+      return new Promise((resolve) => {
+        fileEntry.file((file) => {
+          const relativePath = currentPath ? `${currentPath}/${file.name}` : file.name;
+          allFiles.push({ file, relativePath });
+          console.log('Added file:', relativePath);
+          resolve();
+        });
+      });
+    } else if (entry.isDirectory) {
+      const dirEntry = entry as FileSystemDirectoryEntry;
+      const newPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+      
+      return new Promise((resolve) => {
+        const reader = dirEntry.createReader();
+        reader.readEntries(async (entries) => {
+          for (const subEntry of entries) {
+            await processEntry(subEntry, newPath, allFiles);
+          }
+          resolve();
+        });
+      });
+    }
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: true,
@@ -252,6 +323,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     // Accept all file types
     accept: {}
   });
+
+  // Override the onDrop from getRootProps to use our enhanced handler
+  const rootProps = getRootProps();
+  const enhancedRootProps = {
+    ...rootProps,
+    onDrop: handleDropEvent
+  };
 
   const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -347,7 +425,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
           onFolderUpload={handleChooseFolder}
         >
           <div
-            {...getRootProps()}
+            {...enhancedRootProps}
             className={`p-8 text-center cursor-pointer ${
               isDragActive ? 'bg-blue-50 border-blue-400' : ''
             }`}
