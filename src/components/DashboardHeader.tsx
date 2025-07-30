@@ -36,34 +36,8 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   // Use provided title or fallback to company name
   const displayTitle = title || companyName;
 
-  // If this is a project page, wait for project data to load before rendering
+  // If this is a project page, show project-specific header
   if (projectId) {
-    if (projectLoading) {
-      return (
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <SidebarTrigger className="text-gray-600 hover:text-black" />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/project/${projectId}`)}
-                className="text-gray-600 hover:text-black"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Project
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
-                <div className="h-5 w-32 bg-gray-200 animate-pulse rounded"></div>
-              </div>
-            </div>
-          </div>
-        </header>
-      );
-    }
-    
-    if (project) {
     return (
       <>
         <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -81,16 +55,17 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
-                {project.address && (
+                {project?.address ? (
                   <p className="text-sm text-gray-600">{project.address}</p>
-                )}
+                ) : projectLoading ? (
+                  <div className="h-5 w-32 bg-gray-200 animate-pulse rounded"></div>
+                ) : null}
               </div>
             </div>
           </div>
         </header>
       </>
     );
-    }
   }
 
   // Default dashboard header
