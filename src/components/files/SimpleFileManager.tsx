@@ -141,16 +141,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
           onPathClick={handleBreadcrumbClick} 
         />
         
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowNewFolderModal(true)}
-            className="gap-2"
-          >
-            <FolderPlus className="h-4 w-4" />
-            New Folder
-          </Button>
-        </div>
       </div>
 
       {/* File Upload Area */}
