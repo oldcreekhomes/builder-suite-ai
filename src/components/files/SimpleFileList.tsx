@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye, Edit3 } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { NewFolderModal } from './NewFolderModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ interface SimpleFileListProps {
   onRefresh: () => void;
   projectId: string;
   currentPath: string;
+  onCreateFolder: (folderName: string) => void;
 }
 
 export const SimpleFileList: React.FC<SimpleFileListProps> = ({
@@ -43,7 +45,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   onFolderClick,
   onRefresh,
   projectId,
-  currentPath
+  currentPath,
+  onCreateFolder
 }) => {
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
@@ -51,6 +54,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [deleteFolder, setDeleteFolder] = useState<SimpleFolder | null>(null);
   const [renameFolder, setRenameFolder] = useState<SimpleFolder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -317,6 +321,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   return (
     <div className="p-4">
+      {/* New Folder Button - only show when inside a folder */}
+      {currentPath && (
+        <div className="mb-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowNewFolderModal(true)}
+            className="gap-2"
+          >
+            <FolderPlus className="h-4 w-4" />
+            New Folder
+          </Button>
+        </div>
+      )}
+      
       <div className="space-y-2">
         {/* Folders */}
         {folders.map((folder) => (
@@ -494,6 +512,13 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NewFolderModal
+        isOpen={showNewFolderModal}
+        onClose={() => setShowNewFolderModal(false)}
+        onCreateFolder={onCreateFolder}
+        parentPath={currentPath}
+      />
     </div>
   );
 };
