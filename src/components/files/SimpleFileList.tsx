@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Eye, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +41,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   onRefresh
 }) => {
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
+  const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
+  const [newFileName, setNewFileName] = useState('');
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -75,6 +79,43 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     } catch (error) {
       console.error('Error downloading file:', error);
       toast.error('Failed to download file');
+    }
+  };
+
+  const handleFileRename = (file: SimpleFile) => {
+    setRenameFile(file);
+    setNewFileName(file.displayName);
+  };
+
+  const confirmRename = async () => {
+    if (!renameFile || !newFileName.trim()) return;
+
+    try {
+      // Extract the directory path from the original filename
+      const originalPath = renameFile.storage_path;
+      const pathParts = originalPath.split('/');
+      
+      // Replace just the filename part, keeping the directory structure
+      const directory = pathParts.slice(0, -1).join('/');
+      const newOriginalFilename = directory ? `${directory}/${newFileName}` : newFileName;
+
+      const { error } = await supabase
+        .from('project_files')
+        .update({ 
+          original_filename: newOriginalFilename,
+          filename: newFileName
+        })
+        .eq('id', renameFile.id);
+
+      if (error) throw error;
+      
+      toast.success('File renamed successfully');
+      setRenameFile(null);
+      setNewFileName('');
+      onRefresh();
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      toast.error('Failed to rename file');
     }
   };
 
@@ -172,6 +213,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => handleFileRename(file)}
+                className="gap-1"
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => handleFileDownload(file)}
                 className="gap-1"
               >
@@ -197,6 +246,36 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         title="Delete File"
         description={`Are you sure you want to delete "${deleteFile?.displayName}"? This action cannot be undone.`}
       />
+
+      <Dialog open={!!renameFile} onOpenChange={(open) => !open && setRenameFile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="fileName" className="text-sm font-medium">
+                File Name
+              </label>
+              <Input
+                id="fileName"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                placeholder="Enter new file name"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameFile(null)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmRename} disabled={!newFileName.trim()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
