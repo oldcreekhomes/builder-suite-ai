@@ -50,15 +50,16 @@ export default function ProjectFiles() {
     refetchFolders();
   };
 
-  // Build integrated file tree from both files and folders
-  const fileTree = buildFileTree(files, folders);
-
+  // Filter files first, then build the file tree
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.original_filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          file.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = fileTypeFilter === 'all' || file.file_type === fileTypeFilter;
     return matchesSearch && matchesType && !file.is_deleted;
   });
+
+  // Build integrated file tree from filtered files and all folders
+  const fileTree = buildFileTree(filteredFiles, folders);
 
   const fileTypes = [...new Set(files.map(file => file.file_type))];
 
