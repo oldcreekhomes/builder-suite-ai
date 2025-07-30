@@ -41,13 +41,22 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
 
       if (uploadError) throw uploadError;
 
+      // Calculate the correct original_filename for folder structure
+      const originalFilename = currentPath ? `${currentPath}/${relativePath || file.name}` : (relativePath || file.name);
+      
+      console.log('=== UPLOADING FILE TO DATABASE ===');
+      console.log('File name:', file.name);
+      console.log('Relative path:', relativePath);
+      console.log('Current path:', currentPath);
+      console.log('Final original_filename:', originalFilename);
+
       // Save file metadata to database
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: currentPath ? `${currentPath}/${relativePath || file.name}` : (relativePath || file.name),
+          original_filename: originalFilename,
           file_size: file.size,
           file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
           mime_type: file.type,
@@ -94,7 +103,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('=== FILES DROPPED ===');
     console.log('Files dropped:', acceptedFiles);
+    console.log('Files with webkitRelativePath:', acceptedFiles.map(f => ({ 
+      name: f.name, 
+      webkitRelativePath: f.webkitRelativePath,
+      size: f.size 
+    })));
     
     // Filter out invalid files (system files, hidden files, empty files)
     const validFiles = acceptedFiles.filter(isValidFile);
