@@ -26,7 +26,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
     const folders = new Set<string>();
     const files: any[] = [];
 
-    allFiles.filter(file => file.file_type !== 'folderkeeper').forEach(file => {
+    allFiles.forEach(file => {
       const filePath = file.original_filename;
       
       if (currentPath) {
@@ -37,12 +37,14 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         const nextSlash = remainingPath.indexOf('/');
         
         if (nextSlash === -1) {
-          // It's a file in current folder
-          files.push({ 
-            ...file, 
-            displayName: remainingPath,
-            original_filename: file.original_filename 
-          });
+          // It's a file in current folder (skip folderkeeper files)
+          if (file.file_type !== 'folderkeeper') {
+            files.push({ 
+              ...file, 
+              displayName: remainingPath,
+              original_filename: file.original_filename 
+            });
+          }
         } else {
           // It's a subfolder
           const folderName = remainingPath.substring(0, nextSlash);
@@ -53,12 +55,14 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         const firstSlash = filePath.indexOf('/');
         
         if (firstSlash === -1) {
-          // Root level file
-          files.push({ 
-            ...file, 
-            displayName: filePath,
-            original_filename: file.original_filename 
-          });
+          // Root level file (skip folderkeeper files)
+          if (file.file_type !== 'folderkeeper') {
+            files.push({ 
+              ...file, 
+              displayName: filePath,
+              original_filename: file.original_filename 
+            });
+          }
         } else {
           // Root level folder
           const folderName = filePath.substring(0, firstSlash);
