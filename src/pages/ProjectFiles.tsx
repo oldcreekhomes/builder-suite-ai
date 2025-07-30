@@ -51,11 +51,16 @@ export default function ProjectFiles() {
   };
 
   // Build integrated file tree from all files and folders first
+  console.log('ProjectFiles: Building file tree. Files:', files.length, 'Folders:', folders.length);
   const allFiles = files.filter(file => !file.is_deleted);
+  console.log('ProjectFiles: All files after filtering deleted:', allFiles.length);
   const fileTree = buildFileTree(allFiles, folders);
+  console.log('ProjectFiles: Built file tree:', fileTree);
   
   // Then apply filters to the tree structure
+  console.log('ProjectFiles: Applying filters. Search:', searchQuery, 'Type filter:', fileTypeFilter);
   const filteredFileTree = filterFileTree(fileTree, searchQuery, fileTypeFilter);
+  console.log('ProjectFiles: Filtered file tree:', filteredFileTree);
 
   const fileTypes = [...new Set(allFiles.map(file => file.file_type))];
 
