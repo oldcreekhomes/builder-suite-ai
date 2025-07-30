@@ -134,21 +134,20 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex flex-col gap-4 p-4 border-b">
-        <SimpleBreadcrumb 
-          currentPath={currentPath} 
-          onPathClick={handleBreadcrumbClick} 
-        />
-        
-      </div>
-
       {/* File Upload Area */}
       <div className="p-4 border-b">
         <FileUploadDropzone
           projectId={projectId}
           currentPath={currentPath}
           onUploadSuccess={handleUploadSuccess}
+        />
+      </div>
+
+      {/* Breadcrumb Navigation */}
+      <div className="flex flex-col gap-4 p-4 border-b">
+        <SimpleBreadcrumb 
+          currentPath={currentPath} 
+          onPathClick={handleBreadcrumbClick} 
         />
       </div>
 
