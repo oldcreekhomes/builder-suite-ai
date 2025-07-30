@@ -38,7 +38,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         
         if (nextSlash === -1) {
           // It's a file in current folder
-          files.push({ ...file, displayName: remainingPath });
+          files.push({ 
+            ...file, 
+            displayName: remainingPath,
+            original_filename: file.original_filename 
+          });
         } else {
           // It's a subfolder
           const folderName = remainingPath.substring(0, nextSlash);
@@ -50,7 +54,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
         
         if (firstSlash === -1) {
           // Root level file
-          files.push({ ...file, displayName: filePath });
+          files.push({ 
+            ...file, 
+            displayName: filePath,
+            original_filename: file.original_filename 
+          });
         } else {
           // Root level folder
           const folderName = filePath.substring(0, firstSlash);

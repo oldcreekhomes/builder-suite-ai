@@ -20,6 +20,7 @@ interface SimpleFile {
   mime_type: string;
   storage_path: string;
   uploaded_at: string;
+  original_filename?: string;
   uploader?: {
     first_name?: string;
     last_name?: string;
@@ -94,13 +95,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     if (!renameFile || !newFileName.trim()) return;
 
     try {
-      // Extract the directory path from the original filename
-      const originalPath = renameFile.storage_path;
-      const pathParts = originalPath.split('/');
+      // Simple rename: just update the filename, preserve any existing folder structure
+      let newOriginalFilename = newFileName;
       
-      // Replace just the filename part, keeping the directory structure
-      const directory = pathParts.slice(0, -1).join('/');
-      const newOriginalFilename = directory ? `${directory}/${newFileName}` : newFileName;
+      // If the file is in a folder, preserve the folder path
+      if (renameFile.original_filename && renameFile.original_filename.includes('/')) {
+        const folderPath = renameFile.original_filename.substring(0, renameFile.original_filename.lastIndexOf('/'));
+        newOriginalFilename = `${folderPath}/${newFileName}`;
+      }
 
       const { error } = await supabase
         .from('project_files')
