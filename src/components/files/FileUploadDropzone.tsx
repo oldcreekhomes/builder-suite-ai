@@ -9,8 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
-import { useFolderDragDrop } from "@/components/files/hooks/useFolderDragDrop";
-
 interface FileUploadDropzoneProps {
   projectId: string;
   onUploadSuccess: () => void;
@@ -28,16 +26,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     progress: number;
     uploading: boolean;
   }>>([]);
-
-  // Use the folder drag drop hook for sophisticated folder handling
-  const uploadFileToFolder = async (file: File, relativePath: string): Promise<boolean> => {
-    return await uploadFile(file, relativePath);
-  };
-
-  const { handleFolderDrop } = useFolderDragDrop({
-    uploadFileToFolder,
-    onRefresh: onUploadSuccess
-  });
 
   const uploadFile = async (file: File, relativePath: string = '') => {
     if (!user) return false;
@@ -80,14 +68,54 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     }
   };
 
+  const isValidFile = (file: File) => {
+    const fileName = file.name;
+    const systemFiles = ['.DS_Store', 'Thumbs.db'];
+    const hiddenFiles = fileName.startsWith('.');
+    
+    // Allow .gitignore and .gitkeep as they're legitimate files
+    if (fileName === '.gitignore' || fileName === '.gitkeep') {
+      return true;
+    }
+    
+    // Filter out system files and other hidden files
+    if (systemFiles.includes(fileName) || (hiddenFiles && fileName !== '.gitignore' && fileName !== '.gitkeep')) {
+      console.log('File rejected - system/hidden file:', fileName);
+      return false;
+    }
+    
+    // Filter out empty files
+    if (file.size === 0) {
+      console.log('File rejected - empty file:', fileName);
+      return false;
+    }
+    
+    return true;
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('Files dropped:', acceptedFiles);
     
+    // Filter out invalid files (system files, hidden files, empty files)
+    const validFiles = acceptedFiles.filter(isValidFile);
+    
+    if (validFiles.length === 0) {
+      toast({
+        title: "No Valid Files",
+        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+      });
+      return;
+    }
+
+    if (validFiles.length < acceptedFiles.length) {
+      console.log(`Filtered out ${acceptedFiles.length - validFiles.length} invalid files`);
+    }
+    
     // Check if any files have webkitRelativePath (indicating folder drop)
-    const hasRelativePaths = acceptedFiles.some(file => file.webkitRelativePath);
+    const hasRelativePaths = validFiles.some(file => file.webkitRelativePath);
     console.log('Has relative paths (folder drop):', hasRelativePaths);
     
-    const newUploads = acceptedFiles.map(file => ({
+    const newUploads = validFiles.map(file => ({
       file,
       progress: 0,
       uploading: true,
@@ -95,8 +123,61 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
-    for (let i = 0; i < acceptedFiles.length; i++) {
-      const file = acceptedFiles[i];
+    // Get unique folder paths that need to be created
+    const folderPaths = new Set<string>();
+    
+    if (hasRelativePaths) {
+      validFiles.forEach(file => {
+        if (file.webkitRelativePath) {
+          const folderPath = file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf('/'));
+          if (folderPath) {
+            // Add all parent folders in the hierarchy
+            const parts = folderPath.split('/');
+            for (let i = 0; i < parts.length; i++) {
+              const parentPath = parts.slice(0, i + 1).join('/');
+              if (parentPath) {
+                folderPaths.add(parentPath);
+              }
+            }
+          }
+        }
+      });
+
+      // Create folder keeper files for all detected folders
+      console.log('Creating folders:', Array.from(folderPaths));
+      for (const folderPath of folderPaths) {
+        try {
+          const keeperFileName = `${user?.id}/${projectId}/${crypto.randomUUID()}_${folderPath}/.folderkeeper`;
+          const emptyFile = new Blob([''], { type: 'text/plain' });
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(keeperFileName, emptyFile);
+
+          if (!uploadError) {
+            await supabase
+              .from('project_files')
+              .insert({
+                project_id: projectId,
+                filename: keeperFileName,
+                original_filename: currentPath ? `${currentPath}/${folderPath}/.folderkeeper` : `${folderPath}/.folderkeeper`,
+                file_size: 0,
+                file_type: 'folderkeeper',
+                mime_type: 'text/plain',
+                storage_path: uploadData.path,
+                uploaded_by: user?.id,
+                description: 'Folder placeholder',
+              });
+          }
+        } catch (error) {
+          console.error('Error creating folder:', folderPath, error);
+        }
+      }
+    }
+
+    // Upload all valid files
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
       
       // For folder drops, use the full relative path. For individual files, just use filename
       let relativePath: string;
@@ -138,19 +219,16 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
       }
     }
 
+    // Show success message
+    toast({
+      title: "Upload Complete",
+      description: `Successfully uploaded ${validFiles.length} file(s)${hasRelativePaths ? ' with folder structure' : ''}`,
+    });
+
     // Call onUploadSuccess after all uploads complete
     onUploadSuccess();
-  }, [projectId, user, onUploadSuccess, toast]);
+  }, [projectId, user, onUploadSuccess, toast, currentPath]);
 
-  // Handle drop events with sophisticated folder detection
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Use the sophisticated folder drop handler for true drag events
-    const targetFolder = currentPath || 'Root';
-    await handleFolderDrop(e, targetFolder);
-  }, [handleFolderDrop, currentPath]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -258,7 +336,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
             className={`p-8 text-center cursor-pointer ${
               isDragActive ? 'bg-blue-50 border-blue-400' : ''
             }`}
-            onDrop={handleDrop}
           >
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
