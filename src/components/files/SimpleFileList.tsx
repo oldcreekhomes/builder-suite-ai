@@ -43,6 +43,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
   const [newFileName, setNewFileName] = useState('');
+  const [deleteFolder, setDeleteFolder] = useState<SimpleFolder | null>(null);
+  const [renameFolder, setRenameFolder] = useState<SimpleFolder | null>(null);
+  const [newFolderName, setNewFolderName] = useState('');
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -119,6 +122,93 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
+  const handleFolderRename = (folder: SimpleFolder) => {
+    setRenameFolder(folder);
+    setNewFolderName(folder.name);
+  };
+
+  const confirmFolderRename = async () => {
+    if (!renameFolder || !newFolderName.trim()) return;
+
+    try {
+      const oldFolderPath = renameFolder.path;
+      const parentPath = renameFolder.path.includes('/') ? 
+        renameFolder.path.substring(0, renameFolder.path.lastIndexOf('/')) : '';
+      const newFolderPath = parentPath ? `${parentPath}/${newFolderName}` : newFolderName;
+
+      // Get all files in this folder first
+      const { data: filesToUpdate, error: fetchError } = await supabase
+        .from('project_files')
+        .select('id, original_filename')
+        .like('original_filename', `${oldFolderPath}/%`)
+        .eq('is_deleted', false);
+
+      if (fetchError) throw fetchError;
+
+      // Update each file's path individually
+      if (filesToUpdate && filesToUpdate.length > 0) {
+        for (const file of filesToUpdate) {
+          const newFilename = file.original_filename.replace(
+            new RegExp(`^${oldFolderPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`),
+            `${newFolderPath}/`
+          );
+          
+          const { error: updateError } = await supabase
+            .from('project_files')
+            .update({ original_filename: newFilename })
+            .eq('id', file.id);
+
+          if (updateError) throw updateError;
+        }
+      }
+
+      toast.success('Folder renamed successfully');
+      setRenameFolder(null);
+      setNewFolderName('');
+      onRefresh();
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      toast.error('Failed to rename folder');
+    }
+  };
+
+  const handleFolderDownload = async (folder: SimpleFolder) => {
+    try {
+      // This would require implementing a zip functionality
+      // For now, we'll show a message that this feature is coming soon
+      toast.success('Folder download feature coming soon!');
+    } catch (error) {
+      console.error('Error downloading folder:', error);
+      toast.error('Failed to download folder');
+    }
+  };
+
+  const handleFolderDelete = (folder: SimpleFolder) => {
+    setDeleteFolder(folder);
+  };
+
+  const confirmFolderDelete = async () => {
+    if (!deleteFolder) return;
+
+    try {
+      // Mark all files in the folder as deleted
+      const { error: filesError } = await supabase
+        .from('project_files')
+        .update({ is_deleted: true })
+        .like('original_filename', `${deleteFolder.path}/%`);
+
+      if (filesError) throw filesError;
+
+      toast.success('Folder deleted successfully');
+      setDeleteFolder(null);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Failed to delete folder');
+      setDeleteFolder(null);
+    }
+  };
+
   const handleFileDelete = (file: SimpleFile) => {
     setDeleteFile(file);
   };
@@ -170,12 +260,40 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         {folders.map((folder) => (
           <div
             key={folder.path}
-            className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-            onClick={() => onFolderClick(folder.path)}
+            className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
           >
             <Folder className="h-5 w-5 text-blue-500" />
-            <div className="flex-1">
+            <div 
+              className="flex-1 cursor-pointer"
+              onClick={() => onFolderClick(folder.path)}
+            >
               <p className="font-medium">{folder.name}</p>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFolderRename(folder)}
+                className="gap-1"
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFolderDownload(folder)}
+                className="gap-1"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFolderDelete(folder)}
+                className="gap-1 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         ))}
@@ -247,6 +365,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         description={`Are you sure you want to delete "${deleteFile?.displayName}"? This action cannot be undone.`}
       />
 
+      <DeleteConfirmationDialog
+        open={!!deleteFolder}
+        onOpenChange={(open) => !open && setDeleteFolder(null)}
+        onConfirm={confirmFolderDelete}
+        title="Delete Folder"
+        description={`Are you sure you want to delete the folder "${deleteFolder?.name}" and all its contents? This action cannot be undone.`}
+      />
+
       <Dialog open={!!renameFile} onOpenChange={(open) => !open && setRenameFile(null)}>
         <DialogContent>
           <DialogHeader>
@@ -271,6 +397,36 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               Cancel
             </Button>
             <Button onClick={confirmRename} disabled={!newFileName.trim()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renameFolder} onOpenChange={(open) => !open && setRenameFolder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="folderName" className="text-sm font-medium">
+                Folder Name
+              </label>
+              <Input
+                id="folderName"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Enter new folder name"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameFolder(null)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmFolderRename} disabled={!newFolderName.trim()}>
               Rename
             </Button>
           </DialogFooter>
