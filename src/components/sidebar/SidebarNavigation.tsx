@@ -38,12 +38,6 @@ const navigationItems = [
     enabled: true,
   },
   {
-    title: "Issues",
-    url: "/issues",
-    icon: AlertTriangle,
-    enabled: true,
-  },
-  {
     title: "Messages",
     url: "/messages",
     icon: MessageSquare,
@@ -78,6 +72,12 @@ const navigationItems = [
     title: "Schedule",
     url: "/schedule",
     icon: Clock,
+    enabled: true,
+  },
+  {
+    title: "Issues",
+    url: "/issues",
+    icon: AlertTriangle,
     enabled: true,
   },
 ];
