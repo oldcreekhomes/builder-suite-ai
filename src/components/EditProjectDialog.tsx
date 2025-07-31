@@ -32,6 +32,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     address: project?.address || "",
     status: project?.status || "In Design",
     manager: project?.manager || "", // This stores the user ID
+    total_lots: project?.total_lots?.toString() || "",
   });
 
   // Update form data when project changes
@@ -42,6 +43,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         address: project.address,
         status: project.status,
         manager: project.manager || "", // Use the manager UUID
+        total_lots: project.total_lots?.toString() || "",
       });
     }
   }, [project]);
@@ -63,6 +65,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
           address: data.address,
           status: data.status,
           manager: data.manager, // Store the user ID
+          total_lots: data.total_lots ? parseInt(data.total_lots) : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', project.id);
@@ -123,24 +126,38 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="manager">Manager</Label>
-            <Select 
-              value={formData.manager} 
-              onValueChange={(value) => handleChange('manager', value)}
-              disabled={usersLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="manager">Manager</Label>
+              <Select 
+                value={formData.manager} 
+                onValueChange={(value) => handleChange('manager', value)}
+                disabled={usersLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="total_lots">Total Lots</Label>
+              <Input
+                id="total_lots"
+                type="number"
+                value={formData.total_lots}
+                onChange={(e) => handleChange('total_lots', e.target.value)}
+                placeholder="0"
+                min="0"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

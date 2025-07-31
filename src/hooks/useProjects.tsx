@@ -9,6 +9,7 @@ export interface Project {
   address: string;
   status: string;
   manager: string;
+  total_lots?: number;
   created_at: string;
   updated_at: string;
 }
