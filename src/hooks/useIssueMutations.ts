@@ -53,6 +53,7 @@ export function useIssueMutations() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['company-issues', variables.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
     },
   });
 
@@ -72,6 +73,7 @@ export function useIssueMutations() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
     },
   });
 
@@ -90,6 +92,7 @@ export function useIssueMutations() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
     },
   });
 
@@ -104,6 +107,7 @@ export function useIssueMutations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
     },
   });
 

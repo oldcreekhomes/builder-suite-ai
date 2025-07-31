@@ -10,7 +10,7 @@ interface IssueCounts {
 
 export function useIssueCounts() {
   return useQuery({
-    queryKey: ['issue-counts'],
+    queryKey: ['issue-counts-v2'], // Changed key to force refresh
     queryFn: async () => {
       const { data, error } = await supabase
         .from('company_issues')
