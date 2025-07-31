@@ -35,8 +35,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{category} Issues</h3>
+      <div className="flex items-center justify-end">
         <Button onClick={() => setShowAddRow(true)} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Issue
