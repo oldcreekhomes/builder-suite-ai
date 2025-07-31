@@ -10,7 +10,7 @@ interface IssueCounts {
 
 export function useIssueCounts() {
   return useQuery({
-    queryKey: ['issue-counts-v4'], // Force refresh with new cache key
+    queryKey: ['issue-counts-v5'], // Force complete cache refresh
     queryFn: async () => {
       // First get current user's company info
       const { data: { user } } = await supabase.auth.getUser();
