@@ -6,32 +6,22 @@ import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { User } from "@/hooks/useCompanyUsers";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { openFloatingChat } from "@/components/chat/FloatingChatManager";
 
 
 const Index = () => {
-  const { openFloatingChat } = useFloatingChat();
-
   const handleUserSelect = (user: User) => {
     console.log('Index: handleUserSelect called with user:', user);
     // Open floating chat instead of navigating
-    if (openFloatingChat) {
-      console.log('Index: Calling openFloatingChat');
-      openFloatingChat(user);
-    } else {
-      console.error('Index: openFloatingChat is not available');
-    }
+    console.log('Index: Calling openFloatingChat');
+    openFloatingChat(user);
   };
 
   const handleStartChat = (user: User) => {
     console.log('Index: handleStartChat called with user:', user);
     // Open floating chat instead of navigating
-    if (openFloatingChat) {
-      console.log('Index: Calling openFloatingChat from handleStartChat');
-      openFloatingChat(user);
-    } else {
-      console.error('Index: openFloatingChat is not available in handleStartChat');
-    }
+    console.log('Index: Calling openFloatingChat from handleStartChat');
+    openFloatingChat(user);
   };
 
   return (

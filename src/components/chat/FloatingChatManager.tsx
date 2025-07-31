@@ -11,6 +11,9 @@ interface FloatingChatManagerProps {
   onOpenChat?: (manager: { openChat: (user: User) => void }) => void;
 }
 
+// Global reference to the chat manager
+let globalChatManager: { openChat: (user: User) => void } | null = null;
+
 export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   const [chatWindows, setChatWindows] = useState<Map<string, ChatWindow>>(new Map());
 
@@ -52,9 +55,16 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
 
   const chatWindowsArray = Array.from(chatWindows.entries());
 
-  // Register the openChat function with the parent
+  // Register the openChat function with the parent and globally
   useEffect(() => {
-    onOpenChat?.({ openChat });
+    const manager = { openChat };
+    globalChatManager = manager;
+    onOpenChat?.(manager);
+    console.log('FloatingChatManager: Registered chat manager globally and with parent');
+    
+    return () => {
+      globalChatManager = null;
+    };
   }, [onOpenChat, openChat]);
 
   return (
@@ -73,27 +83,31 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   );
 }
 
-// Export the hook to open chats from other components
-export const useFloatingChat = () => {
-  const [chatManager, setChatManager] = useState<{ openChat: (user: User) => void } | null>(null);
+// Export the function to open chats from other components
+export const openFloatingChat = (user: User) => {
+  console.log('Global openFloatingChat called with user:', user);
+  console.log('Global chatManager is:', globalChatManager);
+  if (globalChatManager) {
+    globalChatManager.openChat(user);
+  } else {
+    console.error('Global chatManager is not available');
+  }
+};
 
+// Export the hook for backwards compatibility (but using global manager)
+export const useFloatingChat = () => {
   const registerChatManager = useCallback((manager: { openChat: (user: User) => void }) => {
     console.log('useFloatingChat: registerChatManager called with manager:', manager);
-    setChatManager(manager);
+    globalChatManager = manager;
   }, []);
 
-  const openFloatingChat = useCallback((user: User) => {
+  const openFloatingChatHook = useCallback((user: User) => {
     console.log('useFloatingChat: openFloatingChat called with user:', user);
-    console.log('useFloatingChat: chatManager is:', chatManager);
-    if (chatManager) {
-      chatManager.openChat(user);
-    } else {
-      console.error('useFloatingChat: chatManager is null, cannot open chat');
-    }
-  }, [chatManager]);
+    openFloatingChat(user);
+  }, []);
 
   return {
     registerChatManager,
-    openFloatingChat
+    openFloatingChat: openFloatingChatHook
   };
 };
