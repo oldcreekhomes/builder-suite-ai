@@ -14,6 +14,7 @@ import {
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useIssueCounts } from "@/hooks/useIssueCounts";
 import {
   SidebarContent,
   SidebarGroup,
@@ -82,9 +83,20 @@ export function SidebarNavigation() {
   const { users } = useCompanyUsers();
   const userIds = users?.map(user => user.id) || [];
   const { unreadCounts } = useUnreadCounts(userIds);
+  const { data: issueCounts } = useIssueCounts();
   
   // Calculate total unread count
   const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+
+  // Calculate total issue counts
+  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.normal,
+    0
+  );
+  const totalHighIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high,
+    0
+  );
 
   // Get current project ID from URL
   const getProjectId = () => {
@@ -200,10 +212,22 @@ export function SidebarNavigation() {
                       asChild 
                       className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
                     >
-                      <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                        <AlertTriangle className="h-5 w-5" />
-                        <span className="font-medium">Software Issues</span>
-                      </a>
+                       <a href="/issues" className="flex items-center p-3 rounded-lg w-full">
+                         <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+                         <span className="font-medium whitespace-nowrap">Software Issues</span>
+                         <div className="flex items-center gap-1 ml-auto">
+                           {totalNormalIssues > 0 && (
+                             <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                               {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
+                             </span>
+                           )}
+                           {totalHighIssues > 0 && (
+                             <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                               {totalHighIssues > 99 ? '99+' : totalHighIssues}
+                             </span>
+                           )}
+                         </div>
+                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
