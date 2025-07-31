@@ -101,26 +101,28 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
     >
       {/* Show selected files preview */}
       {selectedFiles.length > 0 && (
-        <div className="mb-2 p-2 bg-muted rounded-lg w-fit">
-          <div className="text-xs text-muted-foreground mb-1">Files to send:</div>
-          <div className="flex flex-wrap gap-1">
-            {selectedFiles.map((file, index) => (
-               <div key={index} className="flex items-center bg-background px-1 py-0.5 rounded text-xs w-fit">
-                 <div title={file.name}>
-                   <File className="h-3 w-3 text-muted-foreground" />
-                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-3 w-3 p-0 ml-0.5 text-muted-foreground hover:text-destructive"
-                  onClick={() => {
-                    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-                  }}
-                >
-                  <X className="h-2 w-2" />
-                </Button>
-              </div>
-            ))}
+        <div className="mb-3 flex justify-end">
+          <div className="p-3 bg-muted rounded-lg w-fit">
+            <div className="text-xs text-muted-foreground mb-2">Files to send:</div>
+            <div className="flex flex-wrap gap-1">
+              {selectedFiles.map((file, index) => (
+                 <div key={index} className="flex items-center bg-background px-1 py-0.5 rounded text-xs w-fit">
+                   <div title={file.name}>
+                     <File className="h-3 w-3 text-muted-foreground" />
+                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-3 w-3 p-0 ml-0.5 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-2 w-2" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
