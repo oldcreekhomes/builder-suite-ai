@@ -14,6 +14,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTotalLots } from "@/hooks/useTotalLots";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -39,6 +40,7 @@ const statusTabs = ["In Design", "Permitting", "Under Construction", "Completed"
 
 export function ProjectsOverview() {
   const { data: projects = [], isLoading } = useProjects();
+  const { data: totalLots = 0, isLoading: totalLotsLoading } = useTotalLots();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,6 +59,7 @@ export function ProjectsOverview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['totalLots'] });
       toast({
         title: "Success",
         description: "Project deleted successfully",
@@ -180,9 +183,19 @@ export function ProjectsOverview() {
     <>
       <Card className="bg-white border border-gray-200 h-full flex flex-col">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <Building className="h-5 w-5 text-gray-600" />
-            <h2 className="text-lg font-semibold text-black">Projects</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Building className="h-5 w-5 text-gray-600" />
+              <h2 className="text-lg font-semibold text-black">Projects</h2>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-lg font-semibold text-black">Controlled Lots</span>
+              <div className="flex items-center justify-center w-8 h-8 bg-black rounded-full">
+                <span className="text-white text-sm font-semibold">
+                  {totalLotsLoading ? '...' : totalLots}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         
