@@ -765,6 +765,7 @@ export type Database = {
           name: string
           owner_id: string
           status: string
+          total_lots: number | null
           updated_at: string
         }
         Insert: {
@@ -775,6 +776,7 @@ export type Database = {
           name: string
           owner_id: string
           status: string
+          total_lots?: number | null
           updated_at?: string
         }
         Update: {
@@ -785,6 +787,7 @@ export type Database = {
           name?: string
           owner_id?: string
           status?: string
+          total_lots?: number | null
           updated_at?: string
         }
         Relationships: [
