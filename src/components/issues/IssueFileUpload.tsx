@@ -118,27 +118,21 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     }
   };
 
-  const handleFileDownload = async (filePath: string, fileName: string) => {
+  const handleFileOpen = async (filePath: string) => {
     try {
       const { data, error } = await supabase.storage
         .from('issue-files')
-        .download(filePath);
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
       if (error) throw error;
 
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Open file in new tab
+      window.open(data.signedUrl, '_blank');
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('Open error:', error);
       toast({
         title: "Error",
-        description: "Failed to download file",
+        description: "Failed to open file",
         variant: "destructive",
       });
     }
@@ -179,7 +173,7 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
           {files.map((file) => (
             <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
               <button
-                onClick={() => handleFileDownload(file.file_path, file.file_name)}
+                onClick={() => handleFileOpen(file.file_path)}
                 className="hover:bg-muted/50 p-1 rounded transition-colors"
                 title={file.file_name}
               >
