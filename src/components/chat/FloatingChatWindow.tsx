@@ -93,7 +93,7 @@ export function FloatingChatWindow({
 
   return (
     <Card 
-      className="fixed bottom-4 w-80 h-96 shadow-lg border bg-background flex flex-col"
+      className="fixed bottom-4 w-80 h-[500px] shadow-lg border bg-background flex flex-col"
       style={{ right: `${position.right}px` }}
     >
       {/* Header */}
