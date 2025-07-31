@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { useGlobalChatNotifications } from "@/hooks/useGlobalChatNotifications";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -35,6 +37,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
+  const { registerChatManager, openFloatingChat } = useFloatingChat();
 
   // Register Syncfusion license at application startup
   useEffect(() => {
@@ -74,6 +77,9 @@ const AppContent = () => {
     registerSyncfusionLicense();
   }, []);
 
+  // Set up global chat notifications with floating chat integration
+  useGlobalChatNotifications(null, openFloatingChat);
+
   // Show loading while license is being registered
   if (!syncfusionLicenseRegistered) {
     return (
@@ -88,6 +94,7 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
+      <>
         <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
@@ -158,7 +165,10 @@ const AppContent = () => {
           {/* Catch all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
+        
+        <FloatingChatManager onOpenChat={registerChatManager} />
+      </>
+    </BrowserRouter>
   );
 };
 

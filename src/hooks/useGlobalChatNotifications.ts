@@ -2,15 +2,12 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationPreferences } from './useNotificationPreferences';
 import { toast } from 'sonner';
+import { User } from './useCompanyUsers';
 
-interface User {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-}
-
-export const useGlobalChatNotifications = (activeConversationUserId: string | null) => {
+export const useGlobalChatNotifications = (
+  activeConversationUserId: string | null,
+  onNewMessage?: (user: User) => void
+) => {
   const channelRef = useRef<any>(null);
   const currentUserRef = useRef<string | null>(null);
   const { preferences } = useNotificationPreferences();
@@ -96,16 +93,32 @@ export const useGlobalChatNotifications = (activeConversationUserId: string | nu
 
                 // Show toast notification if enabled
                 if (preferences?.toast_notifications_enabled) {
+                  const sender: User = {
+                    id: senderId,
+                    first_name: senderData.first_name,
+                    last_name: senderData.last_name,
+                    avatar_url: senderData.avatar_url,
+                    email: '',
+                    role: undefined,
+                    phone_number: undefined
+                  };
+
                   toast(`${senderName}`, {
                     description: messagePreview,
                     action: {
-                      label: 'View',
+                      label: 'Reply',
                       onClick: () => {
-                        // This could navigate to the chat, but for now we'll just close the toast
-                        console.log('Navigate to chat with:', senderId);
+                        if (onNewMessage) {
+                          onNewMessage(sender);
+                        }
                       }
                     }
                   });
+
+                  // Auto-open floating chat if callback provided
+                  if (onNewMessage) {
+                    onNewMessage(sender);
+                  }
                 }
 
                 // Play sound notification if enabled
