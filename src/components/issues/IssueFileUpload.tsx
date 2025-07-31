@@ -149,17 +149,16 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     <div className={className}>
       <div className="flex flex-wrap items-center gap-2">
         {/* Add Files Button */}
-        <div className="flex items-center gap-2 p-2 bg-muted/20 rounded border border-dashed border-muted-foreground/30">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={uploading}
-            className="h-6 w-6 p-0"
-            onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
-          >
-            <Upload className="h-3 w-3" />
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={uploading}
+          className="h-8"
+          onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
+        >
+          <Upload className="h-3 w-3 mr-1" />
+          {uploading ? 'Uploading...' : 'Add Files'}
+        </Button>
         
         <Input
           id={`file-input-${issueId}`}
