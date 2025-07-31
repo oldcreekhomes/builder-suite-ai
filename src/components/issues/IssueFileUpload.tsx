@@ -175,37 +175,18 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-1">
+        <div className="flex flex-wrap gap-2">
           {files.map((file) => (
-            <div key={file.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="truncate font-medium">{file.file_name}</span>
-                {file.file_size && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0">
-                    {formatFileSize(file.file_size)}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex gap-1 flex-shrink-0 items-center">
-                <File className="h-4 w-4 text-muted-foreground mr-2" />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={() => handleFileDownload(file.file_path, file.file_name)}
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                  onClick={() => handleFileDelete(file.id, file.file_path)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
+            <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+              <File className="h-4 w-4 text-muted-foreground" />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                onClick={() => handleFileDelete(file.id, file.file_path)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
           ))}
         </div>
