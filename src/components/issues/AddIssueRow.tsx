@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, X } from 'lucide-react';
+import { Check, X, Upload, FileText, Trash2 } from 'lucide-react';
 import { useIssueMutations } from '@/hooks/useIssueMutations';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface AddIssueRowProps {
   category: string;
@@ -16,10 +18,63 @@ interface AddIssueRowProps {
 export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps) {
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<'Normal' | 'High'>('Normal');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   
   const { createIssue } = useIssueMutations();
 
-  const handleSave = () => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setSelectedFiles(prev => [...prev, ...files]);
+    event.target.value = '';
+  };
+
+  const handleFileRemove = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFilesToIssue = async (issueId: string) => {
+    if (selectedFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of selectedFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${issueId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('issue-files')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { error: dbError } = await supabase
+          .from('issue_files')
+          .insert({
+            issue_id: issueId,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: (await supabase.auth.getUser()).data.user?.id
+          });
+
+        if (dbError) throw dbError;
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload some files",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!title.trim()) return;
 
     createIssue.mutate({
@@ -27,7 +82,10 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       category,
       priority,
     }, {
-      onSuccess: () => {
+      onSuccess: async (newIssue: any) => {
+        if (selectedFiles.length > 0) {
+          await uploadFilesToIssue(newIssue.id);
+        }
         onSuccess();
       }
     });
@@ -71,8 +129,49 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Select>
       </TableCell>
 
-      <TableCell className="py-2 text-sm text-muted-foreground">
-        No files
+      <TableCell className="py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Add Files Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={uploading}
+            className="h-8"
+            onClick={() => document.getElementById('add-issue-file-input')?.click()}
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            {uploading ? 'Uploading...' : 'Add Files'}
+          </Button>
+          
+          <Input
+            id="add-issue-file-input"
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          
+          {/* Selected Files */}
+          {selectedFiles.map((file, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-1 bg-muted/20 rounded px-2 py-1"
+            >
+              <FileText className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs max-w-[100px] truncate" title={file.name}>
+                {file.name}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleFileRemove(index)}
+                className="h-4 w-4 p-0 hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3 w-3 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
       </TableCell>
       
       <TableCell className="py-2">
