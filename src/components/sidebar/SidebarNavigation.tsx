@@ -97,21 +97,24 @@ export function SidebarNavigation() {
 
   const projectId = getProjectId();
 
-  // Check if we're on the Company Dashboard or Messages page
+  // Check if we're on the Company Dashboard, Messages page, or Issues page
   const isCompanyDashboard = location.pathname === '/';
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
+  const isIssuesPage = location.pathname === '/issues';
   
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
     ? navigationItems.filter(item => item.title === "Messages")
     : isMessagesPage
       ? [] // No navigation items on messages page
-      : projectId 
-        ? navigationItems 
-        : [];
+      : isIssuesPage
+        ? navigationItems // Show all navigation items on issues page
+        : projectId 
+          ? navigationItems 
+          : [];
 
-  // Don't show navigation items if no project is selected and not on dashboard or messages
-  if (!projectId && !isCompanyDashboard && !isMessagesPage) {
+  // Don't show navigation items if no project is selected and not on dashboard, messages, or issues
+  if (!projectId && !isCompanyDashboard && !isMessagesPage && !isIssuesPage) {
     return (
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
@@ -165,8 +168,8 @@ export function SidebarNavigation() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Software Issues Section - Only show on project pages, not on company dashboard */}
-        {projectId && !isCompanyDashboard && (
+        {/* Software Issues Section - Show on project pages and issues page, not on company dashboard */}
+        {((projectId && !isCompanyDashboard) || isIssuesPage) && (
           <>
             <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
             <SidebarGroup>
