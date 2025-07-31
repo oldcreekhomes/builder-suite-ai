@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Paperclip, Smile, Send, X } from "lucide-react";
+import { Paperclip, Smile, Send, X, File } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -105,8 +105,10 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
           <div className="text-sm text-muted-foreground mb-2">Files to send:</div>
           <div className="space-y-2">
             {selectedFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between bg-background p-2 rounded">
-                <span className="text-sm truncate">{file.name}</span>
+               <div key={index} className="flex items-center justify-between bg-background p-2 rounded">
+                 <div title={file.name}>
+                   <File className="h-4 w-4 text-muted-foreground" />
+                 </div>
                 <Button
                   size="sm"
                   variant="ghost"
