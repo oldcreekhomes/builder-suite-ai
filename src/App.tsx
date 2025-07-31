@@ -18,6 +18,7 @@ import ProjectBidding from "./pages/ProjectBidding";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
+import Issues from "./pages/Issues";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import PasswordReset from "./pages/PasswordReset";
@@ -127,6 +128,9 @@ const AppContent = () => {
           {/* Messages route - both global and project-specific */}
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/project/:projectId/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          
+          {/* Issues route - company-wide */}
+          <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />

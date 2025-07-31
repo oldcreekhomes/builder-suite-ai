@@ -8,7 +8,8 @@ import {
   Image,
   MessageSquare,
   HelpCircle,
-  Clock
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -34,6 +35,12 @@ const navigationItems = [
     title: "Company Dashboard",
     url: "/",
     icon: Home,
+    enabled: true,
+  },
+  {
+    title: "Issues",
+    url: "/issues",
+    icon: AlertTriangle,
     enabled: true,
   },
   {
@@ -101,7 +108,7 @@ export function SidebarNavigation() {
   
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? navigationItems.filter(item => item.title === "Messages")
+    ? navigationItems.filter(item => item.title === "Messages" || item.title === "Issues")
     : isMessagesPage
       ? [] // No navigation items on messages page
       : projectId 
@@ -140,7 +147,7 @@ export function SidebarNavigation() {
                       asChild 
                       className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
                     >
-                        <a href={item.url === '/' ? '/' : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                        <a href={item.url === '/' || item.url === '/issues' ? item.url : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg w-full">
                           <item.icon className="h-5 w-5" />
                           <span className="font-medium">{item.title}</span>
                           {item.showBadge && (
