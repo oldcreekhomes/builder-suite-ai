@@ -163,7 +163,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                 {/* Sender name and time */}
                 <div className={`text-xs text-muted-foreground mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
                   <span className="font-medium">
-                    {isOwn ? 'You' : message.sender_name}
+                    {message.sender_name}
                   </span>
                   <span className="ml-2">{formatTime(message.created_at)}</span>
                 </div>
