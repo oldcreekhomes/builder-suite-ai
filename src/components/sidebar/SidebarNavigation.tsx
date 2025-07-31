@@ -21,6 +21,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Tooltip,
@@ -167,6 +168,30 @@ export function SidebarNavigation() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Software Issues Section - Only show on project pages, not on company dashboard */}
+        {projectId && !isCompanyDashboard && (
+          <>
+            <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                    >
+                      <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                        <AlertTriangle className="h-5 w-5" />
+                        <span className="font-medium">Software Issues</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
     </TooltipProvider>
   );
