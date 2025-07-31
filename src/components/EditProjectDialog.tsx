@@ -64,7 +64,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         name: data.name,
         address: data.address,
         status: data.status,
-        manager: data.manager, // Store the user ID
+        manager: data.manager || null, // Convert empty string to null for UUID field
         total_lots: data.total_lots ? parseInt(data.total_lots) : null,
         updated_at: new Date().toISOString(),
       };
