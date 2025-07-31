@@ -24,7 +24,7 @@ const Issues = () => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader title="Company Issues" />
+          <DashboardHeader title="Software Issues" />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Tabs defaultValue="Messages" className="w-full">
