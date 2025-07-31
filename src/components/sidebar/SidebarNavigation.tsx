@@ -102,15 +102,35 @@ export function SidebarNavigation() {
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isIssuesPage = location.pathname === '/issues';
   
+  // Create navigation items with dynamic URLs for project pages
+  const getNavigationItems = () => {
+    if (!projectId) return navigationItems;
+    
+    return navigationItems.map(item => {
+      // Keep Company Dashboard and Messages as-is (not project-specific)
+      if (item.title === "Company Dashboard" || item.title === "Messages") {
+        return item;
+      }
+      
+      // For project-specific items, prefix with project URL
+      return {
+        ...item,
+        url: `/project/${projectId}${item.url}`
+      };
+    });
+  };
+
+  const dynamicNavigationItems = getNavigationItems();
+
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? navigationItems.filter(item => item.title === "Messages")
+    ? dynamicNavigationItems.filter(item => item.title === "Messages")
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage
-        ? navigationItems.filter(item => item.title === "Company Dashboard" || item.title === "Messages") // Show only Company Dashboard and Messages on issues page
+        ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard" || item.title === "Messages") // Show only Company Dashboard and Messages on issues page
         : projectId 
-          ? navigationItems 
+          ? dynamicNavigationItems 
           : [];
 
   // Don't show navigation items if no project is selected and not on dashboard, messages, or issues
