@@ -127,11 +127,35 @@ export const useMessages = () => {
   // Add a single message to the list (for real-time updates)
   const addMessage = useCallback((newMessage: ChatMessage) => {
     setMessages(prevMessages => {
-      // Check if message already exists to avoid duplicates
+      // Check if message already exists by ID
       const messageExists = prevMessages.some(msg => msg.id === newMessage.id);
       if (messageExists) {
         console.log('Message already exists, skipping:', newMessage.id);
         return prevMessages;
+      }
+      
+      // Check for optimistic message to replace (for real-time updates)
+      // Look for a temporary message from the same sender with similar content and timing
+      if (!newMessage.id.startsWith('temp-')) {
+        const optimisticMessageIndex = prevMessages.findIndex(msg => 
+          msg.id.startsWith('temp-') &&
+          msg.sender_id === newMessage.sender_id &&
+          msg.message_text === newMessage.message_text &&
+          // Check if messages are within 10 seconds of each other
+          Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 10000
+        );
+        
+        if (optimisticMessageIndex !== -1) {
+          console.log('Replacing optimistic message with real message:', {
+            optimistic: prevMessages[optimisticMessageIndex].id,
+            real: newMessage.id
+          });
+          
+          // Replace the optimistic message with the real one
+          const updatedMessages = [...prevMessages];
+          updatedMessages[optimisticMessageIndex] = newMessage;
+          return updatedMessages;
+        }
       }
       
       console.log('Adding new message to chat:', newMessage);
