@@ -108,7 +108,7 @@ export function SidebarNavigation() {
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage
-        ? navigationItems // Show all navigation items on issues page
+        ? [] // No project navigation items on issues page
         : projectId 
           ? navigationItems 
           : [];
@@ -168,8 +168,8 @@ export function SidebarNavigation() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Software Issues Section - Show on project pages and issues page, not on company dashboard */}
-        {((projectId && !isCompanyDashboard) || isIssuesPage) && (
+        {/* Software Issues Section - Show on project pages only, not on company dashboard or issues page */}
+        {projectId && !isCompanyDashboard && !isIssuesPage && (
           <>
             <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
             <SidebarGroup>
