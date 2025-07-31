@@ -10,12 +10,41 @@ interface IssueCounts {
 
 export function useIssueCounts() {
   return useQuery({
-    queryKey: ['issue-counts-v2'], // Changed key to force refresh
+    queryKey: ['issue-counts-v3'], // Changed key to force refresh
     queryFn: async () => {
+      // First get current user's company info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      const { data: userProfile, error: userError } = await supabase
+        .from('users')
+        .select('role, company_name, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userError) throw userError;
+
+      // Determine the company name to filter by
+      let companyName = userProfile.company_name;
+      if (userProfile.role === 'employee' && userProfile.home_builder_id) {
+        const { data: homeBuilder, error: homeBuilderError } = await supabase
+          .from('users')
+          .select('company_name')
+          .eq('id', userProfile.home_builder_id)
+          .single();
+        
+        if (homeBuilderError) throw homeBuilderError;
+        companyName = homeBuilder.company_name;
+      }
+
+      if (!companyName) throw new Error('No company found for user');
+
+      // Now get issues for this company
       const { data, error } = await supabase
         .from('company_issues')
         .select('category, priority')
-        .eq('status', 'Open'); // Only count open issues
+        .eq('status', 'Open')
+        .eq('company_name', companyName);
 
       if (error) throw error;
 
