@@ -26,7 +26,7 @@ interface MessagesSidebarProps {
 
 export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: MessagesSidebarProps) {
   const { users, currentUserId, isLoading } = useCompanyUsers();
-  const { data: issueCounts, isError } = useIssueCounts();
+  const { data: issueCounts } = useIssueCounts();
 
   // Filter and sort users alphabetically by first name
   const filteredUsers = users

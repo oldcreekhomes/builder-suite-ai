@@ -10,7 +10,7 @@ interface IssueCounts {
 
 export function useIssueCounts() {
   return useQuery({
-    queryKey: ['issue-counts'],
+    queryKey: ['issue-counts-v6'], // Force complete cache refresh
     queryFn: async () => {
       // First get current user's company info
       const { data: { user } } = await supabase.auth.getUser();
@@ -64,8 +64,5 @@ export function useIssueCounts() {
 
       return counts;
     },
-    enabled: !!supabase.auth.getUser(), // Only run when user is authenticated
-    retry: 1,
-    staleTime: 30000, // Cache for 30 seconds
   });
 }
