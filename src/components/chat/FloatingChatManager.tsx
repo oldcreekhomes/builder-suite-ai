@@ -15,9 +15,11 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   const [chatWindows, setChatWindows] = useState<Map<string, ChatWindow>>(new Map());
 
   const openChat = useCallback((user: User) => {
+    console.log('FloatingChatManager: openChat called with user:', user);
     setChatWindows(prev => {
       const newWindows = new Map(prev);
       newWindows.set(user.id, { user, isMinimized: false });
+      console.log('FloatingChatManager: Updated chat windows, total count:', newWindows.size);
       return newWindows;
     });
   }, []);
@@ -76,11 +78,18 @@ export const useFloatingChat = () => {
   const [chatManager, setChatManager] = useState<{ openChat: (user: User) => void } | null>(null);
 
   const registerChatManager = useCallback((manager: { openChat: (user: User) => void }) => {
+    console.log('useFloatingChat: registerChatManager called with manager:', manager);
     setChatManager(manager);
   }, []);
 
   const openFloatingChat = useCallback((user: User) => {
-    chatManager?.openChat(user);
+    console.log('useFloatingChat: openFloatingChat called with user:', user);
+    console.log('useFloatingChat: chatManager is:', chatManager);
+    if (chatManager) {
+      chatManager.openChat(user);
+    } else {
+      console.error('useFloatingChat: chatManager is null, cannot open chat');
+    }
   }, [chatManager]);
 
   return {

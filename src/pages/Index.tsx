@@ -13,13 +13,25 @@ const Index = () => {
   const { openFloatingChat } = useFloatingChat();
 
   const handleUserSelect = (user: User) => {
+    console.log('Index: handleUserSelect called with user:', user);
     // Open floating chat instead of navigating
-    openFloatingChat(user);
+    if (openFloatingChat) {
+      console.log('Index: Calling openFloatingChat');
+      openFloatingChat(user);
+    } else {
+      console.error('Index: openFloatingChat is not available');
+    }
   };
 
   const handleStartChat = (user: User) => {
+    console.log('Index: handleStartChat called with user:', user);
     // Open floating chat instead of navigating
-    openFloatingChat(user);
+    if (openFloatingChat) {
+      console.log('Index: Calling openFloatingChat from handleStartChat');
+      openFloatingChat(user);
+    } else {
+      console.error('Index: openFloatingChat is not available in handleStartChat');
+    }
   };
 
   return (
