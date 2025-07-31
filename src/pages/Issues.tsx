@@ -4,9 +4,11 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IssuesList } from "@/components/issues/IssuesList";
 import { useBrowserTitle } from "@/hooks/useBrowserTitle";
+import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 const Issues = () => {
   useBrowserTitle();
+  const { data: issueCounts = {} } = useIssueCounts();
 
   const categories = [
     "Messages",
@@ -28,8 +30,13 @@ const Issues = () => {
             <Tabs defaultValue="Messages" className="w-full">
               <TabsList className="grid w-full grid-cols-6">
                 {categories.map((category) => (
-                  <TabsTrigger key={category} value={category}>
-                    {category}
+                  <TabsTrigger key={category} value={category} className="relative">
+                    <span>{category}</span>
+                    {issueCounts[category] > 0 && (
+                      <span className="ml-2 bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                        {issueCounts[category]}
+                      </span>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
