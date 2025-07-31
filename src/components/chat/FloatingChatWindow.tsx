@@ -36,14 +36,22 @@ export function FloatingChatWindow({
 
   // Initialize chat when opened
   const initializeChat = useCallback(async () => {
+    console.log('FloatingChatWindow: initializeChat called', { hasInitialized, isMinimized, userId: user.id });
     if (!hasInitialized && !isMinimized) {
-      await fetchMessages(user.id, true);
-      setHasInitialized(true);
+      console.log('FloatingChatWindow: Fetching messages for user:', user.id);
+      try {
+        await fetchMessages(user.id, true);
+        console.log('FloatingChatWindow: Messages fetched successfully');
+        setHasInitialized(true);
+      } catch (error) {
+        console.error('FloatingChatWindow: Error fetching messages:', error);
+      }
     }
   }, [hasInitialized, isMinimized, fetchMessages, user.id]);
 
   // Initialize when component mounts or unminimizes
   useEffect(() => {
+    console.log('FloatingChatWindow: useEffect triggered', { isMinimized });
     if (!isMinimized) {
       initializeChat();
     }
