@@ -75,12 +75,6 @@ const navigationItems = [
     icon: Clock,
     enabled: true,
   },
-  {
-    title: "Issues",
-    url: "/issues",
-    icon: AlertTriangle,
-    enabled: true,
-  },
 ];
 
 export function SidebarNavigation() {
@@ -109,7 +103,7 @@ export function SidebarNavigation() {
   
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? navigationItems.filter(item => item.title === "Messages" || item.title === "Issues")
+    ? navigationItems.filter(item => item.title === "Messages")
     : isMessagesPage
       ? [] // No navigation items on messages page
       : projectId 
