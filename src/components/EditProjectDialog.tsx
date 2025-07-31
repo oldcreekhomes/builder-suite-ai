@@ -52,38 +52,51 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     mutationFn: async (data: typeof formData) => {
       if (!project) return;
       
+      console.log('Updating project with data:', data);
+      
       // Find the selected manager's details for the manager_name field
       const selectedUser = users.find(u => u.id === data.manager);
       const managerName = selectedUser 
         ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
         : '';
       
+      const updateData = {
+        name: data.name,
+        address: data.address,
+        status: data.status,
+        manager: data.manager, // Store the user ID
+        total_lots: data.total_lots ? parseInt(data.total_lots) : null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      console.log('Sending update data to database:', updateData);
+      
       const { error } = await supabase
         .from('projects')
-        .update({
-          name: data.name,
-          address: data.address,
-          status: data.status,
-          manager: data.manager, // Store the user ID
-          total_lots: data.total_lots ? parseInt(data.total_lots) : null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', project.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+      
+      console.log('Project updated successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['totalLots'] });
       toast({
         title: "Success",
         description: "Project updated successfully",
       });
       onOpenChange(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Update mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to update project",
+        description: `Failed to update project: ${error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
     },
