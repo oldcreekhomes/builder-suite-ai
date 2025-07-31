@@ -175,36 +175,39 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-1">
+        <div className="flex flex-wrap gap-1">
           {files.map((file) => (
-            <div key={file.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-xs">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <File className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate font-medium">{file.file_name}</span>
+            <div key={file.id} className="relative group">
+              <div className="p-1 bg-muted/30 rounded hover:bg-muted/50 cursor-pointer">
+                <File className="h-4 w-4 text-muted-foreground" />
+              </div>
+              
+              {/* Tooltip on hover */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10 pointer-events-none">
+                {file.file_name}
                 {file.file_size && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0">
+                  <div className="text-xs opacity-75">
                     {formatFileSize(file.file_size)}
-                  </Badge>
+                  </div>
                 )}
               </div>
               
-              <div className="flex gap-1 flex-shrink-0">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
+              {/* Action buttons on hover */}
+              <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+                <button
+                  className="bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-blue-600"
                   onClick={() => handleFileDownload(file.file_path, file.file_name)}
+                  title="Download"
                 >
-                  <Download className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  <Download className="h-2 w-2" />
+                </button>
+                <button
+                  className="bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600"
                   onClick={() => handleFileDelete(file.id, file.file_path)}
+                  title="Delete"
                 >
-                  <X className="h-3 w-3" />
-                </Button>
+                  <X className="h-2 w-2" />
+                </button>
               </div>
             </div>
           ))}

@@ -122,7 +122,6 @@ export function IssuesTableRow({
           issueId={issue.id}
           files={files}
           onFilesChange={setFiles}
-          className="max-w-48"
         />
       </TableCell>
       
