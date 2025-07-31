@@ -106,15 +106,13 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     } else {
       return (
         <div key={index} className="mt-2">
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+          <div
+            title={fileName}
+            className="inline-flex items-center p-2 rounded-lg cursor-pointer hover:opacity-80"
+            onClick={() => window.open(url, '_blank')}
           >
             {getFileIcon(fileName)}
-            <span className="text-sm text-white">{fileName}</span>
-          </a>
+          </div>
         </div>
       );
     }
