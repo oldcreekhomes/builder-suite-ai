@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ChatMessage {
@@ -17,13 +17,13 @@ export const useMessages = () => {
   const [currentConversationUserId, setCurrentConversationUserId] = useState<string | null>(null);
 
   // Clear messages when switching conversations
-  const clearMessages = () => {
+  const clearMessages = useCallback(() => {
     console.log('Clearing messages for conversation switch');
     setMessages([]);
-  };
+  }, []);
 
   // Fetch messages for conversation with other user
-  const fetchMessages = async (otherUserId: string, forceRefresh = false) => {
+  const fetchMessages = useCallback(async (otherUserId: string, forceRefresh = false) => {
     try {
       setIsLoadingMessages(true);
       
@@ -122,10 +122,10 @@ export const useMessages = () => {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [currentConversationUserId]);
 
   // Add a single message to the list (for real-time updates)
-  const addMessage = (newMessage: ChatMessage) => {
+  const addMessage = useCallback((newMessage: ChatMessage) => {
     setMessages(prevMessages => {
       // Check if message already exists to avoid duplicates
       const messageExists = prevMessages.some(msg => msg.id === newMessage.id);
@@ -137,7 +137,7 @@ export const useMessages = () => {
       console.log('Adding new message to chat:', newMessage);
       return [...prevMessages, newMessage];
     });
-  };
+  }, []);
 
   return {
     messages,
