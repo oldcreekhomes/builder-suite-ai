@@ -81,11 +81,11 @@ export function IssuesTableRow({
 
   return (
     <TableRow className="h-12">
-      <TableCell className="py-2 text-sm font-medium">
+      <TableCell className="py-2 text-sm font-medium w-16">
         {issueNumber}
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="py-2 w-64">
         {isEditingTitle ? (
           <Input
             value={title}
@@ -97,17 +97,18 @@ export function IssuesTableRow({
           />
         ) : (
           <div 
-            className="min-h-8 px-2 py-1 text-sm cursor-pointer hover:bg-muted/50 rounded border border-transparent hover:border-border flex items-center"
+            className="min-h-8 px-2 py-1 text-sm cursor-pointer hover:bg-muted/50 rounded border border-transparent hover:border-border flex items-center truncate"
             onClick={() => setIsEditingTitle(true)}
+            title={title}
           >
             {title}
           </div>
         )}
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="py-2 w-24">
         <Select value={issue.priority} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className="h-8 text-sm w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
@@ -117,7 +118,7 @@ export function IssuesTableRow({
         </Select>
       </TableCell>
 
-      <TableCell className="py-2">
+      <TableCell className="py-2 w-32">
         <IssueFileUpload 
           issueId={issue.id}
           files={files}
@@ -125,7 +126,7 @@ export function IssuesTableRow({
         />
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="py-2 w-20">
         <DeleteButton
           onDelete={() => onDelete(issue.id)}
           title="Delete Issue"
