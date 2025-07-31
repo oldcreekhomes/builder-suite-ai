@@ -132,14 +132,12 @@ export function FloatingChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1">
-        <ScrollArea className="h-full">
-          <SimpleMessagesList 
-            messages={messages}
-            currentUserId={currentUser?.id || null}
-            isLoadingMessages={isLoadingMessages}
-          />
-        </ScrollArea>
+      <div className="flex-1 overflow-hidden">
+        <SimpleMessagesList 
+          messages={messages}
+          currentUserId={currentUser?.id || null}
+          isLoadingMessages={isLoadingMessages}
+        />
       </div>
 
       {/* Input */}
