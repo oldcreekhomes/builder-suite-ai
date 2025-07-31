@@ -34,28 +34,26 @@ export function FloatingChatWindow({
   // Set up real-time subscription
   useRealtime(user, addMessage);
 
-  // Initialize chat when opened
-  const initializeChat = useCallback(async () => {
-    console.log('FloatingChatWindow: initializeChat called', { hasInitialized, isMinimized, userId: user.id });
-    if (!hasInitialized && !isMinimized) {
-      console.log('FloatingChatWindow: Fetching messages for user:', user.id);
-      try {
-        await fetchMessages(user.id, true);
-        console.log('FloatingChatWindow: Messages fetched successfully');
-        setHasInitialized(true);
-      } catch (error) {
-        console.error('FloatingChatWindow: Error fetching messages:', error);
-      }
-    }
-  }, [hasInitialized, isMinimized, fetchMessages, user.id]);
-
-  // Initialize when component mounts or unminimizes
+  // Initialize chat when opened - use useEffect with stable dependencies
   useEffect(() => {
-    console.log('FloatingChatWindow: useEffect triggered', { isMinimized });
-    if (!isMinimized) {
+    const initializeChat = async () => {
+      console.log('FloatingChatWindow: initializeChat called', { hasInitialized, isMinimized, userId: user.id });
+      if (!hasInitialized && !isMinimized) {
+        console.log('FloatingChatWindow: Fetching messages for user:', user.id);
+        try {
+          await fetchMessages(user.id, true);
+          console.log('FloatingChatWindow: Messages fetched successfully');
+          setHasInitialized(true);
+        } catch (error) {
+          console.error('FloatingChatWindow: Error fetching messages:', error);
+        }
+      }
+    };
+
+    if (!isMinimized && !hasInitialized) {
       initializeChat();
     }
-  }, [isMinimized, initializeChat]);
+  }, [isMinimized, hasInitialized, user.id, fetchMessages]);
 
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {
     await sendMessageHook(messageText, user, setMessages, files);
