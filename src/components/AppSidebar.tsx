@@ -20,7 +20,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   return (
     <Sidebar className="border-r border-gray-200">
       <SidebarBranding />
-      {(isMessagesPage || isCompanyDashboard) ? (
+      {isMessagesPage ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
           onUserSelect={onUserSelect}
