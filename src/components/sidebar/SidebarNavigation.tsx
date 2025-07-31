@@ -108,7 +108,7 @@ export function SidebarNavigation() {
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage
-        ? [] // No project navigation items on issues page
+        ? navigationItems.filter(item => item.title === "Company Dashboard" || item.title === "Messages") // Show only Company Dashboard and Messages on issues page
         : projectId 
           ? navigationItems 
           : [];
