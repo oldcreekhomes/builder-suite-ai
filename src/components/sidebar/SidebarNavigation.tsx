@@ -143,7 +143,7 @@ export function SidebarNavigation() {
       : isIssuesPage
         ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page
         : projectId 
-          ? dynamicNavigationItems 
+          ? dynamicNavigationItems.filter(item => item.title !== "Messages") // Exclude Messages from project pages
           : [];
 
   // Don't show navigation items if no project is selected and not on dashboard, messages, or issues
