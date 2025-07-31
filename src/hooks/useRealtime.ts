@@ -10,6 +10,7 @@ export const useRealtime = (
 ) => {
   const channelRef = useRef<any>(null);
   const currentUserRef = useRef<string | null>(null);
+  const currentUserProfileRef = useRef<any>(null);
 
   useEffect(() => {
     const setupRealtime = async () => {
@@ -32,6 +33,16 @@ export const useRealtime = (
       currentUserRef.current = user.id;
       console.log('👤 Current user:', user.id);
       console.log('👤 Selected user:', selectedUser.id);
+
+      // Fetch current user's profile to get avatar and name
+      const { data: currentUserProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      currentUserProfileRef.current = currentUserProfile;
+      console.log('👤 Current user profile:', currentUserProfile);
 
       // Clean up existing channel first
       if (channelRef.current) {
@@ -97,14 +108,21 @@ export const useRealtime = (
               if (isRelevant) {
                 console.log('✅ Relevant message detected - adding new message');
                 // Create message object with sender info for display
+                const isCurrentUser = senderId === currentUserRef.current;
+                const currentUserProfile = currentUserProfileRef.current;
+                
                 const newMessage = {
                   id: (messageData as any).id,
                   message_text: (messageData as any).message_text,
                   file_urls: (messageData as any).file_urls,
                   created_at: (messageData as any).created_at,
                   sender_id: senderId,
-                  sender_name: senderId === selectedUser.id ? `${selectedUser.first_name} ${selectedUser.last_name}` : 'You',
-                  sender_avatar: senderId === selectedUser.id ? selectedUser.avatar_url : null
+                  sender_name: isCurrentUser 
+                    ? (currentUserProfile ? `${currentUserProfile.first_name} ${currentUserProfile.last_name}` : 'You')
+                    : `${selectedUser.first_name} ${selectedUser.last_name}`,
+                  sender_avatar: isCurrentUser 
+                    ? (currentUserProfile?.avatar_url || null)
+                    : selectedUser.avatar_url
                 };
                 addMessage(newMessage);
               } else {
