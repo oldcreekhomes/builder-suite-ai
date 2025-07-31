@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 interface MessagesSidebarProps {
   selectedUser: CompanyUser | null;
@@ -25,6 +26,7 @@ interface MessagesSidebarProps {
 
 export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: MessagesSidebarProps) {
   const { users, currentUserId, isLoading } = useCompanyUsers();
+  const { data: issueCounts } = useIssueCounts();
 
   // Filter and sort users alphabetically by first name
   const filteredUsers = users
@@ -38,6 +40,12 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   // Get user IDs for unread count tracking
   const userIds = filteredUsers.map(user => user.id);
   const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
+
+  // Calculate total issue count (high priority + normal priority)
+  const totalIssueCount = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high + category.normal,
+    0
+  );
 
   const getInitials = (user: CompanyUser) => {
     if (user.first_name && user.last_name) {
@@ -130,9 +138,12 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                 asChild 
                 className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
               >
-                <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full relative">
                   <AlertTriangle className="h-5 w-5" />
-                  <span className="font-medium">Software Issues</span>
+                  <span className="font-medium flex-1">Software Issues</span>
+                  {totalIssueCount > 0 && (
+                    <UnreadBadge count={totalIssueCount} className="static" />
+                  )}
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
