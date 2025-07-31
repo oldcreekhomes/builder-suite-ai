@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Paperclip, Smile, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,30 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Common emojis for quick access
   const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '🔥', '💯', '🎉', '👀', '😍', '🤔', '😢', '😡', '🙏', '💪', '✅', '❌', '⭐', '🚀', '💡'];
+
+  // Auto-resize textarea
+  const autoResize = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  };
+
+  // Effect to auto-resize on message change
+  useEffect(() => {
+    autoResize();
+  }, [messageInput]);
+
+  // Reset height when message is sent
+  useEffect(() => {
+    if (!messageInput && textareaRef.current) {
+      textareaRef.current.style.height = '44px';
+    }
+  }, [messageInput]);
 
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,7 +94,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
 
   return (
     <div 
-      className={`p-4 border-t bg-background h-[74px] flex-shrink-0 ${isDragOver ? 'bg-accent' : ''}`}
+      className={`p-4 border-t bg-background min-h-[74px] flex-shrink-0 ${isDragOver ? 'bg-accent' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -105,11 +126,12 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
       <div className="flex items-end space-x-2">
         <div className="flex-1">
           <Textarea
+            ref={textareaRef}
             placeholder="Type your message..."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="resize-none min-h-[44px] max-h-[120px]"
+            className="resize-none min-h-[44px] max-h-[120px] overflow-hidden"
             rows={1}
           />
         </div>
