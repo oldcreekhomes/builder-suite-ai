@@ -16,7 +16,6 @@ interface AddIssueDialogProps {
 
 export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogProps) {
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Normal");
   const { createIssue } = useIssueMutations();
   const { toast } = useToast();
@@ -36,7 +35,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
     try {
       await createIssue.mutateAsync({
         title: title.trim(),
-        description: description.trim() || null,
         category,
         priority: priority as "Normal" | "High",
       });
@@ -48,7 +46,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
 
       // Reset form
       setTitle("");
-      setDescription("");
       setPriority("Normal");
       onOpenChange(false);
     } catch (error) {
@@ -76,17 +73,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter issue title..."
               required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the issue in detail..."
-              rows={4}
             />
           </div>
 

@@ -17,12 +17,8 @@ export function IssuesTable({ category }: IssuesTableProps) {
   const { data: issues, isLoading } = useCompanyIssues(category);
   const { updateIssue, updateIssueStatus, deleteIssue } = useIssueMutations();
 
-  const handleUpdateIssue = (id: string, updates: { title?: string; description?: string; priority?: 'Normal' | 'High' }) => {
+  const handleUpdateIssue = (id: string, updates: { title?: string; priority?: 'Normal' | 'High' }) => {
     updateIssue.mutate({ id, ...updates });
-  };
-
-  const handleUpdateStatus = (id: string, status: 'Open' | 'Resolved') => {
-    updateIssueStatus.mutate({ id, status });
   };
 
   const handleDeleteIssue = (id: string) => {
@@ -61,7 +57,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
             
             {(!issues || issues.length === 0) && !showAddRow ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No {category.toLowerCase()} issues found.
                   <br />
                   <span className="text-sm">Click "Add Issue" to create the first one.</span>
@@ -74,7 +70,6 @@ export function IssuesTable({ category }: IssuesTableProps) {
                   issue={issue}
                   issueNumber={index + 1}
                   onUpdate={handleUpdateIssue}
-                  onUpdateStatus={handleUpdateStatus}
                   onDelete={handleDeleteIssue}
                   isDeleting={deleteIssue.isPending}
                 />

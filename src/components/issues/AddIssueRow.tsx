@@ -15,7 +15,6 @@ interface AddIssueRowProps {
 
 export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps) {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'Normal' | 'High'>('Normal');
   
   const { createIssue } = useIssueMutations();
@@ -25,7 +24,6 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
 
     createIssue.mutate({
       title: title.trim(),
-      description: description.trim() || null,
       category,
       priority,
     }, {
@@ -62,17 +60,6 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       </TableCell>
       
       <TableCell className="py-2">
-        <Textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter description (optional)..."
-          className="min-h-8 text-sm resize-none"
-          rows={2}
-        />
-      </TableCell>
-      
-      <TableCell className="py-2">
         <Select value={priority} onValueChange={(value) => setPriority(value as 'Normal' | 'High')}>
           <SelectTrigger className="h-8 text-sm">
             <SelectValue />
@@ -83,13 +70,9 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
           </SelectContent>
         </Select>
       </TableCell>
-      
+
       <TableCell className="py-2 text-sm text-muted-foreground">
-        Open
-      </TableCell>
-      
-      <TableCell className="py-2 text-sm text-muted-foreground">
-        Today
+        No files
       </TableCell>
       
       <TableCell className="py-2">

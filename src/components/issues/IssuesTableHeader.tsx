@@ -7,10 +7,8 @@ export function IssuesTableHeader() {
       <TableRow className="h-10">
         <TableHead className="font-bold w-16 py-2 text-sm">#</TableHead>
         <TableHead className="font-bold py-2 text-sm">Title</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Description</TableHead>
         <TableHead className="font-bold py-2 text-sm w-24">Priority</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-24">Status</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-32">Created Date</TableHead>
+        <TableHead className="font-bold py-2 text-sm w-48">Files</TableHead>
         <TableHead className="font-bold py-2 text-sm w-20">Actions</TableHead>
       </TableRow>
     </TableHeader>

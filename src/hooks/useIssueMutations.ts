@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface CreateIssueData {
   title: string;
-  description: string | null;
+  description?: string | null;
   category: string;
   priority: 'Normal' | 'High';
 }
