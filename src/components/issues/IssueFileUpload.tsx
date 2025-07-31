@@ -147,13 +147,13 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
 
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1">
         {/* Add Files Button */}
         <Button
           size="sm"
           variant="ghost"
           disabled={uploading}
-          className="h-8 px-2 text-xs"
+          className="h-8 px-2 text-xs flex-shrink-0"
           onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
         >
           <Upload className="h-3 w-3 mr-1" />
@@ -168,23 +168,23 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
           className="hidden"
         />
 
-        {/* Existing Files */}
+        {/* Existing Files - Horizontal layout */}
         {files.map((file) => (
-          <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+          <div key={file.id} className="flex items-center gap-1 p-1 bg-muted/30 rounded flex-shrink-0">
             <button
               onClick={() => handleFileOpen(file.file_path)}
               className="hover:bg-muted/50 p-1 rounded transition-colors"
               title={file.file_name}
             >
-              <File className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              <File className="h-3 w-3 text-muted-foreground hover:text-foreground" />
             </button>
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+              className="h-4 w-4 p-0 text-destructive hover:text-destructive"
               onClick={() => handleFileDelete(file.id, file.file_path)}
             >
-              <X className="h-3 w-3" />
+              <X className="h-2 w-2" />
             </Button>
           </div>
         ))}
