@@ -178,7 +178,13 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
         <div className="flex flex-wrap gap-2">
           {files.map((file) => (
             <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
-              <File className="h-4 w-4 text-muted-foreground" />
+              <button
+                onClick={() => handleFileDownload(file.file_path, file.file_name)}
+                className="hover:bg-muted/50 p-1 rounded transition-colors"
+                title={file.file_name}
+              >
+                <File className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              </button>
               <Button
                 size="sm"
                 variant="ghost"
