@@ -88,11 +88,16 @@ export function SidebarNavigation() {
   // Calculate total unread count
   const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
-  // Calculate total issue count
-  const totalIssueCount = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.high + category.normal,
+  // Calculate total issue counts
+  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.normal,
     0
   );
+  const totalHighIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high,
+    0
+  );
+  const totalIssueCount = totalNormalIssues + totalHighIssues;
 
   // Get current project ID from URL
   const getProjectId = () => {
@@ -196,8 +201,8 @@ export function SidebarNavigation() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Software Issues Section - Show on project pages only, not on company dashboard or issues page */}
-        {projectId && !isCompanyDashboard && !isIssuesPage && (
+        {/* Software Issues Section - Show on company dashboard and project pages */}
+        {(isCompanyDashboard || (projectId && !isIssuesPage)) && (
           <>
             <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
             <SidebarGroup>
@@ -211,11 +216,18 @@ export function SidebarNavigation() {
                        <a href="/issues" className="flex items-center p-3 rounded-lg w-full">
                          <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
                          <span className="font-medium whitespace-nowrap">Software Issues</span>
-                         {totalIssueCount > 0 && (
-                           <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-auto">
-                             {totalIssueCount > 99 ? '99+' : totalIssueCount}
-                           </span>
-                         )}
+                         <div className="flex items-center gap-1 ml-auto">
+                           {totalNormalIssues > 0 && (
+                             <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                               {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
+                             </span>
+                           )}
+                           {totalHighIssues > 0 && (
+                             <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                               {totalHighIssues > 99 ? '99+' : totalHighIssues}
+                             </span>
+                           )}
+                         </div>
                        </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
