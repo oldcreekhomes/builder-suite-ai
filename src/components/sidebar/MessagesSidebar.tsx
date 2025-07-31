@@ -41,11 +41,16 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   const userIds = filteredUsers.map(user => user.id);
   const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
 
-  // Calculate total issue count (high priority + normal priority)
-  const totalIssueCount = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.high + category.normal,
+  // Calculate total issue counts
+  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.normal,
     0
   );
+  const totalHighIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high,
+    0
+  );
+  const totalIssueCount = totalNormalIssues + totalHighIssues;
 
   const getInitials = (user: CompanyUser) => {
     if (user.first_name && user.last_name) {
@@ -141,11 +146,18 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                 <a href="/issues" className="flex items-center p-3 rounded-lg w-full">
                   <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
                   <span className="font-medium whitespace-nowrap">Software Issues</span>
-                  {totalIssueCount > 0 && (
-                    <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-auto flex-shrink-0">
-                      {totalIssueCount > 99 ? '99+' : totalIssueCount}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 ml-auto">
+                    {totalNormalIssues > 0 && (
+                      <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                        {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
+                      </span>
+                    )}
+                    {totalHighIssues > 0 && (
+                      <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                        {totalHighIssues > 99 ? '99+' : totalHighIssues}
+                      </span>
+                    )}
+                  </div>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
