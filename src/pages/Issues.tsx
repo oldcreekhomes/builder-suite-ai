@@ -32,11 +32,18 @@ const Issues = () => {
                 {categories.map((category) => (
                   <TabsTrigger key={category} value={category} className="relative">
                     <span>{category}</span>
-                    {issueCounts[category] > 0 && (
-                      <span className="ml-2 bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                        {issueCounts[category]}
-                      </span>
-                    )}
+                    <div className="ml-2 flex gap-1">
+                      {issueCounts[category]?.normal > 0 && (
+                        <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                          {issueCounts[category].normal}
+                        </span>
+                      )}
+                      {issueCounts[category]?.high > 0 && (
+                        <span className="bg-red-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                          {issueCounts[category].high}
+                        </span>
+                      )}
+                    </div>
                   </TabsTrigger>
                 ))}
               </TabsList>
