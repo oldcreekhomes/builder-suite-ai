@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, User } from "lucide-react";
+import { MessageSquare, User, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
@@ -116,6 +117,26 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
               </div>
             )}
           </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
+      {/* Software Issues Section */}
+      <SidebarSeparator className="my-4" />
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+              >
+                <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-medium">Software Issues</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>

@@ -21,7 +21,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Tooltip,
@@ -139,55 +138,35 @@ export function SidebarNavigation() {
   return (
     <TooltipProvider>
       <SidebarContent className="px-3 py-4">
-        {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-               {filteredItems.map((item) => (
-                 <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                    >
-                        <a href={item.url === '/' || item.url === '/issues' ? item.url : `/project/${projectId}${item.url}`} className="flex items-center space-x-3 p-3 rounded-lg w-full">
+              {filteredItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton 
+                        asChild 
+                        className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                      >
+                        <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
                           <item.icon className="h-5 w-5" />
                           <span className="font-medium">{item.title}</span>
-                          {item.showBadge && (
-                            <div className="ml-auto flex items-center">
-                              <UnreadBadge count={totalUnread} className="relative top-0" />
-                            </div>
+                           {item.showBadge && item.title === "Messages" && (
+                            <UnreadBadge count={totalUnread || 0} />
                           )}
                         </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-               ))}
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{item.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Company-wide Tools Section */}
-        {!isCompanyDashboard && !isMessagesPage && projectId && (
-          <>
-            <SidebarSeparator className="my-4" />
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      asChild 
-                      className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                    >
-                      <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                        <AlertTriangle className="h-5 w-5" />
-                        <span className="font-medium">Company Issues</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
       </SidebarContent>
     </TooltipProvider>
   );
