@@ -127,7 +127,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
         <div className="flex-1">
           <Textarea
             ref={textareaRef}
-            placeholder="Type your message..."
+            placeholder="Message...."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyDown={handleKeyDown}
