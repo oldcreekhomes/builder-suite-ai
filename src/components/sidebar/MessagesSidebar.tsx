@@ -138,11 +138,13 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                 asChild 
                 className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
               >
-                <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full relative">
+                <a href="/issues" className="flex items-center space-x-3 p-3 rounded-lg w-full">
                   <AlertTriangle className="h-5 w-5" />
                   <span className="font-medium flex-1">Software Issues</span>
                   {totalIssueCount > 0 && (
-                    <UnreadBadge count={totalIssueCount} className="static" />
+                    <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                      {totalIssueCount > 99 ? '99+' : totalIssueCount}
+                    </span>
                   )}
                 </a>
               </SidebarMenuButton>
