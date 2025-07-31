@@ -190,7 +190,7 @@ export function ProjectsOverview() {
             </div>
             <div className="flex items-center space-x-3">
               <span className="text-lg font-semibold text-black">Controlled Lots</span>
-              <div className="flex items-center justify-center w-8 h-8 bg-black rounded-full">
+              <div className="flex items-center justify-center w-5 h-5 bg-black rounded-full">
                 <span className="text-white text-sm font-semibold">
                   {totalLotsLoading ? '...' : totalLots}
                 </span>
