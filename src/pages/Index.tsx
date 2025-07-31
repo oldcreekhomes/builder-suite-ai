@@ -1,5 +1,4 @@
 
-import { useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -7,19 +6,20 @@ import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { User } from "@/hooks/useCompanyUsers";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 
 const Index = () => {
-  const navigate = useNavigate();
+  const { openFloatingChat } = useFloatingChat();
 
   const handleUserSelect = (user: User) => {
-    // Navigate to messages page with the selected user
-    navigate('/messages', { state: { selectedRoom: user } });
+    // Open floating chat instead of navigating
+    openFloatingChat(user);
   };
 
   const handleStartChat = (user: User) => {
-    // Navigate to messages page and start chat with the selected user
-    navigate('/messages', { state: { selectedRoom: user } });
+    // Open floating chat instead of navigating
+    openFloatingChat(user);
   };
 
   return (
