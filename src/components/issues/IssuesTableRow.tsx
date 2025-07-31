@@ -106,9 +106,9 @@ export function IssuesTableRow({
         )}
       </TableCell>
       
-      <TableCell className="py-2 w-20">
+      <TableCell className="py-2 w-24">
         <Select value={issue.priority} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="h-8 text-sm w-20">
+          <SelectTrigger className="h-8 text-sm w-24">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
