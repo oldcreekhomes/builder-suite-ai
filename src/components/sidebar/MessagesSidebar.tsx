@@ -121,7 +121,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
       </SidebarGroup>
 
       {/* Software Issues Section */}
-      <SidebarSeparator className="my-4" />
+      <SidebarSeparator className="my-4 bg-gray-200" />
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
