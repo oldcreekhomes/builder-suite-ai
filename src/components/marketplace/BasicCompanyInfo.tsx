@@ -109,10 +109,10 @@ export function BasicCompanyInfo({
                       <CommandItem
                         key={type}
                         value={type}
-                        onSelect={(currentValue) => {
-                          setCompanyType(currentValue === companyType ? "" : currentValue);
-                          setOpen(false);
-                        }}
+                      onSelect={(currentValue) => {
+                        setCompanyType(type);
+                        setOpen(false);
+                      }}
                       >
                         <Check
                           className={cn(
