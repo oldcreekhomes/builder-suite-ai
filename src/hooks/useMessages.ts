@@ -137,13 +137,28 @@ export const useMessages = () => {
       // Check for optimistic message to replace (for real-time updates)
       // Look for a temporary message from the same sender with similar content and timing
       if (!newMessage.id.startsWith('temp-')) {
-        const optimisticMessageIndex = prevMessages.findIndex(msg => 
-          msg.id.startsWith('temp-') &&
-          msg.sender_id === newMessage.sender_id &&
-          msg.message_text === newMessage.message_text &&
-          // Check if messages are within 10 seconds of each other
-          Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 10000
-        );
+        const optimisticMessageIndex = prevMessages.findIndex(msg => {
+          if (!msg.id.startsWith('temp-') || msg.sender_id !== newMessage.sender_id) {
+            return false;
+          }
+          
+          // Check timing (within 10 seconds)
+          const timeDiff = Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime());
+          if (timeDiff >= 10000) {
+            return false;
+          }
+          
+          // Compare message text
+          const textMatches = msg.message_text === newMessage.message_text;
+          
+          // Compare file URLs (both must be arrays or both null/undefined)
+          const msgFiles = msg.file_urls || [];
+          const newMsgFiles = newMessage.file_urls || [];
+          const filesMatch = msgFiles.length === newMsgFiles.length && 
+            msgFiles.every((file, index) => file === newMsgFiles[index]);
+          
+          return textMatches && filesMatch;
+        });
         
         if (optimisticMessageIndex !== -1) {
           console.log('Replacing optimistic message with real message:', {
