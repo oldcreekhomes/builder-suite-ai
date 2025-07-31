@@ -3,6 +3,7 @@ import { X, Minus, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { SimpleMessagesList } from '@/components/messages/SimpleMessagesList';
 import { SimpleMessageInput } from '@/components/messages/SimpleMessageInput';
 import { useMessages } from '@/hooks/useMessages';
@@ -131,12 +132,14 @@ export function FloatingChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-hidden">
-        <SimpleMessagesList 
-          messages={messages}
-          currentUserId={currentUser?.id || null}
-          isLoadingMessages={isLoadingMessages}
-        />
+      <div className="flex-1">
+        <ScrollArea className="h-full">
+          <SimpleMessagesList 
+            messages={messages}
+            currentUserId={currentUser?.id || null}
+            isLoadingMessages={isLoadingMessages}
+          />
+        </ScrollArea>
       </div>
 
       {/* Input */}
