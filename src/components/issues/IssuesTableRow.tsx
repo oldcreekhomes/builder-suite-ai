@@ -85,7 +85,7 @@ export function IssuesTableRow({
         {issueNumber}
       </TableCell>
       
-      <TableCell className="py-2 w-64">
+      <TableCell className="py-2 w-80">
         {isEditingTitle ? (
           <Input
             value={title}
