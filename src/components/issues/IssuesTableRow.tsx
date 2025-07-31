@@ -72,10 +72,10 @@ export function IssuesTableRow({
   };
 
   const getPriorityBadge = (priority: string) => {
-    return priority === 'High' ? (
-      <Badge variant="destructive" className="text-xs">High</Badge>
-    ) : (
-      <Badge variant="secondary" className="text-xs">Normal</Badge>
+    return (
+      <Badge variant="destructive" className="text-xs">
+        {priority}
+      </Badge>
     );
   };
 
@@ -111,8 +111,12 @@ export function IssuesTableRow({
             <SelectValue>{getPriorityBadge(issue.priority)}</SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
-            <SelectItem value="Normal">Normal</SelectItem>
-            <SelectItem value="High">High</SelectItem>
+            <SelectItem value="Normal">
+              <Badge variant="destructive" className="text-xs">Normal</Badge>
+            </SelectItem>
+            <SelectItem value="High">
+              <Badge variant="destructive" className="text-xs">High</Badge>
+            </SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
