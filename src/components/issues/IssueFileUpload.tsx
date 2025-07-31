@@ -147,17 +147,19 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
 
   return (
     <div className={className}>
-      <div className="flex items-center gap-2 mb-2">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={uploading}
-          className="h-8"
-          onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
-        >
-          <Upload className="h-3 w-3 mr-1" />
-          {uploading ? 'Uploading...' : 'Add Files'}
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Add Files Button */}
+        <div className="flex items-center gap-2 p-2 bg-muted/20 rounded border border-dashed border-muted-foreground/30">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={uploading}
+            className="h-6 w-6 p-0"
+            onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
+          >
+            <Upload className="h-3 w-3" />
+          </Button>
+        </div>
         
         <Input
           id={`file-input-${issueId}`}
@@ -166,31 +168,28 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
           onChange={handleFileUpload}
           className="hidden"
         />
-      </div>
 
-      {files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {files.map((file) => (
-            <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
-              <button
-                onClick={() => handleFileOpen(file.file_path)}
-                className="hover:bg-muted/50 p-1 rounded transition-colors"
-                title={file.file_name}
-              >
-                <File className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-              </button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                onClick={() => handleFileDelete(file.id, file.file_path)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+        {/* Existing Files */}
+        {files.map((file) => (
+          <div key={file.id} className="flex items-center gap-2 p-2 bg-muted/30 rounded">
+            <button
+              onClick={() => handleFileOpen(file.file_path)}
+              className="hover:bg-muted/50 p-1 rounded transition-colors"
+              title={file.file_name}
+            >
+              <File className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+              onClick={() => handleFileDelete(file.id, file.file_path)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
