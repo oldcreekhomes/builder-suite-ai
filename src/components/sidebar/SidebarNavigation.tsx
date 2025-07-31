@@ -146,9 +146,11 @@ export function SidebarNavigation() {
                       >
                         <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
                           <item.icon className="h-5 w-5" />
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium flex-1">{item.title}</span>
                            {item.showBadge && item.title === "Messages" && (
-                            <UnreadBadge count={totalUnread || 0} className="ml-auto" />
+                            <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-2">
+                              {totalUnread > 99 ? '99+' : totalUnread}
+                            </span>
                           )}
                         </a>
                       </SidebarMenuButton>
