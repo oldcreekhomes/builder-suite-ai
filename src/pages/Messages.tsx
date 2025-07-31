@@ -7,6 +7,7 @@ import { useSimpleChat } from "@/hooks/useSimpleChat";
 import { ChatHeader } from "@/components/messages/ChatHeader";
 import { SimpleMessagesList } from "@/components/messages/SimpleMessagesList";
 import { SimpleMessageInput } from "@/components/messages/SimpleMessageInput";
+import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function Messages() {
   const location = useLocation();
@@ -19,6 +20,8 @@ export default function Messages() {
     startChatWithEmployee,
     sendMessage
   } = useSimpleChat();
+  
+  const { registerChatManager, openFloatingChat } = useFloatingChat();
 
   // Debug logging
   console.log('Messages Component Debug:', {
@@ -45,7 +48,7 @@ export default function Messages() {
         <AppSidebar 
           selectedUser={selectedRoom}
           onUserSelect={setSelectedRoom}
-          onStartChat={startChatWithEmployee}
+          onStartChat={openFloatingChat}
         />
         <div className="flex-1 flex flex-col">
           <DashboardHeader title="Messages" />
@@ -79,6 +82,9 @@ export default function Messages() {
           </div>
         </div>
       </div>
+      
+      {/* Floating Chat Manager */}
+      <FloatingChatManager onOpenChat={registerChatManager} />
     </SidebarProvider>
   );
 }
