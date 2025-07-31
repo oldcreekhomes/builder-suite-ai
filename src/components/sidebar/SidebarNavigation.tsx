@@ -148,7 +148,7 @@ export function SidebarNavigation() {
                           <item.icon className="h-5 w-5" />
                           <span className="font-medium">{item.title}</span>
                            {item.showBadge && item.title === "Messages" && (
-                            <UnreadBadge count={totalUnread || 0} />
+                            <UnreadBadge count={totalUnread || 0} className="ml-auto" />
                           )}
                         </a>
                       </SidebarMenuButton>
