@@ -143,8 +143,8 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                 asChild 
                 className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
               >
-                <a href="/issues" className="flex items-center p-3 rounded-lg w-full">
-                  <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+                <a href="/issues" className="flex items-center pl-2 pr-3 py-3 rounded-lg w-full">
+                  <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
                   <span className="font-medium whitespace-nowrap">Software Issues</span>
                   <div className="flex items-center gap-1 ml-auto">
                     {totalNormalIssues > 0 && (
