@@ -138,17 +138,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{
-      msOverflowStyle: 'none',
-      scrollbarWidth: 'none'
-    }}>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          .overflow-y-auto::-webkit-scrollbar {
-            display: none;
-          }
-        `
-      }} />
+    <div className="p-4 space-y-4">
       {messages.map((message) => {
         const isOwn = isMyMessage(message.sender_id);
         
