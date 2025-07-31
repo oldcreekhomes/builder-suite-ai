@@ -87,7 +87,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   }
 
   return (
-    <SidebarContent className="px-6 py-4">
+    <SidebarContent className="px-3 py-4">
       <SidebarGroup>
         <SidebarGroupLabel className="text-lg font-semibold mb-4">
           Messages
@@ -133,7 +133,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
       </SidebarGroup>
 
       {/* Software Issues Section */}
-      <SidebarSeparator className="my-4 bg-gray-200 -mx-6" />
+      <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
