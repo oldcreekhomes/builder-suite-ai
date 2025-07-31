@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,7 +47,6 @@ export function BasicCompanyInfo({
   isGoogleLoaded,
   isLoadingGoogleData
 }: BasicCompanyInfoProps) {
-
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
