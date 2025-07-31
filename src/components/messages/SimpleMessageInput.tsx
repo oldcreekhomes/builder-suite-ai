@@ -101,23 +101,23 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
     >
       {/* Show selected files preview */}
       {selectedFiles.length > 0 && (
-        <div className="mb-3 p-3 bg-muted rounded-lg">
-          <div className="text-sm text-muted-foreground mb-2">Files to send:</div>
-          <div className="space-y-2">
+        <div className="mb-2 p-2 bg-muted rounded-lg">
+          <div className="text-xs text-muted-foreground mb-1">Files to send:</div>
+          <div className="flex flex-wrap gap-1">
             {selectedFiles.map((file, index) => (
-               <div key={index} className="flex items-center justify-between bg-background p-2 rounded">
+               <div key={index} className="flex items-center bg-background p-1 rounded text-xs">
                  <div title={file.name}>
-                   <File className="h-4 w-4 text-muted-foreground" />
+                   <File className="h-3 w-3 text-muted-foreground" />
                  </div>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  className="h-4 w-4 p-0 ml-1 text-muted-foreground hover:text-destructive"
                   onClick={() => {
                     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
                   }}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-2 w-2" />
                 </Button>
               </div>
             ))}
