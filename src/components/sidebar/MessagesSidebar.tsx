@@ -68,7 +68,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
   const handleUserClick = (user: CompanyUser) => {
     // Mark conversation as read when user clicks on it
     markConversationAsRead(user.id);
-    onUserSelect?.(user);
+    // Only trigger floating chat, don't update selected user or navigate
     onStartChat?.(user);
   };
 
