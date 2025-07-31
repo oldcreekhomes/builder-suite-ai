@@ -88,13 +88,9 @@ export function SidebarNavigation() {
   // Calculate total unread count
   const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
-  // Calculate total issue counts
-  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.normal,
-    0
-  );
-  const totalHighIssues = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.high,
+  // Calculate total issue count
+  const totalIssueCount = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high + category.normal,
     0
   );
 
@@ -215,18 +211,11 @@ export function SidebarNavigation() {
                        <a href="/issues" className="flex items-center p-3 rounded-lg w-full">
                          <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
                          <span className="font-medium whitespace-nowrap">Software Issues</span>
-                         <div className="flex items-center gap-1 ml-auto">
-                           {totalNormalIssues > 0 && (
-                             <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                               {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
-                             </span>
-                           )}
-                           {totalHighIssues > 0 && (
-                             <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                               {totalHighIssues > 99 ? '99+' : totalHighIssues}
-                             </span>
-                           )}
-                         </div>
+                         {totalIssueCount > 0 && (
+                           <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-auto">
+                             {totalIssueCount > 99 ? '99+' : totalIssueCount}
+                           </span>
+                         )}
                        </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
