@@ -134,9 +134,9 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
           {/* Add Files Button */}
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             disabled={uploading}
-            className="h-8"
+            className="h-8 px-2 text-xs"
             onClick={() => document.getElementById('add-issue-file-input')?.click()}
           >
             <Upload className="h-3 w-3 mr-1" />

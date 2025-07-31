@@ -151,9 +151,9 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
         {/* Add Files Button */}
         <Button
           size="sm"
-          variant="outline"
+          variant="ghost"
           disabled={uploading}
-          className="h-8"
+          className="h-8 px-2 text-xs"
           onClick={() => document.getElementById(`file-input-${issueId}`)?.click()}
         >
           <Upload className="h-3 w-3 mr-1" />
