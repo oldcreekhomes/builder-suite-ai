@@ -115,8 +115,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // 🎯 EXACT SYNCFUSION DEMO SETTINGS
-  const eventMarkerDay1: Date = new Date('04/02/2024');
+  // 🎯 SYNCFUSION DEMO CONFIGURATION - NO DUMMY DATA
+  const eventMarkerDay1: Date = new Date(); // Use today's date instead of fixed date
   
   const autoUpdateWBSChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     // Removed from UI but functionality kept
@@ -157,8 +157,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskLabel: '${Progress}%'
   };
 
-  const projectStartDate: Date = new Date("03/31/2024");
-  const projectEndDate: Date = new Date("05/30/2024");
+  const projectStartDate: Date = new Date(); // Dynamic start date
+  const projectEndDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
   const splitterSettings: any = {
     columnIndex: 4
   };
@@ -381,9 +381,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 <ColumnDirective field="Progress" headerText="Progress" />
               </ColumnsDirective>
               
-              {/* 🎯 EXACT SYNCFUSION DEMO EVENT MARKER */}
+              {/* 🎯 DYNAMIC EVENT MARKER */}
               <EventMarkersDirective>
-                <EventMarkerDirective day={eventMarkerDay1} label='Project Initiation'></EventMarkerDirective>
+                <EventMarkerDirective day={eventMarkerDay1} label='Project Start'></EventMarkerDirective>
               </EventMarkersDirective>
               
               <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu]} />
