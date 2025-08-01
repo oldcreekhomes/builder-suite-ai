@@ -542,7 +542,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // FIXED: Complete replacement of handleActionComplete function
+  // FIXED: Complete replacement of handleActionComplete function with context menu duplicate prevention
   const handleActionComplete = (args: any) => {
     console.log('=== ACTION COMPLETE FIXED VERSION ===');
     console.log('Request type:', args.requestType);
@@ -572,10 +572,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       });
     };
     
-    // IMPROVED: Task creation with enhanced parent detection
+    // IMPROVED: Task creation with enhanced parent detection - BUT SKIP CONTEXT MENU TRIGGERED ADDS
     if (args.requestType === 'add' && args.data) {
+      console.log('=== ADD REQUEST DETECTED ===');
+      
+      // CRITICAL: Check if this add was triggered by context menu - if so, skip it to prevent duplicates
+      if (args.data && (args.data.TaskName === 'New Task' || args.data.taskName === 'New Task')) {
+        console.log('SKIPPING - This appears to be a context menu triggered add, already handled');
+        return; // Exit early to prevent duplicate creation
+      }
+      
       const taskData = args.data;
-      console.log('=== CREATING NEW TASK ===');
+      console.log('=== CREATING NEW TASK (NON-CONTEXT MENU) ===');
       console.log('New task data:', taskData);
       
       // FIXED: Check if this is a toolbar add (should be root) vs child add
@@ -789,6 +797,188 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     else {
       console.log('UNHANDLED REQUEST TYPE:', args.requestType);
     }
+  }; findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
+            console.log('Parent found from current view data:', parentId);
+          }
+        }
+        
+        // Fallback to enhanced parent detection
+        if (!parentId) {
+          parentId = getParentIdForTask(taskData);
+          console.log('Parent found from enhanced detection:', parentId);
+        }
+        
+        // Additional safety check: ensure parent exists in database
+        if (parentId) {
+          const parentExists = tasks.find(t => t.id === parentId);
+          if (!parentExists) {
+            console.error('Parent task not found in database:', parentId);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Cannot indent task - parent task not found",
+            });
+            return;
+          }
+        }
+        
+        // Ensure we're not setting a task as its own parent
+        if (parentId && parentId !== originalTaskId) {
+          console.log(`Setting parent_id: ${parentId} for task: ${originalTaskId}`);
+          
+          updateTask.mutate({
+            id: originalTaskId,
+            parent_id: parentId,
+            order_index: taskData.index || 0,
+          }, {
+            onSuccess: () => {
+              console.log('✅ Indenting successful - parent_id saved to database');
+              handleMutationSuccess('Indent');
+            },
+            onError: (error) => {
+              console.error('❌ Indenting failed:', error);
+              handleMutationError(error, 'Indent');
+            }
+          });
+        } else {
+          console.error('Invalid parent relationship:', { parentId, originalTaskId });
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Cannot indent task - invalid parent relationship",
+          });
+        }
+      }
+    } 
+    else if (args.requestType === 'outdented' && args.data) {
+      console.log('=== OUTDENTING TASK (removing parent relationship) ===');
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      if (originalTaskId) {
+        // For outdenting, we need to find the new parent level
+        let newParentId: string | null = null;
+        
+        // Try to get the new parent from gantt's current structure
+        if (ganttRef.current && ganttRef.current.currentViewData) {
+          const currentTask = ganttRef.current.currentViewData.find((t: any) => t.TaskID === taskData.TaskID);
+          if (currentTask && currentTask.parentItem) {
+            newParentId = findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
+          }
+        }
+        
+        console.log(`Outdenting - setting parent_id from current parent to: ${newParentId}`);
+        
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentId, // This will be null for root-level tasks
+          order_index: taskData.index || 0,
+        }, {
+          onSuccess: () => {
+            console.log('✅ Outdenting successful - parent_id updated in database');
+            handleMutationSuccess('Outdent');
+          },
+          onError: (error) => {
+            console.error('❌ Outdenting failed:', error);
+            handleMutationError(error, 'Outdent');
+          }
+        });
+      }
+    }
+    else {
+      console.log('UNHANDLED REQUEST TYPE:', args.requestType);
+    }
+  }; findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
+            console.log('Parent found from current view data:', parentId);
+          }
+        }
+        
+        // Fallback to enhanced parent detection
+        if (!parentId) {
+          parentId = getParentIdForTask(taskData);
+          console.log('Parent found from enhanced detection:', parentId);
+        }
+        
+        // Additional safety check: ensure parent exists in database
+        if (parentId) {
+          const parentExists = tasks.find(t => t.id === parentId);
+          if (!parentExists) {
+            console.error('Parent task not found in database:', parentId);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Cannot indent task - parent task not found",
+            });
+            return;
+          }
+        }
+        
+        // Ensure we're not setting a task as its own parent
+        if (parentId && parentId !== originalTaskId) {
+          console.log(`Setting parent_id: ${parentId} for task: ${originalTaskId}`);
+          
+          updateTask.mutate({
+            id: originalTaskId,
+            parent_id: parentId,
+            order_index: taskData.index || 0,
+          }, {
+            onSuccess: () => {
+              console.log('✅ Indenting successful - parent_id saved to database');
+              handleMutationSuccess('Indent');
+            },
+            onError: (error) => {
+              console.error('❌ Indenting failed:', error);
+              handleMutationError(error, 'Indent');
+            }
+          });
+        } else {
+          console.error('Invalid parent relationship:', { parentId, originalTaskId });
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Cannot indent task - invalid parent relationship",
+          });
+        }
+      }
+    } 
+    else if (args.requestType === 'outdented' && args.data) {
+      console.log('=== OUTDENTING TASK (removing parent relationship) ===');
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = findOriginalTaskId(taskData.TaskID, ganttData);
+      
+      if (originalTaskId) {
+        // For outdenting, we need to find the new parent level
+        let newParentId: string | null = null;
+        
+        // Try to get the new parent from gantt's current structure
+        if (ganttRef.current && ganttRef.current.currentViewData) {
+          const currentTask = ganttRef.current.currentViewData.find((t: any) => t.TaskID === taskData.TaskID);
+          if (currentTask && currentTask.parentItem) {
+            newParentId = findOriginalTaskId(currentTask.parentItem.taskId, ganttData);
+          }
+        }
+        
+        console.log(`Outdenting - setting parent_id from current parent to: ${newParentId}`);
+        
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentId, // This will be null for root-level tasks
+          order_index: taskData.index || 0,
+        }, {
+          onSuccess: () => {
+            console.log('✅ Outdenting successful - parent_id updated in database');
+            handleMutationSuccess('Outdent');
+          },
+          onError: (error) => {
+            console.error('❌ Outdenting failed:', error);
+            handleMutationError(error, 'Outdent');
+          }
+        });
+      }
+    }
+    else {
+      console.log('UNHANDLED REQUEST TYPE:', args.requestType);
+    }
   };
 
   // ENHANCED: Better parent detection specifically for context menu actions
@@ -829,7 +1019,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // UPDATED: Enhanced context menu handler using direct database creation instead of Syncfusion addRecord
+  // UPDATED: Enhanced context menu handler with proper positioning and duplicate prevention
   const handleContextMenuClick = (args: any) => {
     console.log('=== CONTEXT MENU CLICK ===');
     console.log('Context menu clicked:', args.item.text, args);
@@ -844,9 +1034,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       if (clickedTaskData) {
         // Get the correct parent ID for sibling relationship
         const parentId = getParentIdForContextMenu(clickedTaskData);
-        console.log('Parent ID for Above task (same as clicked task parent):', parentId);
+        const clickedTaskOriginalId = findOriginalTaskId(clickedTaskData.TaskID, ganttData);
         
-        // Create task directly via database instead of using Syncfusion addRecord
+        console.log('Parent ID for Above task:', parentId);
+        console.log('Clicked task original ID:', clickedTaskOriginalId);
+        
+        // Find the clicked task's order_index to position correctly
+        const clickedTask = tasks.find(t => t.id === clickedTaskOriginalId);
+        const insertIndex = clickedTask ? clickedTask.order_index : tasks.length;
+        
+        console.log('Inserting at index:', insertIndex);
+        
+        // Create task directly via database with proper positioning
         const createParams = {
           project_id: projectId,
           task_name: 'New Task',
@@ -856,8 +1055,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: 0,
           predecessor: null,
           resources: null,
-          parent_id: parentId, // This should be the same as clicked task's parent
-          order_index: tasks.length, // Will be reordered by the refresh
+          parent_id: parentId, // Same parent as clicked task
+          order_index: insertIndex, // Insert at clicked task's position
         };
         
         console.log('Creating task ABOVE with params:', createParams);
@@ -888,9 +1087,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       if (clickedTaskData) {
         // Get the correct parent ID for sibling relationship
         const parentId = getParentIdForContextMenu(clickedTaskData);
-        console.log('Parent ID for Below task (same as clicked task parent):', parentId);
+        const clickedTaskOriginalId = findOriginalTaskId(clickedTaskData.TaskID, ganttData);
         
-        // Create task directly via database instead of using Syncfusion addRecord
+        console.log('Parent ID for Below task:', parentId);
+        console.log('Clicked task original ID:', clickedTaskOriginalId);
+        
+        // Find the clicked task's order_index to position correctly
+        const clickedTask = tasks.find(t => t.id === clickedTaskOriginalId);
+        const insertIndex = clickedTask ? clickedTask.order_index + 1 : tasks.length;
+        
+        console.log('Inserting at index:', insertIndex);
+        
+        // Create task directly via database with proper positioning
         const createParams = {
           project_id: projectId,
           task_name: 'New Task',
@@ -900,8 +1108,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: 0,
           predecessor: null,
           resources: null,
-          parent_id: parentId, // This should be the same as clicked task's parent
-          order_index: tasks.length, // Will be reordered by the refresh
+          parent_id: parentId, // Same parent as clicked task
+          order_index: insertIndex, // Insert after clicked task
         };
         
         console.log('Creating task BELOW with params:', createParams);
@@ -945,7 +1153,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           predecessor: null,
           resources: null,
           parent_id: parentOriginalId, // Clicked task becomes the parent
-          order_index: tasks.length,
+          order_index: tasks.length, // Add at end for child tasks
         };
         
         console.log('Creating CHILD task with params:', createParams);
