@@ -6,7 +6,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/useProject";
-import FrappeGanttChart from "@/components/schedule/FrappeGanttChart";
+import { ReactTimeline } from "@/components/schedule/ReactTimeline";
 import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
 import "../styles/syncfusion.css";
 
@@ -55,7 +55,7 @@ export default function ProjectSchedule() {
             </div>
 
             <div className="bg-white rounded-lg border shadow-sm p-4">
-              <FrappeGanttChart projectId={projectId} />
+              <ReactTimeline projectId={projectId} />
             </div>
           </div>
         </main>
