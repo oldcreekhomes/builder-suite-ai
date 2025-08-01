@@ -49,16 +49,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const [debugInfo, setDebugInfo] = useState('');
 
-  // Transform database tasks to Syncfusion format
+  // Transform database tasks to Syncfusion format with CONFIRMATION DEBUG
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
+      setDebugInfo('No tasks in database');
       return [];
     }
     
     const transformedData = tasks.map((task) => {
+      // DEBUG: Log the raw confirmation value from database
+      console.log(`🔍 RAW TASK DATA for "${task.task_name}":`, {
+        id: task.id,
+        confirmed: task.confirmed,
+        confirmedType: typeof task.confirmed,
+        rawTask: task
+      });
+
       let resourceNames = null;
       if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
@@ -86,31 +95,37 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: (task as any).confirmed,
+        Confirmed: task.confirmed, // Direct assignment - no (task as any)
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
       
+      // DEBUG: Log the transformed task confirmation status
+      console.log(`✅ TRANSFORMED TASK "${transformedTask.TaskName}":`, {
+        TaskID: transformedTask.TaskID,
+        Confirmed: transformedTask.Confirmed,
+        ConfirmedType: typeof transformedTask.Confirmed
+      });
+      
       return transformedTask;
     });
     
-    console.log('🎯 Final ganttData:', transformedData);
+    // DEBUG: Summary of all confirmation statuses
+    const confirmationSummary = transformedData.map(t => ({
+      name: t.TaskName,
+      confirmed: t.Confirmed,
+      type: typeof t.Confirmed
+    }));
+    console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
+    
+    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     return transformedData;
   }, [tasks, resources]);
-
-  // Update debug info when ganttData changes
-  useEffect(() => {
-    if (!tasks || tasks.length === 0) {
-      setDebugInfo('No tasks in database');
-    } else {
-      setDebugInfo(`Transformed ${ganttData.length} tasks`);
-    }
-  }, [ganttData, tasks]);
 
   // Force refresh when ganttData changes
   useEffect(() => {
     if (ganttInstance.current && ganttData.length > 0) {
-      console.log('🔄 Forcing Gantt refresh with new data');
+      console.log('🔄 Simple Gantt refresh with new data');
       try {
         ganttInstance.current.refresh();
       } catch (error: any) {
@@ -141,26 +156,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Color-coded taskbars based on confirmation status
+  // Color-coded taskbars - SIMPLIFIED DEBUG VERSION
   const handleQueryTaskbarInfo = (args: any) => {
-    if (!args || !args.data) return;
+    if (!args || !args.data) {
+      console.log('❌ No args or data in handleQueryTaskbarInfo');
+      return;
+    }
     
     const confirmed = args.data.Confirmed;
-    console.log(`🎨 Coloring task "${args.data.TaskName}" with confirmed status:`, confirmed);
+    const taskName = args.data.TaskName;
+    const taskId = args.data.TaskID;
     
+    console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
+    console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
+    console.log(`🎨 [COLOR CHECK] Raw args.data:`, args.data);
+    
+    // Test each condition explicitly
     if (confirmed === true) {
+      console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
       args.taskbarBgColor = '#22c55e'; 
       args.taskbarBorderColor = '#16a34a'; 
       args.progressBarBgColor = '#15803d';
     } else if (confirmed === false) {
+      console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
       args.taskbarBgColor = '#ef4444'; 
       args.taskbarBorderColor = '#dc2626'; 
       args.progressBarBgColor = '#b91c1c';
     } else {
+      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (${confirmed})`);
       args.taskbarBgColor = '#3b82f6'; 
       args.taskbarBorderColor = '#2563eb'; 
       args.progressBarBgColor = '#1d4ed8';
     }
+    
+    console.log(`🎨 [FINAL COLORS] Background: ${args.taskbarBgColor} | Border: ${args.taskbarBorderColor}`);
   };
 
   // Handle toolbar clicks
@@ -385,7 +414,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <GanttComponent
             id="EnableWbs" 
             ref={ganttInstance} 
-            key={`gantt-${projectId}-${ganttData.length}`}
+            key={`gantt-${projectId}-${ganttData.length}-${confirmationCount.confirmed}-${confirmationCount.denied}`}
             dataSource={ganttData} 
             height="550px"
             taskFields={{
