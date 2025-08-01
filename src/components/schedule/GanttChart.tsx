@@ -37,8 +37,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            const resource = resources.find(r => r.resourceId === id || r.id === id);
-            return resource?.resourceName || resource?.name;
+            const resource = resources.find(r => r.resourceId === id);
+            return resource?.resourceName;
           })
           .filter(Boolean)
           .join(', ');
@@ -55,8 +55,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Predecessor: task.predecessor,
         Resources: resourceNames || task.resources,
         Confirmed: task.confirmed,
-        ConfirmationToken: task.confirmation_token,
-        AssignedUsers: task.assigned_user_ids,
       };
     });
   }, [tasks, resources]);
@@ -78,7 +76,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         filter: `project_id=eq.${projectId}`
       }, () => ganttInstance.current?.refresh())
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [projectId]);
 
   // Color-coded taskbars based on email confirmations
@@ -133,7 +133,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       id: taskData.TaskID, task_name: taskData.TaskName,
       start_date: taskData.StartDate?.toISOString(), end_date: taskData.EndDate?.toISOString(),
       duration: taskData.Duration, progress: taskData.Progress, predecessor: taskData.Predecessor,
-      resources: taskData.Resources, confirmed: taskData.Confirmed, assigned_user_ids: taskData.AssignedUsers
+      resources: taskData.Resources, confirmed: taskData.Confirmed
     };
 
     const onSuccess = (msg: string) => toast({ title: "Success", description: msg });
@@ -226,7 +226,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             addDialogFields={[]} enableWBS={true} enableAutoWbsUpdate={true}
             allowSelection={true} allowPdfExport={true} highlightWeekends={true}
             allowFiltering={false} gridLines="Both" taskbarHeight={20} rowHeight={40}
-            allowResizing={true} allowColumnReorder={false} allowUnscheduledTasks={true}
+            allowResizing={true} allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} queryTaskbarInfo={handleQueryTaskbarInfo}
           >
