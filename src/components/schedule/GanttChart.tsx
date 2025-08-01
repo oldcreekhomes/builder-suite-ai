@@ -24,47 +24,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // BACK TO WORKING VERSION - Hierarchical numbering with proper parent mapping
+  // FIXED: Use flat structure with proper ParentID relationships for native numbering
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
-    // Create proper hierarchical structure for display
-    const buildHierarchy = (parentId: string | null = null, prefix: string = ''): any[] => {
-      const children = tasks.filter(task => task.parent_id === parentId);
-      
-      return children.map((task, index) => {
-        const taskNumber = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
-        const childTasks = buildHierarchy(task.id, taskNumber);
-        
-        return {
-          TaskID: taskNumber, // Hierarchical numbering: 1, 1.1, 1.2, 2, 2.1, etc.
-          TaskName: task.task_name,
-          StartDate: new Date(task.start_date),
-          EndDate: new Date(task.end_date), // NATIVE: Include EndDate in data
-          Duration: task.duration || 1,
-          Progress: task.progress || 0,
-          Predecessor: task.predecessor || null,
-          Resources: task.resources || null,
-          subtasks: childTasks.length > 0 ? childTasks : undefined,
-          _originalId: task.id,
-        };
-      });
-    };
+    // Create a mapping of original IDs to sequential IDs
+    const idMapping = new Map();
+    tasks.forEach((task, index) => {
+      idMapping.set(task.id, index + 1);
+    });
     
-    return buildHierarchy();
+    return tasks.map((task, index) => ({
+      TaskID: index + 1, // Sequential ID: 1, 2, 3, 4, etc.
+      TaskName: task.task_name,
+      StartDate: new Date(task.start_date),
+      EndDate: new Date(task.end_date),
+      Duration: task.duration || 1,
+      Progress: task.progress || 0,
+      ParentID: task.parent_id ? idMapping.get(task.parent_id) : null, // Map parent relationships
+      Predecessor: task.predecessor || null,
+      Resources: task.resources || null,
+      _originalId: task.id,
+    }));
   }, [tasks]);
 
-  // Hierarchical task field mapping with EndDate
+  // FIXED: Use flat structure with ParentID for native hierarchical display
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
     startDate: 'StartDate',
-    endDate: 'EndDate', // NATIVE: Add EndDate field mapping
+    endDate: 'EndDate',
     duration: 'Duration',
     progress: 'Progress',
+    parentID: 'ParentID', // Use ParentID for flat structure relationships
     dependency: 'Predecessor',
-    resourceInfo: 'Resources',
-    child: 'subtasks' // Enable hierarchical structure
+    resourceInfo: 'Resources'
   };
 
   // Standard edit settings with NATIVE positioning and dialog control
@@ -148,6 +142,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         allowResizing={true} // NATIVE: Allow manual column resizing
         allowColumnReorder={true} // NATIVE: Allow column reordering
         autoFit={true} // NATIVE: Auto-fit columns to content
+        showColumnMenu={true} // NATIVE: Enable hierarchical numbering in ID column
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
