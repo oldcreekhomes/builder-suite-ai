@@ -70,15 +70,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Auto-fit columns after data loads
+  // Auto-fit columns after data loads - AGGRESSIVE VERSION
   useEffect(() => {
-    if (ganttInstance.current && ganttData) {
-      const timer = setTimeout(() => {
+    if (ganttInstance.current) {
+      const autoFitWithDelay = () => {
         if (ganttInstance.current) {
           ganttInstance.current.autoFitColumns();
         }
-      }, 200);
-      return () => clearTimeout(timer);
+      };
+      
+      // Multiple attempts to ensure auto-fit works
+      setTimeout(autoFitWithDelay, 100);
+      setTimeout(autoFitWithDelay, 500);
+      setTimeout(autoFitWithDelay, 1000);
     }
   }, [ganttData]);
 
@@ -366,6 +370,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowColumnReorder={false}
+            autoFitColumns={true}
             allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
@@ -374,14 +379,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
-              <ColumnDirective field="WBSCode" headerText="ID" width={60} minWidth={50} />
-              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} width={200} minWidth={150} />
-              <ColumnDirective field="StartDate" headerText="Start Date" width={110} minWidth={100} />
-              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} width={80} minWidth={70} />
-              <ColumnDirective field="EndDate" headerText="End Date" width={110} minWidth={100} />
-              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" width={100} minWidth={80} />
-              <ColumnDirective field="Progress" headerText="Progress" width={80} minWidth={70} />
-              <ColumnDirective field="Resources" headerText="Resources" width={120} minWidth={100} />
+              <ColumnDirective field="WBSCode" headerText="ID" autoFit={true} />
+              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} autoFit={true} />
+              <ColumnDirective field="StartDate" headerText="Start Date" autoFit={true} />
+              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} autoFit={true} />
+              <ColumnDirective field="EndDate" headerText="End Date" autoFit={true} />
+              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" autoFit={true} />
+              <ColumnDirective field="Progress" headerText="Progress" autoFit={true} />
+              <ColumnDirective field="Resources" headerText="Resources" autoFit={true} />
             </ColumnsDirective>
             
             <EventMarkersDirective>
