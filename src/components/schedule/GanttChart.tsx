@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useCallback } from 'react';
 import { 
   GanttComponent, 
   ColumnsDirective, 
@@ -24,31 +24,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // SIMPLIFIED: Remove custom DisplayID, use standard structure
+  // Simplified data transformation - keep original IDs
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
-    // Create a mapping of original IDs to sequential IDs  
-    const idMapping = new Map();
-    tasks.forEach((task, index) => {
-      idMapping.set(task.id, index + 1);
-    });
-    
-    return tasks.map((task, index) => ({
-      TaskID: index + 1, // Sequential ID for Syncfusion
+    return tasks.map((task) => ({
+      TaskID: task.id, // Use original ID instead of sequential
       TaskName: task.task_name,
       StartDate: new Date(task.start_date),
       EndDate: new Date(task.end_date),
       Duration: task.duration || 1,
       Progress: task.progress || 0,
-      ParentID: task.parent_id ? idMapping.get(task.parent_id) : null,
+      ParentID: task.parent_id || null,
       Predecessor: task.predecessor || null,
       Resources: task.resources || null,
-      _originalId: task.id,
+      // Keep original data for reference
+      _originalTask: task
     }));
   }, [tasks]);
 
-  // FIXED: Use flat structure with ParentID for native hierarchical display
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
@@ -56,99 +50,48 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     endDate: 'EndDate',
     duration: 'Duration',
     progress: 'Progress',
-    parentID: 'ParentID', // Use ParentID for flat structure relationships
+    parentID: 'ParentID',
     dependency: 'Predecessor',
     resourceInfo: 'Resources'
   };
 
-  // Standard edit settings with NATIVE positioning and dialog control
   const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true, 
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Auto' as any, // NATIVE: Auto mode disables dialog for add
-    newRowPosition: 'Bottom' as any // NATIVE: Add new rows at bottom
+    mode: 'Auto' as any,
+    newRowPosition: 'Bottom' as any
   };
 
-  // Standard toolbar
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel',
     'ExpandAll', 'CollapseAll', 
     'Indent', 'Outdent'
   ];
 
-  // Option 3: Direct DOM manipulation - more aggressive approach
-  useEffect(() => {
-    const updateHierarchicalNumbers = () => {
-      console.log('Updating hierarchical numbers...');
-      
-      // Find all rows in the Gantt tree grid
-      const rows = document.querySelectorAll('.e-gantt .e-treegrid .e-row');
-      console.log('Found rows:', rows.length);
-      
-      let rootCounter = 0;
-      const childCounters: { [key: number]: number } = {};
-      
-      rows.forEach((row, index) => {
-        const level = row.getAttribute('aria-level');
-        console.log(`Row ${index}: level ${level}`);
-        
-        // Try multiple selectors to find the ID cell
-        let idCell = row.querySelector('.e-rowcell:first-child') || 
-                    row.querySelector('[data-colindex="0"]') ||
-                    row.querySelector('.e-treecell:first-child');
-        
-        if (level === '0') {
-          // Root task
-          rootCounter++;
-          childCounters[rootCounter] = 0;
-          if (idCell) {
-            idCell.textContent = rootCounter.toString();
-            console.log(`Set root task to: ${rootCounter}`);
-          }
-        } else if (level === '1') {
-          // Child task
-          childCounters[rootCounter] = (childCounters[rootCounter] || 0) + 1;
-          if (idCell) {
-            const hierarchicalId = `${rootCounter}.${childCounters[rootCounter]}`;
-            idCell.textContent = hierarchicalId;
-            console.log(`Set child task to: ${hierarchicalId}`);
-          }
-        }
-      });
-    };
-    
-    // Run multiple times to catch different render states
-    const timers = [100, 500, 1000, 2000].map(delay => 
-      setTimeout(updateHierarchicalNumbers, delay)
-    );
-    
-    return () => timers.forEach(timer => clearTimeout(timer));
-  }, [ganttData]);
-
-
-  // FALLBACK: Remove template, go back to basic version that renders
   const columns = [
     { 
       field: 'TaskID', 
       headerText: 'ID', 
-      width: 'auto', 
-      minWidth: 80
-      // Removed template - go back to basic display
+      width: 80,
+      isPrimaryKey: true
     },
-    { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 },
-    { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 },
-    { field: 'Duration', headerText: 'Duration', width: 'auto', minWidth: 100 },
-    { field: 'EndDate', headerText: 'End Date', width: 'auto', minWidth: 120 },
-    { field: 'Progress', headerText: 'Progress', width: 'auto', minWidth: 100 },
-    { field: 'Predecessor', headerText: 'Dependency', width: 'auto', minWidth: 120 },
-    { field: 'Resources', headerText: 'Resources', width: 'auto', minWidth: 150 }
+    { field: 'TaskName', headerText: 'Task Name', width: 250 },
+    { field: 'StartDate', headerText: 'Start Date', width: 120 },
+    { field: 'Duration', headerText: 'Duration', width: 100 },
+    { field: 'EndDate', headerText: 'End Date', width: 120 },
+    { field: 'Progress', headerText: 'Progress', width: 100 },
+    { field: 'Predecessor', headerText: 'Dependency', width: 120 },
+    { field: 'Resources', headerText: 'Resources', width: 150 }
   ];
 
-  // Set default values for new tasks AND handle database sync for indent/outdent
-  const handleActionBegin = (args: any) => {
+  // Handle before actions (validation, defaults)
+  const handleActionBegin = useCallback((args: any) => {
+    console.log('Action begin:', args.requestType, args);
+
     if (args.requestType === 'beforeAdd') {
+      // Set defaults for new tasks
       args.data = {
         TaskName: 'New Task',
         StartDate: new Date(),
@@ -157,78 +100,136 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ...args.data
       };
     }
-  };
 
-  // CRITICAL: Add database sync for indent/outdent operations
-  const handleActionComplete = (args: any) => {
-    console.log('Action completed:', args.requestType, args.data);
-    
-    if (args.requestType === 'indented' && args.data) {
-      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
-      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
-      
-      // Find the new parent's original ID
-      let newParentOriginalId = null;
-      if (taskData.ParentID) {
-        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
-      }
-      
-      console.log('Indenting task:', originalTaskId, 'under parent:', newParentOriginalId);
-      
-      if (originalTaskId && updateTask) {
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: newParentOriginalId,
-        }, {
-          onSuccess: () => {
-            console.log('✅ Indent saved to database');
-          },
-          onError: (error) => {
-            console.error('❌ Indent failed:', error);
-          }
-        });
-      }
+    if (args.requestType === 'beforeEdit') {
+      // Add any validation logic here
+      console.log('Editing task:', args.data);
     }
-    else if (args.requestType === 'outdented' && args.data) {
-      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
-      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
-      
-      // Find the new parent's original ID after outdenting
-      let newParentOriginalId = null;
-      if (taskData.ParentID) {
-        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
-      }
-      
-      console.log('Outdenting task:', originalTaskId, 'new parent:', newParentOriginalId);
-      
-      if (originalTaskId && updateTask) {
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: newParentOriginalId, // null for root level
-        }, {
-          onSuccess: () => {
-            console.log('✅ Outdent saved to database');
-          },
-          onError: (error) => {
-            console.error('❌ Outdent failed:', error);
-          }
-        });
-      }
+
+    if (args.requestType === 'beforeDelete') {
+      // Add confirmation logic if needed
+      console.log('Deleting task:', args.data);
     }
-  };
+  }, []);
+
+  // Handle completed actions (database sync)
+  const handleActionComplete = useCallback((args: any) => {
+    console.log('Action completed:', args.requestType, args);
+
+    try {
+      switch (args.requestType) {
+        case 'add':
+          if (args.data && createTask) {
+            const newTask = args.data;
+            createTask.mutate({
+              task_name: newTask.TaskName,
+              start_date: newTask.StartDate,
+              end_date: newTask.EndDate,
+              duration: newTask.Duration,
+              progress: newTask.Progress,
+              parent_id: newTask.ParentID,
+              predecessor: newTask.Predecessor,
+              resources: newTask.Resources
+            }, {
+              onSuccess: (response) => {
+                console.log('✅ Task created successfully:', response);
+              },
+              onError: (error) => {
+                console.error('❌ Task creation failed:', error);
+                // Optionally revert the UI change
+              }
+            });
+          }
+          break;
+
+        case 'edit':
+          if (args.data && updateTask) {
+            const updatedTask = args.data;
+            updateTask.mutate({
+              id: updatedTask.TaskID,
+              task_name: updatedTask.TaskName,
+              start_date: updatedTask.StartDate,
+              end_date: updatedTask.EndDate,
+              duration: updatedTask.Duration,
+              progress: updatedTask.Progress,
+              parent_id: updatedTask.ParentID,
+              predecessor: updatedTask.Predecessor,
+              resources: updatedTask.Resources
+            }, {
+              onSuccess: () => {
+                console.log('✅ Task updated successfully');
+              },
+              onError: (error) => {
+                console.error('❌ Task update failed:', error);
+              }
+            });
+          }
+          break;
+
+        case 'delete':
+          if (args.data && deleteTask) {
+            const deletedTask = Array.isArray(args.data) ? args.data[0] : args.data;
+            deleteTask.mutate(deletedTask.TaskID, {
+              onSuccess: () => {
+                console.log('✅ Task deleted successfully');
+              },
+              onError: (error) => {
+                console.error('❌ Task deletion failed:', error);
+              }
+            });
+          }
+          break;
+
+        case 'indented':
+          if (args.data && updateTask) {
+            const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+            updateTask.mutate({
+              id: taskData.TaskID,
+              parent_id: taskData.ParentID
+            }, {
+              onSuccess: () => {
+                console.log('✅ Task indented successfully');
+              },
+              onError: (error) => {
+                console.error('❌ Task indent failed:', error);
+              }
+            });
+          }
+          break;
+
+        case 'outdented':
+          if (args.data && updateTask) {
+            const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+            updateTask.mutate({
+              id: taskData.TaskID,
+              parent_id: taskData.ParentID // Will be null for root level
+            }, {
+              onSuccess: () => {
+                console.log('✅ Task outdented successfully');
+              },
+              onError: (error) => {
+                console.error('❌ Task outdent failed:', error);
+              }
+            });
+          }
+          break;
+
+        default:
+          console.log('Unhandled action type:', args.requestType);
+      }
+    } catch (error) {
+      console.error('Error handling action:', error);
+    }
+  }, [createTask, updateTask, deleteTask]);
 
   // Auto-fit columns when data loads
   useEffect(() => {
     if (ganttRef.current && ganttData.length > 0) {
-      const autoFit = () => {
-        if (ganttRef.current) {
-          ganttRef.current.autoFitColumns();
-        }
-      };
+      const timer = setTimeout(() => {
+        ganttRef.current?.autoFitColumns();
+      }, 100);
       
-      setTimeout(autoFit, 100);
-      setTimeout(autoFit, 500);
-      setTimeout(autoFit, 1000);
+      return () => clearTimeout(timer);
     }
   }, [ganttData]);
 
@@ -254,15 +255,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         enableContextMenu={true}
         allowSelection={true}
         allowResizing={true}
+        allowColumnReorder={true}
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
-        actionComplete={handleActionComplete} // Option 3: DOM manipulation + database sync
-        splitterSettings={{ columnIndex: 5 }} // Adjusted for new EndDate column
+        actionComplete={handleActionComplete}
+        splitterSettings={{ columnIndex: 4 }}
         timelineSettings={{
-          topTier: { unit: 'Week' },
-          bottomTier: { unit: 'Day' }
+          topTier: { unit: 'Week', format: 'MMM dd, yyyy' },
+          bottomTier: { unit: 'Day', format: 'd' }
         }}
+        // Enable hierarchical display
+        treeColumnIndex={1}
+        showColumnMenu={true}
       >
         <ColumnsDirective>
           {columns.map(col => (
