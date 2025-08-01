@@ -24,46 +24,33 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // CRITICAL FIX: Use hierarchical task numbering for parent-child relationships
+  // BACK TO FLAT STRUCTURE - Hierarchical data breaks context menu
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
-    // Build hierarchical structure with proper TaskID numbering
-    const buildHierarchy = (parentId: string | null = null, prefix: string = ''): any[] => {
-      const children = tasks.filter(task => task.parent_id === parentId);
-      
-      return children.map((task, index) => {
-        const taskNumber = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
-        const childTasks = buildHierarchy(task.id, taskNumber);
-        
-        return {
-          TaskID: taskNumber, // Hierarchical numbering like 1, 1.1, 1.2, 2, 2.1, etc.
-          TaskName: task.task_name,
-          StartDate: new Date(task.start_date),
-          Duration: task.duration || 1,
-          Progress: task.progress || 0,
-          Predecessor: task.predecessor || null,
-          Resources: task.resources || null,
-          subtasks: childTasks.length > 0 ? childTasks : undefined, // Native Syncfusion hierarchy
-          // Store original UUID for database operations
-          _originalId: task.id,
-        };
-      });
-    };
-    
-    return buildHierarchy();
+    return tasks.map((task, index) => ({
+      TaskID: index + 1, // Simple sequential numbering
+      TaskName: task.task_name,
+      StartDate: new Date(task.start_date),
+      Duration: task.duration || 1,
+      Progress: task.progress || 0,
+      ParentID: task.parent_id ? tasks.findIndex(t => t.id === task.parent_id) + 1 : null,
+      Predecessor: task.predecessor || null,
+      Resources: task.resources || null,
+      _originalId: task.id,
+    }));
   }, [tasks]);
 
-  // Standard Syncfusion task field mapping for hierarchical data
+  // BACK TO FLAT STRUCTURE - Use ParentID for relationships
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
     startDate: 'StartDate',
     duration: 'Duration',
     progress: 'Progress',
+    parentID: 'ParentID', // Use ParentID for flat structure
     dependency: 'Predecessor',
-    resourceInfo: 'Resources',
-    child: 'subtasks' // CRITICAL: Use subtasks for native hierarchy
+    resourceInfo: 'Resources'
   };
 
   // Standard edit settings with default task name
