@@ -246,15 +246,49 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         
         case 'indented':
         case 'outdented': {
+          console.log(`=== ${args.requestType.toUpperCase()} DEBUG ===`);
+          console.log('TaskData:', taskData);
+          console.log('TaskID:', taskData.TaskID);
+          console.log('ParentID from event:', taskData.ParentID);
+          
+          // For outdent, we need to be more careful about the parent detection
+          let finalParentId = taskData.ParentID || null;
+          
+          // Additional check for outdented tasks
+          if (args.requestType === 'outdented') {
+            console.log('Outdent detected - checking gantt current view data');
+            try {
+              if (ganttInstance.current && ganttInstance.current.currentViewData) {
+                const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
+                console.log('Current task in view:', currentTask);
+                
+                if (currentTask) {
+                  finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
+                  console.log('Parent from currentViewData:', finalParentId);
+                }
+              }
+            } catch (error) {
+              console.log('Error getting parent from currentViewData:', error);
+            }
+          }
+          
+          console.log('Final parent ID to save:', finalParentId);
+          
           const hierarchyParams = {
             id: taskData.TaskID, 
-            parent_id: taskData.ParentID || null
+            parent_id: finalParentId
           };
           
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
-              onSuccess: () => onSuccess("Task hierarchy updated"), 
-              onError: onError 
+              onSuccess: () => {
+                console.log(`✅ ${args.requestType} successful`);
+                onSuccess("Task hierarchy updated");
+              }, 
+              onError: (error) => {
+                console.error(`❌ ${args.requestType} failed:`, error);
+                onError(error);
+              }
             });
           }
           break;
