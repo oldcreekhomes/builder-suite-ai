@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Gantt } from "frappe-gantt";
+import Gantt from "frappe-gantt";
 import { ProjectTask, useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useAuth } from "@/hooks/useAuth";
