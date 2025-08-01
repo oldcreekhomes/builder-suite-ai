@@ -36,7 +36,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       Predecessor: task.predecessor || '',
       ParentID: task.parent_id ? tasks.findIndex(t => t.id === task.parent_id) + 1 : undefined,
       Resources: task.resources || '',
-      OriginalID: task.id,
     }));
   }, [tasks]);
 
@@ -59,7 +58,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowEditing: true, 
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Dialog' as any, // Use dialog mode to prevent duplication
+    mode: 'Auto' as any,
   };
 
   // Standard toolbar
