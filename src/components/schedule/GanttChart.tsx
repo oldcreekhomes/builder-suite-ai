@@ -55,6 +55,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
+      setDebugInfo('No tasks in database');
       return [];
     }
     
@@ -117,26 +118,66 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }));
     console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
     
+    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     return transformedData;
   }, [tasks, resources]);
 
-  // Update debug info and force refresh when ganttData changes
+  // Force refresh when ganttData changes + CSS injection
   useEffect(() => {
-    if (!tasks || tasks.length === 0) {
-      setDebugInfo('No tasks in database');
-    } else {
-      setDebugInfo(`Transformed ${ganttData.length} tasks`);
-    }
-    
     if (ganttInstance.current && ganttData.length > 0) {
       console.log('🔄 Simple Gantt refresh with new data');
       try {
         ganttInstance.current.refresh();
+        
+        // FORCE CSS injection for colors after refresh
+        setTimeout(() => {
+          injectCustomCSS();
+        }, 500);
       } catch (error: any) {
         console.log('Refresh error (harmless):', error.message);
       }
     }
-  }, [ganttData, tasks]);
+  }, [ganttData]);
+
+  // Inject custom CSS to force colors based on data
+  const injectCustomCSS = () => {
+    console.log('💉 Injecting custom CSS for task colors');
+    
+    // Remove existing custom styles
+    const existingStyle = document.getElementById('gantt-custom-colors');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    
+    // Create CSS rules based on current data
+    let css = '';
+    ganttData.forEach((task, index) => {
+      let bgColor = '#3b82f6'; // Default blue
+      
+      if (task.Confirmed === true) {
+        bgColor = '#22c55e'; // Green
+      } else if (task.Confirmed === false) {
+        bgColor = '#ef4444'; // Red
+      }
+      
+      // Target taskbar by row index or task ID
+      css += `
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar {
+          background-color: ${bgColor} !important;
+          border-color: ${bgColor} !important;
+        }
+      `;
+    });
+    
+    // Inject the CSS
+    const style = document.createElement('style');
+    style.id = 'gantt-custom-colors';
+    style.textContent = css;
+    document.head.appendChild(style);
+    
+    console.log('✅ Custom CSS injected for', ganttData.length, 'tasks');
+  };
 
   // Auto-fit columns
   useEffect(() => {
@@ -160,7 +201,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Color-coded taskbars - SIMPLIFIED DEBUG VERSION
+  // Color-coded taskbars - FORCE COLOR UPDATE
   const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) {
       console.log('❌ No args or data in handleQueryTaskbarInfo');
@@ -173,27 +214,50 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
     console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
-    console.log(`🎨 [COLOR CHECK] Raw args.data:`, args.data);
     
-    // Test each condition explicitly
+    // FORCE color application with multiple methods
+    let bgColor, borderColor, progressColor;
+    
     if (confirmed === true) {
       console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
-      args.taskbarBgColor = '#22c55e'; 
-      args.taskbarBorderColor = '#16a34a'; 
-      args.progressBarBgColor = '#15803d';
+      bgColor = '#22c55e';
+      borderColor = '#16a34a'; 
+      progressColor = '#15803d';
     } else if (confirmed === false) {
       console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
-      args.taskbarBgColor = '#ef4444'; 
-      args.taskbarBorderColor = '#dc2626'; 
-      args.progressBarBgColor = '#b91c1c';
+      bgColor = '#ef4444';
+      borderColor = '#dc2626'; 
+      progressColor = '#b91c1c';
     } else {
       console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (${confirmed})`);
-      args.taskbarBgColor = '#3b82f6'; 
-      args.taskbarBorderColor = '#2563eb'; 
-      args.progressBarBgColor = '#1d4ed8';
+      bgColor = '#3b82f6';
+      borderColor = '#2563eb'; 
+      progressColor = '#1d4ed8';
     }
     
-    console.log(`🎨 [FINAL COLORS] Background: ${args.taskbarBgColor} | Border: ${args.taskbarBorderColor}`);
+    // Apply colors using multiple properties to ensure it works
+    args.taskbarBgColor = bgColor;
+    args.taskbarBorderColor = borderColor;
+    args.progressBarBgColor = progressColor;
+    
+    // Additional force methods
+    args.taskbarStyle = {
+      backgroundColor: bgColor,
+      borderColor: borderColor,
+      border: `2px solid ${borderColor}`
+    };
+    
+    args.progressBarStyle = {
+      backgroundColor: progressColor
+    };
+    
+    // Force inline styles if possible
+    if (args.taskbarElement) {
+      args.taskbarElement.style.backgroundColor = bgColor;
+      args.taskbarElement.style.borderColor = borderColor;
+    }
+    
+    console.log(`🎨 [FINAL COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
   };
 
   // Handle toolbar clicks
