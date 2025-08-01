@@ -205,9 +205,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         enableContextMenu={true}
         allowSelection={true}
         allowResizing={true}
-        allowColumnReorder={true}
-        autoFit={true}
-        showColumnMenu={true}
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
@@ -217,9 +214,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           topTier: { unit: 'Week' },
           bottomTier: { unit: 'Day' }
         }}
-        // 🎉 ENABLE WBS COLUMN - This is what makes the magic happen!
         enableWBS={true}
-        // 🔄 AUTO-UPDATE WBS - Keeps WBS codes accurate after sorting, filtering, editing, drag/drop
         enableAutoWbsUpdate={true}
       >
         <ColumnsDirective>
