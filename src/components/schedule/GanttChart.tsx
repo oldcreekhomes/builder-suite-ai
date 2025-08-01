@@ -1,7 +1,19 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { registerLicense } from '@syncfusion/ej2-base';
 import {
-  GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
+  GanttComponent,
+  Inject,
+  Selection,
+  ColumnsDirective,
+  ColumnDirective,
+  Toolbar,
+  DayMarkers,
+  Edit,
+  Filter,
+  Sort,
+  ContextMenu,
+  EventMarkersDirective,
+  EventMarkerDirective,
 } from "@syncfusion/ej2-react-gantt";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
@@ -31,17 +43,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     isOpen: false, 
-    taskData: null, 
+    taskData: null as any, 
     taskName: ''
   });
 
-  // Add debug state to track operations
   const [debugInfo, setDebugInfo] = useState('');
 
-  // Transform database tasks to Syncfusion format with improved logging
+  // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
-    console.log('📊 Raw tasks data:', tasks);
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
@@ -50,8 +60,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
     
     const transformedData = tasks.map((task) => {
-      console.log('🔍 Processing task:', task);
-      
       let resourceNames = null;
       if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
@@ -84,7 +92,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
       
-      console.log('✅ Transformed task:', transformedTask);
       return transformedTask;
     });
     
@@ -99,15 +106,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     if (ganttInstance.current && ganttData.length > 0) {
       console.log('🔄 Forcing Gantt refresh with new data');
       try {
-        // Force the component to refresh its data
         ganttInstance.current.refresh();
-      } catch (error) {
+      } catch (error: any) {
         console.log('Refresh error (harmless):', error.message);
       }
     }
   }, [ganttData]);
 
-  // SAFER AUTO-FIT - Only run when component is fully loaded
+  // Auto-fit columns
   useEffect(() => {
     if (!ganttData || ganttData.length === 0) return;
     
@@ -120,7 +126,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           if (ganttElement && ganttElement.querySelector('.e-gantt')) {
             ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log('Auto-fit skipped:', error.message);
         }
       }
@@ -129,8 +135,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Color-coded taskbars based on email confirmations
-  const handleQueryTaskbarInfo = (args) => {
+  // Color-coded taskbars based on confirmation status
+  const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) return;
     
     const confirmed = args.data.Confirmed;
@@ -152,7 +158,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Handle toolbar clicks
-  const handleToolbarClick = (args) => {
+  const handleToolbarClick = (args: any) => {
     if (!args || !args.item) return;
     
     console.log('🔧 Toolbar click:', args.item);
@@ -169,14 +175,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('➕ Add button clicked - preventing default dialog');
       args.cancel = true;
       
-      // Create a new task directly in the database instead of using Gantt's addRecord
       if (createTask) {
         console.log('💾 Creating task via mutation...');
         const newTaskData = {
           project_id: projectId,
           task_name: 'New Task',
           start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 86400000).toISOString(), // +1 day
+          end_date: new Date(Date.now() + 86400000).toISOString(),
           duration: 1,
           progress: 0,
           parent_id: null,
@@ -189,9 +194,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           onSuccess: (response) => {
             console.log('✅ Task created successfully:', response);
             toast({ title: "Success", description: "Task created successfully" });
-            // The useProjectTasks hook should automatically refresh the data
           },
-          onError: (error) => {
+          onError: (error: any) => {
             console.error('❌ Task creation failed:', error);
             toast({ 
               variant: "destructive", 
@@ -204,8 +208,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Handle actions - PREVENT DIALOGS
-  const handleActionBegin = (args) => {
+  // Handle actions - prevent dialogs
+  const handleActionBegin = (args: any) => {
     if (!args) return;
     
     console.log('🎬 Action begin:', args.requestType);
@@ -226,8 +230,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Database sync - SIMPLIFIED
-  const handleActionComplete = (args) => {
+  // Database sync
+  const handleActionComplete = (args: any) => {
     if (!args || !args.data) return;
     
     console.log('🎭 Action complete:', args.requestType, args.data);
@@ -235,12 +239,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
     
-    const onSuccess = (msg) => {
+    const onSuccess = (msg: string) => {
       console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
     };
     
-    const onError = (error) => {
+    const onError = (error: any) => {
       console.error('❌ Database operation error:', error);
       toast({ 
         variant: "destructive", 
@@ -322,7 +326,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
         },
-        onError: (error) => {
+        onError: (error: any) => {
           toast({ 
             variant: "destructive", 
             title: "Error", 
@@ -359,7 +363,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     <div className="control-pane">
       <div className="control-section">
         <div className="col-lg-12">
-          {/* Debug info */}
           <div className="mb-2 text-sm text-gray-500">
             Debug: {debugInfo} | Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
           </div>
@@ -376,7 +379,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <GanttComponent
             id="EnableWbs" 
             ref={ganttInstance} 
-            key={`gantt-${projectId}-${ganttData.length}-${Date.now()}`} // Force re-render
+            key={`gantt-${projectId}-${ganttData.length}-${Date.now()}`}
             dataSource={ganttData} 
             height="550px"
             taskFields={{
