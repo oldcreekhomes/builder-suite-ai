@@ -230,9 +230,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         enableContextMenu={true}
         allowSelection={true}
         allowResizing={true} // NATIVE: Allow manual column resizing
-        allowColumnReorder={true} // NATIVE: Allow column reordering
-        autoFit={true} // NATIVE: Auto-fit columns to content
-        showColumnMenu={true} // NATIVE: Enable hierarchical numbering in ID column
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
