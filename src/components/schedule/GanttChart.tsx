@@ -55,7 +55,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
-      setDebugInfo('No tasks in database');
       return [];
     }
     
@@ -118,12 +117,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }));
     console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
     
-    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     return transformedData;
   }, [tasks, resources]);
 
-  // Force refresh when ganttData changes
+  // Update debug info and force refresh when ganttData changes
   useEffect(() => {
+    if (!tasks || tasks.length === 0) {
+      setDebugInfo('No tasks in database');
+    } else {
+      setDebugInfo(`Transformed ${ganttData.length} tasks`);
+    }
+    
     if (ganttInstance.current && ganttData.length > 0) {
       console.log('🔄 Simple Gantt refresh with new data');
       try {
@@ -132,7 +136,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         console.log('Refresh error (harmless):', error.message);
       }
     }
-  }, [ganttData]);
+  }, [ganttData, tasks]);
 
   // Auto-fit columns
   useEffect(() => {
