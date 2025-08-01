@@ -9,7 +9,6 @@ import { useProjectResources } from '@/hooks/useProjectResources';
 import { usePublishSchedule } from '@/hooks/usePublishSchedule';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
-import { PublishScheduleDialog } from './PublishScheduleDialog';
 
 interface GanttChartProps {
   projectId: string;
@@ -27,7 +26,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskData: null, 
     taskName: ''
   });
-  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
@@ -133,7 +131,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     if (!args || !args.item) return;
     
     if (args.item.id === 'publish') {
-      setPublishDialogOpen(true);
+      // Simple publish without dialog
+      if (publishSchedule) {
+        publishSchedule({ 
+          daysFromToday: 7, 
+          message: 'Schedule published' 
+        });
+        toast({ title: "Success", description: "Schedule published successfully" });
+      }
     } else if (args.item.id === 'gantt_add' || args.item.text === 'Add') {
       // Prevent default dialog
       args.cancel = true;
@@ -391,19 +396,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             
             <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu]} />
           </GanttComponent>
-
-          <PublishScheduleDialog
-            open={publishDialogOpen}
-            onOpenChange={setPublishDialogOpen}
-            onPublish={(data) => {
-              if (data && data.daysFromToday && publishSchedule) {
-                publishSchedule({ 
-                  daysFromToday: data.daysFromToday, 
-                  message: data.message 
-                });
-              }
-            }}
-          />
         </div>
       </div>
     </div>
