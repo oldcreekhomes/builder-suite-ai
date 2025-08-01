@@ -414,7 +414,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <GanttComponent
             id="EnableWbs" 
             ref={ganttInstance} 
-            key={`gantt-${projectId}-${ganttData.length}-${confirmationCount.confirmed}-${confirmationCount.denied}`}
+            key={`gantt-${projectId}-${ganttData.length}`}
             dataSource={ganttData} 
             height="550px"
             taskFields={{
