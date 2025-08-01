@@ -24,24 +24,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // FIXED: Use flat structure with proper ParentID relationships for native numbering
+  // SOLUTION: Create hierarchical display numbering based on parent-child relationships
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
-    // Create a mapping of original IDs to sequential IDs
+    // Create a mapping of original IDs to sequential IDs  
     const idMapping = new Map();
     tasks.forEach((task, index) => {
       idMapping.set(task.id, index + 1);
     });
     
+    // Function to calculate hierarchical display number
+    const getHierarchicalNumber = (task: any, allTasks: any[]): string => {
+      if (!task.parent_id) {
+        // Root task - just use sequential number
+        const rootIndex = allTasks.filter(t => !t.parent_id).findIndex(t => t.id === task.id);
+        return (rootIndex + 1).toString();
+      } else {
+        // Child task - get parent's number and add child index
+        const parent = allTasks.find(t => t.id === task.parent_id);
+        const parentNumber = getHierarchicalNumber(parent, allTasks);
+        const siblings = allTasks.filter(t => t.parent_id === task.parent_id);
+        const childIndex = siblings.findIndex(t => t.id === task.id);
+        return `${parentNumber}.${childIndex + 1}`;
+      }
+    };
+    
     return tasks.map((task, index) => ({
-      TaskID: index + 1, // Sequential ID: 1, 2, 3, 4, etc.
+      TaskID: index + 1, // Keep sequential for Syncfusion's internal use
+      DisplayID: getHierarchicalNumber(task, tasks), // Custom hierarchical display number
       TaskName: task.task_name,
       StartDate: new Date(task.start_date),
       EndDate: new Date(task.end_date),
       Duration: task.duration || 1,
       Progress: task.progress || 0,
-      ParentID: task.parent_id ? idMapping.get(task.parent_id) : null, // Map parent relationships
+      ParentID: task.parent_id ? idMapping.get(task.parent_id) : null,
       Predecessor: task.predecessor || null,
       Resources: task.resources || null,
       _originalId: task.id,
@@ -78,16 +95,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Columns with NATIVE auto-sizing features
+  // Columns with custom DisplayID for hierarchical numbering
   const columns = [
-    { field: 'TaskID', headerText: 'ID', width: 'auto', minWidth: 80 }, // NATIVE: auto width
-    { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 }, // NATIVE: auto width
-    { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 }, // NATIVE: auto width
-    { field: 'Duration', headerText: 'Duration', width: 'auto', minWidth: 100 }, // NATIVE: auto width
-    { field: 'EndDate', headerText: 'End Date', width: 'auto', minWidth: 120 }, // NATIVE: auto width
-    { field: 'Progress', headerText: 'Progress', width: 'auto', minWidth: 100 }, // NATIVE: auto width
-    { field: 'Predecessor', headerText: 'Dependency', width: 'auto', minWidth: 120 }, // NATIVE: auto width
-    { field: 'Resources', headerText: 'Resources', width: 'auto', minWidth: 150 } // NATIVE: auto width
+    { field: 'DisplayID', headerText: 'ID', width: 'auto', minWidth: 80 }, // Show hierarchical numbering
+    { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 },
+    { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 },
+    { field: 'Duration', headerText: 'Duration', width: 'auto', minWidth: 100 },
+    { field: 'EndDate', headerText: 'End Date', width: 'auto', minWidth: 120 },
+    { field: 'Progress', headerText: 'Progress', width: 'auto', minWidth: 100 },
+    { field: 'Predecessor', headerText: 'Dependency', width: 'auto', minWidth: 120 },
+    { field: 'Resources', headerText: 'Resources', width: 'auto', minWidth: 150 }
   ];
 
   // Set default values for new tasks
