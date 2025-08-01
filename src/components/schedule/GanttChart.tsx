@@ -22,23 +22,32 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { resources, isLoading: resourcesLoading } = useProjectResources();
   const { publishSchedule } = usePublishSchedule(projectId);
   
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    isOpen: boolean; taskData: any; taskName: string;
-  }>({ isOpen: false, taskData: null, taskName: '' });
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false, 
+    taskData: null, 
+    taskName: ''
+  });
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
 
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
-    if (!tasks.length) return [];
+    if (!tasks || tasks.length === 0) return [];
     
     return tasks.map((task) => {
       let resourceNames = null;
-      if (task.resources && resources?.length) {
+      if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            const resource = resources.find(r => r.resourceId === id);
-            return resource?.resourceName;
+            // Search by multiple possible ID fields for compatibility
+            const resource = resources.find(r => 
+              r.resourceId === id || 
+              r.id === id ||
+              String(r.resourceId) === String(id) ||
+              String(r.id) === String(id)
+            );
+            // Return multiple possible name fields
+            return resource?.resourceName || resource?.name || resource?.displayName;
           })
           .filter(Boolean)
           .join(', ');
@@ -46,23 +55,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
       return {
         TaskID: task.id,
-        TaskName: task.task_name,
+        TaskName: task.task_name || 'Untitled Task',
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
         Duration: task.duration || 1,
         Progress: task.progress || 0,
-        ParentID: task.parent_id,
-        Predecessor: task.predecessor,
-        Resources: resourceNames || task.resources,
-        Confirmed: task.confirmed,
+        ParentID: task.parent_id || null,
+        Predecessor: task.predecessor || null,
+        Resources: resourceNames || task.resources || null,
+        Confirmed: task.confirmed || null,
+        ConfirmationToken: task.confirmation_token || null,
+        AssignedUsers: task.assigned_user_ids || null,
       };
     });
   }, [tasks, resources]);
 
   // Auto-fit columns after data loads
   useEffect(() => {
-    if (ganttInstance.current) {
-      const timer = setTimeout(() => ganttInstance.current?.autoFitColumns(), 200);
+    if (ganttInstance.current && ganttData) {
+      const timer = setTimeout(() => {
+        if (ganttInstance.current) {
+          ganttInstance.current.autoFitColumns();
+        }
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [ganttData]);
@@ -72,99 +87,192 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const channel = supabase
       .channel('schedule-task-updates')
       .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'project_schedule_tasks',
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'project_schedule_tasks',
         filter: `project_id=eq.${projectId}`
-      }, () => ganttInstance.current?.refresh())
+      }, (payload) => {
+        console.log('Real-time update received:', payload);
+        if (ganttInstance.current) {
+          ganttInstance.current.refresh();
+        }
+      })
       .subscribe();
+    
     return () => {
       supabase.removeChannel(channel);
     };
   }, [projectId]);
 
   // Color-coded taskbars based on email confirmations
-  const handleQueryTaskbarInfo = (args: any) => {
-    const confirmed = args.data?.Confirmed;
+  const handleQueryTaskbarInfo = (args) => {
+    if (!args || !args.data) return;
+    
+    const confirmed = args.data.Confirmed;
     if (confirmed === true || confirmed === 'true') {
-      args.taskbarBgColor = '#22c55e'; args.taskbarBorderColor = '#16a34a'; args.progressBarBgColor = '#15803d';
+      // Green for approved
+      args.taskbarBgColor = '#22c55e'; 
+      args.taskbarBorderColor = '#16a34a'; 
+      args.progressBarBgColor = '#15803d';
     } else if (confirmed === false || confirmed === 'false') {
-      args.taskbarBgColor = '#ef4444'; args.taskbarBorderColor = '#dc2626'; args.progressBarBgColor = '#b91c1c';
+      // Red for denied
+      args.taskbarBgColor = '#ef4444'; 
+      args.taskbarBorderColor = '#dc2626'; 
+      args.progressBarBgColor = '#b91c1c';
     } else {
-      args.taskbarBgColor = '#3b82f6'; args.taskbarBorderColor = '#2563eb'; args.progressBarBgColor = '#1d4ed8';
+      // Blue for pending
+      args.taskbarBgColor = '#3b82f6'; 
+      args.taskbarBorderColor = '#2563eb'; 
+      args.progressBarBgColor = '#1d4ed8';
     }
   };
 
-  // Handle toolbar clicks
-  const handleToolbarClick = (args: any) => {
-    if (args.item?.id === 'publish') {
+  // Handle toolbar clicks - NO DIALOG POPUP
+  const handleToolbarClick = (args) => {
+    if (!args || !args.item) return;
+    
+    if (args.item.id === 'publish') {
       setPublishDialogOpen(true);
-    } else if (args.item?.id === 'gantt_add' || args.item?.text === 'Add') {
+    } else if (args.item.id === 'gantt_add' || args.item.text === 'Add') {
+      // Prevent default dialog
       args.cancel = true;
-      ganttInstance.current?.addRecord({
-        TaskName: 'New Task', StartDate: new Date(), Duration: 1, Progress: 0
-      }, 'Bottom');
+      // Add new row directly
+      if (ganttInstance.current) {
+        ganttInstance.current.addRecord({
+          TaskName: 'New Task', 
+          StartDate: new Date(), 
+          Duration: 1, 
+          Progress: 0
+        }, 'Bottom');
+      }
     }
   };
 
-  // Handle actions
-  const handleActionBegin = (args: any) => {
+  // Handle actions - PREVENT DIALOGS
+  const handleActionBegin = (args) => {
+    if (!args) return;
+    
     if (args.requestType === 'beforeDelete') {
       args.cancel = true;
-      const taskData = args.data[0];
-      setDeleteConfirmation({ isOpen: true, taskData, taskName: taskData.TaskName || 'Unknown Task' });
+      const taskData = args.data && args.data[0] ? args.data[0] : null;
+      if (taskData) {
+        setDeleteConfirmation({ 
+          isOpen: true, 
+          taskData: taskData, 
+          taskName: taskData.TaskName || 'Unknown Task' 
+        });
+      }
     } else if (args.requestType === 'beforeOpenAddDialog') {
+      // Block any add dialogs
       args.cancel = true;
     }
   };
 
   // Database sync
-  const handleActionComplete = (args: any) => {
-    const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+  const handleActionComplete = (args) => {
+    if (!args || !args.data) return;
     
-    const createParams = {
-      project_id: projectId, task_name: taskData.TaskName || 'New Task',
-      start_date: taskData.StartDate?.toISOString() || new Date().toISOString(),
-      end_date: taskData.EndDate?.toISOString() || new Date(Date.now() + 86400000).toISOString(),
-      duration: taskData.Duration || 1, progress: taskData.Progress || 0,
-      parent_id: taskData.ParentID || null, predecessor: taskData.Predecessor || null,
-      resources: taskData.Resources || null, order_index: tasks.length
+    const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+    if (!taskData) return;
+    
+    const onSuccess = (msg) => {
+      toast({ title: "Success", description: msg });
+    };
+    
+    const onError = (error) => {
+      console.error('Database error:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error?.message || 'An error occurred' 
+      });
     };
 
-    const updateParams = {
-      id: taskData.TaskID, task_name: taskData.TaskName,
-      start_date: taskData.StartDate?.toISOString(), end_date: taskData.EndDate?.toISOString(),
-      duration: taskData.Duration, progress: taskData.Progress, predecessor: taskData.Predecessor,
-      resources: taskData.Resources, confirmed: taskData.Confirmed
-    };
-
-    const onSuccess = (msg: string) => toast({ title: "Success", description: msg });
-    const onError = (error: any) => toast({ variant: "destructive", title: "Error", description: error.message });
-
-    switch (args.requestType) {
-      case 'add': 
-        createTask.mutate(createParams, { onSuccess: () => onSuccess("Task created successfully"), onError });
-        break;
-      case 'save':
-      case 'cellSave':
-      case 'taskbarEdited':
-        updateTask.mutate(updateParams, { onSuccess: () => onSuccess("Task updated successfully"), onError });
-        break;
-      case 'indented':
-      case 'outdented':
-        updateTask.mutate({ id: taskData.TaskID, parent_id: taskData.ParentID || null }, 
-          { onSuccess: () => onSuccess("Task hierarchy updated"), onError });
-        break;
+    try {
+      switch (args.requestType) {
+        case 'add': {
+          const createParams = {
+            project_id: projectId, 
+            task_name: taskData.TaskName || 'New Task',
+            start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
+            end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
+            duration: taskData.Duration || 1, 
+            progress: taskData.Progress || 0,
+            parent_id: taskData.ParentID || null, 
+            predecessor: taskData.Predecessor || null,
+            resources: taskData.Resources || null, 
+            order_index: tasks ? tasks.length : 0
+          };
+          
+          if (createTask) {
+            createTask.mutate(createParams, { 
+              onSuccess: () => onSuccess("Task created successfully"), 
+              onError: onError 
+            });
+          }
+          break;
+        }
+        
+        case 'save':
+        case 'cellSave':
+        case 'taskbarEdited': {
+          const updateParams = {
+            id: taskData.TaskID, 
+            task_name: taskData.TaskName,
+            start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined, 
+            end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
+            duration: taskData.Duration, 
+            progress: taskData.Progress, 
+            predecessor: taskData.Predecessor,
+            resources: taskData.Resources, 
+            confirmed: taskData.Confirmed,
+            assigned_user_ids: taskData.AssignedUsers
+          };
+          
+          if (updateTask) {
+            updateTask.mutate(updateParams, { 
+              onSuccess: () => onSuccess("Task updated successfully"), 
+              onError: onError 
+            });
+          }
+          break;
+        }
+        
+        case 'indented':
+        case 'outdented': {
+          const hierarchyParams = {
+            id: taskData.TaskID, 
+            parent_id: taskData.ParentID || null
+          };
+          
+          if (updateTask) {
+            updateTask.mutate(hierarchyParams, { 
+              onSuccess: () => onSuccess("Task hierarchy updated"), 
+              onError: onError 
+            });
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('Action complete error:', error);
+      onError(error);
     }
   };
 
   const handleDeleteConfirmation = () => {
-    if (deleteConfirmation.taskData) {
+    if (deleteConfirmation.taskData && deleteTask) {
       deleteTask.mutate(deleteConfirmation.taskData.TaskID, {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
         },
         onError: (error) => {
-          toast({ variant: "destructive", title: "Error", description: error.message });
+          toast({ 
+            variant: "destructive", 
+            title: "Error", 
+            description: error?.message || 'Delete failed'
+          });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
         }
       });
@@ -172,15 +280,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   if (isLoading || resourcesLoading) {
-    return <div className="flex items-center justify-center h-96">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="flex items-center justify-center h-96 text-red-600">
-      Error loading tasks: {error.message}
-    </div>;
+    return (
+      <div className="flex items-center justify-center h-96 text-red-600">
+        Error loading tasks: {error.message || 'Unknown error'}
+      </div>
+    );
   }
 
   return (
@@ -193,24 +305,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             title="Delete Task"
             description={`Are you sure you want to delete "${deleteConfirmation.taskName}"?`}
             onConfirm={handleDeleteConfirmation}
-            isLoading={deleteTask.isPending}
+            isLoading={deleteTask && deleteTask.isPending}
           />
 
           <GanttComponent
-            id="EnableWbs" ref={ganttInstance} dataSource={ganttData} height="550px"
+            id="EnableWbs" 
+            ref={ganttInstance} 
+            dataSource={ganttData} 
+            height="550px"
             taskFields={{
-              id: "TaskID", name: "TaskName", startDate: "StartDate", endDate: "EndDate",
-              duration: "Duration", progress: "Progress", dependency: "Predecessor",
-              parentID: 'ParentID', resourceInfo: 'Resources'
+              id: "TaskID", 
+              name: "TaskName", 
+              startDate: "StartDate", 
+              endDate: "EndDate",
+              duration: "Duration", 
+              progress: "Progress", 
+              dependency: "Predecessor",
+              parentID: 'ParentID', 
+              resourceInfo: 'Resources'
             }}
             editSettings={{
-              allowAdding: true, allowEditing: true, allowDeleting: true, allowTaskbarEditing: true,
-              showDeleteConfirmDialog: false, mode: 'Auto', newRowPosition: 'Bottom'
+              allowAdding: true, 
+              allowEditing: true, 
+              allowDeleting: true, 
+              allowTaskbarEditing: true,
+              showDeleteConfirmDialog: false, 
+              mode: 'Auto', 
+              newRowPosition: 'Bottom'
             }}
-            toolbar={["Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
-              { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }]}
+            toolbar={[
+              "Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
+              { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }
+            ]}
             timelineSettings={{
-              showTooltip: true, topTier: { unit: "Week", format: "dd/MM/yyyy" },
+              showTooltip: true, 
+              topTier: { unit: "Week", format: "dd/MM/yyyy" },
               bottomTier: { unit: "Day", count: 1 }
             }}
             selectionSettings={{ mode: "Row", type: "Single", enableToggle: false }}
@@ -222,13 +351,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             projectEndDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
             resourceFields={{ id: 'resourceId', name: 'resourceName' }}
             resources={resources}
-            treeColumnIndex={2} allowSorting={true} enableContextMenu={true}
-            addDialogFields={[]} enableWBS={true} enableAutoWbsUpdate={true}
-            allowSelection={true} allowPdfExport={true} highlightWeekends={true}
-            allowFiltering={false} gridLines="Both" taskbarHeight={20} rowHeight={40}
-            allowResizing={true} allowUnscheduledTasks={true}
-            toolbarClick={handleToolbarClick} actionBegin={handleActionBegin}
-            actionComplete={handleActionComplete} queryTaskbarInfo={handleQueryTaskbarInfo}
+            treeColumnIndex={2} 
+            allowSorting={true} 
+            enableContextMenu={true}
+            addDialogFields={[]} 
+            enableWBS={true} 
+            enableAutoWbsUpdate={true}
+            allowSelection={true} 
+            allowPdfExport={true} 
+            highlightWeekends={true}
+            allowFiltering={false} 
+            gridLines="Both" 
+            taskbarHeight={20} 
+            rowHeight={40}
+            allowResizing={true} 
+            allowColumnReorder={false}
+            allowUnscheduledTasks={true}
+            toolbarClick={handleToolbarClick} 
+            actionBegin={handleActionBegin}
+            actionComplete={handleActionComplete} 
+            queryTaskbarInfo={handleQueryTaskbarInfo}
           >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
@@ -253,8 +395,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             open={publishDialogOpen}
             onOpenChange={setPublishDialogOpen}
             onPublish={(data) => {
-              if (data.daysFromToday) {
-                publishSchedule({ daysFromToday: data.daysFromToday, message: data.message });
+              if (data && data.daysFromToday && publishSchedule) {
+                publishSchedule({ 
+                  daysFromToday: data.daysFromToday, 
+                  message: data.message 
+                });
               }
             }}
           />
