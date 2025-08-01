@@ -48,7 +48,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }));
   }, [tasks]);
 
-  // FIXED: Use flat structure with ParentID for native hierarchical display
+  // FIXED: Use flat structure with ParentID for native hierarchical display + WBS
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
@@ -58,7 +58,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     progress: 'Progress',
     parentID: 'ParentID', // Use ParentID for flat structure relationships
     dependency: 'Predecessor',
-    resourceInfo: 'Resources'
+    resourceInfo: 'Resources',
+    wbs: 'WBS' // Add WBS field mapping
   };
 
   // Standard edit settings with NATIVE positioning and dialog control
@@ -81,8 +82,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // 🎉 NATIVE WBS COLUMN - No more custom templates!
   const columns = [
     { 
-      field: 'wbs', 
-      headerText: 'WBS', 
+      field: 'WBS', 
+      headerText: 'WBS Code', 
       width: 'auto', 
       minWidth: 80,
       // This is the magic - Syncfusion's native WBS column
@@ -214,7 +215,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           topTier: { unit: 'Week' },
           bottomTier: { unit: 'Day' }
         }}
+        // 🎉 ENABLE WBS COLUMN - This is what makes the magic happen!
         enableWBS={true}
+        // 🔄 AUTO-UPDATE WBS - Keeps WBS codes accurate after sorting, filtering, editing, drag/drop
         enableAutoWbsUpdate={true}
       >
         <ColumnsDirective>
