@@ -1,7 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { registerLicense } from '@syncfusion/ej2-base';
 import {
   GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
 } from "@syncfusion/ej2-react-gantt";
+
+// Register Syncfusion license
+registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXdecXVcR2BZVkF/XkpWYEk=');
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
@@ -330,7 +334,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  if (isLoading || resourcesLoading) {
+  // Fallback UI if Syncfusion isn't available
+  if (!GanttComponent) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-lg">
+        <h3 className="text-red-800 font-semibold mb-2">Syncfusion Components Not Available</h3>
+        <p className="text-red-700 mb-4">Please install Syncfusion packages:</p>
+        <pre className="bg-red-100 p-2 rounded text-sm">
+npm install @syncfusion/ej2-react-gantt @syncfusion/ej2-gantt
+        </pre>
+        <div className="mt-4">
+          <p><strong>Debug Info:</strong></p>
+          <p>Tasks in DB: {tasks?.length || 0}</p>
+          <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+          <p>Error: {error?.message || 'None'}</p>
+        </div>
+      </div>
+    );
+  }
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
