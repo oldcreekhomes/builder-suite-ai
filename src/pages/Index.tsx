@@ -72,9 +72,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   useEffect(() => {
     if (ganttInstance.current && ganttData && ganttData.length > 0) {
       const timer = setTimeout(() => {
-        if (ganttInstance.current) {
-          // Auto-fit all columns EXCEPT the ID column (which has fixed width)
-          ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
+        if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
+          try {
+            // Auto-fit all columns EXCEPT the ID column (which has fixed width)
+            ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
+          } catch (error) {
+            console.log('Auto-fit error:', error);
+          }
         }
       }, 300);
       return () => clearTimeout(timer);
@@ -92,8 +96,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         filter: `project_id=eq.${projectId}`
       }, (payload) => {
         console.log('Real-time update received:', payload);
-        if (ganttInstance.current) {
-          ganttInstance.current.refresh();
+        if (ganttInstance.current && ganttInstance.current.refresh) {
+          try {
+            ganttInstance.current.refresh();
+          } catch (error) {
+            console.log('Refresh error:', error);
+          }
         }
       })
       .subscribe();
@@ -143,13 +151,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Prevent default dialog
       args.cancel = true;
       // Add new row directly
-      if (ganttInstance.current) {
-        ganttInstance.current.addRecord({
-          TaskName: 'New Task', 
-          StartDate: new Date(), 
-          Duration: 1, 
-          Progress: 0
-        }, 'Bottom');
+      if (ganttInstance.current && ganttInstance.current.addRecord) {
+        try {
+          ganttInstance.current.addRecord({
+            TaskName: 'New Task', 
+            StartDate: new Date(), 
+            Duration: 1, 
+            Progress: 0
+          }, 'Bottom');
+        } catch (error) {
+          console.log('Add record error:', error);
+        }
       }
     }
   };
