@@ -107,7 +107,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     { field: 'Resources', headerText: 'Resources', width: 'auto', minWidth: 150 }
   ];
 
-  // Set default values for new tasks
+  // Set default values for new tasks AND handle database sync for indent/outdent
   const handleActionBegin = (args: any) => {
     if (args.requestType === 'beforeAdd') {
       args.data = {
@@ -117,6 +117,64 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Progress: 0,
         ...args.data
       };
+    }
+  };
+
+  // CRITICAL: Add database sync for indent/outdent operations
+  const handleActionComplete = (args: any) => {
+    console.log('Action completed:', args.requestType, args.data);
+    
+    if (args.requestType === 'indented' && args.data) {
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
+      
+      // Find the new parent's original ID
+      let newParentOriginalId = null;
+      if (taskData.ParentID) {
+        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
+      }
+      
+      console.log('Indenting task:', originalTaskId, 'under parent:', newParentOriginalId);
+      
+      if (originalTaskId && updateTask) {
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentOriginalId,
+        }, {
+          onSuccess: () => {
+            console.log('✅ Indent saved to database');
+          },
+          onError: (error) => {
+            console.error('❌ Indent failed:', error);
+          }
+        });
+      }
+    }
+    else if (args.requestType === 'outdented' && args.data) {
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
+      
+      // Find the new parent's original ID after outdenting
+      let newParentOriginalId = null;
+      if (taskData.ParentID) {
+        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
+      }
+      
+      console.log('Outdenting task:', originalTaskId, 'new parent:', newParentOriginalId);
+      
+      if (originalTaskId && updateTask) {
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentOriginalId, // null for root level
+        }, {
+          onSuccess: () => {
+            console.log('✅ Outdent saved to database');
+          },
+          onError: (error) => {
+            console.error('❌ Outdent failed:', error);
+          }
+        });
+      }
     }
   };
 
@@ -163,6 +221,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
+        actionComplete={handleActionComplete} // CRITICAL: Save indent/outdent to database
         splitterSettings={{ columnIndex: 5 }} // Adjusted for new EndDate column
         timelineSettings={{
           topTier: { unit: 'Week' },
