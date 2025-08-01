@@ -740,6 +740,55 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           });
         }
       }
+    }
+        
+        // Fallback to enhanced parent detection
+        if (!parentId) {
+          parentId = getParentIdForTask(taskData);
+          console.log('Parent found from enhanced detection:', parentId);
+        }
+        
+        // Additional safety check: ensure parent exists in database
+        if (parentId) {
+          const parentExists = tasks.find(t => t.id === parentId);
+          if (!parentExists) {
+            console.error('Parent task not found in database:', parentId);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Cannot indent task - parent task not found",
+            });
+            return;
+          }
+        }
+        
+        // Ensure we're not setting a task as its own parent
+        if (parentId && parentId !== originalTaskId) {
+          console.log(`Setting parent_id: ${parentId} for task: ${originalTaskId}`);
+          
+          updateTask.mutate({
+            id: originalTaskId,
+            parent_id: parentId,
+            order_index: taskData.index || 0,
+          }, {
+            onSuccess: () => {
+              console.log('✅ Indenting successful - parent_id saved to database');
+              handleMutationSuccess('Indent');
+            },
+            onError: (error) => {
+              console.error('❌ Indenting failed:', error);
+              handleMutationError(error, 'Indent');
+            }
+          });
+        } else {
+          console.error('Invalid parent relationship:', { parentId, originalTaskId });
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Cannot indent task - invalid parent relationship",
+          });
+        }
+      }
     } 
     else if (args.requestType === 'outdented' && args.data) {
       console.log('=== OUTDENTING TASK (removing parent relationship) ===');
