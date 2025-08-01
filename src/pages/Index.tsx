@@ -383,7 +383,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <ColumnDirective field="WBSCode" headerText="ID" width={50} />
               <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
               <ColumnDirective field="StartDate" headerText="Start Date" />
-              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
+              <ColumnDirective field="Duration" headerText="Duration" />
               <ColumnDirective field="EndDate" headerText="End Date" />
               <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
               <ColumnDirective field="Progress" headerText="Progress" />
