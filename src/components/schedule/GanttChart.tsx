@@ -24,49 +24,69 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // CRITICAL FIX: Use the EXACT Syncfusion format from their docs
+  // CRITICAL FIX: Use hierarchical task numbering for parent-child relationships
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
-    // Create a mapping for parent relationships
-    const taskMap = new Map();
-    tasks.forEach((task, index) => {
-      taskMap.set(task.id, index + 1);
-    });
+    // Build hierarchical structure with proper TaskID numbering
+    const buildHierarchy = (parentId: string | null = null, prefix: string = ''): any[] => {
+      const children = tasks.filter(task => task.parent_id === parentId);
+      
+      return children.map((task, index) => {
+        const taskNumber = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+        const childTasks = buildHierarchy(task.id, taskNumber);
+        
+        return {
+          TaskID: taskNumber, // Hierarchical numbering like 1, 1.1, 1.2, 2, 2.1, etc.
+          TaskName: task.task_name,
+          StartDate: new Date(task.start_date),
+          Duration: task.duration || 1,
+          Progress: task.progress || 0,
+          Predecessor: task.predecessor || null,
+          Resources: task.resources || null,
+          subtasks: childTasks.length > 0 ? childTasks : undefined, // Native Syncfusion hierarchy
+          // Store original UUID for database operations
+          _originalId: task.id,
+        };
+      });
+    };
     
-    return tasks.map((task, index) => ({
-      TaskID: index + 1, // Sequential numerical ID starting from 1
-      TaskName: task.task_name,
-      StartDate: new Date(task.start_date),
-      Duration: task.duration || 1,
-      Progress: task.progress || 0,
-      ParentID: task.parent_id ? taskMap.get(task.parent_id) : null, // Map parent UUID to numerical ID
-      Predecessor: task.predecessor || null,
-      Resources: task.resources || null,
-      // Store original UUID for database operations
-      _originalId: task.id,
-    }));
+    return buildHierarchy();
   }, [tasks]);
 
-  // Standard Syncfusion task field mapping - EXACTLY like their docs
+  // Standard Syncfusion task field mapping for hierarchical data
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
     startDate: 'StartDate',
     duration: 'Duration',
     progress: 'Progress',
-    parentID: 'ParentID', // CRITICAL: This must match exactly
     dependency: 'Predecessor',
-    resourceInfo: 'Resources'
+    resourceInfo: 'Resources',
+    child: 'subtasks' // CRITICAL: Use subtasks for native hierarchy
   };
 
-  // Standard edit settings - EXACTLY like their docs  
+  // Standard edit settings with default task name
   const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true, 
     allowDeleting: true,
     allowTaskbarEditing: true,
     mode: 'Auto' as any
+  };
+
+  // Set default values for new tasks using actionBegin event
+  const handleActionBegin = (args: any) => {
+    if (args.requestType === 'beforeAdd') {
+      // Set default values for new tasks
+      args.data = {
+        TaskName: 'New Task',
+        StartDate: new Date(),
+        Duration: 1,
+        Progress: 0,
+        ...args.data // Keep any other data that might be set
+      };
+    }
   };
 
   // Standard toolbar - EXACTLY like their docs
@@ -120,6 +140,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         allowResizing={true}
         height="600px"
         gridLines="Both"
+        actionBegin={handleActionBegin} // Set default values for new tasks
         timelineSettings={{
           topTier: { unit: 'Week' },
           bottomTier: { unit: 'Day' }
