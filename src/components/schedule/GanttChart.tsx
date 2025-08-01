@@ -47,15 +47,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  const [debugInfo, setDebugInfo] = useState('');
-
   // Transform database tasks to Syncfusion format with CONFIRMATION DEBUG
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
-      setDebugInfo('No tasks in database');
       return [];
     }
     
@@ -118,7 +115,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }));
     console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
     
-    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     return transformedData;
   }, [tasks, resources]);
 
@@ -456,7 +452,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         <div>
           <h3>Error loading tasks:</h3>
           <p>{error.message || 'Unknown error'}</p>
-          <p className="text-sm text-gray-500 mt-2">Debug: {debugInfo}</p>
         </div>
       </div>
     );
@@ -467,7 +462,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       <div className="control-section">
         <div className="col-lg-12">
           <div className="mb-2 text-sm text-gray-500">
-            Debug: {debugInfo} | Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
+            Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
           </div>
           
           <DeleteConfirmationDialog
