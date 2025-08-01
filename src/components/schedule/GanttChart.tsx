@@ -42,12 +42,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             // Search by multiple possible ID fields for compatibility
             const resource = resources.find(r => 
               r.resourceId === id || 
-              r.id === id ||
-              String(r.resourceId) === String(id) ||
-              String(r.id) === String(id)
+              String(r.resourceId) === String(id)
             );
-            // Return multiple possible name fields
-            return resource?.resourceName || resource?.name || resource?.displayName;
+            return resource?.resourceName;
           })
           .filter(Boolean)
           .join(', ');
@@ -64,8 +61,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
         Confirmed: task.confirmed || null,
-        ConfirmationToken: task.confirmation_token || null,
-        AssignedUsers: task.assigned_user_ids || null,
       };
     });
   }, [tasks, resources]);
@@ -227,8 +222,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             progress: taskData.Progress, 
             predecessor: taskData.Predecessor,
             resources: taskData.Resources, 
-            confirmed: taskData.Confirmed,
-            assigned_user_ids: taskData.AssignedUsers
+            confirmed: taskData.Confirmed
           };
           
           if (updateTask) {
@@ -367,7 +361,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             taskbarHeight={20} 
             rowHeight={40}
             allowResizing={true} 
-            allowColumnReorder={false}
             allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
