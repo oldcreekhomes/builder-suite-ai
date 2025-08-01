@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/useProject";
 import { GanttChart } from "@/components/schedule/GanttChart";
 import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
-
+import "../styles/syncfusion.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();

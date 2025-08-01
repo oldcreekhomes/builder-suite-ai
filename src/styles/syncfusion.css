@@ -1,0 +1,55 @@
+
+@import '../../node_modules/@syncfusion/ej2-base/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-buttons/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-calendars/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-dropdowns/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-gantt/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-grids/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-inputs/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-layouts/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-lists/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-navigations/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-notifications/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-popups/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-richtexteditor/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-treegrid/styles/material.css';
+
+/* Hide all Syncfusion toast notifications - comprehensive approach */
+.e-toast-container,
+.e-toast,
+.e-notification,
+.e-gantt .e-toast-container,
+.e-gantt .e-toast,
+.e-gantt .e-notification,
+.e-control .e-toast-container,
+.e-control .e-toast,
+.e-control .e-notification,
+/* Hide specific success/error message containers */
+.e-success-toast,
+.e-error-toast,
+.e-info-toast,
+.e-warning-toast,
+/* Hide any floating notification elements */
+.e-toast-wrap,
+.e-toast-message,
+.e-notification-wrapper,
+/* Target any dynamically created notification elements */
+[id*="toast"],
+[class*="toast"]:not(.toast):not([class*="toast-"]),
+/* Hide Syncfusion status messages */
+.e-status-message,
+.e-popup.e-toast {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+  z-index: -1 !important;
+}
+
+/* Hide Syncfusion spinners and loading indicators */
+.e-spinner-pane {
+  display: none !important;
+}
+
+/* Global override for any Syncfusion notification methods */
