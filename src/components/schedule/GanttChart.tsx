@@ -127,50 +127,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => timers.forEach(timer => clearTimeout(timer));
   }, [ganttData]);
 
-  // Also run when actions complete
-  const handleActionComplete = (args: any) => {
-    console.log('Action completed:', args.requestType);
-    
-    // Run the numbering update after any action
-    setTimeout(() => {
-      const updateEvent = new CustomEvent('updateNumbers');
-      document.dispatchEvent(updateEvent);
-    }, 200);
-    
-    // Keep the original database sync logic
-    if (args.requestType === 'indented' && args.data) {
-      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
-      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
-      
-      let newParentOriginalId = null;
-      if (taskData.ParentID) {
-        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
-      }
-      
-      if (originalTaskId && updateTask) {
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: newParentOriginalId,
-        });
-      }
-    }
-    else if (args.requestType === 'outdented' && args.data) {
-      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
-      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
-      
-      let newParentOriginalId = null;
-      if (taskData.ParentID) {
-        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
-      }
-      
-      if (originalTaskId && updateTask) {
-        updateTask.mutate({
-          id: originalTaskId,
-          parent_id: newParentOriginalId,
-        });
-      }
-    }
-  };
 
   // FALLBACK: Remove template, go back to basic version that renders
   const columns = [
@@ -297,10 +253,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         toolbar={toolbarOptions}
         enableContextMenu={true}
         allowSelection={true}
-        allowResizing={true} // NATIVE: Allow manual column resizing
-        allowColumnReorder={true} // NATIVE: Allow column reordering
-        autoFit={true} // NATIVE: Auto-fit columns to content
-        showColumnMenu={true} // NATIVE: Enable hierarchical numbering in ID column
+        allowResizing={true}
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
