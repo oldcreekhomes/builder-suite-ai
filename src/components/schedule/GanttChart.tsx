@@ -1,18 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  GanttComponent,
-  Inject,
-  Selection,
-  ColumnsDirective,
-  ColumnDirective,
-  Toolbar,
-  DayMarkers,
-  Edit,
-  Filter,
-  Sort,
-  ContextMenu,
-  EventMarkersDirective,
-  EventMarkerDirective,
+  GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
 } from "@syncfusion/ej2-react-gantt";
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
@@ -29,28 +17,20 @@ interface GanttChartProps {
 
 export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttInstance = useRef<GanttComponent>(null);
-  
-  // Your custom hooks
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources, isLoading: resourcesLoading } = useProjectResources();
   const { publishSchedule } = usePublishSchedule(projectId);
   
-  // State
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    isOpen: boolean;
-    taskData: any;
-    taskName: string;
+    isOpen: boolean; taskData: any; taskName: string;
   }>({ isOpen: false, taskData: null, taskName: '' });
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
-  const [autoWbsEnabled, setAutoWbsEnabled] = useState(true);
 
-  // Transform database tasks to Syncfusion format with resource mapping
+  // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
-    if (!tasks.length) {
-      return [];
-    }
-
+    if (!tasks.length) return [];
+    
     return tasks.map((task) => {
       let resourceNames = null;
       if (task.resources && resources?.length) {
@@ -81,32 +61,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Aggressive auto-fit columns after data loads
+  // Auto-fit columns after data loads
   useEffect(() => {
     if (ganttInstance.current) {
-      const timer1 = setTimeout(() => {
-        if (ganttInstance.current) {
-          ganttInstance.current.autoFitColumns();
-        }
-      }, 100);
-      
-      const timer2 = setTimeout(() => {
-        if (ganttInstance.current) {
-          ganttInstance.current.autoFitColumns();
-        }
-      }, 500);
-      
-      const timer3 = setTimeout(() => {
-        if (ganttInstance.current) {
-          ganttInstance.current.autoFitColumns();
-        }
-      }, 1000);
-      
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-      };
+      const timer = setTimeout(() => ganttInstance.current?.autoFitColumns(), 200);
+      return () => clearTimeout(timer);
     }
   }, [ganttData]);
 
@@ -115,140 +74,45 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const channel = supabase
       .channel('schedule-task-updates')
       .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'project_schedule_tasks',
+        event: 'UPDATE', schema: 'public', table: 'project_schedule_tasks',
         filter: `project_id=eq.${projectId}`
-      }, (payload) => {
-        console.log('Email confirmation received:', payload);
-        if (ganttInstance.current) {
-          ganttInstance.current.refresh();
-        }
-      })
+      }, () => ganttInstance.current?.refresh())
       .subscribe();
-
     return () => supabase.removeChannel(channel);
   }, [projectId]);
-
-  // Syncfusion configuration
-  const taskFields: any = {
-    id: "TaskID",
-    name: "TaskName",
-    startDate: "StartDate",
-    endDate: "EndDate",
-    duration: "Duration",
-    progress: "Progress",
-    dependency: "Predecessor",
-    parentID: 'ParentID',
-    resourceInfo: 'Resources'
-  };
-
-  const eventMarkerDay1: Date = new Date();
-  
-  const autoUpdateWBSChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setAutoWbsEnabled(e.target.checked);
-    if (ganttInstance.current) {
-      ganttInstance.current.enableAutoWbsUpdate = e.target.checked;
-    }
-  };
-
-  const editSettings: any = {
-    allowAdding: true,
-    allowEditing: true,
-    allowDeleting: true,
-    allowTaskbarEditing: true,
-    showDeleteConfirmDialog: false,
-    mode: 'Auto',
-    newRowPosition: 'Bottom'
-  };
-
-  const toolbar: any = [
-    "Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
-    { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }
-  ];
-
-  const timelineSettings: any = {
-    showTooltip: true,
-    topTier: {
-      unit: "Week",
-      format: "dd/MM/yyyy",
-    },
-    bottomTier: {
-      unit: "Day",
-      count: 1,
-    },
-  };
-
-  const labelSettings: any = {
-    taskLabel: '${Progress}%'
-  };
-
-  const projectStartDate: Date = new Date();
-  const projectEndDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const splitterSettings: any = {
-    columnIndex: 4
-  };
-
-  const dataBound = (): void => {
-    const gantt = (document.getElementsByClassName('e-gantt')[0] as any).ej2_instances[0];
-    if (gantt?.element) {
-      const spanLabel = gantt.element.getElementsByClassName('e-span-label')[0] as HTMLElement;
-      const rightArrow = gantt.element.getElementsByClassName('e-gantt-right-arrow')[0] as HTMLElement;
-      if (spanLabel) spanLabel.style.top = '125px';
-      if (rightArrow) rightArrow.style.top = '131px';
-    }
-  };
-
-  const selectionSettings: any = {
-    mode: "Row",
-    type: "Single",
-    enableToggle: false,
-  };
-
-  const tooltipSettings: any = {
-    showTooltip: true,
-  };
-
-  const filterSettings: any = {
-    type: "Menu",
-  };
 
   // Color-coded taskbars based on email confirmations
   const handleQueryTaskbarInfo = (args: any) => {
     const confirmed = args.data?.Confirmed;
-    
     if (confirmed === true || confirmed === 'true') {
-      args.taskbarBgColor = '#22c55e';
-      args.taskbarBorderColor = '#16a34a';
-      args.progressBarBgColor = '#15803d';
+      args.taskbarBgColor = '#22c55e'; args.taskbarBorderColor = '#16a34a'; args.progressBarBgColor = '#15803d';
     } else if (confirmed === false || confirmed === 'false') {
-      args.taskbarBgColor = '#ef4444';
-      args.taskbarBorderColor = '#dc2626';
-      args.progressBarBgColor = '#b91c1c';
+      args.taskbarBgColor = '#ef4444'; args.taskbarBorderColor = '#dc2626'; args.progressBarBgColor = '#b91c1c';
     } else {
-      args.taskbarBgColor = '#3b82f6';
-      args.taskbarBorderColor = '#2563eb';
-      args.progressBarBgColor = '#1d4ed8';
+      args.taskbarBgColor = '#3b82f6'; args.taskbarBorderColor = '#2563eb'; args.progressBarBgColor = '#1d4ed8';
     }
   };
 
-  // Custom toolbar actions
+  // Handle toolbar clicks
   const handleToolbarClick = (args: any) => {
     if (args.item?.id === 'publish') {
       setPublishDialogOpen(true);
+    } else if (args.item?.id === 'gantt_add' || args.item?.text === 'Add') {
+      args.cancel = true;
+      ganttInstance.current?.addRecord({
+        TaskName: 'New Task', StartDate: new Date(), Duration: 1, Progress: 0
+      }, 'Bottom');
     }
   };
 
-  // Delete confirmation
+  // Handle actions
   const handleActionBegin = (args: any) => {
     if (args.requestType === 'beforeDelete') {
       args.cancel = true;
       const taskData = args.data[0];
-      setDeleteConfirmation({
-        isOpen: true,
-        taskData,
-        taskName: taskData.TaskName || 'Unknown Task'
-      });
+      setDeleteConfirmation({ isOpen: true, taskData, taskName: taskData.TaskName || 'Unknown Task' });
+    } else if (args.requestType === 'beforeOpenAddDialog') {
+      args.cancel = true;
     }
   };
 
@@ -256,54 +120,38 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleActionComplete = (args: any) => {
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     
-    switch (args.requestType) {
-      case 'add':
-        createTask.mutate({
-          project_id: projectId,
-          task_name: taskData.TaskName || 'New Task',
-          start_date: taskData.StartDate?.toISOString() || new Date().toISOString(),
-          end_date: taskData.EndDate?.toISOString() || new Date(Date.now() + 86400000).toISOString(),
-          duration: taskData.Duration || 1,
-          progress: taskData.Progress || 0,
-          parent_id: taskData.ParentID || null,
-          predecessor: taskData.Predecessor || null,
-          resources: taskData.Resources || null,
-          order_index: tasks.length
-        }, {
-          onSuccess: () => toast({ title: "Success", description: "Task created successfully" }),
-          onError: (error) => toast({ variant: "destructive", title: "Error", description: error.message })
-        });
-        break;
+    const createParams = {
+      project_id: projectId, task_name: taskData.TaskName || 'New Task',
+      start_date: taskData.StartDate?.toISOString() || new Date().toISOString(),
+      end_date: taskData.EndDate?.toISOString() || new Date(Date.now() + 86400000).toISOString(),
+      duration: taskData.Duration || 1, progress: taskData.Progress || 0,
+      parent_id: taskData.ParentID || null, predecessor: taskData.Predecessor || null,
+      resources: taskData.Resources || null, order_index: tasks.length
+    };
 
+    const updateParams = {
+      id: taskData.TaskID, task_name: taskData.TaskName,
+      start_date: taskData.StartDate?.toISOString(), end_date: taskData.EndDate?.toISOString(),
+      duration: taskData.Duration, progress: taskData.Progress, predecessor: taskData.Predecessor,
+      resources: taskData.Resources, confirmed: taskData.Confirmed, assigned_user_ids: taskData.AssignedUsers
+    };
+
+    const onSuccess = (msg: string) => toast({ title: "Success", description: msg });
+    const onError = (error: any) => toast({ variant: "destructive", title: "Error", description: error.message });
+
+    switch (args.requestType) {
+      case 'add': 
+        createTask.mutate(createParams, { onSuccess: () => onSuccess("Task created successfully"), onError });
+        break;
       case 'save':
       case 'cellSave':
       case 'taskbarEdited':
-        updateTask.mutate({
-          id: taskData.TaskID,
-          task_name: taskData.TaskName,
-          start_date: taskData.StartDate?.toISOString(),
-          end_date: taskData.EndDate?.toISOString(),
-          duration: taskData.Duration,
-          progress: taskData.Progress,
-          predecessor: taskData.Predecessor,
-          resources: taskData.Resources,
-          confirmed: taskData.Confirmed,
-          assigned_user_ids: taskData.AssignedUsers
-        }, {
-          onSuccess: () => toast({ title: "Success", description: "Task updated successfully" }),
-          onError: (error) => toast({ variant: "destructive", title: "Error", description: error.message })
-        });
+        updateTask.mutate(updateParams, { onSuccess: () => onSuccess("Task updated successfully"), onError });
         break;
-
       case 'indented':
       case 'outdented':
-        updateTask.mutate({
-          id: taskData.TaskID,
-          parent_id: taskData.ParentID || null
-        }, {
-          onSuccess: () => toast({ title: "Success", description: "Task hierarchy updated" }),
-          onError: (error) => toast({ variant: "destructive", title: "Error", description: error.message })
-        });
+        updateTask.mutate({ id: taskData.TaskID, parent_id: taskData.ParentID || null }, 
+          { onSuccess: () => onSuccess("Task hierarchy updated"), onError });
         break;
     }
   };
@@ -324,19 +172,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   if (isLoading || resourcesLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-96">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+    </div>;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center h-96 text-red-600">
-        Error loading tasks: {error.message}
-      </div>
-    );
+    return <div className="flex items-center justify-center h-96 text-red-600">
+      Error loading tasks: {error.message}
+    </div>;
   }
 
   return (
@@ -352,81 +196,70 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             isLoading={deleteTask.isPending}
           />
 
-          <div>
-            <GanttComponent
-              id="EnableWbs"
-              taskFields={taskFields}
-              ref={ganttInstance}
-              toolbar={toolbar}
-              treeColumnIndex={2}
-              dataSource={ganttData}
-              allowSorting={true}
-              enableContextMenu={true}
-              addDialogFields={[]}
-              enableWBS={true}
-              dataBound={dataBound}
-              enableAutoWbsUpdate={autoWbsEnabled}
-              editSettings={editSettings}
-              allowSelection={true}
-              allowPdfExport={true}
-              splitterSettings={splitterSettings}
-              selectionSettings={selectionSettings}
-              tooltipSettings={tooltipSettings}
-              filterSettings={filterSettings}
-              timelineSettings={timelineSettings}
-              highlightWeekends={true}
-              allowFiltering={false}
-              gridLines={"Both"}
-              labelSettings={labelSettings}
-              taskbarHeight={20}
-              rowHeight={40}
-              height={"550px"}
-              allowResizing={true}
-              allowColumnReorder={false}
-              allowUnscheduledTasks={true}
-              projectStartDate={projectStartDate}
-              projectEndDate={projectEndDate}
-              resourceFields={{ id: 'resourceId', name: 'resourceName' }}
-              resources={resources}
-              toolbarClick={handleToolbarClick}
-              actionBegin={handleActionBegin}
-              actionComplete={handleActionComplete}
-              queryTaskbarInfo={handleQueryTaskbarInfo}
-            >
-              <ColumnsDirective>
-                <ColumnDirective field="TaskID" visible={false} />
-                <ColumnDirective field="WBSCode" headerText="ID" width={60} minWidth={50} />
-                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} width={200} minWidth={150} />
-                <ColumnDirective field="StartDate" headerText="Start Date" width={110} minWidth={100} />
-                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} width={80} minWidth={70} />
-                <ColumnDirective field="EndDate" headerText="End Date" width={110} minWidth={100} />
-                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" width={100} minWidth={80} />
-                <ColumnDirective field="Progress" headerText="Progress" width={80} minWidth={70} />
-                <ColumnDirective field="Resources" headerText="Resources" width={120} minWidth={100} />
-              </ColumnsDirective>
-              
-              <EventMarkersDirective>
-                <EventMarkerDirective day={eventMarkerDay1} label='Project Start'></EventMarkerDirective>
-              </EventMarkersDirective>
-              
-              <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu]} />
-            </GanttComponent>
-          </div>
+          <GanttComponent
+            id="EnableWbs" ref={ganttInstance} dataSource={ganttData} height="550px"
+            taskFields={{
+              id: "TaskID", name: "TaskName", startDate: "StartDate", endDate: "EndDate",
+              duration: "Duration", progress: "Progress", dependency: "Predecessor",
+              parentID: 'ParentID', resourceInfo: 'Resources'
+            }}
+            editSettings={{
+              allowAdding: true, allowEditing: true, allowDeleting: true, allowTaskbarEditing: true,
+              showDeleteConfirmDialog: false, mode: 'Auto', newRowPosition: 'Bottom'
+            }}
+            toolbar={["Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
+              { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }]}
+            timelineSettings={{
+              showTooltip: true, topTier: { unit: "Week", format: "dd/MM/yyyy" },
+              bottomTier: { unit: "Day", count: 1 }
+            }}
+            selectionSettings={{ mode: "Row", type: "Single", enableToggle: false }}
+            splitterSettings={{ columnIndex: 4 }}
+            labelSettings={{ taskLabel: '${Progress}%' }}
+            tooltipSettings={{ showTooltip: true }}
+            filterSettings={{ type: "Menu" }}
+            projectStartDate={new Date()}
+            projectEndDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+            resourceFields={{ id: 'resourceId', name: 'resourceName' }}
+            resources={resources}
+            treeColumnIndex={2} allowSorting={true} enableContextMenu={true}
+            addDialogFields={[]} enableWBS={true} enableAutoWbsUpdate={true}
+            allowSelection={true} allowPdfExport={true} highlightWeekends={true}
+            allowFiltering={false} gridLines="Both" taskbarHeight={20} rowHeight={40}
+            allowResizing={true} allowColumnReorder={false} allowUnscheduledTasks={true}
+            toolbarClick={handleToolbarClick} actionBegin={handleActionBegin}
+            actionComplete={handleActionComplete} queryTaskbarInfo={handleQueryTaskbarInfo}
+          >
+            <ColumnsDirective>
+              <ColumnDirective field="TaskID" visible={false} />
+              <ColumnDirective field="WBSCode" headerText="ID" width={60} minWidth={50} />
+              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} width={200} minWidth={150} />
+              <ColumnDirective field="StartDate" headerText="Start Date" width={110} minWidth={100} />
+              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} width={80} minWidth={70} />
+              <ColumnDirective field="EndDate" headerText="End Date" width={110} minWidth={100} />
+              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" width={100} minWidth={80} />
+              <ColumnDirective field="Progress" headerText="Progress" width={80} minWidth={70} />
+              <ColumnDirective field="Resources" headerText="Resources" width={120} minWidth={100} />
+            </ColumnsDirective>
+            
+            <EventMarkersDirective>
+              <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
+            </EventMarkersDirective>
+            
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu]} />
+          </GanttComponent>
+
+          <PublishScheduleDialog
+            open={publishDialogOpen}
+            onOpenChange={setPublishDialogOpen}
+            onPublish={(data) => {
+              if (data.daysFromToday) {
+                publishSchedule({ daysFromToday: data.daysFromToday, message: data.message });
+              }
+            }}
+          />
         </div>
       </div>
-
-      <PublishScheduleDialog
-        open={publishDialogOpen}
-        onOpenChange={setPublishDialogOpen}
-        onPublish={(data) => {
-          if (data.daysFromToday) {
-            publishSchedule({
-              daysFromToday: data.daysFromToday,
-              message: data.message
-            });
-          }
-        }}
-      />
     </div>
   );
 };
