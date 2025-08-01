@@ -78,38 +78,48 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // WORKING: Simplified template that actually renders
-  const idColumnTemplate = (props: any) => {
-    // Simple calculation that should always work
-    if (!props.ParentID) {
-      // Root task - just count root tasks before this one
-      const rootTasks = ganttData.filter(t => !t.ParentID);
-      const index = rootTasks.findIndex(t => t.TaskID === props.TaskID);
-      return (index + 1).toString();
-    } else {
-      // Child task - get parent number + child index
-      const parent = ganttData.find(t => t.TaskID === props.ParentID);
-      if (!parent) return props.TaskID.toString();
+  // Option 2: Use rowDataBound to update display after render
+  const handleRowDataBound = (args: any) => {
+    if (args.row && args.data) {
+      const taskId = args.data.TaskID;
+      const parentId = args.data.ParentID;
       
-      const parentNumber = !parent.ParentID ? 
-        ganttData.filter(t => !t.ParentID).findIndex(t => t.TaskID === parent.TaskID) + 1 : 
-        props.ParentID;
+      // Calculate hierarchical number
+      let hierarchicalId;
+      if (!parentId) {
+        // Root task
+        const rootTasks = ganttData.filter(t => !t.ParentID);
+        const rootIndex = rootTasks.findIndex(t => t.TaskID === taskId);
+        hierarchicalId = (rootIndex + 1).toString();
+      } else {
+        // Child task
+        const parent = ganttData.find(t => t.TaskID === parentId);
+        const parentNumber = parent ? 
+          ganttData.filter(t => !t.ParentID).findIndex(t => t.TaskID === parent.TaskID) + 1 : 
+          parentId;
+        
+        const siblings = ganttData.filter(t => t.ParentID === parentId);
+        const childIndex = siblings.findIndex(t => t.TaskID === taskId) + 1;
+        
+        hierarchicalId = `${parentNumber}.${childIndex}`;
+      }
       
-      const siblings = ganttData.filter(t => t.ParentID === props.ParentID);
-      const childIndex = siblings.findIndex(t => t.TaskID === props.TaskID) + 1;
-      
-      return `${parentNumber}.${childIndex}`;
+      // Update the ID cell content
+      const idCell = args.row.querySelector('.e-rowcell[aria-label*="ID"]');
+      if (idCell) {
+        idCell.textContent = hierarchicalId;
+      }
     }
   };
 
-  // Columns with custom template for ID
+  // FALLBACK: Remove template, go back to basic version that renders
   const columns = [
     { 
       field: 'TaskID', 
       headerText: 'ID', 
       width: 'auto', 
-      minWidth: 80,
-      template: idColumnTemplate // OVERRIDE: Custom template for hierarchical display
+      minWidth: 80
+      // Removed template - go back to basic display
     },
     { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 },
     { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 },
@@ -234,7 +244,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
-        actionComplete={handleActionComplete} // CRITICAL: Save indent/outdent to database
+        rowDataBound={handleRowDataBound} // Option 2: Update ID display after render
         splitterSettings={{ columnIndex: 5 }} // Adjusted for new EndDate column
         timelineSettings={{
           topTier: { unit: 'Week' },
