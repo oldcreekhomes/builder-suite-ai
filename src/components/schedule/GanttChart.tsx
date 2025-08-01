@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ChangeEventArgs, SwitchComponent } from "@syncfusion/ej2-react-buttons";
 import {
   GanttComponent,
   Inject,
@@ -159,10 +158,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // 🎯 EXACT SYNCFUSION DEMO SETTINGS
   const eventMarkerDay1: Date = new Date('04/02/2024');
   
-  const autoUpdateWBSChange = (args: ChangeEventArgs): void => {
-    setAutoWbsEnabled(args.checked);
+  const autoUpdateWBSChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setAutoWbsEnabled(e.target.checked);
     if (ganttInstance.current) {
-      ganttInstance.current.enableAutoWbsUpdate = args.checked;
+      ganttInstance.current.enableAutoWbsUpdate = e.target.checked;
     }
   };
 
@@ -380,16 +379,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     <div className="control-pane">
       <div className="control-section">
         <div className="col-lg-12">
-          {/* 🎯 EXACT SYNCFUSION DEMO SWITCH */}
-          <div style={{ display: "flex" }}>
+          {/* 🎯 SIMPLE TOGGLE SWITCH (no external dependency) */}
+          <div style={{ display: "flex", marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center" }}>
-              <label htmlFor="autoUpdateWBS" style={{ fontSize: "15px", marginRight: "5px" }}>
+              <label htmlFor="autoUpdateWBS" style={{ fontSize: "15px", marginRight: "8px" }}>
                 Auto Update WBS
               </label>
-              <SwitchComponent
+              <input
+                type="checkbox"
                 id="autoUpdateWBS"
                 checked={autoWbsEnabled}
-                change={autoUpdateWBSChange}
+                onChange={autoUpdateWBSChange}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
             </div>
           </div>
