@@ -82,48 +82,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // 🔧 FEATURE 2: Transform your database tasks with resource mapping
   const ganttData = React.useMemo(() => {
     if (!tasks.length) {
-      // Fallback demo data if no database tasks
-      return [
-        {
-          TaskID: 1,
-          TaskName: 'Project initiation',
-          StartDate: new Date('04/02/2024'),
-          EndDate: new Date('04/21/2024'),
-          Progress: 0,
-          Resources: 'Project Manager',
-          Confirmed: null // Pending
-        },
-        {
-          TaskID: 2,
-          TaskName: 'Identify site location',
-          StartDate: new Date('04/02/2024'),
-          Duration: 4,
-          Progress: 70,
-          ParentID: 1,
-          Resources: 'Site Engineer',
-          Confirmed: true // Approved via email
-        },
-        {
-          TaskID: 3,
-          TaskName: 'Perform soil test',
-          StartDate: new Date('04/02/2024'),
-          Duration: 4,
-          Progress: 50,
-          ParentID: 1,
-          Resources: 'Soil Test Team',
-          Confirmed: false // Denied via email
-        },
-        {
-          TaskID: 4,
-          TaskName: 'Soil test approval',
-          StartDate: new Date('04/02/2024'),
-          Duration: 4,
-          Progress: 50,
-          ParentID: 1,
-          Resources: 'Project Manager',
-          Confirmed: null // Pending
-        }
-      ];
+      // No fallback demo data - return empty array for real testing
+      return [];
     }
 
     // Map your database tasks to Syncfusion format with resource names
@@ -159,6 +119,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const eventMarkerDay1: Date = new Date('04/02/2024');
   
   const autoUpdateWBSChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    // Removed from UI but functionality kept
     setAutoWbsEnabled(e.target.checked);
     if (ganttInstance.current) {
       ganttInstance.current.enableAutoWbsUpdate = e.target.checked;
@@ -173,12 +134,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     showDeleteConfirmDialog: false, // We'll use custom dialog
   };
 
-  // 🔧 ENHANCED TOOLBAR WITH YOUR FEATURES
+  // 🔧 ENHANCED TOOLBAR - REMOVED SEND CONFIRMATIONS
   const toolbar: any = [
     "Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
     // Your custom features
-    { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' },
-    { text: 'Send Confirmations', id: 'send-emails', prefixIcon: 'e-email' }
+    { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }
   ];
 
   const timelineSettings: any = {
@@ -250,28 +210,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // 🔧 YOUR CUSTOM TOOLBAR ACTIONS
+  // 🔧 YOUR CUSTOM TOOLBAR ACTIONS - REMOVED SEND EMAILS
   const handleToolbarClick = (args: any) => {
     if (args.item?.id === 'publish') {
       setPublishDialogOpen(true);
-    } else if (args.item?.id === 'send-emails') {
-      const tasksWithAssignments = ganttData.filter(task => task.AssignedUsers?.length > 0);
-      if (tasksWithAssignments.length === 0) {
-        toast({ 
-          variant: "destructive", 
-          title: "No Assignments", 
-          description: "No tasks have assigned users for confirmation emails." 
-        });
-        return;
-      }
-      
-      toast({ 
-        title: "Sending Confirmations", 
-        description: `Sending emails for ${tasksWithAssignments.length} tasks...` 
-      });
-
-      // TODO: Implement your email sending logic here
-      // sendConfirmationEmails(tasksWithAssignments);
     }
   };
 
@@ -379,21 +321,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     <div className="control-pane">
       <div className="control-section">
         <div className="col-lg-12">
-          {/* 🎯 SIMPLE TOGGLE SWITCH (no external dependency) */}
-          <div style={{ display: "flex", marginBottom: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <label htmlFor="autoUpdateWBS" style={{ fontSize: "15px", marginRight: "8px" }}>
-                Auto Update WBS
-              </label>
-              <input
-                type="checkbox"
-                id="autoUpdateWBS"
-                checked={autoWbsEnabled}
-                onChange={autoUpdateWBSChange}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-            </div>
-          </div>
+
 
           <DeleteConfirmationDialog
             open={deleteConfirmation.isOpen}
@@ -427,13 +355,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               filterSettings={filterSettings}
               timelineSettings={timelineSettings}
               highlightWeekends={true}
-              allowFiltering={true}
+              allowFiltering={false}
               gridLines={"Both"}
               labelSettings={labelSettings}
               taskbarHeight={20}
               rowHeight={40}
               height={"550px"}
-              allowUnscheduledTasks={true}
+              autoFitColumns={true}
               projectStartDate={projectStartDate}
               projectEndDate={projectEndDate}
               // 🔧 YOUR CUSTOM EVENT HANDLERS
@@ -442,14 +370,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               actionComplete={handleActionComplete}
               queryTaskbarInfo={handleQueryTaskbarInfo}
             >
-              {/* 🎯 EXACT SYNCFUSION DEMO COLUMNS */}
+              {/* 🎯 UPDATED COLUMN HEADERS + AUTO-SIZE */}
               <ColumnsDirective>
                 <ColumnDirective field="TaskID" visible={false} />
-                <ColumnDirective field="WBSCode" width='150px'/>
-                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} width='260px' />
-                <ColumnDirective field="StartDate" headerText="Start Date" width='140px'/>
-                <ColumnDirective field="WBSPredecessor" headerText="WBS Predecessor" width='190px' />
-                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} width='130px' />
+                <ColumnDirective field="WBSCode" headerText="ID" />
+                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
+                <ColumnDirective field="StartDate" headerText="Start Date" />
+                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
+                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
                 <ColumnDirective field="Progress" headerText="Progress" />
               </ColumnsDirective>
               
