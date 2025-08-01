@@ -24,44 +24,52 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // Simple data transformation - numerical IDs
+  // CRITICAL FIX: Use the EXACT Syncfusion format from their docs
   const ganttData = useMemo(() => {
+    if (!tasks.length) return [];
+    
+    // Create a mapping for parent relationships
+    const taskMap = new Map();
+    tasks.forEach((task, index) => {
+      taskMap.set(task.id, index + 1);
+    });
+    
     return tasks.map((task, index) => ({
-      TaskID: index + 1,
+      TaskID: index + 1, // Sequential numerical ID starting from 1
       TaskName: task.task_name,
       StartDate: new Date(task.start_date),
-      EndDate: new Date(task.end_date),  
       Duration: task.duration || 1,
       Progress: task.progress || 0,
-      Predecessor: task.predecessor || '',
-      ParentID: task.parent_id ? tasks.findIndex(t => t.id === task.parent_id) + 1 : undefined,
-      Resources: task.resources || '',
+      ParentID: task.parent_id ? taskMap.get(task.parent_id) : null, // Map parent UUID to numerical ID
+      Predecessor: task.predecessor || null,
+      Resources: task.resources || null,
+      // Store original UUID for database operations
+      _originalId: task.id,
     }));
   }, [tasks]);
 
-  // Standard task fields
+  // Standard Syncfusion task field mapping - EXACTLY like their docs
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
     startDate: 'StartDate',
-    endDate: 'EndDate',
     duration: 'Duration',
     progress: 'Progress',
+    parentID: 'ParentID', // CRITICAL: This must match exactly
     dependency: 'Predecessor',
-    parentID: 'ParentID',
     resourceInfo: 'Resources'
   };
 
-  // Standard edit settings
+  // Standard edit settings - EXACTLY like their docs  
   const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true, 
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Auto' as any,
+    mode: 'Auto' as any
   };
 
-  // Standard toolbar
+  // Standard toolbar - EXACTLY like their docs
   const toolbarOptions = [
     'Add', 'Edit', 'Update', 'Delete', 'Cancel',
     'ExpandAll', 'CollapseAll', 
@@ -73,7 +81,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     { field: 'TaskID', headerText: 'ID', width: 80 },
     { field: 'TaskName', headerText: 'Task Name', width: 300 },
     { field: 'StartDate', headerText: 'Start Date', width: 140 },
-    { field: 'EndDate', headerText: 'End Date', width: 140 },
     { field: 'Duration', headerText: 'Duration', width: 100 },
     { field: 'Progress', headerText: 'Progress', width: 100 },
     { field: 'Predecessor', headerText: 'Dependency', width: 120 },
@@ -108,7 +115,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         resources={resources}
         editSettings={editSettings}
         toolbar={toolbarOptions}
-        enableContextMenu={true}
+        enableContextMenu={true} // CRITICAL: Enable context menu
         allowSelection={true}
         allowResizing={true}
         height="600px"
