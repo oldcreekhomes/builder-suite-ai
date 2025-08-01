@@ -78,36 +78,96 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Option 2: Use rowDataBound to update display after render
-  const handleRowDataBound = (args: any) => {
-    if (args.row && args.data) {
-      const taskId = args.data.TaskID;
-      const parentId = args.data.ParentID;
+  // Option 3: Direct DOM manipulation - more aggressive approach
+  useEffect(() => {
+    const updateHierarchicalNumbers = () => {
+      console.log('Updating hierarchical numbers...');
       
-      // Calculate hierarchical number
-      let hierarchicalId;
-      if (!parentId) {
-        // Root task
-        const rootTasks = ganttData.filter(t => !t.ParentID);
-        const rootIndex = rootTasks.findIndex(t => t.TaskID === taskId);
-        hierarchicalId = (rootIndex + 1).toString();
-      } else {
-        // Child task
-        const parent = ganttData.find(t => t.TaskID === parentId);
-        const parentNumber = parent ? 
-          ganttData.filter(t => !t.ParentID).findIndex(t => t.TaskID === parent.TaskID) + 1 : 
-          parentId;
+      // Find all rows in the Gantt tree grid
+      const rows = document.querySelectorAll('.e-gantt .e-treegrid .e-row');
+      console.log('Found rows:', rows.length);
+      
+      let rootCounter = 0;
+      const childCounters: { [key: number]: number } = {};
+      
+      rows.forEach((row, index) => {
+        const level = row.getAttribute('aria-level');
+        console.log(`Row ${index}: level ${level}`);
         
-        const siblings = ganttData.filter(t => t.ParentID === parentId);
-        const childIndex = siblings.findIndex(t => t.TaskID === taskId) + 1;
+        // Try multiple selectors to find the ID cell
+        let idCell = row.querySelector('.e-rowcell:first-child') || 
+                    row.querySelector('[data-colindex="0"]') ||
+                    row.querySelector('.e-treecell:first-child');
         
-        hierarchicalId = `${parentNumber}.${childIndex}`;
+        if (level === '0') {
+          // Root task
+          rootCounter++;
+          childCounters[rootCounter] = 0;
+          if (idCell) {
+            idCell.textContent = rootCounter.toString();
+            console.log(`Set root task to: ${rootCounter}`);
+          }
+        } else if (level === '1') {
+          // Child task
+          childCounters[rootCounter] = (childCounters[rootCounter] || 0) + 1;
+          if (idCell) {
+            const hierarchicalId = `${rootCounter}.${childCounters[rootCounter]}`;
+            idCell.textContent = hierarchicalId;
+            console.log(`Set child task to: ${hierarchicalId}`);
+          }
+        }
+      });
+    };
+    
+    // Run multiple times to catch different render states
+    const timers = [100, 500, 1000, 2000].map(delay => 
+      setTimeout(updateHierarchicalNumbers, delay)
+    );
+    
+    return () => timers.forEach(timer => clearTimeout(timer));
+  }, [ganttData]);
+
+  // Also run when actions complete
+  const handleActionComplete = (args: any) => {
+    console.log('Action completed:', args.requestType);
+    
+    // Run the numbering update after any action
+    setTimeout(() => {
+      const updateEvent = new CustomEvent('updateNumbers');
+      document.dispatchEvent(updateEvent);
+    }, 200);
+    
+    // Keep the original database sync logic
+    if (args.requestType === 'indented' && args.data) {
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
+      
+      let newParentOriginalId = null;
+      if (taskData.ParentID) {
+        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
       }
       
-      // Update the ID cell content
-      const idCell = args.row.querySelector('.e-rowcell[aria-label*="ID"]');
-      if (idCell) {
-        idCell.textContent = hierarchicalId;
+      if (originalTaskId && updateTask) {
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentOriginalId,
+        });
+      }
+    }
+    else if (args.requestType === 'outdented' && args.data) {
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
+      const originalTaskId = ganttData.find(t => t.TaskID === taskData.TaskID)?._originalId;
+      
+      let newParentOriginalId = null;
+      if (taskData.ParentID) {
+        newParentOriginalId = ganttData.find(t => t.TaskID === taskData.ParentID)?._originalId;
+      }
+      
+      if (originalTaskId && updateTask) {
+        updateTask.mutate({
+          id: originalTaskId,
+          parent_id: newParentOriginalId,
+        });
       }
     }
   };
@@ -244,7 +304,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
-        rowDataBound={handleRowDataBound} // Option 2: Update ID display after render
+        actionComplete={handleActionComplete} // Option 3: DOM manipulation + database sync
         splitterSettings={{ columnIndex: 5 }} // Adjusted for new EndDate column
         timelineSettings={{
           topTier: { unit: 'Week' },
