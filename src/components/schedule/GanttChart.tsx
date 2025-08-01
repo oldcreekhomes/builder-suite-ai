@@ -1,5 +1,4 @@
-// 🔧 FEATURE 1: Real-time email confirmation updates
-  useEffect(() => {import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   GanttComponent,
   Inject,
@@ -28,17 +27,16 @@ interface GanttChartProps {
   projectId: string;
 }
 
-// 🎯 EXACT SYNCFUSION WBS DEMO - CONVERTED TO HOOKS + YOUR 3 FEATURES
 export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttInstance = useRef<GanttComponent>(null);
   
-  // 🔧 YOUR CUSTOM HOOKS (replacing class componentDidMount)
+  // Your custom hooks
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources, isLoading: resourcesLoading } = useProjectResources();
   const { publishSchedule } = usePublishSchedule(projectId);
   
-  // 🎯 HOOKS STATE (replacing class this.state)
+  // State
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
     taskData: any;
@@ -47,55 +45,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [autoWbsEnabled, setAutoWbsEnabled] = useState(true);
 
-  // 🔄 FEATURE 1: Real-time email confirmation updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('schedule-task-updates')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'project_schedule_tasks',
-        filter: `project_id=eq.${projectId}`
-      }, (payload) => {
-        console.log('Email confirmation received:', payload);
-        // Real-time color updates when users click accept/deny in emails
-        if (ganttInstance.current) {
-          ganttInstance.current.refresh();
-        }
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [projectId]);
-
-  // 🎯 EXACT SYNCFUSION DEMO CONFIGURATION
-  const taskFields: any = {
-    id: "TaskID",
-    name: "TaskName",
-    startDate: "StartDate",
-    endDate: "EndDate",
-    duration: "Duration",
-    progress: "Progress",
-    dependency: "Predecessor",
-    parentID: 'ParentID' // Fixed from demo's 'ParentId'
-  };
-
-  // 🔧 FEATURE 2: Transform your database tasks with resource mapping
+  // Transform database tasks to Syncfusion format with resource mapping
   const ganttData = React.useMemo(() => {
     if (!tasks.length) {
-      // No fallback demo data - return empty array for real testing
       return [];
     }
 
-    // Map your database tasks to Syncfusion format with resource names from users/representatives
     return tasks.map((task) => {
       let resourceNames = null;
       if (task.resources && resources?.length) {
-        // Handle both single resource ID and array of resource IDs
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            // Search in resources (which should contain users and representatives)
             const resource = resources.find(r => r.resourceId === id || r.id === id);
             return resource?.resourceName || resource?.name;
           })
@@ -113,7 +74,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id,
         Predecessor: task.predecessor,
         Resources: resourceNames || task.resources,
-        // 🔧 YOUR EMAIL WORKFLOW DATA
         Confirmed: task.confirmed,
         ConfirmationToken: task.confirmation_token,
         AssignedUsers: task.assigned_user_ids,
@@ -121,11 +81,71 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // 🎯 SYNCFUSION DEMO CONFIGURATION - NO DUMMY DATA
-  const eventMarkerDay1: Date = new Date(); // Use today's date instead of fixed date
+  // Aggressive auto-fit columns after data loads
+  useEffect(() => {
+    if (ganttInstance.current) {
+      const timer1 = setTimeout(() => {
+        if (ganttInstance.current) {
+          ganttInstance.current.autoFitColumns();
+        }
+      }, 100);
+      
+      const timer2 = setTimeout(() => {
+        if (ganttInstance.current) {
+          ganttInstance.current.autoFitColumns();
+        }
+      }, 500);
+      
+      const timer3 = setTimeout(() => {
+        if (ganttInstance.current) {
+          ganttInstance.current.autoFitColumns();
+        }
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
+    }
+  }, [ganttData]);
+
+  // Real-time email confirmation updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('schedule-task-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'project_schedule_tasks',
+        filter: `project_id=eq.${projectId}`
+      }, (payload) => {
+        console.log('Email confirmation received:', payload);
+        if (ganttInstance.current) {
+          ganttInstance.current.refresh();
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [projectId]);
+
+  // Syncfusion configuration
+  const taskFields: any = {
+    id: "TaskID",
+    name: "TaskName",
+    startDate: "StartDate",
+    endDate: "EndDate",
+    duration: "Duration",
+    progress: "Progress",
+    dependency: "Predecessor",
+    parentID: 'ParentID',
+    resourceInfo: 'Resources'
+  };
+
+  const eventMarkerDay1: Date = new Date();
   
   const autoUpdateWBSChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    // Removed from UI but functionality kept
     setAutoWbsEnabled(e.target.checked);
     if (ganttInstance.current) {
       ganttInstance.current.enableAutoWbsUpdate = e.target.checked;
@@ -137,15 +157,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowEditing: true,
     allowDeleting: true,
     allowTaskbarEditing: true,
-    showDeleteConfirmDialog: false, // We'll use custom dialog
-    mode: 'Auto', // Native inline editing mode
-    newRowPosition: 'Bottom' // Add new rows at bottom
+    showDeleteConfirmDialog: false,
+    mode: 'Auto',
+    newRowPosition: 'Bottom'
   };
 
-  // 🔧 ENHANCED TOOLBAR - REMOVED SEND CONFIRMATIONS
   const toolbar: any = [
     "Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
-    // Your custom features
     { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }
   ];
 
@@ -165,13 +183,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskLabel: '${Progress}%'
   };
 
-  const projectStartDate: Date = new Date(); // Dynamic start date
-  const projectEndDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from today
+  const projectStartDate: Date = new Date();
+  const projectEndDate: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const splitterSettings: any = {
     columnIndex: 4
   };
 
-  // 🎯 SYNCFUSION DEMO'S CUSTOM STYLING (converted to hook)
   const dataBound = (): void => {
     const gantt = (document.getElementsByClassName('e-gantt')[0] as any).ej2_instances[0];
     if (gantt?.element) {
@@ -196,29 +213,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     type: "Menu",
   };
 
-  // 🔧 FEATURE 3: Color-coded taskbars based on email confirmations
+  // Color-coded taskbars based on email confirmations
   const handleQueryTaskbarInfo = (args: any) => {
     const confirmed = args.data?.Confirmed;
     
     if (confirmed === true || confirmed === 'true') {
-      // Green for email approved
       args.taskbarBgColor = '#22c55e';
       args.taskbarBorderColor = '#16a34a';
       args.progressBarBgColor = '#15803d';
     } else if (confirmed === false || confirmed === 'false') {
-      // Red for email denied
       args.taskbarBgColor = '#ef4444';
       args.taskbarBorderColor = '#dc2626';
       args.progressBarBgColor = '#b91c1c';
     } else {
-      // Blue for pending email response
       args.taskbarBgColor = '#3b82f6';
       args.taskbarBorderColor = '#2563eb';
       args.progressBarBgColor = '#1d4ed8';
     }
   };
 
-  // 🔧 YOUR CUSTOM TOOLBAR ACTIONS - REMOVED SEND EMAILS
+  // Custom toolbar actions
   const handleToolbarClick = (args: any) => {
     if (args.item?.id === 'publish') {
       setPublishDialogOpen(true);
@@ -329,8 +343,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     <div className="control-pane">
       <div className="control-section">
         <div className="col-lg-12">
-
-
           <DeleteConfirmationDialog
             open={deleteConfirmation.isOpen}
             onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, isOpen: open }))}
@@ -341,7 +353,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           />
 
           <div>
-            {/* 🎯 EXACT SYNCFUSION WBS DEMO COMPONENT - WITH YOUR FEATURES */}
             <GanttComponent
               id="EnableWbs"
               taskFields={taskFields}
@@ -351,7 +362,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               dataSource={ganttData}
               allowSorting={true}
               enableContextMenu={true}
-              addDialogFields={[]} // Empty array disables add dialog
+              addDialogFields={[]}
               enableWBS={true}
               dataBound={dataBound}
               enableAutoWbsUpdate={autoWbsEnabled}
@@ -375,13 +386,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               allowUnscheduledTasks={true}
               projectStartDate={projectStartDate}
               projectEndDate={projectEndDate}
-              // 🔧 YOUR CUSTOM EVENT HANDLERS
+              resourceFields={{ id: 'resourceId', name: 'resourceName' }}
+              resources={resources}
               toolbarClick={handleToolbarClick}
               actionBegin={handleActionBegin}
               actionComplete={handleActionComplete}
               queryTaskbarInfo={handleQueryTaskbarInfo}
             >
-              {/* 🎯 MINIMAL WIDTH COLUMNS */}
               <ColumnsDirective>
                 <ColumnDirective field="TaskID" visible={false} />
                 <ColumnDirective field="WBSCode" headerText="ID" width={60} minWidth={50} />
@@ -394,7 +405,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 <ColumnDirective field="Resources" headerText="Resources" width={120} minWidth={100} />
               </ColumnsDirective>
               
-              {/* 🎯 DYNAMIC EVENT MARKER */}
               <EventMarkersDirective>
                 <EventMarkerDirective day={eventMarkerDay1} label='Project Start'></EventMarkerDirective>
               </EventMarkersDirective>
