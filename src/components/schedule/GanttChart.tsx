@@ -83,25 +83,47 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Standard columns
+  // Wider columns with better sizing
   const columns = [
-    { field: 'TaskID', headerText: 'ID', width: 80 },
-    { field: 'TaskName', headerText: 'Task Name', width: 300 },
-    { field: 'StartDate', headerText: 'Start Date', width: 140 },
-    { field: 'Duration', headerText: 'Duration', width: 100 },
-    { field: 'Progress', headerText: 'Progress', width: 100 },
-    { field: 'Predecessor', headerText: 'Dependency', width: 120 },
-    { field: 'Resources', headerText: 'Resources', width: 200 }
+    { field: 'TaskID', headerText: 'ID', width: 100, minWidth: 80 },
+    { field: 'TaskName', headerText: 'Task Name', width: 400, minWidth: 200 }, // Much wider
+    { field: 'StartDate', headerText: 'Start Date', width: 150, minWidth: 120 },
+    { field: 'Duration', headerText: 'Duration', width: 120, minWidth: 100 },
+    { field: 'Progress', headerText: 'Progress', width: 120, minWidth: 100 },
+    { field: 'Predecessor', headerText: 'Dependency', width: 150, minWidth: 120 },
+    { field: 'Resources', headerText: 'Resources', width: 250, minWidth: 150 } // Much wider
   ];
 
-  // Auto-fit columns
+  // Auto-fit columns when data loads - IMPROVED
   useEffect(() => {
     if (ganttRef.current && ganttData.length > 0) {
-      setTimeout(() => {
-        ganttRef.current?.autoFitColumns();
-      }, 100);
+      // Multiple attempts to ensure auto-fit works
+      const autoFit = () => {
+        if (ganttRef.current) {
+          ganttRef.current.autoFitColumns();
+          console.log('Auto-fit columns applied');
+        }
+      };
+      
+      // Try multiple times with different delays
+      setTimeout(autoFit, 100);
+      setTimeout(autoFit, 500);
+      setTimeout(autoFit, 1000);
     }
   }, [ganttData]);
+
+  // ALSO auto-fit when component mounts
+  useEffect(() => {
+    if (ganttRef.current) {
+      const autoFit = () => {
+        if (ganttRef.current) {
+          ganttRef.current.autoFitColumns();
+        }
+      };
+      
+      setTimeout(autoFit, 2000); // Give it time to fully render
+    }
+  }, []);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-96">Loading...</div>;
@@ -125,9 +147,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         enableContextMenu={true} // CRITICAL: Enable context menu
         allowSelection={true}
         allowResizing={true}
+        allowColumnReorder={true} // Allow column reordering
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin} // Set default values for new tasks
+        splitterSettings={{ columnIndex: 4 }} // More space for grid columns
         timelineSettings={{
           topTier: { unit: 'Week' },
           bottomTier: { unit: 'Day' }
