@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+// 🔧 FEATURE 1: Real-time email confirmation updates
+  useEffect(() => {import React, { useRef, useState, useEffect } from 'react';
 import {
   GanttComponent,
   Inject,
@@ -370,6 +371,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               rowHeight={40}
               height={"550px"}
               autoFitColumns={true}
+              allowAutoFit={true}
               allowUnscheduledTasks={true}
               projectStartDate={projectStartDate}
               projectEndDate={projectEndDate}
@@ -379,17 +381,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               actionComplete={handleActionComplete}
               queryTaskbarInfo={handleQueryTaskbarInfo}
             >
-              {/* 🎯 REORDERED COLUMNS + AUTO-SIZE */}
+              {/* 🎯 TIGHT AUTO-SIZED COLUMNS */}
               <ColumnsDirective>
                 <ColumnDirective field="TaskID" visible={false} />
-                <ColumnDirective field="WBSCode" headerText="ID" />
-                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
-                <ColumnDirective field="StartDate" headerText="Start Date" />
-                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
-                <ColumnDirective field="EndDate" headerText="End Date" />
-                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
-                <ColumnDirective field="Progress" headerText="Progress" />
-                <ColumnDirective field="Resources" headerText="Resources" />
+                <ColumnDirective field="WBSCode" headerText="ID" autoFit={true} />
+                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} autoFit={true} />
+                <ColumnDirective field="StartDate" headerText="Start Date" autoFit={true} />
+                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} autoFit={true} />
+                <ColumnDirective field="EndDate" headerText="End Date" autoFit={true} />
+                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" autoFit={true} />
+                <ColumnDirective field="Progress" headerText="Progress" autoFit={true} />
+                <ColumnDirective field="Resources" headerText="Resources" autoFit={true} />
               </ColumnsDirective>
               
               {/* 🎯 DYNAMIC EVENT MARKER */}
