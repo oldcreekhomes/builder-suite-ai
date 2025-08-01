@@ -55,7 +55,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
-      setDebugInfo('No tasks in database');
       return [];
     }
     
@@ -96,10 +95,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
     
     console.log('🎯 Final ganttData:', transformedData);
-    setDebugInfo(`Transformed ${transformedData.length} tasks`);
-    
     return transformedData;
   }, [tasks, resources]);
+
+  // Update debug info when ganttData changes
+  useEffect(() => {
+    if (!tasks || tasks.length === 0) {
+      setDebugInfo('No tasks in database');
+    } else {
+      setDebugInfo(`Transformed ${ganttData.length} tasks`);
+    }
+  }, [ganttData, tasks]);
 
   // Force refresh when ganttData changes
   useEffect(() => {
