@@ -31,11 +31,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  // Transform database tasks to Syncfusion format
+  // Transform database tasks to Syncfusion format with improved logging
   const ganttData = React.useMemo(() => {
-    if (!tasks || tasks.length === 0) return [];
+    console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
     
-    return tasks.map((task) => {
+    if (!tasks || tasks.length === 0) {
+      console.log('📝 No tasks found, returning empty array');
+      return [];
+    }
+    
+    const transformedData = tasks.map((task) => {
       let resourceNames = null;
       if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
@@ -55,7 +60,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           .join(', ');
       }
 
-      return {
+      const transformedTask = {
         TaskID: String(task.id),
         TaskName: task.task_name || 'Untitled Task',
         StartDate: new Date(task.start_date),
@@ -65,11 +70,23 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: (task as any).confirmed || null,
+        Confirmed: (task as any).confirmed,
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
+      
+      // Log confirmation status for debugging
+      if ((task as any).confirmed !== null && (task as any).confirmed !== undefined) {
+        console.log(`📋 Task "${transformedTask.TaskName}" has confirmation status:`, (task as any).confirmed);
+      }
+      
+      return transformedTask;
     });
+    
+    console.log('✅ Transformed ganttData with confirmation statuses:', 
+      transformedData.filter(t => t.Confirmed !== null && t.Confirmed !== undefined).length, 'tasks confirmed');
+    
+    return transformedData;
   }, [tasks, resources]);
 
   // SAFER AUTO-FIT - Only run when component is fully loaded
@@ -95,39 +112,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Real-time email confirmation updates - force React Query refresh
-  useEffect(() => {
-    if (!projectId || !user) return;
-
-    console.log('Setting up CONFIRMED real-time subscription for task confirmations:', projectId);
-
-    const channel = supabase
-      .channel(`task-confirmations-${projectId}-${Date.now()}`) // Unique channel name
-      .on('postgres_changes', {
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'project_schedule_tasks',
-        filter: `project_id=eq.${projectId}`
-      }, (payload) => {
-        console.log('🔔 Task confirmation received:', payload);
-        console.log('Confirmed status:', payload.new?.confirmed);
-        
-        // Force React Query to refetch the data with fresh confirmation status
-        queryClient.invalidateQueries({
-          queryKey: ['project-tasks', projectId, user.id]
-        });
-        
-        console.log('✅ React Query cache invalidated - fresh data should load');
-      })
-      .subscribe((status) => {
-        console.log('📡 Task confirmation subscription status:', status);
-      });
-    
-    return () => {
-      console.log('🧹 Cleaning up task confirmation subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, user, queryClient]);
+  // Remove duplicate subscription - useProjectTasks already handles real-time updates
+  // We'll rely on the subscription in useProjectTasks.tsx for all real-time updates
 
   // Color-coded taskbars based on email confirmations with detailed logging
   const handleQueryTaskbarInfo = (args) => {
@@ -422,6 +408,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <GanttComponent
             id="EnableWbs" 
             ref={ganttInstance} 
+            key={`gantt-${projectId}-${ganttData.filter(t => t.Confirmed !== null && t.Confirmed !== undefined).length}`}
             dataSource={ganttData} 
             height="550px"
             taskFields={{
