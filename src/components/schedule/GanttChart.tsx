@@ -91,43 +91,37 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Real-time email confirmation updates - with error handling
+  // Real-time email confirmation updates - improved subscription
   useEffect(() => {
-    let channel;
-    
-    try {
-      channel = supabase
-        .channel('schedule-task-updates')
-        .on('postgres_changes', {
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'project_schedule_tasks',
-          filter: `project_id=eq.${projectId}`
-        }, (payload) => {
-          console.log('Real-time update received:', payload);
-          if (ganttInstance.current && 
-              ganttInstance.current.element &&
-              typeof ganttInstance.current.refresh === 'function') {
-            try {
-              ganttInstance.current.refresh();
-            } catch (error) {
-              console.log('Refresh skipped:', error.message);
-            }
+    if (!projectId) return;
+
+    console.log('Setting up real-time subscription for task confirmations:', projectId);
+
+    const channel = supabase
+      .channel(`task-confirmations-${projectId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'project_schedule_tasks',
+        filter: `project_id=eq.${projectId}`
+      }, (payload) => {
+        console.log('Task confirmation update received:', payload);
+        
+        // Force a complete refresh of the component data
+        setTimeout(() => {
+          if (ganttInstance.current && ganttInstance.current.refresh) {
+            console.log('Refreshing Gantt chart after confirmation update');
+            ganttInstance.current.refresh();
           }
-        })
-        .subscribe();
-    } catch (error) {
-      console.log('Supabase channel setup failed:', error.message);
-    }
+        }, 100);
+      })
+      .subscribe((status) => {
+        console.log('Task confirmation subscription status:', status);
+      });
     
     return () => {
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch (error) {
-          console.log('Channel cleanup failed:', error.message);
-        }
-      }
+      console.log('Cleaning up task confirmation subscription');
+      supabase.removeChannel(channel);
     };
   }, [projectId]);
 
