@@ -47,7 +47,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  // Transform database tasks to Syncfusion format with CONFIRMATION DEBUG
+  // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
     
@@ -57,12 +57,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
     
     const transformedData = tasks.map((task) => {
-      // DEBUG: Log the raw confirmation value from database
-      console.log(`🔍 RAW TASK DATA for "${task.task_name}":`, {
+      console.log(`🔍 Processing task "${task.task_name}":`, {
         id: task.id,
         confirmed: task.confirmed,
-        confirmedType: typeof task.confirmed,
-        rawTask: task
+        confirmedType: typeof task.confirmed
       });
 
       let resourceNames = null;
@@ -92,28 +90,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: task.confirmed, // Direct assignment - no (task as any)
+        Confirmed: task.confirmed,
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
       
-      // DEBUG: Log the transformed task confirmation status
-      console.log(`✅ TRANSFORMED TASK "${transformedTask.TaskName}":`, {
+      console.log(`✅ Transformed task "${transformedTask.TaskName}":`, {
         TaskID: transformedTask.TaskID,
-        Confirmed: transformedTask.Confirmed,
-        ConfirmedType: typeof transformedTask.Confirmed
+        Confirmed: transformedTask.Confirmed
       });
       
       return transformedTask;
     });
     
-    // DEBUG: Summary of all confirmation statuses
     const confirmationSummary = transformedData.map(t => ({
       name: t.TaskName,
       confirmed: t.Confirmed,
       type: typeof t.Confirmed
     }));
-    console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
+    console.log('📊 Confirmation summary:', confirmationSummary);
     
     return transformedData;
   }, [tasks, resources]);
@@ -121,11 +116,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Force refresh when ganttData changes + CSS injection
   useEffect(() => {
     if (ganttInstance.current && ganttData.length > 0) {
-      console.log('🔄 Simple Gantt refresh with new data');
+      console.log('🔄 Gantt refresh with new data');
       try {
         ganttInstance.current.refresh();
         
-        // FORCE CSS injection for colors after refresh
+        // Inject CSS for colors after refresh
         setTimeout(() => {
           injectCustomCSS();
         }, 500);
@@ -156,7 +151,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         bgColor = '#ef4444'; // Red
       }
       
-      // Target taskbar by row index or task ID
       css += `
         .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar,
         .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar {
@@ -197,7 +191,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Color-coded taskbars - FORCE COLOR UPDATE
+  // Color-coded taskbars
   const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) {
       console.log('❌ No args or data in handleQueryTaskbarInfo');
@@ -208,35 +202,32 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const taskName = args.data.TaskName;
     const taskId = args.data.TaskID;
     
-    console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
-    console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
+    console.log(`🎨 Color check - Task: "${taskName}", Confirmed: ${confirmed}`);
     
-    // FORCE color application with multiple methods
     let bgColor, borderColor, progressColor;
     
     if (confirmed === true) {
-      console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
+      console.log(`✅ Applying green for confirmed task "${taskName}"`);
       bgColor = '#22c55e';
       borderColor = '#16a34a'; 
       progressColor = '#15803d';
     } else if (confirmed === false) {
-      console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
+      console.log(`❌ Applying red for denied task "${taskName}"`);
       bgColor = '#ef4444';
       borderColor = '#dc2626'; 
       progressColor = '#b91c1c';
     } else {
-      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (${confirmed})`);
+      console.log(`🔵 Applying blue for pending task "${taskName}"`);
       bgColor = '#3b82f6';
       borderColor = '#2563eb'; 
       progressColor = '#1d4ed8';
     }
     
-    // Apply colors using multiple properties to ensure it works
+    // Apply colors
     args.taskbarBgColor = bgColor;
     args.taskbarBorderColor = borderColor;
     args.progressBarBgColor = progressColor;
     
-    // Additional force methods
     args.taskbarStyle = {
       backgroundColor: bgColor,
       borderColor: borderColor,
@@ -247,13 +238,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       backgroundColor: progressColor
     };
     
-    // Force inline styles if possible
     if (args.taskbarElement) {
       args.taskbarElement.style.backgroundColor = bgColor;
       args.taskbarElement.style.borderColor = borderColor;
     }
     
-    console.log(`🎨 [FINAL COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
+    console.log(`🎨 Final colors - Background: ${bgColor}`);
   };
 
   // Handle toolbar clicks
