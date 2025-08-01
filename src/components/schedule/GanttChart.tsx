@@ -78,30 +78,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // FINAL ATTEMPT: Use column template to override ID display completely
+  // FINAL ATTEMPT: More robust column template that handles new tasks
   const idColumnTemplate = (props: any) => {
-    // Calculate hierarchical ID based on current data structure
-    const calculateHierarchicalId = (taskId: number, parentId: number | null): string => {
+    // Get current data from Syncfusion's internal state
+    const currentData = ganttRef.current?.currentViewData || ganttData;
+    
+    // Calculate hierarchical ID based on current structure
+    const calculateHierarchicalId = (taskId: number, parentId: number | null, allData: any[]): string => {
       if (!parentId) {
         // Root task - find its position among root tasks
-        const rootTasks = ganttData.filter(t => !t.ParentID);
+        const rootTasks = allData.filter(t => !t.ParentID);
         const rootIndex = rootTasks.findIndex(t => t.TaskID === taskId);
-        return (rootIndex + 1).toString();
+        return rootIndex >= 0 ? (rootIndex + 1).toString() : '1'; // Fallback to 1 if not found
       } else {
         // Child task - get parent's ID and add child index
-        const parentTask = ganttData.find(t => t.TaskID === parentId);
-        const parentHierarchicalId = calculateHierarchicalId(parentId, parentTask?.ParentID || null);
+        const parentTask = allData.find(t => t.TaskID === parentId);
+        if (!parentTask) return '1'; // Fallback if parent not found
+        
+        const parentHierarchicalId = calculateHierarchicalId(parentId, parentTask.ParentID || null, allData);
         
         // Find this task's position among its siblings
-        const siblings = ganttData.filter(t => t.ParentID === parentId);
+        const siblings = allData.filter(t => t.ParentID === parentId);
         const childIndex = siblings.findIndex(t => t.TaskID === taskId);
         
-        return `${parentHierarchicalId}.${childIndex + 1}`;
+        return childIndex >= 0 ? `${parentHierarchicalId}.${childIndex + 1}` : `${parentHierarchicalId}.1`;
       }
     };
     
-    const hierarchicalId = calculateHierarchicalId(props.TaskID, props.ParentID);
-    return <span>{hierarchicalId}</span>;
+    try {
+      const hierarchicalId = calculateHierarchicalId(props.TaskID, props.ParentID, currentData);
+      return <span>{hierarchicalId}</span>;
+    } catch (error) {
+      console.error('Error calculating hierarchical ID:', error);
+      return <span>{props.TaskID}</span>; // Fallback to original TaskID
+    }
   };
 
   // Columns with custom template for ID
@@ -230,6 +240,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         enableContextMenu={true}
         allowSelection={true}
         allowResizing={true} // NATIVE: Allow manual column resizing
+        allowColumnReorder={true} // NATIVE: Allow column reordering
+        autoFit={true} // NATIVE: Auto-fit columns to content
+        showColumnMenu={true} // NATIVE: Enable hierarchical numbering in ID column
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
