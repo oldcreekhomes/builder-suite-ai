@@ -162,7 +162,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Simple publish without dialog
       if (publishSchedule) {
         publishSchedule({ 
-          daysFromToday: 7, 
+          daysFromToday: "7", 
           message: 'Schedule published' 
         });
         toast({ title: "Success", description: "Schedule published successfully" });
@@ -307,20 +307,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             
             try {
               if (ganttInstance.current && ganttInstance.current.currentViewData) {
-                const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
+                const currentTask = ganttInstance.current.currentViewData.find((t: any) => t.taskId === taskData.TaskID);
                 console.log('Current task in view:', currentTask);
                 
                 if (currentTask) {
                   // Log the full parent hierarchy
                   console.log('Parent item:', currentTask.parentItem);
-                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find(t => t.TaskID === currentTask.parentItem.taskId) : null);
+                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find((t: any) => t.taskId === currentTask.parentItem.taskId) : null);
                   
                   finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
                   console.log('Parent from currentViewData:', finalParentId);
                 }
                 
                 // Additional check: log all current view data for context
-                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map(t => ({ TaskID: t.TaskID, ParentID: t.parentItem?.taskId })));
+                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map((t: any) => ({ TaskID: t.taskId, ParentID: t.parentItem?.taskId })));
               }
             } catch (error) {
               console.log('Error getting parent from currentViewData:', error);
