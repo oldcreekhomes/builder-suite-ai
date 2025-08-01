@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import {
   GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
@@ -37,15 +38,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            // Search by multiple possible ID fields for compatibility
+            // Search by resourceId field for compatibility
             const resource = resources.find(r => 
               r.resourceId === id || 
-              r.id === id ||
-              String(r.resourceId) === String(id) ||
-              String(r.id) === String(id)
+              String(r.resourceId) === String(id)
             );
-            // Return multiple possible name fields
-            return resource?.resourceName || resource?.name || resource?.displayName;
+            // Return resourceName field
+            return resource?.resourceName;
           })
           .filter(Boolean)
           .join(', ');
@@ -62,8 +61,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
         Confirmed: task.confirmed || null,
-        ConfirmationToken: task.confirmation_token || null,
-        AssignedUsers: task.assigned_user_ids || null,
       };
     });
   }, [tasks, resources]);
@@ -132,7 +129,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }, [projectId]);
 
   // Color-coded taskbars based on email confirmations
-  const handleQueryTaskbarInfo = (args) => {
+  const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) return;
     
     const confirmed = args.data.Confirmed;
@@ -155,7 +152,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Handle toolbar clicks - NO DIALOG POPUP
-  const handleToolbarClick = (args) => {
+  const handleToolbarClick = (args: any) => {
     if (!args || !args.item) return;
     
     if (args.item.id === 'publish') {
@@ -191,7 +188,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Handle actions - PREVENT DIALOGS
-  const handleActionBegin = (args) => {
+  const handleActionBegin = (args: any) => {
     if (!args) return;
     
     if (args.requestType === 'beforeDelete') {
@@ -211,17 +208,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Database sync
-  const handleActionComplete = (args) => {
+  const handleActionComplete = (args: any) => {
     if (!args || !args.data) return;
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
     
-    const onSuccess = (msg) => {
+    const onSuccess = (msg: string) => {
       toast({ title: "Success", description: msg });
     };
     
-    const onError = (error) => {
+    const onError = (error: any) => {
       console.error('Database error:', error);
       toast({ 
         variant: "destructive", 
@@ -267,8 +264,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             progress: taskData.Progress, 
             predecessor: taskData.Predecessor,
             resources: taskData.Resources, 
-            confirmed: taskData.Confirmed,
-            assigned_user_ids: taskData.AssignedUsers
           };
           
           if (updateTask) {
@@ -307,20 +302,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             
             try {
               if (ganttInstance.current && ganttInstance.current.currentViewData) {
-                const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
+                const currentTask = ganttInstance.current.currentViewData.find((t: any) => t.taskId === taskData.TaskID);
                 console.log('Current task in view:', currentTask);
                 
                 if (currentTask) {
                   // Log the full parent hierarchy
                   console.log('Parent item:', currentTask.parentItem);
-                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find(t => t.TaskID === currentTask.parentItem.taskId) : null);
+                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find((t: any) => t.taskId === currentTask.parentItem.taskId) : null);
                   
                   finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
                   console.log('Parent from currentViewData:', finalParentId);
                 }
                 
                 // Additional check: log all current view data for context
-                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map(t => ({ TaskID: t.TaskID, ParentID: t.parentItem?.taskId })));
+                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map((t: any) => ({ TaskID: t.taskId, ParentID: t.parentItem?.taskId })));
               }
             } catch (error) {
               console.log('Error getting parent from currentViewData:', error);
@@ -370,7 +365,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleDeleteConfirmation = () => {
     if (deleteConfirmation.taskData && deleteTask) {
-      deleteTask.mutate(deleteConfirmation.taskData.TaskID, {
+      deleteTask.mutate((deleteConfirmation.taskData as any).TaskID, {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
@@ -473,7 +468,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             taskbarHeight={20} 
             rowHeight={40}
             allowResizing={true} 
-            allowColumnReorder={false}
             allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
