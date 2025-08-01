@@ -24,7 +24,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // SOLUTION: Create hierarchical display numbering based on parent-child relationships
+  // SIMPLIFIED: Remove custom DisplayID, use standard structure
   const ganttData = useMemo(() => {
     if (!tasks.length) return [];
     
@@ -34,25 +34,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       idMapping.set(task.id, index + 1);
     });
     
-    // Function to calculate hierarchical display number
-    const getHierarchicalNumber = (task: any, allTasks: any[]): string => {
-      if (!task.parent_id) {
-        // Root task - just use sequential number
-        const rootIndex = allTasks.filter(t => !t.parent_id).findIndex(t => t.id === task.id);
-        return (rootIndex + 1).toString();
-      } else {
-        // Child task - get parent's number and add child index
-        const parent = allTasks.find(t => t.id === task.parent_id);
-        const parentNumber = getHierarchicalNumber(parent, allTasks);
-        const siblings = allTasks.filter(t => t.parent_id === task.parent_id);
-        const childIndex = siblings.findIndex(t => t.id === task.id);
-        return `${parentNumber}.${childIndex + 1}`;
-      }
-    };
-    
     return tasks.map((task, index) => ({
-      TaskID: index + 1, // Keep sequential for Syncfusion's internal use
-      DisplayID: getHierarchicalNumber(task, tasks), // Custom hierarchical display number
+      TaskID: index + 1, // Sequential ID for Syncfusion
       TaskName: task.task_name,
       StartDate: new Date(task.start_date),
       EndDate: new Date(task.end_date),
@@ -95,9 +78,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Columns with custom DisplayID for hierarchical numbering
+  // FINAL ATTEMPT: Use column template to override ID display completely
+  const idColumnTemplate = (props: any) => {
+    // Calculate hierarchical ID based on current data structure
+    const calculateHierarchicalId = (taskId: number, parentId: number | null): string => {
+      if (!parentId) {
+        // Root task - find its position among root tasks
+        const rootTasks = ganttData.filter(t => !t.ParentID);
+        const rootIndex = rootTasks.findIndex(t => t.TaskID === taskId);
+        return (rootIndex + 1).toString();
+      } else {
+        // Child task - get parent's ID and add child index
+        const parentTask = ganttData.find(t => t.TaskID === parentId);
+        const parentHierarchicalId = calculateHierarchicalId(parentId, parentTask?.ParentID || null);
+        
+        // Find this task's position among its siblings
+        const siblings = ganttData.filter(t => t.ParentID === parentId);
+        const childIndex = siblings.findIndex(t => t.TaskID === taskId);
+        
+        return `${parentHierarchicalId}.${childIndex + 1}`;
+      }
+    };
+    
+    const hierarchicalId = calculateHierarchicalId(props.TaskID, props.ParentID);
+    return <span>{hierarchicalId}</span>;
+  };
+
+  // Columns with custom template for ID
   const columns = [
-    { field: 'DisplayID', headerText: 'ID', width: 'auto', minWidth: 80 }, // Show hierarchical numbering
+    { 
+      field: 'TaskID', 
+      headerText: 'ID', 
+      width: 'auto', 
+      minWidth: 80,
+      template: idColumnTemplate // OVERRIDE: Custom template for hierarchical display
+    },
     { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 },
     { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 },
     { field: 'Duration', headerText: 'Duration', width: 'auto', minWidth: 100 },
