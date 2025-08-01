@@ -829,7 +829,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // UPDATED: Enhanced context menu handler to fix Add Task Above/Below positioning
+  // UPDATED: Enhanced context menu handler using direct database creation instead of Syncfusion addRecord
   const handleContextMenuClick = (args: any) => {
     console.log('=== CONTEXT MENU CLICK ===');
     console.log('Context menu clicked:', args.item.text, args);
@@ -841,53 +841,132 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('Adding task ABOVE the selected task as SIBLING');
       args.cancel = true; // Prevent default behavior
       
-      if (ganttRef.current && clickedTaskData) {
-        // For Above: Add as sibling, so get the clicked task's parent
+      if (clickedTaskData) {
+        // Get the correct parent ID for sibling relationship
         const parentId = getParentIdForContextMenu(clickedTaskData);
         console.log('Parent ID for Above task (same as clicked task parent):', parentId);
         
-        // Add the task above the clicked task with same parent (sibling)
-        ganttRef.current.addRecord({
-          TaskName: 'New Task',
-          Duration: 1,
-          Progress: 0,
-          ParentID: parentId // Same parent as clicked task = sibling
-        }, 'Above', clickedTaskData.TaskID);
+        // Create task directly via database instead of using Syncfusion addRecord
+        const createParams = {
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 86400000).toISOString(), // +1 day
+          duration: 1,
+          progress: 0,
+          predecessor: null,
+          resources: null,
+          parent_id: parentId, // This should be the same as clicked task's parent
+          order_index: tasks.length, // Will be reordered by the refresh
+        };
+        
+        console.log('Creating task ABOVE with params:', createParams);
+        
+        createTask.mutate(createParams, {
+          onSuccess: (newTask) => {
+            console.log('✅ Task created successfully above clicked task:', newTask);
+            toast({
+              title: "Success",
+              description: "Task added above successfully",
+            });
+          },
+          onError: (error) => {
+            console.error('❌ Task creation failed:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Failed to add task: ${error.message}`,
+            });
+          }
+        });
       }
     } 
     else if (args.item.text === 'Add Task Below' || args.item.text === 'Below') {
       console.log('Adding task BELOW the selected task as SIBLING');
       args.cancel = true; // Prevent default behavior
       
-      if (ganttRef.current && clickedTaskData) {
-        // For Below: Add as sibling, so get the clicked task's parent
+      if (clickedTaskData) {
+        // Get the correct parent ID for sibling relationship
         const parentId = getParentIdForContextMenu(clickedTaskData);
         console.log('Parent ID for Below task (same as clicked task parent):', parentId);
         
-        // CRITICAL FIX: Add the task below the clicked task with same parent (sibling)
-        ganttRef.current.addRecord({
-          TaskName: 'New Task',
-          Duration: 1,
-          Progress: 0,
-          ParentID: parentId // Same parent as clicked task = sibling
-        }, 'Below', clickedTaskData.TaskID);
+        // Create task directly via database instead of using Syncfusion addRecord
+        const createParams = {
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 86400000).toISOString(), // +1 day
+          duration: 1,
+          progress: 0,
+          predecessor: null,
+          resources: null,
+          parent_id: parentId, // This should be the same as clicked task's parent
+          order_index: tasks.length, // Will be reordered by the refresh
+        };
+        
+        console.log('Creating task BELOW with params:', createParams);
+        
+        createTask.mutate(createParams, {
+          onSuccess: (newTask) => {
+            console.log('✅ Task created successfully below clicked task:', newTask);
+            toast({
+              title: "Success",
+              description: "Task added below successfully",
+            });
+          },
+          onError: (error) => {
+            console.error('❌ Task creation failed:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Failed to add task: ${error.message}`,
+            });
+          }
+        });
       }
     }
     else if (args.item.text === 'Add Task Child' || args.item.text === 'Child') {
       console.log('Adding CHILD task to the selected task');
       args.cancel = true; // Prevent default behavior
       
-      if (ganttRef.current && clickedTaskData) {
+      if (clickedTaskData) {
         // For child tasks, the parent is the clicked task itself
         const parentOriginalId = findOriginalTaskId(clickedTaskData.TaskID, ganttData);
         console.log('Parent ID for Child task (clicked task itself):', parentOriginalId);
         
-        ganttRef.current.addRecord({
-          TaskName: 'New Task',
-          Duration: 1,
-          Progress: 0,
-          ParentID: parentOriginalId // Clicked task becomes the parent
-        }, 'Child', clickedTaskData.TaskID);
+        // Create task directly via database
+        const createParams = {
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 86400000).toISOString(), // +1 day
+          duration: 1,
+          progress: 0,
+          predecessor: null,
+          resources: null,
+          parent_id: parentOriginalId, // Clicked task becomes the parent
+          order_index: tasks.length,
+        };
+        
+        console.log('Creating CHILD task with params:', createParams);
+        
+        createTask.mutate(createParams, {
+          onSuccess: (newTask) => {
+            console.log('✅ Child task created successfully:', newTask);
+            toast({
+              title: "Success",
+              description: "Child task added successfully",
+            });
+          },
+          onError: (error) => {
+            console.error('❌ Child task creation failed:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Failed to add child task: ${error.message}`,
+            });
+          }
+        });
       }
     }
   };
