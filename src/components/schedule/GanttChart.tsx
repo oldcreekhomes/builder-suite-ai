@@ -70,19 +70,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Auto-fit columns after data loads - AGGRESSIVE VERSION
+  // PROPER AUTO-FIT - Use Syncfusion's built-in method
   useEffect(() => {
-    if (ganttInstance.current) {
-      const autoFitWithDelay = () => {
+    if (ganttInstance.current && ganttData && ganttData.length > 0) {
+      const timer = setTimeout(() => {
         if (ganttInstance.current) {
-          ganttInstance.current.autoFitColumns();
+          // Use Syncfusion's proper auto-fit method
+          ganttInstance.current.fitToProject();
+          ganttInstance.current.autoFitColumns(['WBSCode', 'TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
         }
-      };
-      
-      // Multiple attempts to ensure auto-fit works
-      setTimeout(autoFitWithDelay, 100);
-      setTimeout(autoFitWithDelay, 500);
-      setTimeout(autoFitWithDelay, 1000);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [ganttData]);
 
@@ -370,7 +368,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowColumnReorder={false}
-            autoFitColumns={true}
             allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
@@ -379,14 +376,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
-              <ColumnDirective field="WBSCode" headerText="ID" autoFit={true} />
-              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} autoFit={true} />
-              <ColumnDirective field="StartDate" headerText="Start Date" autoFit={true} />
-              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} autoFit={true} />
-              <ColumnDirective field="EndDate" headerText="End Date" autoFit={true} />
-              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" autoFit={true} />
-              <ColumnDirective field="Progress" headerText="Progress" autoFit={true} />
-              <ColumnDirective field="Resources" headerText="Resources" autoFit={true} />
+              <ColumnDirective field="WBSCode" headerText="ID" />
+              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
+              <ColumnDirective field="StartDate" headerText="Start Date" />
+              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
+              <ColumnDirective field="EndDate" headerText="End Date" />
+              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
+              <ColumnDirective field="Progress" headerText="Progress" />
+              <ColumnDirective field="Resources" headerText="Resources" />
             </ColumnsDirective>
             
             <EventMarkersDirective>
