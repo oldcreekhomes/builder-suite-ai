@@ -72,13 +72,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   useEffect(() => {
     if (ganttInstance.current && ganttData && ganttData.length > 0) {
       const timer = setTimeout(() => {
-        if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
-          try {
-            // Auto-fit all columns EXCEPT the ID column (which has fixed width)
-            ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
-          } catch (error) {
-            console.log('Auto-fit error:', error);
-          }
+        if (ganttInstance.current) {
+          // Auto-fit all columns EXCEPT the ID column (which has fixed width)
+          ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
         }
       }, 300);
       return () => clearTimeout(timer);
@@ -96,12 +92,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         filter: `project_id=eq.${projectId}`
       }, (payload) => {
         console.log('Real-time update received:', payload);
-        if (ganttInstance.current && ganttInstance.current.refresh) {
-          try {
-            ganttInstance.current.refresh();
-          } catch (error) {
-            console.log('Refresh error:', error);
-          }
+        if (ganttInstance.current) {
+          ganttInstance.current.refresh();
         }
       })
       .subscribe();
@@ -151,17 +143,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Prevent default dialog
       args.cancel = true;
       // Add new row directly
-      if (ganttInstance.current && ganttInstance.current.addRecord) {
-        try {
-          ganttInstance.current.addRecord({
-            TaskName: 'New Task', 
-            StartDate: new Date(), 
-            Duration: 1, 
-            Progress: 0
-          }, 'Bottom');
-        } catch (error) {
-          console.log('Add record error:', error);
-        }
+      if (ganttInstance.current) {
+        ganttInstance.current.addRecord({
+          TaskName: 'New Task', 
+          StartDate: new Date(), 
+          Duration: 1, 
+          Progress: 0
+        }, 'Bottom');
       }
     }
   };
@@ -258,49 +246,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         
         case 'indented':
         case 'outdented': {
-          console.log(`=== ${args.requestType.toUpperCase()} DEBUG ===`);
-          console.log('TaskData:', taskData);
-          console.log('TaskID:', taskData.TaskID);
-          console.log('ParentID from event:', taskData.ParentID);
-          
-          // For outdent, we need to be more careful about the parent detection
-          let finalParentId = taskData.ParentID || null;
-          
-          // Additional check for outdented tasks
-          if (args.requestType === 'outdented') {
-            console.log('Outdent detected - checking gantt current view data');
-            try {
-              if (ganttInstance.current && ganttInstance.current.currentViewData) {
-                const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
-                console.log('Current task in view:', currentTask);
-                
-                if (currentTask) {
-                  finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
-                  console.log('Parent from currentViewData:', finalParentId);
-                }
-              }
-            } catch (error) {
-              console.log('Error getting parent from currentViewData:', error);
-            }
-          }
-          
-          console.log('Final parent ID to save:', finalParentId);
-          
           const hierarchyParams = {
             id: taskData.TaskID, 
-            parent_id: finalParentId
+            parent_id: taskData.ParentID || null
           };
           
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
-              onSuccess: () => {
-                console.log(`✅ ${args.requestType} successful`);
-                onSuccess("Task hierarchy updated");
-              }, 
-              onError: (error) => {
-                console.error(`❌ ${args.requestType} failed:`, error);
-                onError(error);
-              }
+              onSuccess: () => onSuccess("Task hierarchy updated"), 
+              onError: onError 
             });
           }
           break;
@@ -429,7 +383,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <ColumnDirective field="WBSCode" headerText="ID" width={50} />
               <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
               <ColumnDirective field="StartDate" headerText="Start Date" />
-              <ColumnDirective field="Duration" headerText="Duration" />
+              <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
               <ColumnDirective field="EndDate" headerText="End Date" />
               <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
               <ColumnDirective field="Progress" headerText="Progress" />
