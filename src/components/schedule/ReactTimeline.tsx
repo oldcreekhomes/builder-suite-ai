@@ -314,77 +314,77 @@ export function ReactTimeline({ projectId }: ReactTimelineProps) {
                   
                   {(groupId === 'root' || expandedGroups.has(groupId)) && 
                     groupTasks.map((task) => (
-                      <ContextMenuTrigger key={task.id}>
-                        <div
-                          className={`border-b border-border hover:bg-muted/50 transition-colors ${
-                            selectedTaskId === task.id ? 'bg-muted' : ''
-                          }`}
-                          onClick={() => handleTaskClick(task)}
-                          onContextMenu={(e) => handleContextMenu(e, task.id)}
-                        >
-                          <div className="flex">
-                            {/* Task Name Column */}
-                            <div className="w-80 border-r border-border p-3 flex items-center justify-between">
-                              <div>
-                                <div className="font-medium text-sm">{task.task_name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {format(new Date(task.start_date), "MMM dd")} - {format(new Date(task.end_date), "MMM dd")}
+                      <ContextMenu key={task.id}>
+                        <ContextMenuTrigger>
+                          <div
+                            className={`border-b border-border hover:bg-muted/50 transition-colors ${
+                              selectedTaskId === task.id ? 'bg-muted' : ''
+                            }`}
+                            onClick={() => handleTaskClick(task)}
+                            onContextMenu={(e) => handleContextMenu(e, task.id)}
+                          >
+                            <div className="flex">
+                              {/* Task Name Column */}
+                              <div className="w-80 border-r border-border p-3 flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium text-sm">{task.task_name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {format(new Date(task.start_date), "MMM dd")} - {format(new Date(task.end_date), "MMM dd")}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {task.progress}%
+                                  </Badge>
+                                  <div className={`w-3 h-3 rounded-full ${task.statusColor}`} />
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {task.progress}%
-                                </Badge>
-                                <div className={`w-3 h-3 rounded-full ${task.statusColor}`} />
-                              </div>
-                            </div>
-                            
-                            {/* Timeline Column */}
-                            <div className="flex-1 relative p-2 overflow-x-auto">
-                              <div
-                                className={`absolute top-1/2 -translate-y-1/2 h-6 rounded ${task.statusColor} border border-border flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity`}
-                                style={{
-                                  left: task.x,
-                                  width: task.width,
-                                  minWidth: '20px'
-                                }}
-                                title={`${task.task_name} (${task.progress}%)`}
-                              >
-                                <span className="text-xs text-white font-medium px-1 truncate">
-                                  {task.task_name}
-                                </span>
+                              
+                              {/* Timeline Column */}
+                              <div className="flex-1 relative p-2 overflow-x-auto">
+                                <div
+                                  className={`absolute top-1/2 -translate-y-1/2 h-6 rounded ${task.statusColor} border border-border flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity`}
+                                  style={{
+                                    left: task.x,
+                                    width: task.width,
+                                    minWidth: '20px'
+                                  }}
+                                  title={`${task.task_name} (${task.progress}%)`}
+                                >
+                                  <span className="text-xs text-white font-medium px-1 truncate">
+                                    {task.task_name}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </ContextMenuTrigger>
                         
-                        <ContextMenu>
-                          <ContextMenuContent>
-                            <ContextMenuItem onClick={() => handleAddTask({ afterTaskId: task.id, position: 'above' })}>
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Task Above
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleAddTask({ afterTaskId: task.id, position: 'below' })}>
-                              <Plus className="w-4 h-4 mr-2" />
-                              Add Task Below
-                            </ContextMenuItem>
-                            <ContextMenuItem onClick={() => setSelectedTaskId(task.id)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Select Task
-                            </ContextMenuItem>
-                            <ContextMenuItem 
-                              onClick={() => {
-                                setSelectedTaskId(task.id);
-                                setShowDeleteDialog(true);
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Task
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem onClick={() => handleAddTask({ afterTaskId: task.id, position: 'above' })}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Task Above
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => handleAddTask({ afterTaskId: task.id, position: 'below' })}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Task Below
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => setSelectedTaskId(task.id)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Select Task
+                          </ContextMenuItem>
+                          <ContextMenuItem 
+                            onClick={() => {
+                              setSelectedTaskId(task.id);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Task
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     ))
                   }
                 </div>
