@@ -40,6 +40,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           TaskID: taskNumber, // Hierarchical numbering: 1, 1.1, 1.2, 2, 2.1, etc.
           TaskName: task.task_name,
           StartDate: new Date(task.start_date),
+          EndDate: new Date(task.end_date), // NATIVE: Include EndDate in data
           Duration: task.duration || 1,
           Progress: task.progress || 0,
           Predecessor: task.predecessor || null,
@@ -53,11 +54,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return buildHierarchy();
   }, [tasks]);
 
-  // Hierarchical task field mapping
+  // Hierarchical task field mapping with EndDate
   const taskFields = {
     id: 'TaskID',
     name: 'TaskName', 
     startDate: 'StartDate',
+    endDate: 'EndDate', // NATIVE: Add EndDate field mapping
     duration: 'Duration',
     progress: 'Progress',
     dependency: 'Predecessor',
@@ -65,13 +67,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     child: 'subtasks' // Enable hierarchical structure
   };
 
-  // Standard edit settings
+  // Standard edit settings with NATIVE positioning and dialog control
   const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true, 
     allowDeleting: true,
     allowTaskbarEditing: true,
-    mode: 'Auto' as any
+    mode: 'Auto' as any, // NATIVE: Auto mode disables dialog for add
+    newRowPosition: 'Bottom' as any // NATIVE: Add new rows at bottom
   };
 
   // Standard toolbar
@@ -81,15 +84,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Wider columns for better readability
+  // Columns with NATIVE auto-sizing features
   const columns = [
-    { field: 'TaskID', headerText: 'ID', width: 100, minWidth: 80 },
-    { field: 'TaskName', headerText: 'Task Name', width: 400, minWidth: 200 },
-    { field: 'StartDate', headerText: 'Start Date', width: 150, minWidth: 120 },
-    { field: 'Duration', headerText: 'Duration', width: 120, minWidth: 100 },
-    { field: 'Progress', headerText: 'Progress', width: 120, minWidth: 100 },
-    { field: 'Predecessor', headerText: 'Dependency', width: 150, minWidth: 120 },
-    { field: 'Resources', headerText: 'Resources', width: 250, minWidth: 150 }
+    { field: 'TaskID', headerText: 'ID', width: 'auto', minWidth: 80 }, // NATIVE: auto width
+    { field: 'TaskName', headerText: 'Task Name', width: 'auto', minWidth: 200 }, // NATIVE: auto width
+    { field: 'StartDate', headerText: 'Start Date', width: 'auto', minWidth: 120 }, // NATIVE: auto width
+    { field: 'Duration', headerText: 'Duration', width: 'auto', minWidth: 100 }, // NATIVE: auto width
+    { field: 'EndDate', headerText: 'End Date', width: 'auto', minWidth: 120 }, // NATIVE: auto width
+    { field: 'Progress', headerText: 'Progress', width: 'auto', minWidth: 100 }, // NATIVE: auto width
+    { field: 'Predecessor', headerText: 'Dependency', width: 'auto', minWidth: 120 }, // NATIVE: auto width
+    { field: 'Resources', headerText: 'Resources', width: 'auto', minWidth: 150 } // NATIVE: auto width
   ];
 
   // Set default values for new tasks
@@ -141,12 +145,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         toolbar={toolbarOptions}
         enableContextMenu={true}
         allowSelection={true}
-        allowResizing={true}
-        allowColumnReorder={true}
+        allowResizing={true} // NATIVE: Allow manual column resizing
+        allowColumnReorder={true} // NATIVE: Allow column reordering
+        autoFit={true} // NATIVE: Auto-fit columns to content
         height="600px"
         gridLines="Both"
         actionBegin={handleActionBegin}
-        splitterSettings={{ columnIndex: 4 }}
+        splitterSettings={{ columnIndex: 5 }} // Adjusted for new EndDate column
         timelineSettings={{
           topTier: { unit: 'Week' },
           bottomTier: { unit: 'Day' }
