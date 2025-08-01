@@ -791,6 +791,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
+  // ENHANCED: Better parent detection specifically for context menu actions
+  const getParentIdForContextMenu = (clickedTaskData: any): string | null => {
+    console.log('=== CONTEXT MENU PARENT DETECTION ===');
+    console.log('Clicked task data:', clickedTaskData);
+    console.log('Clicked TaskID:', clickedTaskData.TaskID);
+    
+    // First, check if this is a root-level task (no parent)
+    // Root tasks have TaskID like "1", "2", "3" (no dots)
+    const taskIdStr = String(clickedTaskData.TaskID);
+    const taskIdParts = taskIdStr.split('.');
+    
+    console.log('TaskID parts:', taskIdParts);
+    
+    if (taskIdParts.length === 1) {
+      // This is a root-level task (like "1", "2", "3")
+      console.log('Clicked task is ROOT LEVEL - returning null parent');
+      return null;
+    } else if (taskIdParts.length === 2) {
+      // This is a child task (like "1.1", "1.2", "1.6") 
+      // Its parent should be the root task (like "1")
+      const parentTaskId = taskIdParts[0];
+      console.log('Clicked task is CHILD - parent TaskID should be:', parentTaskId);
+      
+      const parentOriginalId = findOriginalTaskId(parentTaskId, ganttData);
+      console.log('Parent original ID:', parentOriginalId);
+      return parentOriginalId;
+    } else {
+      // This is a deeper nested task (like "1.2.3")
+      // Remove the last part to get parent TaskID
+      const parentTaskId = taskIdParts.slice(0, -1).join('.');
+      console.log('Clicked task is NESTED - parent TaskID should be:', parentTaskId);
+      
+      const parentOriginalId = findOriginalTaskId(parentTaskId, ganttData);
+      console.log('Parent original ID:', parentOriginalId);
+      return parentOriginalId;
+    }
+  };
+
   // UPDATED: Enhanced context menu handler to fix Add Task Above/Below positioning
   const handleContextMenuClick = (args: any) => {
     console.log('=== CONTEXT MENU CLICK ===');
@@ -800,38 +838,38 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const clickedTaskData = args.rowData;
     
     if (args.item.text === 'Add Task Above' || args.item.text === 'Above') {
-      console.log('Adding task ABOVE the selected task');
+      console.log('Adding task ABOVE the selected task as SIBLING');
       args.cancel = true; // Prevent default behavior
       
       if (ganttRef.current && clickedTaskData) {
-        // Get the parent of the clicked task for proper positioning
-        const parentId = getParentIdForTask(clickedTaskData);
-        console.log('Parent ID for Above task:', parentId);
+        // For Above: Add as sibling, so get the clicked task's parent
+        const parentId = getParentIdForContextMenu(clickedTaskData);
+        console.log('Parent ID for Above task (same as clicked task parent):', parentId);
         
-        // Add the task above the clicked task
+        // Add the task above the clicked task with same parent (sibling)
         ganttRef.current.addRecord({
           TaskName: 'New Task',
           Duration: 1,
           Progress: 0,
-          ParentID: parentId
+          ParentID: parentId // Same parent as clicked task = sibling
         }, 'Above', clickedTaskData.TaskID);
       }
     } 
     else if (args.item.text === 'Add Task Below' || args.item.text === 'Below') {
-      console.log('Adding task BELOW the selected task');
+      console.log('Adding task BELOW the selected task as SIBLING');
       args.cancel = true; // Prevent default behavior
       
       if (ganttRef.current && clickedTaskData) {
-        // Get the parent of the clicked task for proper positioning
-        const parentId = getParentIdForTask(clickedTaskData);
-        console.log('Parent ID for Below task:', parentId);
+        // For Below: Add as sibling, so get the clicked task's parent
+        const parentId = getParentIdForContextMenu(clickedTaskData);
+        console.log('Parent ID for Below task (same as clicked task parent):', parentId);
         
-        // Add the task below the clicked task
+        // CRITICAL FIX: Add the task below the clicked task with same parent (sibling)
         ganttRef.current.addRecord({
           TaskName: 'New Task',
           Duration: 1,
           Progress: 0,
-          ParentID: parentId
+          ParentID: parentId // Same parent as clicked task = sibling
         }, 'Below', clickedTaskData.TaskID);
       }
     }
@@ -848,7 +886,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           TaskName: 'New Task',
           Duration: 1,
           Progress: 0,
-          ParentID: parentOriginalId
+          ParentID: parentOriginalId // Clicked task becomes the parent
         }, 'Child', clickedTaskData.TaskID);
       }
     }
