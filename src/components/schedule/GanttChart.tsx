@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { 
   GanttComponent, 
   ColumnsDirective, 
@@ -24,18 +24,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources } = useProjectResources();
 
-  // Pure data transformation - exactly what Syncfusion expects
+  // ISSUE 1 FIX: Create numerical IDs instead of showing UUIDs
   const ganttData = useMemo(() => {
-    return tasks.map(task => ({
-      TaskID: task.id,
+    return tasks.map((task, index) => ({
+      TaskID: index + 1, // Sequential numerical ID for display
       TaskName: task.task_name,
       StartDate: new Date(task.start_date),
       EndDate: new Date(task.end_date),  
       Duration: task.duration || 1,
       Progress: task.progress || 0,
-      Predecessor: task.predecessor || '',
-      ParentID: task.parent_id || undefined,
+      Predecessor: task.predecessor || '', // ISSUE 2: Enable predecessors
+      ParentID: task.parent_id ? tasks.findIndex(t => t.id === task.parent_id) + 1 : undefined,
       Resources: task.resources || '',
+      OriginalID: task.id, // Keep original UUID for database operations
     }));
   }, [tasks]);
 
@@ -47,7 +48,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     endDate: 'EndDate',
     duration: 'Duration',
     progress: 'Progress',
-    dependency: 'Predecessor',
+    dependency: 'Predecessor', // ISSUE 2: Enable dependency editing
     parentID: 'ParentID',
     resourceInfo: 'Resources'
   };
@@ -58,7 +59,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     name: 'resourceName'
   };
 
-  // Standard Syncfusion edit settings
+  // Standard Syncfusion edit settings with dependency editing enabled
   const editSettings: EditSettingsModel = {
     allowAdding: true,
     allowEditing: true, 
@@ -74,16 +75,27 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     'Indent', 'Outdent'
   ];
 
-  // Standard Syncfusion columns
+  // ISSUE 3 FIX: Wider columns that will auto-fit
   const columns = [
     { field: 'TaskID', headerText: 'ID', width: 80 },
-    { field: 'TaskName', headerText: 'Task Name', width: 250 }, 
+    { field: 'TaskName', headerText: 'Task Name', width: 300 }, // Wider for long names
     { field: 'StartDate', headerText: 'Start Date', width: 140 },
     { field: 'EndDate', headerText: 'End Date', width: 140 },
     { field: 'Duration', headerText: 'Duration', width: 100 },
     { field: 'Progress', headerText: 'Progress', width: 100 },
-    { field: 'Resources', headerText: 'Resources', width: 150 }
+    { field: 'Predecessor', headerText: 'Dependency', width: 120 }, // ISSUE 2: Show dependency column
+    { field: 'Resources', headerText: 'Resources', width: 200 } // Wider for multiple resources
   ];
+
+  // ISSUE 3 FIX: Auto-fit columns when data loads (native Syncfusion feature)
+  useEffect(() => {
+    if (ganttRef.current && ganttData.length > 0) {
+      // Small delay to ensure component is fully rendered
+      setTimeout(() => {
+        ganttRef.current?.autoFitColumns();
+      }, 100);
+    }
+  }, [ganttData]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-96">Loading...</div>;
@@ -106,6 +118,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         toolbar={toolbarOptions}
         enableContextMenu={true}
         allowSelection={true}
+        allowResizing={true} // ISSUE 3: Enable column resizing
         height="600px"
         gridLines="Both"
         timelineSettings={{
