@@ -31,29 +31,34 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
+  // Add debug state to track operations
+  const [debugInfo, setDebugInfo] = useState('');
+
   // Transform database tasks to Syncfusion format with improved logging
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
+    console.log('📊 Raw tasks data:', tasks);
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
+      setDebugInfo('No tasks in database');
       return [];
     }
     
     const transformedData = tasks.map((task) => {
+      console.log('🔍 Processing task:', task);
+      
       let resourceNames = null;
       if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            // Search by multiple possible ID fields for compatibility
             const resource = resources.find(r => 
               (r as any).resourceId === id || 
               (r as any).id === id ||
               String((r as any).resourceId) === String(id) ||
               String((r as any).id) === String(id)
             );
-            // Return multiple possible name fields
             return (resource as any)?.resourceName || (resource as any)?.name || (resource as any)?.displayName;
           })
           .filter(Boolean)
@@ -75,19 +80,28 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
       
-      // Log confirmation status for debugging
-      if ((task as any).confirmed !== null && (task as any).confirmed !== undefined) {
-        console.log(`📋 Task "${transformedTask.TaskName}" has confirmation status:`, (task as any).confirmed);
-      }
-      
+      console.log('✅ Transformed task:', transformedTask);
       return transformedTask;
     });
     
-    console.log('✅ Transformed ganttData with confirmation statuses:', 
-      transformedData.filter(t => t.Confirmed !== null && t.Confirmed !== undefined).length, 'tasks confirmed');
+    console.log('🎯 Final ganttData:', transformedData);
+    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     
     return transformedData;
   }, [tasks, resources]);
+
+  // Force refresh when ganttData changes
+  useEffect(() => {
+    if (ganttInstance.current && ganttData.length > 0) {
+      console.log('🔄 Forcing Gantt refresh with new data');
+      try {
+        // Force the component to refresh its data
+        ganttInstance.current.refresh();
+      } catch (error) {
+        console.log('Refresh error (harmless):', error.message);
+      }
+    }
+  }, [ganttData]);
 
   // SAFER AUTO-FIT - Only run when component is fully loaded
   useEffect(() => {
@@ -98,7 +112,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           ganttInstance.current.element && 
           typeof ganttInstance.current.autoFitColumns === 'function') {
         try {
-          // Check if component is fully rendered
           const ganttElement = ganttInstance.current.element;
           if (ganttElement && ganttElement.querySelector('.e-gantt')) {
             ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
@@ -107,15 +120,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('Auto-fit skipped:', error.message);
         }
       }
-    }, 500); // Increased delay
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Remove duplicate subscription - useProjectTasks already handles real-time updates
-  // We'll rely on the subscription in useProjectTasks.tsx for all real-time updates
-
-  // Color-coded taskbars based on email confirmations with detailed logging
+  // Color-coded taskbars based on email confirmations
   const handleQueryTaskbarInfo = (args) => {
     if (!args || !args.data) return;
     
@@ -123,32 +133,27 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log(`🎨 Coloring task "${args.data.TaskName}" with confirmed status:`, confirmed);
     
     if (confirmed === true) {
-      // Green for approved
       args.taskbarBgColor = '#22c55e'; 
       args.taskbarBorderColor = '#16a34a'; 
       args.progressBarBgColor = '#15803d';
-      console.log('✅ Applied GREEN color for confirmed task');
     } else if (confirmed === false) {
-      // Red for denied
       args.taskbarBgColor = '#ef4444'; 
       args.taskbarBorderColor = '#dc2626'; 
       args.progressBarBgColor = '#b91c1c';
-      console.log('❌ Applied RED color for denied task');
     } else {
-      // Blue for pending (null or undefined)
       args.taskbarBgColor = '#3b82f6'; 
       args.taskbarBorderColor = '#2563eb'; 
       args.progressBarBgColor = '#1d4ed8';
-      console.log('🔵 Applied BLUE color for pending task');
     }
   };
 
-  // Handle toolbar clicks - NO DIALOG POPUP
+  // Handle toolbar clicks
   const handleToolbarClick = (args) => {
     if (!args || !args.item) return;
     
+    console.log('🔧 Toolbar click:', args.item);
+    
     if (args.item.id === 'publish') {
-      // Simple publish without dialog
       if (publishSchedule) {
         publishSchedule({ 
           daysFromToday: "7", 
@@ -157,24 +162,40 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         toast({ title: "Success", description: "Schedule published successfully" });
       }
     } else if (args.item.id === 'gantt_add' || args.item.text === 'Add') {
-      // Prevent default dialog
+      console.log('➕ Add button clicked - preventing default dialog');
       args.cancel = true;
-      // Add new row directly - with safety checks
-      if (ganttInstance.current && 
-          ganttInstance.current.element &&
-          typeof ganttInstance.current.addRecord === 'function') {
-        try {
-          ganttInstance.current.addRecord({
-            TaskName: 'New Task', 
-            StartDate: new Date(), 
-            Duration: 1, 
-            Progress: 0
-          }, 'Bottom');
-        } catch (error) {
-          console.log('Add record skipped:', error.message);
-          // Fallback: show a toast instead
-          toast({ title: "Info", description: "Please try adding a task again in a moment." });
-        }
+      
+      // Create a new task directly in the database instead of using Gantt's addRecord
+      if (createTask) {
+        console.log('💾 Creating task via mutation...');
+        const newTaskData = {
+          project_id: projectId,
+          task_name: 'New Task',
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 86400000).toISOString(), // +1 day
+          duration: 1,
+          progress: 0,
+          parent_id: null,
+          predecessor: null,
+          resources: null,
+          order_index: tasks ? tasks.length : 0
+        };
+        
+        createTask.mutate(newTaskData, {
+          onSuccess: (response) => {
+            console.log('✅ Task created successfully:', response);
+            toast({ title: "Success", description: "Task created successfully" });
+            // The useProjectTasks hook should automatically refresh the data
+          },
+          onError: (error) => {
+            console.error('❌ Task creation failed:', error);
+            toast({ 
+              variant: "destructive", 
+              title: "Error", 
+              description: error?.message || 'Failed to create task'
+            });
+          }
+        });
       }
     }
   };
@@ -182,6 +203,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Handle actions - PREVENT DIALOGS
   const handleActionBegin = (args) => {
     if (!args) return;
+    
+    console.log('🎬 Action begin:', args.requestType);
     
     if (args.requestType === 'beforeDelete') {
       args.cancel = true;
@@ -194,24 +217,27 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         });
       }
     } else if (args.requestType === 'beforeOpenAddDialog') {
-      // Block any add dialogs
+      console.log('🚫 Blocking add dialog');
       args.cancel = true;
     }
   };
 
-  // Database sync
+  // Database sync - SIMPLIFIED
   const handleActionComplete = (args) => {
     if (!args || !args.data) return;
+    
+    console.log('🎭 Action complete:', args.requestType, args.data);
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
     
     const onSuccess = (msg) => {
+      console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
     };
     
     const onError = (error) => {
-      console.error('Database error:', error);
+      console.error('❌ Database operation error:', error);
       toast({ 
         variant: "destructive", 
         title: "Error", 
@@ -221,32 +247,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
     try {
       switch (args.requestType) {
-        case 'add': {
-          const createParams = {
-            project_id: projectId, 
-            task_name: taskData.TaskName || 'New Task',
-            start_date: taskData.StartDate ? taskData.StartDate.toISOString() : new Date().toISOString(),
-            end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
-            duration: taskData.Duration || 1, 
-            progress: taskData.Progress || 0,
-            parent_id: taskData.ParentID ? String(taskData.ParentID) : null, 
-            predecessor: taskData.Predecessor || null,
-            resources: taskData.Resources || null, 
-            order_index: tasks ? tasks.length : 0
-          };
-          
-          if (createTask) {
-            createTask.mutate(createParams, { 
-              onSuccess: () => onSuccess("Task created successfully"), 
-              onError: onError 
-            });
-          }
-          break;
-        }
-        
         case 'save':
         case 'cellSave':
         case 'taskbarEdited': {
+          console.log('💾 Updating task via mutation...');
           const updateParams = {
             id: String(taskData.TaskID), 
             task_name: taskData.TaskName,
@@ -271,65 +275,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         
         case 'indented':
         case 'outdented': {
-          console.log(`=== ${args.requestType.toUpperCase()} DEBUG ===`);
-          console.log('TaskData:', taskData);
-          console.log('TaskID:', taskData.TaskID);
-          console.log('ParentID from event:', taskData.ParentID);
-          console.log('Original ganttData:', ganttData);
-          
-          // Find the original task in our data to see its current parent
-          const originalTask = ganttData.find(t => t.TaskID === taskData.TaskID);
-          console.log('Original task from ganttData:', originalTask);
-          
-          // For outdent, we need to be more careful about the parent detection
+          console.log(`📂 ${args.requestType} operation...`);
           let finalParentId = taskData.ParentID || null;
           
-          // Additional check for outdented tasks
           if (args.requestType === 'outdented') {
-            console.log('Outdent detected - checking gantt current view data');
-            
-            // Special handling for tasks like 2.1, 2.2 that seem to have issues
-            if (taskData.TaskID && (taskData.TaskID.toString().includes('2.1') || taskData.TaskID.toString().includes('2.2'))) {
-              console.log('⚠️ SPECIAL CASE: Task 2.1 or 2.2 detected');
-              console.log('Current WBS structure for debugging...');
-            }
-            
             try {
               if (ganttInstance.current && ganttInstance.current.currentViewData) {
                 const currentTask = ganttInstance.current.currentViewData.find((t: any) => t.taskId === taskData.TaskID);
-                console.log('Current task in view:', currentTask);
-                
                 if (currentTask) {
-                  // Log the full parent hierarchy
-                  console.log('Parent item:', currentTask.parentItem);
-                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find((t: any) => t.taskId === currentTask.parentItem.taskId) : null);
-                  
                   finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
-                  console.log('Parent from currentViewData:', finalParentId);
                 }
-                
-                // Additional check: log all current view data for context
-                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map((t: any) => ({ TaskID: t.taskId, ParentID: t.parentItem?.taskId })));
               }
             } catch (error) {
               console.log('Error getting parent from currentViewData:', error);
             }
-            
-            // EXTRA CHECK: If finalParentId is still the same as original, something might be wrong
-            if (originalTask && finalParentId === originalTask.ParentID) {
-              console.log('⚠️ WARNING: Parent ID hasn\'t changed during outdent operation');
-              console.log('Original parent:', originalTask.ParentID, 'New parent:', finalParentId);
-              
-              // For tasks 2.1, 2.2 outdenting from parent 2, the new parent should be null (root level)
-              if (taskData.TaskID.toString().startsWith('2.') && finalParentId === '2') {
-                console.log('🔧 FIXING: Setting parent to null for root-level outdent');
-                finalParentId = null;
-              }
-            }
           }
-          
-          console.log('Final parent ID to save:', finalParentId);
-          console.log('===================================');
           
           const hierarchyParams = {
             id: String(taskData.TaskID), 
@@ -338,14 +298,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
-              onSuccess: () => {
-                console.log(`✅ ${args.requestType} successful - saved parent_id: ${finalParentId}`);
-                onSuccess("Task hierarchy updated");
-              }, 
-              onError: (error) => {
-                console.error(`❌ ${args.requestType} failed:`, error);
-                onError(error);
-              }
+              onSuccess: () => onSuccess("Task hierarchy updated"), 
+              onError: onError 
             });
           }
           break;
@@ -380,6 +334,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <div className="ml-4">Loading tasks...</div>
       </div>
     );
   }
@@ -387,7 +342,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-96 text-red-600">
-        Error loading tasks: {error.message || 'Unknown error'}
+        <div>
+          <h3>Error loading tasks:</h3>
+          <p>{error.message || 'Unknown error'}</p>
+          <p className="text-sm text-gray-500 mt-2">Debug: {debugInfo}</p>
+        </div>
       </div>
     );
   }
@@ -396,6 +355,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     <div className="control-pane">
       <div className="control-section">
         <div className="col-lg-12">
+          {/* Debug info */}
+          <div className="mb-2 text-sm text-gray-500">
+            Debug: {debugInfo} | Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
+          </div>
+          
           <DeleteConfirmationDialog
             open={deleteConfirmation.isOpen}
             onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, isOpen: open }))}
@@ -408,7 +372,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           <GanttComponent
             id="EnableWbs" 
             ref={ganttInstance} 
-            key={`gantt-${projectId}-${ganttData.filter(t => t.Confirmed !== null && t.Confirmed !== undefined).length}`}
+            key={`gantt-${projectId}-${ganttData.length}-${Date.now()}`} // Force re-render
             dataSource={ganttData} 
             height="550px"
             taskFields={{
