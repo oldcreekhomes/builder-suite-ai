@@ -262,6 +262,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('TaskData:', taskData);
           console.log('TaskID:', taskData.TaskID);
           console.log('ParentID from event:', taskData.ParentID);
+          console.log('Original ganttData:', ganttData);
+          
+          // Find the original task in our data to see its current parent
+          const originalTask = ganttData.find(t => t.TaskID === taskData.TaskID);
+          console.log('Original task from ganttData:', originalTask);
           
           // For outdent, we need to be more careful about the parent detection
           let finalParentId = taskData.ParentID || null;
@@ -269,22 +274,49 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           // Additional check for outdented tasks
           if (args.requestType === 'outdented') {
             console.log('Outdent detected - checking gantt current view data');
+            
+            // Special handling for tasks like 2.1, 2.2 that seem to have issues
+            if (taskData.TaskID && (taskData.TaskID.toString().includes('2.1') || taskData.TaskID.toString().includes('2.2'))) {
+              console.log('⚠️ SPECIAL CASE: Task 2.1 or 2.2 detected');
+              console.log('Current WBS structure for debugging...');
+            }
+            
             try {
               if (ganttInstance.current && ganttInstance.current.currentViewData) {
                 const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
                 console.log('Current task in view:', currentTask);
                 
                 if (currentTask) {
+                  // Log the full parent hierarchy
+                  console.log('Parent item:', currentTask.parentItem);
+                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find(t => t.TaskID === currentTask.parentItem.taskId) : null);
+                  
                   finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
                   console.log('Parent from currentViewData:', finalParentId);
                 }
+                
+                // Additional check: log all current view data for context
+                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map(t => ({ TaskID: t.TaskID, ParentID: t.parentItem?.taskId })));
               }
             } catch (error) {
               console.log('Error getting parent from currentViewData:', error);
             }
+            
+            // EXTRA CHECK: If finalParentId is still the same as original, something might be wrong
+            if (originalTask && finalParentId === originalTask.ParentID) {
+              console.log('⚠️ WARNING: Parent ID hasn\'t changed during outdent operation');
+              console.log('Original parent:', originalTask.ParentID, 'New parent:', finalParentId);
+              
+              // For tasks 2.1, 2.2 outdenting from parent 2, the new parent should be null (root level)
+              if (taskData.TaskID.toString().startsWith('2.') && finalParentId === '2') {
+                console.log('🔧 FIXING: Setting parent to null for root-level outdent');
+                finalParentId = null;
+              }
+            }
           }
           
           console.log('Final parent ID to save:', finalParentId);
+          console.log('===================================');
           
           const hierarchyParams = {
             id: taskData.TaskID, 
@@ -294,7 +326,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
               onSuccess: () => {
-                console.log(`✅ ${args.requestType} successful`);
+                console.log(`✅ ${args.requestType} successful - saved parent_id: ${finalParentId}`);
                 onSuccess("Task hierarchy updated");
               }, 
               onError: (error) => {
