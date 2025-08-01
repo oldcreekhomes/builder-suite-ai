@@ -86,13 +86,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       return [];
     }
 
-    // Map your database tasks to Syncfusion format with resource names
+    // Map your database tasks to Syncfusion format with resource names from users/representatives
     return tasks.map((task) => {
       let resourceNames = null;
       if (task.resources && resources?.length) {
+        // Handle both single resource ID and array of resource IDs
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
-          .map(id => resources.find(r => r.resourceId === id)?.resourceName)
+          .map(id => {
+            // Search in resources (which should contain users and representatives)
+            const resource = resources.find(r => r.resourceId === id || r.id === id);
+            return resource?.resourceName || resource?.name;
+          })
           .filter(Boolean)
           .join(', ');
       }
@@ -132,6 +137,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     allowDeleting: true,
     allowTaskbarEditing: true,
     showDeleteConfirmDialog: false, // We'll use custom dialog
+    mode: 'Auto', // Native inline editing mode
+    newRowPosition: 'Bottom' // Add new rows at bottom
   };
 
   // 🔧 ENHANCED TOOLBAR - REMOVED SEND CONFIRMATIONS
@@ -343,6 +350,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               dataSource={ganttData}
               allowSorting={true}
               enableContextMenu={true}
+              addDialogFields={[]} // Empty array disables add dialog
               enableWBS={true}
               dataBound={dataBound}
               enableAutoWbsUpdate={autoWbsEnabled}
@@ -362,6 +370,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               rowHeight={40}
               height={"550px"}
               autoFitColumns={true}
+              allowUnscheduledTasks={true}
               projectStartDate={projectStartDate}
               projectEndDate={projectEndDate}
               // 🔧 YOUR CUSTOM EVENT HANDLERS
@@ -370,15 +379,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               actionComplete={handleActionComplete}
               queryTaskbarInfo={handleQueryTaskbarInfo}
             >
-              {/* 🎯 UPDATED COLUMN HEADERS + AUTO-SIZE */}
+              {/* 🎯 REORDERED COLUMNS + AUTO-SIZE */}
               <ColumnsDirective>
                 <ColumnDirective field="TaskID" visible={false} />
                 <ColumnDirective field="WBSCode" headerText="ID" />
                 <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
                 <ColumnDirective field="StartDate" headerText="Start Date" />
-                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
                 <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} />
+                <ColumnDirective field="EndDate" headerText="End Date" />
+                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
                 <ColumnDirective field="Progress" headerText="Progress" />
+                <ColumnDirective field="Resources" headerText="Resources" />
               </ColumnsDirective>
               
               {/* 🎯 DYNAMIC EVENT MARKER */}
