@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import {
   GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
@@ -38,29 +37,33 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
         resourceNames = taskResourceIds
           .map(id => {
-            // Search by resourceId field for compatibility
+            // Search by multiple possible ID fields for compatibility
             const resource = resources.find(r => 
-              r.resourceId === id || 
-              String(r.resourceId) === String(id)
+              (r as any).resourceId === id || 
+              (r as any).id === id ||
+              String((r as any).resourceId) === String(id) ||
+              String((r as any).id) === String(id)
             );
-            // Return resourceName field
-            return resource?.resourceName;
+            // Return multiple possible name fields
+            return (resource as any)?.resourceName || (resource as any)?.name || (resource as any)?.displayName;
           })
           .filter(Boolean)
           .join(', ');
       }
 
       return {
-        TaskID: task.id,
+        TaskID: String(task.id),
         TaskName: task.task_name || 'Untitled Task',
         StartDate: new Date(task.start_date),
         EndDate: new Date(task.end_date),
         Duration: task.duration || 1,
         Progress: task.progress || 0,
-        ParentID: task.parent_id || null,
+        ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: task.confirmed || null,
+        Confirmed: (task as any).confirmed || null,
+        ConfirmationToken: (task as any).confirmation_token || null,
+        AssignedUsers: (task as any).assigned_user_ids || null,
       };
     });
   }, [tasks, resources]);
@@ -129,7 +132,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }, [projectId]);
 
   // Color-coded taskbars based on email confirmations
-  const handleQueryTaskbarInfo = (args: any) => {
+  const handleQueryTaskbarInfo = (args) => {
     if (!args || !args.data) return;
     
     const confirmed = args.data.Confirmed;
@@ -152,7 +155,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Handle toolbar clicks - NO DIALOG POPUP
-  const handleToolbarClick = (args: any) => {
+  const handleToolbarClick = (args) => {
     if (!args || !args.item) return;
     
     if (args.item.id === 'publish') {
@@ -188,7 +191,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Handle actions - PREVENT DIALOGS
-  const handleActionBegin = (args: any) => {
+  const handleActionBegin = (args) => {
     if (!args) return;
     
     if (args.requestType === 'beforeDelete') {
@@ -208,17 +211,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   };
 
   // Database sync
-  const handleActionComplete = (args: any) => {
+  const handleActionComplete = (args) => {
     if (!args || !args.data) return;
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
     
-    const onSuccess = (msg: string) => {
+    const onSuccess = (msg) => {
       toast({ title: "Success", description: msg });
     };
     
-    const onError = (error: any) => {
+    const onError = (error) => {
       console.error('Database error:', error);
       toast({ 
         variant: "destructive", 
@@ -237,7 +240,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             end_date: taskData.EndDate ? taskData.EndDate.toISOString() : new Date(Date.now() + 86400000).toISOString(),
             duration: taskData.Duration || 1, 
             progress: taskData.Progress || 0,
-            parent_id: taskData.ParentID || null, 
+            parent_id: taskData.ParentID ? String(taskData.ParentID) : null, 
             predecessor: taskData.Predecessor || null,
             resources: taskData.Resources || null, 
             order_index: tasks ? tasks.length : 0
@@ -256,7 +259,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'cellSave':
         case 'taskbarEdited': {
           const updateParams = {
-            id: taskData.TaskID, 
+            id: String(taskData.TaskID), 
             task_name: taskData.TaskName,
             start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined, 
             end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
@@ -264,6 +267,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             progress: taskData.Progress, 
             predecessor: taskData.Predecessor,
             resources: taskData.Resources, 
+            confirmed: taskData.Confirmed,
+            assigned_user_ids: taskData.AssignedUsers
           };
           
           if (updateTask) {
@@ -302,20 +307,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             
             try {
               if (ganttInstance.current && ganttInstance.current.currentViewData) {
-                const currentTask = ganttInstance.current.currentViewData.find((t: any) => t.taskId === taskData.TaskID);
+                const currentTask = ganttInstance.current.currentViewData.find((t) => t.TaskID === taskData.TaskID);
                 console.log('Current task in view:', currentTask);
                 
                 if (currentTask) {
                   // Log the full parent hierarchy
                   console.log('Parent item:', currentTask.parentItem);
-                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find((t: any) => t.taskId === currentTask.parentItem.taskId) : null);
+                  console.log('Parent task data:', currentTask.parentItem ? ganttInstance.current.currentViewData.find(t => t.TaskID === currentTask.parentItem.taskId) : null);
                   
                   finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
                   console.log('Parent from currentViewData:', finalParentId);
                 }
                 
                 // Additional check: log all current view data for context
-                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map((t: any) => ({ TaskID: t.taskId, ParentID: t.parentItem?.taskId })));
+                console.log('All current view data TaskIDs:', ganttInstance.current.currentViewData.map(t => ({ TaskID: t.TaskID, ParentID: t.parentItem?.taskId })));
               }
             } catch (error) {
               console.log('Error getting parent from currentViewData:', error);
@@ -338,8 +343,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('===================================');
           
           const hierarchyParams = {
-            id: taskData.TaskID, 
-            parent_id: finalParentId
+            id: String(taskData.TaskID), 
+            parent_id: finalParentId ? String(finalParentId) : null
           };
           
           if (updateTask) {
@@ -365,7 +370,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleDeleteConfirmation = () => {
     if (deleteConfirmation.taskData && deleteTask) {
-      deleteTask.mutate((deleteConfirmation.taskData as any).TaskID, {
+      deleteTask.mutate(String(deleteConfirmation.taskData.TaskID), {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
