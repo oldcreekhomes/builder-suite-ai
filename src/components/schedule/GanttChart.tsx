@@ -370,8 +370,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               taskbarHeight={20}
               rowHeight={40}
               height={"550px"}
-              autoFitColumns={true}
-              allowAutoFit={true}
+              allowResizing={true}
+              allowColumnReorder={false}
               allowUnscheduledTasks={true}
               projectStartDate={projectStartDate}
               projectEndDate={projectEndDate}
@@ -381,17 +381,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               actionComplete={handleActionComplete}
               queryTaskbarInfo={handleQueryTaskbarInfo}
             >
-              {/* 🎯 TIGHT AUTO-SIZED COLUMNS */}
+              {/* 🎯 MINIMAL WIDTH COLUMNS */}
               <ColumnsDirective>
                 <ColumnDirective field="TaskID" visible={false} />
-                <ColumnDirective field="WBSCode" headerText="ID" autoFit={true} />
-                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} autoFit={true} />
-                <ColumnDirective field="StartDate" headerText="Start Date" autoFit={true} />
-                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} autoFit={true} />
-                <ColumnDirective field="EndDate" headerText="End Date" autoFit={true} />
-                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" autoFit={true} />
-                <ColumnDirective field="Progress" headerText="Progress" autoFit={true} />
-                <ColumnDirective field="Resources" headerText="Resources" autoFit={true} />
+                <ColumnDirective field="WBSCode" headerText="ID" width={60} minWidth={50} />
+                <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} width={200} minWidth={150} />
+                <ColumnDirective field="StartDate" headerText="Start Date" width={110} minWidth={100} />
+                <ColumnDirective field="Duration" headerText="Duration" allowEditing={false} width={80} minWidth={70} />
+                <ColumnDirective field="EndDate" headerText="End Date" width={110} minWidth={100} />
+                <ColumnDirective field="WBSPredecessor" headerText="Predecessor" width={100} minWidth={80} />
+                <ColumnDirective field="Progress" headerText="Progress" width={80} minWidth={70} />
+                <ColumnDirective field="Resources" headerText="Resources" width={120} minWidth={100} />
               </ColumnsDirective>
               
               {/* 🎯 DYNAMIC EVENT MARKER */}
