@@ -2,11 +2,13 @@ import React, { useRef, useState, useEffect } from 'react';
 import {
   GanttComponent, Inject, Selection, ColumnsDirective, ColumnDirective, Toolbar, DayMarkers, Edit, Filter, Sort, ContextMenu, EventMarkersDirective, EventMarkerDirective,
 } from "@syncfusion/ej2-react-gantt";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectResources } from '@/hooks/useProjectResources';
 import { usePublishSchedule } from '@/hooks/usePublishSchedule';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 
@@ -16,6 +18,8 @@ interface GanttChartProps {
 
 export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const ganttInstance = useRef<GanttComponent>(null);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources, isLoading: resourcesLoading } = useProjectResources();
@@ -91,60 +95,65 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Real-time email confirmation updates - improved subscription
+  // Real-time email confirmation updates - force React Query refresh
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || !user) return;
 
-    console.log('Setting up real-time subscription for task confirmations:', projectId);
+    console.log('Setting up CONFIRMED real-time subscription for task confirmations:', projectId);
 
     const channel = supabase
-      .channel(`task-confirmations-${projectId}`)
+      .channel(`task-confirmations-${projectId}-${Date.now()}`) // Unique channel name
       .on('postgres_changes', {
         event: 'UPDATE', 
         schema: 'public', 
         table: 'project_schedule_tasks',
         filter: `project_id=eq.${projectId}`
       }, (payload) => {
-        console.log('Task confirmation update received:', payload);
+        console.log('🔔 Task confirmation received:', payload);
+        console.log('Confirmed status:', payload.new?.confirmed);
         
-        // Force a complete refresh of the component data
-        setTimeout(() => {
-          if (ganttInstance.current && ganttInstance.current.refresh) {
-            console.log('Refreshing Gantt chart after confirmation update');
-            ganttInstance.current.refresh();
-          }
-        }, 100);
+        // Force React Query to refetch the data with fresh confirmation status
+        queryClient.invalidateQueries({
+          queryKey: ['project-tasks', projectId, user.id]
+        });
+        
+        console.log('✅ React Query cache invalidated - fresh data should load');
       })
       .subscribe((status) => {
-        console.log('Task confirmation subscription status:', status);
+        console.log('📡 Task confirmation subscription status:', status);
       });
     
     return () => {
-      console.log('Cleaning up task confirmation subscription');
+      console.log('🧹 Cleaning up task confirmation subscription');
       supabase.removeChannel(channel);
     };
-  }, [projectId]);
+  }, [projectId, user, queryClient]);
 
-  // Color-coded taskbars based on email confirmations
+  // Color-coded taskbars based on email confirmations with detailed logging
   const handleQueryTaskbarInfo = (args) => {
     if (!args || !args.data) return;
     
     const confirmed = args.data.Confirmed;
-    if (confirmed === true || confirmed === 'true') {
+    console.log(`🎨 Coloring task "${args.data.TaskName}" with confirmed status:`, confirmed);
+    
+    if (confirmed === true) {
       // Green for approved
       args.taskbarBgColor = '#22c55e'; 
       args.taskbarBorderColor = '#16a34a'; 
       args.progressBarBgColor = '#15803d';
-    } else if (confirmed === false || confirmed === 'false') {
+      console.log('✅ Applied GREEN color for confirmed task');
+    } else if (confirmed === false) {
       // Red for denied
       args.taskbarBgColor = '#ef4444'; 
       args.taskbarBorderColor = '#dc2626'; 
       args.progressBarBgColor = '#b91c1c';
+      console.log('❌ Applied RED color for denied task');
     } else {
-      // Blue for pending
+      // Blue for pending (null or undefined)
       args.taskbarBgColor = '#3b82f6'; 
       args.taskbarBorderColor = '#2563eb'; 
       args.progressBarBgColor = '#1d4ed8';
+      console.log('🔵 Applied BLUE color for pending task');
     }
   };
 
