@@ -791,8 +791,67 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
+  // UPDATED: Enhanced context menu handler to fix Add Task Above/Below positioning
   const handleContextMenuClick = (args: any) => {
+    console.log('=== CONTEXT MENU CLICK ===');
     console.log('Context menu clicked:', args.item.text, args);
+    console.log('Right-clicked task data:', args.rowData);
+    
+    const clickedTaskData = args.rowData;
+    
+    if (args.item.text === 'Add Task Above' || args.item.text === 'Above') {
+      console.log('Adding task ABOVE the selected task');
+      args.cancel = true; // Prevent default behavior
+      
+      if (ganttRef.current && clickedTaskData) {
+        // Get the parent of the clicked task for proper positioning
+        const parentId = getParentIdForTask(clickedTaskData);
+        console.log('Parent ID for Above task:', parentId);
+        
+        // Add the task above the clicked task
+        ganttRef.current.addRecord({
+          TaskName: 'New Task',
+          Duration: 1,
+          Progress: 0,
+          ParentID: parentId
+        }, 'Above', clickedTaskData.TaskID);
+      }
+    } 
+    else if (args.item.text === 'Add Task Below' || args.item.text === 'Below') {
+      console.log('Adding task BELOW the selected task');
+      args.cancel = true; // Prevent default behavior
+      
+      if (ganttRef.current && clickedTaskData) {
+        // Get the parent of the clicked task for proper positioning
+        const parentId = getParentIdForTask(clickedTaskData);
+        console.log('Parent ID for Below task:', parentId);
+        
+        // Add the task below the clicked task
+        ganttRef.current.addRecord({
+          TaskName: 'New Task',
+          Duration: 1,
+          Progress: 0,
+          ParentID: parentId
+        }, 'Below', clickedTaskData.TaskID);
+      }
+    }
+    else if (args.item.text === 'Add Task Child' || args.item.text === 'Child') {
+      console.log('Adding CHILD task to the selected task');
+      args.cancel = true; // Prevent default behavior
+      
+      if (ganttRef.current && clickedTaskData) {
+        // For child tasks, the parent is the clicked task itself
+        const parentOriginalId = findOriginalTaskId(clickedTaskData.TaskID, ganttData);
+        console.log('Parent ID for Child task (clicked task itself):', parentOriginalId);
+        
+        ganttRef.current.addRecord({
+          TaskName: 'New Task',
+          Duration: 1,
+          Progress: 0,
+          ParentID: parentOriginalId
+        }, 'Child', clickedTaskData.TaskID);
+      }
+    }
   };
 
   const handleResizeStart = (args: any) => {
