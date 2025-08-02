@@ -47,20 +47,25 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  // Transform database tasks to Syncfusion format
+  const [debugInfo, setDebugInfo] = useState('');
+
+  // Transform database tasks to Syncfusion format with CONFIRMATION DEBUG
   const ganttData = React.useMemo(() => {
     console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
     
     if (!tasks || tasks.length === 0) {
       console.log('📝 No tasks found, returning empty array');
+      setDebugInfo('No tasks in database');
       return [];
     }
     
     const transformedData = tasks.map((task) => {
-      console.log(`🔍 Processing task "${task.task_name}":`, {
+      // DEBUG: Log the raw confirmation value from database
+      console.log(`🔍 RAW TASK DATA for "${task.task_name}":`, {
         id: task.id,
         confirmed: task.confirmed,
-        confirmedType: typeof task.confirmed
+        confirmedType: typeof task.confirmed,
+        rawTask: task
       });
 
       let resourceNames = null;
@@ -90,37 +95,41 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: task.confirmed,
+        Confirmed: task.confirmed, // Direct assignment - no (task as any)
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
       
-      console.log(`✅ Transformed task "${transformedTask.TaskName}":`, {
+      // DEBUG: Log the transformed task confirmation status
+      console.log(`✅ TRANSFORMED TASK "${transformedTask.TaskName}":`, {
         TaskID: transformedTask.TaskID,
-        Confirmed: transformedTask.Confirmed
+        Confirmed: transformedTask.Confirmed,
+        ConfirmedType: typeof transformedTask.Confirmed
       });
       
       return transformedTask;
     });
     
+    // DEBUG: Summary of all confirmation statuses
     const confirmationSummary = transformedData.map(t => ({
       name: t.TaskName,
       confirmed: t.Confirmed,
       type: typeof t.Confirmed
     }));
-    console.log('📊 Confirmation summary:', confirmationSummary);
+    console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
     
+    setDebugInfo(`Transformed ${transformedData.length} tasks`);
     return transformedData;
   }, [tasks, resources]);
 
   // Force refresh when ganttData changes + CSS injection
   useEffect(() => {
     if (ganttInstance.current && ganttData.length > 0) {
-      console.log('🔄 Gantt refresh with new data');
+      console.log('🔄 Simple Gantt refresh with new data');
       try {
         ganttInstance.current.refresh();
         
-        // Inject CSS for colors after refresh
+        // FORCE CSS injection for colors after refresh
         setTimeout(() => {
           injectCustomCSS();
         }, 500);
@@ -130,9 +139,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   }, [ganttData]);
 
-  // Inject custom CSS to force colors based on data
+  // Inject custom CSS to force SOLID colors and remove blue backgrounds
   const injectCustomCSS = () => {
-    console.log('💉 Injecting custom CSS for task colors');
+    console.log('💉 Injecting custom CSS for SOLID task colors');
     
     // Remove existing custom styles
     const existingStyle = document.getElementById('gantt-custom-colors');
@@ -141,21 +150,69 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
     
     // Create CSS rules based on current data
-    let css = '';
+    let css = `
+      /* HIDE ALL EVENT MARKERS (Project Start, etc.) */
+      .e-gantt .e-event-markers,
+      .e-gantt .e-gantt-chart .e-event-markers,
+      .e-gantt-chart-container .e-event-markers {
+        display: none !important;
+      }
+      
+      /* GLOBAL: Remove all blue backgrounds from taskbars */
+      .e-gantt .e-gantt-chart .e-gantt-child-taskbar,
+      .e-gantt .e-gantt-chart .e-gantt-child-taskbar-inner-div,
+      .e-gantt .e-gantt-chart .e-gantt-child-taskbar-progress-div,
+      .e-gantt .e-gantt-chart .e-taskbar-left-resizer,
+      .e-gantt .e-gantt-chart .e-taskbar-right-resizer {
+        background-image: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+    `;
+    
     ganttData.forEach((task, index) => {
       let bgColor = '#3b82f6'; // Default blue
+      let borderColor = '#2563eb';
       
       if (task.Confirmed === true) {
         bgColor = '#22c55e'; // Green
+        borderColor = '#16a34a';
       } else if (task.Confirmed === false) {
         bgColor = '#ef4444'; // Red
+        borderColor = '#dc2626';
       }
       
+      // AGGRESSIVE targeting of ALL possible taskbar elements
       css += `
+        /* Target by row position */
+        .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar,
+        .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar *,
         .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar {
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar *,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-inner-div,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-progress-div,
+        
+        /* Target by task ID if available */
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar *,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-inner-div,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-progress-div {
+          background: ${bgColor} !important;
           background-color: ${bgColor} !important;
-          border-color: ${bgColor} !important;
+          background-image: none !important;
+          border: 2px solid ${borderColor} !important;
+          border-color: ${borderColor} !important;
+          opacity: 1 !important;
+          box-shadow: none !important;
+        }
+        
+        /* Remove pseudo-elements that might add blue backgrounds */
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::before,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::after,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::before,
+        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::after {
+          display: none !important;
+          background: none !important;
         }
       `;
     });
@@ -166,7 +223,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     style.textContent = css;
     document.head.appendChild(style);
     
-    console.log('✅ Custom CSS injected for', ganttData.length, 'tasks');
+    console.log('✅ SOLID custom CSS injected for', ganttData.length, 'tasks with markers hidden');
   };
 
   // Auto-fit columns
@@ -191,7 +248,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData]);
 
-  // Color-coded taskbars
+  // Color-coded taskbars - FORCE COLOR UPDATE
   const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) {
       console.log('❌ No args or data in handleQueryTaskbarInfo');
@@ -202,32 +259,35 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const taskName = args.data.TaskName;
     const taskId = args.data.TaskID;
     
-    console.log(`🎨 Color check - Task: "${taskName}", Confirmed: ${confirmed}`);
+    console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
+    console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
     
+    // FORCE color application with multiple methods
     let bgColor, borderColor, progressColor;
     
     if (confirmed === true) {
-      console.log(`✅ Applying green for confirmed task "${taskName}"`);
+      console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
       bgColor = '#22c55e';
       borderColor = '#16a34a'; 
       progressColor = '#15803d';
     } else if (confirmed === false) {
-      console.log(`❌ Applying red for denied task "${taskName}"`);
+      console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
       bgColor = '#ef4444';
       borderColor = '#dc2626'; 
       progressColor = '#b91c1c';
     } else {
-      console.log(`🔵 Applying blue for pending task "${taskName}"`);
+      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (${confirmed})`);
       bgColor = '#3b82f6';
       borderColor = '#2563eb'; 
       progressColor = '#1d4ed8';
     }
     
-    // Apply colors
+    // Apply colors using multiple properties to ensure it works
     args.taskbarBgColor = bgColor;
     args.taskbarBorderColor = borderColor;
     args.progressBarBgColor = progressColor;
     
+    // Additional force methods
     args.taskbarStyle = {
       backgroundColor: bgColor,
       borderColor: borderColor,
@@ -238,12 +298,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       backgroundColor: progressColor
     };
     
+    // Force inline styles if possible
     if (args.taskbarElement) {
       args.taskbarElement.style.backgroundColor = bgColor;
       args.taskbarElement.style.borderColor = borderColor;
     }
     
-    console.log(`🎨 Final colors - Background: ${bgColor}`);
+    console.log(`🎨 [FINAL COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
   };
 
   // Handle toolbar clicks
@@ -442,6 +503,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         <div>
           <h3>Error loading tasks:</h3>
           <p>{error.message || 'Unknown error'}</p>
+          <p className="text-sm text-gray-500 mt-2">Debug: {debugInfo}</p>
         </div>
       </div>
     );
@@ -452,7 +514,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       <div className="control-section">
         <div className="col-lg-12">
           <div className="mb-2 text-sm text-gray-500">
-            Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
+            Debug: {debugInfo} | Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
           </div>
           
           <DeleteConfirmationDialog
