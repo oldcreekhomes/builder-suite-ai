@@ -162,6 +162,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       taskId: args?.data?.TaskID,
       taskName: args?.data?.TaskName,
       confirmed: args?.data?.Confirmed,
+      taskDataConfirmed: args?.data?.taskData?.Confirmed,
       fullData: args?.data
     });
     
@@ -170,7 +171,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       return;
     }
     
-    const confirmed = args.data.Confirmed;
+    // Access the confirmed value from taskData where it's actually stored
+    const confirmed = args.data.taskData?.Confirmed;
     let bgColor, borderColor, progressColor;
     
     console.log('🔍 Confirmed value:', confirmed, 'Type:', typeof confirmed);
