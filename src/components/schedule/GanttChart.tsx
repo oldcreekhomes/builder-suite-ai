@@ -120,131 +120,88 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return transformedData;
   }, [tasks, resources]);
 
-  // Force refresh when ganttData changes + CSS injection
-  useEffect(() => {
-    if (ganttInstance.current && ganttData.length > 0) {
-      console.log('🔄 Simple Gantt refresh with new data');
-      try {
-        ganttInstance.current.refresh();
-        
-        // FORCE CSS injection for colors after refresh
-        setTimeout(() => {
-          injectCustomCSS();
-        }, 500);
-      } catch (error: any) {
-        console.log('Refresh error (harmless):', error.message);
-      }
-    }
-  }, [ganttData]);
-
-  // Inject custom CSS to force SOLID colors and remove blue backgrounds
-  const injectCustomCSS = () => {
-    console.log('💉 Injecting custom CSS for SOLID task colors');
-    
-    // Remove existing custom styles
-    const existingStyle = document.getElementById('gantt-custom-colors');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
-    
-    // Create CSS rules based on current data
-    let css = `
-      /* HIDE ALL EVENT MARKERS (Project Start, etc.) */
-      .e-gantt .e-event-markers,
-      .e-gantt .e-gantt-chart .e-event-markers,
-      .e-gantt-chart-container .e-event-markers {
-        display: none !important;
-      }
-      
-      /* GLOBAL: Remove all blue backgrounds from taskbars */
-      .e-gantt .e-gantt-chart .e-gantt-child-taskbar,
-      .e-gantt .e-gantt-chart .e-gantt-child-taskbar-inner-div,
-      .e-gantt .e-gantt-chart .e-gantt-child-taskbar-progress-div,
-      .e-gantt .e-gantt-chart .e-taskbar-left-resizer,
-      .e-gantt .e-gantt-chart .e-taskbar-right-resizer {
-        background-image: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-    `;
-    
-    ganttData.forEach((task, index) => {
-      let bgColor = '#3b82f6'; // Default blue
-      let borderColor = '#2563eb';
-      
-      if (task.Confirmed === true) {
-        bgColor = '#22c55e'; // Green
-        borderColor = '#16a34a';
-      } else if (task.Confirmed === false) {
-        bgColor = '#ef4444'; // Red
-        borderColor = '#dc2626';
-      }
-      
-      // AGGRESSIVE targeting of ALL possible taskbar elements
-      css += `
-        /* Target by row position */
-        .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar,
-        .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar *,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar *,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-inner-div,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-progress-div,
-        
-        /* Target by task ID if available */
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar *,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-inner-div,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-progress-div {
-          background: ${bgColor} !important;
-          background-color: ${bgColor} !important;
-          background-image: none !important;
-          border: 2px solid ${borderColor} !important;
-          border-color: ${borderColor} !important;
-          opacity: 1 !important;
-          box-shadow: none !important;
-        }
-        
-        /* Remove pseudo-elements that might add blue backgrounds */
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::before,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::after,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::before,
-        .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::after {
-          display: none !important;
-          background: none !important;
-        }
-      `;
-    });
-    
-    // Inject the CSS
-    const style = document.createElement('style');
-    style.id = 'gantt-custom-colors';
-    style.textContent = css;
-    document.head.appendChild(style);
-    
-    console.log('✅ SOLID custom CSS injected for', ganttData.length, 'tasks with markers hidden');
-  };
-
-  // Auto-fit columns
+  // Auto-fit columns using native Syncfusion feature - only call once after data is loaded
   useEffect(() => {
     if (!ganttData || ganttData.length === 0) return;
     
     const timer = setTimeout(() => {
-      if (ganttInstance.current && 
-          ganttInstance.current.element && 
-          typeof ganttInstance.current.autoFitColumns === 'function') {
+      if (ganttInstance.current && ganttInstance.current.element) {
         try {
           const ganttElement = ganttInstance.current.element;
           if (ganttElement && ganttElement.querySelector('.e-gantt')) {
-            ganttInstance.current.autoFitColumns(['TaskName', 'StartDate', 'Duration', 'EndDate', 'WBSPredecessor', 'Progress', 'Resources']);
+            console.log('🔧 Auto-fitting columns to content width');
+            // Use native Syncfusion autoFitColumns method
+            ganttInstance.current.autoFitColumns([
+              'TaskName', 
+              'StartDate', 
+              'Duration', 
+              'EndDate', 
+              'WBSPredecessor', 
+              'Progress', 
+              'Resources'
+            ]);
           }
         } catch (error: any) {
           console.log('Auto-fit skipped:', error.message);
         }
       }
-    }, 500);
+    }, 1000); // Increased delay to ensure data is fully rendered
     
     return () => clearTimeout(timer);
-  }, [ganttData]);
+  }, [ganttData.length]); // Only depend on data length, not the entire data object
+
+  // Inject custom CSS for colors - but only once after component mounts
+  useEffect(() => {
+    const injectCustomCSS = () => {
+      console.log('💉 Injecting custom CSS for task colors');
+      
+      // Remove existing custom styles
+      const existingStyle = document.getElementById('gantt-custom-colors');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      
+      // Create base CSS rules
+      let css = `
+        /* HIDE ALL EVENT MARKERS (Project Start, etc.) */
+        .e-gantt .e-event-markers,
+        .e-gantt .e-gantt-chart .e-event-markers,
+        .e-gantt-chart-container .e-event-markers {
+          display: none !important;
+        }
+        
+        /* GLOBAL: Remove all blue backgrounds from taskbars */
+        .e-gantt .e-gantt-chart .e-gantt-child-taskbar,
+        .e-gantt .e-gantt-chart .e-gantt-child-taskbar-inner-div,
+        .e-gantt .e-gantt-chart .e-gantt-child-taskbar-progress-div,
+        .e-gantt .e-gantt-chart .e-taskbar-left-resizer,
+        .e-gantt .e-gantt-chart .e-taskbar-right-resizer {
+          background-image: none !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+      `;
+      
+      // Inject the CSS
+      const style = document.createElement('style');
+      style.id = 'gantt-custom-colors';
+      style.textContent = css;
+      document.head.appendChild(style);
+      
+      console.log('✅ Base custom CSS injected');
+    };
+
+    // Only inject CSS once when component mounts
+    injectCustomCSS();
+    
+    // Cleanup on unmount
+    return () => {
+      const existingStyle = document.getElementById('gantt-custom-colors');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []); // Empty dependency array - only run once
 
   // Color-coded taskbars - FORCE COLOR UPDATE
   const handleQueryTaskbarInfo = (args: any) => {
@@ -296,13 +253,32 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       backgroundColor: progressColor
     };
     
-    // Force inline styles if possible
-    if (args.taskbarElement) {
-      args.taskbarElement.style.backgroundColor = bgColor;
-      args.taskbarElement.style.borderColor = borderColor;
-    }
-    
     console.log(`🎨 [FINAL COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
+  };
+
+  // Handle data changes and auto-fit columns when new data arrives
+  const handleDataBound = (args: any) => {
+    console.log('📊 Data bound event triggered');
+    
+    // Auto-fit columns after data is bound
+    setTimeout(() => {
+      if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
+        try {
+          console.log('🔧 Auto-fitting columns after data bound');
+          ganttInstance.current.autoFitColumns([
+            'TaskName', 
+            'StartDate', 
+            'Duration', 
+            'EndDate', 
+            'WBSPredecessor', 
+            'Progress', 
+            'Resources'
+          ]);
+        } catch (error: any) {
+          console.log('Auto-fit after data bound failed:', error.message);
+        }
+      }
+    }, 500);
   };
 
   // Handle toolbar clicks
@@ -422,7 +398,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           
           if (updateTask) {
             updateTask.mutate(updateParams, { 
-              onSuccess: () => onSuccess("Task updated successfully"), 
+              onSuccess: () => {
+                onSuccess("Task updated successfully");
+                // Auto-fit columns after update in case task name changed
+                setTimeout(() => {
+                  if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
+                    ganttInstance.current.autoFitColumns(['TaskName']);
+                  }
+                }, 300);
+              }, 
               onError: onError 
             });
           }
@@ -587,17 +571,67 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} 
             queryTaskbarInfo={handleQueryTaskbarInfo}
+            dataBound={handleDataBound}
           >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
-              <ColumnDirective field="WBSCode" headerText="ID" width={50} />
-              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
-              <ColumnDirective field="StartDate" headerText="Start Date" />
-              <ColumnDirective field="Duration" headerText="Duration" />
-              <ColumnDirective field="EndDate" headerText="End Date" />
-              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
-              <ColumnDirective field="Progress" headerText="Progress" />
-              <ColumnDirective field="Resources" headerText="Resources" />
+              <ColumnDirective 
+                field="WBSCode" 
+                headerText="ID" 
+                width="auto" 
+                autoFit={true}
+                minWidth={40}
+              />
+              <ColumnDirective 
+                field="TaskName" 
+                headerText="Task Name" 
+                allowReordering={false} 
+                width="auto" 
+                autoFit={true}
+                minWidth={120}
+              />
+              <ColumnDirective 
+                field="StartDate" 
+                headerText="Start Date" 
+                width="auto" 
+                autoFit={true}
+                minWidth={100}  
+              />
+              <ColumnDirective 
+                field="Duration" 
+                headerText="Duration" 
+                width="auto" 
+                autoFit={true}
+                minWidth={80}
+              />
+              <ColumnDirective 
+                field="EndDate" 
+                headerText="End Date" 
+                width="auto" 
+                autoFit={true}
+                minWidth={100}
+              />
+              <ColumnDirective 
+                field="WBSPredecessor" 
+                headerText="Predecessor" 
+                width="auto" 
+                autoFit={true}
+                minWidth={100}
+              />
+              <ColumnDirective 
+                field="Progress" 
+                headerText="Progress" 
+                width="auto" 
+                autoFit={true}
+                minWidth={80}
+              />
+              <ColumnDirective 
+                field="Resources" 
+                headerText="Resources" 
+                width="auto" 
+                autoFit={true}
+                minWidth={100}
+              />
             </ColumnsDirective>
             
             <EventMarkersDirective>
