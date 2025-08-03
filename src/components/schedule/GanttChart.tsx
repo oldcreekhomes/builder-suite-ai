@@ -25,7 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 
-// Register Syncfusion license
+// Register Syncfusion license key
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXdecXVcR2BZVkF/XkpWYEk=');
 
 interface GanttChartProps {
@@ -40,6 +40,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const { createTask, updateTask, deleteTask } = useTaskMutations(projectId);
   const { resources, isLoading: resourcesLoading } = useProjectResources();
   const { publishSchedule } = usePublishSchedule(projectId);
+  
+  console.log('🔍 GanttChart component rendered, tasks count:', tasks?.length || 0);
   
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     isOpen: false, 
