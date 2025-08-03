@@ -158,92 +158,52 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Color-coded taskbars using native Syncfusion event
   const handleQueryTaskbarInfo = (args: any) => {
-    console.log('🎨 QueryTaskbarInfo fired!', {
-      taskId: args?.data?.TaskID,
-      taskName: args?.data?.TaskName,
-      confirmed: args?.data?.Confirmed,
-      taskDataConfirmed: args?.data?.taskData?.Confirmed,
-      fullData: args?.data
-    });
-    
-    if (!args?.data) {
-      console.log('❌ No args.data in queryTaskbarInfo');
-      return;
-    }
+    if (!args?.data) return;
     
     // Access the confirmed value from taskData where it's actually stored
     const confirmed = args.data.taskData?.Confirmed;
     let bgColor, borderColor, progressColor;
-    
-    console.log('🔍 Confirmed value:', confirmed, 'Type:', typeof confirmed);
     
     // Color logic: Green for confirmed=true, Red for confirmed=false, Blue for pending (null/undefined)
     if (confirmed === true) {
       bgColor = '#22c55e'; // Green for confirmed
       borderColor = '#16a34a'; 
       progressColor = '#15803d';
-      console.log('✅ Applying GREEN colors for confirmed task');
     } else if (confirmed === false) {
       bgColor = '#ef4444'; // Red for denied
       borderColor = '#dc2626'; 
       progressColor = '#b91c1c';
-      console.log('❌ Applying RED colors for denied task');
     } else {
       bgColor = '#3b82f6'; // Blue for pending
       borderColor = '#2563eb'; 
       progressColor = '#1d4ed8';
-      console.log('⏳ Applying BLUE colors for pending task');
     }
-    
-    console.log('🎨 Setting colors:', { bgColor, borderColor, progressColor });
     
     // Apply colors using native Syncfusion properties
     args.taskbarBgColor = bgColor;
     args.taskbarBorderColor = borderColor;
     args.progressBarBgColor = progressColor;
     args.milestoneColor = bgColor;
-    
-    console.log('✅ Colors applied to taskbar');
   };
 
   // Handle data changes and auto-fit columns when new data arrives
   const handleDataBound = (args: any) => {
-    console.log('📊 Data bound event triggered with', ganttData?.length || 0, 'tasks');
-    
-    // Log sample data to verify Confirmed field
-    if (ganttData && ganttData.length > 0) {
-      console.log('📋 Sample task data:', ganttData.slice(0, 3).map(task => ({
-        TaskID: task.TaskID,
-        TaskName: task.TaskName,
-        Confirmed: task.Confirmed
-      })));
-    }
-    
-    // Force refresh of taskbar colors after data is bound
-    setTimeout(() => {
-      if (ganttInstance.current) {
-        try {
-          console.log('🔄 Forcing refresh to apply colors...');
-          ganttInstance.current.refresh();
-          
-          // Auto-fit columns after data is bound
-          if (ganttInstance.current.autoFitColumns) {
-            console.log('🔧 Auto-fitting columns after data bound');
-            ganttInstance.current.autoFitColumns([
-              'TaskName', 
-              'StartDate', 
-              'Duration', 
-              'EndDate', 
-              'WBSPredecessor', 
-              'Progress', 
-              'Resources'
-            ]);
-          }
-        } catch (error: any) {
-          console.log('Refresh/auto-fit after data bound failed:', error.message);
-        }
+    // Auto-fit columns after data is bound - no forced refresh needed
+    if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
+      try {
+        ganttInstance.current.autoFitColumns([
+          'TaskName', 
+          'StartDate', 
+          'Duration', 
+          'EndDate', 
+          'WBSPredecessor', 
+          'Progress', 
+          'Resources'
+        ]);
+      } catch (error: any) {
+        console.log('Auto-fit after data bound failed:', error.message);
       }
-    }, 500);
+    }
   };
 
   // Handle toolbar clicks

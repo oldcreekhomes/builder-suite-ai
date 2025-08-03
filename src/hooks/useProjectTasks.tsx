@@ -64,8 +64,6 @@ export const useProjectTasks = (projectId: string) => {
     queryFn: async () => {
       if (!user || !projectId) return [];
 
-      console.log('Fetching project tasks for project:', projectId);
-
       const { data, error } = await supabase.rpc('get_project_tasks', {
         project_id_param: projectId
       });
@@ -75,11 +73,10 @@ export const useProjectTasks = (projectId: string) => {
         throw error;
       }
 
-      console.log('Raw project tasks data:', data);
       return (data || []) as ProjectTask[];
     },
     enabled: !!user && !!projectId,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 };
