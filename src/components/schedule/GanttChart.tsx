@@ -150,115 +150,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     return () => clearTimeout(timer);
   }, [ganttData.length]); // Only depend on data length, not the entire data object
 
-  // Inject custom CSS for colors AND force refresh - RESTORED FUNCTIONALITY
+  // Simple CSS injection for hiding markers only - NO color CSS
   useEffect(() => {
-    if (!ganttData || ganttData.length === 0) return;
-    
-    const injectCustomCSS = () => {
-      console.log('💉 Injecting custom CSS for SOLID task colors');
-      
+    const injectBaseCSS = () => {
       // Remove existing custom styles
       const existingStyle = document.getElementById('gantt-custom-colors');
       if (existingStyle) {
         existingStyle.remove();
       }
       
-      // Create CSS rules based on current data
-      let css = `
+      // Only inject CSS to hide event markers
+      const css = `
         /* HIDE ALL EVENT MARKERS (Project Start, etc.) */
         .e-gantt .e-event-markers,
         .e-gantt .e-gantt-chart .e-event-markers,
         .e-gantt-chart-container .e-event-markers {
           display: none !important;
         }
-        
-        /* GLOBAL: Remove all blue backgrounds from taskbars */
-        .e-gantt .e-gantt-chart .e-gantt-child-taskbar,
-        .e-gantt .e-gantt-chart .e-gantt-child-taskbar-inner-div,
-        .e-gantt .e-gantt-chart .e-gantt-child-taskbar-progress-div,
-        .e-gantt .e-gantt-chart .e-taskbar-left-resizer,
-        .e-gantt .e-gantt-chart .e-taskbar-right-resizer {
-          background-image: none !important;
-          background: transparent !important;
-          box-shadow: none !important;
-        }
       `;
       
-      ganttData.forEach((task, index) => {
-        let bgColor = '#3b82f6'; // Default blue
-        let borderColor = '#2563eb';
-        
-        if (task.Confirmed === true) {
-          bgColor = '#22c55e'; // Green
-          borderColor = '#16a34a';
-        } else if (task.Confirmed === false) {
-          bgColor = '#ef4444'; // Red
-          borderColor = '#dc2626';
-        }
-        
-        // AGGRESSIVE targeting of ALL possible taskbar elements
-        css += `
-          /* Target by row position */
-          .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar,
-          .e-gantt-chart-container tr:nth-child(${index + 1}) .e-gantt-child-taskbar *,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar *,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-inner-div,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar-progress-div,
-          
-          /* Target by task ID if available */
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar *,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-inner-div,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar-progress-div {
-            background: ${bgColor} !important;
-            background-color: ${bgColor} !important;
-            background-image: none !important;
-            border: 2px solid ${borderColor} !important;
-            border-color: ${borderColor} !important;
-            opacity: 1 !important;
-            box-shadow: none !important;
-          }
-          
-          /* Remove pseudo-elements that might add blue backgrounds */
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::before,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container:nth-child(${index + 1}) .e-gantt-child-taskbar::after,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::before,
-          .e-gantt .e-gantt-chart .e-taskbar-main-container[data-task-id="${task.TaskID}"] .e-gantt-child-taskbar::after {
-            display: none !important;
-            background: none !important;
-          }
-        `;
-      });
-      
-      // Inject the CSS
       const style = document.createElement('style');
       style.id = 'gantt-custom-colors';
       style.textContent = css;
       document.head.appendChild(style);
       
-      console.log('✅ SOLID custom CSS injected for', ganttData.length, 'tasks with markers hidden');
+      console.log('✅ Base CSS injected - markers hidden');
     };
 
-    // Inject CSS and refresh when data changes
-    const timer = setTimeout(() => {
-      injectCustomCSS();
-      
-      // Force refresh for colors to apply
-      if (ganttInstance.current && ganttData.length > 0) {
-        console.log('🔄 Refreshing Gantt for colors');
-        try {
-          ganttInstance.current.refresh();
-        } catch (error: any) {
-          console.log('Refresh error (harmless):', error.message);
-        }
-      }
-    }, 500);
+    injectBaseCSS();
     
-    return () => clearTimeout(timer);
-  }, [ganttData]) // Watch ganttData for changes to update colors
+    return () => {
+      const existingStyle = document.getElementById('gantt-custom-colors');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, [])
 
-  // Color-coded taskbars - FORCE COLOR UPDATE
+  // Color-coded taskbars using native Syncfusion event - FIXED LOGIC
   const handleQueryTaskbarInfo = (args: any) => {
     if (!args || !args.data) {
       console.log('❌ No args or data in handleQueryTaskbarInfo');
@@ -272,43 +201,35 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
     console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
     
-    // FORCE color application with multiple methods
     let bgColor, borderColor, progressColor;
     
+    // FIXED LOGIC: Check for exact boolean values
     if (confirmed === true) {
       console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
-      bgColor = '#22c55e';
+      bgColor = '#22c55e'; // Green
       borderColor = '#16a34a'; 
       progressColor = '#15803d';
     } else if (confirmed === false) {
       console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
-      bgColor = '#ef4444';
+      bgColor = '#ef4444'; // Red
       borderColor = '#dc2626'; 
       progressColor = '#b91c1c';
     } else {
-      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (${confirmed})`);
-      bgColor = '#3b82f6';
+      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (null/undefined: ${confirmed})`);
+      bgColor = '#3b82f6'; // Blue
       borderColor = '#2563eb'; 
       progressColor = '#1d4ed8';
     }
     
-    // Apply colors using multiple properties to ensure it works
+    // Apply colors to taskbar using native Syncfusion properties
     args.taskbarBgColor = bgColor;
     args.taskbarBorderColor = borderColor;
     args.progressBarBgColor = progressColor;
     
-    // Additional force methods
-    args.taskbarStyle = {
-      backgroundColor: bgColor,
-      borderColor: borderColor,
-      border: `2px solid ${borderColor}`
-    };
+    // Set milestone color if it's a milestone
+    args.milestoneColor = bgColor;
     
-    args.progressBarStyle = {
-      backgroundColor: progressColor
-    };
-    
-    console.log(`🎨 [FINAL COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
+    console.log(`🎨 [APPLIED COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
   };
 
   // Handle data changes and auto-fit columns when new data arrives
