@@ -47,26 +47,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  const [debugInfo, setDebugInfo] = useState('');
-
-  // Transform database tasks to Syncfusion format with CONFIRMATION DEBUG
+  // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
-    console.log('🔄 Regenerating ganttData with tasks:', tasks?.length || 0);
-    
     if (!tasks || tasks.length === 0) {
-      console.log('📝 No tasks found, returning empty array');
       return [];
     }
     
-    const transformedData = tasks.map((task) => {
-      // DEBUG: Log the raw confirmation value from database
-      console.log(`🔍 RAW TASK DATA for "${task.task_name}":`, {
-        id: task.id,
-        confirmed: task.confirmed,
-        confirmedType: typeof task.confirmed,
-        rawTask: task
-      });
-
+    return tasks.map((task) => {
       let resourceNames = null;
       if (task.resources && resources && resources.length > 0) {
         const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
@@ -84,7 +71,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           .join(', ');
       }
 
-      const transformedTask = {
+      return {
         TaskID: String(task.id),
         TaskName: task.task_name || 'Untitled Task',
         StartDate: new Date(task.start_date),
@@ -94,30 +81,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         ParentID: task.parent_id ? String(task.parent_id) : null,
         Predecessor: task.predecessor || null,
         Resources: resourceNames || task.resources || null,
-        Confirmed: task.confirmed, // Direct assignment - no (task as any)
+        Confirmed: task.confirmed,
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
       };
-      
-      // DEBUG: Log the transformed task confirmation status
-      console.log(`✅ TRANSFORMED TASK "${transformedTask.TaskName}":`, {
-        TaskID: transformedTask.TaskID,
-        Confirmed: transformedTask.Confirmed,
-        ConfirmedType: typeof transformedTask.Confirmed
-      });
-      
-      return transformedTask;
     });
-    
-    // DEBUG: Summary of all confirmation statuses
-    const confirmationSummary = transformedData.map(t => ({
-      name: t.TaskName,
-      confirmed: t.Confirmed,
-      type: typeof t.Confirmed
-    }));
-    console.log('📊 CONFIRMATION SUMMARY:', confirmationSummary);
-    
-    return transformedData;
   }, [tasks, resources]);
 
   // Auto-fit columns using native Syncfusion feature - only call once after data is loaded
@@ -129,7 +97,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         try {
           const ganttElement = ganttInstance.current.element;
           if (ganttElement && ganttElement.querySelector('.e-gantt')) {
-            console.log('🔧 Auto-fitting columns to content width');
             // Use native Syncfusion autoFitColumns method
             ganttInstance.current.autoFitColumns([
               'TaskName', 
@@ -174,7 +141,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       style.textContent = css;
       document.head.appendChild(style);
       
-      console.log('✅ Base CSS injected - markers hidden');
+      
     };
 
     injectBaseCSS();
@@ -187,49 +154,33 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     };
   }, [])
 
-  // Color-coded taskbars using native Syncfusion event - FIXED LOGIC
+  // Color-coded taskbars using native Syncfusion event
   const handleQueryTaskbarInfo = (args: any) => {
-    if (!args || !args.data) {
-      console.log('❌ No args or data in handleQueryTaskbarInfo');
-      return;
-    }
+    if (!args?.data) return;
     
     const confirmed = args.data.Confirmed;
-    const taskName = args.data.TaskName;
-    const taskId = args.data.TaskID;
-    
-    console.log(`🎨 [COLOR CHECK] Task ID: ${taskId} | Name: "${taskName}"`);
-    console.log(`🎨 [COLOR CHECK] Confirmed value: ${confirmed} | Type: ${typeof confirmed}`);
-    
     let bgColor, borderColor, progressColor;
     
-    // FIXED LOGIC: Check for exact boolean values
+    // Color logic: Green for confirmed=true, Red for confirmed=false, Blue for pending (null/undefined)
     if (confirmed === true) {
-      console.log(`✅ APPLYING GREEN - Task "${taskName}" is CONFIRMED (true)`);
-      bgColor = '#22c55e'; // Green
+      bgColor = '#22c55e'; // Green for confirmed
       borderColor = '#16a34a'; 
       progressColor = '#15803d';
     } else if (confirmed === false) {
-      console.log(`❌ APPLYING RED - Task "${taskName}" is DENIED (false)`);
-      bgColor = '#ef4444'; // Red
+      bgColor = '#ef4444'; // Red for denied
       borderColor = '#dc2626'; 
       progressColor = '#b91c1c';
     } else {
-      console.log(`🔵 APPLYING BLUE - Task "${taskName}" is PENDING (null/undefined: ${confirmed})`);
-      bgColor = '#3b82f6'; // Blue
+      bgColor = '#3b82f6'; // Blue for pending
       borderColor = '#2563eb'; 
       progressColor = '#1d4ed8';
     }
     
-    // Apply colors to taskbar using native Syncfusion properties
+    // Apply colors using native Syncfusion properties
     args.taskbarBgColor = bgColor;
     args.taskbarBorderColor = borderColor;
     args.progressBarBgColor = progressColor;
-    
-    // Set milestone color if it's a milestone
     args.milestoneColor = bgColor;
-    
-    console.log(`🎨 [APPLIED COLORS] Background: ${bgColor} | Border: ${borderColor} | Progress: ${progressColor}`);
   };
 
   // Handle data changes and auto-fit columns when new data arrives
@@ -461,7 +412,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         <div>
           <h3>Error loading tasks:</h3>
           <p>{error.message || 'Unknown error'}</p>
-          <p className="text-sm text-gray-500 mt-2">Debug: {debugInfo}</p>
         </div>
       </div>
     );
@@ -472,7 +422,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       <div className="control-section">
         <div className="col-lg-12">
           <div className="mb-2 text-sm text-gray-500">
-            Debug: {debugInfo} | Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
+            Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
           </div>
           
           <DeleteConfirmationDialog
