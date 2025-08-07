@@ -497,6 +497,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             showColumnMenu={true}
             columnMenuItems={['AutoFitAll', 'ColumnChooser']}
             allowAutoFit={true}
+            allowReordering={true}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
@@ -513,13 +514,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 field="WBSCode" 
                 headerText="ID" 
                 allowResizing={true}
-                showInColumnChooser={false}
               />
               <ColumnDirective 
                 field="TaskName" 
                 headerText="Task Name" 
                 allowReordering={false}
                 allowResizing={true}
+                showInColumnChooser={false}
               />
               <ColumnDirective 
                 field="StartDate" 
