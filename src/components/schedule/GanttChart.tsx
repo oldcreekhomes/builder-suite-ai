@@ -14,6 +14,7 @@ import {
   ContextMenu,
   EventMarkersDirective,
   EventMarkerDirective,
+  ColumnMenu,
 } from "@syncfusion/ej2-react-gantt";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
@@ -493,6 +494,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowUnscheduledTasks={true}
+            showColumnMenu={true}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
@@ -560,7 +562,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu, ColumnMenu]} />
           </GanttComponent>
         </div>
       </div>
