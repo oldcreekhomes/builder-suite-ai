@@ -90,6 +90,33 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
+  // Auto-fit columns helper function
+  const autoFitAllColumns = () => {
+    if (ganttInstance.current) {
+      try {
+        // Use a small delay to ensure DOM is ready
+        setTimeout(() => {
+          if (ganttInstance.current) {
+            // Auto-fit all columns
+            ganttInstance.current.autoFitColumns([
+              'WBSCode',      // ID column
+              'TaskName',     // Task Name column  
+              'StartDate',
+              'Duration',
+              'EndDate',
+              'WBSPredecessor',
+              'Progress',
+              'Resources'
+            ]);
+            
+            console.log('✅ Auto-fit columns applied successfully');
+          }
+        }, 100);
+      } catch (error: any) {
+        console.log('❌ Auto-fit columns failed:', error.message);
+      }
+    }
+  };
 
   // Simple CSS injection for hiding markers only - NO color CSS
   useEffect(() => {
@@ -114,8 +141,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       style.id = 'gantt-custom-colors';
       style.textContent = css;
       document.head.appendChild(style);
-      
-      
     };
 
     injectBaseCSS();
@@ -160,21 +185,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Handle data changes and auto-fit columns when new data arrives
   const handleDataBound = (args: any) => {
-    if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
-      try {
-        ganttInstance.current.autoFitColumns([
-          'TaskName', 
-          'StartDate', 
-          'Duration', 
-          'EndDate', 
-          'WBSPredecessor', 
-          'Progress', 
-          'Resources'
-        ]);
-      } catch (error: any) {
-        console.log('Auto-fit after data bound failed:', error.message);
-      }
-    }
+    console.log('📊 Data bound event triggered');
+    autoFitAllColumns();
+  };
+
+  // Handle when Gantt is fully created/rendered
+  const handleCreated = (args: any) => {
+    console.log('🎨 Gantt created event triggered');
+    autoFitAllColumns();
   };
 
   // Handle toolbar clicks
@@ -214,6 +232,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           onSuccess: (response) => {
             console.log('✅ Task created successfully:', response);
             toast({ title: "Success", description: "Task created successfully" });
+            // Auto-fit columns after adding new task
+            setTimeout(() => autoFitAllColumns(), 200);
           },
           onError: (error: any) => {
             console.error('❌ Task creation failed:', error);
@@ -262,6 +282,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const onSuccess = (msg: string) => {
       console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
+      // Auto-fit columns after any data change
+      setTimeout(() => autoFitAllColumns(), 200);
     };
     
     const onError = (error: any) => {
@@ -294,15 +316,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           
           if (updateTask) {
             updateTask.mutate(updateParams, { 
-              onSuccess: () => {
-                onSuccess("Task updated successfully");
-                // Auto-fit columns after update in case task name changed
-                setTimeout(() => {
-                  if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
-                    ganttInstance.current.autoFitColumns(['TaskName']);
-                  }
-                }, 300);
-              }, 
+              onSuccess: () => onSuccess("Task updated successfully"), 
               onError: onError 
             });
           }
@@ -353,6 +367,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+          // Auto-fit columns after deletion
+          setTimeout(() => autoFitAllColumns(), 200);
         },
         onError: (error: any) => {
           toast({ 
@@ -461,24 +477,61 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             taskbarHeight={20} 
             rowHeight={40}
             allowResizing={true} 
-            
             allowUnscheduledTasks={true}
+            
+            // Event handlers
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} 
             queryTaskbarInfo={handleQueryTaskbarInfo}
             dataBound={handleDataBound}
+            created={handleCreated}
            >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
-              <ColumnDirective field="WBSCode" headerText="ID" />
-              <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
-              <ColumnDirective field="StartDate" headerText="Start Date" />
-              <ColumnDirective field="Duration" headerText="Duration" />
-              <ColumnDirective field="EndDate" headerText="End Date" />
-              <ColumnDirective field="WBSPredecessor" headerText="Predecessor" />
-              <ColumnDirective field="Progress" headerText="Progress" />
-              <ColumnDirective field="Resources" headerText="Resources" />
+              <ColumnDirective 
+                field="WBSCode" 
+                headerText="ID" 
+                width="60"
+                minWidth="50"
+                maxWidth="100"
+              />
+              <ColumnDirective 
+                field="TaskName" 
+                headerText="Task Name" 
+                allowReordering={false}
+                minWidth="150"
+              />
+              <ColumnDirective 
+                field="StartDate" 
+                headerText="Start Date"
+                width="120"
+              />
+              <ColumnDirective 
+                field="Duration" 
+                headerText="Duration"
+                width="80"
+              />
+              <ColumnDirective 
+                field="EndDate" 
+                headerText="End Date"
+                width="120"
+              />
+              <ColumnDirective 
+                field="WBSPredecessor" 
+                headerText="Predecessor"
+                width="100"
+              />
+              <ColumnDirective 
+                field="Progress" 
+                headerText="Progress"
+                width="80"
+              />
+              <ColumnDirective 
+                field="Resources" 
+                headerText="Resources"
+                minWidth="120"
+              />
             </ColumnsDirective>
             
             <EventMarkersDirective>
