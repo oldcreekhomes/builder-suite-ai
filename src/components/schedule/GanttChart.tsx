@@ -90,17 +90,37 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Auto-fit columns helper function - call autofit without column array to fit ALL
+  // Auto-fit columns helper function - multiple approaches
   const autoFitAllColumns = () => {
     if (ganttInstance.current) {
       try {
         setTimeout(() => {
           if (ganttInstance.current) {
-            // Call autoFitColumns() without parameters to auto-fit ALL columns
+            // Try multiple approaches to force auto-fit
+            
+            // Approach 1: Call autoFitColumns without parameters
             ganttInstance.current.autoFitColumns();
-            console.log('✅ Auto-fit ALL columns applied successfully');
+            
+            // Approach 2: Try accessing the grid directly
+            if (ganttInstance.current.treeGrid && ganttInstance.current.treeGrid.autoFitColumns) {
+              ganttInstance.current.treeGrid.autoFitColumns();
+            }
+            
+            // Approach 3: Force refresh and then auto-fit
+            setTimeout(() => {
+              if (ganttInstance.current) {
+                ganttInstance.current.refresh();
+                setTimeout(() => {
+                  if (ganttInstance.current) {
+                    ganttInstance.current.autoFitColumns();
+                  }
+                }, 100);
+              }
+            }, 100);
+            
+            console.log('✅ Multiple auto-fit attempts completed');
           }
-        }, 300);
+        }, 500); // Increased delay
       } catch (error: any) {
         console.log('❌ Auto-fit columns failed:', error.message);
       }
@@ -175,11 +195,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Handle data changes and auto-fit columns when new data arrives
   const handleDataBound = (args: any) => {
     console.log('📊 Data bound event triggered');
+    autoFitAllColumns();
   };
 
   // Handle when Gantt is fully created/rendered
   const handleCreated = (args: any) => {
     console.log('🎨 Gantt created event triggered');
+    autoFitAllColumns();
+  };
+
+  // Handle when data is loaded/changed
+  const handleLoad = (args: any) => {
+    console.log('📂 Gantt load event triggered');
+    autoFitAllColumns();
   };
 
   // Handle toolbar clicks
@@ -219,6 +247,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           onSuccess: (response) => {
             console.log('✅ Task created successfully:', response);
             toast({ title: "Success", description: "Task created successfully" });
+            // Auto-fit columns after adding new task
+            setTimeout(() => autoFitAllColumns(), 200);
           },
           onError: (error: any) => {
             console.error('❌ Task creation failed:', error);
@@ -267,6 +297,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const onSuccess = (msg: string) => {
       console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
+      // Auto-fit columns after any data change
+      setTimeout(() => autoFitAllColumns(), 200);
     };
     
     const onError = (error: any) => {
@@ -350,6 +382,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+          // Auto-fit columns after deletion
+          setTimeout(() => autoFitAllColumns(), 200);
         },
         onError: (error: any) => {
           toast({ 
@@ -459,7 +493,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowUnscheduledTasks={true}
-            {...({ columnWidthMode: 'FitByCell' } as any)}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
@@ -468,6 +501,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             queryTaskbarInfo={handleQueryTaskbarInfo}
             dataBound={handleDataBound}
             created={handleCreated}
+            load={handleLoad}
            >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
