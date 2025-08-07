@@ -496,8 +496,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             allowUnscheduledTasks={true}
             showColumnMenu={true}
             columnMenuItems={['AutoFitAll', 'ColumnChooser']}
-            allowAutoFit={true}
             allowReordering={true}
+            autoFitColumns={true}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
