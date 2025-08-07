@@ -480,7 +480,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             resourceFields={{ id: 'resourceId', name: 'resourceName' }}
             resources={resources}
             treeColumnIndex={2} 
-            allowSorting={false} 
+            allowSorting={true} 
             enableContextMenu={true}
             addDialogFields={[]} 
             enableWBS={true} 
@@ -511,50 +511,42 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="TaskName" 
                 headerText="Task Name" 
                 allowReordering={false}
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="StartDate" 
                 headerText="Start Date"
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Duration" 
                 headerText="Duration"
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="EndDate" 
                 headerText="End Date"
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="WBSPredecessor" 
                 headerText="Predecessor"
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Progress" 
                 headerText="Progress"
-                allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Resources" 
                 headerText="Resources"
-                allowSorting={false}
                 allowResizing={true}
               />
             </ColumnsDirective>
@@ -563,7 +555,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu, ColumnMenu]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu]} />
           </GanttComponent>
         </div>
       </div>
