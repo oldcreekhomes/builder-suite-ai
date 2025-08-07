@@ -175,13 +175,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Handle data changes and auto-fit columns when new data arrives
   const handleDataBound = (args: any) => {
     console.log('📊 Data bound event triggered');
-    autoFitAllColumns();
   };
 
   // Handle when Gantt is fully created/rendered
   const handleCreated = (args: any) => {
     console.log('🎨 Gantt created event triggered');
-    autoFitAllColumns();
   };
 
   // Handle toolbar clicks
@@ -221,8 +219,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           onSuccess: (response) => {
             console.log('✅ Task created successfully:', response);
             toast({ title: "Success", description: "Task created successfully" });
-            // Auto-fit columns after adding new task
-            setTimeout(() => autoFitAllColumns(), 200);
           },
           onError: (error: any) => {
             console.error('❌ Task creation failed:', error);
@@ -271,8 +267,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const onSuccess = (msg: string) => {
       console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
-      // Auto-fit columns after any data change
-      setTimeout(() => autoFitAllColumns(), 200);
     };
     
     const onError = (error: any) => {
@@ -356,8 +350,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
-          // Auto-fit columns after deletion
-          setTimeout(() => autoFitAllColumns(), 200);
         },
         onError: (error: any) => {
           toast({ 
@@ -467,6 +459,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowUnscheduledTasks={true}
+            {...({ columnWidthMode: 'FitByCell' } as any)}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
