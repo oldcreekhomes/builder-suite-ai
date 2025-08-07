@@ -83,7 +83,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Duration: task.duration || 1,
         Progress: task.progress || 0,
         ParentID: task.parent_id ? String(task.parent_id) : null,
-        Predecessor: task.predecessor || null,
+        Predecessor: task.predecessor ? String(task.predecessor) : '',
         Resources: resourceNames || task.resources || null,
         Confirmed: task.confirmed,
         ConfirmationToken: (task as any).confirmation_token || null,
@@ -488,6 +488,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             load={handleLoad}
            >
             <ColumnsDirective>
+              {/* @ts-ignore - hide internal TaskID from chooser */}
+              <ColumnDirective field="TaskID" visible={false} showInColumnChooser={false} />
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
