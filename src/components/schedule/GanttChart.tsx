@@ -509,7 +509,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             load={handleLoad}
            >
             <ColumnsDirective>
-              <ColumnDirective field="TaskID" visible={false} />
+              <ColumnDirective field="TaskID" visible={false} showInColumnChooser={false} />
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
@@ -520,7 +520,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 headerText="Task Name" 
                 allowReordering={false}
                 allowResizing={true}
-                showInColumnChooser={false}
               />
               <ColumnDirective 
                 field="StartDate" 
