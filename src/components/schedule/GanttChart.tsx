@@ -488,7 +488,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             load={handleLoad}
            >
             <ColumnsDirective>
-              <ColumnDirective field="TaskID" visible={false} />
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
