@@ -14,7 +14,6 @@ import {
   ContextMenu,
   EventMarkersDirective,
   EventMarkerDirective,
-  ColumnMenu,
 } from "@syncfusion/ej2-react-gantt";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
@@ -91,18 +90,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Auto-fit columns helper function
+  // Auto-fit columns helper function - call autofit without column array to fit ALL
   const autoFitAllColumns = () => {
     if (ganttInstance.current) {
       try {
-        // Use a small delay to ensure DOM is ready
         setTimeout(() => {
           if (ganttInstance.current) {
-            // Try to auto-fit specific columns
-            ganttInstance.current.autoFitColumns(['TaskName']);
-            console.log('✅ Auto-fit TaskName column applied');
+            // Call autoFitColumns() without parameters to auto-fit ALL columns
+            ganttInstance.current.autoFitColumns();
+            console.log('✅ Auto-fit ALL columns applied successfully');
           }
-        }, 100);
+        }, 300);
       } catch (error: any) {
         console.log('❌ Auto-fit columns failed:', error.message);
       }
@@ -469,7 +467,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             rowHeight={40}
             allowResizing={true} 
             allowUnscheduledTasks={true}
-            showColumnMenu={true}
             
             // Event handlers
             toolbarClick={handleToolbarClick} 
@@ -484,7 +481,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
-                width="50"
                 allowSorting={false}
                 allowResizing={true}
               />
@@ -492,49 +488,42 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 field="TaskName" 
                 headerText="Task Name" 
                 allowReordering={false}
-                width="200"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="StartDate" 
                 headerText="Start Date"
-                width="100"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Duration" 
                 headerText="Duration"
-                width="80"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="EndDate" 
                 headerText="End Date"
-                width="100"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="WBSPredecessor" 
                 headerText="Predecessor"
-                width="100"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Progress" 
                 headerText="Progress"
-                width="80"
                 allowSorting={false}
                 allowResizing={true}
               />
               <ColumnDirective 
                 field="Resources" 
                 headerText="Resources"
-                width="120"
                 allowSorting={false}
                 allowResizing={true}
               />
@@ -544,7 +533,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu, ColumnMenu]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu]} />
           </GanttComponent>
         </div>
       </div>
