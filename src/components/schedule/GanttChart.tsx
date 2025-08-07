@@ -90,34 +90,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     });
   }, [tasks, resources]);
 
-  // Auto-fit columns using native Syncfusion feature - only call once after data is loaded
-  useEffect(() => {
-    if (!ganttData || ganttData.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      if (ganttInstance.current && ganttInstance.current.element) {
-        try {
-          const ganttElement = ganttInstance.current.element;
-          if (ganttElement && ganttElement.querySelector('.e-gantt')) {
-            // Use native Syncfusion autoFitColumns method
-            ganttInstance.current.autoFitColumns([
-              'TaskName', 
-              'StartDate', 
-              'Duration', 
-              'EndDate', 
-              'WBSPredecessor', 
-              'Progress', 
-              'Resources'
-            ]);
-          }
-        } catch (error: any) {
-          console.log('Auto-fit skipped:', error.message);
-        }
-      }
-    }, 1000); // Increased delay to ensure data is fully rendered
-    
-    return () => clearTimeout(timer);
-  }, [ganttData.length]); // Only depend on data length, not the entire data object
 
   // Simple CSS injection for hiding markers only - NO color CSS
   useEffect(() => {
@@ -188,7 +160,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Handle data changes and auto-fit columns when new data arrives
   const handleDataBound = (args: any) => {
-    // Auto-fit columns after data is bound - no forced refresh needed
     if (ganttInstance.current && ganttInstance.current.autoFitColumns) {
       try {
         ganttInstance.current.autoFitColumns([
@@ -490,16 +461,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             taskbarHeight={20} 
             rowHeight={40}
             allowResizing={true} 
+            
             allowUnscheduledTasks={true}
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} 
             queryTaskbarInfo={handleQueryTaskbarInfo}
             dataBound={handleDataBound}
-          >
+           >
             <ColumnsDirective>
               <ColumnDirective field="TaskID" visible={false} />
-              <ColumnDirective field="WBSCode" headerText="ID" width={50} />
+              <ColumnDirective field="WBSCode" headerText="ID" />
               <ColumnDirective field="TaskName" headerText="Task Name" allowReordering={false} />
               <ColumnDirective field="StartDate" headerText="Start Date" />
               <ColumnDirective field="Duration" headerText="Duration" />
