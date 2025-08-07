@@ -514,42 +514,50 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 field="WBSCode" 
                 headerText="ID" 
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="TaskName" 
                 headerText="Task Name" 
                 allowReordering={false}
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="StartDate" 
                 headerText="Start Date"
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="Duration" 
                 headerText="Duration"
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="EndDate" 
                 headerText="End Date"
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="WBSPredecessor" 
                 headerText="Predecessor"
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="Progress" 
                 headerText="Progress"
                 allowResizing={true}
+                allowSorting={false}
               />
               <ColumnDirective 
                 field="Resources" 
                 headerText="Resources"
                 allowResizing={true}
+                allowSorting={false}
               />
             </ColumnsDirective>
             
