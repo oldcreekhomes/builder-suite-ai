@@ -97,19 +97,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         // Use a small delay to ensure DOM is ready
         setTimeout(() => {
           if (ganttInstance.current) {
-            // Auto-fit all columns
-            ganttInstance.current.autoFitColumns([
-              'WBSCode',      // ID column
-              'TaskName',     // Task Name column  
-              'StartDate',
-              'Duration',
-              'EndDate',
-              'WBSPredecessor',
-              'Progress',
-              'Resources'
-            ]);
-            
-            console.log('✅ Auto-fit columns applied successfully');
+            // Try to auto-fit specific columns
+            ganttInstance.current.autoFitColumns(['TaskName']);
+            console.log('✅ Auto-fit TaskName column applied');
           }
         }, 100);
       } catch (error: any) {
@@ -464,7 +454,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             resourceFields={{ id: 'resourceId', name: 'resourceName' }}
             resources={resources}
             treeColumnIndex={2} 
-            allowSorting={true} 
+            allowSorting={false} 
             enableContextMenu={true}
             addDialogFields={[]} 
             enableWBS={true} 
@@ -492,45 +482,59 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <ColumnDirective 
                 field="WBSCode" 
                 headerText="ID" 
-                width="60"
-                minWidth="50"
-                maxWidth="100"
+                width="50"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="TaskName" 
                 headerText="Task Name" 
                 allowReordering={false}
-                minWidth="150"
+                width="200"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="StartDate" 
                 headerText="Start Date"
-                width="120"
+                width="100"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="Duration" 
                 headerText="Duration"
                 width="80"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="EndDate" 
                 headerText="End Date"
-                width="120"
+                width="100"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="WBSPredecessor" 
                 headerText="Predecessor"
                 width="100"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="Progress" 
                 headerText="Progress"
                 width="80"
+                allowSorting={false}
+                allowResizing={true}
               />
               <ColumnDirective 
                 field="Resources" 
                 headerText="Resources"
-                minWidth="120"
+                width="120"
+                allowSorting={false}
+                allowResizing={true}
               />
             </ColumnsDirective>
             
@@ -538,7 +542,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, ContextMenu]} />
           </GanttComponent>
         </div>
       </div>
