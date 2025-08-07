@@ -94,38 +94,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Auto-fit columns helper function - multiple approaches
   const autoFitAllColumns = () => {
-    if (ganttInstance.current) {
-      try {
-        setTimeout(() => {
-          if (ganttInstance.current) {
-            // Try multiple approaches to force auto-fit
-            
-            // Approach 1: Call autoFitColumns without parameters
-            ganttInstance.current.autoFitColumns();
-            
-            // Approach 2: Try accessing the grid directly
-            if (ganttInstance.current.treeGrid && ganttInstance.current.treeGrid.autoFitColumns) {
-              ganttInstance.current.treeGrid.autoFitColumns();
-            }
-            
-            // Approach 3: Force refresh and then auto-fit
-            setTimeout(() => {
-              if (ganttInstance.current) {
-                ganttInstance.current.refresh();
-                setTimeout(() => {
-                  if (ganttInstance.current) {
-                    ganttInstance.current.autoFitColumns();
-                  }
-                }, 100);
-              }
-            }, 100);
-            
-            console.log('✅ Multiple auto-fit attempts completed');
-          }
-        }, 500); // Increased delay
-      } catch (error: any) {
-        console.log('❌ Auto-fit columns failed:', error.message);
+    if (!ganttInstance.current) return;
+    try {
+      // Only auto-fit columns without forcing a full refresh to avoid infinite load loops
+      ganttInstance.current.autoFitColumns();
+      if ((ganttInstance.current as any).treeGrid?.autoFitColumns) {
+        (ganttInstance.current as any).treeGrid.autoFitColumns();
       }
+      console.log('✅ Auto-fit applied without refresh');
+    } catch (error: any) {
+      console.log('❌ Auto-fit columns failed:', error.message);
     }
   };
 
@@ -209,7 +187,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Handle when data is loaded/changed
   const handleLoad = (args: any) => {
     console.log('📂 Gantt load event triggered');
-    autoFitAllColumns();
+    // Prevent re-entrant auto-fit loops; handled in created/dataBound
   };
 
   // Handle toolbar clicks
