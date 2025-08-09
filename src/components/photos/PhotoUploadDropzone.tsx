@@ -236,7 +236,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
           <input {...getInputProps()} />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {isDragActive ? 'Drop photos here' : 'Upload photos or photo folders'}
+            {isDragActive ? 'Drop photos here' : 'Upload photos by dragging and dropping'}
           </h3>
           <p className="text-gray-600 mb-4">
             Drag and drop photos or folders here, or use the buttons below to select files.
