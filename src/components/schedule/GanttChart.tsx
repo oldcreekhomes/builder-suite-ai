@@ -358,7 +358,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           
           if (updateTask) {
             updateTask.mutate(dragParams, { 
-              onSuccess: () => onSuccess("Task moved successfully"), 
+              onSuccess: () => {
+                onSuccess("Task moved successfully");
+                // Delay the refresh to let database commit
+                setTimeout(() => {
+                  console.log('🔄 Manually refreshing data after drag save...');
+                  queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+                }, 1000); // 1 second delay
+              }, 
               onError: onError 
             });
           }
@@ -388,9 +395,18 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                   parent_id: newParentId
                 };
                 
+                console.log('🎯 Saving parent change:', parentChangeParams);
+                
                 if (updateTask) {
                   updateTask.mutate(parentChangeParams, { 
-                    onSuccess: () => onSuccess("Task parent updated"), 
+                    onSuccess: () => {
+                      onSuccess("Task parent updated");
+                      // Delay the refresh to let database commit
+                      setTimeout(() => {
+                        console.log('🔄 Manually refreshing data after parent change...');
+                        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+                      }, 1000); // 1 second delay
+                    }, 
                     onError: onError 
                   });
                 }
