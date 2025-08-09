@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Home } from "lucide-react";
 
 interface SimpleFile {
   id: string;
@@ -90,7 +90,7 @@ export function MoveFilesModal({
   };
 
   const handleMove = async () => {
-    if (!selectedFolder) {
+    if (selectedFolder === undefined || selectedFolder === null) {
       toast({
         title: "Select Destination",
         description: "Please select a folder",
@@ -113,69 +113,137 @@ export function MoveFilesModal({
     try {
       console.log(`Starting to move ${selectedFiles.length} files to "${selectedFolder}"`);
       
-      // Get existing files in target folder to check for conflicts
-      const { data: existingFiles } = await supabase
-        .from('project_files')
-        .select('original_filename')
-        .eq('project_id', projectId)
-        .eq('is_deleted', false)
-        .ilike('original_filename', `${selectedFolder}/%`);
-
-      const existingFilenames = new Set(
-        existingFiles?.map(f => f.original_filename?.split('/').pop()) || []
-      );
-
       let successCount = 0;
       let failureCount = 0;
       const failures: string[] = [];
 
-      // Process files sequentially to avoid race conditions
-      for (const file of selectedFiles) {
-        try {
-          console.log(`Processing file: ${file.displayName} (ID: ${file.id})`);
-          
-          // Get just the filename from the original path
-          let filename = file.original_filename?.split('/').pop() || file.displayName;
-          
-          // Handle filename conflicts by appending a number
-          let finalFilename = filename;
-          let counter = 1;
-          while (existingFilenames.has(finalFilename)) {
-            const parts = filename.split('.');
-            if (parts.length > 1) {
-              const ext = parts.pop();
-              const name = parts.join('.');
-              finalFilename = `${name}_${counter}.${ext}`;
-            } else {
-              finalFilename = `${filename}_${counter}`;
-            }
-            counter++;
-          }
-          
-          const newPath = `${selectedFolder}/${finalFilename}`;
-          console.log(`Moving "${file.displayName}" to "${newPath}"`);
-          
-          const { error } = await supabase
-            .from('project_files')
-            .update({ 
-              original_filename: newPath,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', file.id);
+      // Handle root folder case differently
+      if (selectedFolder === "") {
+        // Moving to root folder
+        console.log("Moving files to root folder");
+        
+        // Get existing root files to check for conflicts  
+        const { data: existingFiles } = await supabase
+          .from('project_files')
+          .select('original_filename')
+          .eq('project_id', projectId)
+          .eq('is_deleted', false)
+          .not('original_filename', 'ilike', '%/%'); // Files without folder path
 
-          if (error) {
-            console.error(`Failed to move file ${file.displayName}:`, error);
-            failures.push(`${file.displayName}: ${error.message}`);
+        const existingFilenames = new Set(
+          existingFiles?.map(f => f.original_filename) || []
+        );
+
+        // Process files sequentially to avoid race conditions
+        for (const file of selectedFiles) {
+          try {
+            console.log(`Processing file: ${file.displayName} (ID: ${file.id})`);
+            
+            // Get just the filename from the original path
+            let filename = file.original_filename?.split('/').pop() || file.displayName;
+            
+            // Handle filename conflicts by appending a number
+            let finalFilename = filename;
+            let counter = 1;
+            while (existingFilenames.has(finalFilename)) {
+              const parts = filename.split('.');
+              if (parts.length > 1) {
+                const ext = parts.pop();
+                const name = parts.join('.');
+                finalFilename = `${name}_${counter}.${ext}`;
+              } else {
+                finalFilename = `${filename}_${counter}`;
+              }
+              counter++;
+            }
+            
+            console.log(`Moving "${file.displayName}" to root as "${finalFilename}"`);
+            
+            const { error } = await supabase
+              .from('project_files')
+              .update({ 
+                original_filename: finalFilename,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', file.id);
+
+            if (error) {
+              console.error(`Failed to move file ${file.displayName}:`, error);
+              failures.push(`${file.displayName}: ${error.message}`);
+              failureCount++;
+            } else {
+              console.log(`Successfully moved "${file.displayName}" to root as "${finalFilename}"`);
+              existingFilenames.add(finalFilename); // Add to conflict checker
+              successCount++;
+            }
+          } catch (error) {
+            console.error(`Error processing file ${file.displayName}:`, error);
+            failures.push(`${file.displayName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             failureCount++;
-          } else {
-            console.log(`Successfully moved "${file.displayName}" to "${newPath}"`);
-            existingFilenames.add(finalFilename); // Add to conflict checker
-            successCount++;
           }
-        } catch (error) {
-          console.error(`Error processing file ${file.displayName}:`, error);
-          failures.push(`${file.displayName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          failureCount++;
+        }
+      } else {
+        // Moving to specific folder
+        // Get existing files in target folder to check for conflicts
+        const { data: existingFiles } = await supabase
+          .from('project_files')
+          .select('original_filename')
+          .eq('project_id', projectId)
+          .eq('is_deleted', false)
+          .ilike('original_filename', `${selectedFolder}/%`);
+
+        const existingFilenames = new Set(
+          existingFiles?.map(f => f.original_filename?.split('/').pop()) || []
+        );
+
+        // Process files sequentially to avoid race conditions
+        for (const file of selectedFiles) {
+          try {
+            console.log(`Processing file: ${file.displayName} (ID: ${file.id})`);
+            
+            // Get just the filename from the original path
+            let filename = file.original_filename?.split('/').pop() || file.displayName;
+            
+            // Handle filename conflicts by appending a number
+            let finalFilename = filename;
+            let counter = 1;
+            while (existingFilenames.has(finalFilename)) {
+              const parts = filename.split('.');
+              if (parts.length > 1) {
+                const ext = parts.pop();
+                const name = parts.join('.');
+                finalFilename = `${name}_${counter}.${ext}`;
+              } else {
+                finalFilename = `${filename}_${counter}`;
+              }
+              counter++;
+            }
+            
+            const newPath = `${selectedFolder}/${finalFilename}`;
+            console.log(`Moving "${file.displayName}" to "${newPath}"`);
+            
+            const { error } = await supabase
+              .from('project_files')
+              .update({ 
+                original_filename: newPath,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', file.id);
+
+            if (error) {
+              console.error(`Failed to move file ${file.displayName}:`, error);
+              failures.push(`${file.displayName}: ${error.message}`);
+              failureCount++;
+            } else {
+              console.log(`Successfully moved "${file.displayName}" to "${newPath}"`);
+              existingFilenames.add(finalFilename); // Add to conflict checker
+              successCount++;
+            }
+          } catch (error) {
+            console.error(`Error processing file ${file.displayName}:`, error);
+            failures.push(`${file.displayName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            failureCount++;
+          }
         }
       }
 
@@ -185,7 +253,7 @@ export function MoveFilesModal({
       if (failureCount === 0) {
         toast({
           title: "Success",
-          description: `Moved ${successCount} file(s) to "${selectedFolder}" folder`,
+          description: `Moved ${successCount} file(s) to ${selectedFolder === "" ? "root folder" : `"${selectedFolder}" folder`}`,
         });
         onSuccess();
         handleClose();
@@ -239,10 +307,18 @@ export function MoveFilesModal({
               <SelectTrigger>
                 <SelectValue placeholder="Choose a folder..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto bg-white border border-gray-200 shadow-lg z-50">
+                {/* Add Root folder option */}
+                <SelectItem value="">
+                  <div className="flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    Root / (Move to root folder)
+                  </div>
+                </SelectItem>
+                
                 {folders.length === 0 ? (
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                    No existing folders
+                    No other existing folders
                   </div>
                 ) : (
                   folders.map((folder) => (
@@ -265,7 +341,7 @@ export function MoveFilesModal({
           </Button>
           <Button 
             onClick={handleMove} 
-            disabled={isMoving || !selectedFolder}
+            disabled={isMoving || selectedFolder === undefined || selectedFolder === null}
           >
             {isMoving ? "Moving..." : "Move Files"}
           </Button>
