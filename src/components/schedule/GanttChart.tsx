@@ -52,9 +52,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
-  // Flag to prevent real-time updates during drag operations
-  const [isDragInProgress, setIsDragInProgress] = useState(false);
-
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
     if (!tasks || tasks.length === 0) {
@@ -248,7 +245,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Handle actions - prevent dialogs and handle drag operations
+  // Simplified actionBegin - REMOVE all drag and drop handling
   const handleActionBegin = (args: any) => {
     if (!args) return;
     
@@ -267,220 +264,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     } else if (args.requestType === 'beforeOpenAddDialog') {
       console.log('🚫 Blocking add dialog');
       args.cancel = true;
-    } else if (args.requestType === 'rowDropping') {
-      // This is the key - intercept drag and drop BEFORE it happens
-      console.log('🎯 === DRAG AND DROP DEBUG START ===');
-      console.log('🎯 Drop data (full):', JSON.stringify(args.data, null, 2));
-      console.log('🎯 Drop target (full):', JSON.stringify(args.target, null, 2));
-      console.log('🎯 Drop position:', args.dropPosition);
-      console.log('🎯 All args keys:', Object.keys(args));
-      
-      // Cancel the default action so we can handle it manually
-      args.cancel = true;
-      
-      // Set global flag to prevent real-time updates during drag
-      (window as any).__ganttDragInProgress = true;
-      setIsDragInProgress(true);
-      
-      // Extract the task being moved
-      const draggedTask = args.data && args.data[0] ? args.data[0] : null;
-      if (!draggedTask) {
-        console.error('❌ No dragged task found in args.data');
-        setIsDragInProgress(false);
-        (window as any).__ganttDragInProgress = false;
-        return;
-      }
-      
-      console.log('🎯 Dragged task structure:', JSON.stringify(draggedTask, null, 2));
-      console.log('🎯 Available task properties:', Object.keys(draggedTask));
-      
-      // Try different ways to access the task ID
-      const taskId = draggedTask.TaskID || draggedTask.taskId || draggedTask.id || 
-                     (draggedTask.ganttProperties && draggedTask.ganttProperties.taskId);
-      
-      console.log('🎯 Task ID candidates:', {
-        'TaskID': draggedTask.TaskID,
-        'taskId': draggedTask.taskId,
-        'id': draggedTask.id,
-        'ganttProperties.taskId': draggedTask.ganttProperties?.taskId,
-        'final taskId': taskId
-      });
-      
-      if (!taskId) {
-        console.error('❌ Could not find task ID in any format:', draggedTask);
-        setIsDragInProgress(false);
-        (window as any).__ganttDragInProgress = false;
-        return;
-      }
-      
-      // Debug target information
-      console.log('🎯 Target structure:', JSON.stringify(args.target, null, 2));
-      console.log('🎯 Available target properties:', Object.keys(args.target || {}));
-      
-      // Try different ways to access the target ID
-      let targetId = null;
-      if (args.target) {
-        targetId = args.target.TaskID || args.target.taskId || args.target.id ||
-                   (args.target.ganttProperties && args.target.ganttProperties.taskId);
-        
-        console.log('🎯 Target ID candidates:', {
-          'TaskID': args.target.TaskID,
-          'taskId': args.target.taskId,
-          'id': args.target.id,
-          'ganttProperties.taskId': args.target.ganttProperties?.taskId,
-          'final targetId': targetId
-        });
-      }
-      
-      // Determine new parent based on drop target and position
-      let newParentId = null;
-      if (args.target && args.dropPosition === 'child') {
-        newParentId = targetId;
-      } else if (args.target && args.target.parentItem) {
-        const parentId = args.target.parentItem.TaskID || args.target.parentItem.taskId || 
-                         args.target.parentItem.id ||
-                         (args.target.parentItem.ganttProperties && args.target.parentItem.ganttProperties.taskId);
-        newParentId = parentId;
-        
-        console.log('🎯 Parent ID candidates:', {
-          'parentItem.TaskID': args.target.parentItem.TaskID,
-          'parentItem.taskId': args.target.parentItem.taskId,
-          'parentItem.id': args.target.parentItem.id,
-          'parentItem.ganttProperties.taskId': args.target.parentItem.ganttProperties?.taskId,
-          'final parentId': parentId
-        });
-      }
-      
-      // Calculate new order index based on drop position
-      let newOrderIndex = 0;
-      if (args.target) {
-        newOrderIndex = args.target.index || args.target.orderIndex || 0;
-        if (args.dropPosition === 'below') {
-          newOrderIndex += 1;
-        }
-      }
-      
-      console.log('🎯 Final calculated position:', {
-        taskId,
-        newParentId,
-        newOrderIndex,
-        dropPosition: args.dropPosition
-      });
-      
-      // Validate we have a valid task ID - check if it looks like a UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!taskId || !uuidRegex.test(String(taskId))) {
-        console.error('❌ Invalid task ID format:', taskId);
-        setIsDragInProgress(false);
-        (window as any).__ganttDragInProgress = false;
-        return;
-      }
-      
-      // Validate parent ID if provided (skip validation for null - that's valid for root level)
-      if (newParentId !== null && !uuidRegex.test(String(newParentId))) {
-        console.error('❌ Invalid parent ID format:', newParentId);
-        setIsDragInProgress(false);
-        (window as any).__ganttDragInProgress = false;
-        return;
-      }
-      
-      // Save to database first
-      const updateParams = {
-        id: String(taskId),
-        parent_id: newParentId, // Pass null directly for root level, string for parent
-        order_index: newOrderIndex
-      };
-      
-      console.log('💾 Sending validated update to database:', updateParams);
-      
-      if (updateTask) {
-        updateTask.mutate(updateParams, {
-          onSuccess: (response) => {
-            console.log('✅ Database updated successfully:', response);
-            console.log('💾 Database function returned:', response);
-
-            // Check if the DB call actually updated a row (FOUND returns boolean)
-            if (response !== true) {
-              console.error('❌ Database function indicated no rows updated:', response);
-              toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Failed to save task position - no rows updated"
-              });
-              (window as any).__ganttDragInProgress = false;
-              setIsDragInProgress(false);
-              return;
-            }
-            console.log('✅ Now updating Syncfusion display...');
-            
-            // Update Syncfusion's internal data using native methods
-            if (ganttInstance.current) {
-              try {
-                // Update the task record in Syncfusion with correct property names
-                const updatedTask = {
-                  ...draggedTask,
-                  TaskID: taskId,
-                  ParentID: newParentId,
-                  OrderIndex: newOrderIndex
-                };
-                
-                console.log('🔄 Updating Syncfusion with:', updatedTask);
-                
-                // Use Syncfusion's native update method
-                ganttInstance.current.updateRecordByID(updatedTask);
-                
-                toast({ title: "Success", description: "Task moved successfully" });
-                console.log('🎯 === DRAG AND DROP DEBUG END (SUCCESS) ===');
-              } catch (error) {
-                console.error('❌ Failed to update Syncfusion:', error);
-                toast({ 
-                  variant: "destructive", 
-                  title: "Warning", 
-                  description: "Database updated but UI may need refresh"
-                });
-              }
-            }
-            
-            // Clear the global flag and local state
-            (window as any).__ganttDragInProgress = false;
-            setIsDragInProgress(false);
-          },
-          onError: (error: any) => {
-            console.error('❌ Database update failed:', error);
-            console.error('❌ Error details:', JSON.stringify(error, null, 2));
-            console.error('❌ Update params that failed:', updateParams);
-            toast({ 
-              variant: "destructive", 
-              title: "Error", 
-              description: error?.message || 'Failed to move task'
-            });
-            
-            console.log('🎯 === DRAG AND DROP DEBUG END (ERROR) ===');
-            
-            // Clear the global flag and local state on error
-            (window as any).__ganttDragInProgress = false;
-            setIsDragInProgress(false);
-          }
-        });
-      } else {
-        console.error('❌ updateTask mutation not available');
-        setIsDragInProgress(false);
-        (window as any).__ganttDragInProgress = false;
-      }
     }
+    // REMOVE all rowDropping handling - let Syncfusion handle it naturally
   };
 
-  // Simplified actionComplete - remove all drag and drop handling
+  // Enhanced actionComplete - CATCH drag and drop AFTER it happens
   const handleActionComplete = (args: any) => {
-    if (!args || !args.data) return;
+    if (!args) return;
     
-    console.log('🎭 Action complete:', args.requestType, args.data);
+    console.log('🎭 Action complete:', args.requestType);
+    console.log('🎭 Action data:', args.data);
+    console.log('🎭 Full args:', args);
     
-    // Skip processing if drag operation in progress
-    if (isDragInProgress) {
-      console.log('🚫 Skipping action complete during drag operation');
-      return;
-    }
+    if (!args.data) return;
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
@@ -488,7 +284,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     const onSuccess = (msg: string) => {
       console.log('✅ Database operation success:', msg);
       toast({ title: "Success", description: msg });
-      // Auto-fit columns after any data change
       setTimeout(() => autoFitAllColumns(), 200);
     };
     
@@ -532,24 +327,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'indented':
         case 'outdented': {
           console.log(`📂 ${args.requestType} operation...`);
-          let finalParentId = taskData.ParentID || null;
-          
-          if (args.requestType === 'outdented') {
-            try {
-              if (ganttInstance.current && ganttInstance.current.currentViewData) {
-                const currentTask = ganttInstance.current.currentViewData.find((t: any) => t.taskId === taskData.TaskID);
-                if (currentTask) {
-                  finalParentId = currentTask.parentItem ? currentTask.parentItem.taskId : null;
-                }
-              }
-            } catch (error) {
-              console.log('Error getting parent from currentViewData:', error);
-            }
-          }
-          
           const hierarchyParams = {
             id: String(taskData.TaskID), 
-            parent_id: finalParentId ? String(finalParentId) : null
+            parent_id: taskData.ParentID ? String(taskData.ParentID) : null
           };
           
           if (updateTask) {
@@ -561,10 +341,63 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // Remove all drag and drop cases - handled in actionBegin now
+        // NEW: Try to catch drag and drop in actionComplete
+        case 'rowDrop':
+        case 'rowDropped':
+        case 'reorder':
+        case 'dragAndDrop': {
+          console.log('🚀 DRAG AND DROP DETECTED IN ACTION COMPLETE!');
+          console.log('🚀 Task data:', taskData);
+          
+          const dragParams = {
+            id: String(taskData.TaskID), 
+            parent_id: taskData.ParentID ? String(taskData.ParentID) : null
+          };
+          
+          console.log('🚀 Saving drag result:', dragParams);
+          
+          if (updateTask) {
+            updateTask.mutate(dragParams, { 
+              onSuccess: () => onSuccess("Task moved successfully"), 
+              onError: onError 
+            });
+          }
+          break;
+        }
+
         default: {
           console.log('❓ Unhandled action type:', args.requestType);
-          return;
+          
+          // Try to detect if this might be a drag operation based on task data changes
+          if (taskData.TaskID && taskData.ParentID !== undefined) {
+            console.log('🤔 Possible drag operation detected - checking for parent changes');
+            
+            // Find the original task to compare parent_id
+            const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+            if (originalTask) {
+              const originalParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
+              const newParentId = taskData.ParentID ? String(taskData.ParentID) : null;
+              
+              if (originalParentId !== newParentId) {
+                console.log('🎯 PARENT CHANGE DETECTED!');
+                console.log('🎯 Original parent:', originalParentId);
+                console.log('🎯 New parent:', newParentId);
+                
+                const parentChangeParams = {
+                  id: String(taskData.TaskID), 
+                  parent_id: newParentId
+                };
+                
+                if (updateTask) {
+                  updateTask.mutate(parentChangeParams, { 
+                    onSuccess: () => onSuccess("Task parent updated"), 
+                    onError: onError 
+                  });
+                }
+              }
+            }
+          }
+          break;
         }
       }
     } catch (error) {
