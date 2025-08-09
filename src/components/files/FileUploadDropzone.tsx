@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileText, FolderOpen, FolderPlus, Folder } from "lucide-react";
+import { Upload, X, FileText, FolderOpen, FolderPlus, Folder, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
+import JSZip from "jszip";
 interface FileUploadDropzoneProps {
   projectId: string;
   onUploadSuccess: () => void;
@@ -18,7 +19,9 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [processingZip, setProcessingZip] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<Array<{
     file: File;
     progress: number;
@@ -382,6 +385,103 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     setQueuedFolders(prev => prev.filter(q => q.id !== id));
   };
 
+  const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const zipFile = files[0];
+    
+    if (!zipFile || !zipFile.name.endsWith('.zip')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select a valid .zip file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await processZipFile(zipFile);
+    event.target.value = '';
+  };
+
+  const processZipFile = async (zipFile: File) => {
+    if (!user) return;
+
+    setProcessingZip(true);
+    
+    try {
+      toast({
+        title: "Processing Zip File",
+        description: "Extracting files from zip archive...",
+      });
+
+      // Load and extract the zip file
+      const zip = new JSZip();
+      const zipData = await zip.loadAsync(zipFile);
+      
+      const extractedFiles: File[] = [];
+      let processedCount = 0;
+      const totalFiles = Object.keys(zipData.files).length;
+
+      // Process each file in the zip
+      for (const [relativePath, zipEntry] of Object.entries(zipData.files)) {
+        // Skip directories and invalid files
+        if (zipEntry.dir || relativePath.startsWith('__MACOSX/') || relativePath.includes('.DS_Store')) {
+          processedCount++;
+          continue;
+        }
+
+        try {
+          const blob = await zipEntry.async('blob');
+          const file = new File([blob], relativePath.split('/').pop() || relativePath, {
+            type: blob.type || 'application/octet-stream'
+          });
+
+          // Add webkitRelativePath property to maintain folder structure
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: relativePath,
+            writable: false
+          });
+
+          extractedFiles.push(file);
+        } catch (error) {
+          console.error(`Error extracting file ${relativePath}:`, error);
+        }
+        
+        processedCount++;
+      }
+
+      if (extractedFiles.length === 0) {
+        toast({
+          title: "No Files Found",
+          description: "No valid files found in the zip archive",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Zip Extracted",
+        description: `Successfully extracted ${extractedFiles.length} files. Starting upload...`,
+      });
+
+      // Upload all extracted files using existing logic
+      await processFiles(extractedFiles);
+
+    } catch (error) {
+      console.error('Zip processing error:', error);
+      toast({
+        title: "Zip Processing Error",
+        description: "Failed to process the zip file",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingZip(false);
+    }
+  };
+
+  const handleChooseZip = () => {
+    zipInputRef.current?.click();
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-8 text-center">
@@ -395,7 +495,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
         <p className="text-sm text-gray-500 mb-6">
           Supports all file types: documents, images, videos, archives, and more
         </p>
-        <div className="flex items-center justify-center space-x-4">
+        <div className="flex items-center justify-center space-x-4 flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={handleChooseFiles}>
             <FileText className="h-4 w-4 mr-2" />
             Choose Files
@@ -403,6 +503,10 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
           <Button type="button" variant="outline" onClick={handleChooseFolder}>
             <FolderOpen className="h-4 w-4 mr-2" />
             Choose Folder
+          </Button>
+          <Button type="button" variant="outline" onClick={handleChooseZip} disabled={processingZip}>
+            <Archive className="h-4 w-4 mr-2" />
+            {processingZip ? "Processing..." : "Choose Zip File"}
           </Button>
           <Button type="button" variant="outline" onClick={handleNewFolder}>
             <FolderPlus className="h-4 w-4 mr-2" />
@@ -425,6 +529,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
         {...({ webkitdirectory: "" } as any)}
         multiple
         onChange={handleFolderUpload}
+        className="hidden"
+      />
+      <input
+        ref={zipInputRef}
+        type="file"
+        accept=".zip"
+        onChange={handleZipUpload}
         className="hidden"
       />
 
