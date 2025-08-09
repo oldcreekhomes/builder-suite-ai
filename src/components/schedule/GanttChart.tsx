@@ -16,7 +16,6 @@ import {
   EventMarkerDirective,
   ColumnMenu,
   Resize,
-  RowDD,
 } from "@syncfusion/ej2-react-gantt";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +88,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         Confirmed: task.confirmed,
         ConfirmationToken: (task as any).confirmation_token || null,
         AssignedUsers: (task as any).assigned_user_ids || null,
+        OrderIndex: (task as any).order_index || 0,
       };
     });
   }, [tasks, resources]);
@@ -250,12 +250,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     console.log('🎬 Action begin:', args.requestType);
     
-    if (args.requestType === 'add') {
-      // Set default task name when adding via context menu
-      if (args.data && args.data.TaskName) {
-        args.data.TaskName = 'New Task';
-      }
-    } else if (args.requestType === 'beforeDelete') {
+    if (args.requestType === 'beforeDelete') {
       args.cancel = true;
       const taskData = args.data && args.data[0] ? args.data[0] : null;
       if (taskData) {
@@ -271,7 +266,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Database sync
+  // Database sync - Updated to handle drag/drop reordering
   const handleActionComplete = (args: any) => {
     if (!args || !args.data) return;
     
@@ -355,26 +350,29 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           }
           break;
         }
-        
-        case 'rowDrop': {
-          console.log('🎯 Row drop operation - saving to database...');
+
+        // Handle drag and drop reordering
+        case 'rowDrop':
+        case 'reorder': {
+          console.log('📋 Drag and drop reorder operation...');
           
-          // Extract dropped task data and new position info
-          const droppedTaskData = Array.isArray(args.data) ? args.data[0] : args.data;
-          if (!droppedTaskData) break;
+          // Handle multiple tasks if they were moved
+          const tasksToUpdate = Array.isArray(args.data) ? args.data : [args.data];
           
-          const dropParams = {
-            id: String(droppedTaskData.TaskID),
-            parent_id: droppedTaskData.ParentID ? String(droppedTaskData.ParentID) : null,
-            order_index: droppedTaskData.index || 0
-          };
-          
-          if (updateTask) {
-            updateTask.mutate(dropParams, { 
-              onSuccess: () => onSuccess("Task position updated"), 
-              onError: onError 
-            });
-          }
+          tasksToUpdate.forEach((task: any) => {
+            const reorderParams = {
+              id: String(task.TaskID),
+              parent_id: task.ParentID ? String(task.ParentID) : null,
+              order_index: task.OrderIndex || 0
+            };
+            
+            if (updateTask) {
+              updateTask.mutate(reorderParams, { 
+                onSuccess: () => onSuccess("Task order updated"), 
+                onError: onError 
+              });
+            }
+          });
           break;
         }
       }
@@ -573,7 +571,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu, Resize, RowDD]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu, Resize]} />
           </GanttComponent>
         </div>
       </div>
