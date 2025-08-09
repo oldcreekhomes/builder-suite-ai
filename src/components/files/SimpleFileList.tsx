@@ -461,7 +461,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         {files.map((file) => (
           <div
             key={file.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors ${
+            className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors ${
               selectedFiles.has(file.id) ? 'bg-accent border-primary' : ''
             }`}
           >
@@ -477,20 +477,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 <Square className="h-4 w-4" />
               )}
             </Button>
-            <div className="text-2xl">
+            <div className="text-xl">
               {getFileIcon(file.mime_type)}
             </div>
-            <div className="flex-1">
-              <p className="font-medium">{file.displayName}</p>
-              <div className="flex gap-4 text-sm text-muted-foreground">
-                <span>{formatFileSize(file.file_size)}</span>
-                <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-                {file.uploader && (
-                  <span>
-                    by {file.uploader.first_name} {file.uploader.last_name}
-                  </span>
-                )}
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{file.displayName}</p>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground whitespace-nowrap">
+              <span>{formatFileSize(file.file_size)}</span>
+              <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
+              {file.uploader && (
+                <span className="hidden sm:inline">
+                  {file.uploader.first_name} {file.uploader.last_name}
+                </span>
+              )}
             </div>
             <div className="flex gap-1">
               <Button
