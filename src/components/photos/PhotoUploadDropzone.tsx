@@ -227,36 +227,38 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
   return (
     <div className="space-y-4">
       <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
-        <FileOperationsContextMenu
-          onNewFolder={handleNewFolder}
-          onFileUpload={handleChoosePhotos}
-          onFolderUpload={handleChoosePhotoFolder}
+        <div
+          {...getRootProps()}
+          className={`p-8 text-center cursor-pointer ${
+            isDragActive ? 'bg-blue-50 border-blue-400' : ''
+          }`}
         >
-          <div
-            {...getRootProps()}
-            className={`p-8 text-center cursor-pointer ${
-              isDragActive ? 'bg-blue-50 border-blue-400' : ''
-            }`}
-          >
-            <input {...getInputProps()} />
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isDragActive ? 'Drop photos here' : 'Upload photos or photo folders'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Drag and drop photos or folders here, or click to select. Right-click for more options.
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
-            </p>
-            <div className="flex items-center justify-center space-x-4">
-              <Button type="button" variant="outline" onClick={handleNewFolder} className="mt-4">
-                <FolderPlus className="h-4 w-4 mr-2" />
-                Create Folder
-              </Button>
-            </div>
+          <input {...getInputProps()} />
+          <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {isDragActive ? 'Drop photos here' : 'Upload photos or photo folders'}
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Drag and drop photos or folders here, or use the buttons below to select files.
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Supports: PNG, JPG, JPEG, GIF, BMP, WebP, SVG, HEIC (iPhone photos)
+          </p>
+          <div className="flex items-center justify-center space-x-4">
+            <Button type="button" variant="outline" onClick={handleChoosePhotos}>
+              <Image className="h-4 w-4 mr-2" />
+              Choose Photos
+            </Button>
+            <Button type="button" variant="outline" onClick={handleChoosePhotoFolder}>
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Choose Folder
+            </Button>
+            <Button type="button" variant="outline" onClick={handleNewFolder}>
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Create Folder
+            </Button>
           </div>
-        </FileOperationsContextMenu>
+        </div>
       </Card>
 
       {/* Hidden file inputs */}
