@@ -419,7 +419,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         {folders.map((folder) => (
           <div
             key={folder.path}
-            className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
+            className="flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors"
           >
             <Folder className="h-5 w-5 text-blue-500" />
             <div 
