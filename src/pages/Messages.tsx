@@ -22,6 +22,9 @@ export default function Messages() {
   } = useSimpleChat();
   
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  
+  // Debug the floating chat function
+  console.log('Messages: openFloatingChat function:', openFloatingChat);
 
   // Debug logging
   console.log('Messages Component Debug:', {

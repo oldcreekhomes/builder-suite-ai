@@ -102,8 +102,10 @@ export const useFloatingChat = () => {
   }, []);
 
   const openFloatingChatHook = useCallback((user: User) => {
-    console.log('useFloatingChat: openFloatingChat called with user:', user);
+    console.log('useFloatingChat: openFloatingChatHook called with user:', user);
+    console.log('useFloatingChat: About to call global openFloatingChat');
     openFloatingChat(user);
+    console.log('useFloatingChat: Global openFloatingChat called');
   }, []);
 
   return {

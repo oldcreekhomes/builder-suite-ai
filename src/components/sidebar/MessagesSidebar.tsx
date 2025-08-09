@@ -67,12 +67,17 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
 
   const handleUserClick = (user: CompanyUser) => {
     console.log('MessagesSidebar: handleUserClick called with user:', user);
+    console.log('MessagesSidebar: onStartChat function is:', onStartChat);
     // Mark conversation as read when user clicks on it
     markConversationAsRead(user.id);
     // Only trigger floating chat, don't update selected user or navigate
     console.log('MessagesSidebar: About to call onStartChat');
-    onStartChat?.(user);
-    console.log('MessagesSidebar: onStartChat called');
+    if (onStartChat) {
+      onStartChat(user);
+      console.log('MessagesSidebar: onStartChat called successfully');
+    } else {
+      console.error('MessagesSidebar: onStartChat function is not provided!');
+    }
   };
 
   if (isLoading) {
