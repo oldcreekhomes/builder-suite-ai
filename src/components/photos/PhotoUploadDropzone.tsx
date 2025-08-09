@@ -178,13 +178,50 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
   };
 
   const handleCreateFolder = async (folderName: string) => {
-    // Simply show success message without creating any placeholder files
-    console.log('Folder ready:', folderName);
-    toast({
-      title: "Folder Ready",
-      description: `Folder "${folderName}" is ready. Upload photos to it to create the folder structure.`,
-    });
-    onUploadSuccess();
+    if (!user) return;
+
+    try {
+      // Create a placeholder file to represent the empty folder
+      const placeholderFileName = `${user.id}/${projectId}/photos/${crypto.randomUUID()}_${folderName}/.placeholder`;
+      const placeholderFile = new File([''], '.placeholder', { type: 'text/plain' });
+      
+      // Upload placeholder file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(placeholderFileName, placeholderFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(placeholderFileName);
+
+      // Save folder metadata to database
+      const { error: dbError } = await supabase
+        .from('project_photos')
+        .insert({
+          project_id: projectId,
+          url: publicUrl,
+          description: `${folderName}/.placeholder`,
+          uploaded_by: user.id,
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Folder Created",
+        description: `Folder "${folderName}" created successfully`,
+      });
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Folder creation error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to create folder "${folderName}"`,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
