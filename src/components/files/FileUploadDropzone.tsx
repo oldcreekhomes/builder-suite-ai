@@ -3,7 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileText, FolderOpen, FolderPlus } from "lucide-react";
+import { Upload, X, FileText, FolderOpen, FolderPlus, Folder } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,8 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     file: File;
     progress: number;
     uploading: boolean;
+    isFolder: boolean;
+    folderName: string | null;
   }>>([]);
 
   const uploadFile = async (file: File, relativePath: string = '') => {
@@ -130,10 +132,35 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     const hasRelativePaths = validFiles.some(file => file.webkitRelativePath);
     console.log('Has relative paths (folder drop):', hasRelativePaths);
     
+    // Group files by their root folder if it's a folder drop
+    const uploadGroups = new Map<string, File[]>();
+    
+    if (hasRelativePaths) {
+      validFiles.forEach(file => {
+        if (file.webkitRelativePath) {
+          const rootFolder = file.webkitRelativePath.split('/')[0];
+          if (!uploadGroups.has(rootFolder)) {
+            uploadGroups.set(rootFolder, []);
+          }
+          uploadGroups.get(rootFolder)!.push(file);
+        } else {
+          // Individual file mixed with folder drop
+          uploadGroups.set(file.name, [file]);
+        }
+      });
+    } else {
+      // Individual files only
+      validFiles.forEach(file => {
+        uploadGroups.set(file.name, [file]);
+      });
+    }
+
     const newUploads = validFiles.map(file => ({
       file,
       progress: 0,
       uploading: true,
+      isFolder: hasRelativePaths && file.webkitRelativePath ? file.webkitRelativePath.includes('/') : false,
+      folderName: hasRelativePaths && file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : null,
     }));
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
@@ -235,9 +262,25 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     }
 
     // Show success message
+    const uniqueFolders = new Set<string>();
+    if (hasRelativePaths) {
+      validFiles.forEach(file => {
+        if (file.webkitRelativePath) {
+          const rootFolder = file.webkitRelativePath.split('/')[0];
+          uniqueFolders.add(rootFolder);
+        }
+      });
+    }
+    
+    const folderCount = uniqueFolders.size;
+    let description = `Successfully uploaded ${validFiles.length} file(s)`;
+    if (hasRelativePaths && folderCount > 0) {
+      description += ` from ${folderCount} folder(s) with structure preserved`;
+    }
+    
     toast({
-      title: "Upload Complete",
-      description: `Successfully uploaded ${validFiles.length} file(s)${hasRelativePaths ? ' with folder structure' : ''}`,
+      title: "Upload Complete", 
+      description,
     });
 
     // Call onUploadSuccess after all uploads complete
@@ -406,12 +449,23 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
           <div className="space-y-3">
             {uploadingFiles.map((upload, index) => (
               <div key={index} className="flex items-center space-x-3">
-                <FileText className="h-5 w-5 text-gray-500" />
+                {upload.isFolder ? (
+                  <Folder className="h-5 w-5 text-blue-500" />
+                ) : (
+                  <FileText className="h-5 w-5 text-gray-500" />
+                )}
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">
-                      {upload.file.webkitRelativePath || upload.file.name}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {upload.file.webkitRelativePath || upload.file.name}
+                      </span>
+                      {upload.isFolder && upload.folderName && (
+                        <span className="text-xs text-gray-500">
+                          Folder: {upload.folderName}
+                        </span>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
