@@ -363,23 +363,53 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'rowdraganddrop':
         case 'rowDropped':
         case 'dragAndDrop': {
-          console.log('📋 Drag and drop reorder operation detected!');
+          console.log('📋 Drag and drop operation detected!', args);
           
-          // Handle multiple tasks if they were moved
-          const tasksToUpdate = Array.isArray(args.data) ? args.data : [args.data];
+          // Log all available properties to understand the structure
+          console.log('📋 Args properties:', Object.keys(args));
+          console.log('📋 Data:', args.data);
+          console.log('📋 Drop index:', args.dropIndex);
+          console.log('📋 Target:', args.target);
+          console.log('📋 Dropped record:', args.droppedRecord);
+          console.log('📋 Modified records:', args.modifiedRecords);
           
-          tasksToUpdate.forEach((task: any) => {
+          // Handle the actual drag and drop data
+          let tasksToUpdate: any[] = [];
+          
+          // Try different ways to get the task data
+          if (args.droppedRecord) {
+            tasksToUpdate = Array.isArray(args.droppedRecord) ? args.droppedRecord : [args.droppedRecord];
+          } else if (args.data) {
+            tasksToUpdate = Array.isArray(args.data) ? args.data : [args.data];
+          } else if (args.modifiedRecords && args.modifiedRecords.length > 0) {
+            tasksToUpdate = args.modifiedRecords;
+          }
+          
+          console.log('📋 Tasks to update:', tasksToUpdate);
+          
+          tasksToUpdate.forEach((task: any, index: number) => {
+            // Calculate the new order index based on drop position
+            let newOrderIndex = args.dropIndex !== undefined ? args.dropIndex + index : task.OrderIndex || 0;
+            
+            // Get parent ID - could be from target or task itself
+            let newParentId = null;
+            if (args.target && args.target.ParentID !== undefined) {
+              newParentId = args.target.ParentID ? String(args.target.ParentID) : null;
+            } else if (task.ParentID !== undefined) {
+              newParentId = task.ParentID ? String(task.ParentID) : null;
+            }
+            
             const reorderParams = {
-              id: String(task.TaskID),
-              parent_id: task.ParentID ? String(task.ParentID) : null,
-              order_index: task.OrderIndex || 0
+              id: String(task.TaskID || task.id),
+              parent_id: newParentId,
+              order_index: newOrderIndex
             };
             
-            console.log('📋 Updating task order:', reorderParams);
+            console.log('📋 Updating task with params:', reorderParams);
             
             if (updateTask) {
               updateTask.mutate(reorderParams, { 
-                onSuccess: () => onSuccess("Task order updated"), 
+                onSuccess: () => onSuccess("Task position updated"), 
                 onError: onError 
               });
             }
