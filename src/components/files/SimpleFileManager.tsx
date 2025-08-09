@@ -71,12 +71,22 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
       }
     });
 
-    return {
-      folders: Array.from(folders).map(name => ({
+    // Sort folders alphabetically (case-insensitive)
+    const sortedFolders = Array.from(folders)
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .map(name => ({
         name,
         path: currentPath ? `${currentPath}/${name}` : name
-      })),
-      files
+      }));
+
+    // Sort files alphabetically by display name (case-insensitive)
+    const sortedFiles = files.sort((a, b) => 
+      a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase())
+    );
+
+    return {
+      folders: sortedFolders,
+      files: sortedFiles
     };
   };
 

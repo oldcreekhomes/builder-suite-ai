@@ -33,7 +33,7 @@ export const useProjectFiles = (projectId: string) => {
         .select('*')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .order('uploaded_at', { ascending: false });
+        .order('filename', { ascending: true });
 
       if (error) {
         console.error('Error fetching project files:', error);
