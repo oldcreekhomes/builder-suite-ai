@@ -267,89 +267,94 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     } else if (args.requestType === 'beforeOpenAddDialog') {
       console.log('🚫 Blocking add dialog');
       args.cancel = true;
-    } else if (args.requestType === 'rowDrop' || args.requestType === 'reorder') {
-      console.log('🚀 Intercepting drag operation:', args.requestType);
+    } else if (args.requestType === 'rowDropping') {
+      // This is the key - intercept drag and drop BEFORE it happens
+      console.log('🎯 Intercepting drag and drop operation');
+      console.log('🎯 Drop data:', args.data);
+      console.log('🎯 Drop target:', args.target);
+      console.log('🎯 Drop position:', args.dropPosition);
       
-      // Cancel the default Syncfusion action
+      // Cancel the default action so we can handle it manually
       args.cancel = true;
       setIsDragInProgress(true);
       
       // Set global flag to prevent real-time updates during drag
       (window as any).__ganttDragInProgress = true;
       
-      // Extract drag data
-      const droppedRecord = args.droppedRecord || args.data || (args.data && args.data[0]);
-      if (!droppedRecord) {
-        console.error('❌ No dropped record found');
+      // Extract the task being moved
+      const draggedTask = args.data && args.data[0] ? args.data[0] : null;
+      if (!draggedTask) {
         setIsDragInProgress(false);
+        (window as any).__ganttDragInProgress = false;
         return;
       }
       
-      console.log('📋 Drag data:', {
-        droppedRecord,
-        dropIndex: args.dropIndex,
-        target: args.target,
-        fromIndex: args.fromIndex,
-        toIndex: args.toIndex
-      });
-      
-      // Calculate new order index and parent
-      let newOrderIndex = args.dropIndex || args.toIndex || 0;
+      // Determine new parent based on drop target and position
       let newParentId = null;
-      
-      // If dropping on a target, use target's parent
-      if (args.target && args.target.ParentID !== undefined) {
-        newParentId = args.target.ParentID ? String(args.target.ParentID) : null;
-      } else if (droppedRecord.ParentID !== undefined) {
-        newParentId = droppedRecord.ParentID ? String(droppedRecord.ParentID) : null;
+      if (args.target && args.dropPosition === 'child') {
+        newParentId = args.target.taskId;
+      } else if (args.target && args.target.parentItem) {
+        newParentId = args.target.parentItem.taskId;
       }
       
+      // Calculate new order index based on drop position
+      let newOrderIndex = 0;
+      if (args.target) {
+        newOrderIndex = args.target.index || 0;
+        if (args.dropPosition === 'below') {
+          newOrderIndex += 1;
+        }
+      }
+      
+      console.log('🎯 Calculated new position:', {
+        taskId: draggedTask.taskId,
+        newParentId,
+        newOrderIndex,
+        dropPosition: args.dropPosition
+      });
+      
+      // Save to database first
       const updateParams = {
-        id: String(droppedRecord.TaskID),
-        parent_id: newParentId,
+        id: String(draggedTask.taskId),
+        parent_id: newParentId ? String(newParentId) : null,
         order_index: newOrderIndex
       };
       
-      console.log('📋 Updating task with params:', updateParams);
-      
-      // Save to database first
       if (updateTask) {
         updateTask.mutate(updateParams, {
           onSuccess: () => {
-            console.log('✅ Drag operation saved to database');
+            console.log('✅ Database updated, now applying to Syncfusion');
             
-            // Apply the change to Syncfusion's data
-            if (ganttInstance.current && ganttInstance.current.updateRecordByID) {
-              const updatedRecord = {
-                ...droppedRecord,
-                ParentID: newParentId,
-                OrderIndex: newOrderIndex
-              };
-              
+            // Update Syncfusion's internal data using native methods
+            if (ganttInstance.current) {
               try {
-                ganttInstance.current.updateRecordByID(updatedRecord);
-                console.log('✅ Syncfusion data updated');
+                // Update the task record in Syncfusion
+                const updatedTask = {
+                  ...draggedTask,
+                  ParentID: newParentId,
+                  OrderIndex: newOrderIndex
+                };
+                
+                // Use Syncfusion's native update method
+                ganttInstance.current.updateRecordByID(updatedTask);
+                
+                toast({ title: "Success", description: "Task moved successfully" });
               } catch (error) {
-                console.error('❌ Failed to update Syncfusion data:', error);
+                console.error('❌ Failed to update Syncfusion:', error);
               }
             }
             
-            toast({ title: "Success", description: "Task position updated" });
             setIsDragInProgress(false);
-            
-            // Clear global flag to re-enable real-time updates
             (window as any).__ganttDragInProgress = false;
           },
           onError: (error: any) => {
-            console.error('❌ Drag operation failed:', error);
+            console.error('❌ Database update failed:', error);
             toast({ 
               variant: "destructive", 
               title: "Error", 
-              description: error?.message || 'Failed to update task position' 
+              description: error?.message || 'Failed to move task'
             });
             setIsDragInProgress(false);
-            
-            // Clear global flag to re-enable real-time updates
             (window as any).__ganttDragInProgress = false;
           }
         });
@@ -360,16 +365,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Database sync - Updated to handle drag/drop reordering
+  // Simplified actionComplete - remove all drag and drop handling
   const handleActionComplete = (args: any) => {
-    if (!args) return;
+    if (!args || !args.data) return;
     
-    // Log ALL action complete events to debug drag and drop
-    console.log('🎭 Action complete - RequestType:', args.requestType);
-    console.log('🎭 Action complete - Full args:', args);
-    console.log('🎭 Action complete - Data:', args.data);
+    console.log('🎭 Action complete:', args.requestType, args.data);
     
-    if (!args.data) return;
+    // Skip processing if drag operation in progress
+    if (isDragInProgress) {
+      console.log('🚫 Skipping action complete during drag operation');
+      return;
+    }
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
@@ -450,13 +456,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // Drag and drop operations are now handled in actionBegin
-        // Remove all drag and drop cases to prevent conflicts
-
-        // Catch-all for any unhandled action types
+        // Remove all drag and drop cases - handled in actionBegin now
         default: {
           console.log('❓ Unhandled action type:', args.requestType);
-          // Don't process unknown action types
           return;
         }
       }
