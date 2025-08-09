@@ -24,6 +24,10 @@ export default function ProjectPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  
+  // Debug the chat functions
+  console.log('ProjectPage: openFloatingChat function:', openFloatingChat);
+  console.log('ProjectPage: registerChatManager function:', registerChatManager);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
