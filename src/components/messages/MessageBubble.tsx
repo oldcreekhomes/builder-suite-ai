@@ -56,15 +56,15 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
   };
 
   return (
-    <div className={`flex items-start space-x-3 group ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+    <div className="flex items-start space-x-3 group">
       <Avatar className="h-8 w-8">
         <AvatarImage src={message.sender_avatar || ""} />
         <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
           {message.sender_name.substring(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
-      <div className={`flex-1 ${isCurrentUser ? 'flex flex-col items-end' : ''}`}>
-        <div className={`flex items-center space-x-2 mb-1 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+      <div className="flex-1">
+        <div className="flex items-center space-x-2 mb-1">
           <span className="font-medium text-sm text-gray-900">
             {getDisplayName(message.sender_name)}
           </span>
