@@ -26,6 +26,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     isFolder: boolean;
     folderName: string | null;
   }>>([]);
+  const [queuedFolders, setQueuedFolders] = useState<Array<{ id: string; rootName: string; files: File[]; totalFiles: number }>>([]);
 
   const uploadFile = async (file: File, relativePath: string = '') => {
     if (!user) return false;
@@ -266,11 +267,32 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     const files = Array.from(event.target.files || []);
     console.log('Folder files selected:', files);
     console.log('Files with webkitRelativePath:', files.map(f => ({ name: f.name, path: f.webkitRelativePath })));
-    
+
     if (files.length > 0) {
-      await processFiles(files);
+      // Group files by their root folder (first segment of webkitRelativePath)
+      const groups = new Map<string, File[]>();
+      for (const file of files) {
+        const root = file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : file.name;
+        if (!groups.has(root)) groups.set(root, []);
+        groups.get(root)!.push(file);
+      }
+
+      const additions = Array.from(groups.entries()).map(([rootName, groupFiles]) => ({
+        id: crypto.randomUUID(),
+        rootName,
+        files: groupFiles,
+        totalFiles: groupFiles.length,
+      }));
+
+      setQueuedFolders(prev => [...prev, ...additions]);
+
+      toast({
+        title: "Folder added",
+        description: `Added ${additions.length} folder(s) to the upload queue`,
+      });
     }
-    
+
+    // Reset input so the same folder can be selected again if needed
     event.target.value = '';
   };
 
@@ -347,6 +369,19 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     }
   };
 
+  const handleUploadQueuedFolders = async () => {
+    const allFiles = queuedFolders.flatMap(q => q.files);
+    if (allFiles.length === 0) return;
+    await processFiles(allFiles);
+    setQueuedFolders([]);
+  };
+
+  const handleClearQueue = () => setQueuedFolders([]);
+
+  const removeQueuedFolderFromQueue = (id: string) => {
+    setQueuedFolders(prev => prev.filter(q => q.id !== id));
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-8 text-center">
@@ -392,6 +427,35 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
         onChange={handleFolderUpload}
         className="hidden"
       />
+
+      {queuedFolders.length > 0 && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold">Queued Folders</h4>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleClearQueue}>Clear</Button>
+              <Button size="sm" onClick={handleUploadQueuedFolders}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload All
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {queuedFolders.map((q) => (
+              <div key={q.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Folder className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-medium">{q.rootName}</span>
+                  <span className="text-xs text-gray-500">({q.totalFiles} files)</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => removeQueuedFolderFromQueue(q.id)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {uploadingFiles.length > 0 && (
         <Card className="p-4">
