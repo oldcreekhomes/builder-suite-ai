@@ -397,6 +397,20 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         updateTask.mutate(updateParams, {
           onSuccess: (response) => {
             console.log('✅ Database updated successfully:', response);
+            console.log('💾 Database function returned:', response);
+
+            // Ensure the DB call actually updated a row
+            if (response !== true) {
+              console.error('❌ Database function returned false - no rows updated');
+              toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to save task position"
+              });
+              (window as any).__ganttDragInProgress = false;
+              setIsDragInProgress(false);
+              return;
+            }
             console.log('✅ Now updating Syncfusion display...');
             
             // Update Syncfusion's internal data using native methods
