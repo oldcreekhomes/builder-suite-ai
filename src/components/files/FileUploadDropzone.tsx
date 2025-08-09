@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef } from "react";
-import { useDropzone } from "react-dropzone";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +6,6 @@ import { Upload, X, FileText, FolderOpen, FolderPlus, Folder } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
 interface FileUploadDropzoneProps {
   projectId: string;
@@ -104,17 +102,17 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     return true;
   };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('=== FILES DROPPED ===');
-    console.log('Files dropped:', acceptedFiles);
-    console.log('Files with webkitRelativePath:', acceptedFiles.map(f => ({ 
+  const processFiles = async (files: File[]) => {
+    console.log('=== PROCESSING FILES ===');
+    console.log('Files:', files);
+    console.log('Files with webkitRelativePath:', files.map(f => ({ 
       name: f.name, 
       webkitRelativePath: f.webkitRelativePath,
       size: f.size 
     })));
     
     // Filter out invalid files (system files, hidden files, empty files)
-    const validFiles = acceptedFiles.filter(isValidFile);
+    const validFiles = files.filter(isValidFile);
     
     if (validFiles.length === 0) {
       toast({
@@ -124,36 +122,13 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
       return;
     }
 
-    if (validFiles.length < acceptedFiles.length) {
-      console.log(`Filtered out ${acceptedFiles.length - validFiles.length} invalid files`);
+    if (validFiles.length < files.length) {
+      console.log(`Filtered out ${files.length - validFiles.length} invalid files`);
     }
     
-    // Check if any files have webkitRelativePath (indicating folder drop)
+    // Check if any files have webkitRelativePath (indicating folder upload)
     const hasRelativePaths = validFiles.some(file => file.webkitRelativePath);
-    console.log('Has relative paths (folder drop):', hasRelativePaths);
-    
-    // Group files by their root folder if it's a folder drop
-    const uploadGroups = new Map<string, File[]>();
-    
-    if (hasRelativePaths) {
-      validFiles.forEach(file => {
-        if (file.webkitRelativePath) {
-          const rootFolder = file.webkitRelativePath.split('/')[0];
-          if (!uploadGroups.has(rootFolder)) {
-            uploadGroups.set(rootFolder, []);
-          }
-          uploadGroups.get(rootFolder)!.push(file);
-        } else {
-          // Individual file mixed with folder drop
-          uploadGroups.set(file.name, [file]);
-        }
-      });
-    } else {
-      // Individual files only
-      validFiles.forEach(file => {
-        uploadGroups.set(file.name, [file]);
-      });
-    }
+    console.log('Has relative paths (folder upload):', hasRelativePaths);
 
     const newUploads = validFiles.map(file => ({
       file,
@@ -221,7 +196,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     for (let i = 0; i < validFiles.length; i++) {
       const file = validFiles[i];
       
-      // For folder drops, use the full relative path. For individual files, just use filename
+      // For folder uploads, use the full relative path. For individual files, just use filename
       let relativePath: string;
       if (hasRelativePaths && file.webkitRelativePath) {
         relativePath = file.webkitRelativePath;
@@ -285,15 +260,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
 
     // Call onUploadSuccess after all uploads complete
     onUploadSuccess();
-  }, [projectId, user, onUploadSuccess, toast, currentPath]);
-
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    // Accept all file types
-    accept: {}
-  });
+  };
 
   const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -301,7 +268,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     console.log('Files with webkitRelativePath:', files.map(f => ({ name: f.name, path: f.webkitRelativePath })));
     
     if (files.length > 0) {
-      await onDrop(files);
+      await processFiles(files);
     }
     
     event.target.value = '';
@@ -310,7 +277,7 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      await onDrop(files);
+      await processFiles(files);
     }
     event.target.value = '';
   };
@@ -319,18 +286,15 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
 
-  const handleNewFolder = (event?: React.MouseEvent) => {
-    event?.stopPropagation();
+  const handleNewFolder = () => {
     setShowNewFolderModal(true);
   };
 
-  const handleChooseFiles = (event?: React.MouseEvent) => {
-    event?.stopPropagation();
+  const handleChooseFiles = () => {
     fileInputRef.current?.click();
   };
 
-  const handleChooseFolder = (event?: React.MouseEvent) => {
-    event?.stopPropagation();
+  const handleChooseFolder = () => {
     folderInputRef.current?.click();
   };
 
@@ -385,45 +349,31 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
 
   return (
     <div className="space-y-4">
-      <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
-        <FileOperationsContextMenu
-          onNewFolder={handleNewFolder}
-          onFileUpload={handleChooseFiles}
-          onFolderUpload={handleChooseFolder}
-        >
-          <div
-            {...getRootProps()}
-            className={`p-8 text-center cursor-pointer ${
-              isDragActive ? 'bg-blue-50 border-blue-400' : ''
-            }`}
-          >
-            <input {...getInputProps()} />
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isDragActive ? 'Drop files here' : 'Upload files or folders'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Drag and drop files or folders here, or click to select. Right-click for more options.
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              Supports all file types: documents, images, videos, archives, and more
-            </p>
-            <div className="flex items-center justify-center space-x-4">
-              <Button type="button" variant="outline" onClick={handleChooseFiles}>
-                <FileText className="h-4 w-4 mr-2" />
-                Choose Files
-              </Button>
-              <Button type="button" variant="outline" onClick={handleChooseFolder}>
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Choose Folder
-              </Button>
-              <Button type="button" variant="outline" onClick={handleNewFolder}>
-                <FolderPlus className="h-4 w-4 mr-2" />
-                Create Folder
-              </Button>
-            </div>
-          </div>
-        </FileOperationsContextMenu>
+      <Card className="p-8 text-center">
+        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Upload files or folders
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Use the buttons below to upload individual files, entire folders, or create new folders.
+        </p>
+        <p className="text-sm text-gray-500 mb-6">
+          Supports all file types: documents, images, videos, archives, and more
+        </p>
+        <div className="flex items-center justify-center space-x-4">
+          <Button type="button" variant="outline" onClick={handleChooseFiles}>
+            <FileText className="h-4 w-4 mr-2" />
+            Choose Files
+          </Button>
+          <Button type="button" variant="outline" onClick={handleChooseFolder}>
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Choose Folder
+          </Button>
+          <Button type="button" variant="outline" onClick={handleNewFolder}>
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Create Folder
+          </Button>
+        </div>
       </Card>
 
       {/* Hidden file inputs */}
