@@ -381,12 +381,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
           }
           
+          // CRITICAL: Add the order_index based on dropIndex
           const dragParams = {
             id: String(taskData.TaskID), 
-            parent_id: correctParentId
+            parent_id: correctParentId,
+            order_index: args.dropIndex !== undefined ? args.dropIndex : 0
           };
           
-          console.log('🚀 Saving drag result with corrected parent:', dragParams);
+          console.log('🚀 Saving drag result with position:', dragParams);
           
           if (updateTask) {
             updateTask.mutate(dragParams, { 
