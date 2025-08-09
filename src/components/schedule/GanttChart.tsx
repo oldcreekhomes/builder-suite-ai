@@ -276,10 +276,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       // Cancel the default action so we can handle it manually
       args.cancel = true;
-      setIsDragInProgress(true);
       
       // Set global flag to prevent real-time updates during drag
       (window as any).__ganttDragInProgress = true;
+      setIsDragInProgress(true);
       
       // Extract the task being moved
       const draggedTask = args.data && args.data[0] ? args.data[0] : null;
@@ -292,9 +292,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Determine new parent based on drop target and position
       let newParentId = null;
       if (args.target && args.dropPosition === 'child') {
-        newParentId = args.target.taskId;
+        newParentId = args.target.TaskID;
       } else if (args.target && args.target.parentItem) {
-        newParentId = args.target.parentItem.taskId;
+        newParentId = args.target.parentItem.TaskID;
       }
       
       // Calculate new order index based on drop position
@@ -307,33 +307,45 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       }
       
       console.log('🎯 Calculated new position:', {
-        taskId: draggedTask.taskId,
+        taskId: draggedTask.TaskID,
         newParentId,
         newOrderIndex,
         dropPosition: args.dropPosition
       });
       
+      // Validate we have a valid task ID before proceeding
+      if (!draggedTask.TaskID) {
+        console.error('❌ No TaskID found in dragged task:', draggedTask);
+        setIsDragInProgress(false);
+        return;
+      }
+      
       // Save to database first
       const updateParams = {
-        id: String(draggedTask.taskId),
+        id: String(draggedTask.TaskID),
         parent_id: newParentId ? String(newParentId) : null,
         order_index: newOrderIndex
       };
       
+      console.log('💾 Sending update to database:', updateParams);
+      
       if (updateTask) {
         updateTask.mutate(updateParams, {
-          onSuccess: () => {
-            console.log('✅ Database updated, now applying to Syncfusion');
+          onSuccess: (response) => {
+            console.log('✅ Database updated successfully:', response);
+            console.log('✅ Now updating Syncfusion display...');
             
             // Update Syncfusion's internal data using native methods
             if (ganttInstance.current) {
               try {
-                // Update the task record in Syncfusion
+                // Update the task record in Syncfusion with correct property names
                 const updatedTask = {
                   ...draggedTask,
                   ParentID: newParentId,
                   OrderIndex: newOrderIndex
                 };
+                
+                console.log('🔄 Updating Syncfusion with:', updatedTask);
                 
                 // Use Syncfusion's native update method
                 ganttInstance.current.updateRecordByID(updatedTask);
@@ -341,21 +353,30 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 toast({ title: "Success", description: "Task moved successfully" });
               } catch (error) {
                 console.error('❌ Failed to update Syncfusion:', error);
+                toast({ 
+                  variant: "destructive", 
+                  title: "Warning", 
+                  description: "Database updated but UI may need refresh"
+                });
               }
             }
             
-            setIsDragInProgress(false);
+            // Clear the global flag and local state
             (window as any).__ganttDragInProgress = false;
+            setIsDragInProgress(false);
           },
           onError: (error: any) => {
             console.error('❌ Database update failed:', error);
+            console.error('❌ Error details:', error);
             toast({ 
               variant: "destructive", 
               title: "Error", 
               description: error?.message || 'Failed to move task'
             });
-            setIsDragInProgress(false);
+            
+            // Clear the global flag and local state on error
             (window as any).__ganttDragInProgress = false;
+            setIsDragInProgress(false);
           }
         });
       } else {
