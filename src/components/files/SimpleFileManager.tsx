@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FolderPlus } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { FolderPlus, FileText, FolderOpen, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
@@ -9,28 +9,30 @@ import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
 import { NewFolderModal } from './NewFolderModal';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import JSZip from 'jszip';
 
 interface SimpleFileManagerProps {
   projectId: string;
   refreshKey?: number;
-  currentPath?: string;
-  onCurrentPathChange?: (path: string) => void;
+  onUploadSuccess?: () => void;
 }
 
 export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ 
   projectId, 
-  refreshKey, 
-  currentPath: externalCurrentPath, 
-  onCurrentPathChange 
+  refreshKey,
+  onUploadSuccess
 }) => {
-  const [internalCurrentPath, setInternalCurrentPath] = useState<string>('');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [processingZip, setProcessingZip] = useState(false);
   const { user } = useAuth();
+  const { toast: useToastHook } = useToast();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
-
-  // Use external currentPath if provided, otherwise use internal state
-  const currentPath = externalCurrentPath !== undefined ? externalCurrentPath : internalCurrentPath;
-  const setCurrentPath = onCurrentPathChange || setInternalCurrentPath;
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
   // Trigger refetch when refreshKey changes
   React.useEffect(() => {
@@ -120,7 +122,177 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
   const handleUploadSuccess = () => {
     refetch();
+    if (onUploadSuccess) {
+      onUploadSuccess();
+    }
     toast.success('File uploaded successfully');
+  };
+
+  // File upload helpers
+  const isValidFile = (file: File) => {
+    const fileName = file.name;
+    const systemFiles = ['.DS_Store', 'Thumbs.db'];
+    const hiddenFiles = fileName.startsWith('.');
+
+    if (fileName === '.gitignore' || fileName === '.gitkeep') {
+      return true;
+    }
+
+    if (systemFiles.includes(fileName) || hiddenFiles && fileName !== '.gitignore' && fileName !== '.gitkeep') {
+      return false;
+    }
+
+    if (file.size === 0) {
+      return false;
+    }
+    return true;
+  };
+
+  const uploadFile = async (file: File, relativePath: string = '') => {
+    if (!user) return false;
+    const fileId = crypto.randomUUID();
+    const fileName = `${user.id}/${projectId}/${fileId}_${relativePath || file.name}`;
+    
+    try {
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+
+      const originalFilename = currentPath ? `${currentPath}/${relativePath || file.name}` : relativePath || file.name;
+
+      const { error: dbError } = await supabase
+        .from('project_files')
+        .insert({
+          project_id: projectId,
+          filename: fileName,
+          original_filename: originalFilename,
+          file_size: file.size,
+          file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
+          mime_type: file.type,
+          storage_path: uploadData.path,
+          uploaded_by: user.id,
+        });
+      
+      if (dbError) throw dbError;
+      return true;
+    } catch (error) {
+      console.error('Upload error:', error);
+      useToastHook({
+        title: "Upload Error",
+        description: `Failed to upload ${relativePath || file.name}`,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const processFiles = async (files: File[]) => {
+    const validFiles = files.filter(isValidFile);
+    if (validFiles.length === 0) {
+      useToastHook({
+        title: "No Valid Files",
+        description: "No valid files found to upload",
+      });
+      return;
+    }
+
+    for (const file of validFiles) {
+      const relativePath = file.webkitRelativePath || file.name;
+      await uploadFile(file, relativePath);
+    }
+
+    useToastHook({
+      title: "Upload Complete",
+      description: `Successfully uploaded ${validFiles.length} file(s)`,
+    });
+
+    handleUploadSuccess();
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      await processFiles(files);
+    }
+    event.target.value = '';
+  };
+
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      await processFiles(files);
+    }
+    event.target.value = '';
+  };
+
+  const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const zipFile = files[0];
+    if (!zipFile || !zipFile.name.endsWith('.zip')) {
+      useToastHook({
+        title: "Invalid File",
+        description: "Please select a valid .zip file",
+        variant: "destructive",
+      });
+      return;
+    }
+    await processZipFile(zipFile);
+    event.target.value = '';
+  };
+
+  const processZipFile = async (zipFile: File) => {
+    if (!user) return;
+    setProcessingZip(true);
+    
+    try {
+      const zip = new JSZip();
+      const zipData = await zip.loadAsync(zipFile);
+      const extractedFiles: File[] = [];
+
+      for (const [relativePath, zipEntry] of Object.entries(zipData.files)) {
+        if (zipEntry.dir || relativePath.startsWith('__MACOSX/') || relativePath.includes('.DS_Store')) {
+          continue;
+        }
+        
+        try {
+          const blob = await zipEntry.async('blob');
+          const file = new File([blob], relativePath.split('/').pop() || relativePath, {
+            type: blob.type || 'application/octet-stream'
+          });
+
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: relativePath,
+            writable: false
+          });
+          
+          extractedFiles.push(file);
+        } catch (error) {
+          console.error(`Error extracting file ${relativePath}:`, error);
+        }
+      }
+
+      if (extractedFiles.length === 0) {
+        useToastHook({
+          title: "No Files Found",
+          description: "No valid files found in the zip archive",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await processFiles(extractedFiles);
+    } catch (error) {
+      console.error('Zip processing error:', error);
+      useToastHook({
+        title: "Zip Processing Error",
+        description: "Failed to process the zip file",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingZip(false);
+    }
   };
 
   const handleCreateFolder = async (folderName: string) => {
@@ -158,6 +330,10 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       refetch();
       toast.success('Folder created successfully');
       setShowNewFolderModal(false);
+      
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
     } catch (error) {
       console.error('Error creating folder:', error);
       toast.error('Failed to create folder');
@@ -166,13 +342,77 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Breadcrumb Navigation */}
-      <div className="flex flex-col gap-4 p-4 border-b">
+      {/* Breadcrumb Navigation with Upload Buttons */}
+      <div className="flex items-center justify-between gap-4 p-4 border-b">
         <SimpleBreadcrumb 
           currentPath={currentPath} 
           onPathClick={handleBreadcrumbClick} 
         />
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Choose Files
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => folderInputRef.current?.click()}
+          >
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Choose Folder
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => zipInputRef.current?.click()}
+            disabled={processingZip}
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            {processingZip ? "Processing..." : "Choose Zip File"}
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowNewFolderModal(true)}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Create Folder
+          </Button>
+        </div>
       </div>
+
+      {/* Hidden file inputs */}
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        multiple 
+        onChange={handleFileUpload} 
+        className="hidden" 
+      />
+      <input 
+        ref={folderInputRef} 
+        type="file" 
+        {...{ webkitdirectory: "" } as any} 
+        multiple 
+        onChange={handleFolderUpload} 
+        className="hidden" 
+      />
+      <input 
+        ref={zipInputRef} 
+        type="file" 
+        accept=".zip" 
+        onChange={handleZipUpload} 
+        className="hidden" 
+      />
 
       {/* File List */}
       <div className="flex-1 overflow-auto">

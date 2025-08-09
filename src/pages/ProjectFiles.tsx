@@ -8,7 +8,6 @@ import { SimpleFileManager } from '@/components/files/SimpleFileManager';
 const ProjectFiles = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentPath, setCurrentPath] = useState('');
 
   if (!projectId) return null;
 
@@ -24,16 +23,13 @@ const ProjectFiles = () => {
           <DashboardHeader 
             title="Project Files" 
             projectId={projectId}
-            onUploadSuccess={handleUploadSuccess}
-            currentPath={currentPath}
           />
           
           <div className="flex-1">
             <SimpleFileManager 
               projectId={projectId} 
               refreshKey={refreshKey}
-              currentPath={currentPath}
-              onCurrentPathChange={setCurrentPath}
+              onUploadSuccess={handleUploadSuccess}
             />
           </div>
         </SidebarInset>
