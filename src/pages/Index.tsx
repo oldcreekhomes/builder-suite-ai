@@ -26,21 +26,23 @@ export default function Index() {
               </header>
               <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
                 <QuickStats />
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  <div className="aspect-video rounded-xl bg-muted/50 md:col-span-2">
-                    <ProjectsOverview />
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="rounded-xl bg-muted/50">
+                      <ProjectsOverview />
+                    </div>
                   </div>
-                  <div className="aspect-video rounded-xl bg-muted/50">
-                    <RecentActivity />
+                  <div className="space-y-4">
+                    <div className="rounded-xl bg-muted/50">
+                      <RecentActivity />
+                    </div>
+                    <div className="rounded-xl bg-muted/50">
+                      <RecentPhotos />
+                    </div>
                   </div>
                 </div>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                  <div className="rounded-xl bg-muted/50">
-                    <RecentPhotos />
-                  </div>
-                  <div className="rounded-xl bg-muted/50 md:col-span-2">
-                    <WeatherForecast address={primaryProjectAddress} />
-                  </div>
+                <div className="rounded-xl bg-muted/50">
+                  <WeatherForecast address={primaryProjectAddress} />
                 </div>
               </div>
             </SidebarInset>
