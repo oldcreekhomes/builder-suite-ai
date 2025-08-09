@@ -25,7 +25,6 @@ export default function Index() {
                 </div>
               </header>
               <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <QuickStats />
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="md:col-span-2 space-y-4">
                     <div className="rounded-xl bg-muted/50">
@@ -33,9 +32,6 @@ export default function Index() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div className="rounded-xl bg-muted/50">
-                      <RecentActivity />
-                    </div>
                     <div className="rounded-xl bg-muted/50">
                       <RecentPhotos />
                     </div>
