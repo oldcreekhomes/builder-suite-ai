@@ -53,7 +53,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
               </Button>
-              <div>
+              <div className="flex items-center space-x-4">
                 <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
                 {project?.address && (
                   <p className="text-sm text-gray-600">{project.address}</p>
