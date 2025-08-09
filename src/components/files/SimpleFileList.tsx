@@ -59,6 +59,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [filesToMove, setFilesToMove] = useState<string[]>([]);
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -324,7 +325,11 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleMoveFiles = (fileIds?: string[]) => {
     if (fileIds) {
-      setSelectedFiles(new Set(fileIds));
+      // Individual file move - set specific files to move
+      setFilesToMove(fileIds);
+    } else {
+      // Bulk move - use current selection
+      setFilesToMove(Array.from(selectedFiles));
     }
     setShowMoveModal(true);
   };
@@ -619,7 +624,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       <MoveFilesModal
         isOpen={showMoveModal}
         onClose={() => setShowMoveModal(false)}
-        selectedFileIds={Array.from(selectedFiles)}
+        selectedFileIds={filesToMove}
         files={files}
         onSuccess={handleMoveSuccess}
         projectId={projectId}
