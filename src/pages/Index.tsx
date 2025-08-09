@@ -6,16 +6,18 @@ import { RecentActivity } from "@/components/RecentActivity";
 import { QuickStats } from "@/components/QuickStats";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
+import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { useProjects } from "@/hooks/useProjects";
 
 export default function Index() {
   const { data: projects = [] } = useProjects();
+  const { registerChatManager, openFloatingChat } = useFloatingChat();
   const primaryProjectAddress = projects[0]?.address || "Alexandria, VA";
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <main className="flex-1">
           <div className="flex h-full">
             <SidebarInset className="flex-1">
@@ -45,6 +47,7 @@ export default function Index() {
           </div>
         </main>
       </div>
+      <FloatingChatManager onOpenChat={registerChatManager} />
     </SidebarProvider>
   );
 }
