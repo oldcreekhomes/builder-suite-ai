@@ -269,10 +269,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       args.cancel = true;
     } else if (args.requestType === 'rowDropping') {
       // This is the key - intercept drag and drop BEFORE it happens
-      console.log('🎯 Intercepting drag and drop operation');
-      console.log('🎯 Drop data:', args.data);
-      console.log('🎯 Drop target:', args.target);
+      console.log('🎯 === DRAG AND DROP DEBUG START ===');
+      console.log('🎯 Drop data (full):', JSON.stringify(args.data, null, 2));
+      console.log('🎯 Drop target (full):', JSON.stringify(args.target, null, 2));
       console.log('🎯 Drop position:', args.dropPosition);
+      console.log('🎯 All args keys:', Object.keys(args));
       
       // Cancel the default action so we can handle it manually
       args.cancel = true;
@@ -284,50 +285,113 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Extract the task being moved
       const draggedTask = args.data && args.data[0] ? args.data[0] : null;
       if (!draggedTask) {
+        console.error('❌ No dragged task found in args.data');
         setIsDragInProgress(false);
         (window as any).__ganttDragInProgress = false;
         return;
       }
       
+      console.log('🎯 Dragged task structure:', JSON.stringify(draggedTask, null, 2));
+      console.log('🎯 Available task properties:', Object.keys(draggedTask));
+      
+      // Try different ways to access the task ID
+      const taskId = draggedTask.TaskID || draggedTask.taskId || draggedTask.id || 
+                     (draggedTask.ganttProperties && draggedTask.ganttProperties.taskId);
+      
+      console.log('🎯 Task ID candidates:', {
+        'TaskID': draggedTask.TaskID,
+        'taskId': draggedTask.taskId,
+        'id': draggedTask.id,
+        'ganttProperties.taskId': draggedTask.ganttProperties?.taskId,
+        'final taskId': taskId
+      });
+      
+      if (!taskId) {
+        console.error('❌ Could not find task ID in any format:', draggedTask);
+        setIsDragInProgress(false);
+        (window as any).__ganttDragInProgress = false;
+        return;
+      }
+      
+      // Debug target information
+      console.log('🎯 Target structure:', JSON.stringify(args.target, null, 2));
+      console.log('🎯 Available target properties:', Object.keys(args.target || {}));
+      
+      // Try different ways to access the target ID
+      let targetId = null;
+      if (args.target) {
+        targetId = args.target.TaskID || args.target.taskId || args.target.id ||
+                   (args.target.ganttProperties && args.target.ganttProperties.taskId);
+        
+        console.log('🎯 Target ID candidates:', {
+          'TaskID': args.target.TaskID,
+          'taskId': args.target.taskId,
+          'id': args.target.id,
+          'ganttProperties.taskId': args.target.ganttProperties?.taskId,
+          'final targetId': targetId
+        });
+      }
+      
       // Determine new parent based on drop target and position
       let newParentId = null;
       if (args.target && args.dropPosition === 'child') {
-        newParentId = args.target.TaskID;
+        newParentId = targetId;
       } else if (args.target && args.target.parentItem) {
-        newParentId = args.target.parentItem.TaskID;
+        const parentId = args.target.parentItem.TaskID || args.target.parentItem.taskId || 
+                         args.target.parentItem.id ||
+                         (args.target.parentItem.ganttProperties && args.target.parentItem.ganttProperties.taskId);
+        newParentId = parentId;
+        
+        console.log('🎯 Parent ID candidates:', {
+          'parentItem.TaskID': args.target.parentItem.TaskID,
+          'parentItem.taskId': args.target.parentItem.taskId,
+          'parentItem.id': args.target.parentItem.id,
+          'parentItem.ganttProperties.taskId': args.target.parentItem.ganttProperties?.taskId,
+          'final parentId': parentId
+        });
       }
       
       // Calculate new order index based on drop position
       let newOrderIndex = 0;
       if (args.target) {
-        newOrderIndex = args.target.index || 0;
+        newOrderIndex = args.target.index || args.target.orderIndex || 0;
         if (args.dropPosition === 'below') {
           newOrderIndex += 1;
         }
       }
       
-      console.log('🎯 Calculated new position:', {
-        taskId: draggedTask.TaskID,
+      console.log('🎯 Final calculated position:', {
+        taskId,
         newParentId,
         newOrderIndex,
         dropPosition: args.dropPosition
       });
       
-      // Validate we have a valid task ID before proceeding
-      if (!draggedTask.TaskID) {
-        console.error('❌ No TaskID found in dragged task:', draggedTask);
+      // Validate we have a valid task ID - check if it looks like a UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!taskId || !uuidRegex.test(String(taskId))) {
+        console.error('❌ Invalid task ID format:', taskId);
         setIsDragInProgress(false);
+        (window as any).__ganttDragInProgress = false;
+        return;
+      }
+      
+      // Validate parent ID if provided
+      if (newParentId && !uuidRegex.test(String(newParentId))) {
+        console.error('❌ Invalid parent ID format:', newParentId);
+        setIsDragInProgress(false);
+        (window as any).__ganttDragInProgress = false;
         return;
       }
       
       // Save to database first
       const updateParams = {
-        id: String(draggedTask.TaskID),
+        id: String(taskId),
         parent_id: newParentId ? String(newParentId) : null,
         order_index: newOrderIndex
       };
       
-      console.log('💾 Sending update to database:', updateParams);
+      console.log('💾 Sending validated update to database:', updateParams);
       
       if (updateTask) {
         updateTask.mutate(updateParams, {
@@ -341,6 +405,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 // Update the task record in Syncfusion with correct property names
                 const updatedTask = {
                   ...draggedTask,
+                  TaskID: taskId,
                   ParentID: newParentId,
                   OrderIndex: newOrderIndex
                 };
@@ -351,6 +416,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
                 ganttInstance.current.updateRecordByID(updatedTask);
                 
                 toast({ title: "Success", description: "Task moved successfully" });
+                console.log('🎯 === DRAG AND DROP DEBUG END (SUCCESS) ===');
               } catch (error) {
                 console.error('❌ Failed to update Syncfusion:', error);
                 toast({ 
@@ -367,12 +433,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           },
           onError: (error: any) => {
             console.error('❌ Database update failed:', error);
-            console.error('❌ Error details:', error);
+            console.error('❌ Error details:', JSON.stringify(error, null, 2));
+            console.error('❌ Update params that failed:', updateParams);
             toast({ 
               variant: "destructive", 
               title: "Error", 
               description: error?.message || 'Failed to move task'
             });
+            
+            console.log('🎯 === DRAG AND DROP DEBUG END (ERROR) ===');
             
             // Clear the global flag and local state on error
             (window as any).__ganttDragInProgress = false;
@@ -380,6 +449,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           }
         });
       } else {
+        console.error('❌ updateTask mutation not available');
         setIsDragInProgress(false);
         (window as any).__ganttDragInProgress = false;
       }
