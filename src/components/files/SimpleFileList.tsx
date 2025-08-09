@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, Move, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { NewFolderModal } from './NewFolderModal';
+import { MoveFilesModal } from './MoveFilesModal';
+import { BulkActionBar } from './components/BulkActionBar';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -55,6 +57,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [renameFolder, setRenameFolder] = useState<SimpleFolder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -300,6 +304,36 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
+  const handleSelectFile = (fileId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFiles);
+    if (checked) {
+      newSelected.add(fileId);
+    } else {
+      newSelected.delete(fileId);
+    }
+    setSelectedFiles(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(new Set(files.map(file => file.id)));
+    } else {
+      setSelectedFiles(new Set());
+    }
+  };
+
+  const handleMoveFiles = (fileIds?: string[]) => {
+    if (fileIds) {
+      setSelectedFiles(new Set(fileIds));
+    }
+    setShowMoveModal(true);
+  };
+
+  const handleMoveSuccess = () => {
+    setSelectedFiles(new Set());
+    onRefresh();
+  };
+
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) return '🖼️';
     if (mimeType.includes('pdf')) return '📄';
@@ -332,6 +366,46 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             <FolderPlus className="h-4 w-4" />
             New Folder
           </Button>
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedFiles.size}
+        selectedFolderCount={0}
+        onBulkDelete={() => {
+          // Handle bulk delete if needed
+        }}
+        isDeleting={false}
+      />
+
+      {/* Select All for Files */}
+      {files.length > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSelectAll(!selectedFiles.size || selectedFiles.size < files.length)}
+            className="gap-2"
+          >
+            {selectedFiles.size === files.length ? (
+              <CheckSquare className="h-4 w-4" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            {selectedFiles.size === files.length ? 'Deselect All' : 'Select All'}
+          </Button>
+          {selectedFiles.size > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleMoveFiles()}
+              className="gap-2"
+            >
+              <Move className="h-4 w-4" />
+              Move Selected ({selectedFiles.size})
+            </Button>
+          )}
         </div>
       )}
       
@@ -382,8 +456,22 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         {files.map((file) => (
           <div
             key={file.id}
-            className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
+            className={`flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors ${
+              selectedFiles.has(file.id) ? 'bg-accent border-primary' : ''
+            }`}
           >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleSelectFile(file.id, !selectedFiles.has(file.id))}
+              className="p-1"
+            >
+              {selectedFiles.has(file.id) ? (
+                <CheckSquare className="h-4 w-4 text-primary" />
+              ) : (
+                <Square className="h-4 w-4" />
+              )}
+            </Button>
             <div className="text-2xl">
               {getFileIcon(file.mime_type)}
             </div>
@@ -407,6 +495,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 className="gap-1"
               >
                 <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleMoveFiles([file.id])}
+                className="gap-1"
+              >
+                <Move className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -518,6 +614,15 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         onClose={() => setShowNewFolderModal(false)}
         onCreateFolder={onCreateFolder}
         parentPath={currentPath}
+      />
+
+      <MoveFilesModal
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        selectedFileIds={Array.from(selectedFiles)}
+        files={files}
+        onSuccess={handleMoveSuccess}
+        projectId={projectId}
       />
     </div>
   );
