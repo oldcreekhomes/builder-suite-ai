@@ -51,10 +51,13 @@ export const useProjectTasks = (projectId: string) => {
             return;
           }
           
-          // Invalidate and refetch the project tasks
-          queryClient.invalidateQueries({
-            queryKey: ['project-tasks', projectId, user.id]
-          });
+          // Add a small delay to prevent conflicts with drag operations
+          setTimeout(() => {
+            console.log('🔄 Processing real-time update after delay');
+            queryClient.invalidateQueries({
+              queryKey: ['project-tasks', projectId, user.id]
+            });
+          }, 100);
         }
       )
       .subscribe((status) => {

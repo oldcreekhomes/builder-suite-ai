@@ -376,8 +376,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         return;
       }
       
-      // Validate parent ID if provided
-      if (newParentId && !uuidRegex.test(String(newParentId))) {
+      // Validate parent ID if provided (skip validation for null - that's valid for root level)
+      if (newParentId !== null && !uuidRegex.test(String(newParentId))) {
         console.error('❌ Invalid parent ID format:', newParentId);
         setIsDragInProgress(false);
         (window as any).__ganttDragInProgress = false;
@@ -387,7 +387,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       // Save to database first
       const updateParams = {
         id: String(taskId),
-        parent_id: newParentId ? String(newParentId) : null,
+        parent_id: newParentId, // Pass null directly for root level, string for parent
         order_index: newOrderIndex
       };
       
@@ -399,13 +399,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             console.log('✅ Database updated successfully:', response);
             console.log('💾 Database function returned:', response);
 
-            // Ensure the DB call actually updated a row
+            // Check if the DB call actually updated a row (FOUND returns boolean)
             if (response !== true) {
-              console.error('❌ Database function returned false - no rows updated');
+              console.error('❌ Database function indicated no rows updated:', response);
               toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Failed to save task position"
+                description: "Failed to save task position - no rows updated"
               });
               (window as any).__ganttDragInProgress = false;
               setIsDragInProgress(false);

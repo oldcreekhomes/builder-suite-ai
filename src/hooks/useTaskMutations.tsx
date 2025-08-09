@@ -72,6 +72,18 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: UpdateTaskParams) => {
       if (!user) throw new Error('User not authenticated');
 
+      console.log('🔧 UpdateTask mutation called with params:', params);
+
+      // Handle parent_id properly for drag operations
+      let parentIdParam = params.parent_id;
+      if (params.parent_id === undefined) {
+        parentIdParam = '__UNSET__'; // Don't change parent
+      } else if (params.parent_id === null || params.parent_id === '') {
+        parentIdParam = null; // Clear parent (make root level)
+      }
+
+      console.log('🔧 Processed parent_id_param:', parentIdParam);
+
       const { data, error } = await supabase.rpc('update_project_task', {
         id_param: params.id,
         task_name_param: params.task_name,
@@ -81,7 +93,7 @@ export const useTaskMutations = (projectId: string) => {
         progress_param: params.progress,
         predecessor_param: params.predecessor,
         resources_param: params.resources,
-        parent_id_param: params.parent_id,
+        parent_id_param: parentIdParam,
         order_index_param: params.order_index,
       });
 
@@ -90,15 +102,17 @@ export const useTaskMutations = (projectId: string) => {
         throw error;
       }
 
+      console.log('🔧 Database function returned:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🔧 Task update success with data:', data);
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-      toast.success('Task updated successfully');
+      // Don't show toast here - let the calling component handle UI feedback
     },
     onError: (error) => {
-      console.error('Error updating task:', error);
-      toast.error('Failed to update task');
+      console.error('🔧 Task update error:', error);
+      // Don't show toast here - let the calling component handle UI feedback
     },
   });
 
