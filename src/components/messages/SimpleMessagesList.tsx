@@ -145,11 +145,11 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
         return (
           <div
             key={message.id}
-            className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+            className="flex justify-start"
           >
-            <div className={`flex max-w-[70%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className="flex max-w-[70%] flex-row">
               {/* Avatar */}
-              <div className={`flex-shrink-0 ${isOwn ? 'ml-2' : 'mr-2'}`}>
+              <div className="flex-shrink-0 mr-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={message.sender_avatar || undefined} />
                   <AvatarFallback className="text-xs">
@@ -159,9 +159,9 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
               </div>
 
               {/* Message Content */}
-              <div className={`${isOwn ? 'text-right' : 'text-left'}`}>
+              <div className="text-left">
                 {/* Sender name and time */}
-                <div className={`text-xs text-muted-foreground mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+                <div className="text-xs text-muted-foreground mb-1 text-left">
                   <span className="font-medium">
                     {message.sender_name}
                   </span>
