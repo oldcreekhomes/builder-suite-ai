@@ -269,9 +269,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   // Database sync - Updated to handle drag/drop reordering
   const handleActionComplete = (args: any) => {
-    if (!args || !args.data) return;
+    if (!args) return;
     
-    console.log('🎭 Action complete:', args.requestType, args.data);
+    // Log ALL action complete events to debug drag and drop
+    console.log('🎭 Action complete - RequestType:', args.requestType);
+    console.log('🎭 Action complete - Full args:', args);
+    console.log('🎭 Action complete - Data:', args.data);
+    
+    if (!args.data) return;
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
@@ -352,10 +357,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // Handle drag and drop reordering
+        // Handle drag and drop reordering - try multiple possible request types
         case 'rowDrop':
-        case 'reorder': {
-          console.log('📋 Drag and drop reorder operation...');
+        case 'reorder':
+        case 'rowdraganddrop':
+        case 'rowDropped':
+        case 'dragAndDrop': {
+          console.log('📋 Drag and drop reorder operation detected!');
           
           // Handle multiple tasks if they were moved
           const tasksToUpdate = Array.isArray(args.data) ? args.data : [args.data];
@@ -367,6 +375,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               order_index: task.OrderIndex || 0
             };
             
+            console.log('📋 Updating task order:', reorderParams);
+            
             if (updateTask) {
               updateTask.mutate(reorderParams, { 
                 onSuccess: () => onSuccess("Task order updated"), 
@@ -375,6 +385,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             }
           });
           break;
+        }
+
+        // Catch-all for any unhandled action types
+        default: {
+          console.log('❓ Unhandled action type:', args.requestType);
+          // Don't process unknown action types
+          return;
         }
       }
     } catch (error) {
