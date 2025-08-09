@@ -4,8 +4,14 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { RecentActivity } from "@/components/RecentActivity";
 import { QuickStats } from "@/components/QuickStats";
+import { RecentPhotos } from "@/components/RecentPhotos";
+import { WeatherForecast } from "@/components/WeatherForecast";
+import { useProjects } from "@/hooks/useProjects";
 
 export default function Index() {
+  const { data: projects = [] } = useProjects();
+  const primaryProjectAddress = projects[0]?.address || "Alexandria, VA";
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -26,6 +32,14 @@ export default function Index() {
                   </div>
                   <div className="aspect-video rounded-xl bg-muted/50">
                     <RecentActivity />
+                  </div>
+                </div>
+                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+                  <div className="rounded-xl bg-muted/50">
+                    <RecentPhotos />
+                  </div>
+                  <div className="rounded-xl bg-muted/50 md:col-span-2">
+                    <WeatherForecast address={primaryProjectAddress} />
                   </div>
                 </div>
               </div>
