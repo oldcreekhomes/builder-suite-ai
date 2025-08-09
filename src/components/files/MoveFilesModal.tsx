@@ -90,7 +90,7 @@ export function MoveFilesModal({
   };
 
   const handleMove = async () => {
-    if (selectedFolder === undefined || selectedFolder === null) {
+    if (selectedFolder === undefined || selectedFolder === null || selectedFolder === "") {
       toast({
         title: "Select Destination",
         description: "Please select a folder",
@@ -118,7 +118,7 @@ export function MoveFilesModal({
       const failures: string[] = [];
 
       // Handle root folder case differently
-      if (selectedFolder === "") {
+      if (selectedFolder === "ROOT") {
         // Moving to root folder
         console.log("Moving files to root folder");
         
@@ -253,7 +253,7 @@ export function MoveFilesModal({
       if (failureCount === 0) {
         toast({
           title: "Success",
-          description: `Moved ${successCount} file(s) to ${selectedFolder === "" ? "root folder" : `"${selectedFolder}" folder`}`,
+          description: `Moved ${successCount} file(s) to ${selectedFolder === "ROOT" ? "root folder" : `"${selectedFolder}" folder`}`,
         });
         onSuccess();
         handleClose();
@@ -309,7 +309,7 @@ export function MoveFilesModal({
               </SelectTrigger>
               <SelectContent className="max-h-60 overflow-y-auto bg-white border border-gray-200 shadow-lg z-50">
                 {/* Add Root folder option */}
-                <SelectItem value="">
+                <SelectItem value="ROOT">
                   <div className="flex items-center">
                     <Home className="h-4 w-4 mr-2" />
                     Root / (Move to root folder)
@@ -341,7 +341,7 @@ export function MoveFilesModal({
           </Button>
           <Button 
             onClick={handleMove} 
-            disabled={isMoving || selectedFolder === undefined || selectedFolder === null}
+            disabled={isMoving || !selectedFolder}
           >
             {isMoving ? "Moving..." : "Move Files"}
           </Button>
