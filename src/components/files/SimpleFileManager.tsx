@@ -7,19 +7,37 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
-import { FileUploadDropzone } from './FileUploadDropzone';
 import { NewFolderModal } from './NewFolderModal';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SimpleFileManagerProps {
   projectId: string;
+  refreshKey?: number;
+  currentPath?: string;
+  onCurrentPathChange?: (path: string) => void;
 }
 
-export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId }) => {
-  const [currentPath, setCurrentPath] = useState<string>('');
+export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ 
+  projectId, 
+  refreshKey, 
+  currentPath: externalCurrentPath, 
+  onCurrentPathChange 
+}) => {
+  const [internalCurrentPath, setInternalCurrentPath] = useState<string>('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const { user } = useAuth();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
+
+  // Use external currentPath if provided, otherwise use internal state
+  const currentPath = externalCurrentPath !== undefined ? externalCurrentPath : internalCurrentPath;
+  const setCurrentPath = onCurrentPathChange || setInternalCurrentPath;
+
+  // Trigger refetch when refreshKey changes
+  React.useEffect(() => {
+    if (refreshKey) {
+      refetch();
+    }
+  }, [refreshKey, refetch]);
 
   // Get files and folders for current path (filter out folderkeeper files)
   const getCurrentItems = () => {
@@ -148,15 +166,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ projectId 
 
   return (
     <div className="flex flex-col h-full">
-      {/* File Upload Area */}
-      <div className="p-4 border-b">
-        <FileUploadDropzone
-          projectId={projectId}
-          currentPath={currentPath}
-          onUploadSuccess={handleUploadSuccess}
-        />
-      </div>
-
       {/* Breadcrumb Navigation */}
       <div className="flex flex-col gap-4 p-4 border-b">
         <SimpleBreadcrumb 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -7,8 +7,14 @@ import { SimpleFileManager } from '@/components/files/SimpleFileManager';
 
 const ProjectFiles = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [currentPath, setCurrentPath] = useState('');
 
   if (!projectId) return null;
+
+  const handleUploadSuccess = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <SidebarProvider>
@@ -18,10 +24,17 @@ const ProjectFiles = () => {
           <DashboardHeader 
             title="Project Files" 
             projectId={projectId}
+            onUploadSuccess={handleUploadSuccess}
+            currentPath={currentPath}
           />
           
           <div className="flex-1">
-            <SimpleFileManager projectId={projectId} />
+            <SimpleFileManager 
+              projectId={projectId} 
+              refreshKey={refreshKey}
+              currentPath={currentPath}
+              onCurrentPathChange={setCurrentPath}
+            />
           </div>
         </SidebarInset>
       </div>
