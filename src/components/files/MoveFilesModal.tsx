@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 
 interface SimpleFile {
   id: string;
@@ -43,8 +43,6 @@ export function MoveFilesModal({
   const { toast } = useToast();
   const [folders, setFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>("");
-  const [newFolderName, setNewFolderName] = useState("");
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
 
   const selectedFiles = files.filter(file => selectedFileIds.includes(file.id));
@@ -93,12 +91,10 @@ export function MoveFilesModal({
   };
 
   const handleMove = async () => {
-    const targetFolder = newFolderName.trim() || selectedFolder;
-    
-    if (!targetFolder) {
+    if (!selectedFolder) {
       toast({
         title: "Select Destination",
-        description: "Please select a folder or create a new one",
+        description: "Please select a folder",
         variant: "destructive",
       });
       return;
@@ -116,7 +112,7 @@ export function MoveFilesModal({
     setIsMoving(true);
 
     try {
-      console.log(`Starting to move ${selectedFiles.length} files to "${targetFolder}"`);
+      console.log(`Starting to move ${selectedFiles.length} files to "${selectedFolder}"`);
       
       // Get existing files in target folder to check for conflicts
       const { data: existingFiles } = await supabase
@@ -124,7 +120,7 @@ export function MoveFilesModal({
         .select('original_filename')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .ilike('original_filename', `${targetFolder}/%`);
+        .ilike('original_filename', `${selectedFolder}/%`);
 
       const existingFilenames = new Set(
         existingFiles?.map(f => f.original_filename?.split('/').pop()) || []
@@ -157,7 +153,7 @@ export function MoveFilesModal({
             counter++;
           }
           
-          const newPath = `${targetFolder}/${finalFilename}`;
+          const newPath = `${selectedFolder}/${finalFilename}`;
           console.log(`Moving "${file.displayName}" to "${newPath}"`);
           
           const { error } = await supabase
@@ -190,7 +186,7 @@ export function MoveFilesModal({
       if (failureCount === 0) {
         toast({
           title: "Success",
-          description: `Moved ${successCount} file(s) to "${targetFolder}" folder`,
+          description: `Moved ${successCount} file(s) to "${selectedFolder}" folder`,
         });
         onSuccess();
         handleClose();
@@ -223,8 +219,6 @@ export function MoveFilesModal({
 
   const handleClose = () => {
     setSelectedFolder("");
-    setNewFolderName("");
-    setShowNewFolderInput(false);
     onClose();
   };
 
@@ -240,68 +234,30 @@ export function MoveFilesModal({
             Moving {selectedFiles.length} file(s)
           </div>
 
-          {!showNewFolderInput ? (
-            <div className="space-y-2">
-              <Label>Select Existing Folder</Label>
-              <Select value={selectedFolder} onValueChange={setSelectedFolder}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a folder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {folders.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      No existing folders
-                    </div>
-                  ) : (
-                    folders.map((folder) => (
-                      <SelectItem key={folder} value={folder}>
-                        <div className="flex items-center">
-                          <FolderOpen className="h-4 w-4 mr-2" />
-                          {folder}
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowNewFolderInput(true)}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Folder
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="folderName">New Folder Name</Label>
-              <Input
-                id="folderName"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Enter folder name..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newFolderName.trim()) {
-                    handleMove();
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setShowNewFolderInput(false);
-                  setNewFolderName("");
-                }}
-                className="w-full"
-              >
-                Use Existing Folder Instead
-              </Button>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Select Existing Folder</Label>
+            <Select value={selectedFolder} onValueChange={setSelectedFolder}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a folder..." />
+              </SelectTrigger>
+              <SelectContent>
+                {folders.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No existing folders
+                  </div>
+                ) : (
+                  folders.map((folder) => (
+                    <SelectItem key={folder} value={folder}>
+                      <div className="flex items-center">
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        {folder}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <DialogFooter>
@@ -310,7 +266,7 @@ export function MoveFilesModal({
           </Button>
           <Button 
             onClick={handleMove} 
-            disabled={isMoving || (!selectedFolder && !newFolderName.trim())}
+            disabled={isMoving || !selectedFolder}
           >
             {isMoving ? "Moving..." : "Move Files"}
           </Button>
