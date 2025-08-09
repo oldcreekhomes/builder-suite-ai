@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, Move, CheckSquare, Square } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -407,7 +407,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               onClick={() => handleMoveFiles()}
               className="gap-2"
             >
-              <Move className="h-4 w-4" />
+               <FileText className="h-4 w-4" />
               Move Selected ({selectedFiles.size})
             </Button>
           )}
@@ -500,14 +500,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 className="gap-1"
               >
                 <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleMoveFiles([file.id])}
-                className="gap-1"
-              >
-                <Move className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
