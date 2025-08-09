@@ -250,7 +250,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     console.log('🎬 Action begin:', args.requestType);
     
-    if (args.requestType === 'beforeDelete') {
+    if (args.requestType === 'add') {
+      // Set default task name when adding via context menu
+      if (args.data && args.data.TaskName) {
+        args.data.TaskName = 'New Task';
+      }
+    } else if (args.requestType === 'beforeDelete') {
       args.cancel = true;
       const taskData = args.data && args.data[0] ? args.data[0] : null;
       if (taskData) {
