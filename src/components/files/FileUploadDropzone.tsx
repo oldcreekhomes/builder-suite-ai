@@ -489,12 +489,6 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
           Upload files or folders
         </h3>
-        <p className="text-gray-600 mb-4">
-          Use the buttons below to upload individual files, entire folders, or create new folders.
-        </p>
-        <p className="text-sm text-gray-500 mb-6">
-          Supports all file types: documents, images, videos, archives, and more
-        </p>
         <div className="flex items-center justify-center space-x-4 flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={handleChooseFiles}>
             <FileText className="h-4 w-4 mr-2" />
