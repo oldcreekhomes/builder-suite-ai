@@ -355,6 +355,28 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           }
           break;
         }
+        
+        case 'rowDrop': {
+          console.log('🎯 Row drop operation - saving to database...');
+          
+          // Extract dropped task data and new position info
+          const droppedTaskData = Array.isArray(args.data) ? args.data[0] : args.data;
+          if (!droppedTaskData) break;
+          
+          const dropParams = {
+            id: String(droppedTaskData.TaskID),
+            parent_id: droppedTaskData.ParentID ? String(droppedTaskData.ParentID) : null,
+            order_index: droppedTaskData.index || 0
+          };
+          
+          if (updateTask) {
+            updateTask.mutate(dropParams, { 
+              onSuccess: () => onSuccess("Task position updated"), 
+              onError: onError 
+            });
+          }
+          break;
+        }
       }
     } catch (error) {
       console.error('Action complete error:', error);
