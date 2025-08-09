@@ -16,6 +16,7 @@ import {
   EventMarkerDirective,
   ColumnMenu,
   Resize,
+  RowDD,
 } from "@syncfusion/ej2-react-gantt";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
@@ -571,7 +572,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
               <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
             </EventMarkersDirective>
             
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu, Resize]} />
+            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu, Resize, RowDD]} />
           </GanttComponent>
         </div>
       </div>
