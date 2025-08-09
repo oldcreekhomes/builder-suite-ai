@@ -360,20 +360,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   return (
     <div className="p-4">
-      {/* New Folder Button - only show when inside a folder */}
-      {currentPath && (
-        <div className="mb-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowNewFolderModal(true)}
-            className="gap-2"
-          >
-            <FolderPlus className="h-4 w-4" />
-            New Folder
-          </Button>
-        </div>
-      )}
-
       {/* Bulk Action Bar */}
       <BulkActionBar
         selectedCount={selectedFiles.size}
