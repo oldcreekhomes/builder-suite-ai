@@ -43,6 +43,14 @@ export const useProjectTasks = (projectId: string) => {
         },
         (payload) => {
           console.log('Real-time task update received:', payload);
+          
+          // Check if there's a drag operation in progress - if so, skip real-time updates
+          const isDragInProgress = (window as any).__ganttDragInProgress;
+          if (isDragInProgress) {
+            console.log('🚫 Skipping real-time update - drag operation in progress');
+            return;
+          }
+          
           // Invalidate and refetch the project tasks
           queryClient.invalidateQueries({
             queryKey: ['project-tasks', projectId, user.id]
