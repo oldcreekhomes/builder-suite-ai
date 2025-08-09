@@ -348,13 +348,45 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'dragAndDrop': {
           console.log('🚀 DRAG AND DROP DETECTED IN ACTION COMPLETE!');
           console.log('🚀 Task data:', taskData);
+          console.log('🚀 Full args:', args);
+          
+          // Find the original task to preserve its parent if needed
+          const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+          if (!originalTask) {
+            console.error('❌ Could not find original task to compare');
+            break;
+          }
+          
+          // Determine the correct parent_id
+          let correctParentId = null;
+          
+          // Check if this is a position change (dropIndex, fromIndex) vs parent change
+          const hasPositionChange = args.dropIndex !== undefined && args.fromIndex !== undefined;
+          const hasParentInTaskData = taskData.ParentID !== undefined && taskData.ParentID !== null;
+          
+          console.log('🚀 Drop analysis:', {
+            fromIndex: args.fromIndex,
+            dropIndex: args.dropIndex,
+            hasPositionChange,
+            hasParentInTaskData,
+            originalParent: originalTask.parent_id,
+            newParentInData: taskData.ParentID
+          });
+          
+          if (hasParentInTaskData) {
+            // Task has explicit parent in the data - use it
+            correctParentId = String(taskData.ParentID);
+          } else {
+            // No explicit parent in data - preserve original parent
+            correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
+          }
           
           const dragParams = {
             id: String(taskData.TaskID), 
-            parent_id: taskData.ParentID ? String(taskData.ParentID) : null
+            parent_id: correctParentId
           };
           
-          console.log('🚀 Saving drag result:', dragParams);
+          console.log('🚀 Saving drag result with corrected parent:', dragParams);
           
           if (updateTask) {
             updateTask.mutate(dragParams, { 
