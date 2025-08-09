@@ -37,7 +37,7 @@ export const SimpleBreadcrumb: React.FC<SimpleBreadcrumbProps> = ({
       </Button>
 
       {pathSegments.map((segment, index) => (
-        <React.Fragment key={index}>
+        <div key={index} className="flex items-center gap-1">
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
           <Button
             variant="ghost"
@@ -47,7 +47,7 @@ export const SimpleBreadcrumb: React.FC<SimpleBreadcrumbProps> = ({
           >
             {segment}
           </Button>
-        </React.Fragment>
+        </div>
       ))}
     </div>
   );

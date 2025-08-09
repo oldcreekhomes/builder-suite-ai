@@ -60,6 +60,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [filesToMove, setFilesToMove] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const handleFileView = async (file: SimpleFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -339,6 +341,39 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     onRefresh();
   };
 
+  const handleBulkDelete = () => {
+    if (selectedFiles.size > 0) {
+      setShowBulkDeleteConfirm(true);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedFiles.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const fileIds = Array.from(selectedFiles);
+      
+      // Mark all selected files as deleted
+      const { error } = await supabase
+        .from('project_files')
+        .update({ is_deleted: true })
+        .in('id', fileIds);
+
+      if (error) throw error;
+
+      toast.success(`Successfully deleted ${selectedFiles.size} file(s)`);
+      setSelectedFiles(new Set());
+      setShowBulkDeleteConfirm(false);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      toast.error('Failed to delete selected files');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getFileIcon = (mimeType: string) => {
     if (mimeType.startsWith('image/')) return '🖼️';
     if (mimeType.includes('pdf')) return '📄';
@@ -364,10 +399,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       <BulkActionBar
         selectedCount={selectedFiles.size}
         selectedFolderCount={0}
-        onBulkDelete={() => {
-          // Handle bulk delete if needed
-        }}
-        isDeleting={false}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Select All for Files */}
@@ -606,6 +639,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         files={files}
         onSuccess={handleMoveSuccess}
         projectId={projectId}
+      />
+
+      <DeleteConfirmationDialog
+        open={showBulkDeleteConfirm}
+        onOpenChange={(open) => !open && setShowBulkDeleteConfirm(false)}
+        onConfirm={confirmBulkDelete}
+        title="Delete Selected Files"
+        description={`Are you sure you want to delete ${selectedFiles.size} selected file(s)? This action cannot be undone.`}
       />
     </div>
   );
