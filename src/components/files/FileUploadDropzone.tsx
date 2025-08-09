@@ -276,15 +276,18 @@ export function FileUploadDropzone({ projectId, onUploadSuccess, currentPath = '
     setUploadingFiles(prev => prev.filter(upload => upload.file !== file));
   };
 
-  const handleNewFolder = () => {
+  const handleNewFolder = (event?: React.MouseEvent) => {
+    event?.stopPropagation();
     setShowNewFolderModal(true);
   };
 
-  const handleChooseFiles = () => {
+  const handleChooseFiles = (event?: React.MouseEvent) => {
+    event?.stopPropagation();
     fileInputRef.current?.click();
   };
 
-  const handleChooseFolder = () => {
+  const handleChooseFolder = (event?: React.MouseEvent) => {
+    event?.stopPropagation();
     folderInputRef.current?.click();
   };
 
