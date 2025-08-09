@@ -5,11 +5,11 @@ export function IssuesTableHeader() {
   return (
     <TableHeader>
       <TableRow className="h-10">
-        <TableHead className="font-bold w-16 py-2 text-sm">#</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-80">Title</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-24">Priority</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-32">Files</TableHead>
-        <TableHead className="font-bold py-2 text-sm w-20">Actions</TableHead>
+        <TableHead className="font-bold w-12 py-2 text-sm">#</TableHead>
+        <TableHead className="font-bold py-2 text-sm">Title</TableHead>
+        <TableHead className="font-bold py-2 text-sm w-20">Priority</TableHead>
+        <TableHead className="font-bold py-2 text-sm w-28">Files</TableHead>
+        <TableHead className="font-bold py-2 text-sm w-16">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
