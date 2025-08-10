@@ -272,62 +272,23 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleRowDrop = (args: any) => {
     console.log('🎯 ROW DROP EVENT - This fires BEFORE actionComplete!');
     console.log('🎯 Drop args:', args);
+    console.log('🎯 Drop data:', args.data);
+    console.log('🎯 Drop position:', args.dropPosition);
+    console.log('🎯 From index:', args.fromIndex);
+    console.log('🎯 Drop index:', args.dropIndex);
+    console.log('🎯 Target:', args.target);
     
-    if (!args || !args.data || args.data.length === 0) return;
-    
-    const taskData = args.data[0]; // First dragged item
-    const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-    
-    if (!originalTask) {
-      console.error('❌ Could not find original task');
-      return;
-    }
-    
-    // Determine the correct parent_id based on drop position
-    let correctParentId = null;
-    
-    if (args.dropPosition === 'middleSegment') {
-      // Dropped as child
-      correctParentId = String(args.target.TaskID);
-    } else {
-      // Dropped as sibling (above or below) - preserve target's parent
-      correctParentId = args.target.ParentID ? String(args.target.ParentID) : null;
-    }
-    
-    // Prepare the update parameters
-    const dragParams = {
-      id: String(taskData.TaskID), 
-      parent_id: correctParentId,
-      order_index: args.dropIndex !== undefined ? args.dropIndex : 0
-    };
-    
-    console.log('🎯 Saving drag result in rowDrop:', dragParams);
-    
-    // Save to database
-    if (updateTask) {
-      updateTask.mutate(dragParams, { 
-        onSuccess: () => {
-          console.log('✅ Row drop save successful');
-          toast({ title: "Success", description: "Task moved successfully" });
-          setTimeout(() => autoFitAllColumns(), 200);
-        }, 
-        onError: (error: any) => {
-          console.error('❌ Row drop save error:', error);
-          toast({ 
-            variant: "destructive", 
-            title: "Error", 
-            description: error?.message || 'Failed to move task' 
-          });
-        }
-      });
-    }
+    // Let the default drag operation complete first
+    // Don't cancel it, just log that we received it
   };
 
-  // Simplified actionComplete - REMOVED all drag and drop handling since it's now in rowDrop
+  // DEBUGGING: Enhanced actionComplete with detailed logging
   const handleActionComplete = (args: any) => {
     if (!args) return;
     
     console.log('🎭 Action complete:', args.requestType);
+    console.log('🎭 Action data:', args.data);
+    console.log('🎭 Full args:', args);
     
     if (!args.data) return;
     
@@ -394,10 +355,44 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // REMOVED: All drag and drop cases - now handled in rowDrop event
-        
+        // TESTING: Let's see what requestType we actually get for drag and drop
         default: {
           console.log('❓ Unhandled action type:', args.requestType);
+          console.log('🔍 Task data structure:', taskData);
+          console.log('🔍 All available properties:', Object.keys(taskData));
+          
+          // If this looks like a drag and drop operation, handle it
+          if (args.requestType === 'rowDropped' || args.requestType === 'reorder' || args.requestType === 'refresh') {
+            console.log('🚀 POTENTIAL DRAG OPERATION DETECTED!');
+            
+            // Find the original task
+            const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+            if (!originalTask) {
+              console.error('❌ Could not find original task');
+              break;
+            }
+            
+            // For now, just prevent any data refresh that might cause revert
+            console.log('🚀 Handling potential drag operation - preventing refresh');
+            
+            // Update with minimal changes to test
+            const dragParams = {
+              id: String(taskData.TaskID), 
+              parent_id: taskData.ParentID ? String(taskData.ParentID) : null
+            };
+            
+            console.log('🚀 Saving drag result:', dragParams);
+            
+            if (updateTask) {
+              updateTask.mutate(dragParams, { 
+                onSuccess: () => {
+                  onSuccess("Task moved successfully");
+                  // CRITICAL: Do not refresh data here
+                }, 
+                onError: onError 
+              });
+            }
+          }
           break;
         }
       }
