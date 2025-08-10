@@ -52,4 +52,25 @@
   display: none !important;
 }
 
+/* Prevent Gantt chart from overlapping sidebar */
+.e-gantt {
+  position: relative;
+  z-index: 1;
+}
+
+.e-gantt .e-gantt-chart {
+  overflow: hidden;
+}
+
+.e-gantt .e-timeline-header-container,
+.e-gantt .e-chart-row-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure sidebar always stays on top */
+.sidebar {
+  z-index: 50 !important;
+}
+
 /* Global override for any Syncfusion notification methods */

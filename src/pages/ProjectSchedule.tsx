@@ -20,7 +20,7 @@ export default function ProjectSchedule() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 overflow-hidden">
           <DashboardHeader 
             title="Project Schedule" 
             projectId={projectId}
