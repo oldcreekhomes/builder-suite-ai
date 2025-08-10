@@ -73,7 +73,7 @@ export function TaskRow({
       className={`cursor-move h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50`}
     >
       {/* Hierarchy Number */}
-      <TableCell className="font-mono text-xs py-1 px-1 w-16">
+      <TableCell className="text-xs py-1 px-1 w-16">
         <div className="flex items-center gap-1">
           <GripVertical className="h-3 w-3 text-muted-foreground" />
           <span className="text-xs font-medium">{task.hierarchy_number || "—"}</span>
