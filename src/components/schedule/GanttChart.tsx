@@ -287,35 +287,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       return;
     }
     
-    // Determine the correct parent_id based on drop position
-    let correctParentId = null;
-    
-    if (args.dropPosition === 'middleSegment') {
-      // Dropped as child - get parent from the target task data
-      if (ganttInstance.current && args.dropIndex !== undefined) {
-        const targetTaskData = ganttInstance.current.flatData[args.dropIndex];
-        if (targetTaskData) {
-          correctParentId = String(targetTaskData.TaskID);
-        }
-      }
-    } else {
-      // Dropped as sibling (above or below) - preserve target's parent
-      if (ganttInstance.current && args.dropIndex !== undefined) {
-        const targetTaskData = ganttInstance.current.flatData[args.dropIndex];
-        if (targetTaskData) {
-          correctParentId = targetTaskData.ParentID ? String(targetTaskData.ParentID) : null;
-        }
-      }
-    }
-    
-    // Prepare the update parameters
+    // For now, let's use a simplified approach
+    // We'll handle the parent logic in actionComplete where we have better data access
     const dragParams = {
       id: String(taskData.TaskID), 
-      parent_id: correctParentId,
+      parent_id: taskData.ParentID ? String(taskData.ParentID) : null,
       order_index: args.dropIndex !== undefined ? args.dropIndex : 0
     };
     
-    console.log('🎯 Saving drag result in rowDrop:', dragParams);
+    console.log('🎯 Saving drag result in rowDrop (simplified):', dragParams);
     
     // Save to database using mutateAsync to control when refresh happens
     if (updateTask) {
