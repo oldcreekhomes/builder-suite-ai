@@ -12,7 +12,7 @@ interface CreateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  hierarchy_number: string;
+  order_index?: number;
 }
 
 interface UpdateTaskParams {
@@ -47,7 +47,7 @@ export const useTaskMutations = (projectId: string) => {
           progress: params.progress || 0,
           predecessor: params.predecessor || null,
           resources: params.resources || null,
-          hierarchy_number: params.hierarchy_number,
+          order_index: params.order_index || 0,
         })
         .select()
         .single();

@@ -35,9 +35,8 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
       return;
     }
 
-    // Generate next hierarchy number for new task
-    const maxRootNumber = Math.max(0, ...tasks.filter(t => !t.hierarchy_number.includes('.')).map(t => parseInt(t.hierarchy_number) || 0));
-    const newHierarchyNumber = (maxRootNumber + 1).toString();
+    // Generate next order index for new task
+    const nextOrderIndex = (tasks || []).length + 1;
     
     createTask.mutate({
       project_id: projectId,
@@ -48,7 +47,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
       progress: formData.progress,
       resources: formData.resources || null,
       predecessor: formData.predecessor || null,
-      hierarchy_number: newHierarchyNumber,
+      order_index: nextOrderIndex,
     });
 
     setFormData({
