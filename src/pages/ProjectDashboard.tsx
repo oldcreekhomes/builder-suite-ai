@@ -117,12 +117,10 @@ export default function ProjectDashboard() {
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-border px-6 py-2 mt-4" style={{marginTop: '1rem', paddingTop: '0.5rem', paddingBottom: '0.5rem'}}>
+          <header className="bg-white border-b border-border px-6 py-2 mt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-black h-8 w-8 flex items-center justify-center">
-                  <ArrowLeft className="h-4 w-4" />
-                </SidebarTrigger>
+                <SidebarTrigger className="text-gray-600 hover:text-black" />
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-6 w-6 text-gray-600" />
                   <div>
