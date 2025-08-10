@@ -18,7 +18,7 @@ import {
   Resize,
   RowDD,
 } from "@syncfusion/ej2-react-gantt";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
