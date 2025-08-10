@@ -33,7 +33,7 @@ export const useProjectTasks = (projectId: string) => {
     console.log('Setting up real-time subscription for project tasks:', projectId);
 
     const channel = supabase
-      .channel(`project-tasks-${projectId}`)
+      .channel(`project-tasks-${projectId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
