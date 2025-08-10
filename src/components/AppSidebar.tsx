@@ -18,7 +18,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   const isIssuesPage = location.pathname === '/issues';
 
   return (
-    <Sidebar className="border-r border-gray-200">
+    <Sidebar className="border-r border-border">
       <SidebarBranding />
       {(isMessagesPage || isCompanyDashboard) ? (
         <MessagesSidebar 
