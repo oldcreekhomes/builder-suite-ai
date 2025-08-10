@@ -74,8 +74,7 @@ export function TaskRow({
     >
       {/* Hierarchy Number */}
       <TableCell className="text-xs py-1 px-1 w-16">
-        <div className="flex items-center gap-1">
-          <GripVertical className="h-3 w-3 text-muted-foreground" />
+        <div className="flex items-center">
           <span className="text-xs">{task.hierarchy_number || "—"}</span>
         </div>
       </TableCell>
@@ -129,28 +128,6 @@ export function TaskRow({
         )}
       </TableCell>
 
-      {/* End Date */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "end_date" ? (
-          <Input
-            type="date"
-            value={editValues.end_date || task.end_date.split("T")[0]}
-            onChange={(e) => setEditValues({ ...editValues, end_date: e.target.value })}
-            onBlur={() => handleSave("end_date")}
-            onKeyDown={(e) => handleKeyDown(e, "end_date")}
-            className="h-6 text-sm"
-            autoFocus
-          />
-        ) : (
-          <span
-            onClick={() => handleCellClick("end_date", task.end_date.split("T")[0])}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {formatDate(task.end_date)}
-          </span>
-        )}
-      </TableCell>
-
       {/* Duration */}
       <TableCell className="py-1 px-2">
         {isEditing === "duration" ? (
@@ -169,6 +146,28 @@ export function TaskRow({
             className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {task.duration}d
+          </span>
+        )}
+      </TableCell>
+
+      {/* End Date */}
+      <TableCell className="py-1 px-2">
+        {isEditing === "end_date" ? (
+          <Input
+            type="date"
+            value={editValues.end_date || task.end_date.split("T")[0]}
+            onChange={(e) => setEditValues({ ...editValues, end_date: e.target.value })}
+            onBlur={() => handleSave("end_date")}
+            onKeyDown={(e) => handleKeyDown(e, "end_date")}
+            className="h-6 text-sm"
+            autoFocus
+          />
+        ) : (
+          <span
+            onClick={() => handleCellClick("end_date", task.end_date.split("T")[0])}
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
+          >
+            {formatDate(task.end_date)}
           </span>
         )}
       </TableCell>
