@@ -13,6 +13,7 @@ interface CreateTaskParams {
   predecessor?: string;
   resources?: string;
   order_index?: number;
+  hierarchy_number?: string;
 }
 
 interface UpdateTaskParams {
@@ -26,6 +27,7 @@ interface UpdateTaskParams {
   resources?: string;
   parent_id?: string;
   order_index?: number;
+  hierarchy_number?: string;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -48,6 +50,7 @@ export const useTaskMutations = (projectId: string) => {
           predecessor: params.predecessor || null,
           resources: params.resources || null,
           order_index: params.order_index || 0,
+          hierarchy_number: params.hierarchy_number || "1",
         })
         .select()
         .single();
@@ -85,6 +88,7 @@ export const useTaskMutations = (projectId: string) => {
       if (params.resources !== undefined) updateData.resources = params.resources;
       if (params.parent_id !== undefined) updateData.parent_id = params.parent_id;
       if (params.order_index !== undefined) updateData.order_index = params.order_index;
+      if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;
 
       console.log('🔧 Update data being sent to database:', updateData);
 

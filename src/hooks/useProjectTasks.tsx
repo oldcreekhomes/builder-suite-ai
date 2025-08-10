@@ -19,6 +19,7 @@ export interface ProjectTask {
   created_at: string;
   updated_at: string;
   confirmed?: boolean;
+  hierarchy_number?: string;
 }
 
 export const useProjectTasks = (projectId: string) => {
