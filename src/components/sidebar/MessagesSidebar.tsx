@@ -123,7 +123,7 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
                      <UnreadBadge count={unreadCounts[user.id] || 0} />
                    </div>
                    
-                   <div className="flex-1 min-w-0 ml-3">
+                   <div className="flex-1 min-w-0 ml-2">
                      <p className="text-base font-medium text-gray-900">
                        {getDisplayName(user)}
                      </p>
