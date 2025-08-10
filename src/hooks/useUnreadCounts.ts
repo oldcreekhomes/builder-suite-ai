@@ -53,7 +53,7 @@ export const useUnreadCounts = (userIds: string[]) => {
     if (!user?.id || userIds.length === 0) return;
 
     // Create a unique channel name to avoid conflicts
-    const channelName = `unread_counts_${user.id}_${Date.now()}`;
+    const channelName = `unread_counts_${user.id}_${userIds.join('_')}_${Date.now()}`;
     
     const channel = supabase
       .channel(channelName)

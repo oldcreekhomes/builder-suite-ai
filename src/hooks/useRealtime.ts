@@ -51,8 +51,8 @@ export const useRealtime = (
         channelRef.current = null;
       }
 
-      // Use simple channel name for debugging
-      const channelName = `chat_messages_${Date.now()}`;
+      // Use unique channel name with user IDs to avoid conflicts
+      const channelName = `chat_messages_${user.id}_${selectedUser.id}_${Date.now()}`;
       console.log('📡 Setting up real-time subscription:', channelName);
 
       // Subscribe to ALL user_chat_messages changes and filter client-side
@@ -143,19 +143,13 @@ export const useRealtime = (
           if (status === 'SUBSCRIBED') {
             console.log('✅ Real-time messaging is now active!');
           } else if (status === 'TIMED_OUT') {
-            console.error('❌ Real-time subscription timed out - retrying in 2 seconds...');
-            setTimeout(() => {
-              console.log('🔄 Retrying real-time setup...');
-              setupRealtime();
-            }, 2000);
+            console.error('❌ Real-time subscription timed out');
+            // Don't auto-retry to avoid multiple subscriptions
           } else if (status === 'CLOSED') {
             console.log('🔒 Real-time subscription closed');
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Channel error - retrying in 3 seconds...');
-            setTimeout(() => {
-              console.log('🔄 Retrying after channel error...');
-              setupRealtime();
-            }, 3000);
+            console.error('❌ Channel error occurred');
+            // Don't auto-retry to avoid multiple subscriptions
           }
         });
     };

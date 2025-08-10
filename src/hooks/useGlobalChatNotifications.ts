@@ -47,8 +47,8 @@ export const useGlobalChatNotifications = (
         channelRef.current = null;
       }
 
-      // Subscribe to all chat messages for notifications
-      const channelName = `global_chat_notifications_${Date.now()}`;
+      // Subscribe to all chat messages for notifications  
+      const channelName = `global_chat_notifications_${user.id}_${Date.now()}`;
       
       channelRef.current = supabase
         .channel(channelName)
