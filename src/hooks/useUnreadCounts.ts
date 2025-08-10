@@ -103,7 +103,7 @@ export const useUnreadCounts = (userIds: string[]) => {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [user?.id, userIds.join(',')]);
 
