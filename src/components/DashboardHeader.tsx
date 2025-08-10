@@ -40,7 +40,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   if (projectId) {
     return (
       <>
-        <header className="bg-white border-b border-border px-6 py-2 project-header-spacing" style={{ marginTop: '2.5rem' }}>
+        <header className="bg-white border-b border-border px-6 py-2 project-header-spacing" style={{ marginTop: '2.5rem', backgroundColor: 'red' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
