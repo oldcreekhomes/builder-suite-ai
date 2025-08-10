@@ -19,30 +19,26 @@ export default function Index() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar onStartChat={openFloatingChat} />
-        <main className="flex-1">
-          <div className="flex h-full">
-            <SidebarInset className="flex-1">
-              <DashboardHeader />
-              <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="rounded-xl bg-muted/50">
-                      <ProjectsOverview />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="rounded-xl bg-muted/50">
-                      <RecentPhotos />
-                    </div>
-                  </div>
-                </div>
+        <SidebarInset className="flex-1">
+          <DashboardHeader />
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="md:col-span-2 space-y-4">
                 <div className="rounded-xl bg-muted/50">
-                  <WeatherForecast address={primaryProjectAddress} />
+                  <ProjectsOverview />
                 </div>
               </div>
-            </SidebarInset>
+              <div className="space-y-4">
+                <div className="rounded-xl bg-muted/50">
+                  <RecentPhotos />
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-muted/50">
+              <WeatherForecast address={primaryProjectAddress} />
+            </div>
           </div>
-        </main>
+        </SidebarInset>
       </div>
       <FloatingChatManager onOpenChat={registerChatManager} />
     </SidebarProvider>
