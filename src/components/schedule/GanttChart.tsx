@@ -268,13 +268,66 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     // REMOVE all rowDropping handling - let Syncfusion handle it naturally
   };
 
-  // Enhanced actionComplete - CATCH drag and drop AFTER it happens
+  // NEW: Handle drag and drop in rowDrop event (BEFORE actionComplete)
+  const handleRowDrop = (args: any) => {
+    console.log('🎯 ROW DROP EVENT - This fires BEFORE actionComplete!');
+    console.log('🎯 Drop args:', args);
+    
+    if (!args || !args.data || args.data.length === 0) return;
+    
+    const taskData = args.data[0]; // First dragged item
+    const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+    
+    if (!originalTask) {
+      console.error('❌ Could not find original task');
+      return;
+    }
+    
+    // Determine the correct parent_id based on drop position
+    let correctParentId = null;
+    
+    if (args.dropPosition === 'middleSegment') {
+      // Dropped as child
+      correctParentId = String(args.target.TaskID);
+    } else {
+      // Dropped as sibling (above or below) - preserve target's parent
+      correctParentId = args.target.ParentID ? String(args.target.ParentID) : null;
+    }
+    
+    // Prepare the update parameters
+    const dragParams = {
+      id: String(taskData.TaskID), 
+      parent_id: correctParentId,
+      order_index: args.dropIndex !== undefined ? args.dropIndex : 0
+    };
+    
+    console.log('🎯 Saving drag result in rowDrop:', dragParams);
+    
+    // Save to database
+    if (updateTask) {
+      updateTask.mutate(dragParams, { 
+        onSuccess: () => {
+          console.log('✅ Row drop save successful');
+          toast({ title: "Success", description: "Task moved successfully" });
+          setTimeout(() => autoFitAllColumns(), 200);
+        }, 
+        onError: (error: any) => {
+          console.error('❌ Row drop save error:', error);
+          toast({ 
+            variant: "destructive", 
+            title: "Error", 
+            description: error?.message || 'Failed to move task' 
+          });
+        }
+      });
+    }
+  };
+
+  // Simplified actionComplete - REMOVED all drag and drop handling since it's now in rowDrop
   const handleActionComplete = (args: any) => {
     if (!args) return;
     
     console.log('🎭 Action complete:', args.requestType);
-    console.log('🎭 Action data:', args.data);
-    console.log('🎭 Full args:', args);
     
     if (!args.data) return;
     
@@ -341,104 +394,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // FIXED: Removed delayed refresh that was causing the revert issue
-        case 'rowDrop':
-        case 'rowDropped':
-        case 'reorder':
-        case 'dragAndDrop': {
-          console.log('🚀 DRAG AND DROP DETECTED IN ACTION COMPLETE!');
-          console.log('🚀 Task data:', taskData);
-          console.log('🚀 Full args:', args);
-          
-          // Find the original task to preserve its parent if needed
-          const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-          if (!originalTask) {
-            console.error('❌ Could not find original task to compare');
-            break;
-          }
-          
-          // Determine the correct parent_id
-          let correctParentId = null;
-          
-          // Check if this is a position change (dropIndex, fromIndex) vs parent change
-          const hasPositionChange = args.dropIndex !== undefined && args.fromIndex !== undefined;
-          const hasParentInTaskData = taskData.ParentID !== undefined && taskData.ParentID !== null;
-          
-          console.log('🚀 Drop analysis:', {
-            fromIndex: args.fromIndex,
-            dropIndex: args.dropIndex,
-            hasPositionChange,
-            hasParentInTaskData,
-            originalParent: originalTask.parent_id,
-            newParentInData: taskData.ParentID
-          });
-          
-          if (hasParentInTaskData) {
-            // Task has explicit parent in the data - use it
-            correctParentId = String(taskData.ParentID);
-          } else {
-            // No explicit parent in data - preserve original parent
-            correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
-          }
-          
-          // CRITICAL: Add the order_index based on dropIndex
-          const dragParams = {
-            id: String(taskData.TaskID), 
-            parent_id: correctParentId,
-            order_index: args.dropIndex !== undefined ? args.dropIndex : 0
-          };
-          
-          console.log('🚀 Saving drag result with position:', dragParams);
-          
-          if (updateTask) {
-            updateTask.mutate(dragParams, { 
-              onSuccess: () => {
-                onSuccess("Task moved successfully");
-                // FIXED: Removed the delayed queryClient.invalidateQueries that was causing revert
-              }, 
-              onError: onError 
-            });
-          }
-          break;
-        }
-
+        // REMOVED: All drag and drop cases - now handled in rowDrop event
+        
         default: {
           console.log('❓ Unhandled action type:', args.requestType);
-          
-          // Try to detect if this might be a drag operation based on task data changes
-          if (taskData.TaskID && taskData.ParentID !== undefined) {
-            console.log('🤔 Possible drag operation detected - checking for parent changes');
-            
-            // Find the original task to compare parent_id
-            const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-            if (originalTask) {
-              const originalParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
-              const newParentId = taskData.ParentID ? String(taskData.ParentID) : null;
-              
-              if (originalParentId !== newParentId) {
-                console.log('🎯 PARENT CHANGE DETECTED!');
-                console.log('🎯 Original parent:', originalParentId);
-                console.log('🎯 New parent:', newParentId);
-                
-                const parentChangeParams = {
-                  id: String(taskData.TaskID), 
-                  parent_id: newParentId
-                };
-                
-                console.log('🎯 Saving parent change:', parentChangeParams);
-                
-                if (updateTask) {
-                  updateTask.mutate(parentChangeParams, { 
-                    onSuccess: () => {
-                      onSuccess("Task parent updated");
-                      // FIXED: Removed the delayed queryClient.invalidateQueries that was causing revert
-                    }, 
-                    onError: onError 
-                  });
-                }
-              }
-            }
-          }
           break;
         }
       }
@@ -574,6 +533,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} 
+            rowDrop={handleRowDrop}
             queryTaskbarInfo={handleQueryTaskbarInfo}
             dataBound={handleDataBound}
             created={handleCreated}
