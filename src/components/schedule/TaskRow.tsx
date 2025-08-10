@@ -76,7 +76,7 @@ export function TaskRow({
       onDragStart={(e) => onDragStart(e, task)}
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, index)}
-      className={`cursor-move h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50`}
+      className={`h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50 hover:cursor-move`}
     >
       {/* Hierarchy Number */}
       <TableCell className="text-xs py-1 px-1 w-16">
