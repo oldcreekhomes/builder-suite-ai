@@ -13,6 +13,7 @@ interface CreateTaskParams {
   predecessor?: string;
   resources?: string;
   parent_id?: string;
+  order_index?: number;
 }
 
 interface UpdateTaskParams {
@@ -46,6 +47,7 @@ export const useTaskMutations = (projectId: string) => {
         predecessor_param: params.predecessor || null,
         resources_param: params.resources || null,
         parent_id_param: params.parent_id ? params.parent_id : null,
+        order_index_param: params.order_index || 1000,
       });
 
       if (error) {

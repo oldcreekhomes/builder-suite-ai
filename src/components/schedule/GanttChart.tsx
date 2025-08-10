@@ -212,6 +212,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       
       if (createTask) {
         console.log('💾 Creating task via mutation...');
+        
+        // Calculate order_index with 1000 increments
+        const maxOrderIndex = tasks && tasks.length > 0 
+          ? Math.max(...tasks.filter(t => !t.parent_id).map(t => t.order_index || 0))
+          : 0;
+        const newOrderIndex = maxOrderIndex + 1000;
+        
         const newTaskData = {
           project_id: projectId,
           task_name: 'New Task',
@@ -221,7 +228,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: 0,
           parent_id: null,
           predecessor: null,
-          resources: null
+          resources: null,
+          order_index: newOrderIndex
         };
         
         createTask.mutate(newTaskData, {
@@ -244,66 +252,54 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // DEBUGGING: Let's see exactly what's happening with the database
+  // Handle drag and drop with proper order_index calculation
   const handleRowDrop = async (args: any) => {
-    console.log('🎯 ROW DROP - debugging database call');
+    console.log('🎯 ROW DROP - calculating order_index with 1000 increments');
     console.log('🎯 Full args:', args);
     
     if (!args || !args.data || args.data.length === 0) return;
     
     const taskData = args.data[0];
+    const taskId = String((taskData as any).TaskID);
+    const newParentId = (taskData as any).ParentID ? String((taskData as any).ParentID) : null;
+    const dropIndex = args.dropIndex || 0;
     
-    console.log('🔍 DEBUGGING - Task data:', taskData);
-    console.log('🔍 DEBUGGING - TaskID:', (taskData as any).TaskID);
-    console.log('🔍 DEBUGGING - ParentID:', (taskData as any).ParentID);
-    console.log('🔍 DEBUGGING - dropIndex:', args.dropIndex);
+    console.log('🔍 Task ID:', taskId);
+    console.log('🔍 New Parent ID:', newParentId);
+    console.log('🔍 Drop Index:', dropIndex);
     
-    // Build parameters for the new reordering function
-    const reorderParams = {
-      task_id_param: String((taskData as any).TaskID),
-      new_order_index_param: args.dropIndex || 0,
-      new_parent_id_param: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
-      project_id_param: projectId,
+    // Calculate new order_index using incremental spacing
+    // For drag operations, use dropIndex * 1000 to maintain spacing
+    const newOrderIndex = (dropIndex + 1) * 1000;
+    
+    console.log('🔍 Calculated order_index:', newOrderIndex);
+    
+    // Use updateTask mutation with proper order_index
+    const updateParams = {
+      id: taskId,
+      parent_id: newParentId,
+      order_index: newOrderIndex
     };
     
-    console.log('🔍 DEBUGGING - Reorder params:', reorderParams);
+    console.log('🔍 Update params:', updateParams);
     
-    try {
-      // Use the new reordering function that handles sequential order_index properly
-      const { data, error } = await supabase.rpc('reorder_project_tasks', reorderParams);
-
-      console.log('🔍 DEBUGGING - Database response data:', data);
-      console.log('🔍 DEBUGGING - Database response error:', error);
-
-      if (error) {
-        console.error('❌ Database update failed:', error);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
-        toast({ 
-          variant: "destructive", 
-          title: "Error", 
-          description: `Database error: ${error.message}` 
-        });
-        // Revert the visual change
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-      } else {
-        console.log('✅ Database update claims success');
-        console.log('✅ Returned data:', JSON.stringify(data, null, 2));
-        toast({ 
-          title: "Success", 
-          description: `Task moved - DB returned: ${JSON.stringify(data)}` 
-        });
-        // Don't refresh - let the visual change stay
-      }
-    } catch (error) {
-      console.error('❌ Database call exception:', error);
-      console.error('❌ Exception details:', JSON.stringify(error, null, 2));
-      toast({ 
-        variant: "destructive", 
-        title: "Error", 
-        description: `Exception: ${error}` 
+    if (updateTask) {
+      updateTask.mutate(updateParams, {
+        onSuccess: () => {
+          console.log('✅ Drag operation successful');
+          toast({ title: "Success", description: "Task moved successfully" });
+        },
+        onError: (error: any) => {
+          console.error('❌ Drag operation failed:', error);
+          toast({ 
+            variant: "destructive", 
+            title: "Error", 
+            description: error?.message || 'Failed to move task'
+          });
+          // Revert the visual change
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+        }
       });
-      // Revert on error
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
     }
   };
 

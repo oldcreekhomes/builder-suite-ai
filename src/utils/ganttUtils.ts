@@ -127,10 +127,10 @@ export const generateNestedHierarchy = (tasks: ProjectTask[], resources: Project
   console.log('Root tasks count:', rootTasks.length);
   console.log('Children map:', Object.fromEntries(childrenMap));
 
-  // Sort all tasks by created_at timestamp for natural ordering
-  rootTasks.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  // Sort all tasks by order_index to maintain proper hierarchy
+  rootTasks.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   childrenMap.forEach(children => {
-    children.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    children.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   });
 
   // Recursively process tasks to create hierarchical structure
