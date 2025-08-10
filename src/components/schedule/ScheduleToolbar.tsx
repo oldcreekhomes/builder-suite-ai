@@ -59,13 +59,24 @@ export function ScheduleToolbar({
     
     selectedTaskIds.forEach(taskId => {
       const task = tasks.find(t => t.id === taskId);
-      if (!task || !task.parent_id) return;
+      if (!task || !task.hierarchy_number) return;
 
-      // Find the parent's parent (grandparent)
-      const parentTask = tasks.find(t => t.id === task.parent_id);
+      const hierarchyParts = task.hierarchy_number.split(".");
+      
+      // Can't outdent if already at top level
+      if (hierarchyParts.length <= 1) return;
+
+      // Remove the last part to move up one level
+      const newHierarchy = hierarchyParts.slice(0, -1).join(".");
+      
+      // Update both parent_id and hierarchy_number
+      const parentTask = tasks.find(t => t.hierarchy_number === newHierarchy);
       const grandparentId = parentTask?.parent_id || null;
       
-      onTaskUpdate(taskId, { parent_id: grandparentId });
+      onTaskUpdate(taskId, { 
+        parent_id: grandparentId,
+        hierarchy_number: newHierarchy 
+      });
     });
 
     toast.success("Tasks outdented successfully");
@@ -75,7 +86,7 @@ export function ScheduleToolbar({
   const canOutdent = selectedTasks.size > 0 && 
     Array.from(selectedTasks).some(taskId => {
       const task = tasks.find(t => t.id === taskId);
-      return task?.parent_id;
+      return task?.hierarchy_number && task.hierarchy_number.split(".").length > 1;
     });
 
   return (
