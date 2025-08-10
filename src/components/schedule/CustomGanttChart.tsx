@@ -6,6 +6,7 @@ import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { Button } from "@/components/ui/button";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,26 +90,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
       {/* Gantt Chart Container */}
       <div className="bg-card text-card-foreground rounded-lg border overflow-hidden">
-        <div className="flex">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
           {/* Left Side - Task Table */}
-          <div className="w-1/2 border-r border-border">
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <TaskTable
               tasks={tasks}
               onTaskMove={handleTaskMove}
               onTaskUpdate={handleTaskUpdate}
             />
-          </div>
+          </ResizablePanel>
+
+          {/* Resizable Handle */}
+          <ResizableHandle withHandle />
 
           {/* Right Side - Timeline */}
-          <div className="w-1/2">
+          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <Timeline
               tasks={tasks}
               startDate={timelineStart}
               endDate={timelineEnd}
               onTaskUpdate={handleTaskUpdate}
             />
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       {/* Publish Dialog */}
