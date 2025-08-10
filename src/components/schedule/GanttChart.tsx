@@ -268,23 +268,43 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     // REMOVE all rowDropping handling - let Syncfusion handle it naturally
   };
 
-  // SIMPLE SOLUTION: Just let rowDrop happen naturally, prevent refresh
-  const handleRowDrop = (args: any) => {
-    console.log('🎯 ROW DROP EVENT - letting it complete naturally');
-    // Don't do anything here - let Syncfusion handle the drag operation
-    // The save will happen in actionComplete
+  // DEAD SIMPLE: Block ALL React Query interference during drag operations
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Simple drag start detection
+  const handleRowDragStart = (args: any) => {
+    console.log('🔥 DRAG STARTED - disabling React Query');
+    setIsDragging(true);
   };
 
-  // CRITICAL FIX: Prevent automatic refresh after drag operations
+  // Simple drag completion
+  const handleRowDrop = (args: any) => {
+    console.log('🔥 DRAG COMPLETED');
+    // Reset dragging state after a delay to let Syncfusion finish
+    setTimeout(() => {
+      setIsDragging(false);
+      console.log('🔥 React Query re-enabled');
+    }, 3000); // 3 second delay
+  };
+
+  // NUCLEAR OPTION: Block React Query during drag operations
+  React.useEffect(() => {
+    if (isDragging) {
+      console.log('🚫 BLOCKING React Query queries during drag');
+      queryClient.cancelQueries({ queryKey: ['project-tasks', projectId] });
+    }
+  }, [isDragging, queryClient, projectId]);
+
+  // SIMPLE: Just handle the save in actionComplete, no fancy logic
   const handleActionComplete = (args: any) => {
     if (!args) return;
     
     console.log('🎭 Action complete:', args.requestType);
     
-    // CRITICAL: Block refresh operations after rowDropped to prevent revert
-    if (args.requestType === 'refresh') {
-      console.log('🚫 BLOCKING REFRESH to prevent task revert');
-      return; // Don't process refresh operations
+    // BLOCK everything during drag operations
+    if (isDragging && args.requestType === 'refresh') {
+      console.log('🚫 BLOCKING refresh during drag operation');
+      return;
     }
     
     if (!args.data) return;
@@ -353,7 +373,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         }
 
         case 'rowDropped': {
-          console.log('🚀 DRAG OPERATION - saving without refresh');
+          console.log('🚀 DRAG OPERATION - saving without any interference');
           
           const dragParams = {
             id: String((taskData as any).TaskID), 
@@ -364,9 +384,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           console.log('🚀 Saving drag result:', dragParams);
           
           if (updateTask) {
-            // Use regular mutate but prevent the refresh above
+            // Use a simple direct call without React Query
             updateTask.mutate(dragParams, { 
-              onSuccess: () => onSuccess("Task moved successfully"), 
+              onSuccess: () => {
+                onSuccess("Task moved successfully");
+                // CRITICAL: Don't refresh data at all
+              }, 
               onError: onError 
             });
           }
@@ -510,6 +533,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             toolbarClick={handleToolbarClick} 
             actionBegin={handleActionBegin}
             actionComplete={handleActionComplete} 
+            rowDragStart={handleRowDragStart}
             rowDrop={handleRowDrop}
             queryTaskbarInfo={handleQueryTaskbarInfo}
             dataBound={handleDataBound}
