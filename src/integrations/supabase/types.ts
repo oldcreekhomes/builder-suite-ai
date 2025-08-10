@@ -705,7 +705,6 @@ export type Database = {
           end_date: string
           hierarchy_number: string | null
           id: string
-          order_index: number | null
           parent_id: string | null
           predecessor: string | null
           progress: number | null
@@ -722,7 +721,6 @@ export type Database = {
           end_date: string
           hierarchy_number?: string | null
           id?: string
-          order_index?: number | null
           parent_id?: string | null
           predecessor?: string | null
           progress?: number | null
@@ -739,7 +737,6 @@ export type Database = {
           end_date?: string
           hierarchy_number?: string | null
           id?: string
-          order_index?: number | null
           parent_id?: string | null
           predecessor?: string | null
           progress?: number | null

@@ -12,7 +12,7 @@ import {
 
 interface TaskTableProps {
   tasks: ProjectTask[];
-  onTaskMove: (taskId: string, newHierarchyNumber: string, newOrderIndex: number) => void;
+  onTaskMove: (taskId: string, newHierarchyNumber: string) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
 }
 
@@ -37,7 +37,7 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
     // Calculate new hierarchy number based on position
     const newHierarchyNumber = generateHierarchyNumber(tasks, targetIndex);
     
-    onTaskMove(draggedTask.id, newHierarchyNumber, targetIndex);
+    onTaskMove(draggedTask.id, newHierarchyNumber);
     setDraggedTask(null);
   };
 

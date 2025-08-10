@@ -15,7 +15,7 @@ export interface ProjectTask {
   predecessor?: string;
   resources?: string;
   parent_id?: string;
-  order_index: number;
+  
   created_at: string;
   updated_at: string;
   confirmed?: boolean;
@@ -79,8 +79,7 @@ export const useProjectTasks = (projectId: string) => {
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .select('*')
-        .eq('project_id', projectId)
-        .order('order_index', { ascending: true });
+        .eq('project_id', projectId);
 
       if (error) {
         console.error('Error fetching project tasks:', error);

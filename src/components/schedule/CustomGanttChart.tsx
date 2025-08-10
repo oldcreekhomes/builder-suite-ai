@@ -28,12 +28,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
-  const handleTaskMove = async (taskId: string, newHierarchyNumber: string, newOrderIndex: number) => {
+  const handleTaskMove = async (taskId: string, newHierarchyNumber: string) => {
     try {
       await updateTask.mutateAsync({
         id: taskId,
-        hierarchy_number: newHierarchyNumber,
-        order_index: newOrderIndex
+        hierarchy_number: newHierarchyNumber
       });
       toast.success("Task moved successfully");
     } catch (error) {

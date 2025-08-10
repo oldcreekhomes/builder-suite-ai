@@ -47,7 +47,6 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
       progress: formData.progress,
       resources: formData.resources || null,
       predecessor: formData.predecessor || null,
-      order_index: nextOrderIndex,
     });
 
     setFormData({
