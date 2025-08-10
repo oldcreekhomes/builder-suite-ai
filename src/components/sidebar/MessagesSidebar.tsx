@@ -15,16 +15,24 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
-import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { UnreadCounts } from "@/hooks/useUnreadCounts";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 interface MessagesSidebarProps {
   selectedUser: CompanyUser | null;
   onUserSelect: (user: CompanyUser) => void;
   onStartChat: (user: CompanyUser) => void;
+  unreadCounts: UnreadCounts;
+  markConversationAsRead: (otherUserId: string) => Promise<void>;
 }
 
-export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: MessagesSidebarProps) {
+export function MessagesSidebar({ 
+  selectedUser, 
+  onUserSelect, 
+  onStartChat, 
+  unreadCounts, 
+  markConversationAsRead 
+}: MessagesSidebarProps) {
   const { users, currentUserId, isLoading } = useCompanyUsers();
   const { data: issueCounts } = useIssueCounts();
 
@@ -37,9 +45,9 @@ export function MessagesSidebar({ selectedUser, onUserSelect, onStartChat }: Mes
       return nameA.localeCompare(nameB);
     });
 
-  // Get user IDs for unread count tracking
-  const userIds = filteredUsers.map(user => user.id);
-  const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
+  // Get user IDs for unread count tracking - removed since it's now passed as props
+  // const userIds = filteredUsers.map(user => user.id);
+  // const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
 
   // Calculate total issue counts
   const totalNormalIssues = Object.values(issueCounts || {}).reduce(

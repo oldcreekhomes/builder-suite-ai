@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
-import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { UnreadCounts } from "@/hooks/useUnreadCounts";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import {
   SidebarContent,
@@ -78,15 +78,20 @@ const navigationItems = [
   },
 ];
 
-export function SidebarNavigation() {
+interface SidebarNavigationProps {
+  unreadCounts: UnreadCounts;
+}
+
+export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const location = useLocation();
   const { users } = useCompanyUsers();
-  const userIds = users?.map(user => user.id) || [];
-  const { unreadCounts } = useUnreadCounts(userIds);
+  // Removed useUnreadCounts hook call since it's now passed as props
+  // const userIds = users?.map(user => user.id) || [];
+  // const { unreadCounts } = useUnreadCounts(userIds);
   const { data: issueCounts } = useIssueCounts();
   
   // Calculate total unread count
-  const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+  const totalUnread = Object.values(unreadCounts).reduce((sum: number, count: number) => sum + count, 0);
 
   // Calculate total issue counts
   const totalNormalIssues = Object.values(issueCounts || {}).reduce(
@@ -185,7 +190,7 @@ export function SidebarNavigation() {
                           <span className="font-medium flex-1">{item.title}</span>
                            {item.showBadge && item.title === "Messages" && (
                             <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-2">
-                              {totalUnread > 99 ? '99+' : totalUnread}
+                              {(totalUnread as number) > 99 ? '99+' : (totalUnread as number)}
                             </span>
                           )}
                         </a>

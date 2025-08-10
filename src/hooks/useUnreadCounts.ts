@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-interface UnreadCounts {
+export interface UnreadCounts {
   [userId: string]: number;
 }
 

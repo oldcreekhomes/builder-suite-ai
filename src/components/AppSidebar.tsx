@@ -4,6 +4,8 @@ import { SidebarBranding } from "./sidebar/SidebarBranding";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
+import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
 interface AppSidebarProps {
   selectedUser?: any;
@@ -13,6 +15,12 @@ interface AppSidebarProps {
 
 export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSidebarProps) {
   const location = useLocation();
+  const { users, currentUserId } = useCompanyUsers();
+  
+  // Get user IDs for unread count tracking (excluding current user)
+  const userIds = users?.filter(user => user.id !== currentUserId).map(user => user.id) || [];
+  const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
+  
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isCompanyDashboard = location.pathname === '/';
   const isIssuesPage = location.pathname === '/issues';
@@ -25,9 +33,13 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
           selectedUser={selectedUser || null}
           onUserSelect={onUserSelect}
           onStartChat={onStartChat}
+          unreadCounts={unreadCounts}
+          markConversationAsRead={markConversationAsRead}
         />
       ) : (
-        <SidebarNavigation />
+        <SidebarNavigation 
+          unreadCounts={unreadCounts}
+        />
       )}
       <SidebarUserDropdown />
     </Sidebar>
