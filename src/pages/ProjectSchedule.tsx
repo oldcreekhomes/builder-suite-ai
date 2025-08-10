@@ -5,9 +5,6 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { CustomGanttChart } from "@/components/schedule/CustomGanttChart";
-import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
-import "../styles/syncfusion.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
@@ -32,7 +29,9 @@ export default function ProjectSchedule() {
               <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
             </div>
 
-            <CustomGanttChart projectId={projectId} />
+            <div className="bg-card text-card-foreground rounded-lg border p-6">
+              <p className="text-muted-foreground">Project schedule will be implemented here.</p>
+            </div>
           </div>
         </SidebarInset>
       </div>
