@@ -287,22 +287,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       return;
     }
     
-    // Determine the correct parent_id based on drop position and target
+    // Determine the correct parent_id based on drop position
     let correctParentId = null;
     
     if (args.dropPosition === 'middleSegment') {
-      // Dropped as child - get parent from target
-      const targetElement = args.target;
-      // Find the target row's TaskID
-      const targetRow = ganttInstance.current?.getRowByIndex(args.dropIndex);
-      if (targetRow) {
-        correctParentId = String(targetRow.TaskID);
+      // Dropped as child - get parent from the target task data
+      if (ganttInstance.current && args.dropIndex !== undefined) {
+        const targetTaskData = ganttInstance.current.flatData[args.dropIndex];
+        if (targetTaskData) {
+          correctParentId = String(targetTaskData.TaskID);
+        }
       }
     } else {
       // Dropped as sibling (above or below) - preserve target's parent
-      const targetRow = ganttInstance.current?.getRowByIndex(args.dropIndex);
-      if (targetRow) {
-        correctParentId = targetRow.ParentID ? String(targetRow.ParentID) : null;
+      if (ganttInstance.current && args.dropIndex !== undefined) {
+        const targetTaskData = ganttInstance.current.flatData[args.dropIndex];
+        if (targetTaskData) {
+          correctParentId = targetTaskData.ParentID ? String(targetTaskData.ParentID) : null;
+        }
       }
     }
     
