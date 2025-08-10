@@ -280,22 +280,26 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     if (!args || !args.data || args.data.length === 0) return;
     
     const taskData = args.data[0]; // First dragged item
-    const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+    
+    // Use the correct property access based on your console logs
+    const taskId = (taskData as any).TaskID || (taskData as any).taskData?.TaskID;
+    const parentId = (taskData as any).ParentID || (taskData as any).taskData?.ParentID;
+    
+    const originalTask = tasks.find(t => String(t.id) === String(taskId));
     
     if (!originalTask) {
       console.error('❌ Could not find original task');
       return;
     }
     
-    // For now, let's use a simplified approach
-    // We'll handle the parent logic in actionComplete where we have better data access
+    // Simplified approach - use the data as provided by Syncfusion
     const dragParams = {
-      id: String(taskData.TaskID), 
-      parent_id: taskData.ParentID ? String(taskData.ParentID) : null,
+      id: String(taskId), 
+      parent_id: parentId ? String(parentId) : null,
       order_index: args.dropIndex !== undefined ? args.dropIndex : 0
     };
     
-    console.log('🎯 Saving drag result in rowDrop (simplified):', dragParams);
+    console.log('🎯 Saving drag result in rowDrop:', dragParams);
     
     // Save to database using mutateAsync to control when refresh happens
     if (updateTask) {
@@ -389,59 +393,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // FIXED: Handle rowDropped without triggering data refresh
+        // DISABLED: Handle rowDropped in rowDrop event instead
         case 'rowDropped': {
-          console.log('🚀 DRAG OPERATION DETECTED!');
-          
-          // Find the original task
-          const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-          if (!originalTask) {
-            console.error('❌ Could not find original task');
-            break;
-          }
-          
-          // Get proper parent_id and order_index from the drag operation
-          let correctParentId = null;
-          let orderIndex = 0;
-          
-          // Check if taskData has the updated parent info
-          if (taskData.ParentID !== undefined) {
-            correctParentId = taskData.ParentID ? String(taskData.ParentID) : null;
-          } else {
-            // Preserve original parent if no change
-            correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
-          }
-          
-          // Get order index if available in args
-          if (args.dropIndex !== undefined) {
-            orderIndex = args.dropIndex;
-          }
-          
-          const dragParams = {
-            id: String(taskData.TaskID), 
-            parent_id: correctParentId,
-            order_index: orderIndex
-          };
-          
-          console.log('🚀 Saving drag result:', dragParams);
-          
-          if (updateTask) {
-            // Use mutateAsync to prevent automatic React Query refresh
-            updateTask.mutateAsync(dragParams).then(() => {
-              console.log('✅ Drag save successful - NO automatic refresh');
-              toast({ title: "Success", description: "Task moved successfully" });
-              setTimeout(() => autoFitAllColumns(), 200);
-            }).catch((error: any) => {
-              console.error('❌ Drag save error:', error);
-              toast({ 
-                variant: "destructive", 
-                title: "Error", 
-                description: error?.message || 'Failed to move task' 
-              });
-              // On error, manually refresh to revert the visual change
-              queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-            });
-          }
+          console.log('🚀 rowDropped in actionComplete - already handled in rowDrop event');
+          // Do nothing - already handled in rowDrop
           break;
         }
         
