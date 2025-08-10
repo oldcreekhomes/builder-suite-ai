@@ -98,9 +98,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   }, []);
 
   const handleActionComplete = useCallback((args: any) => {
+    console.log('✅ Action complete:', args.requestType);
+    console.log('✅ Action complete data:', args.data);
+    
     if (args.requestType === 'save' && args.data) {
       const taskData = args.data;
       const originalId = taskData.id;
+      
+      console.log('💾 About to save task with originalId:', originalId);
+      console.log('💾 Task data to save:', taskData);
       
       updateTask.mutate({
         id: originalId,
@@ -111,9 +117,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         progress: parseInt(taskData.Progress) || 0,
       });
     } else if (args.requestType === 'rowDropped' && args.data) {
+      console.log('🎯 Row dropped - processing drag and drop');
+      console.log('🎯 Dropped data:', args.data);
+      console.log('🎯 Drop index:', args.dropIndex);
+      
       const taskData = args.data;
       const originalId = taskData.id;
       const newParentId = taskData.ParentTaskID ? taskIdToOriginalId.get(taskData.ParentTaskID) : null;
+      
+      console.log('🎯 Will update task:', originalId, 'with parent:', newParentId, 'order:', args.dropIndex);
       
       updateTask.mutate({
         id: originalId,

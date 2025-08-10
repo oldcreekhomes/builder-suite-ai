@@ -86,6 +86,8 @@ export const useTaskMutations = (projectId: string) => {
       if (params.parent_id !== undefined) updateData.parent_id = params.parent_id;
       if (params.order_index !== undefined) updateData.order_index = params.order_index;
 
+      console.log('🔧 Update data being sent to database:', updateData);
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .update(updateData)
@@ -94,7 +96,7 @@ export const useTaskMutations = (projectId: string) => {
         .single();
 
       if (error) {
-        console.error('Error updating task:', error);
+        console.error('🔧 Database update error:', error);
         throw error;
       }
 
