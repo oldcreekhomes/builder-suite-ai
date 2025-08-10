@@ -5,6 +5,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
@@ -19,6 +20,8 @@ interface TaskRowProps {
   hasChildren: boolean;
   isExpanded: boolean;
   onToggleExpand: (taskId: string) => void;
+  isSelected: boolean;
+  onTaskSelection: (taskId: string, checked: boolean) => void;
 }
 
 export function TaskRow({
@@ -31,7 +34,9 @@ export function TaskRow({
   isDragging,
   hasChildren,
   isExpanded,
-  onToggleExpand
+  onToggleExpand,
+  isSelected,
+  onTaskSelection
 }: TaskRowProps) {
   const { deleteTask } = useTaskMutations(task.project_id);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -78,6 +83,15 @@ export function TaskRow({
       onDrop={(e) => onDrop(e, index)}
       className={`h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50 hover:cursor-move`}
     >
+      {/* Selection Checkbox */}
+      <TableCell className="py-1 px-2 w-10">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onTaskSelection(task.id, checked as boolean)}
+          className="h-3 w-3"
+        />
+      </TableCell>
+
       {/* Hierarchy Number */}
       <TableCell className="text-xs py-1 px-1 w-16">
         <div className="flex items-center">

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber } from "@/utils/hierarchyUtils";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -19,6 +20,7 @@ interface TaskTableProps {
 export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
   const [draggedTask, setDraggedTask] = useState<ProjectTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 
   // Helper function to check if a task has children
   const hasChildren = (taskId: string) => {
@@ -84,6 +86,38 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
     });
   };
 
+  const handleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(taskId);
+      } else {
+        newSet.delete(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  // Sort tasks by hierarchy number for display
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+
+  const visibleTasks = getVisibleTasks();
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedTasks(new Set(visibleTasks.map(task => task.id)));
+    } else {
+      setSelectedTasks(new Set());
+    }
+  };
+
+  const isAllSelected = visibleTasks.length > 0 && visibleTasks.every(task => selectedTasks.has(task.id));
+  const isIndeterminate = selectedTasks.size > 0 && !isAllSelected;
+
   const handleDragStart = (e: React.DragEvent, task: ProjectTask) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = "move";
@@ -106,20 +140,19 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
     setDraggedTask(null);
   };
 
-  // Sort tasks by hierarchy number for display
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aNum = a.hierarchy_number || "999";
-    const bNum = b.hierarchy_number || "999";
-    return aNum.localeCompare(bNum, undefined, { numeric: true });
-  });
-
-  const visibleTasks = getVisibleTasks();
-
   return (
     <div className="h-[600px] overflow-auto">
       <Table>
         <TableHeader>
           <TableRow className="h-8">
+            <TableHead className="w-10 text-xs py-1 px-2">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={handleSelectAll}
+                className="h-3 w-3"
+                {...(isIndeterminate && { "data-state": "indeterminate" })}
+              />
+            </TableHead>
             <TableHead className="w-16 text-xs py-1 px-2">#</TableHead>
             <TableHead className="w-48 text-xs py-1 px-2">Task Name</TableHead>
             <TableHead className="w-24 text-xs py-1 px-2 whitespace-nowrap">Start Date</TableHead>
@@ -144,6 +177,8 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
               hasChildren={hasChildren(task.id)}
               isExpanded={expandedTasks.has(task.id)}
               onToggleExpand={handleToggleExpand}
+              isSelected={selectedTasks.has(task.id)}
+              onTaskSelection={handleTaskSelection}
             />
           ))}
         </TableBody>
