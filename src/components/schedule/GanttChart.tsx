@@ -112,10 +112,23 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
     
     console.log('📊 Processing tasks for Gantt chart:', tasks.length);
+    console.log('📊 Raw tasks data:', tasks);
     
     // Use the simplified hierarchy transformation with hierarchy_number
     const transformedTasks = transformTasksForGantt(tasks, resources || []);
-    console.log('📊 Transformed tasks for Gantt:', transformedTasks);
+    console.log('📊 Transformed tasks for Gantt:', transformedTasks.length, 'tasks');
+    console.log('📊 First few transformed tasks:', transformedTasks.slice(0, 5));
+    
+    // Check if any tasks have valid data
+    const validTasks = transformedTasks.filter(task => 
+      task.TaskName && task.StartDate && task.EndDate
+    );
+    console.log('📊 Valid tasks with name and dates:', validTasks.length);
+    
+    if (validTasks.length === 0) {
+      console.error('❌ No valid tasks found! All tasks missing required fields');
+      console.log('📊 Sample invalid task:', transformedTasks[0]);
+    }
     
     return transformedTasks;
   }, [tasks, resources]);
@@ -527,6 +540,14 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   if (error) {
     return <div className="flex items-center justify-center h-64 text-red-500">Error loading tasks</div>;
   }
+
+  console.log('🎯 About to render GanttComponent with:', {
+    ganttDataLength: ganttData.length,
+    taskFields,
+    resourcesLength: resources?.length || 0,
+    isLoading,
+    error
+  });
 
   return (
     <div className="w-full h-[600px]">
