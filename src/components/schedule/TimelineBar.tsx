@@ -16,18 +16,16 @@ export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: Timelin
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
-  const getBarColor = (hierarchyNumber: string) => {
-    if (!hierarchyNumber) return "hsl(var(--primary))";
-    
-    const level = hierarchyNumber.split(".").length;
-    const colors = [
-      "hsl(var(--primary))",     // Level 1
-      "hsl(var(--secondary))",   // Level 2
-      "hsl(var(--accent))",      // Level 3
-      "hsl(var(--muted))",       // Level 4+
-    ];
-    
-    return colors[Math.min(level - 1, colors.length - 1)];
+  const getBarColor = (task: ProjectTask) => {
+    // Check if task has confirmed status - assuming this might be in a field like 'confirmed' or 'status'
+    // Default to blue, red if confirmed is false, green if confirmed is true
+    if (task.confirmed === false) {
+      return "#ef4444"; // Red
+    } else if (task.confirmed === true) {
+      return "#22c55e"; // Green  
+    } else {
+      return "#3b82f6"; // Blue (default)
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -50,7 +48,7 @@ export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: Timelin
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  const barColor = getBarColor(task.hierarchy_number || "");
+  const barColor = getBarColor(task);
   const progressWidth = (position.width * position.progress) / 100;
 
   return (
@@ -69,7 +67,7 @@ export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: Timelin
         style={{
           left: position.left,
           width: position.width,
-          backgroundColor: barColor + "40", // 40 for alpha
+          backgroundColor: barColor + "40", // Add transparency
           borderColor: barColor
         }}
         onMouseDown={handleMouseDown}

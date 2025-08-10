@@ -39,13 +39,15 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
 
   return (
     <div className="h-[600px] overflow-auto">
-      {/* Timeline Header */}
-      <TimelineHeader
-        startDate={startDate}
-        endDate={endDate}
-        dayWidth={dayWidth}
-        timelineWidth={timelineWidth}
-      />
+      {/* Timeline Header - positioned to align with table header */}
+      <div className="h-16"> {/* Match the table header height */}
+        <TimelineHeader
+          startDate={startDate}
+          endDate={endDate}
+          dayWidth={dayWidth}
+          timelineWidth={timelineWidth}
+        />
+      </div>
 
       {/* Timeline Content */}
       <div className="relative" style={{ width: timelineWidth }}>
