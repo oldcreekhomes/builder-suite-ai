@@ -59,7 +59,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task created successfully');
     },
     onError: (error) => {
@@ -107,7 +107,7 @@ export const useTaskMutations = (projectId: string) => {
     },
     onSuccess: (data) => {
       console.log('🔧 Task update success with data:', data);
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       // Don't show toast here - let the calling component handle UI feedback
     },
     onError: (error) => {
@@ -132,7 +132,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task deleted successfully');
     },
     onError: (error) => {

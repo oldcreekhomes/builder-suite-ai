@@ -178,6 +178,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleDataBound = (args: any) => {
     console.log('📊 Data bound event triggered');
     autoFitAllColumns();
+    
+    // Clear Syncfusion operation flag after data is bound
+    (window as any).__syncfusionOperationInProgress = false;
   };
 
   // Handle when Gantt is fully created/rendered
@@ -245,12 +248,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Simplified actionBegin - REMOVE all drag and drop handling
+  // Native Syncfusion actionBegin - minimal interference
   const handleActionBegin = (args: any) => {
     if (!args) return;
     
     console.log('🎬 Action begin:', args.requestType);
     
+    // Set flag to prevent real-time updates during Syncfusion operations
+    if (['rowDropping', 'taskbarEditing', 'indenting', 'outdenting'].includes(args.requestType)) {
+      console.log('🔒 Setting Syncfusion operation flag');
+      (window as any).__syncfusionOperationInProgress = true;
+    }
+    
+    // Only handle deletion confirmation and prevent default add dialog
     if (args.requestType === 'beforeDelete') {
       args.cancel = true;
       const taskData = args.data && args.data[0] ? args.data[0] : null;
@@ -265,195 +275,83 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('🚫 Blocking add dialog');
       args.cancel = true;
     }
-    // REMOVE all rowDropping handling - let Syncfusion handle it naturally
+    // Let Syncfusion handle all other operations natively
   };
 
-  // Enhanced actionComplete - CATCH drag and drop AFTER it happens
+  // Native Syncfusion actionComplete - use built-in events
   const handleActionComplete = (args: any) => {
-    if (!args) return;
+    if (!args || !args.data) return;
     
     console.log('🎭 Action complete:', args.requestType);
-    console.log('🎭 Action data:', args.data);
-    console.log('🎭 Full args:', args);
-    
-    if (!args.data) return;
     
     const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
     if (!taskData) return;
     
-    const onSuccess = (msg: string) => {
-      console.log('✅ Database operation success:', msg);
-      toast({ title: "Success", description: msg });
-      setTimeout(() => autoFitAllColumns(), 200);
+    // Handle different Syncfusion actions using their native events
+    switch (args.requestType) {
+      case 'save':
+      case 'taskbarEdited':
+      case 'cellSave': {
+        // Standard task editing
+        console.log('💾 Task edited, updating database...');
+        updateTaskInDatabase(taskData, "Task updated successfully");
+        break;
+      }
+      
+      case 'indented':
+      case 'outdented': {
+        // Hierarchy changes
+        console.log(`📂 ${args.requestType} operation, updating hierarchy...`);
+        updateTaskInDatabase(taskData, "Task hierarchy updated");
+        break;
+      }
+      
+      case 'rowDrop':
+      case 'rowDropped': {
+        // Drag and drop operations - use Syncfusion's processed data
+        console.log('🚀 Row dropped, updating position...');
+        updateTaskInDatabase(taskData, "Task moved successfully");
+        break;
+      }
+    }
+  };
+
+  // Helper function to update task in database using native Syncfusion data
+  const updateTaskInDatabase = (taskData: any, successMessage: string) => {
+    if (!updateTask) return;
+    
+    const updateParams = {
+      id: String(taskData.TaskID),
+      task_name: taskData.TaskName,
+      start_date: taskData.StartDate?.toISOString(),
+      end_date: taskData.EndDate?.toISOString(),
+      duration: taskData.Duration,
+      progress: taskData.Progress,
+      parent_id: taskData.ParentID ? String(taskData.ParentID) : null,
+      predecessor: taskData.Predecessor,
+      resources: taskData.Resources,
+      confirmed: taskData.Confirmed,
+      assigned_user_ids: taskData.AssignedUsers,
+      order_index: taskData.index || 0
     };
     
-    const onError = (error: any) => {
-      console.error('❌ Database operation error:', error);
-      toast({ 
-        variant: "destructive", 
-        title: "Error", 
-        description: error?.message || 'An error occurred' 
-      });
-    };
-
-    try {
-      switch (args.requestType) {
-        case 'save':
-        case 'cellSave':
-        case 'taskbarEdited': {
-          console.log('💾 Updating task via mutation...');
-          const updateParams = {
-            id: String(taskData.TaskID), 
-            task_name: taskData.TaskName,
-            start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined, 
-            end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-            duration: taskData.Duration, 
-            progress: taskData.Progress, 
-            predecessor: taskData.Predecessor,
-            resources: taskData.Resources, 
-            confirmed: taskData.Confirmed,
-            assigned_user_ids: taskData.AssignedUsers
-          };
-          
-          if (updateTask) {
-            updateTask.mutate(updateParams, { 
-              onSuccess: () => onSuccess("Task updated successfully"), 
-              onError: onError 
-            });
-          }
-          break;
-        }
-        
-        case 'indented':
-        case 'outdented': {
-          console.log(`📂 ${args.requestType} operation...`);
-          const hierarchyParams = {
-            id: String(taskData.TaskID), 
-            parent_id: taskData.ParentID ? String(taskData.ParentID) : null
-          };
-          
-          if (updateTask) {
-            updateTask.mutate(hierarchyParams, { 
-              onSuccess: () => onSuccess("Task hierarchy updated"), 
-              onError: onError 
-            });
-          }
-          break;
-        }
-
-        // NEW: Try to catch drag and drop in actionComplete
-        case 'rowDrop':
-        case 'rowDropped':
-        case 'reorder':
-        case 'dragAndDrop': {
-          console.log('🚀 DRAG AND DROP DETECTED IN ACTION COMPLETE!');
-          console.log('🚀 Task data:', taskData);
-          console.log('🚀 Full args:', args);
-          
-          // Find the original task to preserve its parent if needed
-          const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-          if (!originalTask) {
-            console.error('❌ Could not find original task to compare');
-            break;
-          }
-          
-          // Determine the correct parent_id
-          let correctParentId = null;
-          
-          // Check if this is a position change (dropIndex, fromIndex) vs parent change
-          const hasPositionChange = args.dropIndex !== undefined && args.fromIndex !== undefined;
-          const hasParentInTaskData = taskData.ParentID !== undefined && taskData.ParentID !== null;
-          
-          console.log('🚀 Drop analysis:', {
-            fromIndex: args.fromIndex,
-            dropIndex: args.dropIndex,
-            hasPositionChange,
-            hasParentInTaskData,
-            originalParent: originalTask.parent_id,
-            newParentInData: taskData.ParentID
-          });
-          
-          if (hasParentInTaskData) {
-            // Task has explicit parent in the data - use it
-            correctParentId = String(taskData.ParentID);
-          } else {
-            // No explicit parent in data - preserve original parent
-            correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
-          }
-          
-          // CRITICAL: Add the order_index based on dropIndex
-          const dragParams = {
-            id: String(taskData.TaskID), 
-            parent_id: correctParentId,
-            order_index: args.dropIndex !== undefined ? args.dropIndex : 0
-          };
-          
-          console.log('🚀 Saving drag result with position:', dragParams);
-          
-          if (updateTask) {
-            updateTask.mutate(dragParams, { 
-              onSuccess: () => {
-                onSuccess("Task moved successfully");
-                // Delay the refresh to let database commit
-                setTimeout(() => {
-                  console.log('🔄 Manually refreshing data after drag save...');
-                  queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-                }, 1000); // 1 second delay
-              }, 
-              onError: onError 
-            });
-          }
-          break;
-        }
-
-        default: {
-          console.log('❓ Unhandled action type:', args.requestType);
-          
-          // Try to detect if this might be a drag operation based on task data changes
-          if (taskData.TaskID && taskData.ParentID !== undefined) {
-            console.log('🤔 Possible drag operation detected - checking for parent changes');
-            
-            // Find the original task to compare parent_id
-            const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-            if (originalTask) {
-              const originalParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
-              const newParentId = taskData.ParentID ? String(taskData.ParentID) : null;
-              
-              if (originalParentId !== newParentId) {
-                console.log('🎯 PARENT CHANGE DETECTED!');
-                console.log('🎯 Original parent:', originalParentId);
-                console.log('🎯 New parent:', newParentId);
-                
-                const parentChangeParams = {
-                  id: String(taskData.TaskID), 
-                  parent_id: newParentId
-                };
-                
-                console.log('🎯 Saving parent change:', parentChangeParams);
-                
-                if (updateTask) {
-                  updateTask.mutate(parentChangeParams, { 
-                    onSuccess: () => {
-                      onSuccess("Task parent updated");
-                      // Delay the refresh to let database commit
-                      setTimeout(() => {
-                        console.log('🔄 Manually refreshing data after parent change...');
-                        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-                      }, 1000); // 1 second delay
-                    }, 
-                    onError: onError 
-                  });
-                }
-              }
-            }
-          }
-          break;
-        }
+    console.log('💾 Updating task:', updateParams);
+    
+    updateTask.mutate(updateParams, {
+      onSuccess: () => {
+        console.log('✅ Database update success:', successMessage);
+        toast({ title: "Success", description: successMessage });
+        autoFitAllColumns();
+      },
+      onError: (error: any) => {
+        console.error('❌ Database update error:', error);
+        toast({ 
+          variant: "destructive", 
+          title: "Error", 
+          description: error?.message || 'Update failed' 
+        });
       }
-    } catch (error) {
-      console.error('Action complete error:', error);
-      onError(error);
-    }
+    });
   };
 
   const handleDeleteConfirmation = () => {

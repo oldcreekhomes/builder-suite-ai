@@ -44,20 +44,20 @@ export const useProjectTasks = (projectId: string) => {
         (payload) => {
           console.log('Real-time task update received:', payload);
           
-          // Check if there's a drag operation in progress - if so, skip real-time updates
-          const isDragInProgress = (window as any).__ganttDragInProgress;
-          if (isDragInProgress) {
-            console.log('🚫 Skipping real-time update - drag operation in progress');
+          // Check if Syncfusion operation is in progress - if so, skip real-time updates
+          const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
+          if (isSyncfusionOperationInProgress) {
+            console.log('🚫 Skipping real-time update - Syncfusion operation in progress');
             return;
           }
           
-          // Add a small delay to prevent conflicts with drag operations
+          // Longer delay to allow Syncfusion operations to complete
           setTimeout(() => {
             console.log('🔄 Processing real-time update after delay');
             queryClient.invalidateQueries({
               queryKey: ['project-tasks', projectId, user.id]
             });
-          }, 100);
+          }, 500);
         }
       )
       .subscribe((status) => {
