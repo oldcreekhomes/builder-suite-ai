@@ -12,8 +12,7 @@ interface CreateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string;
-  order_index?: number;
+  hierarchy_number: string;
 }
 
 interface UpdateTaskParams {
@@ -25,8 +24,7 @@ interface UpdateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string;
-  order_index?: number;
+  hierarchy_number?: string;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -37,18 +35,21 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: CreateTaskParams) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('create_project_task', {
-        project_id_param: params.project_id,
-        task_name_param: params.task_name,
-        start_date_param: params.start_date,
-        end_date_param: params.end_date,
-        duration_param: params.duration || 1,
-        progress_param: params.progress || 0,
-        predecessor_param: params.predecessor || null,
-        resources_param: params.resources || null,
-        parent_id_param: params.parent_id ? params.parent_id : null,
-        order_index_param: params.order_index || 1000,
-      });
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .insert({
+          project_id: params.project_id,
+          task_name: params.task_name,
+          start_date: params.start_date,
+          end_date: params.end_date,
+          duration: params.duration || 1,
+          progress: params.progress || 0,
+          predecessor: params.predecessor || null,
+          resources: params.resources || null,
+          hierarchy_number: params.hierarchy_number,
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error creating task:', error);
@@ -73,50 +74,40 @@ export const useTaskMutations = (projectId: string) => {
 
       console.log('🔧 UpdateTask mutation called with params:', params);
 
-      // Handle parent_id properly for drag operations
-      let parentIdParam = params.parent_id;
-      if (params.parent_id === undefined) {
-        parentIdParam = '__UNSET__'; // Don't change parent
-      } else if (params.parent_id === null || params.parent_id === '') {
-        parentIdParam = null; // Clear parent (make root level)
-      }
+      const updateData: any = {};
+      if (params.task_name !== undefined) updateData.task_name = params.task_name;
+      if (params.start_date !== undefined) updateData.start_date = params.start_date;
+      if (params.end_date !== undefined) updateData.end_date = params.end_date;
+      if (params.duration !== undefined) updateData.duration = params.duration;
+      if (params.progress !== undefined) updateData.progress = params.progress;
+      if (params.predecessor !== undefined) updateData.predecessor = params.predecessor;
+      if (params.resources !== undefined) updateData.resources = params.resources;
+      if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;
 
-      console.log('🔧 Processed parent_id_param:', parentIdParam);
-
-      const { data, error } = await supabase.rpc('update_project_task', {
-        id_param: params.id,
-        task_name_param: params.task_name,
-        start_date_param: params.start_date,
-        end_date_param: params.end_date,
-        duration_param: params.duration,
-        progress_param: params.progress,
-        predecessor_param: params.predecessor,
-        resources_param: params.resources,
-        parent_id_param: parentIdParam,
-        order_index_param: params.order_index,
-      });
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .update(updateData)
+        .eq('id', params.id)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error updating task:', error);
         throw error;
       }
 
-      console.log('🔧 Database function returned:', data);
+      console.log('🔧 Database update successful:', data);
       return data;
     },
     onSuccess: (data, variables) => {
       console.log('🔧 Task update success with data:', data);
       console.log('🔧 Variables:', variables);
       
-      // Since we removed order_index complexity, always refresh cache for updates
       console.log('✅ Task updated - refreshing cache');
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-      
-      // Don't show toast here - let the calling component handle UI feedback
     },
     onError: (error) => {
       console.error('🔧 Task update error:', error);
-      // Don't show toast here - let the calling component handle UI feedback
     },
   });
 
@@ -124,9 +115,12 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (taskId: string) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('delete_project_task', {
-        task_id_param: taskId,
-      });
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error deleting task:', error);

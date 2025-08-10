@@ -27,6 +27,7 @@ import { usePublishSchedule } from '@/hooks/usePublishSchedule';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { transformTasksForGantt, findOriginalTaskId, convertResourceIdsToNames, calculateNewHierarchyNumber } from '@/utils/ganttUtils';
 
 // Register Syncfusion license key
 registerLicense('Ngo9BigBOggjHTQxAR8/V1JEaF5cXmRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXdecXVcR2BZVkF/XkpWYEk=');
@@ -106,44 +107,31 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
     if (!tasks || tasks.length === 0) {
+      console.log('📊 No tasks available for Gantt chart');
       return [];
     }
     
-    return tasks.map((task) => {
-      let resourceNames = null;
-      if (task.resources && resources && resources.length > 0) {
-        const taskResourceIds = Array.isArray(task.resources) ? task.resources : [task.resources];
-        resourceNames = taskResourceIds
-          .map(id => {
-            const resource = resources.find(r => 
-              (r as any).resourceId === id || 
-              (r as any).id === id ||
-              String((r as any).resourceId) === String(id) ||
-              String((r as any).id) === String(id)
-            );
-            return (resource as any)?.resourceName || (resource as any)?.name || (resource as any)?.displayName;
-          })
-          .filter(Boolean)
-          .join(', ');
-      }
-
-      return {
-        TaskID: String(task.id),
-        TaskName: task.task_name || 'Untitled Task',
-        StartDate: new Date(task.start_date),
-        EndDate: new Date(task.end_date),
-        Duration: task.duration || 1,
-        Progress: task.progress || 0,
-        ParentID: task.parent_id ? String(task.parent_id) : null,
-        Predecessor: task.predecessor ? String(task.predecessor) : '',
-        Resources: resourceNames || task.resources || null,
-        Confirmed: task.confirmed,
-        ConfirmationToken: (task as any).confirmation_token || null,
-        AssignedUsers: (task as any).assigned_user_ids || null,
-        OrderIndex: (task as any).order_index || 0,
-      };
-    });
+    console.log('📊 Processing tasks for Gantt chart:', tasks.length);
+    
+    // Use the simplified hierarchy transformation with hierarchy_number
+    const transformedTasks = transformTasksForGantt(tasks, resources || []);
+    console.log('📊 Transformed tasks for Gantt:', transformedTasks);
+    
+    return transformedTasks;
   }, [tasks, resources]);
+
+  // Set up task field mapping for Syncfusion Gantt
+  const taskFields = {
+    id: 'TaskID',
+    name: 'TaskName',
+    startDate: 'StartDate',
+    endDate: 'EndDate',
+    duration: 'Duration',
+    progress: 'Progress',
+    dependency: 'Predecessor',
+    resourceInfo: 'Resources',
+    parentID: 'ParentTaskID',
+  };
 
   // Auto-fit columns helper function - multiple approaches
   const autoFitAllColumns = () => {
@@ -269,11 +257,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       if (createTask) {
         console.log('💾 Creating task via mutation...');
         
-        // Calculate order_index with 1000 increments
-        const maxOrderIndex = tasks && tasks.length > 0 
-          ? Math.max(...tasks.filter(t => !t.parent_id).map(t => t.order_index || 0))
-          : 0;
-        const newOrderIndex = maxOrderIndex + 1000;
+        // Generate next hierarchy number for new task
+        const newHierarchyNumber = calculateNewHierarchyNumber(0, null, tasks);
         
         const newTaskData = {
           project_id: projectId,
@@ -282,10 +267,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           end_date: new Date(Date.now() + 86400000).toISOString(),
           duration: 1,
           progress: 0,
-          parent_id: null,
           predecessor: null,
           resources: null,
-          order_index: newOrderIndex
+          hierarchy_number: newHierarchyNumber
         };
         
         createTask.mutate(newTaskData, {
@@ -308,9 +292,9 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Handle drag and drop with proper order_index calculation
+  // Handle drag and drop with hierarchy number calculation
   const handleRowDrop = async (args: any) => {
-    console.log('🎯 ROW DROP - calculating order_index with 1000 increments');
+    console.log('🎯 ROW DROP - calculating new hierarchy number');
     console.log('🎯 Full args:', args);
     
     if (!args || !args.data || args.data.length === 0) return;
@@ -321,24 +305,31 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     const taskData = args.data[0];
     const taskId = String((taskData as any).TaskID);
-    const newParentId = (taskData as any).ParentID ? String((taskData as any).ParentID) : null;
+    const newParentHierarchy = (taskData as any).ParentTaskID ? String((taskData as any).ParentTaskID) : null;
     const dropIndex = args.dropIndex || 0;
     
     console.log('🔍 Task ID:', taskId);
-    console.log('🔍 New Parent ID:', newParentId);
+    console.log('🔍 New Parent Hierarchy:', newParentHierarchy);
     console.log('🔍 Drop Index:', dropIndex);
     
-    // Calculate new order_index using incremental spacing
-    // For drag operations, use dropIndex * 1000 to maintain spacing
-    const newOrderIndex = (dropIndex + 1) * 1000;
+    // Calculate new hierarchy number
+    const newHierarchyNumber = calculateNewHierarchyNumber(dropIndex, newParentHierarchy, tasks);
     
-    console.log('🔍 Calculated order_index:', newOrderIndex);
+    console.log('🔍 Calculated hierarchy_number:', newHierarchyNumber);
     
-    // Use updateTask mutation with proper order_index
+    // Find original task ID from the hierarchy number
+    const originalTaskId = findOriginalTaskId(taskId, tasks);
+    
+    if (!originalTaskId) {
+      console.error('❌ Could not find original task ID for:', taskId);
+      setPendingExpansionRestore(false);
+      return;
+    }
+    
+    // Use updateTask mutation with new hierarchy number
     const updateParams = {
-      id: taskId,
-      parent_id: newParentId,
-      order_index: newOrderIndex
+      id: originalTaskId,
+      hierarchy_number: newHierarchyNumber
     };
     
     console.log('🔍 Update params:', updateParams);
@@ -424,17 +415,23 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'cellSave':
         case 'taskbarEdited': {
           console.log('💾 Updating task via mutation...');
+          
+          // Find original task ID
+          const originalTaskId = findOriginalTaskId(String((taskData as any).TaskID), tasks);
+          if (!originalTaskId) {
+            console.error('❌ Could not find original task ID');
+            return;
+          }
+          
           const updateParams = {
-            id: String((taskData as any).TaskID), 
+            id: originalTaskId, 
             task_name: (taskData as any).TaskName,
             start_date: (taskData as any).StartDate ? (taskData as any).StartDate.toISOString() : undefined, 
             end_date: (taskData as any).EndDate ? (taskData as any).EndDate.toISOString() : undefined,
             duration: (taskData as any).Duration, 
             progress: (taskData as any).Progress, 
             predecessor: (taskData as any).Predecessor,
-            resources: (taskData as any).Resources, 
-            confirmed: (taskData as any).Confirmed,
-            assigned_user_ids: (taskData as any).AssignedUsers
+            resources: (taskData as any).Resources
           };
           
           if (updateTask) {
@@ -454,9 +451,21 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           captureExpandedState();
           setPendingExpansionRestore(true);
           
+          // Find original task ID
+          const originalTaskId = findOriginalTaskId(String((taskData as any).TaskID), tasks);
+          if (!originalTaskId) {
+            console.error('❌ Could not find original task ID');
+            setPendingExpansionRestore(false);
+            return;
+          }
+          
+          // Calculate new hierarchy number based on the parent
+          const newParentHierarchy = (taskData as any).ParentTaskID ? String((taskData as any).ParentTaskID) : null;
+          const newHierarchyNumber = calculateNewHierarchyNumber(0, newParentHierarchy, tasks);
+          
           const hierarchyParams = {
-            id: String((taskData as any).TaskID), 
-            parent_id: (taskData as any).ParentID ? String((taskData as any).ParentID) : null
+            id: originalTaskId, 
+            hierarchy_number: newHierarchyNumber
           };
           
           if (updateTask) {
@@ -484,7 +493,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
 
   const handleDeleteConfirmation = () => {
     if (deleteConfirmation.taskData && deleteTask) {
-      deleteTask.mutate(String(deleteConfirmation.taskData.TaskID), {
+      // Find original task ID
+      const originalTaskId = findOriginalTaskId(String(deleteConfirmation.taskData.TaskID), tasks);
+      if (!originalTaskId) {
+        console.error('❌ Could not find original task ID for deletion');
+        setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
+        return;
+      }
+      
+      deleteTask.mutate(originalTaskId, {
         onSuccess: () => {
           toast({ title: "Success", description: "Task deleted successfully" });
           setDeleteConfirmation({ isOpen: false, taskData: null, taskName: '' });
@@ -503,181 +520,77 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  if (isLoading || resourcesLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        <div className="ml-4">Loading tasks...</div>
-      </div>
-    );
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Loading tasks...</div>;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center h-96 text-red-600">
-        <div>
-          <h3>Error loading tasks:</h3>
-          <p>{error.message || 'Unknown error'}</p>
-        </div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-red-500">Error loading tasks</div>;
   }
 
   return (
-    <div className="control-pane">
-      <div className="control-section">
-        <div className="col-lg-12">
-          <div className="mb-2 text-sm text-gray-500">
-            Tasks in DB: {tasks?.length || 0} | Gantt Data: {ganttData?.length || 0}
-          </div>
-          
-          <DeleteConfirmationDialog
-            open={deleteConfirmation.isOpen}
-            onOpenChange={(open) => setDeleteConfirmation(prev => ({ ...prev, isOpen: open }))}
-            title="Delete Task"
-            description={`Are you sure you want to delete "${deleteConfirmation.taskName}"?`}
-            onConfirm={handleDeleteConfirmation}
-            isLoading={deleteTask && deleteTask.isPending}
-          />
+    <div className="w-full h-[600px]">
+      <GanttComponent
+        ref={ganttInstance}
+        dataSource={ganttData}
+        taskFields={taskFields}
+        resourceFields={{ 
+          id: 'resourceId', 
+          name: 'resourceName' 
+        }}
+        resources={resources}
+        height="600px"
+        toolbar={[
+          'Add', 'Edit', 'Delete', 'Update', 'Cancel', 'ExpandAll', 'CollapseAll',
+          { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-icons e-schedule' }
+        ]}
+        editSettings={{
+          allowAdding: true,
+          allowEditing: true,
+          allowDeleting: true,
+          allowTaskbarEditing: true,
+          showDeleteConfirmDialog: false,
+        }}
+        allowSelection={true}
+        allowRowDragAndDrop={true}
+        gridLines="Both"
+        treeColumnIndex={1}
+        projectStartDate={new Date('2024-01-01')}
+        projectEndDate={new Date('2025-12-31')}
+        timelineSettings={{
+          topTier: { unit: 'Month', format: 'MMM yyyy' },
+          bottomTier: { unit: 'Day', format: 'd' },
+        }}
+        splitterSettings={{ position: "300px" }}
+        toolbarClick={handleToolbarClick}
+        actionBegin={handleActionBegin}
+        actionComplete={handleActionComplete}
+        rowDrop={handleRowDrop}
+        queryTaskbarInfo={handleQueryTaskbarInfo}
+        dataBound={handleDataBound}
+        created={handleCreated}
+        load={handleLoad}
+      >
+        <ColumnsDirective>
+          <ColumnDirective field="TaskID" headerText="ID" width="80" />
+          <ColumnDirective field="TaskName" headerText="Task Name" width="250" />
+          <ColumnDirective field="StartDate" headerText="Start Date" width="120" />
+          <ColumnDirective field="EndDate" headerText="End Date" width="120" />
+          <ColumnDirective field="Duration" headerText="Duration" width="100" />
+          <ColumnDirective field="Progress" headerText="Progress" width="100" />
+          <ColumnDirective field="Resources" headerText="Resources" width="150" />
+          <ColumnDirective field="Predecessor" headerText="Dependencies" width="120" />
+        </ColumnsDirective>
+        <Inject services={[Toolbar, Edit, Selection, Filter, Sort, ContextMenu, ColumnMenu, Resize, RowDD, DayMarkers]} />
+      </GanttComponent>
 
-          <GanttComponent
-            id="EnableWbs" 
-            ref={ganttInstance} 
-            key={`gantt-${projectId}-${ganttData.length}`}
-            dataSource={ganttData} 
-            height="550px"
-            taskFields={{
-              id: "TaskID", 
-              name: "TaskName", 
-              startDate: "StartDate", 
-              endDate: "EndDate",
-              duration: "Duration", 
-              progress: "Progress", 
-              dependency: "Predecessor",
-              parentID: 'ParentID', 
-              resourceInfo: 'Resources'
-            }}
-            editSettings={{
-              allowAdding: true, 
-              allowEditing: true, 
-              allowDeleting: true, 
-              allowTaskbarEditing: true,
-              showDeleteConfirmDialog: false, 
-              mode: 'Auto', 
-              newRowPosition: 'Bottom'
-            }}
-            toolbar={[
-              "Add", "Edit", "Update", "Delete", "Cancel", "ExpandAll", "CollapseAll",
-              { text: 'Publish Schedule', id: 'publish', prefixIcon: 'e-export' }
-            ]}
-            timelineSettings={{
-              showTooltip: true, 
-              topTier: { unit: "Week", format: "dd/MM/yyyy" },
-              bottomTier: { unit: "Day", count: 1 }
-            }}
-            selectionSettings={{ mode: "Row", type: "Single", enableToggle: false }}
-            splitterSettings={{ columnIndex: 4 }}
-            labelSettings={{ taskLabel: '${Progress}%' }}
-            tooltipSettings={{ showTooltip: true }}
-            filterSettings={{ type: "Menu" }}
-            projectStartDate={new Date()}
-            projectEndDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
-            resourceFields={{ id: 'resourceId', name: 'resourceName' }}
-            resources={resources}
-            treeColumnIndex={2} 
-            allowSorting={true} 
-            enableContextMenu={true}
-            addDialogFields={[]} 
-            enableWBS={true} 
-            enableAutoWbsUpdate={true}
-            allowSelection={true} 
-            allowPdfExport={true} 
-            highlightWeekends={true}
-            allowFiltering={false} 
-            gridLines="Both" 
-            taskbarHeight={20} 
-            rowHeight={40}
-            allowResizing={true} 
-            allowUnscheduledTasks={true}
-            showColumnMenu={true}
-            columnMenuItems={['AutoFitAll', 'ColumnChooser']}
-            allowReordering={true}
-            allowRowDragAndDrop={true}
-            
-            // Event handlers - simplified
-            toolbarClick={handleToolbarClick} 
-            actionBegin={handleActionBegin}
-            actionComplete={handleActionComplete} 
-            rowDrop={handleRowDrop}
-            queryTaskbarInfo={handleQueryTaskbarInfo}
-            dataBound={handleDataBound}
-            created={handleCreated}
-            load={handleLoad}
-           >
-            <ColumnsDirective>
-              {/* @ts-ignore - hide internal TaskID from chooser */}
-              <ColumnDirective field="TaskID" visible={false} showInColumnChooser={false} />
-              <ColumnDirective 
-                field="WBSCode" 
-                headerText="ID" 
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="TaskName" 
-                headerText="Task Name" 
-                allowReordering={false}
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="StartDate" 
-                headerText="Start Date"
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="Duration" 
-                headerText="Duration"
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="EndDate" 
-                headerText="End Date"
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="WBSPredecessor" 
-                headerText="Predecessor"
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="Progress" 
-                headerText="Progress"
-                allowResizing={true}
-                allowSorting={false}
-              />
-              <ColumnDirective 
-                field="Resources" 
-                headerText="Resources"
-                allowResizing={true}
-                allowSorting={false}
-              />
-            </ColumnsDirective>
-            
-            <EventMarkersDirective>
-              <EventMarkerDirective day={new Date()} label='Project Start'></EventMarkerDirective>
-            </EventMarkersDirective>
-            
-            <Inject services={[Selection, DayMarkers, Toolbar, Edit, Filter, Sort, ContextMenu, ColumnMenu, Resize, RowDD]} />
-          </GanttComponent>
-        </div>
-      </div>
+      <DeleteConfirmationDialog
+        open={deleteConfirmation.isOpen}
+        onOpenChange={(open) => setDeleteConfirmation({ isOpen: open, taskData: null, taskName: '' })}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${deleteConfirmation.taskName}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirmation}
+      />
     </div>
   );
 };
-
-export default GanttChart;

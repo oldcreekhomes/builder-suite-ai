@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
+import { useProjectTasks } from '@/hooks/useProjectTasks';
 
 interface AddTaskDialogProps {
   projectId: string;
@@ -25,6 +26,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
   });
 
   const { createTask } = useTaskMutations(projectId);
+  const { data: tasks = [] } = useProjectTasks(projectId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +35,10 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
       return;
     }
 
+    // Generate next hierarchy number for new task
+    const maxRootNumber = Math.max(0, ...tasks.filter(t => !t.hierarchy_number.includes('.')).map(t => parseInt(t.hierarchy_number) || 0));
+    const newHierarchyNumber = (maxRootNumber + 1).toString();
+    
     createTask.mutate({
       project_id: projectId,
       task_name: formData.task_name,
@@ -42,6 +48,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
       progress: formData.progress,
       resources: formData.resources || null,
       predecessor: formData.predecessor || null,
+      hierarchy_number: newHierarchyNumber,
     });
 
     setFormData({

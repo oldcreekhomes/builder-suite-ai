@@ -14,8 +14,7 @@ export interface ProjectTask {
   progress: number;
   predecessor: string | null;
   resources: string | null;
-  parent_id: string | null;
-  order_index: number;
+  hierarchy_number: string;
   created_at: string;
   updated_at: string;
   confirmed: boolean | null;
@@ -75,9 +74,11 @@ export const useProjectTasks = (projectId: string) => {
     queryFn: async () => {
       if (!user || !projectId) return [];
 
-      const { data, error } = await supabase.rpc('get_project_tasks', {
-        project_id_param: projectId
-      });
+      const { data, error } = await supabase
+        .from('project_schedule_tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('hierarchy_number');
 
       if (error) {
         console.error('Error fetching project tasks:', error);
