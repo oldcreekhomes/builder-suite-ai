@@ -30,10 +30,14 @@ export const useProjectTasks = (projectId: string) => {
   useEffect(() => {
     if (!projectId || !user) return;
 
-    console.log('Setting up real-time subscription for project tasks:', projectId);
+    console.log('🔥 useProjectTasks: Setting up real-time subscription for project tasks:', projectId);
+    console.log('🔥 useProjectTasks: User ID:', user.id);
+
+    const channelName = `project-tasks-${projectId}-${user.id}-${Date.now()}`;
+    console.log('🔥 useProjectTasks: Channel name:', channelName);
 
     const channel = supabase
-      .channel(`project-tasks-${projectId}-${Date.now()}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -66,7 +70,7 @@ export const useProjectTasks = (projectId: string) => {
       });
 
     return () => {
-      console.log('Cleaning up project tasks subscription');
+      console.log('🔥 useProjectTasks: Cleaning up project tasks subscription for channel:', channelName);
       supabase.removeChannel(channel);
     };
   }, [projectId, user, queryClient]);

@@ -52,8 +52,11 @@ export const useUnreadCounts = (userIds: string[]) => {
   useEffect(() => {
     if (!user?.id || userIds.length === 0) return;
 
+    console.log('🔥 useUnreadCounts: Setting up subscription for userIds:', userIds);
+
     // Create a unique channel name to avoid conflicts
     const channelName = `unread_counts_${user.id}_${userIds.join('_')}_${Date.now()}`;
+    console.log('🔥 useUnreadCounts: Channel name:', channelName);
     
     const channel = supabase
       .channel(channelName)
@@ -103,6 +106,7 @@ export const useUnreadCounts = (userIds: string[]) => {
       .subscribe();
 
     return () => {
+      console.log('🔥 useUnreadCounts: Cleaning up subscription for channel:', channelName);
       supabase.removeChannel(channel);
     };
   }, [user?.id, userIds.join(',')]);

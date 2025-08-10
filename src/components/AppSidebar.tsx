@@ -17,8 +17,11 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
   
+  console.log('🔥 AppSidebar: Rendering with users:', users?.length);
+  
   // Get user IDs for unread count tracking (excluding current user)
   const userIds = users?.filter(user => user.id !== currentUserId).map(user => user.id) || [];
+  console.log('🔥 AppSidebar: User IDs for unread tracking:', userIds);
   const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
   
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');

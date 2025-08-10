@@ -12,9 +12,9 @@ const AppWithTitle = () => {
 };
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  // <StrictMode>
     <AuthProvider>
       <AppWithTitle />
     </AuthProvider>
-  </StrictMode>
+  // </StrictMode>
 );
