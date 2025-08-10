@@ -18,6 +18,71 @@ interface TaskTableProps {
 
 export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
   const [draggedTask, setDraggedTask] = useState<ProjectTask | null>(null);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  // Helper function to check if a task has children
+  const hasChildren = (taskId: string) => {
+    return tasks.some(task => task.parent_id === taskId);
+  };
+
+  // Helper function to get all descendant task IDs
+  const getDescendants = (taskId: string): string[] => {
+    const descendants: string[] = [];
+    const directChildren = tasks.filter(task => task.parent_id === taskId);
+    
+    for (const child of directChildren) {
+      descendants.push(child.id);
+      descendants.push(...getDescendants(child.id));
+    }
+    
+    return descendants;
+  };
+
+  // Filter tasks based on expansion state
+  const getVisibleTasks = () => {
+    const visibleTasks: ProjectTask[] = [];
+    
+    for (const task of sortedTasks) {
+      // Always show root tasks (no parent)
+      if (!task.parent_id || task.parent_id === '') {
+        visibleTasks.push(task);
+        continue;
+      }
+      
+      // For tasks with parents, check if all ancestors are expanded
+      let shouldShow = true;
+      let currentParentId = task.parent_id;
+      
+      while (currentParentId && currentParentId !== '') {
+        if (!expandedTasks.has(currentParentId)) {
+          shouldShow = false;
+          break;
+        }
+        
+        // Find the parent task to check its parent
+        const parentTask = tasks.find(t => t.id === currentParentId);
+        currentParentId = parentTask?.parent_id || '';
+      }
+      
+      if (shouldShow) {
+        visibleTasks.push(task);
+      }
+    }
+    
+    return visibleTasks;
+  };
+
+  const handleToggleExpand = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
 
   const handleDragStart = (e: React.DragEvent, task: ProjectTask) => {
     setDraggedTask(task);
@@ -48,6 +113,8 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
     return aNum.localeCompare(bNum, undefined, { numeric: true });
   });
 
+  const visibleTasks = getVisibleTasks();
+
   return (
     <div className="h-[600px] overflow-auto">
       <Table>
@@ -64,7 +131,7 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedTasks.map((task, index) => (
+          {visibleTasks.map((task, index) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -74,6 +141,9 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
               onDrop={handleDrop}
               onTaskUpdate={onTaskUpdate}
               isDragging={draggedTask?.id === task.id}
+              hasChildren={hasChildren(task.id)}
+              isExpanded={expandedTasks.has(task.id)}
+              onToggleExpand={handleToggleExpand}
             />
           ))}
         </TableBody>

@@ -5,7 +5,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { GripVertical } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
 interface TaskRowProps {
@@ -16,6 +16,9 @@ interface TaskRowProps {
   onDrop: (e: React.DragEvent, index: number) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
   isDragging: boolean;
+  hasChildren: boolean;
+  isExpanded: boolean;
+  onToggleExpand: (taskId: string) => void;
 }
 
 export function TaskRow({
@@ -25,7 +28,10 @@ export function TaskRow({
   onDragOver,
   onDrop,
   onTaskUpdate,
-  isDragging
+  isDragging,
+  hasChildren,
+  isExpanded,
+  onToggleExpand
 }: TaskRowProps) {
   const { deleteTask } = useTaskMutations(task.project_id);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -85,6 +91,21 @@ export function TaskRow({
           className="flex items-center gap-1"
           style={{ marginLeft: `${indentLevel * 16}px` }}
         >
+          {/* Expand/Collapse Button */}
+          {hasChildren ? (
+            <button
+              onClick={() => onToggleExpand(task.id)}
+              className="p-0.5 hover:bg-muted rounded"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              )}
+            </button>
+          ) : (
+            <div className="w-4" /> // Spacer for alignment
+          )}
           {isEditing === "task_name" ? (
             <Input
               value={editValues.task_name || ""}
