@@ -276,10 +276,62 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('🎯 Drop position:', args.dropPosition);
     console.log('🎯 From index:', args.fromIndex);
     console.log('🎯 Drop index:', args.dropIndex);
-    console.log('🎯 Target:', args.target);
     
-    // Let the default drag operation complete first
-    // Don't cancel it, just log that we received it
+    if (!args || !args.data || args.data.length === 0) return;
+    
+    const taskData = args.data[0]; // First dragged item
+    const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+    
+    if (!originalTask) {
+      console.error('❌ Could not find original task');
+      return;
+    }
+    
+    // Determine the correct parent_id based on drop position and target
+    let correctParentId = null;
+    
+    if (args.dropPosition === 'middleSegment') {
+      // Dropped as child - get parent from target
+      const targetElement = args.target;
+      // Find the target row's TaskID
+      const targetRow = ganttInstance.current?.getRowByIndex(args.dropIndex);
+      if (targetRow) {
+        correctParentId = String(targetRow.TaskID);
+      }
+    } else {
+      // Dropped as sibling (above or below) - preserve target's parent
+      const targetRow = ganttInstance.current?.getRowByIndex(args.dropIndex);
+      if (targetRow) {
+        correctParentId = targetRow.ParentID ? String(targetRow.ParentID) : null;
+      }
+    }
+    
+    // Prepare the update parameters
+    const dragParams = {
+      id: String(taskData.TaskID), 
+      parent_id: correctParentId,
+      order_index: args.dropIndex !== undefined ? args.dropIndex : 0
+    };
+    
+    console.log('🎯 Saving drag result in rowDrop:', dragParams);
+    
+    // Save to database using mutateAsync to control when refresh happens
+    if (updateTask) {
+      updateTask.mutateAsync(dragParams).then(() => {
+        console.log('✅ Row drop save successful - preventing auto refresh');
+        toast({ title: "Success", description: "Task moved successfully" });
+        setTimeout(() => autoFitAllColumns(), 200);
+      }).catch((error: any) => {
+        console.error('❌ Row drop save error:', error);
+        toast({ 
+          variant: "destructive", 
+          title: "Error", 
+          description: error?.message || 'Failed to move task' 
+        });
+        // On error, revert the visual change
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      });
+    }
   };
 
   // DEBUGGING: Enhanced actionComplete with detailed logging
@@ -355,44 +407,70 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // TESTING: Let's see what requestType we actually get for drag and drop
+        // FIXED: Handle rowDropped without triggering data refresh
+        case 'rowDropped': {
+          console.log('🚀 DRAG OPERATION DETECTED!');
+          
+          // Find the original task
+          const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
+          if (!originalTask) {
+            console.error('❌ Could not find original task');
+            break;
+          }
+          
+          // Get proper parent_id and order_index from the drag operation
+          let correctParentId = null;
+          let orderIndex = 0;
+          
+          // Check if taskData has the updated parent info
+          if (taskData.ParentID !== undefined) {
+            correctParentId = taskData.ParentID ? String(taskData.ParentID) : null;
+          } else {
+            // Preserve original parent if no change
+            correctParentId = originalTask.parent_id ? String(originalTask.parent_id) : null;
+          }
+          
+          // Get order index if available in args
+          if (args.dropIndex !== undefined) {
+            orderIndex = args.dropIndex;
+          }
+          
+          const dragParams = {
+            id: String(taskData.TaskID), 
+            parent_id: correctParentId,
+            order_index: orderIndex
+          };
+          
+          console.log('🚀 Saving drag result:', dragParams);
+          
+          if (updateTask) {
+            // Use mutateAsync to prevent automatic React Query refresh
+            updateTask.mutateAsync(dragParams).then(() => {
+              console.log('✅ Drag save successful - NO automatic refresh');
+              toast({ title: "Success", description: "Task moved successfully" });
+              setTimeout(() => autoFitAllColumns(), 200);
+            }).catch((error: any) => {
+              console.error('❌ Drag save error:', error);
+              toast({ 
+                variant: "destructive", 
+                title: "Error", 
+                description: error?.message || 'Failed to move task' 
+              });
+              // On error, manually refresh to revert the visual change
+              queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+            });
+          }
+          break;
+        }
+        
+        case 'refresh': {
+          // Do nothing for refresh - let it complete silently
+          console.log('🔄 Refresh operation - ignoring to prevent revert');
+          break;
+        }
+
         default: {
           console.log('❓ Unhandled action type:', args.requestType);
-          console.log('🔍 Task data structure:', taskData);
-          console.log('🔍 All available properties:', Object.keys(taskData));
-          
-          // If this looks like a drag and drop operation, handle it
-          if (args.requestType === 'rowDropped' || args.requestType === 'reorder' || args.requestType === 'refresh') {
-            console.log('🚀 POTENTIAL DRAG OPERATION DETECTED!');
-            
-            // Find the original task
-            const originalTask = tasks.find(t => String(t.id) === String(taskData.TaskID));
-            if (!originalTask) {
-              console.error('❌ Could not find original task');
-              break;
-            }
-            
-            // For now, just prevent any data refresh that might cause revert
-            console.log('🚀 Handling potential drag operation - preventing refresh');
-            
-            // Update with minimal changes to test
-            const dragParams = {
-              id: String(taskData.TaskID), 
-              parent_id: taskData.ParentID ? String(taskData.ParentID) : null
-            };
-            
-            console.log('🚀 Saving drag result:', dragParams);
-            
-            if (updateTask) {
-              updateTask.mutate(dragParams, { 
-                onSuccess: () => {
-                  onSuccess("Task moved successfully");
-                  // CRITICAL: Do not refresh data here
-                }, 
-                onError: onError 
-              });
-            }
-          }
           break;
         }
       }
