@@ -221,8 +221,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           progress: 0,
           parent_id: null,
           predecessor: null,
-          resources: null,
-          order_index: tasks ? tasks.length : 0
+          resources: null
         };
         
         createTask.mutate(newTaskData, {
