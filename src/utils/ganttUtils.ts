@@ -136,47 +136,19 @@ export const calculateNewHierarchyNumber = (
 ): string => {
   console.log('🧮 Calculating new hierarchy number:', { dropIndex, newParentHierarchy });
   
-  if (!newParentHierarchy) {
-    // Root level task - find the next available root number
-    const rootTasks = existingTasks
-      .filter(t => !t.hierarchy_number.includes('.'))
-      .map(t => parseInt(t.hierarchy_number))
-      .sort((a, b) => a - b);
-    
-    let newRootNumber = 1;
-    for (const num of rootTasks) {
-      if (num === newRootNumber) {
-        newRootNumber++;
-      } else {
-        break;
-      }
-    }
-    
-    console.log('📍 New root hierarchy number:', newRootNumber.toString());
-    return newRootNumber.toString();
-  } else {
-    // Child task - find the next available child number under the parent
-    const childTasks = existingTasks
-      .filter(t => t.hierarchy_number.startsWith(newParentHierarchy + '.'))
-      .map(t => {
-        const parts = t.hierarchy_number.split('.');
-        return parseInt(parts[parts.length - 1]);
-      })
-      .sort((a, b) => a - b);
-    
-    let newChildNumber = 1;
-    for (const num of childTasks) {
-      if (num === newChildNumber) {
-        newChildNumber++;
-      } else {
-        break;
-      }
-    }
-    
-    const newHierarchy = `${newParentHierarchy}.${newChildNumber}`;
-    console.log('📍 New child hierarchy number:', newHierarchy);
-    return newHierarchy;
+  // With the new simplified system, we just find the next available sequential number
+  // No more complex parent-child hierarchy in the numbers themselves
+  const existingNumbers = new Set(
+    existingTasks.map(task => parseInt(task.hierarchy_number)).filter(num => !isNaN(num))
+  );
+  
+  let newNumber = 1;
+  while (existingNumbers.has(newNumber)) {
+    newNumber++;
   }
+  
+  console.log('📍 New hierarchy number:', newNumber.toString());
+  return newNumber.toString();
 };
 
 // Generate hierarchy number for new tasks
