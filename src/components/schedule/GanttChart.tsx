@@ -46,11 +46,62 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   
   console.log('🔍 GanttChart component rendered, tasks count:', tasks?.length || 0);
   
+  // State for preserving expanded nodes during operations
+  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]);
+  const [pendingExpansionRestore, setPendingExpansionRestore] = useState(false);
+  
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     isOpen: false, 
     taskData: null as any, 
     taskName: ''
   });
+
+  // Helper function to capture expanded state
+  const captureExpandedState = () => {
+    if (!ganttInstance.current) return;
+    
+    try {
+      // Use the current data from the Gantt instance
+      const flatData = ganttInstance.current.flatData;
+      const expandedIds: string[] = [];
+      
+      if (flatData && Array.isArray(flatData)) {
+        flatData.forEach((record: any) => {
+          // Check if this record has children and is expanded
+          if (record.hasChildRecords && record.expanded) {
+            expandedIds.push(String(record.TaskID));
+          }
+        });
+      }
+      
+      setExpandedTaskIds(expandedIds);
+      console.log('📌 Captured expanded state:', expandedIds);
+    } catch (error) {
+      console.warn('⚠️ Failed to capture expanded state:', error);
+    }
+  };
+
+  // Helper function to restore expanded state
+  const restoreExpandedState = () => {
+    if (!ganttInstance.current || expandedTaskIds.length === 0) return;
+    
+    try {
+      setTimeout(() => {
+        expandedTaskIds.forEach(taskId => {
+          try {
+            ganttInstance.current?.expandByID(taskId);
+          } catch (error) {
+            // Silently ignore individual expansion errors
+          }
+        });
+        console.log('🔄 Restored expanded state for:', expandedTaskIds);
+        setPendingExpansionRestore(false);
+      }, 100);
+    } catch (error) {
+      console.warn('⚠️ Failed to restore expanded state:', error);
+      setPendingExpansionRestore(false);
+    }
+  };
 
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
@@ -178,6 +229,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
   const handleDataBound = (args: any) => {
     console.log('📊 Data bound event triggered');
     autoFitAllColumns();
+    
+    // Restore expanded state if pending
+    if (pendingExpansionRestore) {
+      restoreExpandedState();
+    }
   };
 
   // Handle when Gantt is fully created/rendered
@@ -259,6 +315,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     
     if (!args || !args.data || args.data.length === 0) return;
     
+    // Capture expanded state before the operation
+    captureExpandedState();
+    setPendingExpansionRestore(true);
+    
     const taskData = args.data[0];
     const taskId = String((taskData as any).TaskID);
     const newParentId = (taskData as any).ParentID ? String((taskData as any).ParentID) : null;
@@ -296,7 +356,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
             title: "Error", 
             description: error?.message || 'Failed to move task'
           });
-          // Revert the visual change
+          // Revert the visual change and reset expansion state
+          setPendingExpansionRestore(false);
           queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
         }
       });
@@ -388,6 +449,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'indented':
         case 'outdented': {
           console.log(`📂 ${args.requestType} operation...`);
+          
+          // Capture expanded state before hierarchy changes
+          captureExpandedState();
+          setPendingExpansionRestore(true);
+          
           const hierarchyParams = {
             id: String((taskData as any).TaskID), 
             parent_id: (taskData as any).ParentID ? String((taskData as any).ParentID) : null
@@ -396,7 +462,10 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
               onSuccess: () => onSuccess("Task hierarchy updated"), 
-              onError: onError 
+              onError: (error) => {
+                setPendingExpansionRestore(false);
+                onError(error);
+              }
             });
           }
           break;
