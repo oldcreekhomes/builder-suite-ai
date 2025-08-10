@@ -1,20 +1,16 @@
 
-import { useParams, useNavigate } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useParams } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { Calendar, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useProject } from "@/hooks/useProject";
+import { Calendar } from "lucide-react";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { GanttChart } from "@/components/schedule/GanttChart";
 import { AddTaskDialog } from "@/components/schedule/AddTaskDialog";
 import "../styles/syncfusion.css";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const navigate = useNavigate();
-  
-  const { data: project, isLoading: projectLoading } = useProject(projectId || "");
 
   if (!projectId) {
     return <div>Project not found</div>;
@@ -22,33 +18,15 @@ export default function ProjectSchedule() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <main className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-gray-200 px-6 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-black" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/project/${projectId}`)}
-                  className="text-gray-600 hover:text-black"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Project
-                </Button>
-                <div className="flex items-center space-x-4">
-                  <h1 className="text-2xl font-bold text-black">Project Schedule</h1>
-                  {project?.address && (
-                    <p className="text-sm text-gray-600">{project.address}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </header>
+        <SidebarInset className="flex-1">
+          <DashboardHeader 
+            title="Project Schedule" 
+            projectId={projectId}
+          />
           
-          <div className="flex-1 p-6 space-y-6">
+          <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center space-x-2">
               <Calendar className="h-6 w-6" />
               <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
@@ -58,7 +36,7 @@ export default function ProjectSchedule() {
               <GanttChart projectId={projectId} />
             </div>
           </div>
-        </main>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
