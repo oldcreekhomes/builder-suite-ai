@@ -268,65 +268,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     // REMOVE all rowDropping handling - let Syncfusion handle it naturally
   };
 
-  // NEW: Handle drag and drop in rowDrop event (BEFORE actionComplete)
+  // SIMPLE SOLUTION: Just let rowDrop happen naturally, prevent refresh
   const handleRowDrop = (args: any) => {
-    console.log('🎯 ROW DROP EVENT - This fires BEFORE actionComplete!');
-    console.log('🎯 Drop args:', args);
-    console.log('🎯 Drop data:', args.data);
-    console.log('🎯 Drop position:', args.dropPosition);
-    console.log('🎯 From index:', args.fromIndex);
-    console.log('🎯 Drop index:', args.dropIndex);
-    
-    if (!args || !args.data || args.data.length === 0) return;
-    
-    const taskData = args.data[0]; // First dragged item
-    
-    // Use the correct property access based on your console logs
-    const taskId = (taskData as any).TaskID || (taskData as any).taskData?.TaskID;
-    const parentId = (taskData as any).ParentID || (taskData as any).taskData?.ParentID;
-    
-    const originalTask = tasks.find(t => String(t.id) === String(taskId));
-    
-    if (!originalTask) {
-      console.error('❌ Could not find original task');
-      return;
-    }
-    
-    // Simplified approach - use the data as provided by Syncfusion
-    const dragParams = {
-      id: String(taskId), 
-      parent_id: parentId ? String(parentId) : null,
-      order_index: args.dropIndex !== undefined ? args.dropIndex : 0
-    };
-    
-    console.log('🎯 Saving drag result in rowDrop:', dragParams);
-    
-    // Save to database using mutateAsync to control when refresh happens
-    if (updateTask) {
-      updateTask.mutateAsync(dragParams).then(() => {
-        console.log('✅ Row drop save successful - preventing auto refresh');
-        toast({ title: "Success", description: "Task moved successfully" });
-        setTimeout(() => autoFitAllColumns(), 200);
-      }).catch((error: any) => {
-        console.error('❌ Row drop save error:', error);
-        toast({ 
-          variant: "destructive", 
-          title: "Error", 
-          description: error?.message || 'Failed to move task' 
-        });
-        // On error, revert the visual change
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
-      });
-    }
+    console.log('🎯 ROW DROP EVENT - letting it complete naturally');
+    // Don't do anything here - let Syncfusion handle the drag operation
+    // The save will happen in actionComplete
   };
 
-  // DEBUGGING: Enhanced actionComplete with detailed logging
+  // CRITICAL FIX: Prevent automatic refresh after drag operations
   const handleActionComplete = (args: any) => {
     if (!args) return;
     
     console.log('🎭 Action complete:', args.requestType);
-    console.log('🎭 Action data:', args.data);
-    console.log('🎭 Full args:', args);
+    
+    // CRITICAL: Block refresh operations after rowDropped to prevent revert
+    if (args.requestType === 'refresh') {
+      console.log('🚫 BLOCKING REFRESH to prevent task revert');
+      return; // Don't process refresh operations
+    }
     
     if (!args.data) return;
     
@@ -355,16 +314,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'taskbarEdited': {
           console.log('💾 Updating task via mutation...');
           const updateParams = {
-            id: String(taskData.TaskID), 
-            task_name: taskData.TaskName,
-            start_date: taskData.StartDate ? taskData.StartDate.toISOString() : undefined, 
-            end_date: taskData.EndDate ? taskData.EndDate.toISOString() : undefined,
-            duration: taskData.Duration, 
-            progress: taskData.Progress, 
-            predecessor: taskData.Predecessor,
-            resources: taskData.Resources, 
-            confirmed: taskData.Confirmed,
-            assigned_user_ids: taskData.AssignedUsers
+            id: String((taskData as any).TaskID), 
+            task_name: (taskData as any).TaskName,
+            start_date: (taskData as any).StartDate ? (taskData as any).StartDate.toISOString() : undefined, 
+            end_date: (taskData as any).EndDate ? (taskData as any).EndDate.toISOString() : undefined,
+            duration: (taskData as any).Duration, 
+            progress: (taskData as any).Progress, 
+            predecessor: (taskData as any).Predecessor,
+            resources: (taskData as any).Resources, 
+            confirmed: (taskData as any).Confirmed,
+            assigned_user_ids: (taskData as any).AssignedUsers
           };
           
           if (updateTask) {
@@ -380,8 +339,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
         case 'outdented': {
           console.log(`📂 ${args.requestType} operation...`);
           const hierarchyParams = {
-            id: String(taskData.TaskID), 
-            parent_id: taskData.ParentID ? String(taskData.ParentID) : null
+            id: String((taskData as any).TaskID), 
+            parent_id: (taskData as any).ParentID ? String((taskData as any).ParentID) : null
           };
           
           if (updateTask) {
@@ -393,16 +352,24 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           break;
         }
 
-        // DISABLED: Handle rowDropped in rowDrop event instead
         case 'rowDropped': {
-          console.log('🚀 rowDropped in actionComplete - already handled in rowDrop event');
-          // Do nothing - already handled in rowDrop
-          break;
-        }
-        
-        case 'refresh': {
-          // Do nothing for refresh - let it complete silently
-          console.log('🔄 Refresh operation - ignoring to prevent revert');
+          console.log('🚀 DRAG OPERATION - saving without refresh');
+          
+          const dragParams = {
+            id: String((taskData as any).TaskID), 
+            parent_id: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
+            order_index: args.dropIndex || 0
+          };
+          
+          console.log('🚀 Saving drag result:', dragParams);
+          
+          if (updateTask) {
+            // Use regular mutate but prevent the refresh above
+            updateTask.mutate(dragParams, { 
+              onSuccess: () => onSuccess("Task moved successfully"), 
+              onError: onError 
+            });
+          }
           break;
         }
 
