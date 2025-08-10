@@ -51,7 +51,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
       </div>
       
       {/* Day Row */}
-      <div className="relative h-4" style={{ width: timelineWidth }}>
+      <div className="relative h-4 mt-3" style={{ width: timelineWidth }}>
         {Array.from({ length: totalDays }, (_, i) => {
           const dayDate = addDays(startDate, i);
           const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
