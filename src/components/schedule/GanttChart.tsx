@@ -18,7 +18,7 @@ import {
   Resize,
   RowDD,
 } from "@syncfusion/ej2-react-gantt";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
@@ -245,7 +245,75 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     }
   };
 
-  // Simplified actionBegin - REMOVE all drag and drop handling
+  // DEBUGGING: Let's see exactly what's happening with the database
+  const handleRowDrop = async (args: any) => {
+    console.log('🎯 ROW DROP - debugging database call');
+    console.log('🎯 Full args:', args);
+    
+    if (!args || !args.data || args.data.length === 0) return;
+    
+    const taskData = args.data[0];
+    
+    console.log('🔍 DEBUGGING - Task data:', taskData);
+    console.log('🔍 DEBUGGING - TaskID:', (taskData as any).TaskID);
+    console.log('🔍 DEBUGGING - ParentID:', (taskData as any).ParentID);
+    console.log('🔍 DEBUGGING - dropIndex:', args.dropIndex);
+    
+    const dbParams = {
+      id_param: String((taskData as any).TaskID),
+      task_name_param: undefined,
+      start_date_param: undefined,
+      end_date_param: undefined,
+      duration_param: undefined,
+      progress_param: undefined,
+      predecessor_param: undefined,
+      resources_param: undefined,
+      parent_id_param: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
+      order_index_param: args.dropIndex || 0,
+    };
+    
+    console.log('🔍 DEBUGGING - Database params:', dbParams);
+    
+    try {
+      // Direct database call without React Query
+      const { data, error } = await supabase.rpc('update_project_task', dbParams);
+
+      console.log('🔍 DEBUGGING - Database response data:', data);
+      console.log('🔍 DEBUGGING - Database response error:', error);
+
+      if (error) {
+        console.error('❌ Database update failed:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        toast({ 
+          variant: "destructive", 
+          title: "Error", 
+          description: `Database error: ${error.message}` 
+        });
+        // Revert the visual change
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      } else {
+        console.log('✅ Database update claims success');
+        console.log('✅ Returned data:', JSON.stringify(data, null, 2));
+        toast({ 
+          title: "Success", 
+          description: `Task moved - DB returned: ${JSON.stringify(data)}` 
+        });
+        // Don't refresh - let the visual change stay
+      }
+    } catch (error) {
+      console.error('❌ Database call exception:', error);
+      console.error('❌ Exception details:', JSON.stringify(error, null, 2));
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: `Exception: ${error}` 
+      });
+      // Revert on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+    }
+  };
+
+  // Simple action handlers
   const handleActionBegin = (args: any) => {
     if (!args) return;
     
@@ -265,45 +333,17 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
       console.log('🚫 Blocking add dialog');
       args.cancel = true;
     }
-    // REMOVE all rowDropping handling - let Syncfusion handle it naturally
   };
 
-  // DEAD SIMPLE: Block ALL React Query interference during drag operations
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Simple drag start detection
-  const handleRowDragStart = (args: any) => {
-    console.log('🔥 DRAG STARTED - disabling React Query');
-    setIsDragging(true);
-  };
-
-  // Simple drag completion
-  const handleRowDrop = (args: any) => {
-    console.log('🔥 DRAG COMPLETED');
-    // Reset dragging state after a delay to let Syncfusion finish
-    setTimeout(() => {
-      setIsDragging(false);
-      console.log('🔥 React Query re-enabled');
-    }, 3000); // 3 second delay
-  };
-
-  // NUCLEAR OPTION: Block React Query during drag operations
-  React.useEffect(() => {
-    if (isDragging) {
-      console.log('🚫 BLOCKING React Query queries during drag');
-      queryClient.cancelQueries({ queryKey: ['project-tasks', projectId] });
-    }
-  }, [isDragging, queryClient, projectId]);
-
-  // SIMPLE: Just handle the save in actionComplete, no fancy logic
+  // Simple action complete - ignore drag operations since they're handled in rowDrop
   const handleActionComplete = (args: any) => {
     if (!args) return;
     
     console.log('🎭 Action complete:', args.requestType);
     
-    // BLOCK everything during drag operations
-    if (isDragging && args.requestType === 'refresh') {
-      console.log('🚫 BLOCKING refresh during drag operation');
+    // Ignore drag operations - handled in rowDrop with direct database calls
+    if (args.requestType === 'rowDropped') {
+      console.log('🚫 Ignoring rowDropped - handled in rowDrop with direct DB call');
       return;
     }
     
@@ -366,30 +406,6 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
           if (updateTask) {
             updateTask.mutate(hierarchyParams, { 
               onSuccess: () => onSuccess("Task hierarchy updated"), 
-              onError: onError 
-            });
-          }
-          break;
-        }
-
-        case 'rowDropped': {
-          console.log('🚀 DRAG OPERATION - saving without any interference');
-          
-          const dragParams = {
-            id: String((taskData as any).TaskID), 
-            parent_id: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
-            order_index: args.dropIndex || 0
-          };
-          
-          console.log('🚀 Saving drag result:', dragParams);
-          
-          if (updateTask) {
-            // Use a simple direct call without React Query
-            updateTask.mutate(dragParams, { 
-              onSuccess: () => {
-                onSuccess("Task moved successfully");
-                // CRITICAL: Don't refresh data at all
-              }, 
               onError: onError 
             });
           }
