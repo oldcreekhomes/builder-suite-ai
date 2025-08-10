@@ -5,9 +5,8 @@ import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { PublishScheduleDialog } from "./PublishScheduleDialog";
-import { Button } from "@/components/ui/button";
+import { ScheduleToolbar } from "./ScheduleToolbar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface CustomGanttChartProps {
@@ -18,6 +17,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask } = useTaskMutations(projectId);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 
   // Calculate timeline range from task dates
   const timelineStart = tasks.length > 0 
@@ -72,23 +73,17 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   return (
     <div className="space-y-4">
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AddTaskDialog projectId={projectId} />
-          <Button
-            onClick={() => setShowPublishDialog(true)}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Send className="h-4 w-4" />
-            Publish Schedule
-          </Button>
-        </div>
-      </div>
-
       {/* Gantt Chart Container */}
       <div className="bg-card text-card-foreground rounded-lg border overflow-hidden">
+        {/* Toolbar */}
+        <ScheduleToolbar
+          selectedTasks={selectedTasks}
+          tasks={tasks}
+          onAddTask={() => setShowAddTaskDialog(true)}
+          onTaskUpdate={handleTaskUpdate}
+          onPublish={() => setShowPublishDialog(true)}
+        />
+        
         <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
           {/* Left Side - Task Table */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
@@ -96,6 +91,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
               tasks={tasks}
               onTaskMove={handleTaskMove}
               onTaskUpdate={handleTaskUpdate}
+              selectedTasks={selectedTasks}
+              onSelectedTasksChange={setSelectedTasks}
             />
           </ResizablePanel>
 
@@ -113,6 +110,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      {/* Add Task Dialog */}
+      <AddTaskDialog 
+        projectId={projectId}
+        open={showAddTaskDialog}
+        onOpenChange={setShowAddTaskDialog}
+      />
 
       {/* Publish Dialog */}
       <PublishScheduleDialog

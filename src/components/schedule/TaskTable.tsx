@@ -15,12 +15,13 @@ interface TaskTableProps {
   tasks: ProjectTask[];
   onTaskMove: (taskId: string, newHierarchyNumber: string) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
+  selectedTasks: Set<string>;
+  onSelectedTasksChange: (selectedTasks: Set<string>) => void;
 }
 
-export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
+export function TaskTable({ tasks, onTaskMove, onTaskUpdate, selectedTasks, onSelectedTasksChange }: TaskTableProps) {
   const [draggedTask, setDraggedTask] = useState<ProjectTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 
   // Helper function to check if a task has children
   const hasChildren = (taskId: string) => {
@@ -87,15 +88,13 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
   };
 
   const handleTaskSelection = (taskId: string, checked: boolean) => {
-    setSelectedTasks(prev => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(taskId);
-      } else {
-        newSet.delete(taskId);
-      }
-      return newSet;
-    });
+    const newSet = new Set(selectedTasks);
+    if (checked) {
+      newSet.add(taskId);
+    } else {
+      newSet.delete(taskId);
+    }
+    onSelectedTasksChange(newSet);
   };
 
   // Sort tasks by hierarchy number for display
@@ -109,9 +108,9 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedTasks(new Set(visibleTasks.map(task => task.id)));
+      onSelectedTasksChange(new Set(visibleTasks.map(task => task.id)));
     } else {
-      setSelectedTasks(new Set());
+      onSelectedTasksChange(new Set());
     }
   };
 

@@ -11,10 +11,19 @@ import { useProjectTasks } from '@/hooks/useProjectTasks';
 
 interface AddTaskDialogProps {
   projectId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
-  const [open, setOpen] = useState(false);
+export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ 
+  projectId, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange 
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
   const [formData, setFormData] = useState({
     task_name: '',
     start_date: '',
@@ -70,12 +79,14 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({ projectId }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="mb-4">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
-      </DialogTrigger>
+      {!controlledOpen && (
+        <DialogTrigger asChild>
+          <Button className="mb-4">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
