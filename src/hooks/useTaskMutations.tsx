@@ -24,7 +24,8 @@ interface UpdateTaskParams {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  hierarchy_number?: string;
+  parent_id?: string;
+  order_index?: number;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -82,7 +83,8 @@ export const useTaskMutations = (projectId: string) => {
       if (params.progress !== undefined) updateData.progress = params.progress;
       if (params.predecessor !== undefined) updateData.predecessor = params.predecessor;
       if (params.resources !== undefined) updateData.resources = params.resources;
-      if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;
+      if (params.parent_id !== undefined) updateData.parent_id = params.parent_id;
+      if (params.order_index !== undefined) updateData.order_index = params.order_index;
 
       const { data, error } = await supabase
         .from('project_schedule_tasks')

@@ -11,13 +11,14 @@ export interface ProjectTask {
   start_date: string;
   end_date: string;
   duration: number;
-  progress: number;
-  predecessor: string | null;
-  resources: string | null;
-  hierarchy_number: string;
+  progress?: number;
+  predecessor?: string;
+  resources?: string;
+  parent_id?: string;
+  order_index: number;
   created_at: string;
   updated_at: string;
-  confirmed: boolean | null;
+  confirmed?: boolean;
 }
 
 export const useProjectTasks = (projectId: string) => {
@@ -78,7 +79,7 @@ export const useProjectTasks = (projectId: string) => {
         .from('project_schedule_tasks')
         .select('*')
         .eq('project_id', projectId)
-        .order('hierarchy_number');
+        .order('order_index', { ascending: true });
 
       if (error) {
         console.error('Error fetching project tasks:', error);
