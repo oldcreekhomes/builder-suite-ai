@@ -1,7 +1,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { DashboardHeader } from "@/components/DashboardHeader";
+import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { RecentActivity } from "@/components/RecentActivity";
 import { QuickStats } from "@/components/QuickStats";
@@ -20,7 +20,7 @@ export default function Index() {
       <div className="flex min-h-screen w-full">
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
-          <DashboardHeader />
+          <CompanyDashboardHeader />
           <div className="flex flex-1 flex-col gap-6 p-6">
             <div className="grid gap-6 md:grid-cols-3">
               <div className="md:col-span-2">
