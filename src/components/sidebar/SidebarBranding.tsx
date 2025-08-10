@@ -4,7 +4,7 @@ import { SidebarHeader } from "@/components/ui/sidebar";
 
 export function SidebarBranding() {
   return (
-    <SidebarHeader className="px-6 py-3 border-b border-border">
+    <SidebarHeader className="px-6 py-4 border-b border-border">
       <div className="flex items-end justify-between">
         <div className="flex flex-col">
           <a href="/" className="flex items-end space-x-2 mb-1 hover:opacity-80 transition-opacity">

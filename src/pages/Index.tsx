@@ -21,14 +21,14 @@ export default function Index() {
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader />
-          <div className="flex flex-1 flex-col gap-4 p-4">
-            <div className="grid gap-4 md:grid-cols-3 h-fit">
-              <div className="md:col-span-2 space-y-4">
+          <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="md:col-span-2">
                 <div className="rounded-xl bg-muted/50 h-full">
                   <ProjectsOverview />
                 </div>
               </div>
-              <div className="space-y-4">
+              <div className="h-full">
                 <div className="rounded-xl bg-muted/50 h-full">
                   <RecentPhotos />
                 </div>
