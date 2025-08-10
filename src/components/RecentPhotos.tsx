@@ -10,7 +10,7 @@ export function RecentPhotos() {
   const { data: allPhotos = [] } = useAllPhotos();
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
 
-  const recentPhotosSlice = allPhotos.slice(0, 9); // Show 9 photos in 3x3 grid, reserve 1 spot for "+X more"
+  const recentPhotosSlice = allPhotos.slice(0, 8); // Show 8 photos in 3x3 grid, reserve 1 spot for "+X more"
 
   if (allPhotos.length === 0) {
     return (
@@ -42,8 +42,8 @@ export function RecentPhotos() {
         </div>
         
         <div className="flex-1 flex flex-col justify-center p-6">
-          <div className="grid grid-cols-5 gap-2">
-            {recentPhotosSlice.slice(0, 9).map((photo, index) => (
+          <div className="grid grid-cols-3 gap-2">
+            {recentPhotosSlice.slice(0, 8).map((photo, index) => (
               <div key={photo.id} className="aspect-square rounded-sm overflow-hidden hover:opacity-80 transition-opacity">
                 <img
                   src={photo.url}
@@ -53,11 +53,11 @@ export function RecentPhotos() {
               </div>
             ))}
             
-            {allPhotos.length > 9 && (
+            {allPhotos.length > 8 && (
               <div className="aspect-square rounded-sm bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
                   <Plus className="h-3 w-3 text-gray-500 mx-auto mb-1" />
-                  <span className="text-xs text-gray-500">+{allPhotos.length - 9}</span>
+                  <span className="text-xs text-gray-500">+{allPhotos.length - 8}</span>
                 </div>
               </div>
             )}
