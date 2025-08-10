@@ -259,24 +259,19 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     console.log('🔍 DEBUGGING - ParentID:', (taskData as any).ParentID);
     console.log('🔍 DEBUGGING - dropIndex:', args.dropIndex);
     
-    const dbParams = {
-      id_param: String((taskData as any).TaskID),
-      task_name_param: undefined,
-      start_date_param: undefined,
-      end_date_param: undefined,
-      duration_param: undefined,
-      progress_param: undefined,
-      predecessor_param: undefined,
-      resources_param: undefined,
-      parent_id_param: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
-      order_index_param: args.dropIndex || 0,
+    // Build parameters for the new reordering function
+    const reorderParams = {
+      task_id_param: String((taskData as any).TaskID),
+      new_order_index_param: args.dropIndex || 0,
+      new_parent_id_param: (taskData as any).ParentID ? String((taskData as any).ParentID) : null,
+      project_id_param: projectId,
     };
     
-    console.log('🔍 DEBUGGING - Database params:', dbParams);
+    console.log('🔍 DEBUGGING - Reorder params:', reorderParams);
     
     try {
-      // Direct database call without React Query
-      const { data, error } = await supabase.rpc('update_project_task', dbParams);
+      // Use the new reordering function that handles sequential order_index properly
+      const { data, error } = await supabase.rpc('reorder_project_tasks', reorderParams);
 
       console.log('🔍 DEBUGGING - Database response data:', data);
       console.log('🔍 DEBUGGING - Database response error:', error);

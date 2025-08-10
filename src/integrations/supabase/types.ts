@@ -1005,6 +1005,15 @@ export type Database = {
         Args: { message_id_param: string }
         Returns: undefined
       }
+      reorder_project_tasks: {
+        Args: {
+          task_id_param: string
+          new_order_index_param: number
+          new_parent_id_param?: string
+          project_id_param?: string
+        }
+        Returns: boolean
+      }
       update_project_task: {
         Args: {
           id_param: string
