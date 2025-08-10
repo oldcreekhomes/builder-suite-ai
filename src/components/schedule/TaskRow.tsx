@@ -70,21 +70,21 @@ export function TaskRow({
       onDragStart={(e) => onDragStart(e, task)}
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, index)}
-      className={`cursor-move ${isDragging ? "opacity-50" : ""} hover:bg-muted/50`}
+      className={`cursor-move h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50`}
     >
       {/* Hierarchy Number */}
-      <TableCell className="font-mono text-sm">
+      <TableCell className="font-mono text-xs py-1 px-2">
         <div className="flex items-center gap-1">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <GripVertical className="h-3 w-3 text-muted-foreground" />
           {task.hierarchy_number || "—"}
         </div>
       </TableCell>
 
       {/* Task Name with Indentation */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         <div 
-          className="flex items-center gap-2"
-          style={{ marginLeft: `${indentLevel * 20}px` }}
+          className="flex items-center gap-1"
+          style={{ marginLeft: `${indentLevel * 16}px` }}
         >
           {isEditing === "task_name" ? (
             <Input
@@ -92,13 +92,13 @@ export function TaskRow({
               onChange={(e) => setEditValues({ ...editValues, task_name: e.target.value })}
               onBlur={() => handleSave("task_name")}
               onKeyDown={(e) => handleKeyDown(e, "task_name")}
-              className="h-8"
+              className="h-6 text-sm"
               autoFocus
             />
           ) : (
             <span
               onClick={() => handleCellClick("task_name", task.task_name)}
-              className="cursor-pointer hover:bg-muted rounded px-1 py-1 block"
+              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-sm"
             >
               {task.task_name}
             </span>
@@ -107,7 +107,7 @@ export function TaskRow({
       </TableCell>
 
       {/* Start Date */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         {isEditing === "start_date" ? (
           <Input
             type="date"
@@ -115,13 +115,13 @@ export function TaskRow({
             onChange={(e) => setEditValues({ ...editValues, start_date: e.target.value })}
             onBlur={() => handleSave("start_date")}
             onKeyDown={(e) => handleKeyDown(e, "start_date")}
-            className="h-8"
+            className="h-6 text-sm"
             autoFocus
           />
         ) : (
           <span
             onClick={() => handleCellClick("start_date", task.start_date.split("T")[0])}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-1 block text-sm"
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {formatDate(task.start_date)}
           </span>
@@ -129,7 +129,7 @@ export function TaskRow({
       </TableCell>
 
       {/* End Date */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         {isEditing === "end_date" ? (
           <Input
             type="date"
@@ -137,13 +137,13 @@ export function TaskRow({
             onChange={(e) => setEditValues({ ...editValues, end_date: e.target.value })}
             onBlur={() => handleSave("end_date")}
             onKeyDown={(e) => handleKeyDown(e, "end_date")}
-            className="h-8"
+            className="h-6 text-sm"
             autoFocus
           />
         ) : (
           <span
             onClick={() => handleCellClick("end_date", task.end_date.split("T")[0])}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-1 block text-sm"
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {formatDate(task.end_date)}
           </span>
@@ -151,7 +151,7 @@ export function TaskRow({
       </TableCell>
 
       {/* Duration */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         {isEditing === "duration" ? (
           <Input
             type="number"
@@ -159,13 +159,13 @@ export function TaskRow({
             onChange={(e) => setEditValues({ ...editValues, duration: parseInt(e.target.value) })}
             onBlur={() => handleSave("duration")}
             onKeyDown={(e) => handleKeyDown(e, "duration")}
-            className="h-8 w-16"
+            className="h-6 w-12 text-sm"
             autoFocus
           />
         ) : (
           <span
             onClick={() => handleCellClick("duration", task.duration)}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-1 block text-sm"
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {task.duration}d
           </span>
@@ -173,7 +173,7 @@ export function TaskRow({
       </TableCell>
 
       {/* Progress */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         {isEditing === "progress" ? (
           <Input
             type="number"
@@ -183,13 +183,13 @@ export function TaskRow({
             onChange={(e) => setEditValues({ ...editValues, progress: parseInt(e.target.value) })}
             onBlur={() => handleSave("progress")}
             onKeyDown={(e) => handleKeyDown(e, "progress")}
-            className="h-8 w-16"
+            className="h-6 w-12 text-sm"
             autoFocus
           />
         ) : (
           <span
             onClick={() => handleCellClick("progress", task.progress || 0)}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-1 block text-sm"
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {task.progress || 0}%
           </span>
@@ -197,20 +197,20 @@ export function TaskRow({
       </TableCell>
 
       {/* Resources */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         {isEditing === "resources" ? (
           <Input
             value={editValues.resources || task.resources || ""}
             onChange={(e) => setEditValues({ ...editValues, resources: e.target.value })}
             onBlur={() => handleSave("resources")}
             onKeyDown={(e) => handleKeyDown(e, "resources")}
-            className="h-8"
+            className="h-6 text-sm"
             autoFocus
           />
         ) : (
           <span
             onClick={() => handleCellClick("resources", task.resources || "")}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-1 block text-sm"
+            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
           >
             {task.resources || "—"}
           </span>
@@ -218,7 +218,7 @@ export function TaskRow({
       </TableCell>
 
       {/* Actions */}
-      <TableCell>
+      <TableCell className="py-1 px-2">
         <DeleteButton
           onDelete={async () => {
             await deleteTask.mutateAsync(task.id);
