@@ -178,20 +178,26 @@ export const CustomGanttChart: React.FC<CustomGanttChartProps> = ({ projectId })
 
       <div className="border rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-muted/50 border-b flex">
-          <div className="w-80 p-3 border-r font-medium">Task Name</div>
-          <div className="w-32 p-3 border-r font-medium text-center">Start Date</div>
-          <div className="w-32 p-3 border-r font-medium text-center">End Date</div>
-          <div className="w-24 p-3 border-r font-medium text-center">Progress</div>
+        <div className="bg-muted/50 border-b flex text-sm">
+          <div className="w-64 p-3 border-r font-medium">Task Name</div>
+          <div className="w-28 p-3 border-r font-medium text-center">Start Date</div>
+          <div className="w-28 p-3 border-r font-medium text-center">End Date</div>
+          <div className="w-20 p-3 border-r font-medium text-center">Duration</div>
+          <div className="w-20 p-3 border-r font-medium text-center">Progress</div>
+          <div className="w-32 p-3 border-r font-medium text-center">Predecessor</div>
+          <div className="w-40 p-3 border-r font-medium text-center">Resources</div>
           <div className="flex-1 p-3 font-medium text-center">Timeline</div>
         </div>
 
         {/* Week headers */}
         <div className="bg-muted/30 border-b flex">
-          <div className="w-80 p-2 border-r"></div>
+          <div className="w-64 p-2 border-r"></div>
+          <div className="w-28 p-2 border-r"></div>
+          <div className="w-28 p-2 border-r"></div>
+          <div className="w-20 p-2 border-r"></div>
+          <div className="w-20 p-2 border-r"></div>
           <div className="w-32 p-2 border-r"></div>
-          <div className="w-32 p-2 border-r"></div>
-          <div className="w-24 p-2 border-r"></div>
+          <div className="w-40 p-2 border-r"></div>
           <div className="flex-1 flex">
             {weekColumns.map((week, index) => (
               <div key={index} className="flex-1 p-2 text-xs text-center border-r last:border-r-0">
@@ -206,7 +212,7 @@ export const CustomGanttChart: React.FC<CustomGanttChartProps> = ({ projectId })
           {visibleTasks.map((task) => (
             <div key={task.id} className="flex border-b hover:bg-muted/20">
               {/* Task name */}
-              <div className="w-80 p-3 border-r flex items-center">
+              <div className="w-64 p-3 border-r flex items-center">
                 <div style={{ paddingLeft: `${task.level * 20}px` }} className="flex items-center gap-2">
                   {task.children && task.children.length > 0 && (
                     <button
@@ -225,11 +231,11 @@ export const CustomGanttChart: React.FC<CustomGanttChartProps> = ({ projectId })
                       onChange={(e) => handleTaskUpdate(task.id, 'task_name', e.target.value)}
                       onBlur={() => setEditingTask(null)}
                       onKeyPress={(e) => e.key === 'Enter' && setEditingTask(null)}
-                      className="h-8"
+                      className="h-8 text-xs"
                     />
                   ) : (
                     <span
-                      className="cursor-pointer hover:text-primary"
+                      className="cursor-pointer hover:text-primary text-xs"
                       onClick={() => setEditingTask(task.id)}
                     >
                       {task.task_name}
@@ -239,34 +245,65 @@ export const CustomGanttChart: React.FC<CustomGanttChartProps> = ({ projectId })
               </div>
 
               {/* Start date */}
-              <div className="w-32 p-3 border-r">
+              <div className="w-28 p-3 border-r">
                 <Input
                   type="date"
                   value={format(new Date(task.start_date), 'yyyy-MM-dd')}
                   onChange={(e) => handleDateChange(task.id, 'start_date', e.target.value)}
-                  className="h-8"
+                  className="h-8 text-xs"
                 />
               </div>
 
               {/* End date */}
-              <div className="w-32 p-3 border-r">
+              <div className="w-28 p-3 border-r">
                 <Input
                   type="date"
                   value={format(new Date(task.end_date), 'yyyy-MM-dd')}
                   onChange={(e) => handleDateChange(task.id, 'end_date', e.target.value)}
-                  className="h-8"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              {/* Duration */}
+              <div className="w-20 p-3 border-r">
+                <Input
+                  type="number"
+                  min="1"
+                  value={task.duration || 1}
+                  onChange={(e) => handleTaskUpdate(task.id, 'duration', parseInt(e.target.value) || 1)}
+                  className="h-8 text-center text-xs"
                 />
               </div>
 
               {/* Progress */}
-              <div className="w-24 p-3 border-r">
+              <div className="w-20 p-3 border-r">
                 <Input
                   type="number"
                   min="0"
                   max="100"
                   value={task.progress}
                   onChange={(e) => handleTaskUpdate(task.id, 'progress', parseInt(e.target.value) || 0)}
-                  className="h-8 text-center"
+                  className="h-8 text-center text-xs"
+                />
+              </div>
+
+              {/* Predecessor */}
+              <div className="w-32 p-3 border-r">
+                <Input
+                  placeholder="Task ID"
+                  value={task.predecessor || ''}
+                  onChange={(e) => handleTaskUpdate(task.id, 'predecessor', e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              {/* Resources */}
+              <div className="w-40 p-3 border-r">
+                <Input
+                  placeholder="Assign resources"
+                  value={task.resources || ''}
+                  onChange={(e) => handleTaskUpdate(task.id, 'resources', e.target.value)}
+                  className="h-8 text-xs"
                 />
               </div>
 
