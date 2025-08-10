@@ -106,12 +106,19 @@ export const useTaskMutations = (projectId: string) => {
     },
     onSuccess: (data, variables) => {
       console.log('🔧 Task update success with data:', data);
+      console.log('🔧 Variables:', variables);
       
-      // ONLY invalidate cache if it's NOT a drag operation (no order_index)
-      if (!variables.order_index) {
+      // SKIP cache invalidation for ANY drag-related operation
+      const isDragOperation = variables.order_index !== undefined || 
+                             variables.parent_id !== undefined;
+      
+      if (!isDragOperation) {
+        console.log('✅ Normal edit - refreshing cache');
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       } else {
-        console.log('🚫 SKIPPING cache invalidation for drag operation');
+        console.log('🚫 DRAG OPERATION DETECTED - SKIPPING cache invalidation');
+        console.log('🚫 order_index:', variables.order_index);
+        console.log('🚫 parent_id:', variables.parent_id);
       }
       
       // Don't show toast here - let the calling component handle UI feedback
