@@ -52,6 +52,50 @@ export const GanttChart: React.FC<GanttChartProps> = ({ projectId }) => {
     taskName: ''
   });
 
+  // CUSTOM DRAG MUTATION - NO CACHE INVALIDATION
+  const dragTaskMutation = useMutation({
+    mutationFn: async (params: { id: string; parent_id?: string | null; order_index?: number }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      console.log('🚀 DRAG-ONLY mutation called with params:', params);
+
+      let parentIdParam = params.parent_id;
+      if (params.parent_id === undefined) {
+        parentIdParam = '__UNSET__';
+      } else if (params.parent_id === null || params.parent_id === '') {
+        parentIdParam = null;
+      }
+
+      const { data, error } = await supabase.rpc('update_project_task', {
+        id_param: params.id,
+        task_name_param: undefined,
+        start_date_param: undefined,
+        end_date_param: undefined,
+        duration_param: undefined,
+        progress_param: undefined,
+        predecessor_param: undefined,
+        resources_param: undefined,
+        parent_id_param: parentIdParam,
+        order_index_param: params.order_index,
+      });
+
+      if (error) {
+        console.error('Error in drag mutation:', error);
+        throw error;
+      }
+
+      console.log('🚀 Drag mutation successful:', data);
+      return data;
+    },
+    // CRITICAL: NO onSuccess cache invalidation for drag operations
+    onSuccess: (data) => {
+      console.log('✅ Drag mutation success - NO CACHE INVALIDATION');
+    },
+    onError: (error) => {
+      console.error('❌ Drag mutation error:', error);
+    },
+  });
+
   // Transform database tasks to Syncfusion format
   const ganttData = React.useMemo(() => {
     if (!tasks || tasks.length === 0) {
