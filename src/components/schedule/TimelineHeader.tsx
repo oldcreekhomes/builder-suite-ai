@@ -33,7 +33,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
   }
 
   return (
-    <div className="bg-background border-b border-border">
+    <div className="bg-background border-b border-border mt-2.5">
       {/* Month Row */}
       <div className="relative h-4 border-b border-border" style={{ width: timelineWidth }}>
         {months.map((month, index) => (
@@ -51,7 +51,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
       </div>
       
       {/* Day Row */}
-      <div className="relative h-4 mt-2.5" style={{ width: timelineWidth }}>
+      <div className="relative h-4" style={{ width: timelineWidth }}>
         {Array.from({ length: totalDays }, (_, i) => {
           const dayDate = addDays(startDate, i);
           const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
