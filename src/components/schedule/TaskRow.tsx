@@ -73,15 +73,15 @@ export function TaskRow({
       className={`cursor-move h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50`}
     >
       {/* Hierarchy Number */}
-      <TableCell className="font-mono text-xs py-1 px-2 w-20">
-        <div className="flex items-center gap-2">
+      <TableCell className="font-mono text-xs py-1 px-3 w-32 min-w-32">
+        <div className="flex items-center gap-2 w-full">
           <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          <span className="font-medium">{task.hierarchy_number || "—"}</span>
+          <span className="font-medium flex-1">{task.hierarchy_number || "—"}</span>
         </div>
       </TableCell>
 
       {/* Task Name with Indentation */}
-      <TableCell className="py-1 px-2 w-48">
+      <TableCell className="py-1 px-2 w-40">
         <div 
           className="flex items-center gap-1"
           style={{ marginLeft: `${indentLevel * 16}px` }}
