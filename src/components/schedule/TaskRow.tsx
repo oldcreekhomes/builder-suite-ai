@@ -54,7 +54,7 @@ export function TaskRow({
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy");
+    return format(new Date(dateString), "MM/dd/yy");
   };
 
   const getIndentLevel = (hierarchyNumber: string) => {
@@ -98,7 +98,8 @@ export function TaskRow({
           ) : (
             <span
               onClick={() => handleCellClick("task_name", task.task_name)}
-              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-sm"
+              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs truncate"
+              title={task.task_name}
             >
               {task.task_name}
             </span>

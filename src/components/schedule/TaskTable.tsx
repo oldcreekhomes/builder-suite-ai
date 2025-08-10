@@ -54,9 +54,9 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate }: TaskTableProps) {
         <TableHeader>
           <TableRow className="h-8">
             <TableHead className="w-16 text-xs py-1 px-2">#</TableHead>
-            <TableHead className="w-48 text-xs py-1 px-2">Task Name</TableHead>
-            <TableHead className="w-32 text-xs py-1 px-2">Start Date</TableHead>
-            <TableHead className="w-32 text-xs py-1 px-2">End Date</TableHead>
+            <TableHead className="w-32 text-xs py-1 px-2">Task Name</TableHead>
+            <TableHead className="w-24 text-xs py-1 px-2">Start Date</TableHead>
+            <TableHead className="w-24 text-xs py-1 px-2">End Date</TableHead>
             <TableHead className="w-20 text-xs py-1 px-2">Duration</TableHead>
             <TableHead className="w-20 text-xs py-1 px-2">Progress</TableHead>
             <TableHead className="w-32 text-xs py-1 px-2">Resources</TableHead>
