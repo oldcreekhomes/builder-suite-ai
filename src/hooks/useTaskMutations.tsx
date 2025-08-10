@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -59,7 +58,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       toast.success('Task created successfully');
     },
     onError: (error) => {
@@ -105,9 +104,16 @@ export const useTaskMutations = (projectId: string) => {
       console.log('🔧 Database function returned:', data);
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       console.log('🔧 Task update success with data:', data);
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      
+      // ONLY invalidate cache if it's NOT a drag operation (no order_index)
+      if (!variables.order_index) {
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      } else {
+        console.log('🚫 SKIPPING cache invalidation for drag operation');
+      }
+      
       // Don't show toast here - let the calling component handle UI feedback
     },
     onError: (error) => {
@@ -132,7 +138,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       toast.success('Task deleted successfully');
     },
     onError: (error) => {
