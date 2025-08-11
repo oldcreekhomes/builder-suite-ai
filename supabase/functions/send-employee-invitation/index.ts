@@ -187,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
     }));
 
     // Send invitation email
-    const invitationUrl = `${Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovableproject.com") || "https://buildersuiteai.com"}/confirm-invitation?token=${invitationToken}`;
+    const invitationUrl = `https://buildersuiteai.com/confirm-invitation?token=${invitationToken}`;
 
     console.log("📧 Attempting to send email...");
     console.log("📧 Invitation URL:", invitationUrl);
