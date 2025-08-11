@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { employeeEmail, companyName }: ApprovalEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "BuildCore <onboarding@resend.dev>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [employeeEmail],
       subject: "Access Approved - Welcome to BuildCore!",
       html: `

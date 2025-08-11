@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to company owner for approval
     const ownerEmailResponse = await resend.emails.send({
-      from: "BuildCore <onboarding@resend.dev>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [homeBuilderEmail],
       subject: "New Employee Approval Request",
       html: `
@@ -53,7 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email to employee
     const employeeEmailResponse = await resend.emails.send({
-      from: "BuildCore <onboarding@resend.dev>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [employeeEmail],
       subject: "Registration Pending Approval",
       html: `
