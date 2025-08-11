@@ -179,18 +179,29 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Generate invitation token (valid for 24 hours)
-    const invitationToken = btoa(JSON.stringify({
-      userId: userId,
-      email,
-      expires: Date.now() + (24 * 60 * 60 * 1000),
-    }));
+    // Generate password reset link using Supabase's built-in flow
+    console.log("🔑 Generating password reset for user:", userId);
+    
+    const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: 'https://buildersuiteai.com/auth?mode=recovery'
+      }
+    });
 
-    // Send invitation email
-    const invitationUrl = `https://buildersuiteai.com/confirm-invitation?token=${invitationToken}`;
+    if (resetError) {
+      console.error("❌ Error generating password reset:", resetError);
+      return new Response(
+        JSON.stringify({ error: "Failed to generate password reset link" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
-    console.log("📧 Attempting to send email...");
-    console.log("📧 Invitation URL:", invitationUrl);
+    console.log("📧 Attempting to send invitation email...");
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
@@ -201,9 +212,9 @@ const handler = async (req: Request): Promise<Response> => {
           <h1 style="color: #333;">Welcome to BuilderSuite AI!</h1>
           <p>Hi ${firstName},</p>
           <p>You've been invited by ${companyName} to join their team on BuilderSuite AI.</p>
-          <p>To complete your account setup and create your password, please click the link below:</p>
-          <a href="${invitationUrl}" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Complete Account Setup</a>
-          <p>This invitation link will expire in 24 hours.</p>
+          <p>A password reset email has been sent to you from Supabase. Please check your email and follow the instructions to set your password.</p>
+          <p>After setting your password, you can log in at:</p>
+          <a href="https://buildersuiteai.com/auth" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Login to BuilderSuite AI</a>
           <p>If you have any questions, please contact your administrator.</p>
           <p>Best regards,<br>The BuilderSuite AI Team</p>
         </div>
