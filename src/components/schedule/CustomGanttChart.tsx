@@ -8,6 +8,7 @@ import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { ScheduleToolbar } from "./ScheduleToolbar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
+import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -15,7 +16,7 @@ interface CustomGanttChartProps {
 
 export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
-  const { updateTask } = useTaskMutations(projectId);
+  const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -55,6 +56,115 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  const handleIndent = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Find the task above this one in the hierarchy
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const aNum = a.hierarchy_number || "999";
+      const bNum = b.hierarchy_number || "999";
+      return aNum.localeCompare(bNum, undefined, { numeric: true });
+    });
+
+    const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
+    if (currentIndex > 0) {
+      const parentTask = sortedTasks[currentIndex - 1];
+      try {
+        await updateTask.mutateAsync({
+          id: taskId,
+          parent_id: parentTask.id
+        });
+        toast.success("Task indented successfully");
+      } catch (error) {
+        console.error("Failed to indent task:", error);
+        toast.error("Failed to indent task");
+      }
+    }
+  };
+
+  const handleOutdent = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.hierarchy_number) return;
+
+    const hierarchyParts = task.hierarchy_number.split(".");
+    
+    // Can't outdent if already at top level
+    if (hierarchyParts.length <= 1) return;
+
+    try {
+      // Simplified outdent - just remove parent
+      await updateTask.mutateAsync({
+        id: taskId,
+        parent_id: null
+      });
+      toast.success("Task outdented successfully");
+    } catch (error) {
+      console.error("Failed to outdent task:", error);
+      toast.error("Failed to outdent task");
+    }
+  };
+
+  const handleAddTask = async (position: 'above' | 'below', relativeTaskId: string) => {
+    const relativeTask = tasks.find(t => t.id === relativeTaskId);
+    if (!relativeTask) return;
+
+    try {
+      // Calculate new hierarchy number based on position
+      const sortedTasks = [...tasks].sort((a, b) => {
+        const aNum = a.hierarchy_number || "999";
+        const bNum = b.hierarchy_number || "999";
+        return aNum.localeCompare(bNum, undefined, { numeric: true });
+      });
+
+      const relativeIndex = sortedTasks.findIndex(t => t.id === relativeTaskId);
+      let newHierarchyNumber = "1";
+
+      if (position === 'above') {
+        // Insert above the relative task
+        if (relativeIndex > 0) {
+          const taskAbove = sortedTasks[relativeIndex - 1];
+          const currentTask = sortedTasks[relativeIndex];
+          // Generate a hierarchy number between taskAbove and currentTask
+          newHierarchyNumber = relativeTask.hierarchy_number || "1";
+        } else {
+          newHierarchyNumber = "1";
+        }
+      } else {
+        // Insert below the relative task
+        newHierarchyNumber = relativeTask.hierarchy_number || "1";
+      }
+
+      const defaultStartDate = new Date();
+      const defaultEndDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
+
+      await createTask.mutateAsync({
+        project_id: projectId,
+        task_name: "New Task",
+        start_date: defaultStartDate.toISOString(),
+        end_date: defaultEndDate.toISOString(),
+        duration: 1,
+        progress: 0,
+        hierarchy_number: newHierarchyNumber
+      });
+      
+      toast.success("Task added successfully");
+    } catch (error) {
+      console.error("Failed to add task:", error);
+      toast.error("Failed to add task");
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask.mutateAsync(taskId);
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Failed to delete task");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-card text-card-foreground rounded-lg border p-6">
@@ -88,13 +198,17 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
           {/* Left Side - Task Table */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-            <TaskTable
-              tasks={tasks}
-              onTaskMove={handleTaskMove}
-              onTaskUpdate={handleTaskUpdate}
-              selectedTasks={selectedTasks}
-              onSelectedTasksChange={setSelectedTasks}
-            />
+        <TaskTable
+          tasks={tasks}
+          onTaskMove={handleTaskMove}
+          onTaskUpdate={handleTaskUpdate}
+          selectedTasks={selectedTasks}
+          onSelectedTasksChange={setSelectedTasks}
+          onIndent={handleIndent}
+          onOutdent={handleOutdent}
+          onAddTask={handleAddTask}
+          onDeleteTask={handleDeleteTask}
+        />
           </ResizablePanel>
 
           {/* Resizable Handle */}

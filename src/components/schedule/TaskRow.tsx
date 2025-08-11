@@ -4,10 +4,10 @@ import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
+import { TaskContextMenu } from "./TaskContextMenu";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -22,6 +22,13 @@ interface TaskRowProps {
   onToggleExpand: (taskId: string) => void;
   isSelected: boolean;
   onTaskSelection: (taskId: string, checked: boolean) => void;
+  onIndent: (taskId: string) => void;
+  onOutdent: (taskId: string) => void;
+  onAddAbove: (taskId: string) => void;
+  onAddBelow: (taskId: string) => void;
+  onDelete: (taskId: string) => void;
+  canIndent: boolean;
+  canOutdent: boolean;
 }
 
 export function TaskRow({
@@ -36,7 +43,14 @@ export function TaskRow({
   isExpanded,
   onToggleExpand,
   isSelected,
-  onTaskSelection
+  onTaskSelection,
+  onIndent,
+  onOutdent,
+  onAddAbove,
+  onAddBelow,
+  onDelete,
+  canIndent,
+  canOutdent
 }: TaskRowProps) {
   const { deleteTask } = useTaskMutations(task.project_id);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -76,13 +90,23 @@ export function TaskRow({
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
 
   return (
-    <TableRow
-      draggable
-      onDragStart={(e) => onDragStart(e, task)}
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, index)}
-      className={`h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50 hover:cursor-move`}
+    <TaskContextMenu
+      task={task}
+      onIndent={onIndent}
+      onOutdent={onOutdent}
+      onAddAbove={onAddAbove}
+      onAddBelow={onAddBelow}
+      onDelete={onDelete}
+      canIndent={canIndent}
+      canOutdent={canOutdent}
     >
+      <TableRow
+        draggable
+        onDragStart={(e) => onDragStart(e, task)}
+        onDragOver={onDragOver}
+        onDrop={(e) => onDrop(e, index)}
+        className={`h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50 hover:cursor-move`}
+      >
       {/* Selection Checkbox */}
       <TableCell className="py-1 px-2 w-10">
         <Checkbox
@@ -254,18 +278,9 @@ export function TaskRow({
 
       {/* Actions */}
       <TableCell className="py-1 px-2">
-        <DeleteButton
-          onDelete={async () => {
-            await deleteTask.mutateAsync(task.id);
-          }}
-          title="Delete Task"
-          description={`Are you sure you want to delete "${task.task_name}"? This action cannot be undone.`}
-          size="icon"
-          variant="ghost"
-          showIcon={true}
-          isLoading={deleteTask.isPending}
-        />
+        {/* Empty cell - actions now handled by context menu */}
       </TableCell>
-    </TableRow>
+      </TableRow>
+    </TaskContextMenu>
   );
 }

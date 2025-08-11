@@ -17,9 +17,23 @@ interface TaskTableProps {
   onTaskUpdate: (taskId: string, updates: any) => void;
   selectedTasks: Set<string>;
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
+  onIndent: (taskId: string) => void;
+  onOutdent: (taskId: string) => void;
+  onAddTask: (position: 'above' | 'below', relativeTaskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
-export function TaskTable({ tasks, onTaskMove, onTaskUpdate, selectedTasks, onSelectedTasksChange }: TaskTableProps) {
+export function TaskTable({ 
+  tasks, 
+  onTaskMove, 
+  onTaskUpdate, 
+  selectedTasks, 
+  onSelectedTasksChange,
+  onIndent,
+  onOutdent,
+  onAddTask,
+  onDeleteTask
+}: TaskTableProps) {
   const [draggedTask, setDraggedTask] = useState<ProjectTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
@@ -139,6 +153,29 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate, selectedTasks, onSe
     setDraggedTask(null);
   };
 
+  const handleAddAbove = (taskId: string) => {
+    onAddTask('above', taskId);
+  };
+
+  const handleAddBelow = (taskId: string) => {
+    onAddTask('below', taskId);
+  };
+
+  const getCanIndent = (task: ProjectTask) => {
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const aNum = a.hierarchy_number || "999";
+      const bNum = b.hierarchy_number || "999";
+      return aNum.localeCompare(bNum, undefined, { numeric: true });
+    });
+
+    const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+    return currentIndex > 0;
+  };
+
+  const getCanOutdent = (task: ProjectTask) => {
+    return task.hierarchy_number && task.hierarchy_number.split(".").length > 1;
+  };
+
   return (
     <div className="h-[600px] overflow-auto">
       <Table>
@@ -178,6 +215,13 @@ export function TaskTable({ tasks, onTaskMove, onTaskUpdate, selectedTasks, onSe
               onToggleExpand={handleToggleExpand}
               isSelected={selectedTasks.has(task.id)}
               onTaskSelection={handleTaskSelection}
+              onIndent={onIndent}
+              onOutdent={onOutdent}
+              onAddAbove={handleAddAbove}
+              onAddBelow={handleAddBelow}
+              onDelete={onDeleteTask}
+              canIndent={getCanIndent(task)}
+              canOutdent={getCanOutdent(task)}
             />
           ))}
         </TableBody>
