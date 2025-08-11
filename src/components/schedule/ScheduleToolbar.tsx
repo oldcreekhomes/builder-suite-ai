@@ -116,6 +116,62 @@ export function ScheduleToolbar({
           parent_id: null
         });
 
+        // Renumber remaining children of the original parent to close the gap
+        const originalParentChildren = sortedTasks.filter(t => {
+          if (!t.hierarchy_number || t.id === taskId) return false;
+          return t.hierarchy_number.startsWith(currentParentHierarchy + ".") && 
+                 t.hierarchy_number.split(".").length === hierarchyParts.length;
+        });
+
+        // Sort the remaining children and renumber them sequentially
+        const sortedChildren = originalParentChildren.sort((a, b) => {
+          const aLastPart = parseInt(a.hierarchy_number!.split(".").pop()!);
+          const bLastPart = parseInt(b.hierarchy_number!.split(".").pop()!);
+          return aLastPart - bLastPart;
+        });
+
+        sortedChildren.forEach((child, index) => {
+          const newChildHierarchy = currentParentHierarchy + "." + (index + 1);
+          updateOperations.push({
+            id: child.id,
+            hierarchy_number: newChildHierarchy,
+            parent_id: parentTask.id
+          });
+
+          // Also renumber any descendants of this child
+          const childDescendants = sortedTasks.filter(t => 
+            t.hierarchy_number && 
+            t.hierarchy_number.startsWith(child.hierarchy_number! + ".") &&
+            t.id !== child.id
+          );
+
+          childDescendants.forEach(descendant => {
+            const descendantParts = descendant.hierarchy_number!.split(".");
+            const relativeParts = descendantParts.slice(hierarchyParts.length);
+            const newDescendantHierarchy = newChildHierarchy + "." + relativeParts.join(".");
+            
+            // Find the correct parent_id for this descendant
+            let descendantParentId = child.id;
+            if (relativeParts.length > 1) {
+              const descendantParentHierarchy = newChildHierarchy + "." + relativeParts.slice(0, -1).join(".");
+              const existingDescendantParent = tasks.find(t => t.hierarchy_number === descendantParentHierarchy);
+              const updatedDescendantParent = updateOperations.find(op => op.hierarchy_number === descendantParentHierarchy);
+              
+              if (existingDescendantParent) {
+                descendantParentId = existingDescendantParent.id;
+              } else if (updatedDescendantParent) {
+                descendantParentId = updatedDescendantParent.id;
+              }
+            }
+
+            updateOperations.push({
+              id: descendant.id,
+              hierarchy_number: newDescendantHierarchy,
+              parent_id: descendantParentId
+            });
+          });
+        });
+
         // Now renumber all subsequent parent-level tasks and their children
         const tasksToRenumber = sortedTasks.filter(t => {
           if (!t.hierarchy_number || t.id === taskId) return false;
@@ -134,7 +190,8 @@ export function ScheduleToolbar({
 
         // Renumber all affected tasks
         for (const taskToRenumber of tasksToRenumber) {
-          if (taskToRenumber.id === taskId) continue; // Skip the task being outdented
+          if (taskToRenumber.id === taskId || 
+              updateOperations.some(op => op.id === taskToRenumber.id)) continue; // Skip already processed tasks
           
           const currentHierarchy = taskToRenumber.hierarchy_number!;
           const hierarchyParts = currentHierarchy.split(".");
