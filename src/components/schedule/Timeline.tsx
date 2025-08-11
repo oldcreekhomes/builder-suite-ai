@@ -18,13 +18,12 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
 
   const getTaskPosition = (task: ProjectTask) => {
     const taskStart = new Date(task.start_date);
-    const taskEnd = new Date(task.end_date);
     
     // Fix date offset - don't use Math.ceil for start offset
     const startOffset = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Fix duration calculation - don't add extra day
-    const duration = Math.max(1, Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)));
+    // Use the task's duration field directly instead of calculating from dates
+    const duration = task.duration || 1;
     
     return {
       left: startOffset * dayWidth,
