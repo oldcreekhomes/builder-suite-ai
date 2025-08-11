@@ -23,13 +23,21 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
 
-  // Calculate timeline range from task dates
+  // Helper function to calculate end date from start date + duration
+  const calculateEndDate = (startDate: string, duration: number) => {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + duration);
+    return end;
+  };
+
+  // Calculate timeline range from task dates using calculated end dates
   const timelineStart = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
     : new Date();
   
   const timelineEnd = tasks.length > 0
-    ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
+    ? new Date(Math.max(...tasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
   // DISABLED: Task move functionality - will be reimplemented later
