@@ -179,23 +179,30 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Trigger Supabase to send password reset email
-    console.log("🔑 Sending password reset email for user:", userId);
+    // Generate password reset link directly
+    console.log("🔑 Generating password reset link for user:", userId);
     
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://buildersuiteai.com/auth'
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: 'https://buildersuiteai.com/auth'
+      }
     });
 
-    if (resetError) {
-      console.error("❌ Error sending password reset:", resetError);
+    if (resetError || !resetData.properties?.hashed_token) {
+      console.error("❌ Error generating password reset link:", resetError);
       return new Response(
-        JSON.stringify({ error: "Failed to send password reset email" }),
+        JSON.stringify({ error: "Failed to generate password reset link" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
     }
+
+    const resetLink = resetData.properties.action_link;
+    console.log("🔗 Password reset link generated:", resetLink);
 
     console.log("📧 Attempting to send invitation email...");
 
@@ -208,10 +215,12 @@ const handler = async (req: Request): Promise<Response> => {
           <h1 style="color: #333;">Welcome to BuilderSuite AI!</h1>
           <p>Hi ${firstName},</p>
           <p>You've been invited by ${companyName} to join their team on BuilderSuite AI.</p>
-          <p>A password reset email has been sent to your email address. Please check your inbox (and spam folder) for the password reset link from Supabase.</p>
-          <p>After setting your password, you can log in at:</p>
-          <a href="https://buildersuiteai.com/auth" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Login to BuilderSuite AI</a>
-          <p>If you don't receive the password reset email within a few minutes, please check your spam folder or contact your administrator.</p>
+          <p>To set up your password and complete your account, please click the link below:</p>
+          <a href="${resetLink}" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Set Your Password</a>
+          <p>After setting your password, you can log in at <a href="https://buildersuiteai.com/auth">https://buildersuiteai.com/auth</a></p>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p><a href="${resetLink}">${resetLink}</a></p>
+          <p>If you have any questions, please contact your administrator.</p>
           <p>Best regards,<br>The BuilderSuite AI Team</p>
         </div>
       `,
