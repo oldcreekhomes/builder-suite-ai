@@ -36,7 +36,8 @@ const handler = async (req: Request): Promise<Response> => {
       companyName,
     }: InvitationRequest = await req.json();
 
-    console.log("Processing employee invitation for:", email);
+    console.log("🚀 Processing employee invitation for:", email);
+    console.log("📋 Request data:", { firstName, lastName, email, phoneNumber, role, homeBuilderEmail, companyName });
 
     // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
@@ -53,7 +54,8 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (homeBuilderError || !homeBuilder) {
-      console.error("Home builder not found:", homeBuilderError);
+      console.error("❌ Home builder not found:", homeBuilderError);
+      console.error("❌ Home builder email searched:", homeBuilderEmail);
       return new Response(
         JSON.stringify({ error: "Home builder not found" }),
         {
@@ -62,6 +64,8 @@ const handler = async (req: Request): Promise<Response> => {
         }
       );
     }
+
+    console.log("✅ Home builder found:", homeBuilder.id);
 
     // Check if user already exists in public.users table
     const { data: existingUser } = await supabaseAdmin
@@ -73,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     let userId: string;
     
     if (existingUser) {
-      console.log("User already exists, updating:", existingUser.id);
+      console.log("👤 User already exists, updating:", existingUser.id);
       userId = existingUser.id;
       
       // Update existing user
@@ -91,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", existingUser.id);
 
       if (updateError) {
-        console.error("Error updating existing user:", updateError);
+        console.error("❌ Error updating existing user:", updateError);
         return new Response(
           JSON.stringify({ error: "Failed to update user profile" }),
           {
@@ -100,6 +104,8 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
       }
+      
+      console.log("✅ Existing user updated successfully");
     } else {
       // Create user in Supabase Auth with a temporary password
       const tempPassword = crypto.randomUUID();
@@ -117,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (authError) {
-        console.error("Error creating auth user:", authError);
+        console.error("❌ Error creating auth user:", authError);
         return new Response(
           JSON.stringify({ error: "Failed to create user account" }),
           {
@@ -127,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      console.log("Auth user created:", authUser.user.id);
+      console.log("✅ Auth user created:", authUser.user.id);
       userId = authUser.user.id;
 
       // Create user in public.users table
@@ -146,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
       if (publicUserError) {
-        console.error("Error creating public user:", publicUserError);
+        console.error("❌ Error creating public user:", publicUserError);
         
         // Cleanup: delete the auth user if public user creation failed
         await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
@@ -159,6 +165,8 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
       }
+      
+      console.log("✅ Public user created successfully");
     }
 
     // Generate invitation token (valid for 24 hours)
@@ -170,6 +178,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send invitation email
     const invitationUrl = `${Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovableproject.com") || "https://buildersuiteai.com"}/confirm-invitation?token=${invitationToken}`;
+
+    console.log("📧 Attempting to send email...");
+    console.log("📧 Invitation URL:", invitationUrl);
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@buildersuiteai.com>",
@@ -189,7 +200,18 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Invitation email sent:", emailResponse.id);
+    if (emailResponse.error) {
+      console.error("❌ Email failed to send:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to send invitation email" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("✅ Invitation email sent:", emailResponse.id);
 
     return new Response(
       JSON.stringify({ 
