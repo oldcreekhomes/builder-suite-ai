@@ -155,6 +155,8 @@ const handler = async (req: Request): Promise<Response> => {
             phone_number: phoneNumber,
             user_type: "employee",
             home_builder_id: homeBuilder.id,
+            role: "employee", // Add role to metadata for trigger
+            company_name: companyName, // Add company name for trigger
           },
         });
 
@@ -169,40 +171,11 @@ const handler = async (req: Request): Promise<Response> => {
           );
         }
 
-        console.log("✅ Auth user created:", authUser.user.id);
+        console.log("✅ Auth user created (trigger will create public user):", authUser.user.id);
         userId = authUser.user.id;
 
-        // Create user in public.users table
-        const { error: publicUserError } = await supabaseAdmin
-          .from("users")
-          .insert({
-            id: authUser.user.id,
-            email,
-            first_name: firstName,
-            last_name: lastName,
-            phone_number: phoneNumber,
-            company_name: companyName,
-            role: "employee",
-            home_builder_id: homeBuilder.id,
-            confirmed: false, // Will be confirmed when they complete setup
-          });
-
-        if (publicUserError) {
-          console.error("❌ Error creating public user:", publicUserError);
-          
-          // Cleanup: delete the auth user if public user creation failed
-          await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-          
-          return new Response(
-            JSON.stringify({ error: "Failed to create user profile" }),
-            {
-              status: 500,
-              headers: { "Content-Type": "application/json", ...corsHeaders },
-            }
-          );
-        }
-        
-        console.log("✅ Public user created successfully");
+        // Note: The handle_new_user() trigger automatically creates the public.users record
+        // No manual insertion needed - this was causing the duplicate key error
       }
     }
 
