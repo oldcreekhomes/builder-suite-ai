@@ -99,10 +99,11 @@ export function TaskRow({
       <TableRow className={`h-8 hover:bg-muted/50`}>
         {/* Selection Checkbox */}
         <TableCell className="py-1 px-2 w-10">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => onTaskSelection(task.id, checked as boolean)}
-            className="h-3 w-3"
+          <div
+            className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
+              isSelected ? 'bg-black' : 'bg-white'
+            }`}
+            onClick={() => onTaskSelection(task.id, !isSelected)}
           />
         </TableCell>
 
