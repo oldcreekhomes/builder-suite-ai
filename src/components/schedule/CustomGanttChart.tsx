@@ -230,8 +230,66 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) return;
+
     try {
-      await deleteTask.mutateAsync(taskId);
+      // Sort tasks by hierarchy number to get correct order
+      const sortedTasks = [...tasks].sort((a, b) => {
+        const aNum = a.hierarchy_number || "999";
+        const bNum = b.hierarchy_number || "999";
+        return aNum.localeCompare(bNum, undefined, { numeric: true });
+      });
+
+      const deleteIndex = sortedTasks.findIndex(t => t.id === taskId);
+      const deletedHierarchy = taskToDelete.hierarchy_number || "1";
+      
+      // Find all tasks that need to be deleted (the task and its children)
+      const tasksToDelete = [taskToDelete];
+      for (let i = deleteIndex + 1; i < sortedTasks.length; i++) {
+        const task = sortedTasks[i];
+        const hierarchy = task.hierarchy_number || "";
+        if (hierarchy.startsWith(deletedHierarchy + ".")) {
+          tasksToDelete.push(task);
+        } else {
+          break;
+        }
+      }
+
+      // Delete the task and its children
+      for (const task of tasksToDelete) {
+        await deleteTask.mutateAsync(task.id);
+      }
+
+      // Find tasks that come after the deleted range and need renumbering
+      const endDeleteIndex = deleteIndex + tasksToDelete.length;
+      const tasksToRenumber = sortedTasks.slice(endDeleteIndex);
+      
+      // Renumber all subsequent tasks
+      for (const task of tasksToRenumber) {
+        const currentHierarchy = task.hierarchy_number || "1";
+        const hierarchyParts = currentHierarchy.split('.');
+        
+        if (hierarchyParts.length === 1) {
+          // This is a parent-level task - decrement by 1
+          const currentMainNumber = parseInt(hierarchyParts[0]) || 1;
+          const newMainNumber = currentMainNumber - 1;
+          await updateTask.mutateAsync({
+            id: task.id,
+            hierarchy_number: newMainNumber.toString()
+          });
+        } else {
+          // This is a child task - decrement the parent number
+          const currentParentNumber = parseInt(hierarchyParts[0]) || 1;
+          const newParentNumber = currentParentNumber - 1;
+          const newSubHierarchy = [newParentNumber, ...hierarchyParts.slice(1)].join('.');
+          await updateTask.mutateAsync({
+            id: task.id,
+            hierarchy_number: newSubHierarchy
+          });
+        }
+      }
+      
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
