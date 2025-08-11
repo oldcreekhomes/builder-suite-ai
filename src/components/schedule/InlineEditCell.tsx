@@ -98,6 +98,8 @@ export function InlineEditCell({
           className={cn(
             "bg-transparent border-none outline-none text-xs w-full p-0",
             "focus:ring-0 focus:border-none",
+            // Hide number input spinners
+            type === "number" && "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
             className
           )}
           style={{

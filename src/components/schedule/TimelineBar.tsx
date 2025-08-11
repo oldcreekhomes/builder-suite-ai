@@ -8,11 +8,12 @@ interface TimelineBarProps {
     width: number;
     progress: number;
   };
+  rowIndex: number;
   rowHeight: number;
   onTaskUpdate: (taskId: string, updates: any) => void;
 }
 
-export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: TimelineBarProps) {
+export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate }: TimelineBarProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -53,20 +54,22 @@ export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: Timelin
 
   return (
     <div
-      className="relative"
+      className="absolute"
       style={{
+        top: rowIndex * rowHeight,
         height: rowHeight,
-        marginBottom: 1
+        width: "100%"
       }}
     >
       {/* Task Bar */}
       <div
-        className={`absolute top-2 h-8 rounded cursor-move border border-border/50 ${
+        className={`absolute h-6 rounded cursor-move border border-border/50 ${
           isDragging ? "opacity-70" : ""
         }`}
         style={{
           left: position.left,
           width: position.width,
+          top: (rowHeight - 24) / 2, // Center the 24px bar in the row
           backgroundColor: barColor + "40", // Add transparency
           borderColor: barColor
         }}
@@ -91,7 +94,7 @@ export function TimelineBar({ task, position, rowHeight, onTaskUpdate }: Timelin
         
         {/* Progress Text */}
         {position.progress > 0 && (
-          <div className="absolute right-1 top-1 text-xs text-foreground/70">
+          <div className="absolute right-1 top-0.5 text-xs text-foreground/70">
             {position.progress}%
           </div>
         )}

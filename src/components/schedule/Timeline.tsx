@@ -30,12 +30,51 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
     };
   };
 
+  // Helper function to check if a task has children based on hierarchy
+  const hasChildren = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task?.hierarchy_number) return false;
+    
+    return tasks.some(t => 
+      t.hierarchy_number && 
+      t.hierarchy_number.startsWith(task.hierarchy_number + ".") &&
+      t.hierarchy_number.split(".").length === task.hierarchy_number.split(".").length + 1
+    );
+  };
+
+  // Filter tasks based on expansion state using hierarchy numbers
+  const getVisibleTasks = () => {
+    const visibleTasks: ProjectTask[] = [];
+    
+    for (const task of sortedTasks) {
+      if (!task.hierarchy_number) {
+        visibleTasks.push(task);
+        continue;
+      }
+      
+      // Always show root tasks (no dots in hierarchy)
+      if (!task.hierarchy_number.includes(".")) {
+        visibleTasks.push(task);
+        continue;
+      }
+      
+      // For nested tasks, check if all parent levels would be expanded
+      // Note: We don't have access to the expandedTasks state here, so we'll show all for now
+      // This should be synchronized with the TaskTable's visibility logic
+      visibleTasks.push(task);
+    }
+    
+    return visibleTasks;
+  };
+
   // Sort tasks by hierarchy number for display
   const sortedTasks = [...tasks].sort((a, b) => {
     const aNum = a.hierarchy_number || "999";
     const bNum = b.hierarchy_number || "999";
     return aNum.localeCompare(bNum, undefined, { numeric: true });
   });
+
+  const visibleTasks = getVisibleTasks();
 
   return (
     <div className="h-[600px] overflow-auto">
@@ -60,16 +99,17 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           ))}
         </div>
 
-        {/* Task Bars */}
-        <div className="space-y-1">
-          {sortedTasks.map((task, index) => {
+        {/* Task Bars - Now properly aligned */}
+        <div className="relative">
+          {visibleTasks.map((task, index) => {
             const position = getTaskPosition(task);
             return (
               <TimelineBar
                 key={task.id}
                 task={task}
                 position={position}
-                rowHeight={53} // Matches table row height
+                rowIndex={index}
+                rowHeight={32} // Matches table row height exactly
                 onTaskUpdate={onTaskUpdate}
               />
             );
