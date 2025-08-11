@@ -24,6 +24,41 @@ export function getChildren(tasks: ProjectTask[], parentHierarchy: string): Proj
 }
 
 /**
+ * Get all descendants of a task based on hierarchy number
+ */
+export function getDescendants(tasks: ProjectTask[], parentHierarchy: string): ProjectTask[] {
+  if (!parentHierarchy) return [];
+  return tasks.filter(task => 
+    task.hierarchy_number && 
+    task.hierarchy_number.startsWith(parentHierarchy + ".")
+  );
+}
+
+/**
+ * Generate the next child hierarchy number for a parent task
+ * Example: If parent is "2" and children are ["2.1", "2.3"], returns "2.4"
+ */
+export function generateChildHierarchy(parentTask: ProjectTask, allTasks: ProjectTask[]): string {
+  const parentHierarchy = parentTask.hierarchy_number || "1";
+  const children = getChildren(allTasks, parentHierarchy);
+  
+  if (children.length === 0) {
+    return `${parentHierarchy}.1`;
+  }
+  
+  // Find the highest child number
+  const childNumbers = children
+    .map(child => {
+      const parts = child.hierarchy_number?.split(".") || [];
+      return parseInt(parts[parts.length - 1]) || 0;
+    })
+    .filter(num => !isNaN(num));
+  
+  const maxChild = Math.max(...childNumbers, 0);
+  return `${parentHierarchy}.${maxChild + 1}`;
+}
+
+/**
  * Get the hierarchy level (indentation level)
  */
 export function getLevel(hierarchyNumber: string): number {
@@ -122,13 +157,4 @@ export function getIndentLevel(hierarchyNumber: string): number {
 export function isChildOf(childHierarchy: string, parentHierarchy: string): boolean {
   if (!childHierarchy || !parentHierarchy) return false;
   return childHierarchy.startsWith(parentHierarchy + ".");
-}
-
-/**
- * Get all descendants of a task
- */
-export function getDescendants(tasks: ProjectTask[], parentHierarchy: string): ProjectTask[] {
-  return tasks.filter(task => 
-    task.hierarchy_number && isChildOf(task.hierarchy_number, parentHierarchy)
-  );
 }

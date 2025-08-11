@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
+import { generateChildHierarchy } from "@/utils/hierarchyUtils";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -104,6 +105,36 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Add child task handler
+  const handleAddChild = async (parentTaskId: string) => {
+    try {
+      const parentTask = tasks.find(t => t.id === parentTaskId);
+      if (!parentTask) {
+        toast.error("Parent task not found");
+        return;
+      }
+
+      const childHierarchy = generateChildHierarchy(parentTask, tasks);
+      const defaultStartDate = new Date();
+      const defaultEndDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
+
+      await createTask.mutateAsync({
+        project_id: projectId,
+        task_name: `New Task ${childHierarchy.split('.').pop()}`,
+        start_date: defaultStartDate.toISOString(),
+        end_date: defaultEndDate.toISOString(),
+        duration: 1,
+        progress: 0,
+        hierarchy_number: childHierarchy
+      });
+      
+      toast.success("Child task added successfully");
+    } catch (error) {
+      console.error("Failed to add child task:", error);
+      toast.error("Failed to add child task");
+    }
+  };
+
   // DISABLED: Complex add positioning - will be reimplemented later
   const handleAddTaskPositioned = async (position: 'above' | 'below', relativeTaskId: string) => {
     toast.info("Positioned task adding temporarily disabled during refactoring");
@@ -161,6 +192,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onIndent={handleIndent}
           onOutdent={handleOutdent}
           onAddTask={handleAddTaskPositioned}
+          onAddChild={handleAddChild}
           onDeleteTask={handleDeleteTask}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}

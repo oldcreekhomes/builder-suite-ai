@@ -19,6 +19,7 @@ interface TaskContextMenuProps {
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
+  onAddChild: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
@@ -35,6 +36,7 @@ export function TaskContextMenu({
   onOutdent,
   onAddAbove,
   onAddBelow,
+  onAddChild,
   onDelete,
   onMoveUp,
   onMoveDown,
@@ -106,6 +108,12 @@ export function TaskContextMenu({
               className="flex items-center gap-2"
             >
               Below
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => onAddChild(task.id)}
+              className="flex items-center gap-2"
+            >
+              Child
             </ContextMenuItem>
           </ContextMenuSubContent>
         </ContextMenuSub>
