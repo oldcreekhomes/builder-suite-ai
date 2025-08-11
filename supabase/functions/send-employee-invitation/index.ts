@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("users")
       .select("id, email, confirmed")
       .eq("email", email)
-      .single();
+      .maybeSingle();
 
     let userId: string;
     
@@ -107,66 +107,103 @@ const handler = async (req: Request): Promise<Response> => {
       
       console.log("✅ Existing user updated successfully");
     } else {
-      // Create user in Supabase Auth with a temporary password
-      const tempPassword = crypto.randomUUID();
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true, // Auto-confirm the email
-        user_metadata: {
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: phoneNumber,
-          user_type: "employee",
-          home_builder_id: homeBuilder.id,
-        },
-      });
+      // Check if auth user exists first
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = authUsers.users?.find(user => user.email === email);
+      
+      if (existingAuthUser) {
+        console.log("👤 Auth user exists, creating public user:", existingAuthUser.id);
+        userId = existingAuthUser.id;
+        
+        // Create user in public.users table
+        const { error: publicUserError } = await supabaseAdmin
+          .from("users")
+          .upsert({
+            id: existingAuthUser.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            phone_number: phoneNumber,
+            company_name: companyName,
+            role: "employee",
+            home_builder_id: homeBuilder.id,
+            confirmed: false,
+          });
 
-      if (authError) {
-        console.error("❌ Error creating auth user:", authError);
-        return new Response(
-          JSON.stringify({ error: "Failed to create user account" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
-      console.log("✅ Auth user created:", authUser.user.id);
-      userId = authUser.user.id;
-
-      // Create user in public.users table
-      const { error: publicUserError } = await supabaseAdmin
-        .from("users")
-        .insert({
-          id: authUser.user.id,
+        if (publicUserError) {
+          console.error("❌ Error creating public user:", publicUserError);
+          return new Response(
+            JSON.stringify({ error: "Failed to create user profile" }),
+            {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
+        }
+        
+        console.log("✅ Public user created for existing auth user");
+      } else {
+        // Create user in Supabase Auth with a temporary password
+        const tempPassword = crypto.randomUUID();
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email,
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: phoneNumber,
-          company_name: companyName,
-          role: "employee",
-          home_builder_id: homeBuilder.id,
-          confirmed: false, // Will be confirmed when they complete setup
+          password: tempPassword,
+          email_confirm: true, // Auto-confirm the email
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            phone_number: phoneNumber,
+            user_type: "employee",
+            home_builder_id: homeBuilder.id,
+          },
         });
 
-      if (publicUserError) {
-        console.error("❌ Error creating public user:", publicUserError);
+        if (authError) {
+          console.error("❌ Error creating auth user:", authError);
+          return new Response(
+            JSON.stringify({ error: "Failed to create user account" }),
+            {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
+        }
+
+        console.log("✅ Auth user created:", authUser.user.id);
+        userId = authUser.user.id;
+
+        // Create user in public.users table
+        const { error: publicUserError } = await supabaseAdmin
+          .from("users")
+          .insert({
+            id: authUser.user.id,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+            phone_number: phoneNumber,
+            company_name: companyName,
+            role: "employee",
+            home_builder_id: homeBuilder.id,
+            confirmed: false, // Will be confirmed when they complete setup
+          });
+
+        if (publicUserError) {
+          console.error("❌ Error creating public user:", publicUserError);
+          
+          // Cleanup: delete the auth user if public user creation failed
+          await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+          
+          return new Response(
+            JSON.stringify({ error: "Failed to create user profile" }),
+            {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            }
+          );
+        }
         
-        // Cleanup: delete the auth user if public user creation failed
-        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-        
-        return new Response(
-          JSON.stringify({ error: "Failed to create user profile" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
+        console.log("✅ Public user created successfully");
       }
-      
-      console.log("✅ Public user created successfully");
     }
 
     // Generate invitation token (valid for 24 hours)
