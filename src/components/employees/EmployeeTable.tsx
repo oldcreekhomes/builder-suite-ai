@@ -70,23 +70,18 @@ export function EmployeeTable() {
 
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (employeeId: string) => {
-      // First delete from auth.users using admin client (this should be done via edge function for production)
-      const { error: authError } = await supabase.auth.admin.deleteUser(employeeId);
-      
-      if (authError && !authError.message.includes('User not found')) {
-        console.error('Error deleting from auth.users:', authError);
-        throw new Error('Failed to delete employee from authentication system');
+      // Call the edge function to delete the employee with admin privileges
+      const { data, error } = await supabase.functions.invoke('delete-employee', {
+        body: { employeeId }
+      });
+
+      if (error) {
+        console.error('Error calling delete-employee function:', error);
+        throw new Error('Failed to delete employee. Please try again.');
       }
 
-      // Delete from public.users table
-      const { error: dbError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', employeeId);
-
-      if (dbError) {
-        console.error('Error deleting from public.users:', dbError);
-        throw new Error('Failed to delete employee from database');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete employee');
       }
     },
     onSuccess: () => {
