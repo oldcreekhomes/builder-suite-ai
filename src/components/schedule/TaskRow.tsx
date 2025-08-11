@@ -114,16 +114,16 @@ export function TaskRow({
         </TableCell>
 
         {/* Task Name with Indentation */}
-        <TableCell className="py-1 px-2 w-48">
-          <div className="flex items-center gap-1">
-            {/* Indentation spacer */}
-            <div style={{ width: `${indentLevel * 16}px` }} />
+        <TableCell className="py-1 pl-2 pr-2 w-48">
+          <div className="flex items-center">
+            {/* Indentation spacer - only for child tasks */}
+            {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
             
             {/* Expand/Collapse Button */}
             {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(task.id)}
-                className="p-0.5 hover:bg-muted rounded flex-shrink-0"
+                className="p-0.5 hover:bg-muted rounded flex-shrink-0 mr-1"
               >
                 {isExpanded ? (
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -131,9 +131,9 @@ export function TaskRow({
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
                 )}
               </button>
-            ) : (
-              <div className="w-4 flex-shrink-0" /> // Spacer for alignment
-            )}
+            ) : indentLevel > 0 ? (
+              <div className="w-4 flex-shrink-0 mr-1" /> // Spacer for alignment only on child tasks
+            ) : null}
             
             {/* Task name aligned with column header */}
             <div className="flex-1">
