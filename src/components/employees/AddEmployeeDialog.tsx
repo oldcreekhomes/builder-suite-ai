@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -16,6 +16,7 @@ interface AddEmployeeDialogProps {
 
 export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
@@ -24,52 +25,56 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     email: "",
     phoneNumber: "",
     role: "employee",
-    confirmed: false,
   });
 
   const addEmployeeMutation = useMutation({
-    mutationFn: async () => {
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (!currentUser.user) throw new Error("User not authenticated");
+    mutationFn: async (employeeData: typeof formData) => {
+      if (!user) throw new Error("No authenticated user");
 
-      // Get the owner's company name
-      const { data: ownerData } = await supabase
+      // Get current user's profile to get company name
+      const { data: currentUser, error: userError } = await supabase
         .from('users')
-        .select('company_name')
-        .eq('id', currentUser.user.id)
-        .eq('role', 'owner')
-        .maybeSingle();
-
-      // Create the employee in the users table
-      const { data, error } = await supabase
-        .from('users')
-        .insert({
-          id: crypto.randomUUID(), // Generate a UUID for non-auth employees
-          home_builder_id: currentUser.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone_number: formData.phoneNumber || null,
-          role: 'employee',
-          company_name: ownerData?.company_name || null,
-          confirmed: formData.confirmed,
-        })
-        .select()
+        .select('company_name, role, email')
+        .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error creating employee:', error);
-        throw error;
+      if (userError || !currentUser) {
+        throw new Error('Unable to fetch user profile');
       }
 
-      console.log("Employee created:", data);
+      if (currentUser.role !== 'owner') {
+        throw new Error('Only home builders can add employees');
+      }
+
+      // Call the edge function to send invitation
+      const { data, error } = await supabase.functions.invoke('send-employee-invitation', {
+        body: {
+          firstName: employeeData.firstName,
+          lastName: employeeData.lastName,
+          email: employeeData.email,
+          phoneNumber: employeeData.phoneNumber,
+          role: employeeData.role,
+          homeBuilderEmail: currentUser.email,
+          companyName: currentUser.company_name,
+        },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error('Failed to send employee invitation');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast({
-        title: "Success",
-        description: "Employee added successfully",
+        title: "Employee invitation sent!",
+        description: "The employee will receive an email to complete their account setup.",
       });
       setFormData({
         firstName: "",
@@ -77,27 +82,15 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         email: "",
         phoneNumber: "",
         role: "employee",
-        confirmed: false,
       });
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      console.error('Add employee error:', error);
-      
-      // Handle unique constraint violation (duplicate email)
-      if (error.code === '23505') {
-        toast({
-          title: "Error",
-          description: "An employee with this email already exists",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to add employee",
-          variant: "destructive",
-        });
-      }
+    onError: (error: Error) => {
+      toast({
+        title: "Error sending invitation",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -111,7 +104,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
       return;
     }
-    addEmployeeMutation.mutate();
+    addEmployeeMutation.mutate(formData);
   };
 
   return (
@@ -182,17 +175,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="confirmed"
-              checked={formData.confirmed}
-              onCheckedChange={(checked) => setFormData({ ...formData, confirmed: checked })}
-            />
-            <Label htmlFor="confirmed">Mark as Confirmed</Label>
+          <div className="text-sm text-muted-foreground">
+            The employee will receive an email invitation to complete their account setup.
           </div>
-          <p className="text-sm text-gray-500">
-            You can confirm employees later when they join your team
-          </p>
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button
@@ -206,7 +191,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
               type="submit"
               disabled={addEmployeeMutation.isPending}
             >
-              {addEmployeeMutation.isPending ? "Adding Employee..." : "Add Employee"}
+              {addEmployeeMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
             </Button>
           </div>
         </form>

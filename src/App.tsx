@@ -30,6 +30,7 @@ import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import SubmitBid from "./pages/SubmitBid";
+import ConfirmInvitation from "./pages/ConfirmInvitation";
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
 
@@ -107,6 +108,9 @@ const AppContent = () => {
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
+          
+          {/* Employee invitation confirmation - MUST be accessible without authentication */}
+          <Route path="/confirm-invitation" element={<ConfirmInvitation />} />
           
           
           {/* Shared routes - no authentication required */}
