@@ -27,9 +27,11 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     role: "employee",
   });
 
-  const addEmployeeMutation = useMutation({
+  const sendInvitationMutation = useMutation({
     mutationFn: async (employeeData: typeof formData) => {
       if (!user) throw new Error("No authenticated user");
+
+      console.log("🚀 Starting employee invitation process");
 
       // Get current user's profile to get company name
       const { data: currentUser, error: userError } = await supabase
@@ -39,12 +41,15 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         .single();
 
       if (userError || !currentUser) {
+        console.error("❌ Failed to fetch user profile:", userError);
         throw new Error('Unable to fetch user profile');
       }
 
       if (currentUser.role !== 'owner') {
         throw new Error('Only home builders can add employees');
       }
+
+      console.log("✅ User verified as owner, calling edge function");
 
       // Call the edge function to send invitation
       const { data, error } = await supabase.functions.invoke('send-employee-invitation', {
@@ -60,20 +65,22 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
 
       if (error) {
-        console.error('Edge function error:', error);
+        console.error('❌ Edge function error:', error);
         throw new Error('Failed to send employee invitation');
       }
 
       if (data?.error) {
+        console.error('❌ Edge function returned error:', data.error);
         throw new Error(data.error);
       }
 
+      console.log("✅ Employee invitation sent successfully");
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast({
-        title: "Employee invitation sent!",
+        title: "Invitation sent!",
         description: "The employee will receive an email to complete their account setup.",
       });
       setFormData({
@@ -86,6 +93,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       onOpenChange(false);
     },
     onError: (error: Error) => {
+      console.error("❌ Invitation failed:", error);
       toast({
         title: "Error sending invitation",
         description: error.message,
@@ -104,14 +112,14 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
       return;
     }
-    addEmployeeMutation.mutate(formData);
+    sendInvitationMutation.mutate(formData);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Employee</DialogTitle>
+          <DialogTitle>Invite New Employee</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,9 +197,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
             </Button>
             <Button
               type="submit"
-              disabled={addEmployeeMutation.isPending}
+              disabled={sendInvitationMutation.isPending}
             >
-              {addEmployeeMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
+              {sendInvitationMutation.isPending ? "Sending Invitation..." : "Send Invitation"}
             </Button>
           </div>
         </form>
