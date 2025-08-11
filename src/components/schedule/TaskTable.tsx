@@ -38,48 +38,60 @@ export function TaskTable({
 }: TaskTableProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
-  // Helper function to check if a task has children
+  // Helper function to check if a task has children based on hierarchy
   const hasChildren = (taskId: string) => {
-    return tasks.some(task => task.parent_id === taskId);
+    const task = tasks.find(t => t.id === taskId);
+    if (!task?.hierarchy_number) return false;
+    
+    return tasks.some(t => 
+      t.hierarchy_number && 
+      t.hierarchy_number.startsWith(task.hierarchy_number + ".") &&
+      t.hierarchy_number.split(".").length === task.hierarchy_number.split(".").length + 1
+    );
   };
 
-  // Helper function to get all descendant task IDs
+  // Helper function to get all descendant task IDs based on hierarchy
   const getDescendants = (taskId: string): string[] => {
-    const descendants: string[] = [];
-    const directChildren = tasks.filter(task => task.parent_id === taskId);
+    const task = tasks.find(t => t.id === taskId);
+    if (!task?.hierarchy_number) return [];
     
-    for (const child of directChildren) {
-      descendants.push(child.id);
-      descendants.push(...getDescendants(child.id));
-    }
-    
-    return descendants;
+    return tasks
+      .filter(t => 
+        t.hierarchy_number && 
+        t.hierarchy_number.startsWith(task.hierarchy_number + ".")
+      )
+      .map(t => t.id);
   };
 
-  // Filter tasks based on expansion state
+  // Filter tasks based on expansion state using hierarchy numbers
   const getVisibleTasks = () => {
     const visibleTasks: ProjectTask[] = [];
     
     for (const task of sortedTasks) {
-      // Always show root tasks (no parent)
-      if (!task.parent_id || task.parent_id === '') {
+      if (!task.hierarchy_number) {
         visibleTasks.push(task);
         continue;
       }
       
-      // For tasks with parents, check if all ancestors are expanded
-      let shouldShow = true;
-      let currentParentId = task.parent_id;
+      // Always show root tasks (no dots in hierarchy)
+      if (!task.hierarchy_number.includes(".")) {
+        visibleTasks.push(task);
+        continue;
+      }
       
-      while (currentParentId && currentParentId !== '') {
-        if (!expandedTasks.has(currentParentId)) {
+      // For nested tasks, check if all parent levels are expanded
+      const hierarchyParts = task.hierarchy_number.split(".");
+      let shouldShow = true;
+      
+      // Check each parent level
+      for (let i = 1; i < hierarchyParts.length; i++) {
+        const parentHierarchy = hierarchyParts.slice(0, i).join(".");
+        const parentTask = tasks.find(t => t.hierarchy_number === parentHierarchy);
+        
+        if (parentTask && !expandedTasks.has(parentTask.id)) {
           shouldShow = false;
           break;
         }
-        
-        // Find the parent task to check its parent
-        const parentTask = tasks.find(t => t.id === currentParentId);
-        currentParentId = parentTask?.parent_id || '';
       }
       
       if (shouldShow) {

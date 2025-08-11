@@ -9,6 +9,12 @@ import { ScheduleToolbar } from "./ScheduleToolbar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { 
+  getIndentLevel, 
+  generateHierarchyNumber,
+  generateIndentHierarchy,
+  generateOutdentHierarchy 
+} from "@/utils/hierarchyUtils";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -91,43 +97,38 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Find the task above this one in the hierarchy
-    const sortedTasks = [...tasks].sort((a, b) => {
-      const aNum = a.hierarchy_number || "999";
-      const bNum = b.hierarchy_number || "999";
-      return aNum.localeCompare(bNum, undefined, { numeric: true });
-    });
+    const newHierarchyNumber = generateIndentHierarchy(task, tasks);
+    if (!newHierarchyNumber) {
+      toast.error("Cannot indent this task");
+      return;
+    }
 
-    const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
-    if (currentIndex > 0) {
-      const parentTask = sortedTasks[currentIndex - 1];
-      try {
-        await updateTask.mutateAsync({
-          id: taskId,
-          parent_id: parentTask.id
-        });
-        toast.success("Task indented successfully");
-      } catch (error) {
-        console.error("Failed to indent task:", error);
-        toast.error("Failed to indent task");
-      }
+    try {
+      await updateTask.mutateAsync({
+        id: taskId,
+        hierarchy_number: newHierarchyNumber
+      });
+      toast.success("Task indented successfully");
+    } catch (error) {
+      console.error("Failed to indent task:", error);
+      toast.error("Failed to indent task");
     }
   };
 
   const handleOutdent = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || !task.hierarchy_number) return;
+    if (!task) return;
 
-    const hierarchyParts = task.hierarchy_number.split(".");
-    
-    // Can't outdent if already at top level
-    if (hierarchyParts.length <= 1) return;
+    const newHierarchyNumber = generateOutdentHierarchy(task, tasks);
+    if (!newHierarchyNumber) {
+      toast.error("Cannot outdent this task");
+      return;
+    }
 
     try {
-      // Simplified outdent - just remove parent
       await updateTask.mutateAsync({
         id: taskId,
-        parent_id: null
+        hierarchy_number: newHierarchyNumber
       });
       toast.success("Task outdented successfully");
     } catch (error) {

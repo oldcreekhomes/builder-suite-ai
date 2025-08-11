@@ -1,32 +1,200 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 /**
+ * Get the parent hierarchy number from a given hierarchy number
+ * Example: "1.2.3" -> "1.2"
+ */
+export function getParentHierarchy(hierarchyNumber: string): string | null {
+  if (!hierarchyNumber) return null;
+  const parts = hierarchyNumber.split(".");
+  if (parts.length <= 1) return null;
+  return parts.slice(0, -1).join(".");
+}
+
+/**
+ * Get all children of a task based on hierarchy number
+ */
+export function getChildren(tasks: ProjectTask[], parentHierarchy: string): ProjectTask[] {
+  if (!parentHierarchy) return [];
+  return tasks.filter(task => 
+    task.hierarchy_number && 
+    task.hierarchy_number.startsWith(parentHierarchy + ".") &&
+    task.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
+  );
+}
+
+/**
+ * Get the hierarchy level (indentation level)
+ */
+export function getLevel(hierarchyNumber: string): number {
+  if (!hierarchyNumber) return 0;
+  return hierarchyNumber.split(".").length - 1;
+}
+
+/**
+ * Check if a task can be indented (has a suitable parent)
+ */
+export function canIndent(task: ProjectTask, tasks: ProjectTask[]): boolean {
+  if (!task.hierarchy_number) return false;
+  
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  if (currentIndex <= 0) return false;
+  
+  const currentLevel = getLevel(task.hierarchy_number);
+  
+  // Look for a task at the same level that can be a parent
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const potentialParent = sortedTasks[i];
+    const parentLevel = getLevel(potentialParent.hierarchy_number || "");
+    
+    if (parentLevel === currentLevel) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if a task can be outdented
+ */
+export function canOutdent(task: ProjectTask): boolean {
+  if (!task.hierarchy_number) return false;
+  return getLevel(task.hierarchy_number) > 0;
+}
+
+/**
+ * Generate a new hierarchy number for indenting a task
+ */
+export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
+  if (!canIndent(task, tasks)) return null;
+  
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  const currentLevel = getLevel(task.hierarchy_number!);
+  
+  // Find the parent task (last task at same level)
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const potentialParent = sortedTasks[i];
+    const parentLevel = getLevel(potentialParent.hierarchy_number || "");
+    
+    if (parentLevel === currentLevel) {
+      // Found parent, calculate next child number
+      const children = getChildren(tasks, potentialParent.hierarchy_number!);
+      const nextChildNumber = children.length + 1;
+      return `${potentialParent.hierarchy_number}.${nextChildNumber}`;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Generate a new hierarchy number for outdenting a task
+ */
+export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
+  if (!canOutdent(task)) return null;
+  
+  const parentHierarchy = getParentHierarchy(task.hierarchy_number!);
+  if (!parentHierarchy) {
+    // Move to top level
+    const topLevelTasks = tasks.filter(t => 
+      t.hierarchy_number && !t.hierarchy_number.includes(".")
+    );
+    const nextTopLevel = topLevelTasks.length + 1;
+    return nextTopLevel.toString();
+  }
+  
+  // Move to parent's level as next sibling
+  const parentParent = getParentHierarchy(parentHierarchy);
+  const siblings = parentParent 
+    ? getChildren(tasks, parentParent)
+    : tasks.filter(t => t.hierarchy_number && !t.hierarchy_number.includes("."));
+  
+  const nextSiblingNumber = siblings.length + 1;
+  return parentParent ? `${parentParent}.${nextSiblingNumber}` : nextSiblingNumber.toString();
+}
+
+/**
+ * Renumber all tasks to ensure clean sequential numbering
+ */
+export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
+  // Sort tasks by hierarchy for proper processing
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  const result = [...sortedTasks];
+  const numberMap = new Map<string, string>();
+  
+  // First pass: assign new numbers to top-level tasks
+  let topLevelCounter = 1;
+  result.forEach(task => {
+    if (task.hierarchy_number && !task.hierarchy_number.includes(".")) {
+      const newNumber = topLevelCounter.toString();
+      numberMap.set(task.hierarchy_number, newNumber);
+      task.hierarchy_number = newNumber;
+      topLevelCounter++;
+    }
+  });
+  
+  // Subsequent passes: handle each level
+  let hasChanges = true;
+  while (hasChanges) {
+    hasChanges = false;
+    result.forEach(task => {
+      if (!task.hierarchy_number || !task.hierarchy_number.includes(".")) return;
+      
+      const parentHierarchy = getParentHierarchy(task.hierarchy_number);
+      if (!parentHierarchy || !numberMap.has(parentHierarchy)) return;
+      
+      const newParent = numberMap.get(parentHierarchy)!;
+      const siblings = result.filter(t => 
+        t.hierarchy_number && 
+        getParentHierarchy(t.hierarchy_number) === parentHierarchy
+      );
+      
+      const siblingIndex = siblings.findIndex(s => s.id === task.id) + 1;
+      const newNumber = `${newParent}.${siblingIndex}`;
+      
+      if (task.hierarchy_number !== newNumber) {
+        numberMap.set(task.hierarchy_number, newNumber);
+        task.hierarchy_number = newNumber;
+        hasChanges = true;
+      }
+    });
+  }
+  
+  return result;
+}
+
+/**
  * Generate a new hierarchy number based on the target position in the task list
  */
 export function generateHierarchyNumber(tasks: ProjectTask[], targetIndex: number): string {
-  // Sort tasks by hierarchy number to determine proper position
   const sortedTasks = [...tasks].sort((a, b) => {
     const aNum = a.hierarchy_number || "999";
     const bNum = b.hierarchy_number || "999";
     return aNum.localeCompare(bNum, undefined, { numeric: true });
   });
 
-  // If inserting at the beginning
   if (targetIndex === 0) {
-    const firstTask = sortedTasks[0];
-    if (!firstTask?.hierarchy_number) {
-      return "1";
-    }
-    
-    const firstNum = parseHierarchyNumber(firstTask.hierarchy_number);
-    if (firstNum > 1) {
-      return "1";
-    }
-    
-    return generateBetweenNumbers("", firstTask.hierarchy_number);
+    return "1";
   }
 
-  // If inserting at the end
   if (targetIndex >= sortedTasks.length) {
     const lastTask = sortedTasks[sortedTasks.length - 1];
     if (!lastTask?.hierarchy_number) {
@@ -37,7 +205,6 @@ export function generateHierarchyNumber(tasks: ProjectTask[], targetIndex: numbe
     return nextNum;
   }
 
-  // If inserting in the middle
   const prevTask = sortedTasks[targetIndex - 1];
   const nextTask = sortedTasks[targetIndex];
   

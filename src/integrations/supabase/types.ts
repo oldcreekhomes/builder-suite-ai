@@ -705,7 +705,6 @@ export type Database = {
           end_date: string
           hierarchy_number: string | null
           id: string
-          parent_id: string | null
           predecessor: string | null
           progress: number | null
           project_id: string
@@ -721,7 +720,6 @@ export type Database = {
           end_date: string
           hierarchy_number?: string | null
           id?: string
-          parent_id?: string | null
           predecessor?: string | null
           progress?: number | null
           project_id: string
@@ -737,7 +735,6 @@ export type Database = {
           end_date?: string
           hierarchy_number?: string | null
           id?: string
-          parent_id?: string | null
           predecessor?: string | null
           progress?: number | null
           project_id?: string
@@ -918,18 +915,30 @@ export type Database = {
         Returns: undefined
       }
       create_project_task: {
-        Args: {
-          project_id_param: string
-          task_name_param: string
-          start_date_param: string
-          end_date_param: string
-          duration_param?: number
-          progress_param?: number
-          predecessor_param?: string
-          resources_param?: string
-          parent_id_param?: string
-          order_index_param?: number
-        }
+        Args:
+          | {
+              project_id_param: string
+              task_name_param: string
+              start_date_param: string
+              end_date_param: string
+              duration_param?: number
+              progress_param?: number
+              predecessor_param?: string
+              resources_param?: string
+              hierarchy_number_param?: string
+            }
+          | {
+              project_id_param: string
+              task_name_param: string
+              start_date_param: string
+              end_date_param: string
+              duration_param?: number
+              progress_param?: number
+              predecessor_param?: string
+              resources_param?: string
+              parent_id_param?: string
+              order_index_param?: number
+            }
         Returns: string
       }
       delete_project_task: {
@@ -1015,18 +1024,30 @@ export type Database = {
         Returns: boolean
       }
       update_project_task: {
-        Args: {
-          id_param: string
-          task_name_param?: string
-          start_date_param?: string
-          end_date_param?: string
-          duration_param?: number
-          progress_param?: number
-          predecessor_param?: string
-          resources_param?: string
-          parent_id_param?: string
-          order_index_param?: number
-        }
+        Args:
+          | {
+              id_param: string
+              task_name_param?: string
+              start_date_param?: string
+              end_date_param?: string
+              duration_param?: number
+              progress_param?: number
+              predecessor_param?: string
+              resources_param?: string
+              hierarchy_number_param?: string
+            }
+          | {
+              id_param: string
+              task_name_param?: string
+              start_date_param?: string
+              end_date_param?: string
+              duration_param?: number
+              progress_param?: number
+              predecessor_param?: string
+              resources_param?: string
+              parent_id_param?: string
+              order_index_param?: number
+            }
         Returns: boolean
       }
       update_project_task_by_number: {

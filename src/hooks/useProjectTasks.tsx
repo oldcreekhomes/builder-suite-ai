@@ -14,12 +14,10 @@ export interface ProjectTask {
   progress?: number;
   predecessor?: string;
   resources?: string;
-  parent_id?: string;
-  
+  hierarchy_number?: string;
   created_at: string;
   updated_at: string;
   confirmed?: boolean;
-  hierarchy_number?: string;
 }
 
 // Global subscription manager to prevent duplicate subscriptions
