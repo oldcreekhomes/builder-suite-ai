@@ -31,92 +31,18 @@ export function ScheduleToolbar({
 }: ScheduleToolbarProps) {
   const { updateTask } = useTaskMutations(projectId);
   
+  // DISABLED: Indent/Outdent functionality during refactoring
   const handleIndent = async () => {
-    if (selectedTasks.size === 0) {
-      toast.error("Please select tasks to indent");
-      return;
-    }
-
-    try {
-      for (const taskId of selectedTasks) {
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) {
-          console.warn("Task not found:", taskId);
-          continue;
-        }
-
-        if (!canIndent(task, tasks)) {
-          toast.error(`Cannot indent task: ${task.task_name}`);
-          continue;
-        }
-
-        const newHierarchyNumber = generateIndentHierarchy(task, tasks);
-        if (!newHierarchyNumber) {
-          toast.error(`Failed to generate hierarchy for task: ${task.task_name}`);
-          continue;
-        }
-
-        await updateTask.mutateAsync({
-          id: taskId,
-          hierarchy_number: newHierarchyNumber
-        });
-      }
-
-      toast.success("Tasks indented successfully");
-    } catch (error) {
-      console.error("Error indenting tasks:", error);
-      toast.error("Failed to indent tasks");
-    }
+    toast.info("Indent functionality temporarily disabled during refactoring");
   };
 
   const handleOutdent = async () => {
-    if (selectedTasks.size === 0) {
-      toast.error("Please select tasks to outdent");
-      return;
-    }
-
-    try {
-      for (const taskId of selectedTasks) {
-        const task = tasks.find(t => t.id === taskId);
-        if (!task) {
-          console.warn("Task not found:", taskId);
-          continue;
-        }
-
-        if (!canOutdent(task)) {
-          toast.error(`Cannot outdent task: ${task.task_name}`);
-          continue;
-        }
-
-        const newHierarchyNumber = generateOutdentHierarchy(task, tasks);
-        if (!newHierarchyNumber) {
-          toast.error(`Failed to generate hierarchy for task: ${task.task_name}`);
-          continue;
-        }
-
-        await updateTask.mutateAsync({
-          id: taskId,
-          hierarchy_number: newHierarchyNumber
-        });
-      }
-
-      toast.success("Tasks outdented successfully");
-    } catch (error) {
-      console.error("Error outdenting tasks:", error);
-      toast.error("Failed to outdent tasks");
-    }
+    toast.info("Outdent functionality temporarily disabled during refactoring");
   };
 
-  // Button state logic
-  const canIndentTasks = selectedTasks.size > 0 && Array.from(selectedTasks).some(taskId => {
-    const task = tasks.find(t => t.id === taskId);
-    return task && canIndent(task, tasks);
-  });
-  
-  const canOutdentTasks = selectedTasks.size > 0 && Array.from(selectedTasks).some(taskId => {
-    const task = tasks.find(t => t.id === taskId);
-    return task && canOutdent(task);
-  });
+  // DISABLED: Button state logic during refactoring
+  const canIndentTasks = false; // Disabled during refactoring
+  const canOutdentTasks = false; // Disabled during refactoring
 
   return (
     <div className="flex items-center gap-2 p-3 bg-card border-b">
@@ -151,7 +77,8 @@ export function ScheduleToolbar({
           Outdent
         </Button>
         
-        <HierarchyFixButton tasks={tasks} projectId={projectId} />
+        {/* DISABLED: HierarchyFixButton during refactoring */}
+        {/* <HierarchyFixButton tasks={tasks} projectId={projectId} /> */}
       
       <div className="ml-auto">
         <Button

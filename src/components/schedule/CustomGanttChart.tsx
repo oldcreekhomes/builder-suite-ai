@@ -9,13 +9,8 @@ import { ScheduleToolbar } from "./ScheduleToolbar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { 
-  getIndentLevel, 
-  generateHierarchyNumber,
-  generateIndentHierarchy,
-  generateOutdentHierarchy,
-  renumberTasks
-} from "@/utils/hierarchyUtils";
+// Simplified hierarchy imports - only basic functions
+import { getLevel } from "@/utils/hierarchyUtils";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -37,48 +32,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
+  // DISABLED: Task move functionality - will be reimplemented later
   const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
-    try {
-      const sortedTasks = [...tasks].sort((a, b) => {
-        const aNum = a.hierarchy_number || "999";
-        const bNum = b.hierarchy_number || "999";
-        return aNum.localeCompare(bNum, undefined, { numeric: true });
-      });
-
-      const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
-      if (currentIndex === -1) return;
-
-      let targetIndex: number;
-      if (direction === 'up') {
-        targetIndex = Math.max(0, currentIndex - 1);
-      } else {
-        targetIndex = Math.min(sortedTasks.length - 1, currentIndex + 1);
-      }
-
-      if (targetIndex === currentIndex) return; // No movement needed
-
-      // Swap hierarchy numbers with the target task
-      const currentTask = sortedTasks[currentIndex];
-      const targetTask = sortedTasks[targetIndex];
-
-      if (currentTask && targetTask) {
-        await Promise.all([
-          updateTask.mutateAsync({
-            id: currentTask.id,
-            hierarchy_number: targetTask.hierarchy_number
-          }),
-          updateTask.mutateAsync({
-            id: targetTask.id,
-            hierarchy_number: currentTask.hierarchy_number
-          })
-        ]);
-        
-        toast.success(`Task moved ${direction} successfully`);
-      }
-    } catch (error) {
-      console.error(`Failed to move task ${direction}:`, error);
-      toast.error(`Failed to move task ${direction}`);
-    }
+    toast.info("Task movement temporarily disabled during refactoring");
   };
 
   const handleTaskUpdate = async (taskId: string, updates: any) => {
@@ -94,50 +50,17 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // DISABLED: Indent functionality - will be reimplemented step by step
   const handleIndent = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const newHierarchyNumber = generateIndentHierarchy(task, tasks);
-    if (!newHierarchyNumber) {
-      toast.error("Cannot indent this task");
-      return;
-    }
-
-    try {
-      await updateTask.mutateAsync({
-        id: taskId,
-        hierarchy_number: newHierarchyNumber
-      });
-      toast.success("Task indented successfully");
-    } catch (error) {
-      console.error("Failed to indent task:", error);
-      toast.error("Failed to indent task");
-    }
+    toast.info("Indent functionality temporarily disabled during refactoring");
   };
 
+  // DISABLED: Outdent functionality - will be reimplemented step by step
   const handleOutdent = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const newHierarchyNumber = generateOutdentHierarchy(task, tasks);
-    if (!newHierarchyNumber) {
-      toast.error("Cannot outdent this task");
-      return;
-    }
-
-    try {
-      await updateTask.mutateAsync({
-        id: taskId,
-        hierarchy_number: newHierarchyNumber
-      });
-      toast.success("Task outdented successfully");
-    } catch (error) {
-      console.error("Failed to outdent task:", error);
-      toast.error("Failed to outdent task");
-    }
+    toast.info("Outdent functionality temporarily disabled during refactoring");
   };
 
+  // SIMPLE: Just add tasks at the end for now
   const getNextTopLevelNumber = (tasks: ProjectTask[]): string => {
     const topLevelNumbers = tasks
       .map(t => t.hierarchy_number?.split('.')[0])
@@ -149,42 +72,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       : "1";
   };
 
-  const findInsertionPoint = (tasks: ProjectTask[], relativeTaskId: string, position: 'above' | 'below'): number => {
-    const sortedTasks = [...tasks].sort((a, b) => {
-      const aNum = a.hierarchy_number || "999";
-      const bNum = b.hierarchy_number || "999";
-      return aNum.localeCompare(bNum, undefined, { numeric: true });
-    });
-
-    const relativeIndex = sortedTasks.findIndex(t => t.id === relativeTaskId);
-    if (relativeIndex === -1) return sortedTasks.length;
-
-    if (position === 'above') {
-      return relativeIndex;
-    } else {
-      // For 'below', find the end of this task's children
-      const relativeTask = sortedTasks[relativeIndex];
-      const relativeHierarchy = relativeTask.hierarchy_number || "1";
-      
-      let endIndex = relativeIndex + 1;
-      while (endIndex < sortedTasks.length) {
-        const nextHierarchy = sortedTasks[endIndex].hierarchy_number || "";
-        if (!nextHierarchy.startsWith(relativeHierarchy + ".")) {
-          break;
-        }
-        endIndex++;
-      }
-      return endIndex;
-    }
-  };
-
-  const handleAddTask = async (position: 'above' | 'below', relativeTaskId: string) => {
+  // SIMPLIFIED: Only "add at end" for now - will add positioning later
+  const handleAddTask = async () => {
     try {
-      // Always create top-level tasks
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
-      const insertionPoint = findInsertionPoint(tasks, relativeTaskId, position);
-
-      // Create the new task first
       const defaultStartDate = new Date();
       const defaultEndDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
 
@@ -197,29 +88,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         progress: 0,
         hierarchy_number: newHierarchyNumber
       });
-
-      // Get updated tasks and renumber them cleanly
-      const updatedTasks = [...tasks];
-      
-      // Remove the newly created task from its current position and insert at the right place
-      const newTaskIndex = updatedTasks.findIndex(t => t.hierarchy_number === newHierarchyNumber);
-      if (newTaskIndex !== -1) {
-        const [newTask] = updatedTasks.splice(newTaskIndex, 1);
-        updatedTasks.splice(insertionPoint, 0, newTask);
-      }
-
-      // Renumber all tasks cleanly
-      const renumberedTasks = renumberTasks(updatedTasks);
-      
-      // Update hierarchy numbers for all tasks
-      for (const task of renumberedTasks) {
-        if (task.hierarchy_number) {
-          await updateTask.mutateAsync({
-            id: task.id,
-            hierarchy_number: task.hierarchy_number
-          });
-        }
-      }
       
       toast.success("Task added successfully");
     } catch (error) {
@@ -228,67 +96,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // DISABLED: Complex add positioning - will be reimplemented later
+  const handleAddTaskPositioned = async (position: 'above' | 'below', relativeTaskId: string) => {
+    toast.info("Positioned task adding temporarily disabled during refactoring");
+  };
+
+  // SIMPLIFIED: Just delete the task without complex renumbering for now
   const handleDeleteTask = async (taskId: string) => {
-    const taskToDelete = tasks.find(t => t.id === taskId);
-    if (!taskToDelete) return;
-
     try {
-      // Sort tasks by hierarchy number to get correct order
-      const sortedTasks = [...tasks].sort((a, b) => {
-        const aNum = a.hierarchy_number || "999";
-        const bNum = b.hierarchy_number || "999";
-        return aNum.localeCompare(bNum, undefined, { numeric: true });
-      });
-
-      const deleteIndex = sortedTasks.findIndex(t => t.id === taskId);
-      const deletedHierarchy = taskToDelete.hierarchy_number || "1";
-      
-      // Find all tasks that need to be deleted (the task and its children)
-      const tasksToDelete = [taskToDelete];
-      for (let i = deleteIndex + 1; i < sortedTasks.length; i++) {
-        const task = sortedTasks[i];
-        const hierarchy = task.hierarchy_number || "";
-        if (hierarchy.startsWith(deletedHierarchy + ".")) {
-          tasksToDelete.push(task);
-        } else {
-          break;
-        }
-      }
-
-      // Delete the task and its children
-      for (const task of tasksToDelete) {
-        await deleteTask.mutateAsync(task.id);
-      }
-
-      // Find tasks that come after the deleted range and need renumbering
-      const endDeleteIndex = deleteIndex + tasksToDelete.length;
-      const tasksToRenumber = sortedTasks.slice(endDeleteIndex);
-      
-      // Renumber all subsequent tasks
-      for (const task of tasksToRenumber) {
-        const currentHierarchy = task.hierarchy_number || "1";
-        const hierarchyParts = currentHierarchy.split('.');
-        
-        if (hierarchyParts.length === 1) {
-          // This is a parent-level task - decrement by 1
-          const currentMainNumber = parseInt(hierarchyParts[0]) || 1;
-          const newMainNumber = currentMainNumber - 1;
-          await updateTask.mutateAsync({
-            id: task.id,
-            hierarchy_number: newMainNumber.toString()
-          });
-        } else {
-          // This is a child task - decrement the parent number
-          const currentParentNumber = parseInt(hierarchyParts[0]) || 1;
-          const newParentNumber = currentParentNumber - 1;
-          const newSubHierarchy = [newParentNumber, ...hierarchyParts.slice(1)].join('.');
-          await updateTask.mutateAsync({
-            id: task.id,
-            hierarchy_number: newSubHierarchy
-          });
-        }
-      }
-      
+      await deleteTask.mutateAsync(taskId);
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -321,7 +137,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           selectedTasks={selectedTasks}
           tasks={tasks}
           projectId={projectId}
-          onAddTask={() => setShowAddTaskDialog(true)}
+          onAddTask={handleAddTask}
           onTaskUpdate={handleTaskUpdate}
           onPublish={() => setShowPublishDialog(true)}
         />
@@ -336,7 +152,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onSelectedTasksChange={setSelectedTasks}
           onIndent={handleIndent}
           onOutdent={handleOutdent}
-          onAddTask={handleAddTask}
+          onAddTask={handleAddTaskPositioned}
           onDeleteTask={handleDeleteTask}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
@@ -358,12 +174,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         </ResizablePanelGroup>
       </div>
 
-      {/* Add Task Dialog */}
-      <AddTaskDialog 
+      {/* DISABLED: AddTaskDialog during refactoring - using simple add instead */}
+      {/* <AddTaskDialog 
         projectId={projectId}
         open={showAddTaskDialog}
         onOpenChange={setShowAddTaskDialog}
-      />
+      /> */}
 
       {/* Publish Dialog */}
       <PublishScheduleDialog
