@@ -37,6 +37,12 @@ export function ScheduleToolbar({
         const task = tasks.find(t => t.id === taskId);
         if (!task) continue;
 
+        // Check if task is already at maximum indent level (we'll limit to 2 levels deep: X.Y)
+        if (task.hierarchy_number && task.hierarchy_number.split(".").length >= 2) {
+          toast.error("Cannot indent further - task is already at maximum depth");
+          return;
+        }
+
         // Find the task above this one in the hierarchy
         const sortedTasks = [...tasks].sort((a, b) => {
           const aNum = a.hierarchy_number || "999";
@@ -47,6 +53,15 @@ export function ScheduleToolbar({
         const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
         if (currentIndex > 0) {
           const parentTask = sortedTasks[currentIndex - 1];
+          
+          // Only allow indenting under a task that is at the same level or one level up
+          const currentLevel = task.hierarchy_number ? task.hierarchy_number.split(".").length : 1;
+          const parentLevel = parentTask.hierarchy_number ? parentTask.hierarchy_number.split(".").length : 1;
+          
+          if (parentLevel !== currentLevel) {
+            toast.error("Can only indent under tasks at the same hierarchical level");
+            return;
+          }
           
           // Find existing children of the parent to determine the next child number
           const existingChildren = sortedTasks.filter(t => 
@@ -91,172 +106,51 @@ export function ScheduleToolbar({
     const selectedTaskIds = Array.from(selectedTasks);
     
     try {
-      // Build comprehensive hierarchy map for renumbering
-      const sortedTasks = [...tasks].sort((a, b) => {
-        const aNum = a.hierarchy_number || "999";
-        const bNum = b.hierarchy_number || "999";
-        return aNum.localeCompare(bNum, undefined, { numeric: true });
-      });
-
-      // Group all update operations
-      const updateOperations: Array<{ id: string; hierarchy_number: string; parent_id: string | null }> = [];
-
-      // Process each selected task for outdenting
       for (const taskId of selectedTaskIds) {
         const task = tasks.find(t => t.id === taskId);
         if (!task || !task.hierarchy_number) continue;
 
         const hierarchyParts = task.hierarchy_number.split(".");
         
-        // Can't outdent if already at top level
-        if (hierarchyParts.length <= 1) continue;
-
-        // Find the current position of this task in sorted order
-        const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
-        
-        // Find where this task should be inserted as a new parent
-        // Look for the parent task and insert after it
-        const currentParentHierarchy = hierarchyParts.slice(0, -1).join(".");
-        const parentTask = tasks.find(t => t.hierarchy_number === currentParentHierarchy);
-        
-        if (!parentTask) continue;
-
-        // Find the parent's position and determine new parent number
-        const parentIndex = sortedTasks.findIndex(t => t.id === parentTask.id);
-        
-        // Find the highest parent-level number and add 1
-        const parentLevelTasks = sortedTasks.filter(t => 
-          t.hierarchy_number && !t.hierarchy_number.includes(".")
-        );
-        
-        let newParentNumber = 1;
-        if (parentLevelTasks.length > 0) {
-          const parentNumbers = parentLevelTasks.map(t => parseInt(t.hierarchy_number!));
-          newParentNumber = Math.max(...parentNumbers) + 1;
+        // Can't outdent if already at top level (only one part in hierarchy)
+        if (hierarchyParts.length <= 1) {
+          toast.error("Cannot outdent further - task is already at top level");
+          return;
         }
 
-        // This task becomes a new parent
-        updateOperations.push({
-          id: taskId,
-          hierarchy_number: newParentNumber.toString(),
-          parent_id: null
-        });
-
-        // Renumber remaining children of the original parent to close the gap
-        const originalParentChildren = sortedTasks.filter(t => {
-          if (!t.hierarchy_number || t.id === taskId) return false;
-          return t.hierarchy_number.startsWith(currentParentHierarchy + ".") && 
-                 t.hierarchy_number.split(".").length === hierarchyParts.length;
-        });
-
-        // Sort the remaining children and renumber them sequentially
-        const sortedChildren = originalParentChildren.sort((a, b) => {
-          const aLastPart = parseInt(a.hierarchy_number!.split(".").pop()!);
-          const bLastPart = parseInt(b.hierarchy_number!.split(".").pop()!);
-          return aLastPart - bLastPart;
-        });
-
-        sortedChildren.forEach((child, index) => {
-          const newChildHierarchy = currentParentHierarchy + "." + (index + 1);
-          updateOperations.push({
-            id: child.id,
-            hierarchy_number: newChildHierarchy,
-            parent_id: parentTask.id
+        // Only allow outdenting one level at a time
+        if (hierarchyParts.length > 2) {
+          // Move from X.Y.Z to X.Y (remove one level)
+          const newHierarchyNumber = hierarchyParts.slice(0, -1).join(".");
+          const newParentHierarchy = hierarchyParts.slice(0, -2).join(".");
+          
+          // Find the new parent task
+          const newParentTask = tasks.find(t => t.hierarchy_number === newParentHierarchy);
+          
+          await updateTask.mutateAsync({
+            id: taskId,
+            hierarchy_number: newHierarchyNumber,
+            parent_id: newParentTask ? newParentTask.id : null
           });
-
-          // Also renumber any descendants of this child
-          const childDescendants = sortedTasks.filter(t => 
-            t.hierarchy_number && 
-            t.hierarchy_number.startsWith(child.hierarchy_number! + ".") &&
-            t.id !== child.id
+        } else {
+          // Move from X.Y to top level (become a new parent)
+          // Find the highest parent-level number and add 1
+          const parentLevelTasks = tasks.filter(t => 
+            t.hierarchy_number && !t.hierarchy_number.includes(".")
           );
-
-          childDescendants.forEach(descendant => {
-            const descendantParts = descendant.hierarchy_number!.split(".");
-            const relativeParts = descendantParts.slice(hierarchyParts.length);
-            const newDescendantHierarchy = newChildHierarchy + "." + relativeParts.join(".");
-            
-            // Find the correct parent_id for this descendant
-            let descendantParentId = child.id;
-            if (relativeParts.length > 1) {
-              const descendantParentHierarchy = newChildHierarchy + "." + relativeParts.slice(0, -1).join(".");
-              const existingDescendantParent = tasks.find(t => t.hierarchy_number === descendantParentHierarchy);
-              const updatedDescendantParent = updateOperations.find(op => op.hierarchy_number === descendantParentHierarchy);
-              
-              if (existingDescendantParent) {
-                descendantParentId = existingDescendantParent.id;
-              } else if (updatedDescendantParent) {
-                descendantParentId = updatedDescendantParent.id;
-              }
-            }
-
-            updateOperations.push({
-              id: descendant.id,
-              hierarchy_number: newDescendantHierarchy,
-              parent_id: descendantParentId
-            });
-          });
-        });
-
-        // Now renumber all subsequent parent-level tasks and their children
-        const tasksToRenumber = sortedTasks.filter(t => {
-          if (!t.hierarchy_number || t.id === taskId) return false;
           
-          const isParentLevel = !t.hierarchy_number.includes(".");
-          if (isParentLevel) {
-            const taskNum = parseInt(t.hierarchy_number);
-            return taskNum >= newParentNumber;
-          }
-          
-          // Check if this is a child of a parent that needs renumbering
-          const parentHierarchy = t.hierarchy_number.split(".")[0];
-          const parentNum = parseInt(parentHierarchy);
-          return parentNum >= newParentNumber;
-        });
-
-        // Renumber all affected tasks
-        for (const taskToRenumber of tasksToRenumber) {
-          if (taskToRenumber.id === taskId || 
-              updateOperations.some(op => op.id === taskToRenumber.id)) continue; // Skip already processed tasks
-          
-          const currentHierarchy = taskToRenumber.hierarchy_number!;
-          const hierarchyParts = currentHierarchy.split(".");
-          const currentParentNum = parseInt(hierarchyParts[0]);
-          
-          // Increment the parent number
-          const newParentNum = currentParentNum + 1;
-          hierarchyParts[0] = newParentNum.toString();
-          const newHierarchy = hierarchyParts.join(".");
-          
-          // Find the new parent_id
-          let newParentId = null;
-          if (hierarchyParts.length > 1) {
-            const parentHierarchy = hierarchyParts.slice(0, -1).join(".");
-            const existingParentTask = tasks.find(t => t.hierarchy_number === parentHierarchy);
-            const updatedParentTask = updateOperations.find(op => op.hierarchy_number === parentHierarchy);
-            
-            if (existingParentTask) {
-              newParentId = existingParentTask.id;
-            } else if (updatedParentTask) {
-              newParentId = updatedParentTask.id;
-            }
+          let newParentNumber = 1;
+          if (parentLevelTasks.length > 0) {
+            const parentNumbers = parentLevelTasks.map(t => parseInt(t.hierarchy_number!));
+            newParentNumber = Math.max(...parentNumbers) + 1;
           }
 
-          updateOperations.push({
-            id: taskToRenumber.id,
-            hierarchy_number: newHierarchy,
-            parent_id: newParentId
+          await updateTask.mutateAsync({
+            id: taskId,
+            hierarchy_number: newParentNumber.toString(),
+            parent_id: null
           });
         }
-      }
-
-      // Execute all updates in batch
-      for (const operation of updateOperations) {
-        await updateTask.mutateAsync({
-          id: operation.id,
-          hierarchy_number: operation.hierarchy_number,
-          parent_id: operation.parent_id
-        });
       }
 
       toast.success("Tasks outdented successfully");
