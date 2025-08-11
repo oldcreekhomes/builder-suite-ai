@@ -169,7 +169,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           tasks={tasks}
           projectId={projectId}
           onAddTask={handleAddTask}
-          onTaskUpdate={handleTaskUpdate}
           onPublish={() => setShowPublishDialog(true)}
         />
         
