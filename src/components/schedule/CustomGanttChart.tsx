@@ -79,6 +79,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         <ScheduleToolbar
           selectedTasks={selectedTasks}
           tasks={tasks}
+          projectId={projectId}
           onAddTask={() => setShowAddTaskDialog(true)}
           onTaskUpdate={handleTaskUpdate}
           onPublish={() => setShowPublishDialog(true)}
