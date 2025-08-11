@@ -115,15 +115,15 @@ export function TaskRow({
 
         {/* Task Name with Indentation */}
         <TableCell className="py-1 px-2 w-48">
-          <div 
-            className="flex items-center gap-1"
-            style={{ marginLeft: `${indentLevel * 16}px` }}
-          >
+          <div className="flex items-center gap-1">
+            {/* Indentation spacer */}
+            <div style={{ width: `${indentLevel * 16}px` }} />
+            
             {/* Expand/Collapse Button */}
             {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(task.id)}
-                className="p-0.5 hover:bg-muted rounded"
+                className="p-0.5 hover:bg-muted rounded flex-shrink-0"
               >
                 {isExpanded ? (
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -132,14 +132,16 @@ export function TaskRow({
                 )}
               </button>
             ) : (
-              <div className="w-4" /> // Spacer for alignment
+              <div className="w-4 flex-shrink-0" /> // Spacer for alignment
             )}
+            
+            {/* Task name aligned with column header */}
             <div className="flex-1">
               <InlineEditCell
                 value={task.task_name}
                 type="text"
                 onSave={handleFieldUpdate("task_name")}
-                className="truncate"
+                className="truncate text-left"
               />
             </div>
           </div>
