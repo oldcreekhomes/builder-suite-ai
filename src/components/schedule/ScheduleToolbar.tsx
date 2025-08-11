@@ -24,7 +24,7 @@ export function ScheduleToolbar({
 }: ScheduleToolbarProps) {
   const { updateTask } = useTaskMutations(projectId);
   
-  const handleIndent = () => {
+  const handleIndent = async () => {
     if (selectedTasks.size === 0) {
       toast.error("Please select tasks to indent");
       return;
@@ -32,25 +32,54 @@ export function ScheduleToolbar({
 
     const selectedTaskIds = Array.from(selectedTasks);
     
-    selectedTaskIds.forEach(taskId => {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+    try {
+      for (const taskId of selectedTaskIds) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) continue;
 
-      // Find the task above this one in the hierarchy
-      const sortedTasks = [...tasks].sort((a, b) => {
-        const aNum = a.hierarchy_number || "999";
-        const bNum = b.hierarchy_number || "999";
-        return aNum.localeCompare(bNum, undefined, { numeric: true });
-      });
+        // Find the task above this one in the hierarchy
+        const sortedTasks = [...tasks].sort((a, b) => {
+          const aNum = a.hierarchy_number || "999";
+          const bNum = b.hierarchy_number || "999";
+          return aNum.localeCompare(bNum, undefined, { numeric: true });
+        });
 
-      const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
-      if (currentIndex > 0) {
-        const parentTask = sortedTasks[currentIndex - 1];
-        onTaskUpdate(taskId, { parent_id: parentTask.id });
+        const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
+        if (currentIndex > 0) {
+          const parentTask = sortedTasks[currentIndex - 1];
+          
+          // Find existing children of the parent to determine the next child number
+          const existingChildren = sortedTasks.filter(t => 
+            t.hierarchy_number && 
+            t.hierarchy_number.startsWith(parentTask.hierarchy_number + ".") &&
+            t.hierarchy_number.split(".").length === (parentTask.hierarchy_number?.split(".").length || 0) + 1
+          );
+          
+          // Calculate the next child number
+          let nextChildNumber = 1;
+          if (existingChildren.length > 0) {
+            const childNumbers = existingChildren.map(child => {
+              const parts = child.hierarchy_number!.split(".");
+              return parseInt(parts[parts.length - 1]);
+            });
+            nextChildNumber = Math.max(...childNumbers) + 1;
+          }
+          
+          const newHierarchyNumber = parentTask.hierarchy_number + "." + nextChildNumber;
+          
+          await updateTask.mutateAsync({
+            id: taskId,
+            parent_id: parentTask.id,
+            hierarchy_number: newHierarchyNumber
+          });
+        }
       }
-    });
 
-    toast.success("Tasks indented successfully");
+      toast.success("Tasks indented successfully");
+    } catch (error) {
+      console.error("Error indenting tasks:", error);
+      toast.error("Failed to indent tasks");
+    }
   };
 
   const handleOutdent = async () => {
