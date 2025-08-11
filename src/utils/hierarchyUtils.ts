@@ -76,17 +76,39 @@ export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[])
   
   if (!parentHierarchy) return null;
   
-  // Find all existing children of the previous task
-  const existingChildren = tasks.filter(t => 
-    t.hierarchy_number && 
-    t.hierarchy_number.startsWith(parentHierarchy + ".") &&
-    t.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
-  );
+  // Check if the previous task is already a child (has dots)
+  const isChildTask = parentHierarchy.includes('.');
   
-  // Calculate the next child number
-  const nextChildNumber = existingChildren.length + 1;
-  
-  return `${parentHierarchy}.${nextChildNumber}`;
+  if (isChildTask) {
+    // Previous task is a child, so make current task a sibling under the same parent
+    const parentParts = parentHierarchy.split('.');
+    const immediateParent = parentParts.slice(0, -1).join('.');
+    
+    // Find all existing children of the immediate parent at the same level
+    const existingChildren = tasks.filter(t => 
+      t.hierarchy_number && 
+      t.hierarchy_number.startsWith(immediateParent + ".") &&
+      t.hierarchy_number.split(".").length === parentParts.length
+    );
+    
+    // Calculate the next sibling number
+    const nextSiblingNumber = existingChildren.length + 1;
+    
+    return `${immediateParent}.${nextSiblingNumber}`;
+  } else {
+    // Previous task is a parent, so make current task its child
+    // Find all existing children of the previous task
+    const existingChildren = tasks.filter(t => 
+      t.hierarchy_number && 
+      t.hierarchy_number.startsWith(parentHierarchy + ".") &&
+      t.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
+    );
+    
+    // Calculate the next child number
+    const nextChildNumber = existingChildren.length + 1;
+    
+    return `${parentHierarchy}.${nextChildNumber}`;
+  }
 }
 
 /**
