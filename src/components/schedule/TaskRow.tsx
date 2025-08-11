@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
+import { InlineEditCell } from "./InlineEditCell";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -52,32 +50,6 @@ export function TaskRow({
   canMoveUp,
   canMoveDown
 }: TaskRowProps) {
-  const { deleteTask } = useTaskMutations(task.project_id);
-  const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<any>({});
-
-  const handleCellClick = (field: string, value: any) => {
-    setIsEditing(field);
-    setEditValues({ [field]: value });
-  };
-
-  const handleSave = (field: string) => {
-    if (editValues[field] !== undefined) {
-      onTaskUpdate(task.id, { [field]: editValues[field] });
-    }
-    setIsEditing(null);
-    setEditValues({});
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, field: string) => {
-    if (e.key === "Enter") {
-      handleSave(field);
-    } else if (e.key === "Escape") {
-      setIsEditing(null);
-      setEditValues({});
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "MM/dd/yy");
   };
@@ -88,6 +60,10 @@ export function TaskRow({
   };
 
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
+
+  const handleFieldUpdate = (field: string) => (value: string | number) => {
+    onTaskUpdate(task.id, { [field]: value });
+  };
 
   return (
     <TaskContextMenu
@@ -105,179 +81,108 @@ export function TaskRow({
       canMoveDown={canMoveDown}
     >
       <TableRow className={`h-8 hover:bg-muted/50`}>
-      {/* Selection Checkbox */}
-      <TableCell className="py-1 px-2 w-10">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => onTaskSelection(task.id, checked as boolean)}
-          className="h-3 w-3"
-        />
-      </TableCell>
+        {/* Selection Checkbox */}
+        <TableCell className="py-1 px-2 w-10">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onTaskSelection(task.id, checked as boolean)}
+            className="h-3 w-3"
+          />
+        </TableCell>
 
-      {/* Hierarchy Number */}
-      <TableCell className="text-xs py-1 px-1 w-16">
-        <div className="flex items-center">
-          <span className="text-xs">{task.hierarchy_number || "—"}</span>
-        </div>
-      </TableCell>
+        {/* Hierarchy Number */}
+        <TableCell className="text-xs py-1 px-1 w-16">
+          <div className="flex items-center">
+            <span className="text-xs">{task.hierarchy_number || "—"}</span>
+          </div>
+        </TableCell>
 
-      {/* Task Name with Indentation */}
-      <TableCell className="py-1 px-2 w-48">
-        <div 
-          className="flex items-center gap-1"
-          style={{ marginLeft: `${indentLevel * 16}px` }}
-        >
-          {/* Expand/Collapse Button */}
-          {hasChildren ? (
-            <button
-              onClick={() => onToggleExpand(task.id)}
-              className="p-0.5 hover:bg-muted rounded"
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              )}
-            </button>
-          ) : (
-            <div className="w-4" /> // Spacer for alignment
-          )}
-          {isEditing === "task_name" ? (
-            <Input
-              value={editValues.task_name || ""}
-              onChange={(e) => setEditValues({ ...editValues, task_name: e.target.value })}
-              onBlur={() => handleSave("task_name")}
-              onKeyDown={(e) => handleKeyDown(e, "task_name")}
-              className="h-6 text-sm"
-              autoFocus
-            />
-          ) : (
-            <span
-              onClick={() => handleCellClick("task_name", task.task_name)}
-              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs truncate"
-              title={task.task_name}
-            >
-              {task.task_name}
-            </span>
-          )}
-        </div>
-      </TableCell>
+        {/* Task Name with Indentation */}
+        <TableCell className="py-1 px-2 w-48">
+          <div 
+            className="flex items-center gap-1"
+            style={{ marginLeft: `${indentLevel * 16}px` }}
+          >
+            {/* Expand/Collapse Button */}
+            {hasChildren ? (
+              <button
+                onClick={() => onToggleExpand(task.id)}
+                className="p-0.5 hover:bg-muted rounded"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+            ) : (
+              <div className="w-4" /> // Spacer for alignment
+            )}
+            <div className="flex-1">
+              <InlineEditCell
+                value={task.task_name}
+                type="text"
+                onSave={handleFieldUpdate("task_name")}
+                className="truncate"
+              />
+            </div>
+          </div>
+        </TableCell>
 
-      {/* Start Date */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "start_date" ? (
-          <Input
+        {/* Start Date */}
+        <TableCell className="py-1 px-2">
+          <InlineEditCell
+            value={task.start_date.split("T")[0]}
             type="date"
-            value={editValues.start_date || task.start_date.split("T")[0]}
-            onChange={(e) => setEditValues({ ...editValues, start_date: e.target.value })}
-            onBlur={() => handleSave("start_date")}
-            onKeyDown={(e) => handleKeyDown(e, "start_date")}
-            className="h-6 text-sm"
-            autoFocus
+            onSave={handleFieldUpdate("start_date")}
+            displayFormat={formatDate}
           />
-        ) : (
-          <span
-            onClick={() => handleCellClick("start_date", task.start_date.split("T")[0])}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {formatDate(task.start_date)}
-          </span>
-        )}
-      </TableCell>
+        </TableCell>
 
-      {/* Duration */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "duration" ? (
-          <Input
+        {/* Duration */}
+        <TableCell className="py-1 px-2">
+          <InlineEditCell
+            value={task.duration}
             type="number"
-            value={editValues.duration || task.duration}
-            onChange={(e) => setEditValues({ ...editValues, duration: parseInt(e.target.value) })}
-            onBlur={() => handleSave("duration")}
-            onKeyDown={(e) => handleKeyDown(e, "duration")}
-            className="h-6 w-12 text-sm"
-            autoFocus
+            onSave={handleFieldUpdate("duration")}
+            displayFormat={(value) => `${value}d`}
           />
-        ) : (
-          <span
-            onClick={() => handleCellClick("duration", task.duration)}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {task.duration}d
-          </span>
-        )}
-      </TableCell>
+        </TableCell>
 
-      {/* End Date */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "end_date" ? (
-          <Input
+        {/* End Date */}
+        <TableCell className="py-1 px-2">
+          <InlineEditCell
+            value={task.end_date.split("T")[0]}
             type="date"
-            value={editValues.end_date || task.end_date.split("T")[0]}
-            onChange={(e) => setEditValues({ ...editValues, end_date: e.target.value })}
-            onBlur={() => handleSave("end_date")}
-            onKeyDown={(e) => handleKeyDown(e, "end_date")}
-            className="h-6 text-sm"
-            autoFocus
+            onSave={handleFieldUpdate("end_date")}
+            displayFormat={formatDate}
           />
-        ) : (
-          <span
-            onClick={() => handleCellClick("end_date", task.end_date.split("T")[0])}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {formatDate(task.end_date)}
-          </span>
-        )}
-      </TableCell>
+        </TableCell>
 
-      {/* Progress */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "progress" ? (
-          <Input
+        {/* Progress */}
+        <TableCell className="py-1 px-2">
+          <InlineEditCell
+            value={task.progress || 0}
             type="number"
-            min="0"
-            max="100"
-            value={editValues.progress || task.progress || 0}
-            onChange={(e) => setEditValues({ ...editValues, progress: parseInt(e.target.value) })}
-            onBlur={() => handleSave("progress")}
-            onKeyDown={(e) => handleKeyDown(e, "progress")}
-            className="h-6 w-12 text-sm"
-            autoFocus
+            onSave={handleFieldUpdate("progress")}
+            displayFormat={(value) => `${value}%`}
           />
-        ) : (
-          <span
-            onClick={() => handleCellClick("progress", task.progress || 0)}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {task.progress || 0}%
-          </span>
-        )}
-      </TableCell>
+        </TableCell>
 
-      {/* Resources */}
-      <TableCell className="py-1 px-2">
-        {isEditing === "resources" ? (
-          <Input
-            value={editValues.resources || task.resources || ""}
-            onChange={(e) => setEditValues({ ...editValues, resources: e.target.value })}
-            onBlur={() => handleSave("resources")}
-            onKeyDown={(e) => handleKeyDown(e, "resources")}
-            className="h-6 text-sm"
-            autoFocus
+        {/* Resources */}
+        <TableCell className="py-1 px-2">
+          <InlineEditCell
+            value={task.resources || ""}
+            type="text"
+            onSave={handleFieldUpdate("resources")}
+            displayFormat={(value) => value || "—"}
           />
-        ) : (
-          <span
-            onClick={() => handleCellClick("resources", task.resources || "")}
-            className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs"
-          >
-            {task.resources || "—"}
-          </span>
-        )}
-      </TableCell>
+        </TableCell>
 
-      {/* Actions */}
-      <TableCell className="py-1 px-2">
-        {/* Empty cell - actions now handled by context menu */}
-      </TableCell>
+        {/* Actions */}
+        <TableCell className="py-1 px-2">
+          {/* Empty cell - actions now handled by context menu */}
+        </TableCell>
       </TableRow>
     </TaskContextMenu>
   );
