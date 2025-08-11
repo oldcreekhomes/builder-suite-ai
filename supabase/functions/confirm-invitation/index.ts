@@ -12,7 +12,9 @@ interface ConfirmInvitationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("🔑 Confirm invitation function called");
+  console.log("🔑 CONFIRM INVITATION FUNCTION STARTED - NEW VERSION");
+  console.log("🔑 Request method:", req.method);
+  console.log("🔑 Request URL:", req.url);
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -21,16 +23,30 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log("🔑 About to read request body");
     const requestBody = await req.text();
-    console.log("🔑 Raw request body:", requestBody);
+    console.log("🔑 Raw request body length:", requestBody.length);
+    console.log("🔑 Raw request body content:", requestBody.substring(0, 200));
+    
+    if (!requestBody) {
+      console.error("🔑 Empty request body received");
+      return new Response(
+        JSON.stringify({ success: false, error: "Empty request body" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     let parsedBody: ConfirmInvitationRequest;
     try {
       parsedBody = JSON.parse(requestBody);
+      console.log("🔑 Successfully parsed JSON:", { userId: parsedBody.userId, hasPassword: !!parsedBody.password });
     } catch (parseError) {
       console.error("🔑 JSON parse error:", parseError);
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid request format" }),
+        JSON.stringify({ success: false, error: "Invalid JSON format" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -59,13 +75,14 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://nlmnwlvmmkngrgatnzkj.supabase.co";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
-    console.log("🔑 Environment check - SUPABASE_URL:", supabaseUrl ? "SET" : "MISSING");
-    console.log("🔑 Environment check - SERVICE_ROLE_KEY:", serviceRoleKey ? "SET" : "MISSING");
+    console.log("🔑 Environment check - SUPABASE_URL:", supabaseUrl);
+    console.log("🔑 Environment check - SERVICE_ROLE_KEY exists:", !!serviceRoleKey);
+    console.log("🔑 Environment check - SERVICE_ROLE_KEY length:", serviceRoleKey?.length || 0);
 
     if (!serviceRoleKey) {
-      console.error("🔑 SERVICE_ROLE_KEY is missing");
+      console.error("🔑 CRITICAL: SERVICE_ROLE_KEY is missing from environment");
       return new Response(
-        JSON.stringify({ success: false, error: "Server configuration error" }),
+        JSON.stringify({ success: false, error: "Server configuration error - missing service role key" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -74,19 +91,33 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Initialize Supabase client with service role key for admin operations
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    console.log("🔑 Creating Supabase admin client...");
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     console.log("🔑 Updating user password in Supabase Auth...");
+    console.log("🔑 Target user ID:", userId);
+    
     // Update the user's password in Supabase Auth
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       { password }
     );
 
+    console.log("🔑 Auth update result - data:", authData);
+    console.log("🔑 Auth update result - error:", authError);
+
     if (authError) {
       console.error("🔑 Error updating password:", authError);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to set up your account. Please try again or contact support." }),
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to update password: ${authError.message}` 
+        }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -97,15 +128,22 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("🔑 Password updated successfully, now updating users table...");
 
     // Mark user as confirmed in public.users table
-    const { error: confirmError } = await supabaseAdmin
+    const { data: updateData, error: confirmError } = await supabaseAdmin
       .from("users")
       .update({ confirmed: true })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select();
+
+    console.log("🔑 Users table update result - data:", updateData);
+    console.log("🔑 Users table update result - error:", confirmError);
 
     if (confirmError) {
-      console.error("🔑 Error confirming user:", confirmError);
+      console.error("🔑 Error confirming user in users table:", confirmError);
       return new Response(
-        JSON.stringify({ success: false, error: "Account setup incomplete. Please contact your administrator." }),
+        JSON.stringify({ 
+          success: false, 
+          error: `Database update failed: ${confirmError.message}` 
+        }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -127,9 +165,17 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("🔑 Error in confirm-invitation:", error);
+    console.error("🔑 CRITICAL ERROR in confirm-invitation function:", error);
+    console.error("🔑 Error stack:", error.stack);
+    console.error("🔑 Error name:", error.name);
+    console.error("🔑 Error message:", error.message);
+    
     return new Response(
-      JSON.stringify({ success: false, error: "An unexpected error occurred. Please try again." }),
+      JSON.stringify({ 
+        success: false, 
+        error: `Server error: ${error.message}`,
+        details: error.name 
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
