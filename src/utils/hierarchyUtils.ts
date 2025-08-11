@@ -89,6 +89,51 @@ export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[])
   return `${parentHierarchy}.${nextChildNumber}`;
 }
 
+/**
+ * Generate all updates needed for indenting a task
+ * This includes the indented task and renumbering of subsequent parent-level tasks
+ */
+export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): Array<{id: string, hierarchy_number: string}> {
+  if (!task.hierarchy_number) return [];
+  
+  const originalNumber = parseInt(task.hierarchy_number.split('.')[0]);
+  const newHierarchy = generateIndentHierarchy(task, tasks);
+  
+  if (!newHierarchy) return [];
+  
+  const updates: Array<{id: string, hierarchy_number: string}> = [];
+  
+  // Add the indented task update
+  updates.push({
+    id: task.id,
+    hierarchy_number: newHierarchy
+  });
+  
+  // Find all parent-level tasks that need renumbering
+  // These are tasks with hierarchy numbers greater than the original number
+  const tasksToRenumber = tasks.filter(t => {
+    if (!t.hierarchy_number || t.id === task.id) return false;
+    
+    // Only parent-level tasks (no dots in hierarchy)
+    if (t.hierarchy_number.includes('.')) return false;
+    
+    const taskNumber = parseInt(t.hierarchy_number);
+    return taskNumber > originalNumber;
+  });
+  
+  // Renumber by decreasing each by 1
+  tasksToRenumber.forEach(t => {
+    const currentNumber = parseInt(t.hierarchy_number!);
+    const newNumber = currentNumber - 1;
+    updates.push({
+      id: t.id,
+      hierarchy_number: newNumber.toString()
+    });
+  });
+  
+  return updates;
+}
+
 export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
   return null; // Disabled during refactoring
 }

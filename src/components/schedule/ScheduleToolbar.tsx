@@ -37,21 +37,27 @@ export function ScheduleToolbar({
       return;
     }
 
+    // Import the new function
+    const { generateIndentUpdates } = await import("@/utils/hierarchyUtils");
+
     for (const taskId of selectedTasks) {
       const task = tasks.find(t => t.id === taskId);
       if (!task) continue;
       
-      const newHierarchy = generateIndentHierarchy(task, tasks);
-      if (!newHierarchy) {
+      const updates = generateIndentUpdates(task, tasks);
+      if (updates.length === 0) {
         toast.error(`Cannot indent task: ${task.task_name}`);
         continue;
       }
       
       try {
-        await updateTask.mutateAsync({
-          id: taskId,
-          hierarchy_number: newHierarchy
-        });
+        // Apply all updates in batch
+        for (const update of updates) {
+          await updateTask.mutateAsync({
+            id: update.id,
+            hierarchy_number: update.hierarchy_number
+          });
+        }
       } catch (error) {
         toast.error(`Failed to indent task: ${task.task_name}`);
         console.error("Error indenting task:", error);

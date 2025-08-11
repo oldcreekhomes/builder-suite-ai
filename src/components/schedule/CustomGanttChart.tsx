@@ -10,7 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 // Simplified hierarchy imports - only basic functions
-import { getLevel, generateIndentHierarchy } from "@/utils/hierarchyUtils";
+import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -62,17 +62,23 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const task = tasks?.find(t => t.id === taskId);
     if (!task || !tasks) return;
     
-    const newHierarchy = generateIndentHierarchy(task, tasks);
-    if (!newHierarchy) {
+    // Import the new function
+    const { generateIndentUpdates } = await import("@/utils/hierarchyUtils");
+    const updates = generateIndentUpdates(task, tasks);
+    
+    if (updates.length === 0) {
       toast.error("Cannot indent this task");
       return;
     }
     
     try {
-      await updateTask.mutateAsync({
-        id: taskId,
-        hierarchy_number: newHierarchy
-      });
+      // Apply all updates in batch
+      for (const update of updates) {
+        await updateTask.mutateAsync({
+          id: update.id,
+          hierarchy_number: update.hierarchy_number
+        });
+      }
       toast.success("Task indented successfully");
     } catch (error) {
       toast.error("Failed to indent task");
