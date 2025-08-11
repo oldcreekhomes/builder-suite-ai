@@ -91,13 +91,6 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
             {task.task_name}
           </span>
         </div>
-        
-        {/* Progress Text */}
-        {position.progress > 0 && (
-          <div className="absolute right-1 top-0.5 text-xs text-foreground/70">
-            {position.progress}%
-          </div>
-        )}
       </div>
     </div>
   );
