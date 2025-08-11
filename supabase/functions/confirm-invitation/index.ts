@@ -12,35 +12,60 @@ interface ConfirmInvitationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("🔑 Confirm invitation function called");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("🔑 Handling CORS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId, password }: ConfirmInvitationRequest = await req.json();
+    const requestBody = await req.text();
+    console.log("🔑 Raw request body:", requestBody);
+    
+    let parsedBody: ConfirmInvitationRequest;
+    try {
+      parsedBody = JSON.parse(requestBody);
+    } catch (parseError) {
+      console.error("🔑 JSON parse error:", parseError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid request format" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    const { userId, password } = parsedBody;
 
     console.log("🔑 Processing invitation confirmation for user:", userId);
     console.log("🔑 Password provided:", password ? "YES" : "NO");
-    console.log("🔑 Environment check - SUPABASE_URL:", Deno.env.get("SUPABASE_URL") ? "SET" : "MISSING");
-    console.log("🔑 Environment check - SERVICE_ROLE_KEY:", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ? "SET" : "MISSING");
-
-    // Initialize Supabase client with service role key for admin operations
-    const supabaseAdmin = createClient(
-      "https://nlmnwlvmmkngrgatnzkj.supabase.co",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Update the user's password in Supabase Auth
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
-      { password }
-    );
-
-    if (authError) {
-      console.error("❌ Error updating password:", authError);
+    
+    // Validate input
+    if (!userId || !password) {
+      console.error("🔑 Missing required fields");
       return new Response(
-        JSON.stringify({ error: "Failed to set up your account. Please try again or contact support." }),
+        JSON.stringify({ success: false, error: "User ID and password are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Check environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://nlmnwlvmmkngrgatnzkj.supabase.co";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    console.log("🔑 Environment check - SUPABASE_URL:", supabaseUrl ? "SET" : "MISSING");
+    console.log("🔑 Environment check - SERVICE_ROLE_KEY:", serviceRoleKey ? "SET" : "MISSING");
+
+    if (!serviceRoleKey) {
+      console.error("🔑 SERVICE_ROLE_KEY is missing");
+      return new Response(
+        JSON.stringify({ success: false, error: "Server configuration error" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -48,7 +73,28 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("✅ Password updated successfully");
+    // Initialize Supabase client with service role key for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    console.log("🔑 Updating user password in Supabase Auth...");
+    // Update the user's password in Supabase Auth
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { password }
+    );
+
+    if (authError) {
+      console.error("🔑 Error updating password:", authError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to set up your account. Please try again or contact support." }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("🔑 Password updated successfully, now updating users table...");
 
     // Mark user as confirmed in public.users table
     const { error: confirmError } = await supabaseAdmin
@@ -57,9 +103,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", userId);
 
     if (confirmError) {
-      console.error("❌ Error confirming user:", confirmError);
+      console.error("🔑 Error confirming user:", confirmError);
       return new Response(
-        JSON.stringify({ error: "Account setup incomplete. Please contact your administrator." }),
+        JSON.stringify({ success: false, error: "Account setup incomplete. Please contact your administrator." }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -67,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("✅ User confirmed successfully");
+    console.log("🔑 User confirmed successfully");
 
     return new Response(
       JSON.stringify({ 
@@ -81,9 +127,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("❌ Error in confirm-invitation:", error);
+    console.error("🔑 Error in confirm-invitation:", error);
     return new Response(
-      JSON.stringify({ error: "An unexpected error occurred. Please try again." }),
+      JSON.stringify({ success: false, error: "An unexpected error occurred. Please try again." }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
