@@ -61,8 +61,24 @@ export function TaskRow({
 
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
 
+  const calculateEndDate = (startDate: string, duration: number) => {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + duration - 1); // -1 because duration includes the start day
+    return end.toISOString().split('T')[0];
+  };
+
   const handleFieldUpdate = (field: string) => (value: string | number) => {
-    onTaskUpdate(task.id, { [field]: value });
+    const updates: any = { [field]: value };
+    
+    // Auto-calculate end date when start date or duration changes
+    if (field === "start_date") {
+      updates.end_date = calculateEndDate(value as string, task.duration);
+    } else if (field === "duration") {
+      updates.end_date = calculateEndDate(task.start_date, value as number);
+    }
+    
+    onTaskUpdate(task.id, updates);
   };
 
   return (
@@ -149,14 +165,11 @@ export function TaskRow({
           />
         </TableCell>
 
-        {/* End Date */}
+        {/* End Date - Read Only */}
         <TableCell className="py-1 px-2">
-          <InlineEditCell
-            value={task.end_date.split("T")[0]}
-            type="date"
-            onSave={handleFieldUpdate("end_date")}
-            displayFormat={formatDate}
-          />
+          <span className="text-xs px-1 py-0.5 text-muted-foreground">
+            {formatDate(calculateEndDate(task.start_date, task.duration))}
+          </span>
         </TableCell>
 
         {/* Progress */}
