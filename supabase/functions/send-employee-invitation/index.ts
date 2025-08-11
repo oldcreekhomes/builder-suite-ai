@@ -179,21 +179,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Generate password reset link using Supabase's built-in flow
-    console.log("🔑 Generating password reset for user:", userId);
+    // Trigger Supabase to send password reset email
+    console.log("🔑 Sending password reset email for user:", userId);
     
-    const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: 'https://buildersuiteai.com/auth?mode=recovery'
-      }
+    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://buildersuiteai.com/auth'
     });
 
     if (resetError) {
-      console.error("❌ Error generating password reset:", resetError);
+      console.error("❌ Error sending password reset:", resetError);
       return new Response(
-        JSON.stringify({ error: "Failed to generate password reset link" }),
+        JSON.stringify({ error: "Failed to send password reset email" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -212,10 +208,10 @@ const handler = async (req: Request): Promise<Response> => {
           <h1 style="color: #333;">Welcome to BuilderSuite AI!</h1>
           <p>Hi ${firstName},</p>
           <p>You've been invited by ${companyName} to join their team on BuilderSuite AI.</p>
-          <p>A password reset email has been sent to you from Supabase. Please check your email and follow the instructions to set your password.</p>
+          <p>A password reset email has been sent to your email address. Please check your inbox (and spam folder) for the password reset link from Supabase.</p>
           <p>After setting your password, you can log in at:</p>
           <a href="https://buildersuiteai.com/auth" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0;">Login to BuilderSuite AI</a>
-          <p>If you have any questions, please contact your administrator.</p>
+          <p>If you don't receive the password reset email within a few minutes, please check your spam folder or contact your administrator.</p>
           <p>Best regards,<br>The BuilderSuite AI Team</p>
         </div>
       `,
