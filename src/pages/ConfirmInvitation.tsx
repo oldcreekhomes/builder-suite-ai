@@ -84,14 +84,16 @@ export default function ConfirmInvitation() {
     setIsLoading(true);
 
     try {
-      // Update the user's password in Supabase Auth
-      const { error: authError } = await supabase.auth.admin.updateUserById(
-        tokenData.userId,
-        { password }
-      );
+      // Call the edge function to confirm the invitation
+      const { data, error } = await supabase.functions.invoke('confirm-invitation', {
+        body: {
+          userId: tokenData.userId,
+          password: password
+        }
+      });
 
-      if (authError) {
-        console.error("Error updating password:", authError);
+      if (error) {
+        console.error("Error calling confirm-invitation function:", error);
         toast({
           title: "Setup Failed",
           description: "Failed to set up your account. Please try again or contact support.",
@@ -100,17 +102,10 @@ export default function ConfirmInvitation() {
         return;
       }
 
-      // Mark user as confirmed in public.users table
-      const { error: confirmError } = await supabase
-        .from("users")
-        .update({ confirmed: true })
-        .eq("id", tokenData.userId);
-
-      if (confirmError) {
-        console.error("Error confirming user:", confirmError);
+      if (!data.success) {
         toast({
-          title: "Setup Error",
-          description: "Account setup incomplete. Please contact your administrator.",
+          title: "Setup Failed",
+          description: data.error || "Failed to set up your account. Please try again or contact support.",
           variant: "destructive",
         });
         return;
