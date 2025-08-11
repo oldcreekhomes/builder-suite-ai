@@ -35,6 +35,20 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: CreateTaskParams) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Check for duplicate hierarchy number before inserting
+      if (params.hierarchy_number) {
+        const { data: existingTask } = await supabase
+          .from('project_schedule_tasks')
+          .select('id')
+          .eq('project_id', params.project_id)
+          .eq('hierarchy_number', params.hierarchy_number)
+          .maybeSingle();
+
+        if (existingTask) {
+          throw new Error(`Hierarchy number "${params.hierarchy_number}" already exists in this project`);
+        }
+      }
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .insert({
@@ -53,6 +67,10 @@ export const useTaskMutations = (projectId: string) => {
 
       if (error) {
         console.error('Error creating task:', error);
+        // Handle unique constraint violation
+        if (error.code === '23505' && error.message.includes('unique_hierarchy_per_project')) {
+          throw new Error(`Hierarchy number "${params.hierarchy_number}" already exists in this project`);
+        }
         throw error;
       }
 
@@ -73,6 +91,29 @@ export const useTaskMutations = (projectId: string) => {
       if (!user) throw new Error('User not authenticated');
 
       console.log('🔧 UpdateTask mutation called with params:', params);
+
+      // Check for duplicate hierarchy number before updating (if hierarchy_number is being changed)
+      if (params.hierarchy_number !== undefined) {
+        const { data: currentTask } = await supabase
+          .from('project_schedule_tasks')
+          .select('project_id, hierarchy_number')
+          .eq('id', params.id)
+          .single();
+
+        if (currentTask && params.hierarchy_number !== currentTask.hierarchy_number) {
+          const { data: existingTask } = await supabase
+            .from('project_schedule_tasks')
+            .select('id')
+            .eq('project_id', currentTask.project_id)
+            .eq('hierarchy_number', params.hierarchy_number)
+            .neq('id', params.id)
+            .maybeSingle();
+
+          if (existingTask) {
+            throw new Error(`Hierarchy number "${params.hierarchy_number}" already exists in this project`);
+          }
+        }
+      }
 
       const updateData: any = {};
       if (params.task_name !== undefined) updateData.task_name = params.task_name;
@@ -95,6 +136,10 @@ export const useTaskMutations = (projectId: string) => {
 
       if (error) {
         console.error('🔧 Database update error:', error);
+        // Handle unique constraint violation
+        if (error.code === '23505' && error.message.includes('unique_hierarchy_per_project')) {
+          throw new Error(`Hierarchy number "${params.hierarchy_number}" already exists in this project`);
+        }
         throw error;
       }
 

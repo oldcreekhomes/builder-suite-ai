@@ -101,6 +101,16 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
   
   if (!newHierarchy) return [];
   
+  // Check if the new hierarchy number would create a duplicate
+  const existingTaskWithHierarchy = tasks.find(t => 
+    t.id !== task.id && t.hierarchy_number === newHierarchy
+  );
+  
+  if (existingTaskWithHierarchy) {
+    console.warn(`Cannot indent: hierarchy number "${newHierarchy}" already exists`);
+    return [];
+  }
+  
   const updates: Array<{id: string, hierarchy_number: string}> = [];
   
   // Add the indented task update
@@ -108,6 +118,13 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
     id: task.id,
     hierarchy_number: newHierarchy
   });
+  
+  // Create a set of existing hierarchy numbers to avoid duplicates
+  const existingHierarchies = new Set(tasks.map(t => t.hierarchy_number));
+  // Remove the original task's hierarchy since we're changing it
+  existingHierarchies.delete(task.hierarchy_number);
+  // Add the new hierarchy we're assigning
+  existingHierarchies.add(newHierarchy);
   
   // Find all parent-level tasks that need renumbering
   // These are tasks with hierarchy numbers greater than the original number
@@ -121,13 +138,24 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
     return taskNumber > originalNumber;
   });
   
-  // Renumber by decreasing each by 1
+  // Renumber by decreasing each by 1, but check for duplicates
   tasksToRenumber.forEach(t => {
-    const currentNumber = parseInt(t.hierarchy_number!);
-    const newNumber = currentNumber - 1;
+    let currentNumber = parseInt(t.hierarchy_number!);
+    let newNumber = currentNumber - 1;
+    let newHierarchyNumber = newNumber.toString();
+    
+    // Find the next available number to avoid duplicates
+    while (existingHierarchies.has(newHierarchyNumber)) {
+      newNumber--;
+      newHierarchyNumber = newNumber.toString();
+    }
+    
+    // Add to existing set to track what we're updating
+    existingHierarchies.add(newHierarchyNumber);
+    
     updates.push({
       id: t.id,
-      hierarchy_number: newNumber.toString()
+      hierarchy_number: newHierarchyNumber
     });
   });
   
