@@ -220,7 +220,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("📧 Invitation URL:", invitationUrl);
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@buildersuiteai.com>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [email],
       subject: `You've been invited to join ${companyName} on BuilderSuite AI`,
       html: `
