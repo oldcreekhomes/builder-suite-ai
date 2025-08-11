@@ -10,7 +10,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Indent, Outdent, Plus, Trash2 } from "lucide-react";
+import { Indent, Outdent, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 interface TaskContextMenuProps {
   children: React.ReactNode;
@@ -20,8 +20,12 @@ interface TaskContextMenuProps {
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onMoveUp: (taskId: string) => void;
+  onMoveDown: (taskId: string) => void;
   canIndent: boolean;
   canOutdent: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
 export function TaskContextMenu({
@@ -32,8 +36,12 @@ export function TaskContextMenu({
   onAddAbove,
   onAddBelow,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   canIndent,
   canOutdent,
+  canMoveUp,
+  canMoveDown,
 }: TaskContextMenuProps) {
   return (
     <ContextMenu>
@@ -41,6 +49,26 @@ export function TaskContextMenu({
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
+        <ContextMenuItem
+          onClick={() => onMoveUp(task.id)}
+          disabled={!canMoveUp}
+          className="flex items-center gap-2"
+        >
+          <ArrowUp className="h-4 w-4" />
+          Move Up
+        </ContextMenuItem>
+        
+        <ContextMenuItem
+          onClick={() => onMoveDown(task.id)}
+          disabled={!canMoveDown}
+          className="flex items-center gap-2"
+        >
+          <ArrowDown className="h-4 w-4" />
+          Move Down
+        </ContextMenuItem>
+        
+        <ContextMenuSeparator />
+        
         <ContextMenuItem
           onClick={() => onIndent(task.id)}
           disabled={!canIndent}

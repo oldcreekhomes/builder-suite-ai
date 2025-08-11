@@ -13,7 +13,6 @@ import {
 
 interface TaskTableProps {
   tasks: ProjectTask[];
-  onTaskMove: (taskId: string, newHierarchyNumber: string) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
   selectedTasks: Set<string>;
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
@@ -21,20 +20,22 @@ interface TaskTableProps {
   onOutdent: (taskId: string) => void;
   onAddTask: (position: 'above' | 'below', relativeTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onMoveUp: (taskId: string) => void;
+  onMoveDown: (taskId: string) => void;
 }
 
 export function TaskTable({ 
   tasks, 
-  onTaskMove, 
   onTaskUpdate, 
   selectedTasks, 
   onSelectedTasksChange,
   onIndent,
   onOutdent,
   onAddTask,
-  onDeleteTask
+  onDeleteTask,
+  onMoveUp,
+  onMoveDown
 }: TaskTableProps) {
-  const [draggedTask, setDraggedTask] = useState<ProjectTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   // Helper function to check if a task has children
@@ -131,28 +132,6 @@ export function TaskTable({
   const isAllSelected = visibleTasks.length > 0 && visibleTasks.every(task => selectedTasks.has(task.id));
   const isIndeterminate = selectedTasks.size > 0 && !isAllSelected;
 
-  const handleDragStart = (e: React.DragEvent, task: ProjectTask) => {
-    setDraggedTask(task);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault();
-    
-    if (!draggedTask) return;
-
-    // Calculate new hierarchy number based on position
-    const newHierarchyNumber = generateHierarchyNumber(tasks, targetIndex);
-    
-    onTaskMove(draggedTask.id, newHierarchyNumber);
-    setDraggedTask(null);
-  };
-
   const handleAddAbove = (taskId: string) => {
     onAddTask('above', taskId);
   };
@@ -174,6 +153,16 @@ export function TaskTable({
 
   const getCanOutdent = (task: ProjectTask) => {
     return task.hierarchy_number && task.hierarchy_number.split(".").length > 1;
+  };
+
+  const getCanMoveUp = (task: ProjectTask) => {
+    const currentIndex = visibleTasks.findIndex(t => t.id === task.id);
+    return currentIndex > 0;
+  };
+
+  const getCanMoveDown = (task: ProjectTask) => {
+    const currentIndex = visibleTasks.findIndex(t => t.id === task.id);
+    return currentIndex < visibleTasks.length - 1;
   };
 
   return (
@@ -205,11 +194,7 @@ export function TaskTable({
               key={task.id}
               task={task}
               index={index}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
               onTaskUpdate={onTaskUpdate}
-              isDragging={draggedTask?.id === task.id}
               hasChildren={hasChildren(task.id)}
               isExpanded={expandedTasks.has(task.id)}
               onToggleExpand={handleToggleExpand}
@@ -220,8 +205,12 @@ export function TaskTable({
               onAddAbove={handleAddAbove}
               onAddBelow={handleAddBelow}
               onDelete={onDeleteTask}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
               canIndent={getCanIndent(task)}
               canOutdent={getCanOutdent(task)}
+              canMoveUp={getCanMoveUp(task)}
+              canMoveDown={getCanMoveDown(task)}
             />
           ))}
         </TableBody>

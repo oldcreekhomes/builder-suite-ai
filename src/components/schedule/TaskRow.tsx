@@ -12,11 +12,7 @@ import { TaskContextMenu } from "./TaskContextMenu";
 interface TaskRowProps {
   task: ProjectTask;
   index: number;
-  onDragStart: (e: React.DragEvent, task: ProjectTask) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, index: number) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
-  isDragging: boolean;
   hasChildren: boolean;
   isExpanded: boolean;
   onToggleExpand: (taskId: string) => void;
@@ -27,18 +23,18 @@ interface TaskRowProps {
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onMoveUp: (taskId: string) => void;
+  onMoveDown: (taskId: string) => void;
   canIndent: boolean;
   canOutdent: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
 export function TaskRow({
   task,
   index,
-  onDragStart,
-  onDragOver,
-  onDrop,
   onTaskUpdate,
-  isDragging,
   hasChildren,
   isExpanded,
   onToggleExpand,
@@ -49,8 +45,12 @@ export function TaskRow({
   onAddAbove,
   onAddBelow,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   canIndent,
-  canOutdent
+  canOutdent,
+  canMoveUp,
+  canMoveDown
 }: TaskRowProps) {
   const { deleteTask } = useTaskMutations(task.project_id);
   const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -97,16 +97,14 @@ export function TaskRow({
       onAddAbove={onAddAbove}
       onAddBelow={onAddBelow}
       onDelete={onDelete}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
       canIndent={canIndent}
       canOutdent={canOutdent}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
     >
-      <TableRow
-        draggable
-        onDragStart={(e) => onDragStart(e, task)}
-        onDragOver={onDragOver}
-        onDrop={(e) => onDrop(e, index)}
-        className={`h-8 ${isDragging ? "opacity-50" : ""} hover:bg-muted/50 hover:cursor-move`}
-      >
+      <TableRow className={`h-8 hover:bg-muted/50`}>
       {/* Selection Checkbox */}
       <TableCell className="py-1 px-2 w-10">
         <Checkbox

@@ -30,16 +30,47 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
-  const handleTaskMove = async (taskId: string, newHierarchyNumber: string) => {
+  const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
     try {
-      await updateTask.mutateAsync({
-        id: taskId,
-        hierarchy_number: newHierarchyNumber
+      const sortedTasks = [...tasks].sort((a, b) => {
+        const aNum = a.hierarchy_number || "999";
+        const bNum = b.hierarchy_number || "999";
+        return aNum.localeCompare(bNum, undefined, { numeric: true });
       });
-      toast.success("Task moved successfully");
+
+      const currentIndex = sortedTasks.findIndex(t => t.id === taskId);
+      if (currentIndex === -1) return;
+
+      let targetIndex: number;
+      if (direction === 'up') {
+        targetIndex = Math.max(0, currentIndex - 1);
+      } else {
+        targetIndex = Math.min(sortedTasks.length - 1, currentIndex + 1);
+      }
+
+      if (targetIndex === currentIndex) return; // No movement needed
+
+      // Swap hierarchy numbers with the target task
+      const currentTask = sortedTasks[currentIndex];
+      const targetTask = sortedTasks[targetIndex];
+
+      if (currentTask && targetTask) {
+        await Promise.all([
+          updateTask.mutateAsync({
+            id: currentTask.id,
+            hierarchy_number: targetTask.hierarchy_number
+          }),
+          updateTask.mutateAsync({
+            id: targetTask.id,
+            hierarchy_number: currentTask.hierarchy_number
+          })
+        ]);
+        
+        toast.success(`Task moved ${direction} successfully`);
+      }
     } catch (error) {
-      console.error("Failed to move task:", error);
-      toast.error("Failed to move task");
+      console.error(`Failed to move task ${direction}:`, error);
+      toast.error(`Failed to move task ${direction}`);
     }
   };
 
@@ -200,7 +231,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
         <TaskTable
           tasks={tasks}
-          onTaskMove={handleTaskMove}
           onTaskUpdate={handleTaskUpdate}
           selectedTasks={selectedTasks}
           onSelectedTasksChange={setSelectedTasks}
@@ -208,6 +238,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onOutdent={handleOutdent}
           onAddTask={handleAddTask}
           onDeleteTask={handleDeleteTask}
+          onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
+          onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
         />
           </ResizablePanel>
 
