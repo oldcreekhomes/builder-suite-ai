@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      "https://nlmnwlvmmkngrgatnzkj.supabase.co",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
