@@ -95,17 +95,12 @@ export function ScheduleToolbar({
         // Find the parent's position and determine new parent number
         const parentIndex = sortedTasks.findIndex(t => t.id === parentTask.id);
         
-        // Count existing parent-level tasks to determine the new parent number
-        const parentLevelTasks = sortedTasks.filter(t => 
-          t.hierarchy_number && !t.hierarchy_number.includes(".")
-        );
-        
-        // Find the insertion point: after the current parent
+        // Count how many parent-level tasks come before the insertion point
         let newParentNumber = 1;
-        for (const parentLevelTask of parentLevelTasks) {
-          const parentNum = parseInt(parentLevelTask.hierarchy_number || "0");
-          if (parentNum >= newParentNumber && parentLevelTask.id !== taskId) {
-            newParentNumber = parentNum + 1;
+        for (let i = 0; i <= parentIndex; i++) {
+          const task = sortedTasks[i];
+          if (task.hierarchy_number && !task.hierarchy_number.includes(".")) {
+            newParentNumber++;
           }
         }
 
