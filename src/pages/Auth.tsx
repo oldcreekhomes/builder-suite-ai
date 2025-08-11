@@ -13,15 +13,24 @@ const Auth = () => {
   useEffect(() => {
     // Check if this is a password recovery flow
     const type = searchParams.get('type');
+    const token = searchParams.get('token');
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     
-    console.log("Auth page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    console.log("Auth page loaded with params:", { type, hasToken: !!token, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
     
-    if (type === 'recovery' && accessToken && refreshToken) {
-      console.log("Redirecting to password reset page...");
-      // Redirect to password reset page with all the recovery parameters
-      navigate(`/reset-password?${searchParams.toString()}`, { replace: true });
+    // Handle Supabase recovery flow - if we have type=recovery and a token, 
+    // Supabase will process it and redirect back with access/refresh tokens
+    if (type === 'recovery') {
+      if (accessToken && refreshToken) {
+        console.log("Recovery completed, redirecting to password reset page...");
+        // Recovery flow completed, redirect to password reset page
+        navigate(`/reset-password?${searchParams.toString()}`, { replace: true });
+      } else if (token) {
+        console.log("Processing recovery token with Supabase...");
+        // Let Supabase process the recovery token naturally
+        // It will handle the token exchange and redirect back here with access/refresh tokens
+      }
     }
   }, [searchParams, navigate]);
   return (

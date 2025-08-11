@@ -17,41 +17,28 @@ const PasswordReset = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have a custom reset token
-    const token = searchParams.get('token');
+    // Check if we have Supabase recovery tokens
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
     
-    console.log("Password reset page loaded with token:", !!token);
+    console.log("Password reset page loaded with recovery tokens:", { 
+      hasAccessToken: !!accessToken, 
+      hasRefreshToken: !!refreshToken, 
+      type 
+    });
     
-    if (token) {
-      try {
-        const resetData = JSON.parse(atob(token));
-        console.log("Decoded reset data:", { email: resetData.email, expires: new Date(resetData.expires) });
-        
-        // Check if token is expired
-        if (Date.now() > resetData.expires) {
-          toast({
-            title: "Error",
-            description: "Reset link has expired. Please request a new password reset.",
-            variant: "destructive",
-          });
-          navigate('/auth');
-          return;
-        }
-        
-        // Set the email from the token
-        setEmail(resetData.email);
-      } catch (error) {
-        console.error("Error decoding reset token:", error);
-        toast({
-          title: "Error",
-          description: "Invalid reset link. Please request a new password reset.",
-          variant: "destructive",
-        });
-        navigate('/auth');
-      }
+    if (type === 'recovery' && accessToken && refreshToken) {
+      // We have valid recovery session, user can proceed to set password
+      console.log("Valid recovery session found");
     } else {
-      // If no token, redirect to auth page
-      console.log("No token found, redirecting to auth");
+      // If no valid recovery session, redirect to auth page
+      console.log("No valid recovery session found, redirecting to auth");
+      toast({
+        title: "Error",
+        description: "Invalid or expired reset link. Please request a new password reset.",
+        variant: "destructive",
+      });
       navigate('/auth');
     }
   }, [searchParams, navigate, toast]);
@@ -89,25 +76,16 @@ const PasswordReset = () => {
     setIsLoading(true);
 
     try {
-      // First sign in the user with their current credentials would be complex
-      // Instead, let's use the admin API to update their password directly
-      const token = searchParams.get('token');
-      const resetData = JSON.parse(atob(token!));
-      
-      // Call our edge function to reset the password
-      const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: JSON.stringify({ 
-          email: resetData.email, 
-          newPassword: password,
-          resetToken: token 
-        })
+      // Use Supabase's built-in password update with the recovery session
+      const { error } = await supabase.auth.updateUser({
+        password: password
       });
 
       if (error) {
         console.error("Password reset error:", error);
         toast({
           title: "Error",
-          description: "Failed to reset password. Please try again.",
+          description: error.message || "Failed to reset password. Please try again.",
           variant: "destructive",
         });
       } else {
@@ -115,7 +93,8 @@ const PasswordReset = () => {
           title: "Success",
           description: "Your password has been updated successfully! Please sign in with your new password.",
         });
-        // Redirect to auth page for sign in
+        // Sign out to clear the recovery session and redirect to auth page
+        await supabase.auth.signOut();
         navigate("/auth");
       }
     } catch (error) {
