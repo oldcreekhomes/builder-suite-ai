@@ -84,6 +84,9 @@ export default function ConfirmInvitation() {
     setIsLoading(true);
 
     try {
+      console.log("🔑 Frontend: About to call confirm-invitation function");
+      console.log("🔑 Frontend: User ID:", tokenData.userId);
+      
       // Call the edge function to confirm the invitation
       const { data, error } = await supabase.functions.invoke('confirm-invitation', {
         body: {
@@ -92,20 +95,24 @@ export default function ConfirmInvitation() {
         }
       });
 
+      console.log("🔑 Frontend: Function response data:", data);
+      console.log("🔑 Frontend: Function response error:", error);
+
       if (error) {
-        console.error("Error calling confirm-invitation function:", error);
+        console.error("🔑 Frontend: Error calling confirm-invitation function:", error);
         toast({
           title: "Setup Failed",
-          description: "Failed to set up your account. Please try again or contact support.",
+          description: `Function call failed: ${error.message}. Please try again or contact support.`,
           variant: "destructive",
         });
         return;
       }
 
-      if (!data.success) {
+      if (!data || !data.success) {
+        console.error("🔑 Frontend: Function returned unsuccessful result:", data);
         toast({
           title: "Setup Failed",
-          description: data.error || "Failed to set up your account. Please try again or contact support.",
+          description: data?.error || "Failed to set up your account. Please try again or contact support.",
           variant: "destructive",
         });
         return;
