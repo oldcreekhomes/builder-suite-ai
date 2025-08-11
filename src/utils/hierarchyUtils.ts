@@ -62,22 +62,28 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
   
   const result = [...sortedTasks];
   
-  // First: Renumber all top-level tasks sequentially
-  let topLevelCounter = 1;
+  // First: Get all top-level tasks and their original numbers
   const topLevelTasks = result.filter(task => 
     task.hierarchy_number && !task.hierarchy_number.includes(".")
   );
   
+  // Create mapping of old parent numbers to new parent numbers
+  const parentMapping = new Map<string, string>();
+  let topLevelCounter = 1;
+  
   topLevelTasks.forEach(task => {
-    task.hierarchy_number = topLevelCounter.toString();
+    const oldNumber = task.hierarchy_number!;
+    const newNumber = topLevelCounter.toString();
+    parentMapping.set(oldNumber, newNumber);
+    task.hierarchy_number = newNumber;
     topLevelCounter++;
   });
   
-  // Second: Renumber children tasks for each parent
-  topLevelTasks.forEach(parentTask => {
+  // Second: Update all children based on the parent mapping
+  parentMapping.forEach((newParentNumber, oldParentNumber) => {
     const children = result.filter(task => 
       task.hierarchy_number && 
-      task.hierarchy_number.startsWith(parentTask.hierarchy_number + ".")
+      task.hierarchy_number.startsWith(oldParentNumber + ".")
     );
     
     // Sort children by their current hierarchy number
@@ -90,7 +96,7 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
     // Renumber children sequentially
     let childCounter = 1;
     children.forEach(child => {
-      child.hierarchy_number = `${parentTask.hierarchy_number}.${childCounter}`;
+      child.hierarchy_number = `${newParentNumber}.${childCounter}`;
       childCounter++;
     });
   });
