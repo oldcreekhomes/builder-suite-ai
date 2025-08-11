@@ -21,6 +21,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { userId, password }: ConfirmInvitationRequest = await req.json();
 
     console.log("🔑 Processing invitation confirmation for user:", userId);
+    console.log("🔑 Password provided:", password ? "YES" : "NO");
+    console.log("🔑 Environment check - SUPABASE_URL:", Deno.env.get("SUPABASE_URL") ? "SET" : "MISSING");
+    console.log("🔑 Environment check - SERVICE_ROLE_KEY:", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ? "SET" : "MISSING");
 
     // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
