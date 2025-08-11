@@ -34,9 +34,21 @@ export function getLevel(hierarchyNumber: string): number {
 // ALL COMPLEX HIERARCHY FUNCTIONS DISABLED DURING REFACTORING
 // Only keeping basic functions for now
 
-// DISABLED: Will be reimplemented step by step
 export function canIndent(task: ProjectTask, tasks: ProjectTask[]): boolean {
-  return false; // Disabled during refactoring
+  if (!task.hierarchy_number) return false;
+  
+  // Sort tasks by hierarchy for proper processing
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  // Find the current task's position
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  
+  // Can only indent if there's a task above it
+  return currentIndex > 0;
 }
 
 export function canOutdent(task: ProjectTask): boolean {
@@ -44,7 +56,37 @@ export function canOutdent(task: ProjectTask): boolean {
 }
 
 export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
-  return null; // Disabled during refactoring
+  if (!task.hierarchy_number) return null;
+  
+  // Sort tasks by hierarchy for proper processing
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  // Find the current task's position
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  
+  // Can't indent if there's no task above
+  if (currentIndex <= 0) return null;
+  
+  const previousTask = sortedTasks[currentIndex - 1];
+  const parentHierarchy = previousTask.hierarchy_number;
+  
+  if (!parentHierarchy) return null;
+  
+  // Find all existing children of the previous task
+  const existingChildren = tasks.filter(t => 
+    t.hierarchy_number && 
+    t.hierarchy_number.startsWith(parentHierarchy + ".") &&
+    t.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
+  );
+  
+  // Calculate the next child number
+  const nextChildNumber = existingChildren.length + 1;
+  
+  return `${parentHierarchy}.${nextChildNumber}`;
 }
 
 export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {

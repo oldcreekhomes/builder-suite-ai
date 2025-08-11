@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
-import { generateHierarchyNumber } from "@/utils/hierarchyUtils";
+import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -153,14 +153,7 @@ export function TaskTable({
   };
 
   const getCanIndent = (task: ProjectTask) => {
-    const sortedTasks = [...tasks].sort((a, b) => {
-      const aNum = a.hierarchy_number || "999";
-      const bNum = b.hierarchy_number || "999";
-      return aNum.localeCompare(bNum, undefined, { numeric: true });
-    });
-
-    const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
-    return currentIndex > 0;
+    return canIndent(task, tasks);
   };
 
   const getCanOutdent = (task: ProjectTask) => {
