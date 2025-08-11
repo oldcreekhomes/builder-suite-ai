@@ -123,21 +123,21 @@ export function TaskRow({
             {/* Indentation spacer - only for child tasks (level > 0) */}
             {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
             
-            {/* Expand/Collapse Button - shown for parent tasks regardless of level */}
-            {hasChildren ? (
-              <button
-                onClick={() => onToggleExpand(task.id)}
-                className="p-0.5 hover:bg-muted rounded flex-shrink-0 mr-1"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                )}
-              </button>
-            ) : indentLevel > 0 ? (
-              <div className="w-4 flex-shrink-0 mr-1" /> // Spacer for alignment only on child tasks
-            ) : null}
+            {/* Fixed-width space for expand/collapse button - ensures alignment */}
+            <div className="w-4 flex-shrink-0 mr-1 flex items-center justify-center">
+              {hasChildren ? (
+                <button
+                  onClick={() => onToggleExpand(task.id)}
+                  className="p-0.5 hover:bg-muted rounded"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              ) : null}
+            </div>
             
             {/* Task name aligned with column header */}
             <div className="flex-1">
