@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -22,31 +22,32 @@ export interface ProjectTask {
   hierarchy_number?: string;
 }
 
+// Global subscription manager to prevent duplicate subscriptions
+const subscriptionManager = new Map<string, any>();
+
 export const useProjectTasks = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const subscriptionRef = useRef<any>(null);
 
   // Set up real-time subscription for task updates
   useEffect(() => {
-    if (!projectId || !user) return;
+    if (!projectId || !user?.id) return;
+
+    const subscriptionKey = `project-tasks-${projectId}-${user.id}`;
+    
+    // Check if there's already a subscription for this key
+    if (subscriptionManager.has(subscriptionKey)) {
+      console.log('🔥 useProjectTasks: Subscription already exists for:', subscriptionKey);
+      return;
+    }
 
     console.log('🔥 useProjectTasks: Setting up real-time subscription for project tasks:', projectId);
     console.log('🔥 useProjectTasks: User ID:', user.id);
-
-    // Use a stable channel name without timestamp to prevent duplicate subscriptions
-    const channelName = `project-tasks-${projectId}-${user.id}`;
-    console.log('🔥 useProjectTasks: Channel name:', channelName);
-
-    // Remove any existing channel with the same name first
-    const existingChannels = supabase.getChannels();
-    const existingChannel = existingChannels.find(ch => ch.topic === channelName);
-    if (existingChannel) {
-      console.log('🔥 useProjectTasks: Removing existing channel:', channelName);
-      supabase.removeChannel(existingChannel);
-    }
+    console.log('🔥 useProjectTasks: Subscription key:', subscriptionKey);
 
     const channel = supabase
-      .channel(channelName)
+      .channel(subscriptionKey)
       .on(
         'postgres_changes',
         {
@@ -78,9 +79,23 @@ export const useProjectTasks = (projectId: string) => {
         console.log('Task subscription status:', status);
       });
 
+    // Store the subscription in our manager and ref
+    subscriptionManager.set(subscriptionKey, channel);
+    subscriptionRef.current = channel;
+
     return () => {
-      console.log('🔥 useProjectTasks: Cleaning up project tasks subscription for channel:', channelName);
-      supabase.removeChannel(channel);
+      console.log('🔥 useProjectTasks: Cleaning up project tasks subscription for key:', subscriptionKey);
+      
+      // Remove from subscription manager
+      if (subscriptionManager.has(subscriptionKey)) {
+        subscriptionManager.delete(subscriptionKey);
+      }
+      
+      // Remove the channel
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
+      }
     };
   }, [projectId, user?.id, queryClient]);
 
