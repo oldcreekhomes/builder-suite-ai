@@ -64,7 +64,7 @@ export function TaskRow({
   const calculateEndDate = (startDate: string, duration: number) => {
     const start = new Date(startDate);
     const end = new Date(start);
-    end.setDate(start.getDate() + duration - 1); // -1 because duration includes the start day
+    end.setDate(start.getDate() + duration); // Duration is additional days from start
     return end.toISOString().split('T')[0];
   };
 
