@@ -23,20 +23,29 @@ export function HierarchyFixButton({ tasks, projectId }: HierarchyFixButtonProps
     try {
       toast.info("Fixing hierarchy numbers...");
       
-      // Generate clean hierarchy numbers
-      const fixedTasks = renumberTasks([...tasks]);
+      // Get all construction tasks (those with "3.1" hierarchy)
+      const constructionTasks = tasks.filter(task => task.hierarchy_number === "3.1");
       
-      // Update each task with its new hierarchy number
-      for (const task of fixedTasks) {
-        if (task.hierarchy_number) {
-          await updateTask.mutateAsync({
-            id: task.id,
-            hierarchy_number: task.hierarchy_number
-          });
-        }
+      if (constructionTasks.length === 0) {
+        toast.success("No tasks need fixing!");
+        return;
       }
       
-      toast.success("Hierarchy numbers fixed successfully!");
+      // Sort by task name to maintain consistent order
+      constructionTasks.sort((a, b) => a.task_name.localeCompare(b.task_name));
+      
+      // Update each task with sequential numbering
+      for (let i = 0; i < constructionTasks.length; i++) {
+        const task = constructionTasks[i];
+        const newHierarchyNumber = `2.${i + 1}`;
+        
+        await updateTask.mutateAsync({
+          id: task.id,
+          hierarchy_number: newHierarchyNumber
+        });
+      }
+      
+      toast.success(`Fixed ${constructionTasks.length} construction tasks!`);
     } catch (error) {
       console.error("Failed to fix hierarchy:", error);
       toast.error("Failed to fix hierarchy numbers");
