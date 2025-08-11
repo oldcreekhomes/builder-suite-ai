@@ -22,6 +22,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [expandAllTasks, setExpandAllTasks] = useState(false);
 
   // Helper function to calculate end date from start date + duration
   const calculateEndDate = (startDate: string, duration: number) => {
@@ -79,6 +80,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           hierarchy_number: update.hierarchy_number
         });
       }
+      
+      // Expand all tasks after successful indent
+      setExpandAllTasks(true);
+      
       toast.success("Task indented successfully");
     } catch (error) {
       toast.error("Failed to indent task");
@@ -186,6 +191,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onDeleteTask={handleDeleteTask}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
+          expandAllTasks={expandAllTasks}
+          onExpandAllReset={() => setExpandAllTasks(false)}
         />
           </ResizablePanel>
 

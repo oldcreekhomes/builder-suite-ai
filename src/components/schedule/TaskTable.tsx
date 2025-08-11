@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
@@ -22,6 +22,8 @@ interface TaskTableProps {
   onDeleteTask: (taskId: string) => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
+  expandAllTasks?: boolean;
+  onExpandAllReset?: () => void;
 }
 
 export function TaskTable({ 
@@ -34,9 +36,21 @@ export function TaskTable({
   onAddTask,
   onDeleteTask,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  expandAllTasks,
+  onExpandAllReset
 }: TaskTableProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  // Effect to expand all tasks when expandAllTasks becomes true
+  useEffect(() => {
+    if (expandAllTasks) {
+      const tasksWithChildren = tasks.filter(task => hasChildren(task.id));
+      setExpandedTasks(new Set(tasksWithChildren.map(task => task.id)));
+      // Reset the flag
+      onExpandAllReset?.();
+    }
+  }, [expandAllTasks, tasks, onExpandAllReset]);
 
   // Helper function to check if a task has children based on hierarchy
   const hasChildren = (taskId: string) => {
