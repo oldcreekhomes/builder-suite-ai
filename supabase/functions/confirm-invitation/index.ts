@@ -12,56 +12,17 @@ interface ConfirmInvitationRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("🔑 CONFIRM INVITATION FUNCTION STARTED - NEW VERSION");
-  console.log("🔑 Request method:", req.method);
-  console.log("🔑 Request URL:", req.url);
+  console.log("🔑 CONFIRM INVITATION - Setting password for employee");
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("🔑 Handling CORS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("🔑 About to read request body");
-    const requestBody = await req.text();
-    console.log("🔑 Raw request body length:", requestBody.length);
-    console.log("🔑 Raw request body content:", requestBody.substring(0, 200));
+    const { userId, password } = await req.json() as ConfirmInvitationRequest;
     
-    if (!requestBody) {
-      console.error("🔑 Empty request body received");
-      return new Response(
-        JSON.stringify({ success: false, error: "Empty request body" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-    
-    let parsedBody: ConfirmInvitationRequest;
-    try {
-      parsedBody = JSON.parse(requestBody);
-      console.log("🔑 Successfully parsed JSON:", { userId: parsedBody.userId, hasPassword: !!parsedBody.password });
-    } catch (parseError) {
-      console.error("🔑 JSON parse error:", parseError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid JSON format" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    const { userId, password } = parsedBody;
-
-    console.log("🔑 Processing invitation confirmation for user:", userId);
-    console.log("🔑 Password provided:", password ? "YES" : "NO");
-    
-    // Validate input
     if (!userId || !password) {
-      console.error("🔑 Missing required fields");
       return new Response(
         JSON.stringify({ success: false, error: "User ID and password are required" }),
         {
@@ -71,18 +32,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check environment variables
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://nlmnwlvmmkngrgatnzkj.supabase.co";
+    const supabaseUrl = "https://nlmnwlvmmkngrgatnzkj.supabase.co";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    console.log("🔑 Environment check - SUPABASE_URL:", supabaseUrl);
-    console.log("🔑 Environment check - SERVICE_ROLE_KEY exists:", !!serviceRoleKey);
-    console.log("🔑 Environment check - SERVICE_ROLE_KEY length:", serviceRoleKey?.length || 0);
 
     if (!serviceRoleKey) {
-      console.error("🔑 CRITICAL: SERVICE_ROLE_KEY is missing from environment");
+      console.error("🔑 SERVICE_ROLE_KEY missing");
       return new Response(
-        JSON.stringify({ success: false, error: "Server configuration error - missing service role key" }),
+        JSON.stringify({ success: false, error: "Server configuration error" }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -90,8 +46,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Initialize Supabase client with service role key for admin operations
-    console.log("🔑 Creating Supabase admin client...");
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -99,20 +53,16 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    console.log("🔑 Updating user password in Supabase Auth...");
-    console.log("🔑 Target user ID:", userId);
+    console.log("🔑 Updating password for user:", userId);
     
     // Update the user's password in Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       { password }
     );
 
-    console.log("🔑 Auth update result - data:", authData);
-    console.log("🔑 Auth update result - error:", authError);
-
     if (authError) {
-      console.error("🔑 Error updating password:", authError);
+      console.error("🔑 Password update failed:", authError);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -125,20 +75,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("🔑 Password updated successfully, now updating users table...");
+    console.log("🔑 Password updated, marking user as confirmed");
 
     // Mark user as confirmed in public.users table
-    const { data: updateData, error: confirmError } = await supabaseAdmin
+    const { error: confirmError } = await supabaseAdmin
       .from("users")
       .update({ confirmed: true })
-      .eq("id", userId)
-      .select();
-
-    console.log("🔑 Users table update result - data:", updateData);
-    console.log("🔑 Users table update result - error:", confirmError);
+      .eq("id", userId);
 
     if (confirmError) {
-      console.error("🔑 Error confirming user in users table:", confirmError);
+      console.error("🔑 User confirmation failed:", confirmError);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -151,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("🔑 User confirmed successfully");
+    console.log("🔑 Employee setup complete");
 
     return new Response(
       JSON.stringify({ 
@@ -165,16 +111,12 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("🔑 CRITICAL ERROR in confirm-invitation function:", error);
-    console.error("🔑 Error stack:", error.stack);
-    console.error("🔑 Error name:", error.name);
-    console.error("🔑 Error message:", error.message);
+    console.error("🔑 Error in confirm-invitation:", error);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: `Server error: ${error.message}`,
-        details: error.name 
+        error: `Server error: ${error.message}` 
       }),
       {
         status: 500,
