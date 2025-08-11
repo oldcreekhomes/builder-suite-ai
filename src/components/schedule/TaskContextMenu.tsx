@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { 
   ContextMenu,
@@ -26,6 +26,7 @@ interface TaskContextMenuProps {
   canOutdent: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  onContextMenuChange?: (isOpen: boolean) => void;
 }
 
 export function TaskContextMenu({
@@ -42,9 +43,10 @@ export function TaskContextMenu({
   canOutdent,
   canMoveUp,
   canMoveDown,
+  onContextMenuChange,
 }: TaskContextMenuProps) {
   return (
-    <ContextMenu>
+    <ContextMenu onOpenChange={onContextMenuChange}>
       <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>

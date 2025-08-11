@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -68,6 +68,8 @@ export function TaskRow({
     return end.toISOString().split('T')[0];
   };
 
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+
   const handleFieldUpdate = (field: string) => (value: string | number) => {
     const updates: any = { [field]: value };
     
@@ -95,8 +97,9 @@ export function TaskRow({
       canOutdent={canOutdent}
       canMoveUp={canMoveUp}
       canMoveDown={canMoveDown}
+      onContextMenuChange={setIsContextMenuOpen}
     >
-      <TableRow className={`h-8 hover:bg-muted/50`}>
+      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
         {/* Selection Checkbox */}
         <TableCell className="py-1 px-2 w-10">
           <div
