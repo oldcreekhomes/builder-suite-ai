@@ -90,6 +90,18 @@ export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[])
 }
 
 /**
+ * Validate that all parts of a hierarchy number are positive integers
+ */
+function isValidHierarchyNumber(hierarchyNumber: string): boolean {
+  if (!hierarchyNumber) return false;
+  const parts = hierarchyNumber.split('.');
+  return parts.every(part => {
+    const num = parseInt(part);
+    return !isNaN(num) && num > 0;
+  });
+}
+
+/**
  * Generate all updates needed for indenting a task
  * This includes the indented task and renumbering of subsequent parent-level tasks
  */
@@ -99,7 +111,7 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
   const originalNumber = parseInt(task.hierarchy_number.split('.')[0]);
   const newHierarchy = generateIndentHierarchy(task, tasks);
   
-  if (!newHierarchy) return [];
+  if (!newHierarchy || !isValidHierarchyNumber(newHierarchy)) return [];
   
   // Check if the new hierarchy number would create a duplicate
   const existingTaskWithHierarchy = tasks.find(t => 
@@ -119,14 +131,7 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
     hierarchy_number: newHierarchy
   });
   
-  // Create a set of existing hierarchy numbers to avoid duplicates
-  const existingHierarchies = new Set(tasks.map(t => t.hierarchy_number));
-  // Remove the original task's hierarchy since we're changing it
-  existingHierarchies.delete(task.hierarchy_number);
-  // Add the new hierarchy we're assigning
-  existingHierarchies.add(newHierarchy);
-  
-  // Find all parent-level tasks that need renumbering
+  // Find all parent-level tasks that need renumbering (shift down by 1)
   // These are tasks with hierarchy numbers greater than the original number
   const tasksToRenumber = tasks.filter(t => {
     if (!t.hierarchy_number || t.id === task.id) return false;
@@ -136,22 +141,35 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
     
     const taskNumber = parseInt(t.hierarchy_number);
     return taskNumber > originalNumber;
+  }).sort((a, b) => {
+    const aNum = parseInt(a.hierarchy_number!);
+    const bNum = parseInt(b.hierarchy_number!);
+    return aNum - bNum; // Sort ascending for proper sequential processing
   });
   
-  // Renumber by decreasing each by 1, but check for duplicates
+  // Create a mapping of old hierarchy numbers to track what's being updated
+  const hierarchyMapping = new Map<string, string>();
+  
+  // Process tasks sequentially: 3→2, 4→3, 5→4, etc.
   tasksToRenumber.forEach(t => {
-    let currentNumber = parseInt(t.hierarchy_number!);
-    let newNumber = currentNumber - 1;
-    let newHierarchyNumber = newNumber.toString();
+    const currentNumber = parseInt(t.hierarchy_number!);
+    const newNumber = currentNumber - 1;
     
-    // Find the next available number to avoid duplicates
-    while (existingHierarchies.has(newHierarchyNumber)) {
-      newNumber--;
-      newHierarchyNumber = newNumber.toString();
+    // Validate the new number is positive
+    if (newNumber <= 0) {
+      console.warn(`Cannot renumber task ${t.id}: would result in non-positive hierarchy number ${newNumber}`);
+      return;
     }
     
-    // Add to existing set to track what we're updating
-    existingHierarchies.add(newHierarchyNumber);
+    const newHierarchyNumber = newNumber.toString();
+    
+    // Validate the new hierarchy number
+    if (!isValidHierarchyNumber(newHierarchyNumber)) {
+      console.warn(`Cannot renumber task ${t.id}: invalid hierarchy number ${newHierarchyNumber}`);
+      return;
+    }
+    
+    hierarchyMapping.set(t.hierarchy_number!, newHierarchyNumber);
     
     updates.push({
       id: t.id,
