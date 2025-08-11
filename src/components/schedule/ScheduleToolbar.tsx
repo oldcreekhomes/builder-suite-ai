@@ -31,18 +31,48 @@ export function ScheduleToolbar({
 }: ScheduleToolbarProps) {
   const { updateTask } = useTaskMutations(projectId);
   
-  // DISABLED: Indent/Outdent functionality during refactoring
   const handleIndent = async () => {
-    toast.info("Indent functionality temporarily disabled during refactoring");
+    if (selectedTasks.size === 0) {
+      toast.error("Please select tasks to indent");
+      return;
+    }
+
+    for (const taskId of selectedTasks) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) continue;
+      
+      const newHierarchy = generateIndentHierarchy(task, tasks);
+      if (!newHierarchy) {
+        toast.error(`Cannot indent task: ${task.task_name}`);
+        continue;
+      }
+      
+      try {
+        await updateTask.mutateAsync({
+          id: taskId,
+          hierarchy_number: newHierarchy
+        });
+      } catch (error) {
+        toast.error(`Failed to indent task: ${task.task_name}`);
+        console.error("Error indenting task:", error);
+      }
+    }
+    
+    toast.success("Tasks indented successfully");
   };
 
   const handleOutdent = async () => {
     toast.info("Outdent functionality temporarily disabled during refactoring");
   };
 
-  // DISABLED: Button state logic during refactoring
-  const canIndentTasks = false; // Disabled during refactoring
-  const canOutdentTasks = false; // Disabled during refactoring
+  // Check if any selected tasks can be indented
+  const canIndentTasks = selectedTasks.size > 0 && 
+    Array.from(selectedTasks).some(taskId => {
+      const task = tasks.find(t => t.id === taskId);
+      return task && canIndent(task, tasks);
+    });
+
+  const canOutdentTasks = false; // Keep outdent disabled for now
 
   return (
     <div className="flex items-center gap-2 p-3 bg-card border-b">
