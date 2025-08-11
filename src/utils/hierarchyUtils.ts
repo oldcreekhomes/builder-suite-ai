@@ -51,9 +51,51 @@ export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]
   return null; // Disabled during refactoring
 }
 
-// DISABLED: Placeholder functions to fix build errors
+// SIMPLE: Basic renumbering function that actually works
 export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
-  return tasks; // Disabled during refactoring - just return tasks as-is
+  // Sort tasks by hierarchy for proper processing
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+  
+  const result = [...sortedTasks];
+  
+  // First: Renumber all top-level tasks sequentially
+  let topLevelCounter = 1;
+  const topLevelTasks = result.filter(task => 
+    task.hierarchy_number && !task.hierarchy_number.includes(".")
+  );
+  
+  topLevelTasks.forEach(task => {
+    task.hierarchy_number = topLevelCounter.toString();
+    topLevelCounter++;
+  });
+  
+  // Second: Renumber children tasks for each parent
+  topLevelTasks.forEach(parentTask => {
+    const children = result.filter(task => 
+      task.hierarchy_number && 
+      task.hierarchy_number.startsWith(parentTask.hierarchy_number + ".")
+    );
+    
+    // Sort children by their current hierarchy number
+    children.sort((a, b) => {
+      const aNum = a.hierarchy_number || "999";
+      const bNum = b.hierarchy_number || "999";
+      return aNum.localeCompare(bNum, undefined, { numeric: true });
+    });
+    
+    // Renumber children sequentially
+    let childCounter = 1;
+    children.forEach(child => {
+      child.hierarchy_number = `${parentTask.hierarchy_number}.${childCounter}`;
+      childCounter++;
+    });
+  });
+  
+  return result;
 }
 
 export function generateHierarchyNumber(tasks: ProjectTask[], targetIndex: number): string {

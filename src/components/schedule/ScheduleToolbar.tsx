@@ -77,8 +77,7 @@ export function ScheduleToolbar({
           Outdent
         </Button>
         
-        {/* DISABLED: HierarchyFixButton during refactoring */}
-        {/* <HierarchyFixButton tasks={tasks} projectId={projectId} /> */}
+        <HierarchyFixButton tasks={tasks} projectId={projectId} />
       
       <div className="ml-auto">
         <Button
