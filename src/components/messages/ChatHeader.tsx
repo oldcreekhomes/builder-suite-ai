@@ -11,7 +11,7 @@ export function ChatHeader({ selectedRoom }: ChatHeaderProps) {
   };
 
   const getDisplayName = (user: User) => {
-    return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+    return user.first_name || user.email;
   };
 
   return (

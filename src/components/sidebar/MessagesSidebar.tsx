@@ -67,8 +67,8 @@ export function MessagesSidebar({
   };
 
   const getDisplayName = (user: CompanyUser) => {
-    if (user.first_name || user.last_name) {
-      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    if (user.first_name) {
+      return user.first_name;
     }
     return user.email;
   };
