@@ -120,10 +120,10 @@ export function TaskRow({
         {/* Task Name with Indentation */}
         <TableCell className="py-1 pl-2 pr-2 w-48">
           <div className="flex items-center">
-            {/* Indentation spacer - only for child tasks */}
+            {/* Indentation spacer - only for child tasks (level > 0) */}
             {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
             
-            {/* Expand/Collapse Button */}
+            {/* Expand/Collapse Button - shown for parent tasks regardless of level */}
             {hasChildren ? (
               <button
                 onClick={() => onToggleExpand(task.id)}
