@@ -19,7 +19,6 @@ interface TaskTableProps {
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
   onAddTask: (position: 'above' | 'below', relativeTaskId: string) => void;
-  onAddChild: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
@@ -33,7 +32,6 @@ export function TaskTable({
   onIndent,
   onOutdent,
   onAddTask,
-  onAddChild,
   onDeleteTask,
   onMoveUp,
   onMoveDown
@@ -218,7 +216,6 @@ export function TaskTable({
               onOutdent={onOutdent}
               onAddAbove={handleAddAbove}
               onAddBelow={handleAddBelow}
-              onAddChild={onAddChild}
               onDelete={onDeleteTask}
               onMoveUp={onMoveUp}
               onMoveDown={onMoveDown}

@@ -20,7 +20,6 @@ interface TaskRowProps {
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
-  onAddChild: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
@@ -43,7 +42,6 @@ export function TaskRow({
   onOutdent,
   onAddAbove,
   onAddBelow,
-  onAddChild,
   onDelete,
   onMoveUp,
   onMoveDown,
@@ -90,7 +88,6 @@ export function TaskRow({
       onOutdent={onOutdent}
       onAddAbove={onAddAbove}
       onAddBelow={onAddBelow}
-      onAddChild={onAddChild}
       onDelete={onDelete}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
