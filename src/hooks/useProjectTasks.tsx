@@ -33,8 +33,17 @@ export const useProjectTasks = (projectId: string) => {
     console.log('🔥 useProjectTasks: Setting up real-time subscription for project tasks:', projectId);
     console.log('🔥 useProjectTasks: User ID:', user.id);
 
-    const channelName = `project-tasks-${projectId}-${user.id}-${Date.now()}`;
+    // Use a stable channel name without timestamp to prevent duplicate subscriptions
+    const channelName = `project-tasks-${projectId}-${user.id}`;
     console.log('🔥 useProjectTasks: Channel name:', channelName);
+
+    // Remove any existing channel with the same name first
+    const existingChannels = supabase.getChannels();
+    const existingChannel = existingChannels.find(ch => ch.topic === channelName);
+    if (existingChannel) {
+      console.log('🔥 useProjectTasks: Removing existing channel:', channelName);
+      supabase.removeChannel(existingChannel);
+    }
 
     const channel = supabase
       .channel(channelName)
@@ -73,7 +82,7 @@ export const useProjectTasks = (projectId: string) => {
       console.log('🔥 useProjectTasks: Cleaning up project tasks subscription for channel:', channelName);
       supabase.removeChannel(channel);
     };
-  }, [projectId, user, queryClient]);
+  }, [projectId, user?.id, queryClient]);
 
   return useQuery({
     queryKey: ['project-tasks', projectId, user?.id],
