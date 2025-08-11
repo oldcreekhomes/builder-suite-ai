@@ -149,45 +149,35 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       });
 
       const relativeIndex = sortedTasks.findIndex(t => t.id === relativeTaskId);
-      let insertIndex: number;
       let newHierarchyNumber: string;
+      let renumberStartIndex: number;
 
-      // Determine insertion point and hierarchy number
       if (position === 'above') {
-        insertIndex = relativeIndex;
+        // Insert above the relative task
         newHierarchyNumber = relativeTask.hierarchy_number || "1";
+        renumberStartIndex = relativeIndex;
       } else {
-        insertIndex = relativeIndex + 1;
-        // For below, we need to check if there are children of the relative task
+        // Insert below the relative task (and its children if any)
         const relativeHierarchy = relativeTask.hierarchy_number || "1";
-        const nextTaskIndex = relativeIndex + 1;
         
-        if (nextTaskIndex < sortedTasks.length) {
-          const nextTask = sortedTasks[nextTaskIndex];
-          const nextHierarchy = nextTask.hierarchy_number || "999";
-          
-          // If next task is a child of relative task, insert after all children
-          if (nextHierarchy.startsWith(relativeHierarchy + ".")) {
-            // Find where children end
-            let endOfChildren = nextTaskIndex;
-            while (endOfChildren < sortedTasks.length && 
-                   (sortedTasks[endOfChildren].hierarchy_number || "").startsWith(relativeHierarchy + ".")) {
-              endOfChildren++;
-            }
-            insertIndex = endOfChildren;
+        // Find where this task and its children end
+        let endIndex = relativeIndex + 1;
+        while (endIndex < sortedTasks.length) {
+          const nextHierarchy = sortedTasks[endIndex].hierarchy_number || "";
+          if (!nextHierarchy.startsWith(relativeHierarchy + ".")) {
+            break;
           }
+          endIndex++;
         }
         
-        // Calculate new hierarchy number based on insertion point
-        if (insertIndex < sortedTasks.length) {
-          const taskAtIndex = sortedTasks[insertIndex];
-          newHierarchyNumber = taskAtIndex.hierarchy_number || "999";
+        if (endIndex < sortedTasks.length) {
+          newHierarchyNumber = sortedTasks[endIndex].hierarchy_number || "999";
+          renumberStartIndex = endIndex;
         } else {
           // Inserting at the end
-          const lastTask = sortedTasks[sortedTasks.length - 1];
-          const lastHierarchy = lastTask?.hierarchy_number || "0";
-          const lastNum = parseInt(lastHierarchy.split('.')[0]) || 0;
-          newHierarchyNumber = (lastNum + 1).toString();
+          const lastMainNumber = parseInt(relativeHierarchy.split('.')[0]) || 0;
+          newHierarchyNumber = (lastMainNumber + 1).toString();
+          renumberStartIndex = sortedTasks.length;
         }
       }
 
@@ -205,24 +195,25 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         hierarchy_number: newHierarchyNumber
       });
 
-      // Now renumber all tasks that come after the insertion point
-      const tasksToRenumber = sortedTasks.slice(insertIndex);
+      // Now renumber ALL tasks from the insertion point onwards
+      const tasksToRenumber = sortedTasks.slice(renumberStartIndex);
       
       for (const task of tasksToRenumber) {
         const currentHierarchy = task.hierarchy_number || "1";
         const hierarchyParts = currentHierarchy.split('.');
-        const mainNumber = parseInt(hierarchyParts[0]) || 1;
         
-        // Only increment main level tasks
         if (hierarchyParts.length === 1) {
-          const newMainNumber = mainNumber + 1;
+          // This is a parent-level task - increment by 1
+          const currentMainNumber = parseInt(hierarchyParts[0]) || 1;
+          const newMainNumber = currentMainNumber + 1;
           await updateTask.mutateAsync({
             id: task.id,
             hierarchy_number: newMainNumber.toString()
           });
         } else {
-          // For sub-tasks, update the parent reference
-          const newParentNumber = parseInt(hierarchyParts[0]) + 1;
+          // This is a child task - increment the parent number
+          const currentParentNumber = parseInt(hierarchyParts[0]) || 1;
+          const newParentNumber = currentParentNumber + 1;
           const newSubHierarchy = [newParentNumber, ...hierarchyParts.slice(1)].join('.');
           await updateTask.mutateAsync({
             id: task.id,
