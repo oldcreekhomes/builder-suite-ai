@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
+import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -44,6 +45,44 @@ export function TaskTable({
   onMoveUp,
   onMoveDown
 }: TaskTableProps) {
+
+  // Enhanced onTaskUpdate that also updates parent tasks
+  const handleTaskUpdate = (taskId: string, updates: any) => {
+    // First update the task itself
+    onTaskUpdate(taskId, updates);
+    
+    // Then update any parent tasks that need recalculation
+    setTimeout(() => {
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId ? { ...task, ...updates } : task
+      );
+      
+      // Find all parent tasks that need updating
+      const parentsToUpdate: Array<{ id: string; updates: any }> = [];
+      
+      tasks.forEach(task => {
+        if (hasChildren(task.id)) {
+          const calculations = calculateParentTaskValues(task, updatedTasks);
+          if (calculations && shouldUpdateParentTask(task, calculations)) {
+            parentsToUpdate.push({
+              id: task.id,
+              updates: {
+                start_date: calculations.startDate,
+                end_date: calculations.endDate,
+                duration: calculations.duration,
+                progress: calculations.progress
+              }
+            });
+          }
+        }
+      });
+      
+      // Update all parent tasks
+      parentsToUpdate.forEach(({ id, updates }) => {
+        onTaskUpdate(id, updates);
+      });
+    }, 0);
+  };
 
   // Helper function to check if a task has children based on hierarchy
   const hasChildren = (taskId: string) => {
@@ -135,7 +174,7 @@ export function TaskTable({
               task={task}
               allTasks={tasks}
               index={index}
-              onTaskUpdate={onTaskUpdate}
+              onTaskUpdate={handleTaskUpdate}
               hasChildren={hasChildren(task.id)}
               isExpanded={expandedTasks.has(task.id)}
               onToggleExpand={onToggleExpand}

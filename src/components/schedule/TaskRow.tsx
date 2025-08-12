@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -77,21 +77,6 @@ export function TaskRow({
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-
-  // Auto-calculate parent task values when children change
-  useEffect(() => {
-    if (hasChildren) {
-      const calculations = calculateParentTaskValues(task, allTasks);
-      if (calculations && shouldUpdateParentTask(task, calculations)) {
-        onTaskUpdate(task.id, {
-          start_date: calculations.startDate,
-          end_date: calculations.endDate,
-          duration: calculations.duration,
-          progress: calculations.progress
-        });
-      }
-    }
-  }, [hasChildren, task, allTasks, onTaskUpdate]);
 
   const handleFieldUpdate = (field: string) => (value: string | number) => {
     const updates: any = { [field]: value };
