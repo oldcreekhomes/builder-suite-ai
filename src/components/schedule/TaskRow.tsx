@@ -6,6 +6,7 @@ import { ChevronRight, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
+import { ResourcesSelector } from "./ResourcesSelector";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -196,11 +197,9 @@ export function TaskRow({
 
         {/* Resources */}
         <TableCell className="py-1 px-2">
-          <InlineEditCell
+          <ResourcesSelector
             value={task.resources || ""}
-            type="text"
-            onSave={handleFieldUpdate("resources")}
-            displayFormat={(value) => value || "—"}
+            onValueChange={(value) => handleFieldUpdate("resources")(value)}
           />
         </TableCell>
 

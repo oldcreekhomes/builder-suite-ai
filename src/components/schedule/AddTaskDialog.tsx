@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
+import { ResourcesSelector } from './ResourcesSelector';
 
 interface AddTaskDialogProps {
   projectId: string;
@@ -152,11 +153,9 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
           <div>
             <Label htmlFor="resources">Resources</Label>
-            <Input
-              id="resources"
+            <ResourcesSelector
               value={formData.resources}
-              onChange={(e) => handleChange('resources', e.target.value)}
-              placeholder="Enter resource names"
+              onValueChange={(value) => handleChange('resources', value)}
             />
           </div>
 
