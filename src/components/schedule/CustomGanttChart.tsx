@@ -195,15 +195,26 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const handleAddTask = async () => {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
+      
+      // Explicitly create today's date in YYYY-MM-DD format to avoid timezone issues
       const today = new Date();
-      const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const defaultEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const todayString = today.getFullYear() + '-' + 
+        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(today.getDate()).padStart(2, '0');
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowString = tomorrow.getFullYear() + '-' + 
+        String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(tomorrow.getDate()).padStart(2, '0');
+
+      console.log('Creating task with start date:', todayString, 'end date:', tomorrowString);
 
       await createTask.mutateAsync({
         project_id: projectId,
         task_name: "New Task",
-        start_date: defaultStartDate.toISOString(),
-        end_date: defaultEndDate.toISOString(),
+        start_date: todayString,
+        end_date: tomorrowString,
         duration: 1,
         progress: 0,
         hierarchy_number: newHierarchyNumber
