@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,9 +7,11 @@ import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
+import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 
 interface TaskRowProps {
   task: ProjectTask;
+  allTasks: ProjectTask[];
   index: number;
   onTaskUpdate: (taskId: string, updates: any) => void;
   hasChildren: boolean;
@@ -34,6 +36,7 @@ interface TaskRowProps {
 
 export function TaskRow({
   task,
+  allTasks,
   index,
   onTaskUpdate,
   hasChildren,
@@ -75,14 +78,31 @@ export function TaskRow({
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 
+  // Auto-calculate parent task values when children change
+  useEffect(() => {
+    if (hasChildren) {
+      const calculations = calculateParentTaskValues(task, allTasks);
+      if (calculations && shouldUpdateParentTask(task, calculations)) {
+        onTaskUpdate(task.id, {
+          start_date: calculations.startDate,
+          end_date: calculations.endDate,
+          duration: calculations.duration,
+          progress: calculations.progress
+        });
+      }
+    }
+  }, [hasChildren, task, allTasks, onTaskUpdate]);
+
   const handleFieldUpdate = (field: string) => (value: string | number) => {
     const updates: any = { [field]: value };
     
-    // Auto-calculate end date when start date or duration changes
-    if (field === "start_date") {
-      updates.end_date = calculateEndDate(value as string, task.duration);
-    } else if (field === "duration") {
-      updates.end_date = calculateEndDate(task.start_date, value as number);
+    // Auto-calculate end date when start date or duration changes (for non-parent tasks)
+    if (!hasChildren) {
+      if (field === "start_date") {
+        updates.end_date = calculateEndDate(value as string, task.duration);
+      } else if (field === "duration") {
+        updates.end_date = calculateEndDate(task.start_date, value as number);
+      }
     }
     
     onTaskUpdate(task.id, updates);

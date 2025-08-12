@@ -133,6 +133,7 @@ export function TaskTable({
             <TaskRow
               key={task.id}
               task={task}
+              allTasks={tasks}
               index={index}
               onTaskUpdate={onTaskUpdate}
               hasChildren={hasChildren(task.id)}
