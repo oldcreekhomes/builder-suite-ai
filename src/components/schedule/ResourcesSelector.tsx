@@ -135,6 +135,13 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
     setOpen(false);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setIsEditing(false);
+    }
+  };
+
   // Always show selected resources as plain text when not editing and has resources
   if (selectedResources.length > 0 && !isEditing) {
     return (
@@ -164,7 +171,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
   // Only show the dropdown when editing or no resources selected
   return (
     <div className={cn("relative", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
