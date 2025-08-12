@@ -195,8 +195,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const handleAddTask = async () => {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
-      const defaultStartDate = new Date();
-      const defaultEndDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
+      const today = new Date();
+      const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const defaultEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
       await createTask.mutateAsync({
         project_id: projectId,
