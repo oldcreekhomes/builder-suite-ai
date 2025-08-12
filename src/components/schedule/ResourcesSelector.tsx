@@ -135,7 +135,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
     setOpen(false);
   };
 
-  // Always show selected resources as plain text when not editing
+  // Always show selected resources as plain text when not editing and has resources
   if (selectedResources.length > 0 && !isEditing) {
     return (
       <span 
@@ -144,6 +144,19 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
         title="Click to edit resources"
       >
         {selectedResources.join(', ')}
+      </span>
+    );
+  }
+
+  // Show "Select..." as plain text when no resources and not editing
+  if (selectedResources.length === 0 && !isEditing) {
+    return (
+      <span 
+        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground", className)}
+        onClick={handleStartEdit}
+        title="Click to select resources"
+      >
+        Select...
       </span>
     );
   }
