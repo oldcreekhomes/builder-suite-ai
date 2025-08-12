@@ -182,7 +182,10 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
                     >
                       <div className="flex items-center space-x-2 flex-1">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div className="font-medium">{repName}</div>
+                        <div className="font-medium">
+                          {repName}
+                          {rep.companies && <span className="text-muted-foreground"> - {rep.companies.company_name}</span>}
+                        </div>
                         <Check
                           className={cn(
                             "ml-auto h-4 w-4",
