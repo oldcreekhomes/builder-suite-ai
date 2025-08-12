@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { TaskTable } from "./TaskTable";
@@ -23,6 +23,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   // Helper function to calculate end date from start date + duration
   const calculateEndDate = (startDate: string, duration: number) => {
@@ -32,14 +33,96 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     return end;
   };
 
-  // Calculate timeline range from task dates using calculated end dates
-  const timelineStart = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
+  // Helper function to check if a task has children based on hierarchy
+  const hasChildren = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task?.hierarchy_number) return false;
+    
+    return tasks.some(t => 
+      t.hierarchy_number && 
+      t.hierarchy_number.startsWith(task.hierarchy_number + ".") &&
+      t.hierarchy_number.split(".").length === task.hierarchy_number.split(".").length + 1
+    );
+  };
+
+  // Filter tasks based on expansion state using hierarchy numbers
+  const getVisibleTasks = () => {
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const aHierarchy = a.hierarchy_number || '';
+      const bHierarchy = b.hierarchy_number || '';
+      return aHierarchy.localeCompare(bHierarchy, undefined, { numeric: true });
+    });
+
+    const visibleTasks: ProjectTask[] = [];
+    
+    for (const task of sortedTasks) {
+      if (!task.hierarchy_number) {
+        visibleTasks.push(task);
+        continue;
+      }
+      
+      // Always show root tasks (no dots in hierarchy)
+      if (!task.hierarchy_number.includes(".")) {
+        visibleTasks.push(task);
+        continue;
+      }
+      
+      // For nested tasks, check if all parent levels are expanded
+      const hierarchyParts = task.hierarchy_number.split(".");
+      let shouldShow = true;
+      
+      // Check each parent level
+      for (let i = 1; i < hierarchyParts.length; i++) {
+        const parentHierarchy = hierarchyParts.slice(0, i).join(".");
+        const parentTask = tasks.find(t => t.hierarchy_number === parentHierarchy);
+        
+        if (parentTask && !expandedTasks.has(parentTask.id)) {
+          shouldShow = false;
+          break;
+        }
+      }
+      
+      if (shouldShow) {
+        visibleTasks.push(task);
+      }
+    }
+    
+    return visibleTasks;
+  };
+
+  const visibleTasks = getVisibleTasks();
+
+  // Calculate timeline range from visible task dates using calculated end dates
+  const timelineStart = visibleTasks.length > 0 
+    ? new Date(Math.min(...visibleTasks.map(t => new Date(t.start_date).getTime())))
     : new Date();
   
-  const timelineEnd = tasks.length > 0
-    ? new Date(Math.max(...tasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
+  const timelineEnd = visibleTasks.length > 0
+    ? new Date(Math.max(...visibleTasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+  // Handle expansion state changes
+  const handleToggleExpand = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  // Effect to expand all tasks when expandAllTasks becomes true
+  useEffect(() => {
+    if (expandAllTasks) {
+      const tasksWithChildren = tasks.filter(task => hasChildren(task.id));
+      setExpandedTasks(new Set(tasksWithChildren.map(task => task.id)));
+      // Reset the flag
+      setExpandAllTasks(false);
+    }
+  }, [expandAllTasks, tasks]);
 
   // DISABLED: Task move functionality - will be reimplemented later
   const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
@@ -182,6 +265,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
         <TaskTable
           tasks={tasks}
+          visibleTasks={visibleTasks}
+          expandedTasks={expandedTasks}
+          onToggleExpand={handleToggleExpand}
           onTaskUpdate={handleTaskUpdate}
           selectedTasks={selectedTasks}
           onSelectedTasksChange={setSelectedTasks}
@@ -191,8 +277,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onDeleteTask={handleDeleteTask}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
-          expandAllTasks={expandAllTasks}
-          onExpandAllReset={() => setExpandAllTasks(false)}
         />
           </ResizablePanel>
 
@@ -202,7 +286,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           {/* Right Side - Timeline */}
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <Timeline
-              tasks={tasks}
+              tasks={visibleTasks}
               startDate={timelineStart}
               endDate={timelineEnd}
               onTaskUpdate={handleTaskUpdate}

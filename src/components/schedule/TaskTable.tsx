@@ -13,6 +13,9 @@ import {
 
 interface TaskTableProps {
   tasks: ProjectTask[];
+  visibleTasks: ProjectTask[];
+  expandedTasks: Set<string>;
+  onToggleExpand: (taskId: string) => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
   selectedTasks: Set<string>;
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
@@ -22,12 +25,13 @@ interface TaskTableProps {
   onDeleteTask: (taskId: string) => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
-  expandAllTasks?: boolean;
-  onExpandAllReset?: () => void;
 }
 
 export function TaskTable({ 
-  tasks, 
+  tasks,
+  visibleTasks,
+  expandedTasks,
+  onToggleExpand,
   onTaskUpdate, 
   selectedTasks, 
   onSelectedTasksChange,
@@ -36,21 +40,8 @@ export function TaskTable({
   onAddTask,
   onDeleteTask,
   onMoveUp,
-  onMoveDown,
-  expandAllTasks,
-  onExpandAllReset
+  onMoveDown
 }: TaskTableProps) {
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-
-  // Effect to expand all tasks when expandAllTasks becomes true
-  useEffect(() => {
-    if (expandAllTasks) {
-      const tasksWithChildren = tasks.filter(task => hasChildren(task.id));
-      setExpandedTasks(new Set(tasksWithChildren.map(task => task.id)));
-      // Reset the flag
-      onExpandAllReset?.();
-    }
-  }, [expandAllTasks, tasks, onExpandAllReset]);
 
   // Helper function to check if a task has children based on hierarchy
   const hasChildren = (taskId: string) => {
@@ -64,70 +55,6 @@ export function TaskTable({
     );
   };
 
-  // Helper function to get all descendant task IDs based on hierarchy
-  const getDescendants = (taskId: string): string[] => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task?.hierarchy_number) return [];
-    
-    return tasks
-      .filter(t => 
-        t.hierarchy_number && 
-        t.hierarchy_number.startsWith(task.hierarchy_number + ".")
-      )
-      .map(t => t.id);
-  };
-
-  // Filter tasks based on expansion state using hierarchy numbers
-  const getVisibleTasks = () => {
-    const visibleTasks: ProjectTask[] = [];
-    
-    for (const task of sortedTasks) {
-      if (!task.hierarchy_number) {
-        visibleTasks.push(task);
-        continue;
-      }
-      
-      // Always show root tasks (no dots in hierarchy)
-      if (!task.hierarchy_number.includes(".")) {
-        visibleTasks.push(task);
-        continue;
-      }
-      
-      // For nested tasks, check if all parent levels are expanded
-      const hierarchyParts = task.hierarchy_number.split(".");
-      let shouldShow = true;
-      
-      // Check each parent level
-      for (let i = 1; i < hierarchyParts.length; i++) {
-        const parentHierarchy = hierarchyParts.slice(0, i).join(".");
-        const parentTask = tasks.find(t => t.hierarchy_number === parentHierarchy);
-        
-        if (parentTask && !expandedTasks.has(parentTask.id)) {
-          shouldShow = false;
-          break;
-        }
-      }
-      
-      if (shouldShow) {
-        visibleTasks.push(task);
-      }
-    }
-    
-    return visibleTasks;
-  };
-
-  const handleToggleExpand = (taskId: string) => {
-    setExpandedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
-  };
-
   const handleTaskSelection = (taskId: string, checked: boolean) => {
     const newSet = new Set(selectedTasks);
     if (checked) {
@@ -138,14 +65,6 @@ export function TaskTable({
     onSelectedTasksChange(newSet);
   };
 
-  // Sort tasks by hierarchy number for display
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aNum = a.hierarchy_number || "999";
-    const bNum = b.hierarchy_number || "999";
-    return aNum.localeCompare(bNum, undefined, { numeric: true });
-  });
-
-  const visibleTasks = getVisibleTasks();
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -216,7 +135,7 @@ export function TaskTable({
               onTaskUpdate={onTaskUpdate}
               hasChildren={hasChildren(task.id)}
               isExpanded={expandedTasks.has(task.id)}
-              onToggleExpand={handleToggleExpand}
+              onToggleExpand={onToggleExpand}
               isSelected={selectedTasks.has(task.id)}
               onTaskSelection={handleTaskSelection}
               onIndent={onIndent}
