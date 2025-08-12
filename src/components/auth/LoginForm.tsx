@@ -32,13 +32,16 @@ const LoginForm = () => {
 
     try {
       console.log("Sending password reset for:", email);
+      console.log("Using edge function approach");
       
-      const { error } = await supabase.functions.invoke('send-password-reset', {
+      const result = await supabase.functions.invoke('send-password-reset', {
         body: { email: email.trim() }
       });
+      
+      console.log("Edge function result:", result);
 
-      if (error) {
-        throw new Error(error.message || "Failed to send reset email");
+      if (result.error) {
+        throw new Error(result.error.message || "Failed to send reset email");
       }
 
       toast({
