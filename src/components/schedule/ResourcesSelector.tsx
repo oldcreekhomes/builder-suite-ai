@@ -61,7 +61,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
 
         if (usersError) throw usersError;
 
-        // Fetch company representatives with company names
+        // Fetch company representatives with company names (only those with schedule notifications enabled)
         const { data: repsData, error: repsError } = await supabase
           .from('company_representatives')
           .select(`
@@ -73,6 +73,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
             company_id,
             companies(company_name)
           `)
+          .eq('receive_schedule_notifications', true)
           .order('first_name');
 
         if (repsError) throw repsError;
@@ -118,7 +119,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className="h-8 text-xs justify-between"
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -132,7 +133,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0">
+        <PopoverContent className="w-[300px] p-0">
           <Command>
             <CommandInput placeholder="Search users and representatives..." />
             <CommandList>
