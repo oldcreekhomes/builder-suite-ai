@@ -33,6 +33,7 @@ interface ResourcesSelectorProps {
 
 export function ResourcesSelector({ value, onValueChange, className }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [representatives, setRepresentatives] = useState<CompanyRepresentative[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,6 +124,30 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
     return `${selectedResources.length} selected`;
   };
 
+  
+  const handleStartEdit = () => {
+    setIsEditing(true);
+    setOpen(true);
+  };
+
+  const handleFinishEdit = () => {
+    setIsEditing(false);
+    setOpen(false);
+  };
+
+  // If we have selected resources and not editing, show as text
+  if (selectedResources.length > 0 && !isEditing) {
+    return (
+      <div 
+        className={cn("text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded", className)}
+        onClick={handleStartEdit}
+        title="Click to edit resources"
+      >
+        {selectedResources.join(', ')}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("relative", className)}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -142,9 +167,13 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0">
+        <PopoverContent className="w-[300px] p-0" onEscapeKeyDown={handleFinishEdit}>
           <Command>
-            <CommandInput placeholder="Search users and representatives..." />
+            <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                handleFinishEdit();
+              }
+            }} />
             <CommandList>
               <CommandEmpty>
                 {loading ? "Loading..." : "No resources found."}
@@ -213,8 +242,8 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
         </PopoverContent>
       </Popover>
 
-      {/* Selected Resources Display - Only show on hover or when popover is open */}
-      {selectedResources.length > 0 && open && (
+      {/* Selected Resources Display - Only show when editing */}
+      {selectedResources.length > 0 && isEditing && (
         <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-md shadow-sm z-50 max-w-[200px]">
           <div className="text-xs text-muted-foreground mb-1">Selected:</div>
           <div className="flex flex-wrap gap-1">
