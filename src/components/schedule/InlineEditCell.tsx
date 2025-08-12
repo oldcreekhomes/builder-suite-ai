@@ -72,7 +72,10 @@ export function InlineEditCell({
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      const formattedDate = format(date, "yyyy-MM-dd");
+      // Set to noon to avoid timezone edge cases
+      const adjustedDate = new Date(date);
+      adjustedDate.setHours(12, 0, 0, 0);
+      const formattedDate = format(adjustedDate, "yyyy-MM-dd");
       onSave(formattedDate);
       setShowCalendar(false);
     }
@@ -104,7 +107,7 @@ export function InlineEditCell({
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={value ? new Date(value + "T00:00:00") : undefined}
+            selected={value ? new Date(value + "T12:00:00") : undefined}
             onSelect={handleDateSelect}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
