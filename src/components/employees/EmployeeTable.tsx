@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ interface Employee {
   first_name: string | null;
   last_name: string | null;
   phone_number: string | null;
+  avatar_url: string | null;
   role: string;
   confirmed: boolean;
   created_at: string;
@@ -153,6 +154,7 @@ export function EmployeeTable() {
               <TableRow key={employee.id}>
                 <TableCell className="flex items-center space-x-3">
                   <Avatar>
+                    <AvatarImage src={employee.avatar_url || undefined} alt={`${employee.first_name} ${employee.last_name}`} />
                     <AvatarFallback>
                       {getInitials(employee.first_name, employee.last_name)}
                     </AvatarFallback>
