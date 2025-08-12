@@ -28,7 +28,7 @@ export function InlineEditCell({
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      if (type === "text") {
+      if (type === "text" || type === "number") {
         inputRef.current.select();
       }
     }
