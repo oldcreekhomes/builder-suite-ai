@@ -139,7 +139,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
   if (selectedResources.length > 0 && !isEditing) {
     return (
       <div 
-        className={cn("text-sm cursor-pointer hover:bg-muted/50 px-2 py-1 rounded", className)}
+        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs", className)}
         onClick={handleStartEdit}
         title="Click to edit resources"
       >
