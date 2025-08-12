@@ -149,7 +149,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
   }
 
   // Show "Select..." as plain text when no resources and not editing
-  if (selectedResources.length === 0 && !isEditing) {
+  if (!isEditing) {
     return (
       <span 
         className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground", className)}
