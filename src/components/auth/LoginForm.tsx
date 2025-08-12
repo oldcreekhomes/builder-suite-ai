@@ -33,8 +33,8 @@ const LoginForm = () => {
     try {
       console.log("Sending password reset for:", email);
       
-      const { error } = await supabase.functions.invoke('send-password-reset', {
-        body: { email: email.trim() }
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
