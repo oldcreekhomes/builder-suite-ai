@@ -31,8 +31,7 @@ export function InlineEditCell({
     if (type === "number" && (value === 0 || value === "0")) {
       return displayFormat ? displayFormat(0) : "";
     }
-    const displayValue = displayFormat ? displayFormat(value) : String(value);
-    return displayValue;
+    return displayFormat ? displayFormat(value) : String(value);
   };
 
   const [isEditing, setIsEditing] = useState(false);
