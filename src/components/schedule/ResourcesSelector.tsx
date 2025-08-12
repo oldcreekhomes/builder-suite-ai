@@ -155,15 +155,10 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
                     >
                       <div className="flex items-center space-x-2 flex-1">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1">
-                          <div className="font-medium">{userName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {user.email} • {user.role}
-                          </div>
-                        </div>
+                        <div className="font-medium">{userName}</div>
                         <Check
                           className={cn(
-                            "h-4 w-4",
+                            "ml-auto h-4 w-4",
                             isSelected ? "opacity-100" : "opacity-0"
                           )}
                         />
@@ -187,16 +182,10 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
                     >
                       <div className="flex items-center space-x-2 flex-1">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1">
-                          <div className="font-medium">{repName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {rep.email} • {rep.title}
-                            {rep.companies && ` • ${rep.companies.company_name}`}
-                          </div>
-                        </div>
+                        <div className="font-medium">{repName}</div>
                         <Check
                           className={cn(
-                            "h-4 w-4",
+                            "ml-auto h-4 w-4",
                             isSelected ? "opacity-100" : "opacity-0"
                           )}
                         />
