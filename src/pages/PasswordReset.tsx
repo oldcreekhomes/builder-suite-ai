@@ -11,19 +11,20 @@ const PasswordReset = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for custom reset token
-    const token = searchParams.get('token');
+    // Check for Supabase recovery parameters
+    const type = searchParams.get('type');
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
     
-    console.log("Password reset page loaded with token:", { hasToken: !!token });
+    console.log("Password reset page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
     
-    if (!token) {
-      console.log("No reset token found, redirecting to auth");
+    if (type !== 'recovery' || !accessToken || !refreshToken) {
+      console.log("Invalid recovery parameters, redirecting to auth");
       toast({
         title: "Error",
         description: "Invalid or expired reset link. Please request a new password reset.",
@@ -33,22 +34,31 @@ const PasswordReset = () => {
       return;
     }
 
-    // Try to decode the token to get the email
-    try {
-      const resetData = JSON.parse(atob(token));
-      if (resetData.email) {
-        setEmail(resetData.email);
+    // Set the session from the recovery tokens
+    const setSessionFromTokens = async () => {
+      try {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        console.log("Session set successfully from recovery tokens");
+      } catch (error) {
+        console.error("Error setting session from recovery tokens:", error);
+        toast({
+          title: "Error",
+          description: "Invalid recovery session. Please request a new password reset.",
+          variant: "destructive",
+        });
+        navigate('/auth');
       }
-      console.log("Decoded email from token:", resetData.email);
-    } catch (error) {
-      console.error("Error decoding reset token:", error);
-      toast({
-        title: "Error",
-        description: "Invalid reset token. Please request a new password reset.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-    }
+    };
+
+    setSessionFromTokens();
   }, [searchParams, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,41 +91,26 @@ const PasswordReset = () => {
       return;
     }
 
-    const token = searchParams.get('token');
-    if (!token || !email) {
-      toast({
-        title: "Error",
-        description: "Invalid reset session. Please request a new password reset.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      console.log("Resetting password with custom function for:", email);
+      console.log("Updating password with Supabase auth");
       
-      const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: {
-          email: email,
-          newPassword: password,
-          resetToken: token
-        }
+      const { error } = await supabase.auth.updateUser({
+        password: password
       });
 
       if (error) {
-        throw new Error(error.message || "Failed to reset password");
+        throw error;
       }
-
-      console.log("Password reset response:", data);
 
       toast({
         title: "Success",
-        description: "Your password has been updated successfully! Please sign in with your new password.",
+        description: "Your password has been updated successfully! Redirecting to dashboard...",
       });
-      navigate("/auth");
+      
+      // User is now authenticated with the new password, redirect to main app
+      navigate("/");
     } catch (error: any) {
       console.error("Password update error:", error);
       toast({

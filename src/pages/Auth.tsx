@@ -13,44 +13,13 @@ const Auth = () => {
   useEffect(() => {
     // Check if this is a password recovery flow
     const type = searchParams.get('type');
-    const token = searchParams.get('token');
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
     
-    console.log("Auth page loaded with params:", { type, hasToken: !!token, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    console.log("Auth page loaded with params:", { type });
     
-    // Handle Supabase recovery flow
+    // Handle Supabase recovery flow - redirect to reset password page
     if (type === 'recovery') {
-      if (accessToken && refreshToken) {
-        console.log("Recovery completed with tokens, redirecting to password reset page...");
-        // Recovery flow completed, redirect to password reset page
-        navigate(`/reset-password?${searchParams.toString()}`, { replace: true });
-      } else if (token) {
-        console.log("Processing recovery token with Supabase...");
-        // Wait a bit for Supabase to process the token exchange
-        const checkForTokens = () => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const newAccessToken = urlParams.get('access_token');
-          const newRefreshToken = urlParams.get('refresh_token');
-          
-          if (newAccessToken && newRefreshToken) {
-            console.log("Tokens received after processing, redirecting...");
-            navigate(`/reset-password?${urlParams.toString()}`, { replace: true });
-          } else {
-            // If tokens don't appear within 3 seconds, something is wrong
-            setTimeout(() => {
-              const finalCheck = new URLSearchParams(window.location.search);
-              if (!finalCheck.get('access_token')) {
-                console.log("No tokens received, redirecting to reset request");
-                navigate('/auth');
-              }
-            }, 3000);
-          }
-        };
-        
-        // Check for tokens after a short delay
-        setTimeout(checkForTokens, 1000);
-      }
+      console.log("Recovery flow detected, redirecting to password reset page...");
+      navigate(`/reset-password?${searchParams.toString()}`, { replace: true });
     }
   }, [searchParams, navigate]);
   return (
