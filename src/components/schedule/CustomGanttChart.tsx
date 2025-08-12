@@ -231,6 +231,31 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Handle bulk delete for multiple selected tasks
+  const handleBulkDelete = async () => {
+    if (selectedTasks.size === 0) {
+      toast.error("No tasks selected");
+      return;
+    }
+
+    try {
+      // Delete all selected tasks in parallel
+      const deletePromises = Array.from(selectedTasks).map(taskId => 
+        deleteTask.mutateAsync(taskId)
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Clear selection after successful deletion
+      setSelectedTasks(new Set());
+      
+      toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
+    } catch (error) {
+      console.error("Failed to delete tasks:", error);
+      toast.error("Failed to delete selected tasks");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-card text-card-foreground rounded-lg border p-6">
@@ -257,6 +282,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           tasks={tasks}
           projectId={projectId}
           onAddTask={handleAddTask}
+          onBulkDelete={handleBulkDelete}
           onPublish={() => setShowPublishDialog(true)}
         />
         

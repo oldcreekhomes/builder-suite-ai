@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send } from "lucide-react";
+import { Plus, Send, Trash2 } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -8,6 +8,7 @@ interface ScheduleToolbarProps {
   tasks: ProjectTask[];
   projectId: string;
   onAddTask: () => void;
+  onBulkDelete: () => void;
   onPublish: () => void;
 }
 
@@ -15,7 +16,8 @@ export function ScheduleToolbar({
   selectedTasks, 
   tasks, 
   projectId,
-  onAddTask, 
+  onAddTask,
+  onBulkDelete,
   onPublish 
 }: ScheduleToolbarProps) {
 
@@ -29,6 +31,18 @@ export function ScheduleToolbar({
         <Plus className="h-4 w-4" />
         Add
       </Button>
+      
+      {selectedTasks.size > 0 && (
+        <Button
+          onClick={onBulkDelete}
+          size="sm"
+          variant="destructive"
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete ({selectedTasks.size})
+        </Button>
+      )}
       
       <div className="ml-auto">
         <Button
