@@ -110,9 +110,21 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
   const formatUserName = (user: User) => `${user.first_name} ${user.last_name}`;
   const formatRepName = (rep: CompanyRepresentative & { companies?: { company_name: string } }) => 
     `${rep.first_name} ${rep.last_name}`;
+  
+  const getInitials = (name: string) => {
+    return name.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
+  };
+
+  const getDisplayText = () => {
+    if (selectedResources.length === 0) return "Select...";
+    if (selectedResources.length === 1) {
+      return getInitials(selectedResources[0]);
+    }
+    return `${selectedResources.length} selected`;
+  };
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("relative", className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -123,11 +135,8 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span className="text-sm">
-                {selectedResources.length > 0 
-                  ? `${selectedResources.length} selected` 
-                  : "Select resources..."
-                }
+              <span className="text-xs">
+                {getDisplayText()}
               </span>
             </div>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -202,20 +211,22 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
         </PopoverContent>
       </Popover>
 
-      {/* Selected Resources Display */}
-      {selectedResources.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {selectedResources.map((resource) => (
-            <Badge key={resource} variant="secondary" className="text-xs">
-              {resource}
-              <button
-                onClick={() => handleRemove(resource)}
-                className="ml-1 hover:text-destructive"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+      {/* Selected Resources Display - Only show on hover or when popover is open */}
+      {selectedResources.length > 0 && open && (
+        <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-md shadow-sm z-50 max-w-[200px]">
+          <div className="text-xs text-muted-foreground mb-1">Selected:</div>
+          <div className="flex flex-wrap gap-1">
+            {selectedResources.slice(0, 3).map((resource) => (
+              <span key={resource} className="text-xs bg-secondary px-1 py-0.5 rounded">
+                {getInitials(resource)}
+              </span>
+            ))}
+            {selectedResources.length > 3 && (
+              <span className="text-xs text-muted-foreground">
+                +{selectedResources.length - 3} more
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
