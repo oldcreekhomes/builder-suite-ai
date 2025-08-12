@@ -189,15 +189,17 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
                       value={repName}
                       onSelect={() => handleSelect(repName)}
                     >
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div className="font-medium">
-                          {repName}
-                          {rep.companies && <span className="text-muted-foreground"> - {rep.companies.company_name}</span>}
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="font-medium truncate">
+                          <span>{repName}</span>
+                          {rep.companies && (
+                            <span className="text-muted-foreground font-normal"> - {rep.companies.company_name}</span>
+                          )}
                         </div>
                         <Check
                           className={cn(
-                            "ml-auto h-4 w-4",
+                            "ml-auto h-4 w-4 flex-shrink-0",
                             isSelected ? "opacity-100" : "opacity-0"
                           )}
                         />
