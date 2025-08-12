@@ -57,19 +57,19 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const timeDiff = latestEndDate.getTime() - earliestStartDate.getTime();
   const duration = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Convert to days and round up
   
-  // Calculate progress (weighted by duration)
+  // Calculate progress based on completed duration vs total duration
   const totalDuration = childTasks.reduce((sum, task) => sum + task.duration, 0);
-  const weightedProgressSum = childTasks.reduce((sum, task) => {
-    const taskProgress = task.progress || 0;
+  const completedDuration = childTasks.reduce((sum, task) => {
+    const taskProgress = (task.progress || 0) / 100; // Convert percentage to decimal
     return sum + (task.duration * taskProgress);
   }, 0);
-  const weightedProgress = totalDuration > 0 ? Math.round(weightedProgressSum / totalDuration) : 0;
+  const progressPercentage = totalDuration > 0 ? Math.round((completedDuration / totalDuration) * 100) : 0;
   
   return {
     startDate: earliestStartDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
     endDate: latestEndDate.toISOString().split('T')[0],
     duration,
-    progress: weightedProgress
+    progress: progressPercentage
   };
 };
 
