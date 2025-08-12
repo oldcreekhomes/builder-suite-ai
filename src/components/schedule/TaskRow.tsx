@@ -59,7 +59,8 @@ export function TaskRow({
   canMoveDown
 }: TaskRowProps) {
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MM/dd/yy");
+    // Avoid timezone conversion by adding T12:00:00 to the date string
+    return format(new Date(dateString + "T12:00:00"), "MM/dd/yy");
   };
 
   const getIndentLevel = (hierarchyNumber: string) => {
