@@ -16,11 +16,13 @@ interface TaskRowProps {
   onToggleExpand: (taskId: string) => void;
   isSelected: boolean;
   onTaskSelection: (taskId: string, checked: boolean) => void;
+  selectedTasks: Set<string>;
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
   canIndent: boolean;
@@ -38,11 +40,13 @@ export function TaskRow({
   onToggleExpand,
   isSelected,
   onTaskSelection,
+  selectedTasks,
   onIndent,
   onOutdent,
   onAddAbove,
   onAddBelow,
   onDelete,
+  onBulkDelete,
   onMoveUp,
   onMoveDown,
   canIndent,
@@ -86,11 +90,13 @@ export function TaskRow({
   return (
     <TaskContextMenu
       task={task}
+      selectedTasks={selectedTasks}
       onIndent={onIndent}
       onOutdent={onOutdent}
       onAddAbove={onAddAbove}
       onAddBelow={onAddBelow}
       onDelete={onDelete}
+      onBulkDelete={onBulkDelete}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       canIndent={canIndent}

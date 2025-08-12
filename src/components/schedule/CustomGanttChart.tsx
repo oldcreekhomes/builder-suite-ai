@@ -282,7 +282,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           tasks={tasks}
           projectId={projectId}
           onAddTask={handleAddTask}
-          onBulkDelete={handleBulkDelete}
           onPublish={() => setShowPublishDialog(true)}
         />
         
@@ -301,6 +300,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onOutdent={handleOutdent}
           onAddTask={handleAddTaskPositioned}
           onDeleteTask={handleDeleteTask}
+          onBulkDelete={handleBulkDelete}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
         />

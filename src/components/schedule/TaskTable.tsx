@@ -23,6 +23,7 @@ interface TaskTableProps {
   onOutdent: (taskId: string) => void;
   onAddTask: (position: 'above' | 'below', relativeTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
 }
@@ -39,6 +40,7 @@ export function TaskTable({
   onOutdent,
   onAddTask,
   onDeleteTask,
+  onBulkDelete,
   onMoveUp,
   onMoveDown
 }: TaskTableProps) {
@@ -138,11 +140,13 @@ export function TaskTable({
               onToggleExpand={onToggleExpand}
               isSelected={selectedTasks.has(task.id)}
               onTaskSelection={handleTaskSelection}
+              selectedTasks={selectedTasks}
               onIndent={onIndent}
               onOutdent={onOutdent}
               onAddAbove={handleAddAbove}
               onAddBelow={handleAddBelow}
               onDelete={onDeleteTask}
+              onBulkDelete={onBulkDelete}
               onMoveUp={onMoveUp}
               onMoveDown={onMoveDown}
               canIndent={getCanIndent(task)}

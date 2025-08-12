@@ -15,11 +15,13 @@ import { Indent, Outdent, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react"
 interface TaskContextMenuProps {
   children: React.ReactNode;
   task: ProjectTask;
+  selectedTasks: Set<string>;
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
   canIndent: boolean;
@@ -32,11 +34,13 @@ interface TaskContextMenuProps {
 export function TaskContextMenu({
   children,
   task,
+  selectedTasks,
   onIndent,
   onOutdent,
   onAddAbove,
   onAddBelow,
   onDelete,
+  onBulkDelete,
   onMoveUp,
   onMoveDown,
   canIndent,
@@ -45,6 +49,8 @@ export function TaskContextMenu({
   canMoveDown,
   onContextMenuChange,
 }: TaskContextMenuProps) {
+  const isMultipleSelected = selectedTasks.size > 1;
+  const isThisTaskSelected = selectedTasks.has(task.id);
   return (
     <ContextMenu onOpenChange={onContextMenuChange}>
       <ContextMenuTrigger asChild>
@@ -115,11 +121,20 @@ export function TaskContextMenu({
         <ContextMenuSeparator />
         
         <ContextMenuItem
-          onClick={() => onDelete(task.id)}
+          onClick={() => {
+            if (isMultipleSelected && isThisTaskSelected) {
+              onBulkDelete();
+            } else {
+              onDelete(task.id);
+            }
+          }}
           className="flex items-center gap-2 text-destructive focus:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
-          Delete
+          {isMultipleSelected && isThisTaskSelected 
+            ? `Delete Selected (${selectedTasks.size})` 
+            : "Delete"
+          }
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
