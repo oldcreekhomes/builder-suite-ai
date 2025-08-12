@@ -139,7 +139,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
   if (selectedResources.length > 0 && !isEditing) {
     return (
       <span 
-        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs", className)}
+        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs", className)}
         onClick={handleStartEdit}
         title="Click to edit resources"
       >
@@ -148,6 +148,7 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
     );
   }
 
+  // Only show the dropdown when editing or no resources selected
   return (
     <div className={cn("relative", className)}>
       <Popover open={open} onOpenChange={setOpen}>
