@@ -17,26 +17,34 @@ const PasswordReset = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have Supabase recovery tokens
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
+    // Check for custom reset token
+    const token = searchParams.get('token');
     
-    console.log("Password reset page loaded with recovery tokens:", { 
-      hasAccessToken: !!accessToken, 
-      hasRefreshToken: !!refreshToken, 
-      type 
-    });
+    console.log("Password reset page loaded with token:", { hasToken: !!token });
     
-    if (type === 'recovery' && accessToken && refreshToken) {
-      // We have valid recovery session, user can proceed to set password
-      console.log("Valid recovery session found");
-    } else {
-      // If no valid recovery session, redirect to auth page
-      console.log("No valid recovery session found, redirecting to auth");
+    if (!token) {
+      console.log("No reset token found, redirecting to auth");
       toast({
         title: "Error",
         description: "Invalid or expired reset link. Please request a new password reset.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    // Try to decode the token to get the email
+    try {
+      const resetData = JSON.parse(atob(token));
+      if (resetData.email) {
+        setEmail(resetData.email);
+      }
+      console.log("Decoded email from token:", resetData.email);
+    } catch (error) {
+      console.error("Error decoding reset token:", error);
+      toast({
+        title: "Error",
+        description: "Invalid reset token. Please request a new password reset.",
         variant: "destructive",
       });
       navigate('/auth');
@@ -73,35 +81,51 @@ const PasswordReset = () => {
       return;
     }
 
+    const token = searchParams.get('token');
+    if (!token || !email) {
+      toast({
+        title: "Error",
+        description: "Invalid reset session. Please request a new password reset.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Use Supabase's built-in password update with the recovery session
-      const { error } = await supabase.auth.updateUser({
-        password: password
+      console.log("Resetting password with custom function for:", email);
+      
+      const response = await fetch("/functions/v1/reset-user-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          newPassword: password,
+          resetToken: token
+        }),
       });
 
-      if (error) {
-        console.error("Password reset error:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to reset password. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Your password has been updated successfully! Please sign in with your new password.",
-        });
-        // Sign out to clear the recovery session and redirect to auth page
-        await supabase.auth.signOut();
-        navigate("/auth");
+      const result = await response.json();
+      console.log("Password reset response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to reset password");
       }
-    } catch (error) {
+
+      toast({
+        title: "Success",
+        description: "Your password has been updated successfully! Please sign in with your new password.",
+      });
+      navigate("/auth");
+    } catch (error: any) {
       console.error("Password update error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -33,28 +33,30 @@ const LoginForm = () => {
     try {
       console.log("Sending password reset for:", email);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth`
+      const response = await fetch("/functions/v1/send-password-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email.trim() }),
       });
 
-      if (error) {
-        console.error("Password reset error:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Reset Email Sent",
-          description: "Check your email for password reset instructions",
-        });
+      const result = await response.json();
+      console.log("Password reset response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send reset email");
       }
-    } catch (error) {
+
+      toast({
+        title: "Reset Email Sent",
+        description: "Check your email for password reset instructions",
+      });
+    } catch (error: any) {
       console.error("Password reset error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
