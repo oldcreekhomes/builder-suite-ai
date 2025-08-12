@@ -51,37 +51,51 @@ export function TaskTable({
     // First update the task itself
     onTaskUpdate(taskId, updates);
     
-    // Then update any parent tasks that need recalculation
-    setTimeout(() => {
-      const updatedTasks = tasks.map(task => 
+    // Then immediately update any parent tasks that need recalculation
+    // Use requestAnimationFrame to ensure the update has been processed
+    requestAnimationFrame(() => {
+      // Get the current task that was updated
+      const updatedTask = tasks.find(t => t.id === taskId);
+      if (!updatedTask) return;
+      
+      // Create a simulated updated tasks array for calculation
+      const simulatedTasks = tasks.map(task => 
         task.id === taskId ? { ...task, ...updates } : task
       );
       
-      // Find all parent tasks that need updating
-      const parentsToUpdate: Array<{ id: string; updates: any }> = [];
+      // Find all tasks that could be parents of the updated task
+      const taskHierarchy = updatedTask.hierarchy_number;
+      if (!taskHierarchy) return;
       
-      tasks.forEach(task => {
-        if (hasChildren(task.id)) {
-          const calculations = calculateParentTaskValues(task, updatedTasks);
-          if (calculations && shouldUpdateParentTask(task, calculations)) {
-            parentsToUpdate.push({
-              id: task.id,
-              updates: {
-                start_date: calculations.startDate,
-                end_date: calculations.endDate,
-                duration: calculations.duration,
-                progress: calculations.progress
-              }
-            });
-          }
+      // Find parent tasks by checking hierarchy levels
+      const parentTasks = tasks.filter(task => {
+        if (!task.hierarchy_number || task.id === taskId) return false;
+        
+        // Check if this task is a parent of the updated task
+        const taskParts = taskHierarchy.split('.');
+        const parentParts = task.hierarchy_number.split('.');
+        
+        // Parent should have fewer hierarchy levels
+        if (parentParts.length >= taskParts.length) return false;
+        
+        // All parent parts should match the beginning of task parts
+        return parentParts.every((part, index) => part === taskParts[index]);
+      });
+      
+      // Update each parent task
+      parentTasks.forEach(parentTask => {
+        const calculations = calculateParentTaskValues(parentTask, simulatedTasks);
+        if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
+          console.log('Updating parent task:', parentTask.task_name, 'with calculations:', calculations);
+          onTaskUpdate(parentTask.id, {
+            start_date: calculations.startDate,
+            end_date: calculations.endDate,
+            duration: calculations.duration,
+            progress: calculations.progress
+          });
         }
       });
-      
-      // Update all parent tasks
-      parentsToUpdate.forEach(({ id, updates }) => {
-        onTaskUpdate(id, updates);
-      });
-    }, 0);
+    });
   };
 
   // Helper function to check if a task has children based on hierarchy
