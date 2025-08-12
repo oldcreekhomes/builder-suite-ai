@@ -135,16 +135,16 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
     setOpen(false);
   };
 
-  // If we have selected resources and not editing, show as text
+  // Always show selected resources as plain text when not editing
   if (selectedResources.length > 0 && !isEditing) {
     return (
-      <div 
+      <span 
         className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs", className)}
         onClick={handleStartEdit}
         title="Click to edit resources"
       >
         {selectedResources.join(', ')}
-      </div>
+      </span>
     );
   }
 
@@ -242,24 +242,6 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
         </PopoverContent>
       </Popover>
 
-      {/* Selected Resources Display - Only show when editing */}
-      {selectedResources.length > 0 && isEditing && (
-        <div className="absolute top-full left-0 mt-1 p-2 bg-white border rounded-md shadow-sm z-50 max-w-[200px]">
-          <div className="text-xs text-muted-foreground mb-1">Selected:</div>
-          <div className="flex flex-wrap gap-1">
-            {selectedResources.slice(0, 3).map((resource) => (
-              <span key={resource} className="text-xs bg-secondary px-1 py-0.5 rounded">
-                {getInitials(resource)}
-              </span>
-            ))}
-            {selectedResources.length > 3 && (
-              <span className="text-xs text-muted-foreground">
-                +{selectedResources.length - 3} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
