@@ -49,8 +49,8 @@ export function TaskContextMenu({
   canMoveDown,
   onContextMenuChange,
 }: TaskContextMenuProps) {
-  const isMultipleSelected = selectedTasks.size > 1;
-  const isThisTaskSelected = selectedTasks.has(task.id);
+  const isMultipleSelected = (selectedTasks?.size || 0) > 1;
+  const isThisTaskSelected = selectedTasks?.has(task.id) || false;
   return (
     <ContextMenu onOpenChange={onContextMenuChange}>
       <ContextMenuTrigger asChild>
@@ -132,7 +132,7 @@ export function TaskContextMenu({
         >
           <Trash2 className="h-4 w-4" />
           {isMultipleSelected && isThisTaskSelected 
-            ? `Delete Selected (${selectedTasks.size})` 
+            ? `Delete Selected (${selectedTasks?.size || 0})` 
             : "Delete"
           }
         </ContextMenuItem>
