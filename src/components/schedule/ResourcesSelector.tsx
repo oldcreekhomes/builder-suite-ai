@@ -29,9 +29,10 @@ interface ResourcesSelectorProps {
   value: string;
   onValueChange: (value: string) => void;
   className?: string;
+  readOnly?: boolean;
 }
 
-export function ResourcesSelector({ value, onValueChange, className }: ResourcesSelectorProps) {
+export function ResourcesSelector({ value, onValueChange, className, readOnly = false }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -141,6 +142,15 @@ export function ResourcesSelector({ value, onValueChange, className }: Resources
       setIsEditing(false);
     }
   };
+
+  // If readOnly, always show as non-editable black text
+  if (readOnly) {
+    return (
+      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+        {selectedResources.length > 0 ? selectedResources.join(', ') : "Select..."}
+      </span>
+    );
+  }
 
   // Always show selected resources as plain text when not editing and has resources
   if (selectedResources.length > 0 && !isEditing) {

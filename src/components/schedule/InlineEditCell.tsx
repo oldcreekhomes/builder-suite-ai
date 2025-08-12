@@ -10,6 +10,7 @@ interface InlineEditCellProps {
   onSave: (value: string | number) => void;
   className?: string;
   displayFormat?: (value: any) => string;
+  readOnly?: boolean;
 }
 
 export function InlineEditCell({ 
@@ -17,7 +18,8 @@ export function InlineEditCell({
   type, 
   onSave, 
   className = "",
-  displayFormat 
+  displayFormat,
+  readOnly = false
 }: InlineEditCellProps) {
   // Helper functions defined first
   const getEditValue = () => {
@@ -75,6 +77,15 @@ export function InlineEditCell({
       setShowCalendar(false);
     }
   };
+
+  // If readOnly, always show as non-editable text
+  if (readOnly) {
+    return (
+      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+        {getDisplayValue()}
+      </span>
+    );
+  }
 
   if (type === "date") {
     return (

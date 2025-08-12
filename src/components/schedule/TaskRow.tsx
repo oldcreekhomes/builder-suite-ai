@@ -165,6 +165,7 @@ export function TaskRow({
             type="date"
             onSave={handleFieldUpdate("start_date")}
             displayFormat={formatDate}
+            readOnly={hasChildren}
           />
         </TableCell>
 
@@ -175,12 +176,13 @@ export function TaskRow({
             type="number"
             onSave={handleFieldUpdate("duration")}
             displayFormat={(value) => `${value}d`}
+            readOnly={hasChildren}
           />
         </TableCell>
 
-        {/* End Date - Read Only */}
+        {/* End Date - Read Only for all tasks */}
         <TableCell className="py-1 px-2">
-          <span className="text-xs px-1 py-0.5 text-muted-foreground">
+          <span className="text-xs px-1 py-0.5 text-black">
             {formatDate(calculateEndDate(task.start_date, task.duration))}
           </span>
         </TableCell>
@@ -192,6 +194,7 @@ export function TaskRow({
             type="number"
             onSave={handleFieldUpdate("progress")}
             displayFormat={(value) => `${value}%`}
+            readOnly={hasChildren}
           />
         </TableCell>
 
@@ -200,6 +203,7 @@ export function TaskRow({
           <ResourcesSelector
             value={task.resources || ""}
             onValueChange={(value) => handleFieldUpdate("resources")(value)}
+            readOnly={hasChildren}
           />
         </TableCell>
 
