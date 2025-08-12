@@ -19,8 +19,24 @@ export function InlineEditCell({
   className = "",
   displayFormat 
 }: InlineEditCellProps) {
+  // Helper functions defined first
+  const getEditValue = () => {
+    if (type === "number" && (value === 0 || value === "0")) {
+      return "";
+    }
+    return value;
+  };
+
+  const getDisplayValue = () => {
+    if (type === "number" && (value === 0 || value === "0")) {
+      return displayFormat ? displayFormat(0) : "";
+    }
+    const displayValue = displayFormat ? displayFormat(value) : String(value);
+    return displayValue;
+  };
+
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
+  const [editValue, setEditValue] = useState(getEditValue());
   const [showCalendar, setShowCalendar] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -35,7 +51,12 @@ export function InlineEditCell({
   }, [isEditing, type]);
 
   const handleSave = () => {
-    onSave(editValue);
+    // Handle empty values for number inputs
+    let saveValue = editValue;
+    if (type === "number" && (editValue === "" || editValue === null || editValue === undefined)) {
+      saveValue = 0;
+    }
+    onSave(saveValue);
     setIsEditing(false);
   };
 
@@ -43,7 +64,7 @@ export function InlineEditCell({
     if (e.key === "Enter") {
       handleSave();
     } else if (e.key === "Escape") {
-      setEditValue(value);
+      setEditValue(getEditValue());
       setIsEditing(false);
     }
   };
@@ -56,8 +77,6 @@ export function InlineEditCell({
     }
   };
 
-  const displayValue = displayFormat ? displayFormat(value) : String(value);
-
   if (type === "date") {
     return (
       <Popover open={showCalendar} onOpenChange={setShowCalendar}>
@@ -69,7 +88,7 @@ export function InlineEditCell({
             )}
             onClick={() => setShowCalendar(true)}
           >
-            {displayValue}
+            {getDisplayValue()}
           </span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -117,7 +136,7 @@ export function InlineEditCell({
             className
           )}
         >
-          {displayValue}
+          {getDisplayValue()}
         </span>
       )}
     </div>
