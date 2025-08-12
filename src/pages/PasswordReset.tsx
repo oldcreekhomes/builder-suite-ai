@@ -97,24 +97,19 @@ const PasswordReset = () => {
     try {
       console.log("Resetting password with custom function for:", email);
       
-      const response = await fetch("/functions/v1/reset-user-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: {
           email: email,
           newPassword: password,
           resetToken: token
-        }),
+        }
       });
 
-      const result = await response.json();
-      console.log("Password reset response:", result);
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to reset password");
+      if (error) {
+        throw new Error(error.message || "Failed to reset password");
       }
+
+      console.log("Password reset response:", data);
 
       toast({
         title: "Success",

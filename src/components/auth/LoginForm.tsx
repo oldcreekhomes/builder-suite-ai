@@ -33,20 +33,15 @@ const LoginForm = () => {
     try {
       console.log("Sending password reset for:", email);
       
-      const response = await fetch("/functions/v1/send-password-reset", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email.trim() }),
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+        body: { email: email.trim() }
       });
 
-      const result = await response.json();
-      console.log("Password reset response:", result);
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to send reset email");
+      if (error) {
+        throw new Error(error.message || "Failed to send reset email");
       }
+
+      console.log("Password reset response:", data);
 
       toast({
         title: "Reset Email Sent",
