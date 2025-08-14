@@ -81,3 +81,106 @@ export const shouldUpdateParentTask = (task: ProjectTask, calculations: TaskCalc
     (task.progress || 0) !== calculations.progress
   );
 };
+
+export interface TaskDateUpdate {
+  startDate: string;
+  endDate: string;
+  duration: number;
+}
+
+// Calculate task dates based on predecessors
+export const calculateTaskDatesFromPredecessors = (
+  task: ProjectTask, 
+  allTasks: ProjectTask[]
+): TaskDateUpdate | null => {
+  if (!task.predecessor) return null;
+  
+  // Parse predecessors
+  let predecessors: string[] = [];
+  try {
+    if (Array.isArray(task.predecessor)) {
+      predecessors = task.predecessor;
+    } else if (typeof task.predecessor === 'string') {
+      predecessors = JSON.parse(task.predecessor);
+    }
+  } catch {
+    // If parsing fails, treat as single predecessor
+    predecessors = [task.predecessor as string];
+  }
+  
+  if (predecessors.length === 0) return null;
+  
+  let latestEndDate = new Date(0); // Start with earliest possible date
+  
+  // Find the latest end date among all predecessors
+  for (const predStr of predecessors) {
+    // Parse predecessor format: "taskId" or "taskId+lag" or "taskId-lag"
+    const match = predStr.match(/^(.+?)([+-]\d+)?$/);
+    if (!match) continue;
+    
+    const predTaskId = match[1].trim();
+    const lagDays = match[2] ? parseInt(match[2]) : 0;
+    
+    // Find the predecessor task by hierarchy number or ID
+    const predTask = allTasks.find(t => 
+      t.hierarchy_number === predTaskId || t.id === predTaskId
+    );
+    
+    if (!predTask) continue;
+    
+    // Calculate the end date of the predecessor
+    const predEndDate = new Date(predTask.end_date);
+    predEndDate.setDate(predEndDate.getDate() + lagDays);
+    
+    if (predEndDate > latestEndDate) {
+      latestEndDate = predEndDate;
+    }
+  }
+  
+  // If no valid predecessors found, return null
+  if (latestEndDate.getTime() === 0) return null;
+  
+  // New start date is the day after the latest predecessor end date
+  const newStartDate = new Date(latestEndDate);
+  newStartDate.setDate(latestEndDate.getDate() + 1);
+  
+  // Calculate new end date based on task duration
+  const newEndDate = new Date(newStartDate);
+  newEndDate.setDate(newStartDate.getDate() + task.duration);
+  
+  return {
+    startDate: newStartDate.toISOString().split('T')[0],
+    endDate: newEndDate.toISOString().split('T')[0],
+    duration: task.duration
+  };
+};
+
+// Get all tasks that depend on a given task (have it as predecessor)
+export const getDependentTasks = (taskId: string, allTasks: ProjectTask[]): ProjectTask[] => {
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return [];
+  
+  const taskHierarchy = task.hierarchy_number;
+  
+  return allTasks.filter(t => {
+    if (!t.predecessor || t.id === taskId) return false;
+    
+    try {
+      let predecessors: string[] = [];
+      if (Array.isArray(t.predecessor)) {
+        predecessors = t.predecessor;
+      } else if (typeof t.predecessor === 'string') {
+        predecessors = JSON.parse(t.predecessor);
+      }
+      
+      return predecessors.some(predStr => {
+        const match = predStr.match(/^(.+?)([+-]\d+)?$/);
+        if (!match) return false;
+        const predTaskId = match[1].trim();
+        return predTaskId === taskId || predTaskId === taskHierarchy;
+      });
+    } catch {
+      return false;
+    }
+  });
+};

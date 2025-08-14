@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
-import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
+import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors, getDependentTasks } from "@/utils/taskCalculations";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -46,12 +46,12 @@ export function TaskTable({
   onMoveDown
 }: TaskTableProps) {
 
-  // Enhanced onTaskUpdate that also updates parent tasks
+  // Enhanced onTaskUpdate that also updates parent tasks and handles predecessor dependencies
   const handleTaskUpdate = (taskId: string, updates: any) => {
     // First update the task itself
     onTaskUpdate(taskId, updates);
     
-    // Then immediately update any parent tasks that need recalculation
+    // Then immediately update any parent tasks and cascade predecessor changes
     // Use requestAnimationFrame to ensure the update has been processed
     requestAnimationFrame(() => {
       // Get the current task that was updated
@@ -95,6 +95,50 @@ export function TaskTable({
           });
         }
       });
+      
+      // Handle cascading updates for dependent tasks (tasks that have this task as predecessor)
+      if (updates.start_date || updates.end_date || updates.duration) {
+        cascadeTaskUpdates(taskId, simulatedTasks);
+      }
+    });
+  };
+  
+  // Cascade updates to dependent tasks when a task's dates change
+  const cascadeTaskUpdates = (changedTaskId: string, allTasks: ProjectTask[], processedTasks = new Set<string>()) => {
+    // Prevent infinite loops
+    if (processedTasks.has(changedTaskId)) return;
+    processedTasks.add(changedTaskId);
+    
+    const dependentTasks = getDependentTasks(changedTaskId, allTasks);
+    
+    dependentTasks.forEach(depTask => {
+      const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
+      if (dateUpdate) {
+        // Check if the dates actually need to change
+        const currentStartDate = depTask.start_date.split('T')[0];
+        const currentEndDate = depTask.end_date.split('T')[0];
+        
+        if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
+          console.log(`Updating dependent task ${depTask.task_name} due to predecessor change`);
+          
+          // Update the task
+          onTaskUpdate(depTask.id, {
+            start_date: dateUpdate.startDate,
+            end_date: dateUpdate.endDate,
+            duration: dateUpdate.duration
+          });
+          
+          // Update the simulated tasks array for further cascading
+          const updatedSimulatedTasks = allTasks.map(task => 
+            task.id === depTask.id ? { ...task, ...dateUpdate } : task
+          );
+          
+          // Recursively cascade to further dependent tasks
+          setTimeout(() => {
+            cascadeTaskUpdates(depTask.id, updatedSimulatedTasks, processedTasks);
+          }, 100);
+        }
+      }
     });
   };
 

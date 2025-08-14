@@ -8,7 +8,7 @@ import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
-import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
+import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -83,8 +83,20 @@ export function TaskRow({
   const handleFieldUpdate = (field: string) => (value: string | number | string[]) => {
     const updates: any = { [field]: value };
     
+    // Special handling for predecessor changes
+    if (field === "predecessor") {
+      // Calculate new dates based on predecessors
+      const tempTask = { ...task, predecessor: value as string | string[] };
+      const dateUpdate = calculateTaskDatesFromPredecessors(tempTask, allTasks);
+      
+      if (dateUpdate) {
+        updates.start_date = dateUpdate.startDate;
+        updates.end_date = dateUpdate.endDate;
+        updates.duration = dateUpdate.duration;
+      }
+    }
     // Auto-calculate end date when start date or duration changes (for non-parent tasks)
-    if (!hasChildren) {
+    else if (!hasChildren) {
       if (field === "start_date") {
         updates.end_date = calculateEndDate(value as string, task.duration);
       } else if (field === "duration") {
