@@ -32,7 +32,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const handleParentRecalculation = (event: CustomEvent) => {
       const { hierarchyNumber } = event.detail;
       if (hierarchyNumber) {
-        recalculateParentHierarchy(hierarchyNumber);
+        // Add delay to ensure React Query cache is refreshed with latest data
+        setTimeout(() => {
+          recalculateParentHierarchy(hierarchyNumber);
+        }, 100);
       }
     };
     
