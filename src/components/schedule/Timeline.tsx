@@ -27,15 +27,18 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
     const taskStart = parseDate(task.start_date);
     const taskEnd = parseDate(task.end_date);
     
-    // Calculate business days from timeline start to task start for positioning
-    const businessDaysToStart = getBusinessDaysBetween(startDate, taskStart);
+    // Calculate actual calendar days from timeline start to task start for positioning
+    const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate task width based on business days between start and end
-    const taskBusinessDays = getBusinessDaysBetween(taskStart, taskEnd) + 1; // +1 to include the end date
+    // Calculate task width based on duration (business days) but show full calendar width
+    const taskDuration = task.duration || 1;
+    
+    // Calculate actual calendar days between task start and end
+    const calendarDaysWidth = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     return {
-      left: businessDaysToStart * dayWidth,
-      width: taskBusinessDays * dayWidth,
+      left: daysFromStart * dayWidth,
+      width: calendarDaysWidth * dayWidth, // Show full calendar width including weekends
       progress: task.progress || 0
     };
   };
