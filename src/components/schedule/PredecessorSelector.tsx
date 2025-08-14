@@ -134,6 +134,11 @@ export function PredecessorSelector({
               <div 
                 key={index} 
                 title={`Invalid predecessor: ${pred.taskId}`}
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(value[index]);
+                }}
               >
                 <AlertTriangle className="h-4 w-4 text-destructive" />
               </div>
