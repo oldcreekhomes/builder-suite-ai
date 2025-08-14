@@ -76,9 +76,20 @@ export const useTaskMutations = (projectId: string) => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       toast.success('Task created successfully');
+      
+      // Trigger parent recalculation for new task
+      if (data.hierarchy_number) {
+        console.log('🔄 Task created, triggering parent recalculation for:', data.hierarchy_number);
+        // Use setTimeout to ensure the cache is updated first
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+            detail: { hierarchyNumber: data.hierarchy_number } 
+          }));
+        }, 100);
+      }
     },
     onError: (error) => {
       console.error('Error creating task:', error);
@@ -154,6 +165,18 @@ export const useTaskMutations = (projectId: string) => {
       
       console.log('✅ Task updated - refreshing cache');
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      
+      // Trigger parent recalculation if dates or duration changed
+      const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
+      if (data.hierarchy_number && dateFieldsChanged) {
+        console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
+        // Use setTimeout to ensure the cache is updated first
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+            detail: { hierarchyNumber: data.hierarchy_number } 
+          }));
+        }, 100);
+      }
     },
     onError: (error) => {
       console.error('🔧 Task update error:', error);
@@ -178,9 +201,20 @@ export const useTaskMutations = (projectId: string) => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       toast.success('Task deleted successfully');
+      
+      // Trigger parent recalculation for deleted task
+      if (data.hierarchy_number) {
+        console.log('🔄 Task deleted, triggering parent recalculation for:', data.hierarchy_number);
+        // Use setTimeout to ensure the cache is updated first
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+            detail: { hierarchyNumber: data.hierarchy_number } 
+          }));
+        }, 100);
+      }
     },
     onError: (error) => {
       console.error('Error deleting task:', error);
