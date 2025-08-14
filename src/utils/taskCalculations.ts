@@ -146,7 +146,7 @@ export const calculateTaskDatesFromPredecessors = (
   
   // Calculate new end date based on task duration
   const newEndDate = new Date(newStartDate);
-  newEndDate.setDate(newStartDate.getDate() + task.duration);
+  newEndDate.setDate(newStartDate.getDate() + (task.duration - 1)); // For 1-day task, start and end on same day
   
   return {
     startDate: newStartDate.toISOString().split('T')[0],
