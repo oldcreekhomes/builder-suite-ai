@@ -95,13 +95,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const visibleTasks = getVisibleTasks();
 
-  // Calculate timeline range from visible task dates using calculated end dates
-  const timelineStart = visibleTasks.length > 0 
-    ? new Date(Math.min(...visibleTasks.map(t => new Date(t.start_date).getTime())))
+  // Calculate timeline range from ALL task dates (not just visible ones) using calculated end dates
+  const timelineStart = tasks.length > 0 
+    ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
     : new Date();
   
-  const timelineEnd = visibleTasks.length > 0
-    ? new Date(Math.max(...visibleTasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
+  const timelineEnd = tasks.length > 0
+    ? new Date(Math.max(...tasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
   // Handle expansion state changes
