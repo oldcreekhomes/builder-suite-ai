@@ -9,7 +9,7 @@ interface TimelineHeaderProps {
 }
 
 export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: TimelineHeaderProps) {
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   
   // Generate month headers
   const months: { name: string; width: number; left: number }[] = [];

@@ -12,7 +12,7 @@ interface TimelineProps {
 
 export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelineProps) {
   // Calculate timeline width and positioning
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   const dayWidth = 40; // pixels per day
   const timelineWidth = totalDays * dayWidth;
 
