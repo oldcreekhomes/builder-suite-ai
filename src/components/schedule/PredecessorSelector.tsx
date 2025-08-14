@@ -134,7 +134,7 @@ export function PredecessorSelector({
             variant="secondary" 
             className="text-xs h-4 px-1 flex items-center gap-1"
           >
-            {formatPredecessorForDisplay(pred)}
+            {pred.taskId}
             <X 
               className="h-3 w-3 cursor-pointer hover:text-destructive" 
               onClick={(e) => {
