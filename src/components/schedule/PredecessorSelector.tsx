@@ -73,8 +73,8 @@ export function PredecessorSelector({
         toast.error("Predecessor Validation Error", {
           description: result.errors.join("; ")
         });
-        // Reject invalid input - revert to empty array (shows "None")
-        onValueChange([]);
+        // Reject invalid input - reset to original value and don't call onValueChange
+        setInputValue(value.join(', '));
         return;
       }
     }
