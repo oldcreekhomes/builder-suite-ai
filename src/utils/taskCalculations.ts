@@ -53,9 +53,10 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const endDates = childTasks.map(task => new Date(task.end_date));
   const latestEndDate = new Date(Math.max(...endDates.map(date => date.getTime())));
   
-  // Calculate duration (difference between latest end date and earliest start date)
+  // Calculate duration (difference between latest end date and earliest start date + 1)
+  // Since we want inclusive days (if start=1st and end=1st, duration=1 day)
   const timeDiff = latestEndDate.getTime() - earliestStartDate.getTime();
-  const duration = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)); // Convert to days and round up
+  const duration = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // Convert to days and add 1 for inclusive
   
   // Calculate progress based on completed duration vs total duration
   const totalDuration = childTasks.reduce((sum, task) => sum + task.duration, 0);

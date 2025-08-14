@@ -87,12 +87,15 @@ export function TaskTable({
         const calculations = calculateParentTaskValues(parentTask, simulatedTasks);
         if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
           console.log('Updating parent task:', parentTask.task_name, 'with calculations:', calculations);
-          onTaskUpdate(parentTask.id, {
-            start_date: calculations.startDate,
-            end_date: calculations.endDate,
-            duration: calculations.duration,
-            progress: calculations.progress
-          });
+          // Use a slight delay to ensure the child task update has been processed
+          setTimeout(() => {
+            onTaskUpdate(parentTask.id, {
+              start_date: calculations.startDate,
+              end_date: calculations.endDate,
+              duration: calculations.duration,
+              progress: calculations.progress
+            });
+          }, 50);
         }
       });
       
