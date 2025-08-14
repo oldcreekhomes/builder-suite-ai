@@ -42,6 +42,7 @@ const representativeSchema = z.object({
   title: z.string().optional(),
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
+  receive_po_notifications: z.boolean().default(false),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -67,6 +68,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
       title: "",
       receive_bid_notifications: false,
       receive_schedule_notifications: false,
+      receive_po_notifications: false,
     },
   });
 
@@ -107,6 +109,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         title: data.title || null,
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
+        receive_po_notifications: data.receive_po_notifications,
       };
 
       const { data: representative, error } = await supabase
@@ -328,6 +331,24 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Receive Schedule Notifications</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receive_po_notifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Receive PO Notifications</FormLabel>
                       </div>
                     </FormItem>
                   )}
