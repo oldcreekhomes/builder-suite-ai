@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { SendBidPackageModal } from './SendBidPackageModal';
 import { SendSingleCompanyEmailModal } from './SendSingleCompanyEmailModal';
+import { SendTestEmailModal } from './SendTestEmailModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -56,6 +57,7 @@ export function BiddingTableRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSingleCompanyModal, setShowSingleCompanyModal] = useState(false);
+  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const costCode = item.cost_codes as CostCode;
 
@@ -82,6 +84,7 @@ export function BiddingTableRow({
         onUpdateSpecifications={onUpdateSpecifications}
         onDelete={onDelete}
         onSendClick={() => setShowSendModal(true)}
+        onTestEmailClick={() => setShowTestEmailModal(true)}
         onFileUpload={onFileUpload}
         onDeleteFiles={onDeleteFiles}
       />
@@ -110,6 +113,13 @@ export function BiddingTableRow({
       <SendSingleCompanyEmailModal
         open={showSingleCompanyModal}
         onOpenChange={setShowSingleCompanyModal}
+        bidPackage={item}
+        companyId={selectedCompanyId}
+      />
+      
+      <SendTestEmailModal
+        open={showTestEmailModal}
+        onOpenChange={setShowTestEmailModal}
         bidPackage={item}
         companyId={selectedCompanyId}
       />
