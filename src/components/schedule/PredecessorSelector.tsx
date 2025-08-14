@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { toast } from "sonner";
 import { 
   parsePredecessors, 
   validatePredecessors, 
@@ -64,6 +65,17 @@ export function PredecessorSelector({
     
     // Parse and save the input
     const predecessors = inputValue.split(',').map(p => p.trim()).filter(p => p);
+    
+    // Show validation errors as toast
+    if (inputValue.trim()) {
+      const result = validatePredecessors(currentTaskId, predecessors, allTasks);
+      if (!result.isValid) {
+        toast.error("Predecessor Validation Error", {
+          description: result.errors.join("; ")
+        });
+      }
+    }
+    
     onValueChange(predecessors);
   };
 
@@ -174,36 +186,6 @@ export function PredecessorSelector({
           fontFamily: "inherit",
         }}
       />
-      
-      {/* Validation Errors */}
-      {hasErrors && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 p-2 bg-destructive/10 border border-destructive rounded text-xs">
-          <div className="flex items-center gap-1 text-destructive">
-            <AlertTriangle className="h-3 w-3" />
-            <span className="font-medium">Validation Errors:</span>
-          </div>
-          <ul className="text-destructive mt-1 list-disc list-inside">
-            {validationResult.errors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
-      {/* Validation Warnings */}
-      {validationResult.warnings.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-40 mt-1 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
-          <div className="flex items-center gap-1 text-orange-600">
-            <AlertTriangle className="h-3 w-3" />
-            <span className="font-medium">Warnings:</span>
-          </div>
-          <ul className="text-orange-600 mt-1 list-disc list-inside">
-            {validationResult.warnings.map((warning, index) => (
-              <li key={index}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }
