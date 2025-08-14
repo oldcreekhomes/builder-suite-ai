@@ -66,14 +66,14 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
             <div
               key={i}
               className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
-                isWeekend ? "bg-muted/80 text-muted-foreground opacity-50" : "bg-background"
+                isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
               }`}
               style={{
                 left: i * dayWidth,
-                width: isWeekend ? dayWidth * 0.3 : dayWidth // Make weekends narrower
+                width: dayWidth
               }}
             >
-              {isWeekend ? "" : format(dayDate, "dd")}
+              {format(dayDate, "dd")}
             </div>
           );
         })}
