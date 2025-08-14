@@ -91,11 +91,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
   const timelineStart = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => {
-        const date = new Date(t.start_date);
-        date.setDate(date.getDate() + 1); // Add 1 day to align with Gantt display
-        return date.getTime();
-      })))
+    ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
     : new Date();
   
   const timelineEnd = tasks.length > 0
