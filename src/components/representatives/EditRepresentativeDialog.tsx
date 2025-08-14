@@ -190,6 +190,9 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
   });
 
   const onSubmit = (data: RepresentativeFormData) => {
+    console.log('🔥 FORM SUBMIT: Form submission triggered');
+    console.log('🔥 FORM DATA:', data);
+    console.log('🔥 REPRESENTATIVE:', representative);
     updateRepresentativeMutation.mutate(data);
   };
 
@@ -219,7 +222,10 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => {
+            console.log('🔥 FORM: Native form submit event triggered');
+            form.handleSubmit(onSubmit)(e);
+          }} className="space-y-4">
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="general">General</TabsTrigger>
@@ -417,7 +423,16 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateRepresentativeMutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={updateRepresentativeMutation.isPending}
+                onClick={() => {
+                  console.log('🔥 BUTTON: Update button clicked');
+                  console.log('🔥 FORM STATE:', form.formState);
+                  console.log('🔥 FORM ERRORS:', form.formState.errors);
+                  console.log('🔥 IS VALID:', form.formState.isValid);
+                }}
+              >
                 {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
               </Button>
             </div>
