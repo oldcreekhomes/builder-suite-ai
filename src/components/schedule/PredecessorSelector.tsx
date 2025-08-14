@@ -162,7 +162,6 @@ export function PredecessorSelector({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleFinishEdit}
-        placeholder="Enter task numbers (e.g., 1.1, 1.2+5d)"
         className={cn(
           "bg-transparent border-none outline-none text-xs w-full p-0",
           "focus:ring-0 focus:border-none",
