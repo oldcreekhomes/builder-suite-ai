@@ -29,13 +29,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
 
   // Helper function to calculate end date from start date + duration
-  const calculateEndDate = (startDate: string, duration: number) => {
-    const start = new Date(startDate);
-    const end = new Date(start);
-    // Duration includes the start date, so add (duration - 1) days
-    end.setDate(start.getDate() + (duration - 1));
-    return end;
-  };
 
   // Helper function to check if a task has children based on hierarchy
   const hasChildren = (taskId: string) => {
@@ -96,13 +89,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const visibleTasks = getVisibleTasks();
 
-  // Calculate timeline range from ALL task dates (not just visible ones) using calculated end dates
+  // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
   const timelineStart = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => new Date(t.start_date).getTime())))
     : new Date();
   
   const timelineEnd = tasks.length > 0
-    ? new Date(Math.max(...tasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
+    ? new Date(Math.max(...tasks.map(t => new Date(t.end_date).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
 
