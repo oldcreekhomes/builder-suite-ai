@@ -430,6 +430,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                   console.log('🔥 BUTTON: Update button clicked');
                   console.log('🔥 FORM STATE:', form.formState);
                   console.log('🔥 FORM ERRORS:', form.formState.errors);
+                  console.log('🔥 FORM VALUES:', form.getValues());
                   console.log('🔥 IS VALID:', form.formState.isValid);
                 }}
               >
