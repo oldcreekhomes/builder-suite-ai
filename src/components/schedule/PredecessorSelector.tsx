@@ -129,20 +129,10 @@ export function PredecessorSelector({
         title="Click to edit predecessors"
       >
         {parsed.map((pred, index) => (
-          <Badge 
-            key={index} 
-            variant="secondary" 
-            className="text-xs h-4 px-1 flex items-center gap-1"
-          >
+          <span key={index} className="text-xs">
             {pred.taskId}
-            <X 
-              className="h-3 w-3 cursor-pointer hover:text-destructive" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemove(value[index]);
-              }}
-            />
-          </Badge>
+            {index < parsed.length - 1 ? ', ' : ''}
+          </span>
         ))}
       </div>
     );
