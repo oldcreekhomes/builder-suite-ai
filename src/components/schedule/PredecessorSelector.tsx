@@ -155,14 +155,25 @@ export function PredecessorSelector({
   // Show the input when editing
   return (
     <div className={cn("relative", className)}>
-      <Input
+      <input
         ref={inputRef}
+        type="text"
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleFinishEdit}
         placeholder="Enter task numbers (e.g., 1.1, 1.2+5d)"
-        className={cn("h-8 text-xs", errorBorderClass)}
+        className={cn(
+          "bg-transparent border-none outline-none text-xs w-full p-0",
+          "focus:ring-0 focus:border-none",
+          errorBorderClass,
+          className
+        )}
+        style={{
+          caretColor: "black",
+          fontSize: "inherit",
+          fontFamily: "inherit",
+        }}
       />
       
       {/* Validation Errors */}
