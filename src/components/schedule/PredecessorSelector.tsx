@@ -10,6 +10,7 @@ import {
   formatPredecessorForDisplay,
   ParsedPredecessor
 } from "@/utils/predecessorValidation";
+// Fixed component after removing selectedPredecessors reference
 
 interface PredecessorSelectorProps {
   value: string[];
