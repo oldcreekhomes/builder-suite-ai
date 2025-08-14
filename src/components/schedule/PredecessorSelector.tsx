@@ -71,7 +71,8 @@ export function PredecessorSelector({
       const result = validatePredecessors(currentTaskId, predecessors, allTasks);
       if (!result.isValid) {
         toast.error("Predecessor Validation Error", {
-          description: result.errors.join("; ")
+          description: result.errors.join("; "),
+          style: { color: 'red' }
         });
         // Reject invalid input - reset to original value and don't call onValueChange
         setInputValue(value.join(', '));
