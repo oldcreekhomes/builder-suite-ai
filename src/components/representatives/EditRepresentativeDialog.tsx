@@ -37,12 +37,9 @@ const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
-  phone_number: z.string()
-    .regex(/^\d{3}-\d{3}-\d{4}$/, "Phone number must be in format xxx-xxx-xxxx")
-    .optional()
-    .or(z.literal("")),
+  phone_number: z.string().optional().or(z.literal("")),
   company_name: z.string().min(1, "Company is required"),
-  title: z.enum(["estimator", "project manager", "foreman"]),
+  title: z.string().optional(),
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
   receive_po_notifications: z.boolean().default(false),
@@ -85,7 +82,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       email: "",
       phone_number: "",
       company_name: "",
-      title: "estimator",
+      title: "",
       receive_bid_notifications: false,
       receive_schedule_notifications: false,
       receive_po_notifications: false,
@@ -115,7 +112,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         email: representative.email || "",
         phone_number: representative.phone_number || "",
         company_name: representative.companies?.company_name || "",
-        title: (representative.title as "estimator" | "project manager" | "foreman") || "estimator",
+        title: representative.title || "",
         receive_bid_notifications: representative.receive_bid_notifications || false,
         receive_schedule_notifications: representative.receive_schedule_notifications || false,
         receive_po_notifications: representative.receive_po_notifications || false,
