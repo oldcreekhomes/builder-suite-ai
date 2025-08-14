@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
+import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -183,6 +184,43 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     toast.info("Outdent functionality temporarily disabled during refactoring");
   };
 
+  // Helper function to recalculate parent tasks after a child task is deleted
+  const recalculateParentTasks = (deletedTask: ProjectTask) => {
+    if (!deletedTask.hierarchy_number) return;
+    
+    // Find all parent tasks by checking hierarchy levels
+    const parentTasks = tasks.filter(task => {
+      if (!task.hierarchy_number || task.id === deletedTask.id) return false;
+      
+      // Check if this task is a parent of the deleted task
+      const taskParts = deletedTask.hierarchy_number!.split('.');
+      const parentParts = task.hierarchy_number.split('.');
+      
+      // Parent should have fewer hierarchy levels
+      if (parentParts.length >= taskParts.length) return false;
+      
+      // All parent parts should match the beginning of task parts
+      return parentParts.every((part, index) => part === taskParts[index]);
+    });
+    
+    // Update each parent task with recalculated values
+    parentTasks.forEach(parentTask => {
+      // Get remaining tasks (excluding the deleted one)
+      const remainingTasks = tasks.filter(t => t.id !== deletedTask.id);
+      const calculations = calculateParentTaskValues(parentTask, remainingTasks);
+      
+      if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
+        console.log('Recalculating parent task after deletion:', parentTask.task_name, 'with calculations:', calculations);
+        handleTaskUpdate(parentTask.id, {
+          start_date: calculations.startDate,
+          end_date: calculations.endDate,
+          duration: calculations.duration,
+          progress: calculations.progress
+        });
+      }
+    });
+  };
+
   // SIMPLE: Just add tasks at the end for now
   const getNextTopLevelNumber = (tasks: ProjectTask[]): string => {
     const topLevelNumbers = tasks
@@ -256,6 +294,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
+      // Recalculate parent tasks after deletion
+      setTimeout(() => {
+        recalculateParentTasks(task);
+      }, 100);
+      
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -290,6 +333,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
 
     try {
+      // Get all tasks being deleted for parent recalculation
+      const deletedTasks = Array.from(selectedTasks).map(taskId => 
+        tasks.find(t => t.id === taskId)
+      ).filter(Boolean);
+      
       // Delete all selected tasks in parallel
       const deletePromises = Array.from(selectedTasks).map(taskId => 
         deleteTask.mutateAsync(taskId)
@@ -299,6 +347,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
+      
+      // Recalculate parent tasks for all deleted tasks
+      setTimeout(() => {
+        deletedTasks.forEach(task => {
+          if (task) recalculateParentTasks(task);
+        });
+      }, 100);
       
       toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
     } catch (error) {
@@ -312,6 +367,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     if (!pendingDelete) return;
 
     try {
+      const taskToDelete = tasks.find(t => t.id === pendingDelete.taskId);
       await deleteTask.mutateAsync(pendingDelete.taskId);
       
       // Remove from selected tasks if it was selected
@@ -321,12 +377,18 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
+      // Recalculate parent tasks after deletion
+      if (taskToDelete) {
+        setTimeout(() => {
+          recalculateParentTasks(taskToDelete);
+        }, 100);
+      }
+      
+      setPendingDelete(null);
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
       toast.error("Failed to delete task");
-    } finally {
-      setPendingDelete(null);
     }
   };
 
