@@ -17,7 +17,8 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const timelineWidth = totalDays * dayWidth;
 
   const getTaskPosition = (task: ProjectTask) => {
-    const taskStart = new Date(task.start_date);
+    // Parse date properly to avoid timezone issues
+    const taskStart = new Date(task.start_date + 'T00:00:00');
     
     // Fix date offset - don't use Math.ceil for start offset
     const startOffset = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
