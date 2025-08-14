@@ -188,6 +188,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const recalculateParentTasks = (deletedTask: ProjectTask) => {
     if (!deletedTask.hierarchy_number) return;
     
+    console.log('Starting parent recalculation for deleted task:', deletedTask.task_name, deletedTask.hierarchy_number);
+    
     // Find all parent tasks by checking hierarchy levels
     const parentTasks = tasks.filter(task => {
       if (!task.hierarchy_number || task.id === deletedTask.id) return false;
@@ -203,20 +205,26 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       return parentParts.every((part, index) => part === taskParts[index]);
     });
     
+    console.log('Found parent tasks to recalculate:', parentTasks.map(p => p.task_name));
+    
     // Update each parent task with recalculated values
     parentTasks.forEach(parentTask => {
-      // Get remaining tasks (excluding the deleted one)
+      // Get remaining tasks (excluding the deleted one) - use fresh query data
       const remainingTasks = tasks.filter(t => t.id !== deletedTask.id);
+      console.log('Remaining tasks for parent calculation:', remainingTasks.length, 'Original tasks:', tasks.length);
+      
       const calculations = calculateParentTaskValues(parentTask, remainingTasks);
       
       if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
-        console.log('Recalculating parent task after deletion:', parentTask.task_name, 'with calculations:', calculations);
+        console.log('Updating parent task:', parentTask.task_name, 'with calculations:', calculations);
         handleTaskUpdate(parentTask.id, {
           start_date: calculations.startDate,
           end_date: calculations.endDate,
           duration: calculations.duration,
           progress: calculations.progress
         });
+      } else {
+        console.log('No update needed for parent task:', parentTask.task_name);
       }
     });
   };
@@ -294,10 +302,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      // Recalculate parent tasks after deletion
+      // Recalculate parent tasks after deletion with longer delay to ensure real-time updates are processed
       setTimeout(() => {
+        console.log('Executing delayed parent recalculation...');
         recalculateParentTasks(task);
-      }, 100);
+      }, 500);
       
       toast.success("Task deleted successfully");
     } catch (error) {
@@ -348,12 +357,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
       
-      // Recalculate parent tasks for all deleted tasks
+      // Recalculate parent tasks for all deleted tasks with longer delay
       setTimeout(() => {
+        console.log('Executing delayed bulk parent recalculation...');
         deletedTasks.forEach(task => {
           if (task) recalculateParentTasks(task);
         });
-      }, 100);
+      }, 500);
       
       toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
     } catch (error) {
@@ -377,11 +387,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      // Recalculate parent tasks after deletion
+      // Recalculate parent tasks after deletion with longer delay
       if (taskToDelete) {
         setTimeout(() => {
+          console.log('Executing delayed confirmed deletion parent recalculation...');
           recalculateParentTasks(taskToDelete);
-        }, 100);
+        }, 500);
       }
       
       setPendingDelete(null);
