@@ -17,19 +17,8 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const timelineWidth = totalDays * dayWidth;
 
   const parseDate = (dateStr: string): Date => {
-    // Handle PostgreSQL timestamp format: "2025-08-13 00:00:00+00"
-    if (dateStr.includes(' ') && (dateStr.includes('+') || dateStr.includes('Z'))) {
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? new Date() : date;
-    }
-    // Handle ISO format: "2025-08-13T00:00:00"
-    if (dateStr.includes('T')) {
-      const date = new Date(dateStr);
-      return isNaN(date.getTime()) ? new Date() : date;
-    }
-    // Handle simple date format: "2025-08-13"
-    const date = new Date(dateStr + 'T00:00:00');
-    return isNaN(date.getTime()) ? new Date() : date;
+    // Use the exact same logic as TaskRow to avoid timezone conversion
+    return new Date(dateStr + "T12:00:00");
   };
 
   const getTaskPosition = (task: ProjectTask) => {
