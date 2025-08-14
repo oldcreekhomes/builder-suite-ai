@@ -54,9 +54,16 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const endDates = childTasks.map(task => new Date(task.end_date));
   const latestEndDate = new Date(Math.max(...endDates.map(date => date.getTime())));
   
-  // Calculate duration using calendar days for parent groups
+  // Calculate duration using calendar days for parent groups  
   const durationMs = latestEndDate.getTime() - earliestStartDate.getTime();
-  const duration = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+  const duration = Math.floor(durationMs / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+  
+  console.log('🔢 Parent calculation debug:', {
+    childTasks: childTasks.map(t => ({ name: t.task_name, start: t.start_date.split('T')[0], end: t.end_date.split('T')[0], duration: t.duration })),
+    earliestStartDate: earliestStartDate.toISOString().split('T')[0],
+    latestEndDate: latestEndDate.toISOString().split('T')[0],
+    calculatedDuration: duration
+  });
   
   // Calculate progress based on completed duration vs total duration
   const totalDuration = childTasks.reduce((sum, task) => sum + task.duration, 0);
