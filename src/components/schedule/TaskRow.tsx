@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
+import { PredecessorSelector } from "./PredecessorSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 
 interface TaskRowProps {
@@ -79,7 +80,7 @@ export function TaskRow({
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 
-  const handleFieldUpdate = (field: string) => (value: string | number) => {
+  const handleFieldUpdate = (field: string) => (value: string | number | string[]) => {
     const updates: any = { [field]: value };
     
     // Auto-calculate end date when start date or duration changes (for non-parent tasks)
@@ -92,6 +93,17 @@ export function TaskRow({
     }
     
     onTaskUpdate(task.id, updates);
+  };
+
+  // Parse predecessors for display
+  const getPredecessorArray = (): string[] => {
+    if (!task.predecessor) return [];
+    if (Array.isArray(task.predecessor)) return task.predecessor;
+    try {
+      return JSON.parse(task.predecessor as string);
+    } catch {
+      return task.predecessor ? [task.predecessor] : [];
+    }
   };
 
   return (
@@ -191,6 +203,17 @@ export function TaskRow({
           <span className="text-xs px-1 py-0.5 text-black">
             {formatDate(calculateEndDate(task.start_date, task.duration))}
           </span>
+        </TableCell>
+
+        {/* Predecessors */}
+        <TableCell className="py-1 px-2 w-24">
+          <PredecessorSelector
+            value={getPredecessorArray()}
+            onValueChange={handleFieldUpdate('predecessor')}
+            currentTaskId={task.id}
+            allTasks={allTasks}
+            className="w-full"
+          />
         </TableCell>
 
         {/* Progress */}

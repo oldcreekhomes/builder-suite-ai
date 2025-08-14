@@ -12,7 +12,7 @@ export interface ProjectTask {
   end_date: string;
   duration: number;
   progress?: number;
-  predecessor?: string;
+  predecessor?: string[] | string;
   resources?: string;
   hierarchy_number?: string;
   created_at: string;

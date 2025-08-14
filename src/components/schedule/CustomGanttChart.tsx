@@ -9,6 +9,8 @@ import { ScheduleToolbar } from "./ScheduleToolbar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { getTasksWithDependency } from "@/utils/predecessorValidation";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 // Simplified hierarchy imports - only basic functions
 import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
 
@@ -24,6 +26,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
 
   // Helper function to calculate end date from start date + duration
   const calculateEndDate = (startDate: string, duration: number) => {
@@ -232,10 +235,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     toast.info("Positioned task adding temporarily disabled during refactoring");
   };
 
-  // SIMPLIFIED: Just delete the task without complex renumbering for now
+  // Handle single task deletion with dependency check
   const handleDeleteTask = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Check for dependent tasks
+    const dependentTasks = getTasksWithDependency(task.hierarchy_number!, tasks);
+    
+    if (dependentTasks.length > 0) {
+      setPendingDelete({ taskId, dependentTasks });
+      return;
+    }
+
     try {
       await deleteTask.mutateAsync(taskId);
+      
+      // Remove from selected tasks if it was selected
+      if (selectedTasks.has(taskId)) {
+        const newSelected = new Set(selectedTasks);
+        newSelected.delete(taskId);
+        setSelectedTasks(newSelected);
+      }
+      
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -243,10 +265,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // Handle bulk delete for multiple selected tasks
+  // Handle bulk delete for multiple selected tasks with dependency check
   const handleBulkDelete = async () => {
     if (selectedTasks.size === 0) {
       toast.error("No tasks selected");
+      return;
+    }
+
+    // Check for dependencies across all selected tasks
+    const selectedTaskIds = Array.from(selectedTasks);
+    const dependentTasks: any[] = [];
+    
+    for (const taskId of selectedTaskIds) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        const deps = getTasksWithDependency(task.hierarchy_number!, tasks);
+        // Only include dependencies that are NOT also being deleted
+        const externalDeps = deps.filter(dep => !selectedTasks.has(dep.id));
+        dependentTasks.push(...externalDeps);
+      }
+    }
+
+    if (dependentTasks.length > 0) {
+      toast.error(`Cannot delete tasks: ${dependentTasks.length} other task(s) depend on selected tasks`);
       return;
     }
 
@@ -265,6 +306,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     } catch (error) {
       console.error("Failed to delete tasks:", error);
       toast.error("Failed to delete selected tasks");
+    }
+  };
+
+  // Handle confirmed deletion (when user chooses to proceed despite dependencies)
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    try {
+      await deleteTask.mutateAsync(pendingDelete.taskId);
+      
+      // Remove from selected tasks if it was selected
+      if (selectedTasks.has(pendingDelete.taskId)) {
+        const newSelected = new Set(selectedTasks);
+        newSelected.delete(pendingDelete.taskId);
+        setSelectedTasks(newSelected);
+      }
+      
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Failed to delete task");
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -350,6 +414,33 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           toast.success("Schedule published successfully");
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={() => setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task with Dependencies</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task is a prerequisite for {pendingDelete?.dependentTasks.length} other task(s):
+              <ul className="mt-2 list-disc list-inside">
+                {pendingDelete?.dependentTasks.map((task, index) => (
+                  <li key={index} className="text-sm">
+                    {task.hierarchy_number}: {task.task_name}
+                  </li>
+                ))}
+              </ul>
+              <br />
+              Deleting this task will remove these dependencies. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>
+              Delete Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

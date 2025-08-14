@@ -705,7 +705,7 @@ export type Database = {
           end_date: string
           hierarchy_number: string | null
           id: string
-          predecessor: string | null
+          predecessor: Json | null
           progress: number | null
           project_id: string
           resources: string | null
@@ -720,7 +720,7 @@ export type Database = {
           end_date: string
           hierarchy_number?: string | null
           id?: string
-          predecessor?: string | null
+          predecessor?: Json | null
           progress?: number | null
           project_id: string
           resources?: string | null
@@ -735,7 +735,7 @@ export type Database = {
           end_date?: string
           hierarchy_number?: string | null
           id?: string
-          predecessor?: string | null
+          predecessor?: Json | null
           progress?: number | null
           project_id?: string
           resources?: string | null

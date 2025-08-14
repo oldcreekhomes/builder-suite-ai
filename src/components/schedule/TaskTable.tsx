@@ -176,6 +176,7 @@ export function TaskTable({
             <TableHead className="w-24 text-xs py-1 px-2 whitespace-nowrap">Start Date</TableHead>
             <TableHead className="w-20 text-xs py-1 px-2">Duration</TableHead>
             <TableHead className="w-24 text-xs py-1 px-2 whitespace-nowrap">End Date</TableHead>
+            <TableHead className="w-24 text-xs py-1 px-2">Predecessors</TableHead>
             <TableHead className="w-20 text-xs py-1 px-2">Progress</TableHead>
             <TableHead className="w-32 text-xs py-1 px-2">Resources</TableHead>
             <TableHead className="w-8 text-xs py-1 px-2"></TableHead>

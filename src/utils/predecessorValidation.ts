@@ -1,0 +1,225 @@
+import { ProjectTask } from "@/hooks/useProjectTasks";
+
+export interface ParsedPredecessor {
+  taskId: string;
+  lagDays: number;
+  displayName: string;
+  isValid: boolean;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function parsePredecessors(predecessors: string[], allTasks: ProjectTask[]): ParsedPredecessor[] {
+  return predecessors.map(pred => {
+    const parts = pred.split('+');
+    const taskId = parts[0];
+    const lagPart = parts[1] || '';
+    
+    // Extract lag days (e.g., "3d" -> 3)
+    let lagDays = 0;
+    if (lagPart && lagPart.endsWith('d')) {
+      const lagValue = parseInt(lagPart.slice(0, -1));
+      if (!isNaN(lagValue)) {
+        lagDays = lagValue;
+      }
+    }
+
+    // Find the task to get display name
+    const task = allTasks.find(t => t.hierarchy_number === taskId);
+    const displayName = task ? `${taskId}: ${task.task_name}` : `${taskId}: Task not found`;
+    const isValid = !!task;
+
+    return {
+      taskId,
+      lagDays,
+      displayName,
+      isValid
+    };
+  });
+}
+
+export function validatePredecessors(
+  currentTaskId: string,
+  predecessors: string[],
+  allTasks: ProjectTask[]
+): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check for empty or invalid predecessors
+  if (!predecessors || predecessors.length === 0) {
+    return { isValid: true, errors, warnings };
+  }
+
+  const currentTask = allTasks.find(t => t.id === currentTaskId);
+  if (!currentTask) {
+    errors.push("Current task not found");
+    return { isValid: false, errors, warnings };
+  }
+
+  const parsedPredecessors = parsePredecessors(predecessors, allTasks);
+
+  // Check for self-references
+  const selfRefs = parsedPredecessors.filter(pred => pred.taskId === currentTask.hierarchy_number);
+  if (selfRefs.length > 0) {
+    errors.push("A task cannot be its own predecessor");
+  }
+
+  // Check for invalid task references
+  const invalidRefs = parsedPredecessors.filter(pred => !pred.isValid);
+  if (invalidRefs.length > 0) {
+    errors.push(`Invalid task references: ${invalidRefs.map(ref => ref.taskId).join(', ')}`);
+  }
+
+  // Check for circular dependencies
+  const circularDeps = detectCircularDependencies(currentTask, predecessors, allTasks);
+  if (circularDeps.length > 0) {
+    errors.push(`Circular dependency detected: ${circularDeps.join(' → ')}`);
+  }
+
+  // Check for duplicate predecessors
+  const duplicates = findDuplicates(predecessors);
+  if (duplicates.length > 0) {
+    warnings.push(`Duplicate predecessors: ${duplicates.join(', ')}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+function detectCircularDependencies(
+  currentTask: ProjectTask,
+  predecessors: string[],
+  allTasks: ProjectTask[]
+): string[] {
+  const visited = new Set<string>();
+  const path: string[] = [];
+
+  function hasCycle(taskHierarchy: string): boolean {
+    if (visited.has(taskHierarchy)) {
+      // Found a cycle - return the path from the cycle start
+      const cycleStart = path.indexOf(taskHierarchy);
+      if (cycleStart >= 0) {
+        return true;
+      }
+    }
+
+    visited.add(taskHierarchy);
+    path.push(taskHierarchy);
+
+    // Get predecessors for this task
+    const task = allTasks.find(t => t.hierarchy_number === taskHierarchy);
+    if (task && task.predecessor) {
+      try {
+        const taskPredecessors = Array.isArray(task.predecessor) 
+          ? task.predecessor 
+          : JSON.parse(task.predecessor as string);
+        
+        for (const pred of taskPredecessors) {
+          const predTaskId = pred.split('+')[0];
+          if (hasCycle(predTaskId)) {
+            return true;
+          }
+        }
+      } catch (e) {
+        // Handle legacy string format
+        if (typeof task.predecessor === 'string') {
+          const predTaskId = task.predecessor.split('+')[0];
+          if (hasCycle(predTaskId)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    path.pop();
+    return false;
+  }
+
+  // Check if adding these predecessors would create a cycle
+  for (const pred of predecessors) {
+    const predTaskId = pred.split('+')[0];
+    visited.clear();
+    path.length = 0;
+    path.push(currentTask.hierarchy_number!);
+    
+    if (hasCycle(predTaskId)) {
+      // Build the cycle path for error message
+      const cycleStart = path.indexOf(predTaskId);
+      if (cycleStart >= 0) {
+        return [...path.slice(cycleStart), predTaskId];
+      }
+    }
+  }
+
+  return [];
+}
+
+function findDuplicates(array: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  
+  for (const item of array) {
+    const taskId = item.split('+')[0];
+    if (seen.has(taskId)) {
+      duplicates.add(taskId);
+    }
+    seen.add(taskId);
+  }
+  
+  return Array.from(duplicates);
+}
+
+export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
+  if (pred.lagDays > 0) {
+    return `${pred.displayName} +${pred.lagDays}d`;
+  }
+  return pred.displayName;
+}
+
+export function formatPredecessorForStorage(taskId: string, lagDays: number): string {
+  if (lagDays > 0) {
+    return `${taskId}+${lagDays}d`;
+  }
+  return taskId;
+}
+
+export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTask[]): ProjectTask[] {
+  const dependentTasks: ProjectTask[] = [];
+
+  for (const task of allTasks) {
+    if (task.predecessor) {
+      try {
+        const predecessors = Array.isArray(task.predecessor) 
+          ? task.predecessor 
+          : JSON.parse(task.predecessor as string);
+        
+        const hasDependency = predecessors.some((pred: string) => {
+          const predTaskId = pred.split('+')[0];
+          return predTaskId === targetTaskId;
+        });
+
+        if (hasDependency) {
+          dependentTasks.push(task);
+        }
+      } catch (e) {
+        // Handle legacy string format
+        if (typeof task.predecessor === 'string') {
+          const predTaskId = task.predecessor.split('+')[0];
+          if (predTaskId === targetTaskId) {
+            dependentTasks.push(task);
+          }
+        }
+      }
+    }
+  }
+
+  return dependentTasks;
+}
