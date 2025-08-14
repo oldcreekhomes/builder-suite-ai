@@ -56,7 +56,7 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   
   // Calculate duration using calendar days for parent groups
   const durationMs = latestEndDate.getTime() - earliestStartDate.getTime();
-  const duration = Math.floor(durationMs / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+  const duration = Math.floor(durationMs / (1000 * 60 * 60 * 24)) + 1;
   
   // Calculate progress based on completed duration vs total duration
   const totalDuration = childTasks.reduce((sum, task) => sum + task.duration, 0);
