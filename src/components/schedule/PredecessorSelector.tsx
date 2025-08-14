@@ -63,19 +63,23 @@ export function PredecessorSelector({
   const handleFinishEdit = () => {
     setIsEditing(false);
     
-    // Parse and save the input
+    // Parse and validate the input
     const predecessors = inputValue.split(',').map(p => p.trim()).filter(p => p);
     
-    // Show validation errors as toast
+    // Show validation errors as toast and reject invalid input
     if (inputValue.trim()) {
       const result = validatePredecessors(currentTaskId, predecessors, allTasks);
       if (!result.isValid) {
         toast.error("Predecessor Validation Error", {
           description: result.errors.join("; ")
         });
+        // Reject invalid input - revert to empty array (shows "None")
+        onValueChange([]);
+        return;
       }
     }
     
+    // Only save if validation passed
     onValueChange(predecessors);
   };
 
@@ -111,10 +115,6 @@ export function PredecessorSelector({
     );
   }
 
-  // Show validation errors
-  const hasErrors = !validationResult.isValid;
-  const errorBorderClass = hasErrors ? "border-destructive bg-destructive/10" : "";
-
   // Always show selected predecessors as chips when not editing and has predecessors
   if (value.length > 0 && !isEditing) {
     const parsed = getParsedPredecessors();
@@ -122,45 +122,27 @@ export function PredecessorSelector({
       <div 
         className={cn(
           "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
-          errorBorderClass,
           className
         )}
         onClick={handleStartEdit}
-        title={hasErrors ? validationResult.errors.join('; ') : "Click to edit predecessors"}
+        title="Click to edit predecessors"
       >
-        {parsed.map((pred, index) => {
-          if (!pred.isValid) {
-            return (
-              <div 
-                key={index} 
-                title={`Invalid predecessor: ${pred.taskId}`}
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(value[index]);
-                }}
-              >
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-            );
-          }
-          return (
-            <Badge 
-              key={index} 
-              variant="secondary" 
-              className="text-xs h-4 px-1 flex items-center gap-1"
-            >
-              {formatPredecessorForDisplay(pred)}
-              <X 
-                className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(value[index]);
-                }}
-              />
-            </Badge>
-          );
-        })}
+        {parsed.map((pred, index) => (
+          <Badge 
+            key={index} 
+            variant="secondary" 
+            className="text-xs h-4 px-1 flex items-center gap-1"
+          >
+            {formatPredecessorForDisplay(pred)}
+            <X 
+              className="h-3 w-3 cursor-pointer hover:text-destructive" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemove(value[index]);
+              }}
+            />
+          </Badge>
+        ))}
       </div>
     );
   }
@@ -191,7 +173,6 @@ export function PredecessorSelector({
         className={cn(
           "bg-transparent border-none outline-none text-xs w-full p-0",
           "focus:ring-0 focus:border-none",
-          errorBorderClass,
           className
         )}
         style={{
