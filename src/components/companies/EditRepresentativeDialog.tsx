@@ -315,7 +315,17 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateRepresentativeMutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={updateRepresentativeMutation.isPending}
+                onClick={(e) => {
+                  console.log('Button clicked!');
+                  console.log('Form state:', form.formState);
+                  console.log('Form errors:', form.formState.errors);
+                  console.log('Form values:', form.getValues());
+                  // Don't prevent default - let the form handle it
+                }}
+              >
                 {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
               </Button>
             </div>
