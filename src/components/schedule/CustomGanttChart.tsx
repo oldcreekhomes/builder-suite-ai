@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
@@ -22,6 +24,8 @@ interface CustomGanttChartProps {
 export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -186,12 +190,16 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Helper function to recalculate parent tasks after a child task is deleted
   const recalculateParentTasks = (deletedTask: ProjectTask) => {
-    if (!deletedTask.hierarchy_number) return;
+    if (!deletedTask.hierarchy_number || !user) return;
     
     console.log('Starting parent recalculation for deleted task:', deletedTask.task_name, deletedTask.hierarchy_number);
     
+    // Get fresh task data from React Query cache
+    const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+    console.log('Using fresh task data for parent calculation. Fresh tasks count:', freshTasks.length);
+    
     // Find all parent tasks by checking hierarchy levels
-    const parentTasks = tasks.filter(task => {
+    const parentTasks = freshTasks.filter(task => {
       if (!task.hierarchy_number || task.id === deletedTask.id) return false;
       
       // Check if this task is a parent of the deleted task
@@ -209,11 +217,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // Update each parent task with recalculated values
     parentTasks.forEach(parentTask => {
-      // Get remaining tasks (excluding the deleted one) - use fresh query data
-      const remainingTasks = tasks.filter(t => t.id !== deletedTask.id);
-      console.log('Remaining tasks for parent calculation:', remainingTasks.length, 'Original tasks:', tasks.length);
-      
-      const calculations = calculateParentTaskValues(parentTask, remainingTasks);
+      const calculations = calculateParentTaskValues(parentTask, freshTasks);
       
       if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
         console.log('Updating parent task:', parentTask.task_name, 'with calculations:', calculations);
@@ -302,11 +306,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      // Recalculate parent tasks after deletion with longer delay to ensure real-time updates are processed
-      setTimeout(() => {
-        console.log('Executing delayed parent recalculation...');
-        recalculateParentTasks(task);
-      }, 500);
+      // Recalculate parent tasks after deletion using fresh query data
+      recalculateParentTasks(task);
       
       toast.success("Task deleted successfully");
     } catch (error) {
@@ -357,13 +358,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
       
-      // Recalculate parent tasks for all deleted tasks with longer delay
-      setTimeout(() => {
-        console.log('Executing delayed bulk parent recalculation...');
-        deletedTasks.forEach(task => {
-          if (task) recalculateParentTasks(task);
-        });
-      }, 500);
+      // Recalculate parent tasks for all deleted tasks using fresh query data
+      deletedTasks.forEach(task => {
+        if (task) recalculateParentTasks(task);
+      });
       
       toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
     } catch (error) {
@@ -387,12 +385,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      // Recalculate parent tasks after deletion with longer delay
+      // Recalculate parent tasks after deletion using fresh query data
       if (taskToDelete) {
-        setTimeout(() => {
-          console.log('Executing delayed confirmed deletion parent recalculation...');
-          recalculateParentTasks(taskToDelete);
-        }, 500);
+        recalculateParentTasks(taskToDelete);
       }
       
       setPendingDelete(null);
