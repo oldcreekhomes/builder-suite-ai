@@ -40,7 +40,7 @@ export const getAllDescendantTasks = (parentTask: ProjectTask, allTasks: Project
 };
 
 export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: ProjectTask[]): TaskCalculations | null => {
-  const childTasks = getChildTasks(parentTask, allTasks);
+  const childTasks = getAllDescendantTasks(parentTask, allTasks);
   
   if (childTasks.length === 0) {
     return null;
