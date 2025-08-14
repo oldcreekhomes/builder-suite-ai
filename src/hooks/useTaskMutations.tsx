@@ -83,12 +83,9 @@ export const useTaskMutations = (projectId: string) => {
       // Trigger parent recalculation for new task
       if (data.hierarchy_number) {
         console.log('🔄 Task created, triggering parent recalculation for:', data.hierarchy_number);
-        // Use setTimeout to ensure the cache is updated first
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
-            detail: { hierarchyNumber: data.hierarchy_number } 
-          }));
-        }, 100);
+        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+          detail: { hierarchyNumber: data.hierarchy_number } 
+        }));
       }
     },
     onError: (error) => {
@@ -170,12 +167,9 @@ export const useTaskMutations = (projectId: string) => {
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
       if (data.hierarchy_number && dateFieldsChanged) {
         console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
-        // Use setTimeout to ensure the cache is updated first
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
-            detail: { hierarchyNumber: data.hierarchy_number } 
-          }));
-        }, 100);
+        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+          detail: { hierarchyNumber: data.hierarchy_number } 
+        }));
       }
     },
     onError: (error) => {
@@ -208,12 +202,9 @@ export const useTaskMutations = (projectId: string) => {
       // Trigger parent recalculation for deleted task
       if (data.hierarchy_number) {
         console.log('🔄 Task deleted, triggering parent recalculation for:', data.hierarchy_number);
-        // Use setTimeout to ensure the cache is updated first
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('recalculate-parents', { 
-            detail: { hierarchyNumber: data.hierarchy_number } 
-          }));
-        }, 100);
+        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+          detail: { hierarchyNumber: data.hierarchy_number } 
+        }));
       }
     },
     onError: (error) => {
