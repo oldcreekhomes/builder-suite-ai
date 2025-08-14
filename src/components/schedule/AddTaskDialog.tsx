@@ -26,7 +26,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
   const [formData, setFormData] = useState({
-    task_name: '',
+    task_name: 'New Task',
     start_date: '',
     end_date: '',
     duration: 1,
@@ -60,7 +60,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     });
 
     setFormData({
-      task_name: '',
+      task_name: 'New Task',
       start_date: '',
       end_date: '',
       duration: 1,

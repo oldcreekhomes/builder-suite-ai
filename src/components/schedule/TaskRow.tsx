@@ -9,6 +9,7 @@ import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
+import { calculateBusinessEndDate } from "@/utils/businessDays";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -73,8 +74,7 @@ export function TaskRow({
 
   const calculateEndDate = (startDate: string, duration: number) => {
     const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(start.getDate() + (duration - 1)); // For 1-day task, start and end on same day
+    const end = calculateBusinessEndDate(start, duration);
     return end.toISOString().split('T')[0];
   };
 

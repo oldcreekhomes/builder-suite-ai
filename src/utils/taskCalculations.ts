@@ -1,4 +1,5 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { getBusinessDaysBetween, calculateBusinessEndDate, addBusinessDays, isBusinessDay, ensureBusinessDay } from "./businessDays";
 
 export interface TaskCalculations {
   startDate: string;
@@ -53,10 +54,8 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const endDates = childTasks.map(task => new Date(task.end_date));
   const latestEndDate = new Date(Math.max(...endDates.map(date => date.getTime())));
   
-  // Calculate duration (difference between latest end date and earliest start date + 1)
-  // Since we want inclusive days (if start=1st and end=1st, duration=1 day)
-  const timeDiff = latestEndDate.getTime() - earliestStartDate.getTime();
-  const duration = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1; // Convert to days and add 1 for inclusive
+  // Calculate duration using business days only
+  const duration = getBusinessDaysBetween(earliestStartDate, latestEndDate);
   
   // Calculate progress based on completed duration vs total duration
   const totalDuration = childTasks.reduce((sum, task) => sum + task.duration, 0);
@@ -129,25 +128,33 @@ export const calculateTaskDatesFromPredecessors = (
     
     if (!predTask) continue;
     
-    // Calculate the end date of the predecessor
+    // Calculate the end date of the predecessor with business day lag
     const predEndDate = new Date(predTask.end_date);
-    predEndDate.setDate(predEndDate.getDate() + lagDays);
     
-    if (predEndDate > latestEndDate) {
-      latestEndDate = predEndDate;
+    // Apply lag using business days
+    let adjustedPredEndDate: Date;
+    if (lagDays > 0) {
+      adjustedPredEndDate = addBusinessDays(predEndDate, lagDays);
+    } else if (lagDays < 0) {
+      // For negative lag, we need to subtract business days
+      adjustedPredEndDate = addBusinessDays(predEndDate, lagDays);
+    } else {
+      adjustedPredEndDate = predEndDate;
+    }
+    
+    if (adjustedPredEndDate > latestEndDate) {
+      latestEndDate = adjustedPredEndDate;
     }
   }
   
   // If no valid predecessors found, return null
   if (latestEndDate.getTime() === 0) return null;
   
-  // New start date is the day after the latest predecessor end date
-  const newStartDate = new Date(latestEndDate);
-  newStartDate.setDate(latestEndDate.getDate() + 1);
+  // New start date is the next business day after the latest predecessor end date
+  const newStartDate = addBusinessDays(latestEndDate, 1);
   
-  // Calculate new end date based on task duration
-  const newEndDate = new Date(newStartDate);
-  newEndDate.setDate(newStartDate.getDate() + (task.duration - 1)); // For 1-day task, start and end on same day
+  // Calculate new end date based on task duration using business days
+  const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
   
   return {
     startDate: newStartDate.toISOString().split('T')[0],

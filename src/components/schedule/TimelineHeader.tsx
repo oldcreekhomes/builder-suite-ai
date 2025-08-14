@@ -1,5 +1,6 @@
 import React from "react";
 import { format, addDays, isSameMonth } from "date-fns";
+import { isBusinessDay } from "@/utils/businessDays";
 
 interface TimelineHeaderProps {
   startDate: Date;
@@ -59,20 +60,20 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
       <div className="relative h-4" style={{ width: timelineWidth }}>
         {Array.from({ length: totalDays }, (_, i) => {
           const dayDate = addDays(startDate, i);
-          const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+          const isWeekend = !isBusinessDay(dayDate);
           
           return (
             <div
               key={i}
               className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
-                isWeekend ? "bg-muted/50" : "bg-background"
+                isWeekend ? "bg-muted/80 text-muted-foreground opacity-50" : "bg-background"
               }`}
               style={{
                 left: i * dayWidth,
-                width: dayWidth
+                width: isWeekend ? dayWidth * 0.3 : dayWidth // Make weekends narrower
               }}
             >
-              {format(dayDate, "dd")}
+              {isWeekend ? "" : format(dayDate, "dd")}
             </div>
           );
         })}

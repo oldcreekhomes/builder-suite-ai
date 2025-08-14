@@ -2,6 +2,7 @@ import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineBar } from "./TimelineBar";
+import { isBusinessDay, getBusinessDaysBetween } from "@/utils/businessDays";
 
 interface TimelineProps {
   tasks: ProjectTask[];
@@ -24,16 +25,32 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
 
   const getTaskPosition = (task: ProjectTask) => {
     const taskStart = parseDate(task.start_date);
+    const taskEnd = parseDate(task.end_date);
     
-    // Fix date offset - don't use Math.ceil for start offset
-    const startOffset = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Calculate business days between timeline start and task start
+    const businessDaysToStart = getBusinessDaysBetween(startDate, taskStart) - 1; // -1 because we want offset
     
-    // Use the task's duration field directly instead of calculating from dates
-    const duration = task.duration || 1;
+    // Calculate task width based on business days only
+    const taskBusinessDays = task.duration || 1;
+    
+    // Calculate visual offset accounting for weekends
+    let visualOffset = 0;
+    let currentDate = new Date(startDate);
+    let businessDaysCount = 0;
+    
+    while (businessDaysCount < businessDaysToStart && currentDate < taskStart) {
+      if (isBusinessDay(currentDate)) {
+        businessDaysCount++;
+      }
+      if (businessDaysCount < businessDaysToStart || isBusinessDay(currentDate)) {
+        visualOffset += dayWidth;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
     
     return {
-      left: startOffset * dayWidth,
-      width: duration * dayWidth,
+      left: visualOffset,
+      width: taskBusinessDays * dayWidth,
       progress: task.progress || 0
     };
   };
