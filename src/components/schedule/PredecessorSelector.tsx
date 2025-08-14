@@ -72,7 +72,7 @@ export function PredecessorSelector({
       if (!result.isValid) {
         toast.error("Predecessor Validation Error", {
           description: result.errors.join("; "),
-          style: { color: 'red' }
+          className: "[&_*]:!text-red-500"
         });
         // Reject invalid input - reset to original value and don't call onValueChange
         setInputValue(value.join(', '));
