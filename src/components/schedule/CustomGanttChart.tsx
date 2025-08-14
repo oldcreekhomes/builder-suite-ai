@@ -92,17 +92,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
   const timelineStart = tasks.length > 0 
     ? new Date(Math.min(...tasks.map(t => {
-        // Parse date properly to avoid timezone issues
-        const date = new Date(t.start_date + 'T00:00:00');
-        return date.getTime();
+        // Handle different date formats properly
+        const dateStr = t.start_date;
+        let date;
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else {
+          date = new Date(dateStr + 'T00:00:00');
+        }
+        return isNaN(date.getTime()) ? Date.now() : date.getTime();
       })))
     : new Date();
   
   const timelineEnd = tasks.length > 0
     ? new Date(Math.max(...tasks.map(t => {
-        // Parse date properly to avoid timezone issues  
-        const date = new Date(t.end_date + 'T00:00:00');
-        return date.getTime();
+        // Handle different date formats properly
+        const dateStr = t.end_date;
+        let date;
+        if (dateStr.includes('T')) {
+          date = new Date(dateStr);
+        } else {
+          date = new Date(dateStr + 'T00:00:00');
+        }
+        return isNaN(date.getTime()) ? Date.now() : date.getTime();
       })))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 

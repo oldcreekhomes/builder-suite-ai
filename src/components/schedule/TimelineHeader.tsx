@@ -9,6 +9,11 @@ interface TimelineHeaderProps {
 }
 
 export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: TimelineHeaderProps) {
+  // Validate dates first
+  if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date range</div>;
+  }
+
   const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   
   // Generate month headers
