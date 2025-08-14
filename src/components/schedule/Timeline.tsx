@@ -27,30 +27,18 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
     const taskStart = parseDate(task.start_date);
     const taskEnd = parseDate(task.end_date);
     
-    // Calculate business days between timeline start and task start
-    const businessDaysToStart = getBusinessDaysBetween(startDate, taskStart) - 1; // -1 because we want offset
+    // Calculate actual calendar days from timeline start to task start for positioning
+    const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate task width based on business days only
-    const taskBusinessDays = task.duration || 1;
+    // Calculate task width based on duration (business days) but show full calendar width
+    const taskDuration = task.duration || 1;
     
-    // Calculate visual offset accounting for weekends
-    let visualOffset = 0;
-    let currentDate = new Date(startDate);
-    let businessDaysCount = 0;
-    
-    while (businessDaysCount < businessDaysToStart && currentDate < taskStart) {
-      if (isBusinessDay(currentDate)) {
-        businessDaysCount++;
-      }
-      if (businessDaysCount < businessDaysToStart || isBusinessDay(currentDate)) {
-        visualOffset += dayWidth;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+    // Calculate actual calendar days between task start and end
+    const calendarDaysWidth = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     return {
-      left: visualOffset,
-      width: taskBusinessDays * dayWidth,
+      left: daysFromStart * dayWidth,
+      width: calendarDaysWidth * dayWidth, // Show full calendar width including weekends
       progress: task.progress || 0
     };
   };
