@@ -32,7 +32,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const calculateEndDate = (startDate: string, duration: number) => {
     const start = new Date(startDate);
     const end = new Date(start);
-    end.setDate(start.getDate() + duration);
+    // Duration includes the start date, so add (duration - 1) days
+    end.setDate(start.getDate() + (duration - 1));
     return end;
   };
 
@@ -103,6 +104,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const timelineEnd = tasks.length > 0
     ? new Date(Math.max(...tasks.map(t => calculateEndDate(t.start_date, t.duration).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
 
   // Handle expansion state changes
   const handleToggleExpand = (taskId: string) => {
