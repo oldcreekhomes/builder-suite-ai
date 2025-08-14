@@ -91,8 +91,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
   const parseDate = (dateStr: string): Date => {
-    // Use the exact same logic as TaskRow to avoid timezone conversion
-    return new Date(dateStr + "T12:00:00");
+    // Extract just the date part (YYYY-MM-DD) and use the same logic as TaskRow
+    const datePart = dateStr.split('T')[0].split(' ')[0];
+    return new Date(datePart + "T12:00:00");
   };
 
   const timelineStart = tasks.length > 0 
