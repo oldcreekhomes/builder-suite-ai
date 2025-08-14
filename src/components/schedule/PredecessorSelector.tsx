@@ -128,25 +128,34 @@ export function PredecessorSelector({
         onClick={handleStartEdit}
         title={hasErrors ? validationResult.errors.join('; ') : "Click to edit predecessors"}
       >
-        {parsed.map((pred, index) => (
-          <Badge 
-            key={index} 
-            variant={pred.isValid ? "secondary" : "destructive"} 
-            className="text-xs h-4 px-1 flex items-center gap-1"
-          >
-            {formatPredecessorForDisplay(pred)}
-            <X 
-              className="h-3 w-3 cursor-pointer hover:text-destructive" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemove(value[index]);
-              }}
-            />
-          </Badge>
-        ))}
-        {hasErrors && (
-          <AlertTriangle className="h-3 w-3 text-destructive ml-1" />
-        )}
+        {parsed.map((pred, index) => {
+          if (!pred.isValid) {
+            return (
+              <div 
+                key={index} 
+                title={`Invalid predecessor: ${pred.taskId}`}
+              >
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+            );
+          }
+          return (
+            <Badge 
+              key={index} 
+              variant="secondary" 
+              className="text-xs h-4 px-1 flex items-center gap-1"
+            >
+              {formatPredecessorForDisplay(pred)}
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(value[index]);
+                }}
+              />
+            </Badge>
+          );
+        })}
       </div>
     );
   }
