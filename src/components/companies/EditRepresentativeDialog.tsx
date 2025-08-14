@@ -99,25 +99,38 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
 
   const updateRepresentativeMutation = useMutation({
     mutationFn: async (data: RepresentativeFormData) => {
-      if (!representative) return;
+      console.log('Mutation function called with:', data);
+      if (!representative) {
+        console.log('No representative found, returning early');
+        return;
+      }
+
+      console.log('Updating representative with ID:', representative.id);
+      const updateData = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email || null,
+        phone_number: data.phone_number || null,
+        title: data.title || null,
+        receive_bid_notifications: data.receive_bid_notifications,
+        receive_schedule_notifications: data.receive_schedule_notifications,
+        receive_po_notifications: data.receive_po_notifications,
+      };
+      console.log('Update data:', updateData);
 
       const { error } = await supabase
         .from('company_representatives')
-        .update({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          email: data.email || null,
-          phone_number: data.phone_number || null,
-          title: data.title || null,
-          receive_bid_notifications: data.receive_bid_notifications,
-          receive_schedule_notifications: data.receive_schedule_notifications,
-          receive_po_notifications: data.receive_po_notifications,
-        })
+        .update(updateData)
         .eq('id', representative.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      console.log('Update successful');
     },
     onSuccess: () => {
+      console.log('Mutation successful');
       queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
@@ -127,6 +140,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       onOpenChange(false);
     },
     onError: (error) => {
+      console.log('Mutation error occurred:', error);
       console.error('Error updating representative:', error);
       toast({
         title: "Error",
@@ -137,6 +151,8 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
   });
 
   const onSubmit = (data: RepresentativeFormData) => {
+    console.log('Form submission triggered with data:', data);
+    console.log('Representative ID:', representative?.id);
     updateRepresentativeMutation.mutate(data);
   };
 
