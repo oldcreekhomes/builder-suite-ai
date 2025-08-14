@@ -195,7 +195,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       : "1";
   };
 
-  // SIMPLIFIED: Only "add at end" for now - will add positioning later
+  // Add new parent group when Add button is clicked
   const handleAddTask = async () => {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
@@ -211,12 +211,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const todayString = today.toISOString().split('T')[0];
       const tomorrowString = tomorrow.toISOString().split('T')[0];
 
-      console.log('Creating task with start date:', todayString, 'end date:', tomorrowString);
-      console.log('Raw today date object:', today);
-
       await createTask.mutateAsync({
         project_id: projectId,
-        task_name: "New Task",
+        task_name: `Group ${newHierarchyNumber}`,
         start_date: todayString + 'T00:00:00',
         end_date: tomorrowString + 'T00:00:00',
         duration: 1,
@@ -224,10 +221,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         hierarchy_number: newHierarchyNumber
       });
       
-      toast.success("Task added successfully");
+      toast.success("Group added successfully");
     } catch (error) {
-      console.error("Failed to add task:", error);
-      toast.error("Failed to add task");
+      console.error("Failed to add group:", error);
+      toast.error("Failed to add group");
     }
   };
 
