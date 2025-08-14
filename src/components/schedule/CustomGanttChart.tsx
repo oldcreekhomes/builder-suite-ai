@@ -90,32 +90,32 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const visibleTasks = getVisibleTasks();
 
   // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
+  const parseDate = (dateStr: string): Date => {
+    console.log('Parsing date:', dateStr);
+    // Handle PostgreSQL timestamp format: "2025-08-13 00:00:00+00"
+    if (dateStr.includes(' ') && (dateStr.includes('+') || dateStr.includes('Z'))) {
+      const date = new Date(dateStr);
+      console.log('Parsed PostgreSQL timestamp:', date);
+      return isNaN(date.getTime()) ? new Date() : date;
+    }
+    // Handle ISO format: "2025-08-13T00:00:00"
+    if (dateStr.includes('T')) {
+      const date = new Date(dateStr);
+      console.log('Parsed ISO format:', date);
+      return isNaN(date.getTime()) ? new Date() : date;
+    }
+    // Handle simple date format: "2025-08-13"
+    const date = new Date(dateStr + 'T00:00:00');
+    console.log('Parsed simple date:', date);
+    return isNaN(date.getTime()) ? new Date() : date;
+  };
+
   const timelineStart = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => {
-        // Handle different date formats properly
-        const dateStr = t.start_date;
-        let date;
-        if (dateStr.includes('T')) {
-          date = new Date(dateStr);
-        } else {
-          date = new Date(dateStr + 'T00:00:00');
-        }
-        return isNaN(date.getTime()) ? Date.now() : date.getTime();
-      })))
+    ? new Date(Math.min(...tasks.map(t => parseDate(t.start_date).getTime())))
     : new Date();
   
   const timelineEnd = tasks.length > 0
-    ? new Date(Math.max(...tasks.map(t => {
-        // Handle different date formats properly
-        const dateStr = t.end_date;
-        let date;
-        if (dateStr.includes('T')) {
-          date = new Date(dateStr);
-        } else {
-          date = new Date(dateStr + 'T00:00:00');
-        }
-        return isNaN(date.getTime()) ? Date.now() : date.getTime();
-      })))
+    ? new Date(Math.max(...tasks.map(t => parseDate(t.end_date).getTime())))
     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
 

@@ -16,20 +16,24 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const dayWidth = 40; // pixels per day
   const timelineWidth = totalDays * dayWidth;
 
-  const getTaskPosition = (task: ProjectTask) => {
-    // Handle different date formats properly to avoid timezone issues
-    const dateStr = task.start_date;
-    let taskStart;
+  const parseDate = (dateStr: string): Date => {
+    // Handle PostgreSQL timestamp format: "2025-08-13 00:00:00+00"
+    if (dateStr.includes(' ') && (dateStr.includes('+') || dateStr.includes('Z'))) {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? new Date() : date;
+    }
+    // Handle ISO format: "2025-08-13T00:00:00"
     if (dateStr.includes('T')) {
-      taskStart = new Date(dateStr);
-    } else {
-      taskStart = new Date(dateStr + 'T00:00:00');
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? new Date() : date;
     }
-    
-    // Fallback to current date if invalid
-    if (isNaN(taskStart.getTime())) {
-      taskStart = new Date();
-    }
+    // Handle simple date format: "2025-08-13"
+    const date = new Date(dateStr + 'T00:00:00');
+    return isNaN(date.getTime()) ? new Date() : date;
+  };
+
+  const getTaskPosition = (task: ProjectTask) => {
+    const taskStart = parseDate(task.start_date);
     
     // Fix date offset - don't use Math.ceil for start offset
     const startOffset = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

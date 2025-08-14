@@ -9,12 +9,35 @@ interface TimelineHeaderProps {
 }
 
 export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: TimelineHeaderProps) {
-  // Validate dates first
-  if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date range</div>;
+  // Comprehensive date validation
+  console.log('TimelineHeader received:', { startDate, endDate, startValid: startDate instanceof Date, endValid: endDate instanceof Date });
+  
+  if (!startDate || !endDate) {
+    console.error('Missing dates in TimelineHeader:', { startDate, endDate });
+    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Missing date range</div>;
+  }
+  
+  if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+    console.error('Invalid date objects in TimelineHeader:', { startDate, endDate });
+    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date objects</div>;
+  }
+  
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    console.error('Invalid date values in TimelineHeader:', { 
+      startDate: startDate.toString(), 
+      endDate: endDate.toString(),
+      startTime: startDate.getTime(),
+      endTime: endDate.getTime()
+    });
+    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date values</div>;
   }
 
   const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  
+  if (totalDays <= 0) {
+    console.error('Invalid date range in TimelineHeader:', { startDate, endDate, totalDays });
+    return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date range</div>;
+  }
   
   // Generate month headers
   const months: { name: string; width: number; left: number }[] = [];
