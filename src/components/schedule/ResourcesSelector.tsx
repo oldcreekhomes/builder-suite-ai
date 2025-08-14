@@ -143,11 +143,11 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     }
   };
 
-  // If readOnly, always show as non-editable black text
+  // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
       <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
-        {selectedResources.length > 0 ? selectedResources.join(', ') : "Select..."}
+        {selectedResources.length > 0 ? selectedResources.join(', ') : ""}
       </span>
     );
   }
