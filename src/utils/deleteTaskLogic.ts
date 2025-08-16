@@ -273,69 +273,141 @@ export const computeBulkDeleteUpdates = (
   
   console.log(`📊 Found: ${selectedGroups.length} groups, ${independentChildren.length} independent children, ${childrenOfSelectedGroups.length} children of selected groups`);
   
-  let allTasksToDelete: string[] = [];
-  let allHierarchyUpdates: TaskUpdate[] = [];
-  let allPredecessorUpdates: PredecessorUpdate[] = [];
-  let allParentGroupsToRecalculate: string[] = [];
+  // Get all tasks that will be deleted (groups + their children + independent children)
+  let allTasksToDelete: string[] = [...selectedTaskIds];
+  let deletedHierarchyNumbers: string[] = [];
   
-  // Process each selected group
+  // Add children of selected groups to deletion list
   for (const group of selectedGroups) {
-    const groupResult = computeDeleteGroupUpdates(group, allTasks);
-    allTasksToDelete.push(...groupResult.tasksToDelete);
-    allHierarchyUpdates.push(...groupResult.hierarchyUpdates);
-    allPredecessorUpdates.push(...groupResult.predecessorUpdates);
-    allParentGroupsToRecalculate.push(...groupResult.parentGroupsToRecalculate);
+    const groupChildren = allTasks.filter(task => 
+      task.hierarchy_number?.startsWith(group.hierarchy_number! + '.') && 
+      !selectedTaskIds.includes(task.id)
+    );
+    allTasksToDelete.push(...groupChildren.map(t => t.id));
+    deletedHierarchyNumbers.push(group.hierarchy_number!);
+    deletedHierarchyNumbers.push(...groupChildren.map(t => t.hierarchy_number!));
   }
   
-  // Process each independent child
+  // Add independent children hierarchy numbers
+  deletedHierarchyNumbers.push(...independentChildren.map(t => t.hierarchy_number!));
+  
+  // Now calculate what hierarchy updates are needed
+  let hierarchyUpdates: TaskUpdate[] = [];
+  let parentGroupsToRecalculate: string[] = [];
+  
+  // Handle independent children first (within their groups)
+  const childrenByGroup = new Map<string, ProjectTask[]>();
   for (const child of independentChildren) {
-    const childResult = computeDeleteChildUpdates(child, allTasks);
-    allTasksToDelete.push(...childResult.tasksToDelete);
-    allHierarchyUpdates.push(...childResult.hierarchyUpdates);
-    allPredecessorUpdates.push(...childResult.predecessorUpdates);
-    allParentGroupsToRecalculate.push(...childResult.parentGroupsToRecalculate);
+    const groupNumber = child.hierarchy_number!.split('.')[0];
+    if (!childrenByGroup.has(groupNumber)) {
+      childrenByGroup.set(groupNumber, []);
+    }
+    childrenByGroup.get(groupNumber)!.push(child);
+    parentGroupsToRecalculate.push(groupNumber);
   }
   
-  // Handle hierarchy conflicts when multiple operations affect the same tasks
-  // Sort by hierarchy number in descending order to process from bottom up
-  allHierarchyUpdates.sort((a, b) => {
-    return b.hierarchy_number.localeCompare(a.hierarchy_number, undefined, { numeric: true });
-  });
-  
-  // Remove duplicate hierarchy updates (keep the last one for each task)
-  const hierarchyUpdateMap = new Map<string, TaskUpdate>();
-  for (const update of allHierarchyUpdates) {
-    hierarchyUpdateMap.set(update.id, update);
+  // For each group with deleted children, renumber remaining children
+  for (const [groupNumber, deletedChildren] of childrenByGroup.entries()) {
+    const allChildrenInGroup = allTasks.filter(task => {
+      if (!task.hierarchy_number) return false;
+      const parts = task.hierarchy_number.split('.');
+      return parts.length === 2 && parts[0] === groupNumber;
+    });
+    
+    // Sort by child number
+    allChildrenInGroup.sort((a, b) => {
+      const aNum = parseInt(a.hierarchy_number!.split('.')[1]);
+      const bNum = parseInt(b.hierarchy_number!.split('.')[1]);
+      return aNum - bNum;
+    });
+    
+    // Find which children remain after deletion
+    const remainingChildren = allChildrenInGroup.filter(child => 
+      !deletedChildren.some(deleted => deleted.id === child.id)
+    );
+    
+    // Renumber remaining children sequentially
+    remainingChildren.forEach((child, index) => {
+      const newHierarchy = `${groupNumber}.${index + 1}`;
+      if (child.hierarchy_number !== newHierarchy) {
+        hierarchyUpdates.push({
+          id: child.id,
+          hierarchy_number: newHierarchy
+        });
+      }
+    });
   }
-  allHierarchyUpdates = Array.from(hierarchyUpdateMap.values());
   
-  // Remove duplicate predecessor updates (merge predecessor arrays)
-  const predecessorUpdateMap = new Map<string, string[]>();
-  for (const update of allPredecessorUpdates) {
-    if (predecessorUpdateMap.has(update.taskId)) {
-      // Merge predecessor arrays and remove duplicates
-      const existing = predecessorUpdateMap.get(update.taskId)!;
-      const merged = [...new Set([...existing, ...update.newPredecessors])];
-      predecessorUpdateMap.set(update.taskId, merged);
-    } else {
-      predecessorUpdateMap.set(update.taskId, update.newPredecessors);
+  // Handle group deletions - need to shift all groups that come after deleted groups
+  if (selectedGroups.length > 0) {
+    // Get all group numbers that are being deleted, sorted
+    const deletedGroupNumbers = selectedGroups
+      .map(g => parseInt(g.hierarchy_number!))
+      .sort((a, b) => a - b);
+    
+    console.log(`🔢 Deleted group numbers: ${deletedGroupNumbers.join(', ')}`);
+    
+    // Find all groups that need to be renumbered (groups with numbers higher than any deleted group)
+    const minDeletedGroup = Math.min(...deletedGroupNumbers);
+    const groupsToRenumber = allTasks.filter(task => {
+      if (!task.hierarchy_number || !isGroupTask(task)) return false;
+      const groupNum = parseInt(task.hierarchy_number);
+      return groupNum > minDeletedGroup && !deletedGroupNumbers.includes(groupNum);
+    });
+    
+    // Sort groups by number
+    groupsToRenumber.sort((a, b) => {
+      const aNum = parseInt(a.hierarchy_number!);
+      const bNum = parseInt(b.hierarchy_number!);
+      return aNum - bNum;
+    });
+    
+    console.log(`📋 Groups to renumber: ${groupsToRenumber.map(g => g.hierarchy_number).join(', ')}`);
+    
+    // Calculate how many groups were deleted before each remaining group
+    for (const group of groupsToRenumber) {
+      const currentGroupNum = parseInt(group.hierarchy_number!);
+      const deletedBefore = deletedGroupNumbers.filter(deleted => deleted < currentGroupNum).length;
+      const newGroupNum = currentGroupNum - deletedBefore;
+      
+      console.log(`🔄 Group ${currentGroupNum} -> ${newGroupNum} (${deletedBefore} deleted before)`);
+      
+      // Update the group itself
+      hierarchyUpdates.push({
+        id: group.id,
+        hierarchy_number: `${newGroupNum}`
+      });
+      
+      // Update all children of this group
+      const childrenOfThisGroup = allTasks.filter(task => {
+        if (!task.hierarchy_number) return false;
+        const parts = task.hierarchy_number.split('.');
+        return parts.length === 2 && parts[0] === currentGroupNum.toString();
+      });
+      
+      for (const child of childrenOfThisGroup) {
+        const childNum = child.hierarchy_number!.split('.')[1];
+        hierarchyUpdates.push({
+          id: child.id,
+          hierarchy_number: `${newGroupNum}.${childNum}`
+        });
+      }
     }
   }
-  allPredecessorUpdates = Array.from(predecessorUpdateMap.entries()).map(([taskId, newPredecessors]) => ({
-    taskId,
-    newPredecessors
-  }));
   
-  // Remove duplicate parent groups
-  allParentGroupsToRecalculate = [...new Set(allParentGroupsToRecalculate)];
+  // Clean up predecessors
+  const predecessorUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
   
-  console.log(`✅ Bulk delete result: ${allTasksToDelete.length} tasks to delete, ${allHierarchyUpdates.length} hierarchy updates, ${allPredecessorUpdates.length} predecessor updates`);
+  // Remove duplicates from parent groups to recalculate
+  parentGroupsToRecalculate = [...new Set(parentGroupsToRecalculate)];
+  
+  console.log(`✅ Bulk delete result: ${allTasksToDelete.length} tasks to delete, ${hierarchyUpdates.length} hierarchy updates, ${predecessorUpdates.length} predecessor updates`);
   
   return {
     tasksToDelete: allTasksToDelete,
-    hierarchyUpdates: allHierarchyUpdates,
-    predecessorUpdates: allPredecessorUpdates,
-    parentGroupsToRecalculate: allParentGroupsToRecalculate
+    hierarchyUpdates,
+    predecessorUpdates,
+    parentGroupsToRecalculate
   };
 };
 
