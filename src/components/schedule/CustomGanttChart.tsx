@@ -293,7 +293,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
       await createTask.mutateAsync({
         project_id: projectId,
-        task_name: `Group ${newHierarchyNumber}`,
+        task_name: 'New Task',
         start_date: todayString + 'T00:00:00',
         end_date: tomorrowString + 'T00:00:00',
         duration: 1,
