@@ -244,6 +244,102 @@ export const isGroupTask = (task: ProjectTask): boolean => {
 };
 
 /**
+ * Computes updates needed when deleting multiple tasks (bulk delete)
+ * Handles complex scenarios with mixed groups and children
+ */
+export const computeBulkDeleteUpdates = (
+  selectedTaskIds: string[],
+  allTasks: ProjectTask[]
+): DeleteTaskResult => {
+  const selectedTasks = allTasks.filter(task => selectedTaskIds.includes(task.id));
+  
+  console.log(`🗑️ BULK DELETE: Processing ${selectedTasks.length} selected tasks`);
+  
+  // Separate groups and children
+  const selectedGroups = selectedTasks.filter(isGroupTask);
+  const selectedChildren = selectedTasks.filter(task => !isGroupTask(task));
+  
+  // Find children that belong to selected groups (these don't need separate processing)
+  const childrenOfSelectedGroups = selectedChildren.filter(child => {
+    const groupNumber = child.hierarchy_number?.split('.')[0];
+    return selectedGroups.some(group => group.hierarchy_number === groupNumber);
+  });
+  
+  // Only process children that don't belong to selected groups
+  const independentChildren = selectedChildren.filter(child => {
+    const groupNumber = child.hierarchy_number?.split('.')[0];
+    return !selectedGroups.some(group => group.hierarchy_number === groupNumber);
+  });
+  
+  console.log(`📊 Found: ${selectedGroups.length} groups, ${independentChildren.length} independent children, ${childrenOfSelectedGroups.length} children of selected groups`);
+  
+  let allTasksToDelete: string[] = [];
+  let allHierarchyUpdates: TaskUpdate[] = [];
+  let allPredecessorUpdates: PredecessorUpdate[] = [];
+  let allParentGroupsToRecalculate: string[] = [];
+  
+  // Process each selected group
+  for (const group of selectedGroups) {
+    const groupResult = computeDeleteGroupUpdates(group, allTasks);
+    allTasksToDelete.push(...groupResult.tasksToDelete);
+    allHierarchyUpdates.push(...groupResult.hierarchyUpdates);
+    allPredecessorUpdates.push(...groupResult.predecessorUpdates);
+    allParentGroupsToRecalculate.push(...groupResult.parentGroupsToRecalculate);
+  }
+  
+  // Process each independent child
+  for (const child of independentChildren) {
+    const childResult = computeDeleteChildUpdates(child, allTasks);
+    allTasksToDelete.push(...childResult.tasksToDelete);
+    allHierarchyUpdates.push(...childResult.hierarchyUpdates);
+    allPredecessorUpdates.push(...childResult.predecessorUpdates);
+    allParentGroupsToRecalculate.push(...childResult.parentGroupsToRecalculate);
+  }
+  
+  // Handle hierarchy conflicts when multiple operations affect the same tasks
+  // Sort by hierarchy number in descending order to process from bottom up
+  allHierarchyUpdates.sort((a, b) => {
+    return b.hierarchy_number.localeCompare(a.hierarchy_number, undefined, { numeric: true });
+  });
+  
+  // Remove duplicate hierarchy updates (keep the last one for each task)
+  const hierarchyUpdateMap = new Map<string, TaskUpdate>();
+  for (const update of allHierarchyUpdates) {
+    hierarchyUpdateMap.set(update.id, update);
+  }
+  allHierarchyUpdates = Array.from(hierarchyUpdateMap.values());
+  
+  // Remove duplicate predecessor updates (merge predecessor arrays)
+  const predecessorUpdateMap = new Map<string, string[]>();
+  for (const update of allPredecessorUpdates) {
+    if (predecessorUpdateMap.has(update.taskId)) {
+      // Merge predecessor arrays and remove duplicates
+      const existing = predecessorUpdateMap.get(update.taskId)!;
+      const merged = [...new Set([...existing, ...update.newPredecessors])];
+      predecessorUpdateMap.set(update.taskId, merged);
+    } else {
+      predecessorUpdateMap.set(update.taskId, update.newPredecessors);
+    }
+  }
+  allPredecessorUpdates = Array.from(predecessorUpdateMap.entries()).map(([taskId, newPredecessors]) => ({
+    taskId,
+    newPredecessors
+  }));
+  
+  // Remove duplicate parent groups
+  allParentGroupsToRecalculate = [...new Set(allParentGroupsToRecalculate)];
+  
+  console.log(`✅ Bulk delete result: ${allTasksToDelete.length} tasks to delete, ${allHierarchyUpdates.length} hierarchy updates, ${allPredecessorUpdates.length} predecessor updates`);
+  
+  return {
+    tasksToDelete: allTasksToDelete,
+    hierarchyUpdates: allHierarchyUpdates,
+    predecessorUpdates: allPredecessorUpdates,
+    parentGroupsToRecalculate: allParentGroupsToRecalculate
+  };
+};
+
+/**
  * Main function to compute all updates needed for task deletion
  */
 export const computeDeleteUpdates = (

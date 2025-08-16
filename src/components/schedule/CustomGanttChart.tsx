@@ -17,6 +17,7 @@ import { getTasksWithDependency } from "@/utils/predecessorValidation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 // Simplified hierarchy imports - only basic functions
 import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
+import { computeBulkDeleteUpdates } from "@/utils/deleteTaskLogic";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -535,27 +536,42 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
 
     try {
-      // Get all tasks being deleted for parent recalculation
-      const deletedTasks = Array.from(selectedTasks).map(taskId => 
-        tasks.find(t => t.id === taskId)
-      ).filter(Boolean);
+      // Use the proper bulk delete logic with renumbering
+      const deleteResult = computeBulkDeleteUpdates(selectedTaskIds, tasks);
       
-      // Delete all selected tasks in parallel
-      const deletePromises = Array.from(selectedTasks).map(taskId => 
+      console.log(`🚀 Starting bulk delete of ${deleteResult.tasksToDelete.length} tasks`);
+      
+      // Phase 1: Delete all tasks in parallel
+      console.log(`🗑️ Phase 1: Deleting ${deleteResult.tasksToDelete.length} tasks`);
+      const deletePromises = deleteResult.tasksToDelete.map(taskId => 
         deleteTask.mutateAsync(taskId)
       );
-      
       await Promise.all(deletePromises);
+      
+      // Phase 2: Bulk update hierarchies if needed
+      if (deleteResult.hierarchyUpdates.length > 0) {
+        console.log(`📋 Phase 2: Bulk updating ${deleteResult.hierarchyUpdates.length} task hierarchies`);
+        await bulkUpdateHierarchies.mutateAsync(deleteResult.hierarchyUpdates);
+      }
+      
+      // Phase 3: Bulk update predecessors if needed
+      if (deleteResult.predecessorUpdates.length > 0) {
+        console.log(`🔗 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} task predecessors`);
+        const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync(predecessorUpdates);
+      }
+      
+      // Phase 4: Recalculate parent groups
+      console.log(`🔄 Phase 4: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+      for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
+        recalculateParentHierarchy(parentHierarchy);
+      }
       
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
-      
-      // Recalculate parent hierarchy for all deleted tasks
-      deletedTasks.forEach(task => {
-        if (task?.hierarchy_number) {
-          recalculateParentHierarchy(task.hierarchy_number);
-        }
-      });
       
       toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
     } catch (error) {
