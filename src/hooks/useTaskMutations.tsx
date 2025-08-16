@@ -25,6 +25,7 @@ interface UpdateTaskParams {
   predecessor?: string[] | string;
   resources?: string;
   hierarchy_number?: string;
+  suppressInvalidate?: boolean;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -160,8 +161,11 @@ export const useTaskMutations = (projectId: string) => {
       console.log('🔧 Task update success with data:', data);
       console.log('🔧 Variables:', variables);
       
-      console.log('✅ Task updated - refreshing cache');
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      // Only invalidate cache if not suppressed (for bulk operations)
+      if (!variables.suppressInvalidate) {
+        console.log('✅ Task updated - refreshing cache');
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      }
       
       // Trigger parent recalculation if dates or duration changed
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;

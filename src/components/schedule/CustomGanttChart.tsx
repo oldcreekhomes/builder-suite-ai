@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
+import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
@@ -24,6 +25,7 @@ interface CustomGanttChartProps {
 export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
+  const { bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -308,7 +310,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // Handle adding a task above another task
+  // Handle adding a task above another task with optimistic UI
   const handleAddAbove = async (relativeTaskId: string) => {
     try {
       const targetTask = tasks.find(t => t.id === relativeTaskId);
@@ -324,30 +326,76 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const { newTaskHierarchy, hierarchyUpdates, predecessorUpdates } = 
         calculateAddAboveUpdates(targetTask, tasks);
       
-      // Phase 1: Update existing task hierarchies (now in descending order)
-      console.log(`🔄 Phase 1: Updating ${hierarchyUpdates.length} task hierarchies`);
-      console.log('📊 Hierarchy updates:', hierarchyUpdates.map(u => `${u.id} -> ${u.hierarchy_number}`));
-      for (const update of hierarchyUpdates) {
-        console.log('🔧 Updating task hierarchy:', update.id, '->', update.hierarchy_number);
-        await updateTask.mutateAsync({
-          id: update.id,
-          hierarchy_number: update.hierarchy_number
+      console.log("🔄 Calculated updates:", {
+        hierarchyUpdates: hierarchyUpdates.length,
+        predecessorUpdates: predecessorUpdates.length
+      });
+
+      // Set batch operation flag to suppress real-time updates
+      (window as any).__batchOperationInProgress = true;
+
+      // Create optimistic task immediately
+      const optimisticTask: ProjectTask = {
+        id: `optimistic-${Date.now()}`,
+        project_id: projectId,
+        task_name: "New Task",
+        start_date: new Date().toISOString().split('T')[0] + "T00:00:00+00:00",
+        end_date: new Date(Date.now() + 86400000).toISOString().split('T')[0] + "T00:00:00+00:00",
+        duration: 1,
+        progress: 0,
+        predecessor: undefined,
+        resources: undefined,
+        hierarchy_number: newTaskHierarchy,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        confirmed: false, // Mark as optimistic
+      };
+
+      // Immediately update the cache with optimistic data
+      queryClient.setQueryData(['project-tasks', projectId], (oldData: ProjectTask[] | undefined) => {
+        if (!oldData) return [optimisticTask];
+        
+        // Apply hierarchy updates optimistically
+        const updatedTasks = oldData.map(task => {
+          const hierarchyUpdate = hierarchyUpdates.find(u => u.id === task.id);
+          const predecessorUpdate = predecessorUpdates.find(u => u.taskId === task.id);
+          
+          return {
+            ...task,
+            ...(hierarchyUpdate && { hierarchy_number: hierarchyUpdate.hierarchy_number }),
+            ...(predecessorUpdate && { predecessor: JSON.stringify(predecessorUpdate.newPredecessors) })
+          } as ProjectTask;
         });
+        
+        // Insert the optimistic task in the correct position
+        const targetIndex = updatedTasks.findIndex(t => t.hierarchy_number === targetTask.hierarchy_number);
+        if (targetIndex >= 0) {
+          updatedTasks.splice(targetIndex, 0, optimisticTask as ProjectTask);
+        } else {
+          updatedTasks.push(optimisticTask as ProjectTask);
+        }
+        
+        return updatedTasks;
+      });
+
+      // Phase 1: Bulk hierarchy updates
+      if (hierarchyUpdates.length > 0) {
+        console.log("🔄 Phase 1: Bulk hierarchy updates");
+        await bulkUpdateHierarchies.mutateAsync(hierarchyUpdates);
       }
-      
-      // Phase 2: Update predecessors
-      console.log(`🔄 Phase 2: Updating ${predecessorUpdates.length} task predecessors`);
-      for (const update of predecessorUpdates) {
-        await updateTask.mutateAsync({
+
+      // Phase 2: Bulk predecessor updates 
+      if (predecessorUpdates.length > 0) {
+        console.log("🔄 Phase 2: Bulk predecessor updates");
+        const predecessorBulkUpdates = predecessorUpdates.map(update => ({
           id: update.taskId,
           predecessor: JSON.stringify(update.newPredecessors)
-        });
+        }));
+        await bulkUpdatePredecessors.mutateAsync(predecessorBulkUpdates);
       }
-      
-      // Phase 3: Create the new task
-      console.log(`🔄 Phase 3: Creating new task with hierarchy ${newTaskHierarchy}`);
-      
-      // Create dates
+
+      // Phase 3: Create the actual task
+      console.log("🔄 Phase 3: Creating new task");
       const today = new Date();
       today.setHours(12, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -356,7 +404,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const todayString = today.toISOString().split('T')[0];
       const tomorrowString = tomorrow.toISOString().split('T')[0];
 
-      await createTask.mutateAsync({
+      const newTask = await createTask.mutateAsync({
         project_id: projectId,
         task_name: 'New Task',
         start_date: todayString + 'T00:00:00',
@@ -365,11 +413,26 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         progress: 0,
         hierarchy_number: newTaskHierarchy
       });
-      
+
+      // Replace optimistic task with real task
+      queryClient.setQueryData(['project-tasks', projectId], (oldData: ProjectTask[] | undefined) => {
+        if (!oldData) return [newTask];
+        return oldData.map(task => 
+          task.id === optimisticTask.id ? newTask : task
+        );
+      });
+
+      console.log("✅ Add Above operation completed successfully");
       toast.success("Task added above successfully");
     } catch (error) {
-      console.error("Failed to add task above:", error);
+      console.error("❌ Add Above operation failed:", error);
+      
+      // Rollback optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       toast.error("Failed to add task above");
+    } finally {
+      // Clear batch operation flag
+      (window as any).__batchOperationInProgress = false;
     }
   };
 

@@ -57,10 +57,11 @@ export const useProjectTasks = (projectId: string) => {
         (payload) => {
           console.log('Real-time task update received:', payload);
           
-          // Check if Syncfusion operation is in progress - if so, skip real-time updates
+          // Check if Syncfusion or batch operation is in progress - if so, skip real-time updates
           const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
-          if (isSyncfusionOperationInProgress) {
-            console.log('🚫 Skipping real-time update - Syncfusion operation in progress');
+          const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
+          if (isSyncfusionOperationInProgress || isBatchOperationInProgress) {
+            console.log('🚫 Skipping real-time update - Operation in progress');
             return;
           }
           

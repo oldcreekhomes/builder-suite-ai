@@ -118,6 +118,9 @@ export function TaskRow({
     }
   };
 
+  // Check if this is an optimistic (unsaved) task
+  const isOptimistic = task.confirmed === false;
+
   return (
     <TaskContextMenu
       task={task}
@@ -136,7 +139,7 @@ export function TaskRow({
       canMoveDown={canMoveDown}
       onContextMenuChange={setIsContextMenuOpen}
     >
-      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
+      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''} ${isOptimistic ? 'opacity-75' : ''}`}>
         {/* Selection Checkbox */}
         <TableCell className="py-1 px-2 w-10">
           <div
@@ -177,13 +180,16 @@ export function TaskRow({
             </div>
             
             {/* Task name aligned with column header */}
-            <div className="flex-1">
+            <div className="flex-1 flex items-center">
               <InlineEditCell
                 value={task.task_name}
                 type="text"
                 onSave={handleFieldUpdate("task_name")}
                 className="truncate text-left"
               />
+              {isOptimistic && (
+                <span className="ml-2 text-xs text-muted-foreground">Saving...</span>
+              )}
             </div>
           </div>
         </TableCell>
