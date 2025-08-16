@@ -22,7 +22,8 @@ interface TaskTableProps {
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
-  onAddTask: (position: 'above' | 'below', relativeTaskId: string) => void;
+  onAddAbove: (relativeTaskId: string) => void;
+  onAddBelow: (relativeTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
@@ -39,7 +40,8 @@ export function TaskTable({
   onSelectedTasksChange,
   onIndent,
   onOutdent,
-  onAddTask,
+  onAddAbove,
+  onAddBelow,
   onDeleteTask,
   onBulkDelete,
   onMoveUp,
@@ -180,11 +182,11 @@ export function TaskTable({
   const isIndeterminate = selectedTasks.size > 0 && !isAllSelected;
 
   const handleAddAbove = (taskId: string) => {
-    onAddTask('above', taskId);
+    onAddAbove(taskId);
   };
 
   const handleAddBelow = (taskId: string) => {
-    onAddTask('below', taskId);
+    onAddBelow(taskId);
   };
 
   const getCanIndent = (task: ProjectTask) => {

@@ -308,9 +308,72 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // DISABLED: Complex add positioning - will be reimplemented later
-  const handleAddTaskPositioned = async (position: 'above' | 'below', relativeTaskId: string) => {
-    toast.info("Positioned task adding temporarily disabled during refactoring");
+  // Handle adding a task above another task
+  const handleAddAbove = async (relativeTaskId: string) => {
+    try {
+      const targetTask = tasks.find(t => t.id === relativeTaskId);
+      if (!targetTask || !targetTask.hierarchy_number) {
+        toast.error("Invalid task selected");
+        return;
+      }
+
+      // Import the add above logic
+      const { calculateAddAboveUpdates } = await import('@/utils/addAboveLogic');
+      
+      // Calculate all updates needed
+      const { newTaskHierarchy, hierarchyUpdates, predecessorUpdates } = 
+        calculateAddAboveUpdates(targetTask, tasks);
+      
+      // Phase 1: Update existing task hierarchies
+      console.log(`🔄 Phase 1: Updating ${hierarchyUpdates.length} task hierarchies`);
+      for (const update of hierarchyUpdates) {
+        await updateTask.mutateAsync({
+          id: update.id,
+          hierarchy_number: update.hierarchy_number
+        });
+      }
+      
+      // Phase 2: Update predecessors
+      console.log(`🔄 Phase 2: Updating ${predecessorUpdates.length} task predecessors`);
+      for (const update of predecessorUpdates) {
+        await updateTask.mutateAsync({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        });
+      }
+      
+      // Phase 3: Create the new task
+      console.log(`🔄 Phase 3: Creating new task with hierarchy ${newTaskHierarchy}`);
+      
+      // Create dates
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      
+      const todayString = today.toISOString().split('T')[0];
+      const tomorrowString = tomorrow.toISOString().split('T')[0];
+
+      await createTask.mutateAsync({
+        project_id: projectId,
+        task_name: 'New Task',
+        start_date: todayString + 'T00:00:00',
+        end_date: tomorrowString + 'T00:00:00',
+        duration: 1,
+        progress: 0,
+        hierarchy_number: newTaskHierarchy
+      });
+      
+      toast.success("Task added above successfully");
+    } catch (error) {
+      console.error("Failed to add task above:", error);
+      toast.error("Failed to add task above");
+    }
+  };
+
+  // DISABLED: Add below functionality
+  const handleAddBelow = async (relativeTaskId: string) => {
+    toast.info("Add below temporarily disabled - use Add Above instead");
   };
 
   // Handle single task deletion with dependency check
@@ -474,7 +537,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onSelectedTasksChange={setSelectedTasks}
           onIndent={handleIndent}
           onOutdent={handleOutdent}
-          onAddTask={handleAddTaskPositioned}
+          onAddAbove={handleAddAbove}
+          onAddBelow={handleAddBelow}
           onDeleteTask={handleDeleteTask}
           onBulkDelete={handleBulkDelete}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
