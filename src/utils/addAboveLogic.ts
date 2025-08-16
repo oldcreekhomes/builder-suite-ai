@@ -57,11 +57,11 @@ function handleAddAboveGroup(targetTask: ProjectTask, allTasks: ProjectTask[]): 
     return firstPart >= targetNumber;
   });
   
-  // Sort by hierarchy for consistent processing
+  // Sort by hierarchy in DESCENDING order to avoid conflicts
   tasksToRenumber.sort((a, b) => {
     const aHier = a.hierarchy_number!;
     const bHier = b.hierarchy_number!;
-    return aHier.localeCompare(bHier, undefined, { numeric: true });
+    return bHier.localeCompare(aHier, undefined, { numeric: true });
   });
   
   // Generate hierarchy updates (increment group numbers)
@@ -111,9 +111,9 @@ function handleAddAboveChild(targetTask: ProjectTask, allTasks: ProjectTask[]): 
   
   const newTaskHierarchy = `${groupNumber}.${childNumber}`;
   
-  // Find siblings in the same group that need renumbering
+  // Find siblings in the same group that need renumbering (INCLUDING the target)
   const siblingsToRenumber = allTasks.filter(task => {
-    if (!task.hierarchy_number || task.id === targetTask.id) return false;
+    if (!task.hierarchy_number) return false;
     
     const taskParts = task.hierarchy_number.split('.');
     if (taskParts.length !== 2 || taskParts[0] !== groupNumber) return false;
@@ -122,11 +122,11 @@ function handleAddAboveChild(targetTask: ProjectTask, allTasks: ProjectTask[]): 
     return taskChildNumber >= childNumber;
   });
   
-  // Sort siblings by child number
+  // Sort siblings by child number in DESCENDING order to avoid conflicts
   siblingsToRenumber.sort((a, b) => {
     const aChild = parseInt(a.hierarchy_number!.split('.')[1]);
     const bChild = parseInt(b.hierarchy_number!.split('.')[1]);
-    return aChild - bChild;
+    return bChild - aChild;
   });
   
   // Generate hierarchy updates (increment child numbers)

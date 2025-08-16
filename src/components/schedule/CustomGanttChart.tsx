@@ -324,9 +324,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const { newTaskHierarchy, hierarchyUpdates, predecessorUpdates } = 
         calculateAddAboveUpdates(targetTask, tasks);
       
-      // Phase 1: Update existing task hierarchies
+      // Phase 1: Update existing task hierarchies (now in descending order)
       console.log(`🔄 Phase 1: Updating ${hierarchyUpdates.length} task hierarchies`);
+      console.log('📊 Hierarchy updates:', hierarchyUpdates.map(u => `${u.id} -> ${u.hierarchy_number}`));
       for (const update of hierarchyUpdates) {
+        console.log('🔧 Updating task hierarchy:', update.id, '->', update.hierarchy_number);
         await updateTask.mutateAsync({
           id: update.id,
           hierarchy_number: update.hierarchy_number
@@ -338,7 +340,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       for (const update of predecessorUpdates) {
         await updateTask.mutateAsync({
           id: update.taskId,
-          predecessor: update.newPredecessors
+          predecessor: JSON.stringify(update.newPredecessors)
         });
       }
       
