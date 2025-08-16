@@ -378,7 +378,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     toast.info("Add below temporarily disabled - use Add Above instead");
   };
 
-  // Handle single task deletion with dependency check
+  // Handle single task deletion with dependency check and proper renumbering
   const handleDeleteTask = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
@@ -392,18 +392,50 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
 
     try {
-      await deleteTask.mutateAsync(taskId);
+      // Import delete logic here to avoid circular dependencies
+      const { computeDeleteUpdates } = await import('@/utils/deleteTaskLogic');
+      
+      // Compute all updates needed for this deletion
+      const deleteResult = computeDeleteUpdates(task, tasks);
+      
+      console.log(`🗑️ DELETE OPERATION: ${deleteResult.tasksToDelete.length} tasks to delete, ${deleteResult.hierarchyUpdates.length} hierarchy updates, ${deleteResult.predecessorUpdates.length} predecessor updates`);
+      
+      // Phase 1: Delete all tasks
+      console.log('🔄 Phase 1: Deleting tasks');
+      for (const taskToDeleteId of deleteResult.tasksToDelete) {
+        await deleteTask.mutateAsync(taskToDeleteId);
+      }
+      
+      // Phase 2: Apply hierarchy renumbering (ascending order is safe after deletion)
+      console.log(`🔄 Phase 2: Applying ${deleteResult.hierarchyUpdates.length} hierarchy updates`);
+      for (const update of deleteResult.hierarchyUpdates) {
+        console.log('🔧 Updating task hierarchy:', update.id, '->', update.hierarchy_number);
+        await updateTask.mutateAsync({
+          id: update.id,
+          hierarchy_number: update.hierarchy_number
+        });
+      }
+      
+      // Phase 3: Clean up predecessors
+      console.log(`🔄 Phase 3: Cleaning up ${deleteResult.predecessorUpdates.length} predecessor references`);
+      for (const update of deleteResult.predecessorUpdates) {
+        await updateTask.mutateAsync({
+          id: update.taskId,
+          predecessor: JSON.stringify(update.newPredecessors)
+        });
+      }
+      
+      // Phase 4: Recalculate parent groups
+      console.log(`🔄 Phase 4: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+      for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
+        recalculateParentHierarchy(parentHierarchy);
+      }
       
       // Remove from selected tasks if it was selected
       if (selectedTasks.has(taskId)) {
         const newSelected = new Set(selectedTasks);
         newSelected.delete(taskId);
         setSelectedTasks(newSelected);
-      }
-      
-      // Recalculate parent hierarchy after deletion
-      if (task.hierarchy_number) {
-        recalculateParentHierarchy(task.hierarchy_number);
       }
       
       toast.success("Task deleted successfully");
