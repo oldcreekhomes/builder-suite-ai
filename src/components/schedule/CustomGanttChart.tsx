@@ -286,7 +286,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const handleIndent = async (taskId: string) => {
     const task = tasks?.find(t => t.id === taskId);
-    if (!task || !tasks) return;
+    if (!task || !tasks || !user) return;
     
     // Import the new function
     const { generateIndentUpdates } = await import("@/utils/hierarchyUtils");
@@ -298,19 +298,28 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
     
     try {
-      // Apply all updates in batch
-      for (const update of updates) {
-        await updateTask.mutateAsync({
-          id: update.id,
-          hierarchy_number: update.hierarchy_number
-        });
-      }
+      // Apply optimistic update to cache first for instant UI feedback
+      const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+      const optimisticTasks = currentTasks.map(t => {
+        const update = updates.find(u => u.id === t.id);
+        return update ? { ...t, hierarchy_number: update.hierarchy_number } : t;
+      });
+      
+      queryClient.setQueryData(['project-tasks', projectId, user.id], optimisticTasks);
+      
+      // Apply bulk hierarchy updates to database
+      await bulkUpdateHierarchies.mutateAsync({
+        updates: updates.map(u => ({ id: u.id, hierarchy_number: u.hierarchy_number })),
+        options: { suppressInvalidate: true }
+      });
       
       // Expand all tasks after successful indent
       setExpandAllTasks(true);
       
       toast.success("Task indented successfully");
     } catch (error) {
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
       toast.error("Failed to indent task");
       console.error("Error indenting task:", error);
     }

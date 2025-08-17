@@ -122,8 +122,8 @@ export const useTaskBulkMutations = (projectId: string) => {
         
         if (data) results.push(...data);
         
-        // Small delay to ensure database consistency
-        await new Promise(resolve => setTimeout(resolve, 10));
+        // Reduced delay for faster operations
+        await new Promise(resolve => setTimeout(resolve, 1));
       }
 
       console.log('✅ Smart hierarchy update completed for', results.length, 'tasks');
