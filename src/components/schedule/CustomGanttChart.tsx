@@ -5,6 +5,7 @@ import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
+import { ensureBusinessDay, calculateBusinessEndDate, formatYMD } from "@/utils/businessDays";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -283,10 +284,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
       
-      // Import business day utilities
-      const { ensureBusinessDay, calculateBusinessEndDate, formatYMD } = await import('@/utils/businessDays');
-      
-      // Start on next business day if today is weekend
+      // Use business day utilities
       const startDate = ensureBusinessDay(new Date());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
@@ -336,7 +334,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       (window as any).__batchOperationInProgress = true;
 
       // Create optimistic task immediately with business day logic
-      const { ensureBusinessDay, calculateBusinessEndDate, formatYMD } = await import('@/utils/businessDays');
       const startDate = ensureBusinessDay(new Date());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
