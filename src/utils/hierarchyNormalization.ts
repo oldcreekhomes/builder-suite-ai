@@ -54,18 +54,22 @@ export const computeNormalizationUpdates = (
 export const needsNormalization = (allTasks: ProjectTask[]): boolean => {
   if (allTasks.length === 0) return false;
   
-  // Sort tasks by hierarchy
-  const sortedTasks = [...allTasks].sort((a, b) => {
-    const aHierarchy = a.hierarchy_number || '';
-    const bHierarchy = b.hierarchy_number || '';
-    return aHierarchy.localeCompare(bHierarchy, undefined, { numeric: true });
-  });
+  // Get top-level tasks only for the "first row is 1" check
+  const topLevelTasks = allTasks
+    .filter(task => task.hierarchy_number && !task.hierarchy_number.includes('.'))
+    .sort((a, b) => {
+      const aHierarchy = a.hierarchy_number || '';
+      const bHierarchy = b.hierarchy_number || '';
+      return aHierarchy.localeCompare(bHierarchy, undefined, { numeric: true });
+    });
   
-  // Check if first task is 1
-  const firstTask = sortedTasks[0];
-  if (!firstTask.hierarchy_number?.startsWith('1')) {
-    console.log(`🚨 First task hierarchy is ${firstTask.hierarchy_number}, not 1`);
-    return true;
+  // Check if first top-level task is 1
+  if (topLevelTasks.length > 0) {
+    const firstTopLevelTask = topLevelTasks[0];
+    if (firstTopLevelTask.hierarchy_number !== '1') {
+      console.log(`🚨 First top-level task hierarchy is ${firstTopLevelTask.hierarchy_number}, not 1`);
+      return true;
+    }
   }
   
   // Check for gaps in numbering

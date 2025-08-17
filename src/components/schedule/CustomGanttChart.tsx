@@ -639,8 +639,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Phase 4: Normalize hierarchy to ensure first row is 1
       console.log('🔢 Phase 4: Normalizing hierarchy numbering');
       const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
-      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
-      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      // Build post-delete snapshot: current tasks minus deleted ones, plus applied hierarchy updates
+      let postDeleteSnapshot = tasks
+        .filter(t => !deleteResult.tasksToDelete.includes(t.id))
+        .map(t => ({ ...t })); // Deep clone
+      
+      // Apply Phase 2 hierarchy updates to the snapshot
+      deleteResult.hierarchyUpdates.forEach(update => {
+        const task = postDeleteSnapshot.find(t => t.id === update.id);
+        if (task) {
+          task.hierarchy_number = update.hierarchy_number;
+        }
+      });
+      
+      console.log(`🔢 Computing normalization from snapshot of ${postDeleteSnapshot.length} tasks`);
+      const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
       
       if (normalizationResult.hierarchyUpdates.length > 0) {
         console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
@@ -755,8 +769,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Phase 4: Normalize hierarchy to ensure first row is 1
       console.log('🔢 Phase 4: Normalizing hierarchy numbering');
       const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
-      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
-      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      // Build post-delete snapshot: current tasks minus deleted ones, plus applied hierarchy updates
+      let postDeleteSnapshot = tasks
+        .filter(t => !deleteResult.tasksToDelete.includes(t.id))
+        .map(t => ({ ...t })); // Deep clone
+      
+      // Apply Phase 2 hierarchy updates to the snapshot
+      deleteResult.hierarchyUpdates.forEach(update => {
+        const task = postDeleteSnapshot.find(t => t.id === update.id);
+        if (task) {
+          task.hierarchy_number = update.hierarchy_number;
+        }
+      });
+      
+      console.log(`🔢 Computing normalization from snapshot of ${postDeleteSnapshot.length} tasks`);
+      const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
       
       if (normalizationResult.hierarchyUpdates.length > 0) {
         console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
@@ -846,8 +874,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Phase 4: Normalize hierarchy to ensure first row is 1
       console.log('🔢 Phase 4: Normalizing hierarchy numbering');
       const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
-      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
-      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      // Build post-delete snapshot: current tasks minus deleted ones, plus applied hierarchy updates
+      let postDeleteSnapshot = tasks
+        .filter(t => !deleteResult.tasksToDelete.includes(t.id))
+        .map(t => ({ ...t })); // Deep clone
+      
+      // Apply Phase 2 hierarchy updates to the snapshot
+      deleteResult.hierarchyUpdates.forEach(update => {
+        const task = postDeleteSnapshot.find(t => t.id === update.id);
+        if (task) {
+          task.hierarchy_number = update.hierarchy_number;
+        }
+      });
+      
+      console.log(`🔢 Computing normalization from snapshot of ${postDeleteSnapshot.length} tasks`);
+      const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
       
       if (normalizationResult.hierarchyUpdates.length > 0) {
         console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);

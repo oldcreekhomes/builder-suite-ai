@@ -215,7 +215,8 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
     return aNum.localeCompare(bNum, undefined, { numeric: true });
   });
   
-  const result = [...sortedTasks];
+  // Deep clone all tasks to avoid mutation
+  const result = sortedTasks.map(task => ({ ...task }));
   
   // First: Get all top-level tasks and their original numbers
   const topLevelTasks = result.filter(task => 
