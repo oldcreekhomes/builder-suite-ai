@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -910,6 +910,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_task_above_atomic: {
+        Args: {
+          duration_param?: number
+          end_date_param: string
+          predecessor_param?: string
+          progress_param?: number
+          project_id_param: string
+          resources_param?: string
+          start_date_param: string
+          target_hierarchy_param: string
+          task_name_param: string
+        }
+        Returns: string
+      }
       approve_employee: {
         Args: { employee_id: string }
         Returns: undefined
@@ -917,27 +931,27 @@ export type Database = {
       create_project_task: {
         Args:
           | {
-              project_id_param: string
-              task_name_param: string
-              start_date_param: string
-              end_date_param: string
               duration_param?: number
-              progress_param?: number
-              predecessor_param?: string
-              resources_param?: string
+              end_date_param: string
               hierarchy_number_param?: string
+              predecessor_param?: string
+              progress_param?: number
+              project_id_param: string
+              resources_param?: string
+              start_date_param: string
+              task_name_param: string
             }
           | {
-              project_id_param: string
-              task_name_param: string
-              start_date_param: string
-              end_date_param: string
               duration_param?: number
-              progress_param?: number
-              predecessor_param?: string
-              resources_param?: string
-              parent_id_param?: string
+              end_date_param: string
               order_index_param?: number
+              parent_id_param?: string
+              predecessor_param?: string
+              progress_param?: number
+              project_id_param: string
+              resources_param?: string
+              start_date_param: string
+              task_name_param: string
             }
         Returns: string
       }
@@ -960,50 +974,50 @@ export type Database = {
       get_current_user_home_builder_info: {
         Args: Record<PropertyKey, never>
         Returns: {
-          is_employee: boolean
           home_builder_id: string
+          is_employee: boolean
         }[]
       }
       get_home_builders: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
           company_name: string
+          id: string
         }[]
       }
       get_pending_employee_approvals: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          email: string
           company_name: string
           created_at: string
+          email: string
+          id: string
         }[]
       }
       get_project_tasks: {
         Args: { project_id_param: string }
         Returns: {
-          id: string
-          project_id: string
-          task_name: string
-          start_date: string
-          end_date: string
-          duration: number
-          progress: number
-          predecessor: string
-          resources: string
-          parent_id: string
-          order_index: number
-          created_at: string
-          updated_at: string
           confirmed: boolean
+          created_at: string
+          duration: number
+          end_date: string
+          id: string
+          order_index: number
+          parent_id: string
+          predecessor: string
+          progress: number
+          project_id: string
+          resources: string
+          start_date: string
+          task_name: string
+          updated_at: string
         }[]
       }
       get_user_role_and_home_builder: {
         Args: { user_id: string }
         Returns: {
-          user_role: string
           user_home_builder_id: string
+          user_role: string
         }[]
       }
       mark_conversation_as_read: {
@@ -1016,53 +1030,53 @@ export type Database = {
       }
       reorder_project_tasks: {
         Args: {
-          task_id_param: string
           new_order_index_param: number
           new_parent_id_param?: string
           project_id_param?: string
+          task_id_param: string
         }
         Returns: boolean
       }
       update_project_task: {
         Args:
           | {
-              id_param: string
-              task_name_param?: string
-              start_date_param?: string
-              end_date_param?: string
               duration_param?: number
-              progress_param?: number
-              predecessor_param?: string
-              resources_param?: string
+              end_date_param?: string
               hierarchy_number_param?: string
+              id_param: string
+              predecessor_param?: string
+              progress_param?: number
+              resources_param?: string
+              start_date_param?: string
+              task_name_param?: string
             }
           | {
-              id_param: string
-              task_name_param?: string
-              start_date_param?: string
-              end_date_param?: string
               duration_param?: number
-              progress_param?: number
-              predecessor_param?: string
-              resources_param?: string
-              parent_id_param?: string
+              end_date_param?: string
+              id_param: string
               order_index_param?: number
+              parent_id_param?: string
+              predecessor_param?: string
+              progress_param?: number
+              resources_param?: string
+              start_date_param?: string
+              task_name_param?: string
             }
         Returns: boolean
       }
       update_project_task_by_number: {
         Args: {
-          task_number_param: number
-          project_id_param: string
-          task_name_param?: string
-          start_date_param?: string
-          end_date_param?: string
           duration_param?: number
-          progress_param?: number
-          predecessor_param?: string
-          resources_param?: string
-          parent_id_param?: string
+          end_date_param?: string
           order_index_param?: number
+          parent_id_param?: string
+          predecessor_param?: string
+          progress_param?: number
+          project_id_param: string
+          resources_param?: string
+          start_date_param?: string
+          task_name_param?: string
+          task_number_param: number
         }
         Returns: boolean
       }
