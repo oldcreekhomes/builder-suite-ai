@@ -2,7 +2,7 @@ import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineBar } from "./TimelineBar";
-import { isBusinessDay, getBusinessDaysBetween } from "@/utils/businessDays";
+import { isBusinessDay, getBusinessDaysBetween, calculateBusinessEndDate } from "@/utils/businessDays";
 
 interface TimelineProps {
   tasks: ProjectTask[];
@@ -73,12 +73,13 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
       // Calculate actual calendar days from timeline start to task start for positioning
       const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Calculate task width based on duration (business days) but show full calendar width
+      // Calculate correct end date based on duration (inclusive calculation)
       const taskDuration = task.duration || 1;
+      const correctEndDate = calculateBusinessEndDate(taskStart, taskDuration);
       
-      // Calculate actual calendar days between task start and end (exclusive end date)
+      // Calculate actual calendar days between task start and correct end (inclusive)
       const msPerDay = 1000 * 60 * 60 * 24;
-      const widthDays = Math.max(1, Math.floor((taskEnd.getTime() - taskStart.getTime()) / msPerDay) || 1);
+      const widthDays = Math.max(1, Math.floor((correctEndDate.getTime() - taskStart.getTime()) / msPerDay) + 1);
       
       return {
         left: Math.max(0, daysFromStart) * dayWidth, // Ensure non-negative position

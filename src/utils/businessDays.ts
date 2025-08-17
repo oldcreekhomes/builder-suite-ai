@@ -83,16 +83,22 @@ export const getBusinessDaysBetween = (startDate: Date, endDate: Date): number =
 };
 
 /**
- * Calculate end date from start date and business day duration
+ * Calculate end date from start date and business day duration (INCLUSIVE)
+ * Duration of 1 means start and end on the same day
  */
 export const calculateBusinessEndDate = (startDate: Date, businessDaysDuration: number): Date => {
   if (businessDaysDuration <= 0) {
     return startOfLocalDay(startDate);
   }
   
-  // Add the full duration in business days to get the end date
+  // For inclusive calculation: duration 1 = same day, duration 2 = next business day, etc.
   const adjustedStart = isBusinessDay(startDate) ? startOfLocalDay(startDate) : getNextBusinessDay(startDate);
-  return addBusinessDays(adjustedStart, businessDaysDuration);
+  
+  if (businessDaysDuration === 1) {
+    return adjustedStart; // Same day for 1-day duration
+  }
+  
+  return addBusinessDays(adjustedStart, businessDaysDuration - 1);
 };
 
 /**
