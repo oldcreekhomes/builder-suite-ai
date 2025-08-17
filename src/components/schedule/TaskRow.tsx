@@ -76,9 +76,11 @@ export function TaskRow({
     // Parse date locally (no timezone conversion)
     const start = new Date(startDate + 'T00:00:00');
     const end = calculateBusinessEndDate(start, duration);
-    // Import formatYMD helper
-    const { formatYMD } = require('@/utils/businessDays');
-    return formatYMD(end);
+    // Format as YYYY-MM-DD using formatYMD helper
+    const year = end.getFullYear();
+    const month = String(end.getMonth() + 1).padStart(2, '0');
+    const day = String(end.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
