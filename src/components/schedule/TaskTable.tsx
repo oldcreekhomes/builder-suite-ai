@@ -213,7 +213,7 @@ export function TaskTable({
   };
 
   return (
-    <div className="h-[600px] overflow-auto">
+    <div className="h-full overflow-auto">
       <Table>
         <TableHeader>
           <TableRow className="h-8">
