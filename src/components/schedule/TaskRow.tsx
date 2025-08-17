@@ -257,9 +257,6 @@ export function TaskRow({
                 onSave={handleFieldUpdate("task_name")}
                 className="truncate text-left"
               />
-              {isOptimistic && (
-                <span className="ml-2 text-xs text-muted-foreground">Saving...</span>
-              )}
             </div>
           </div>
         </TableCell>

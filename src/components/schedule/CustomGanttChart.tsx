@@ -4,6 +4,7 @@ import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { TaskTable } from "./TaskTable";
@@ -452,56 +453,60 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         return updatedTasks;
       });
 
-      // Phase 1: Bulk hierarchy updates (MUST happen before creating new task to avoid constraint violation)
-      if (hierarchyUpdates.length > 0) {
-        console.log("🔄 Phase 1: Sequential hierarchy updates for", hierarchyUpdates.length, "tasks");
-        try {
-          await bulkUpdateHierarchies.mutateAsync({ 
-            updates: hierarchyUpdates, 
-            options: { suppressInvalidate: true } 
-          });
-          console.log("✅ Phase 1 completed: Hierarchy updates successful");
-        } catch (error) {
-          console.error("❌ Phase 1 failed: Hierarchy updates error:", error);
-          throw new Error(`Failed to update task hierarchy: ${error.message}`);
-        }
-      }
-
-      // Phase 2: Bulk predecessor updates 
-      if (predecessorUpdates.length > 0) {
-        console.log("🔄 Phase 2: Bulk predecessor updates for", predecessorUpdates.length, "tasks");
-        try {
-          const predecessorBulkUpdates = predecessorUpdates.map(update => ({
-            id: update.taskId,
-            predecessor: JSON.stringify(update.newPredecessors)
-          }));
-          await bulkUpdatePredecessors.mutateAsync({ 
-            updates: predecessorBulkUpdates, 
-            options: { suppressInvalidate: true } 
-          });
-          console.log("✅ Phase 2 completed: Predecessor updates successful");
-        } catch (error) {
-          console.error("❌ Phase 2 failed: Predecessor updates error:", error);
-          throw new Error(`Failed to update task predecessors: ${error.message}`);
-        }
-      }
-
-      // Phase 3: Create the actual task (after hierarchy updates to avoid constraint violation)
-      console.log("🔄 Phase 3: Creating new task with hierarchy", newTaskHierarchy);
+      // Use atomic database function for instant hierarchy shifting
+      console.log("🔄 Starting atomic add above operation...");
       
-      // Use same business day logic as optimistic task
-      const startString = formatYMD(startDate) + 'T00:00:00';
-      const endString = formatYMD(endDate) + 'T00:00:00';
+      // Use atomic RPC function for instant hierarchy shifting
+      const startString = formatYMD(startDate) + 'T00:00:00+00:00';
+      const endString = formatYMD(endDate) + 'T00:00:00+00:00';
+      
+      const { data: newTaskId, error } = await supabase.rpc('add_task_above_atomic', {
+        project_id_param: projectId,
+        target_hierarchy_param: newTaskHierarchy,
+        task_name_param: "New Task",
+        start_date_param: startString,
+        end_date_param: endString,
+        duration_param: 1,
+        progress_param: 0,
+        predecessor_param: null,
+        resources_param: null
+      });
 
-      const newTask = await createTask.mutateAsync({
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log("✅ Atomic add above completed, new task ID:", newTaskId);
+
+      // Handle any remaining predecessor updates separately if needed
+      if (predecessorUpdates.length > 0) {
+        console.log("🔄 Updating predecessors separately...");
+        const predecessorBulkUpdates = predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: JSON.stringify(update.newPredecessors)
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorBulkUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+
+      // Create new task object to replace optimistic one
+      const newTask: ProjectTask = {
+        id: newTaskId,
         project_id: projectId,
-        task_name: 'New Task',
+        task_name: "New Task",
         start_date: startString,
         end_date: endString,
         duration: 1,
         progress: 0,
-        hierarchy_number: newTaskHierarchy
-      });
+        predecessor: undefined,
+        resources: undefined,
+        hierarchy_number: newTaskHierarchy,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        confirmed: true,
+      };
 
       // Replace optimistic task with real task
       queryClient.setQueryData(['project-tasks', projectId], (oldData: ProjectTask[] | undefined) => {
