@@ -468,7 +468,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         end_date_param: endString,
         duration_param: 1,
         progress_param: 0,
-        predecessor_param: null,
+        predecessor_param: [],
         resources_param: null
       });
 

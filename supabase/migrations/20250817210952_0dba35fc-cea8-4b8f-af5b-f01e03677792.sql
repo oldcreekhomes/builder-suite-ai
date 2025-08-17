@@ -1,0 +1,2 @@
+-- Drop the old text overload of add_task_above_atomic to avoid ambiguity
+DROP FUNCTION IF EXISTS public.add_task_above_atomic(uuid, text, text, timestamp with time zone, timestamp with time zone, integer, integer, text, text);
