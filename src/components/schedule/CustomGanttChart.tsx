@@ -272,6 +272,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   };
 
   const handleTaskUpdate = async (taskId: string, updates: any) => {
+    // Prevent updates to optimistic (unsaved) tasks
+    if (taskId.startsWith('optimistic-')) {
+      toast.error("Please save the task first before editing");
+      return;
+    }
+    
     try {
       await updateTask.mutateAsync({
         id: taskId,
