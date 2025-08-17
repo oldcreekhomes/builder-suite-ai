@@ -195,7 +195,7 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const connections = generateDependencyConnections();
 
   return (
-    <div className="h-[600px] overflow-auto">
+    <div className="h-full overflow-auto">
       {/* Timeline Header */}
       <TimelineHeader
         startDate={startDate}
