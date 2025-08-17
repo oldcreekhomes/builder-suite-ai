@@ -175,12 +175,18 @@ export const calculateTaskDatesFromPredecessors = (
 
 // Get all tasks that depend on a given task (have it as predecessor)
 export const getDependentTasks = (taskId: string, allTasks: ProjectTask[]): ProjectTask[] => {
+  console.log(`🔍 Finding tasks dependent on task ID: ${taskId}`);
+  
   const task = allTasks.find(t => t.id === taskId);
-  if (!task) return [];
+  if (!task) {
+    console.log(`❌ Task with ID ${taskId} not found`);
+    return [];
+  }
   
   const taskHierarchy = task.hierarchy_number;
+  console.log(`📋 Task hierarchy: ${taskHierarchy}, Task name: ${task.task_name}`);
   
-  return allTasks.filter(t => {
+  const dependentTasks = allTasks.filter(t => {
     if (!t.predecessor || t.id === taskId) return false;
     
     try {
@@ -191,14 +197,24 @@ export const getDependentTasks = (taskId: string, allTasks: ProjectTask[]): Proj
         predecessors = JSON.parse(t.predecessor);
       }
       
-      return predecessors.some(predStr => {
+      const isDependent = predecessors.some(predStr => {
         const match = predStr.match(/^(.+?)([+-]\d+)?$/);
         if (!match) return false;
         const predTaskId = match[1].trim();
         return predTaskId === taskId || predTaskId === taskHierarchy;
       });
-    } catch {
+      
+      if (isDependent) {
+        console.log(`📌 Found dependent task: ${t.task_name} (ID: ${t.id}) with predecessors: ${JSON.stringify(predecessors)}`);
+      }
+      
+      return isDependent;
+    } catch (error) {
+      console.log(`❌ Error parsing predecessors for task ${t.task_name}:`, error);
       return false;
     }
   });
+  
+  console.log(`✅ Total dependent tasks found: ${dependentTasks.length}`);
+  return dependentTasks;
 };

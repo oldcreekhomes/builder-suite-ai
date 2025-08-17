@@ -133,9 +133,14 @@ export function TaskTable({
             duration: dateUpdate.duration
           });
           
-          // Update the simulated tasks array for further cascading
+          // Update the simulated tasks array for further cascading (convert camelCase to snake_case)
           const updatedSimulatedTasks = allTasks.map(task => 
-            task.id === depTask.id ? { ...task, ...dateUpdate } : task
+            task.id === depTask.id ? { 
+              ...task, 
+              start_date: dateUpdate.startDate,
+              end_date: dateUpdate.endDate,
+              duration: dateUpdate.duration
+            } : task
           );
           
           // Recursively cascade to further dependent tasks
