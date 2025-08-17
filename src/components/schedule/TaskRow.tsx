@@ -73,14 +73,15 @@ export function TaskRow({
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
 
   const calculateEndDate = (startDate: string, duration: number) => {
-    // Parse date locally (no timezone conversion)
-    const start = new Date(startDate + 'T00:00:00');
+    // Parse date locally (no timezone conversion) - handle both formats
+    const normalizedStart = startDate.includes('T') ? startDate.split('T')[0] : startDate;
+    const start = new Date(normalizedStart + 'T00:00:00');
     const end = calculateBusinessEndDate(start, duration);
-    // Format as YYYY-MM-DD using formatYMD helper
+    // Format as YYYY-MM-DD
     const year = end.getFullYear();
     const month = String(end.getMonth() + 1).padStart(2, '0');
     const day = String(end.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}T00:00:00`;
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
@@ -95,8 +96,8 @@ export function TaskRow({
       const dateUpdate = calculateTaskDatesFromPredecessors(tempTask, allTasks);
       
       if (dateUpdate) {
-        updates.start_date = dateUpdate.startDate;
-        updates.end_date = dateUpdate.endDate;
+        updates.start_date = dateUpdate.startDate + 'T00:00:00';
+        updates.end_date = dateUpdate.endDate + 'T00:00:00';
         updates.duration = dateUpdate.duration;
       }
     }

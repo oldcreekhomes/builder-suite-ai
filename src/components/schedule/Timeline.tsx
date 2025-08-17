@@ -12,10 +12,19 @@ interface TimelineProps {
 }
 
 export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelineProps) {
-  // Calculate timeline width and positioning
+  // Calculate timeline width with hard limits for performance
   const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Hard guard: Cap total days to prevent performance issues
+  const maxDays = 1095; // 3 years worth of days
+  const safeTotalDays = Math.min(totalDays, maxDays);
+  
   const dayWidth = 40; // pixels per day
-  const timelineWidth = totalDays * dayWidth;
+  const timelineWidth = safeTotalDays * dayWidth;
+  
+  if (totalDays > maxDays) {
+    console.warn(`⚠️ Timeline capped at ${maxDays} days for performance (was ${totalDays} days)`);
+  }
 
   const parseDate = (dateStr: string): Date => {
     // Extract just the date part (YYYY-MM-DD) and use the same logic as TaskRow
@@ -101,9 +110,9 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
 
       {/* Timeline Content */}
       <div className="relative" style={{ width: timelineWidth }}>
-        {/* Grid Lines */}
+        {/* Grid Lines - Use safeTotalDays */}
         <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: totalDays }, (_, i) => (
+          {Array.from({ length: safeTotalDays }, (_, i) => (
             <div
               key={i}
               className="absolute top-0 bottom-0 border-l border-border/30"

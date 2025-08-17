@@ -50,13 +50,20 @@ export const useTaskMutations = (projectId: string) => {
         }
       }
 
+      // Normalize dates to include T00:00:00 format
+      const normalizeDate = (date: string) => {
+        if (!date) return date;
+        // Remove any UTC suffix and ensure T00:00:00 format
+        return date.split('T')[0] + 'T00:00:00';
+      };
+
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .insert({
           project_id: params.project_id,
           task_name: params.task_name,
-          start_date: params.start_date,
-          end_date: params.end_date,
+          start_date: normalizeDate(params.start_date),
+          end_date: normalizeDate(params.end_date),
           duration: params.duration || 1,
           progress: params.progress || 0,
           predecessor: Array.isArray(params.predecessor) ? JSON.stringify(params.predecessor) : params.predecessor || null,
@@ -124,10 +131,17 @@ export const useTaskMutations = (projectId: string) => {
         }
       }
 
+      // Normalize dates to include T00:00:00 format
+      const normalizeDate = (date: string) => {
+        if (!date) return date;
+        // Remove any UTC suffix and ensure T00:00:00 format
+        return date.split('T')[0] + 'T00:00:00';
+      };
+
       const updateData: any = {};
       if (params.task_name !== undefined) updateData.task_name = params.task_name;
-      if (params.start_date !== undefined) updateData.start_date = params.start_date;
-      if (params.end_date !== undefined) updateData.end_date = params.end_date;
+      if (params.start_date !== undefined) updateData.start_date = normalizeDate(params.start_date);
+      if (params.end_date !== undefined) updateData.end_date = normalizeDate(params.end_date);
       if (params.duration !== undefined) updateData.duration = params.duration;
       if (params.progress !== undefined) updateData.progress = params.progress;
       if (params.predecessor !== undefined) {
@@ -167,9 +181,9 @@ export const useTaskMutations = (projectId: string) => {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       }
       
-      // Trigger parent recalculation if dates or duration changed
+      // Only trigger parent recalculation if not suppressed and dates/duration changed
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
-      if (data.hierarchy_number && dateFieldsChanged) {
+      if (data.hierarchy_number && dateFieldsChanged && !variables.suppressInvalidate) {
         console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
         window.dispatchEvent(new CustomEvent('recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 

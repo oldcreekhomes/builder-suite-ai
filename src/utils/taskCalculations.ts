@@ -74,7 +74,7 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const progressPercentage = totalDuration > 0 ? Math.round((completedDuration / totalDuration) * 100) : 0;
   
   return {
-    startDate: formatYMD(earliestStartDate), // Format as YYYY-MM-DD using local date
+    startDate: formatYMD(earliestStartDate), // Format as YYYY-MM-DD
     endDate: formatYMD(latestEndDate),
     duration,
     progress: progressPercentage
@@ -165,7 +165,7 @@ export const calculateTaskDatesFromPredecessors = (
   const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
   
   return {
-    startDate: formatYMD(newStartDate),
+    startDate: formatYMD(newStartDate), // Returns YYYY-MM-DD format
     endDate: formatYMD(newEndDate),
     duration: task.duration
   };

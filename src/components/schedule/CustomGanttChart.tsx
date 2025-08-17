@@ -31,24 +31,26 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  // Add flag to prevent infinite loops in parent recalculation
+  // Add flags to prevent infinite loops
   const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
+  const [skipRecalc, setSkipRecalc] = useState(false);
   
   // Listen for parent recalculation events from mutations
   useEffect(() => {
     const handleParentRecalculation = (event: CustomEvent) => {
       const { hierarchyNumber } = event.detail;
-      if (hierarchyNumber && !isRecalculatingParents) {
-        // Add delay to ensure React Query cache is refreshed with latest data
+      if (hierarchyNumber && !isRecalculatingParents && !skipRecalc) {
+        setSkipRecalc(true); // Prevent new events during processing
         setTimeout(() => {
           recalculateParentHierarchy(hierarchyNumber);
-        }, 100);
+          setTimeout(() => setSkipRecalc(false), 1000); // Reset after cooldown
+        }, 200);
       }
     };
     
     window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
     return () => window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
-  }, [isRecalculatingParents]);
+  }, [isRecalculatingParents, skipRecalc]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -117,20 +119,77 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const visibleTasks = getVisibleTasks();
 
-  // Calculate timeline range from ALL task dates (not just visible ones) using actual end dates
-  const parseDate = (dateStr: string): Date => {
-    // Extract just the date part (YYYY-MM-DD) and use the same logic as TaskRow
-    const datePart = dateStr.split('T')[0].split(' ')[0];
-    return new Date(datePart + "T12:00:00");
+  // Calculate timeline range with hard limits for performance
+  const getTimelineRange = () => {
+    if (!tasks || tasks.length === 0) {
+      const today = new Date();
+      return {
+        start: today,
+        end: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days
+      };
+    }
+
+    // Parse dates defensively - ignore invalid dates
+    const validStartDates = tasks
+      .map(task => {
+        try {
+          const datePart = task.start_date.split('T')[0];
+          const date = new Date(datePart + "T12:00:00");
+          return isNaN(date.getTime()) ? null : date;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as Date[];
+      
+    const validEndDates = tasks
+      .map(task => {
+        try {
+          const datePart = task.end_date.split('T')[0];
+          const date = new Date(datePart + "T12:00:00");
+          return isNaN(date.getTime()) ? null : date;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as Date[];
+    
+    if (validStartDates.length === 0 || validEndDates.length === 0) {
+      const today = new Date();
+      return {
+        start: today,
+        end: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
+      };
+    }
+    
+    const earliestStart = new Date(Math.min(...validStartDates.map(d => d.getTime())));
+    const latestEnd = new Date(Math.max(...validEndDates.map(d => d.getTime())));
+    
+    // Hard limit: cap timeline to 3 years max to prevent performance issues
+    const maxTimespan = 3 * 365 * 24 * 60 * 60 * 1000; // 3 years in ms
+    const actualTimespan = latestEnd.getTime() - earliestStart.getTime();
+    
+    let finalStart = earliestStart;
+    let finalEnd = latestEnd;
+    
+    if (actualTimespan > maxTimespan) {
+      console.warn('⚠️ Timeline span exceeds 3 years, capping for performance');
+      finalEnd = new Date(finalStart.getTime() + maxTimespan);
+    }
+    
+    // Add padding but respect the limits
+    const paddedStart = new Date(finalStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const paddedEnd = new Date(finalEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    return {
+      start: paddedStart,
+      end: paddedEnd
+    };
   };
 
-  const timelineStart = tasks.length > 0 
-    ? new Date(Math.min(...tasks.map(t => parseDate(t.start_date).getTime())))
-    : new Date();
-  
-  const timelineEnd = tasks.length > 0
-    ? new Date(Math.max(...tasks.map(t => parseDate(t.end_date).getTime())))
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+  const timelineRange = getTimelineRange();
+  const timelineStart = timelineRange.start;
+  const timelineEnd = timelineRange.end;
 
 
   // Handle expansion state changes
@@ -255,8 +314,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
             console.log(`✅ Updating parent task: ${parentTask.task_name}`);
             updateTask.mutate({
               id: parentTask.id,
-              start_date: calculations.startDate,
-              end_date: calculations.endDate,
+              start_date: calculations.startDate + 'T00:00:00',
+              end_date: calculations.endDate + 'T00:00:00',
               duration: calculations.duration,
               progress: calculations.progress,
               suppressInvalidate: true // Prevent infinite loops
