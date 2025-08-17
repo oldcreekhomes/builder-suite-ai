@@ -141,17 +141,22 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
       toTaskName: string;
     }[] = [];
 
-    console.log('🔍 Generating connections for', visibleTasks.length, 'visible tasks');
-    
     visibleTasks.forEach((task, taskIndex) => {
-      // Handle predecessor as either string[] or string
-      const predecessorList = Array.isArray(task.predecessor) 
-        ? task.predecessor 
-        : task.predecessor 
-          ? [task.predecessor] 
-          : [];
+      // Handle predecessor field - it can be string[], string, or JSON string
+      let predecessorList: string[] = [];
       
-      console.log(`Task ${task.task_name}:`, { predecessor: task.predecessor, predecessorList });
+      if (Array.isArray(task.predecessor)) {
+        predecessorList = task.predecessor;
+      } else if (task.predecessor) {
+        try {
+          // Try to parse as JSON first (e.g., "[\"1\"]")
+          const parsed = JSON.parse(task.predecessor);
+          predecessorList = Array.isArray(parsed) ? parsed : [task.predecessor];
+        } catch {
+          // If not JSON, treat as single string
+          predecessorList = [task.predecessor];
+        }
+      }
       
       if (!predecessorList.length) return;
 
@@ -235,16 +240,16 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
                 {/* Connection path */}
                 <path
                   d={pathData}
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="hsl(var(--primary))"
                   strokeWidth="2"
                   fill="none"
-                  opacity="0.6"
+                  opacity="0.8"
                 />
                 {/* Arrow head */}
                 <polygon
                   points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
-                  fill="hsl(var(--muted-foreground))"
-                  opacity="0.6"
+                  fill="hsl(var(--primary))"
+                  opacity="0.8"
                 />
               </g>
             );
