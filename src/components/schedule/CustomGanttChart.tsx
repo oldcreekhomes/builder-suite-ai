@@ -422,8 +422,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         resources: undefined,
         hierarchy_number: newTaskHierarchy,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        confirmed: false, // Mark as optimistic
+        updated_at: new Date().toISOString()
       };
 
       // Immediately update the cache with optimistic data

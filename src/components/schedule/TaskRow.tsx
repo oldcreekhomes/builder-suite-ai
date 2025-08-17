@@ -189,7 +189,7 @@ export function TaskRow({
   };
 
   // Check if this is an optimistic (unsaved) task
-  const isOptimistic = task.confirmed === false;
+  const isOptimistic = task.id.startsWith('optimistic-');
 
   return (
     <TaskContextMenu
