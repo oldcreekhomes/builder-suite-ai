@@ -225,31 +225,29 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           {connections.map((connection, index) => {
             const { from, to } = connection;
             
-            // Calculate path for smooth connection
-            const midX = (from.x + to.x) / 2;
-            const controlPoint1X = from.x + Math.min(50, (to.x - from.x) / 3);
-            const controlPoint2X = to.x - Math.min(50, (to.x - from.x) / 3);
+            // Calculate orthogonal path: right, down, right
+            const horizontalDistance = 20; // How far right to go first
+            const intermediateX = from.x + horizontalDistance;
             
+            // Create elbow path that goes right, then down, then right to target
             const pathData = `M ${from.x} ${from.y} 
-                             C ${controlPoint1X} ${from.y}, 
-                               ${controlPoint2X} ${to.y}, 
-                               ${to.x - 8} ${to.y}`;
+                             L ${intermediateX} ${from.y} 
+                             L ${intermediateX} ${to.y} 
+                             L ${to.x - 8} ${to.y}`;
 
             return (
               <g key={`${connection.fromTaskName}-${connection.toTaskName}-${index}`}>
                 {/* Connection path */}
                 <path
                   d={pathData}
-                  stroke="hsl(var(--primary))"
+                  stroke="black"
                   strokeWidth="2"
                   fill="none"
-                  opacity="0.8"
                 />
-                {/* Arrow head */}
+                {/* Arrow head pointing right */}
                 <polygon
                   points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
-                  fill="hsl(var(--primary))"
-                  opacity="0.8"
+                  fill="black"
                 />
               </g>
             );
