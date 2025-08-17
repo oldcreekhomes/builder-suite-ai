@@ -304,16 +304,7 @@ export function TaskRow({
         {/* End Date - Read Only for all tasks */}
         <TableCell className="py-1 px-2">
           <span className="text-xs px-1 py-0.5 text-black">
-            {(() => {
-              try {
-                if (!task.start_date || !task.duration) return "—";
-                const endDate = calculateEndDate(task.start_date, task.duration);
-                return formatDate(endDate);
-              } catch (error) {
-                console.error('Error calculating/formatting end date:', error);
-                return "—";
-              }
-            })()}
+            {formatDate(task.end_date)}
           </span>
         </TableCell>
 
