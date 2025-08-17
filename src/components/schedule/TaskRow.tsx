@@ -73,9 +73,12 @@ export function TaskRow({
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
 
   const calculateEndDate = (startDate: string, duration: number) => {
-    const start = new Date(startDate);
+    // Parse date locally (no timezone conversion)
+    const start = new Date(startDate + 'T00:00:00');
     const end = calculateBusinessEndDate(start, duration);
-    return end.toISOString().split('T')[0];
+    // Import formatYMD helper
+    const { formatYMD } = require('@/utils/businessDays');
+    return formatYMD(end);
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);

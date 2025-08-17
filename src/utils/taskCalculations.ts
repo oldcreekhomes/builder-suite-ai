@@ -1,5 +1,5 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { getBusinessDaysBetween, calculateBusinessEndDate, addBusinessDays, isBusinessDay, ensureBusinessDay, getNextBusinessDay } from "./businessDays";
+import { getBusinessDaysBetween, calculateBusinessEndDate, addBusinessDays, isBusinessDay, ensureBusinessDay, getNextBusinessDay, formatYMD, startOfLocalDay } from "./businessDays";
 
 export interface TaskCalculations {
   startDate: string;
@@ -74,8 +74,8 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const progressPercentage = totalDuration > 0 ? Math.round((completedDuration / totalDuration) * 100) : 0;
   
   return {
-    startDate: earliestStartDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-    endDate: latestEndDate.toISOString().split('T')[0],
+    startDate: formatYMD(earliestStartDate), // Format as YYYY-MM-DD using local date
+    endDate: formatYMD(latestEndDate),
     duration,
     progress: progressPercentage
   };
@@ -165,8 +165,8 @@ export const calculateTaskDatesFromPredecessors = (
   const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
   
   return {
-    startDate: newStartDate.toISOString().split('T')[0],
-    endDate: newEndDate.toISOString().split('T')[0],
+    startDate: formatYMD(newStartDate),
+    endDate: formatYMD(newEndDate),
     duration: task.duration
   };
 };

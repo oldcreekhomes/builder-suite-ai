@@ -42,9 +42,9 @@ export const getPreviousBusinessDay = (date: Date): Date => {
  * Add business days to a start date (skipping weekends)
  */
 export const addBusinessDays = (startDate: Date, businessDays: number): Date => {
-  if (businessDays === 0) return new Date(startDate);
+  if (businessDays === 0) return startOfLocalDay(startDate);
   
-  let currentDate = new Date(startDate);
+  let currentDate = startOfLocalDay(startDate);
   let remainingDays = businessDays;
   
   // If start date is not a business day, move to next business day first
@@ -69,9 +69,10 @@ export const getBusinessDaysBetween = (startDate: Date, endDate: Date): number =
   if (startDate > endDate) return 0;
   
   let businessDays = 0;
-  const currentDate = new Date(startDate);
+  const currentDate = startOfLocalDay(startDate);
+  const endLocal = startOfLocalDay(endDate);
   
-  while (currentDate <= endDate) {
+  while (currentDate <= endLocal) {
     if (isBusinessDay(currentDate)) {
       businessDays++;
     }
@@ -86,11 +87,11 @@ export const getBusinessDaysBetween = (startDate: Date, endDate: Date): number =
  */
 export const calculateBusinessEndDate = (startDate: Date, businessDaysDuration: number): Date => {
   if (businessDaysDuration <= 0) {
-    return new Date(startDate);
+    return startOfLocalDay(startDate);
   }
   
   // Add the full duration in business days to get the end date
-  const adjustedStart = isBusinessDay(startDate) ? new Date(startDate) : getNextBusinessDay(startDate);
+  const adjustedStart = isBusinessDay(startDate) ? startOfLocalDay(startDate) : getNextBusinessDay(startDate);
   return addBusinessDays(adjustedStart, businessDaysDuration);
 };
 
@@ -98,5 +99,24 @@ export const calculateBusinessEndDate = (startDate: Date, businessDaysDuration: 
  * Ensure a date falls on a business day, moving to next business day if needed
  */
 export const ensureBusinessDay = (date: Date): Date => {
-  return isBusinessDay(date) ? new Date(date) : getNextBusinessDay(date);
+  return isBusinessDay(date) ? startOfLocalDay(date) : getNextBusinessDay(date);
+};
+
+/**
+ * Create a new Date at start of local day (midnight local time)
+ */
+export const startOfLocalDay = (date: Date): Date => {
+  const localDate = new Date(date);
+  localDate.setHours(0, 0, 0, 0);
+  return localDate;
+};
+
+/**
+ * Format date as YYYY-MM-DD string (local date, no timezone conversion)
+ */
+export const formatYMD = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };

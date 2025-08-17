@@ -284,15 +284,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
       
       // Import business day utilities
-      const { ensureBusinessDay, calculateBusinessEndDate } = await import('@/utils/businessDays');
+      const { ensureBusinessDay, calculateBusinessEndDate, formatYMD } = await import('@/utils/businessDays');
       
       // Start on next business day if today is weekend
       const startDate = ensureBusinessDay(new Date());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
-      // Format as YYYY-MM-DDT00:00:00
-      const startString = startDate.toISOString().split('T')[0] + 'T00:00:00';
-      const endString = endDate.toISOString().split('T')[0] + 'T00:00:00';
+      // Format as YYYY-MM-DDT00:00:00 using local dates
+      const startString = formatYMD(startDate) + 'T00:00:00';
+      const endString = formatYMD(endDate) + 'T00:00:00';
 
       await createTask.mutateAsync({
         project_id: projectId,
@@ -336,7 +336,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       (window as any).__batchOperationInProgress = true;
 
       // Create optimistic task immediately with business day logic
-      const { ensureBusinessDay, calculateBusinessEndDate } = await import('@/utils/businessDays');
+      const { ensureBusinessDay, calculateBusinessEndDate, formatYMD } = await import('@/utils/businessDays');
       const startDate = ensureBusinessDay(new Date());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
@@ -344,8 +344,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         id: `optimistic-${Date.now()}`,
         project_id: projectId,
         task_name: "New Task",
-        start_date: startDate.toISOString().split('T')[0] + "T00:00:00+00:00",
-        end_date: endDate.toISOString().split('T')[0] + "T00:00:00+00:00",
+        start_date: formatYMD(startDate) + "T00:00:00+00:00",
+        end_date: formatYMD(endDate) + "T00:00:00+00:00",
         duration: 1,
         progress: 0,
         predecessor: undefined,
@@ -403,8 +403,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       console.log("🔄 Phase 3: Creating new task");
       
       // Use same business day logic as optimistic task
-      const startString = startDate.toISOString().split('T')[0] + 'T00:00:00';
-      const endString = endDate.toISOString().split('T')[0] + 'T00:00:00';
+      const startString = formatYMD(startDate) + 'T00:00:00';
+      const endString = formatYMD(endDate) + 'T00:00:00';
 
       const newTask = await createTask.mutateAsync({
         project_id: projectId,
