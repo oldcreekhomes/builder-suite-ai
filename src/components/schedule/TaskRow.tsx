@@ -209,7 +209,7 @@ export function TaskRow({
       canMoveDown={canMoveDown}
       onContextMenuChange={setIsContextMenuOpen}
     >
-      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''} ${isOptimistic ? 'opacity-75' : ''}`}>
+      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
         {/* Selection Checkbox */}
         <TableCell className="py-1 px-2 w-10">
           <div
