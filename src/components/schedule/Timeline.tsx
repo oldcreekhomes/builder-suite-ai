@@ -229,7 +229,7 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
             const rightOffset = 10; // Distance to go right from predecessor
             const leftOffset = 16;  // Distance to go left in middle section (doubled)
             const rightTurnX = from.x + rightOffset;
-            const intermediateY = from.y + (to.y - from.y) * 0.69; // Extended down by another 1/4
+            const intermediateY = from.y + (to.y - from.y) * 0.52; // 75% of previous value (higher position)
             const leftTurnX = rightTurnX - leftOffset;
             
             // Create stepped path
