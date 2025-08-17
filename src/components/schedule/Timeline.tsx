@@ -141,6 +141,8 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
       toTaskName: string;
     }[] = [];
 
+    console.log('🔍 Generating connections for', visibleTasks.length, 'visible tasks');
+    
     visibleTasks.forEach((task, taskIndex) => {
       // Handle predecessor as either string[] or string
       const predecessorList = Array.isArray(task.predecessor) 
@@ -148,6 +150,8 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
         : task.predecessor 
           ? [task.predecessor] 
           : [];
+      
+      console.log(`Task ${task.task_name}:`, { predecessor: task.predecessor, predecessorList });
       
       if (!predecessorList.length) return;
 

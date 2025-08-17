@@ -84,6 +84,13 @@ export default function ProjectPage() {
 
   const quickActions = [
     {
+      title: "Project Schedule",
+      description: "View and manage project timeline",
+      icon: Calendar,
+      action: () => navigate(`/project/${projectId}/schedule`),
+      color: "orange"
+    },
+    {
       title: "Project Files",
       description: "View and manage project documents",
       icon: FileText,
@@ -177,12 +184,13 @@ export default function ProjectPage() {
             </Card>
 
             {/* Quick Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {quickActions.map((action, index) => (
                 <Card key={index} className="cursor-pointer hover:shadow-lg transition-shadow">
                   <CardContent className="p-6" onClick={action.action}>
                     <div className="flex flex-col items-center text-center space-y-3">
                       <div className={`p-3 rounded-full ${
+                        action.color === 'orange' ? 'bg-orange-100' :
                         action.color === 'blue' ? 'bg-blue-100' :
                         action.color === 'green' ? 'bg-green-100' :
                         action.color === 'yellow' ? 'bg-yellow-100' :
@@ -190,6 +198,7 @@ export default function ProjectPage() {
                         'bg-gray-100'
                       }`}>
                         <action.icon className={`h-6 w-6 ${
+                          action.color === 'orange' ? 'text-orange-600' :
                           action.color === 'blue' ? 'text-blue-600' :
                           action.color === 'green' ? 'text-green-600' :
                           action.color === 'yellow' ? 'text-yellow-600' :
