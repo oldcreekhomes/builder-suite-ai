@@ -61,6 +61,54 @@ export const cleanupPredecessors = (
 };
 
 /**
+ * Remaps predecessor references when hierarchy numbers change
+ */
+export const remapPredecessors = (
+  allTasks: ProjectTask[],
+  hierarchyMapping: Map<string, string>
+): PredecessorUpdate[] => {
+  const updates: PredecessorUpdate[] = [];
+  
+  allTasks.forEach(task => {
+    if (!task.predecessor) return;
+    
+    let predecessors: string[] = [];
+    try {
+      if (Array.isArray(task.predecessor)) {
+        predecessors = task.predecessor;
+      } else if (typeof task.predecessor === 'string') {
+        predecessors = JSON.parse(task.predecessor);
+      }
+    } catch {
+      predecessors = [task.predecessor as string];
+    }
+    
+    // Remap predecessor hierarchy numbers
+    const remappedPredecessors = predecessors.map(predStr => {
+      const match = predStr.match(/^(.+?)([+-]\d+)?$/);
+      if (!match) return predStr;
+      
+      const predTaskId = match[1].trim();
+      const lag = match[2] || '';
+      
+      // Check if this predecessor's hierarchy changed
+      const newHierarchy = hierarchyMapping.get(predTaskId);
+      return newHierarchy ? `${newHierarchy}${lag}` : predStr;
+    });
+    
+    // Only update if predecessors changed
+    if (JSON.stringify(predecessors) !== JSON.stringify(remappedPredecessors)) {
+      updates.push({
+        taskId: task.id,
+        newPredecessors: remappedPredecessors
+      });
+    }
+  });
+  
+  return updates;
+};
+
+/**
  * Computes updates needed when deleting a child task
  * Only renumbers siblings below the deleted child within the same group
  */
@@ -115,8 +163,27 @@ export const computeDeleteChildUpdates = (
     };
   });
   
-  // Cleanup predecessors
-  const predecessorUpdates = cleanupPredecessors(allTasks, [targetTask.hierarchy_number]);
+  // Build hierarchy mapping for predecessor remapping
+  const hierarchyMapping = new Map<string, string>();
+  hierarchyUpdates.forEach(update => {
+    const oldTask = allTasks.find(t => t.id === update.id);
+    if (oldTask?.hierarchy_number) {
+      hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
+    }
+  });
+  
+  // Cleanup deleted references and remap changed hierarchies
+  const cleanupUpdates = cleanupPredecessors(allTasks, [targetTask.hierarchy_number]);
+  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
+  
+  // Merge predecessor updates (cleanup takes precedence over remapping)
+  const predecessorUpdatesMap = new Map<string, string[]>();
+  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  
+  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
+    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
+  );
   
   return {
     tasksToDelete: [targetTask.id],
@@ -221,8 +288,27 @@ export const computeDeleteGroupUpdates = (
     ...childrenToDelete.map(task => task.hierarchy_number!)
   ];
   
-  // Cleanup predecessors
-  const predecessorUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
+  // Build hierarchy mapping for predecessor remapping
+  const hierarchyMapping = new Map<string, string>();
+  hierarchyUpdates.forEach(update => {
+    const oldTask = allTasks.find(t => t.id === update.id);
+    if (oldTask?.hierarchy_number) {
+      hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
+    }
+  });
+  
+  // Cleanup deleted references and remap changed hierarchies
+  const cleanupUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
+  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
+  
+  // Merge predecessor updates (cleanup takes precedence over remapping)
+  const predecessorUpdatesMap = new Map<string, string[]>();
+  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  
+  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
+    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
+  );
   
   // All tasks to delete
   const tasksToDelete = [targetTask.id, ...childrenToDelete.map(task => task.id)];
@@ -395,8 +481,27 @@ export const computeBulkDeleteUpdates = (
     }
   }
   
-  // Clean up predecessors
-  const predecessorUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
+  // Build hierarchy mapping for predecessor remapping
+  const hierarchyMapping = new Map<string, string>();
+  hierarchyUpdates.forEach(update => {
+    const oldTask = allTasks.find(t => t.id === update.id);
+    if (oldTask?.hierarchy_number) {
+      hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
+    }
+  });
+  
+  // Cleanup deleted references and remap changed hierarchies
+  const cleanupUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
+  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
+  
+  // Merge predecessor updates (cleanup takes precedence over remapping)
+  const predecessorUpdatesMap = new Map<string, string[]>();
+  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
+  
+  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
+    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
+  );
   
   // Remove duplicates from parent groups to recalculate
   parentGroupsToRecalculate = [...new Set(parentGroupsToRecalculate)];

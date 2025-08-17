@@ -52,6 +52,52 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
     return () => window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
   }, [isRecalculatingParents, skipRecalc]);
+
+  // Auto-normalize hierarchy on load if needed
+  useEffect(() => {
+    const autoNormalize = async () => {
+      if (!tasks || tasks.length === 0 || (window as any).__batchOperationInProgress) return;
+      
+      const { needsNormalization, computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      
+      if (needsNormalization(tasks)) {
+        console.log('🔢 Auto-normalizing hierarchy on load');
+        (window as any).__batchOperationInProgress = true;
+        
+        try {
+          const normalizationResult = computeNormalizationUpdates(tasks);
+          
+          if (normalizationResult.hierarchyUpdates.length > 0) {
+            await bulkUpdateHierarchies.mutateAsync({ 
+              updates: normalizationResult.hierarchyUpdates, 
+              options: { suppressInvalidate: true } 
+            });
+          }
+          
+          if (normalizationResult.predecessorUpdates.length > 0) {
+            const predecessorUpdates = normalizationResult.predecessorUpdates.map(update => ({
+              id: update.taskId,
+              predecessor: update.newPredecessors
+            }));
+            await bulkUpdatePredecessors.mutateAsync({ 
+              updates: predecessorUpdates, 
+              options: { suppressInvalidate: true } 
+            });
+          }
+          
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        } catch (error) {
+          console.error('Failed to auto-normalize:', error);
+        } finally {
+          (window as any).__batchOperationInProgress = false;
+        }
+      }
+    };
+    
+    // Debounce auto-normalize to prevent rapid-fire calls
+    const timeoutId = setTimeout(autoNormalize, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, projectId, user?.id]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -557,7 +603,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       console.log(`🗑️ DELETE OPERATION: ${deleteResult.tasksToDelete.length} tasks to delete, ${deleteResult.hierarchyUpdates.length} hierarchy updates, ${deleteResult.predecessorUpdates.length} predecessor updates`);
       
       // Set batch operation flag
-      (window as any).batchOperationInProgress = true;
+      (window as any).__batchOperationInProgress = true;
 
       // Phase 1: Delete all tasks in bulk
       console.log('🔄 Phase 1: Bulk deleting tasks');
@@ -590,8 +636,34 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         });
       }
       
-      // Phase 4: Recalculate parent groups
-      console.log(`🔄 Phase 4: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+      // Phase 4: Normalize hierarchy to ensure first row is 1
+      console.log('🔢 Phase 4: Normalizing hierarchy numbering');
+      const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      if (normalizationResult.hierarchyUpdates.length > 0) {
+        console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: normalizationResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      if (normalizationResult.predecessorUpdates.length > 0) {
+        console.log(`🔗 Phase 4b: Remapping ${normalizationResult.predecessorUpdates.length} predecessor references after normalization`);
+        const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorNormUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 5: Recalculate affected task dates and parent groups
+      console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
       for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
         recalculateParentHierarchy(parentHierarchy);
       }
@@ -609,7 +681,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       toast.error("Failed to delete task");
     } finally {
       // Clear batch flag and invalidate cache once
-      (window as any).batchOperationInProgress = false;
+      (window as any).__batchOperationInProgress = false;
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
   };
@@ -647,7 +719,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       console.log(`🚀 Starting optimized bulk delete of ${deleteResult.tasksToDelete.length} tasks`);
       
       // Set batch operation flag
-      (window as any).batchOperationInProgress = true;
+      (window as any).__batchOperationInProgress = true;
       
       // Phase 1: Bulk delete all tasks
       if (deleteResult.tasksToDelete.length > 0) {
@@ -680,8 +752,34 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         });
       }
       
-      // Phase 4: Recalculate parent groups
-      console.log(`🔄 Phase 4: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+      // Phase 4: Normalize hierarchy to ensure first row is 1
+      console.log('🔢 Phase 4: Normalizing hierarchy numbering');
+      const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      if (normalizationResult.hierarchyUpdates.length > 0) {
+        console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: normalizationResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      if (normalizationResult.predecessorUpdates.length > 0) {
+        console.log(`🔗 Phase 4b: Remapping ${normalizationResult.predecessorUpdates.length} predecessor references after normalization`);
+        const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorNormUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 5: Recalculate affected task dates and parent groups
+      console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
       for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
         recalculateParentHierarchy(parentHierarchy);
       }
@@ -695,7 +793,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       toast.error("Failed to delete selected tasks");
     } finally {
       // Clear batch flag and invalidate cache once
-      (window as any).batchOperationInProgress = false;
+      (window as any).__batchOperationInProgress = false;
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
   };
@@ -706,7 +804,70 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
     try {
       const taskToDelete = tasks.find(t => t.id === pendingDelete.taskId);
-      await deleteTask.mutateAsync(pendingDelete.taskId);
+      if (!taskToDelete) return;
+
+      // Use the same multi-phase pipeline as regular deletion
+      const { computeDeleteUpdates } = await import('@/utils/deleteTaskLogic');
+      const deleteResult = computeDeleteUpdates(taskToDelete, tasks);
+      
+      console.log(`🗑️ CONFIRM DELETE: ${deleteResult.tasksToDelete.length} tasks to delete, ${deleteResult.hierarchyUpdates.length} hierarchy updates`);
+      
+      // Set batch operation flag
+      (window as any).__batchOperationInProgress = true;
+
+      // Phase 1: Delete all tasks in bulk
+      if (deleteResult.tasksToDelete.length > 0) {
+        await bulkDeleteTasks.mutateAsync({ 
+          taskIds: deleteResult.tasksToDelete, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 2: Bulk update hierarchies
+      if (deleteResult.hierarchyUpdates.length > 0) {
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: deleteResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 3: Bulk update predecessors
+      if (deleteResult.predecessorUpdates.length > 0) {
+        const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 4: Normalize hierarchy to ensure first row is 1
+      console.log('🔢 Phase 4: Normalizing hierarchy numbering');
+      const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      const normalizationResult = computeNormalizationUpdates(freshTasks);
+      
+      if (normalizationResult.hierarchyUpdates.length > 0) {
+        console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: normalizationResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      if (normalizationResult.predecessorUpdates.length > 0) {
+        console.log(`🔗 Phase 4b: Remapping ${normalizationResult.predecessorUpdates.length} predecessor references after normalization`);
+        const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorNormUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
       
       // Remove from selected tasks if it was selected
       if (selectedTasks.has(pendingDelete.taskId)) {
@@ -715,16 +876,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      // Recalculate parent hierarchy after confirmed deletion
-      if (taskToDelete?.hierarchy_number) {
-        recalculateParentHierarchy(taskToDelete.hierarchy_number);
-      }
-      
       setPendingDelete(null);
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
       toast.error("Failed to delete task");
+    } finally {
+      // Clear batch flag and invalidate cache once
+      (window as any).__batchOperationInProgress = false;
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
   };
 
