@@ -283,22 +283,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
       
-      // Create dates without timezone conversion by using UTC
-      const today = new Date();
-      today.setHours(12, 0, 0, 0); // Set to noon to avoid timezone edge cases
+      // Import business day utilities
+      const { ensureBusinessDay, calculateBusinessEndDate } = await import('@/utils/businessDays');
       
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
+      // Start on next business day if today is weekend
+      const startDate = ensureBusinessDay(new Date());
+      const endDate = calculateBusinessEndDate(startDate, 1);
       
-      // Format as ISO string and take only the date part to avoid timezone conversion
-      const todayString = today.toISOString().split('T')[0];
-      const tomorrowString = tomorrow.toISOString().split('T')[0];
+      // Format as YYYY-MM-DDT00:00:00
+      const startString = startDate.toISOString().split('T')[0] + 'T00:00:00';
+      const endString = endDate.toISOString().split('T')[0] + 'T00:00:00';
 
       await createTask.mutateAsync({
         project_id: projectId,
         task_name: 'New Task',
-        start_date: todayString + 'T00:00:00',
-        end_date: tomorrowString + 'T00:00:00',
+        start_date: startString,
+        end_date: endString,
         duration: 1,
         progress: 0,
         hierarchy_number: newHierarchyNumber
@@ -335,13 +335,17 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Set batch operation flag to suppress real-time updates
       (window as any).__batchOperationInProgress = true;
 
-      // Create optimistic task immediately
+      // Create optimistic task immediately with business day logic
+      const { ensureBusinessDay, calculateBusinessEndDate } = await import('@/utils/businessDays');
+      const startDate = ensureBusinessDay(new Date());
+      const endDate = calculateBusinessEndDate(startDate, 1);
+      
       const optimisticTask: ProjectTask = {
         id: `optimistic-${Date.now()}`,
         project_id: projectId,
         task_name: "New Task",
-        start_date: new Date().toISOString().split('T')[0] + "T00:00:00+00:00",
-        end_date: new Date(Date.now() + 86400000).toISOString().split('T')[0] + "T00:00:00+00:00",
+        start_date: startDate.toISOString().split('T')[0] + "T00:00:00+00:00",
+        end_date: endDate.toISOString().split('T')[0] + "T00:00:00+00:00",
         duration: 1,
         progress: 0,
         predecessor: undefined,
@@ -397,19 +401,16 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
       // Phase 3: Create the actual task
       console.log("🔄 Phase 3: Creating new task");
-      const today = new Date();
-      today.setHours(12, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
       
-      const todayString = today.toISOString().split('T')[0];
-      const tomorrowString = tomorrow.toISOString().split('T')[0];
+      // Use same business day logic as optimistic task
+      const startString = startDate.toISOString().split('T')[0] + 'T00:00:00';
+      const endString = endDate.toISOString().split('T')[0] + 'T00:00:00';
 
       const newTask = await createTask.mutateAsync({
         project_id: projectId,
         task_name: 'New Task',
-        start_date: todayString + 'T00:00:00',
-        end_date: tomorrowString + 'T00:00:00',
+        start_date: startString,
+        end_date: endString,
         duration: 1,
         progress: 0,
         hierarchy_number: newTaskHierarchy
