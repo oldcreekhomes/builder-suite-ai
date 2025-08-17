@@ -27,29 +27,67 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   }
 
   const parseDate = (dateStr: string): Date => {
-    // Extract just the date part (YYYY-MM-DD) and use the same logic as TaskRow
-    const datePart = dateStr.split('T')[0].split(' ')[0];
-    return new Date(datePart + "T12:00:00");
+    try {
+      // Handle invalid or empty date strings
+      if (!dateStr || dateStr === 'Invalid Date') {
+        return new Date(); // Return current date as fallback
+      }
+      
+      // Extract just the date part (YYYY-MM-DD) and validate
+      const datePart = dateStr.split('T')[0].split(' ')[0];
+      if (!datePart || datePart.length < 10) {
+        console.warn('Invalid date part in Timeline:', dateStr);
+        return new Date();
+      }
+      
+      const date = new Date(datePart + "T12:00:00");
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date in Timeline:', dateStr);
+        return new Date();
+      }
+      
+      return date;
+    } catch (error) {
+      console.error('Error parsing date in Timeline:', dateStr, error);
+      return new Date();
+    }
   };
 
   const getTaskPosition = (task: ProjectTask) => {
-    const taskStart = parseDate(task.start_date);
-    const taskEnd = parseDate(task.end_date);
-    
-    // Calculate actual calendar days from timeline start to task start for positioning
-    const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Calculate task width based on duration (business days) but show full calendar width
-    const taskDuration = task.duration || 1;
-    
-    // Calculate actual calendar days between task start and end
-    const calendarDaysWidth = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
-    return {
-      left: daysFromStart * dayWidth,
-      width: calendarDaysWidth * dayWidth, // Show full calendar width including weekends
-      progress: task.progress || 0
-    };
+    try {
+      // Validate task dates before processing
+      if (!task.start_date || !task.end_date) {
+        console.warn('Task missing dates:', task.task_name);
+        return { left: 0, width: 40, progress: task.progress || 0 };
+      }
+      
+      const taskStart = parseDate(task.start_date);
+      const taskEnd = parseDate(task.end_date);
+      
+      // Validate parsed dates
+      if (isNaN(taskStart.getTime()) || isNaN(taskEnd.getTime())) {
+        console.warn('Invalid task dates:', task.task_name, task.start_date, task.end_date);
+        return { left: 0, width: 40, progress: task.progress || 0 };
+      }
+      
+      // Calculate actual calendar days from timeline start to task start for positioning
+      const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate task width based on duration (business days) but show full calendar width
+      const taskDuration = task.duration || 1;
+      
+      // Calculate actual calendar days between task start and end
+      const calendarDaysWidth = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      return {
+        left: Math.max(0, daysFromStart) * dayWidth, // Ensure non-negative position
+        width: Math.max(dayWidth, calendarDaysWidth * dayWidth), // Ensure minimum width
+        progress: task.progress || 0
+      };
+    } catch (error) {
+      console.error('Error calculating task position:', task.task_name, error);
+      return { left: 0, width: 40, progress: task.progress || 0 };
+    }
   };
 
   // Helper function to check if a task has children based on hierarchy

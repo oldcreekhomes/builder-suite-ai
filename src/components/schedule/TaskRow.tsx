@@ -61,8 +61,30 @@ export function TaskRow({
   canMoveDown
 }: TaskRowProps) {
   const formatDate = (dateString: string) => {
-    // Avoid timezone conversion by adding T12:00:00 to the date string
-    return format(new Date(dateString + "T12:00:00"), "MM/dd/yy");
+    try {
+      // Handle invalid or empty date strings
+      if (!dateString || dateString === 'Invalid Date') {
+        return "—";
+      }
+      
+      // Extract date part and validate
+      const datePart = dateString.includes('T') ? dateString.split('T')[0] : dateString;
+      if (!datePart || datePart.length < 10) {
+        return "—";
+      }
+      
+      // Create date and validate
+      const date = new Date(datePart + "T12:00:00");
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return "—";
+      }
+      
+      return format(date, "MM/dd/yy");
+    } catch (error) {
+      console.warn('Error formatting date:', dateString, error);
+      return "—";
+    }
   };
 
   const getIndentLevel = (hierarchyNumber: string) => {
@@ -73,15 +95,47 @@ export function TaskRow({
   const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
 
   const calculateEndDate = (startDate: string, duration: number) => {
-    // Parse date locally (no timezone conversion) - handle both formats
-    const normalizedStart = startDate.includes('T') ? startDate.split('T')[0] : startDate;
-    const start = new Date(normalizedStart + 'T00:00:00');
-    const end = calculateBusinessEndDate(start, duration);
-    // Format as YYYY-MM-DD
-    const year = end.getFullYear();
-    const month = String(end.getMonth() + 1).padStart(2, '0');
-    const day = String(end.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}T00:00:00`;
+    try {
+      // Validate inputs
+      if (!startDate || !duration || duration < 0) {
+        console.warn('Invalid inputs for calculateEndDate:', { startDate, duration });
+        return new Date().toISOString().split('T')[0] + 'T00:00:00'; // Return today as fallback
+      }
+      
+      // Parse date locally (no timezone conversion) - handle both formats
+      const normalizedStart = startDate.includes('T') ? startDate.split('T')[0] : startDate;
+      
+      // Validate date format (YYYY-MM-DD)
+      if (!normalizedStart || normalizedStart.length < 10) {
+        console.warn('Invalid start date format:', startDate);
+        return new Date().toISOString().split('T')[0] + 'T00:00:00';
+      }
+      
+      const start = new Date(normalizedStart + 'T00:00:00');
+      
+      // Validate the parsed date
+      if (isNaN(start.getTime())) {
+        console.warn('Invalid start date:', startDate);
+        return new Date().toISOString().split('T')[0] + 'T00:00:00';
+      }
+      
+      const end = calculateBusinessEndDate(start, duration);
+      
+      // Validate the calculated end date
+      if (isNaN(end.getTime())) {
+        console.warn('Invalid calculated end date for:', { startDate, duration });
+        return new Date().toISOString().split('T')[0] + 'T00:00:00';
+      }
+      
+      // Format as YYYY-MM-DD
+      const year = end.getFullYear();
+      const month = String(end.getMonth() + 1).padStart(2, '0');
+      const day = String(end.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}T00:00:00`;
+    } catch (error) {
+      console.error('Error in calculateEndDate:', error, { startDate, duration });
+      return new Date().toISOString().split('T')[0] + 'T00:00:00';
+    }
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
@@ -203,7 +257,7 @@ export function TaskRow({
         {/* Start Date */}
         <TableCell className="py-1 px-2">
           <InlineEditCell
-            value={task.start_date.split("T")[0]}
+            value={task.start_date ? task.start_date.split("T")[0] : ""}
             type="date"
             onSave={handleFieldUpdate("start_date")}
             displayFormat={formatDate}
@@ -225,7 +279,10 @@ export function TaskRow({
         {/* End Date - Read Only for all tasks */}
         <TableCell className="py-1 px-2">
           <span className="text-xs px-1 py-0.5 text-black">
-            {formatDate(calculateEndDate(task.start_date, task.duration))}
+            {task.start_date && task.duration ? 
+              formatDate(calculateEndDate(task.start_date, task.duration)) : 
+              "—"
+            }
           </span>
         </TableCell>
 
