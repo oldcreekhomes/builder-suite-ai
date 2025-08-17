@@ -621,6 +621,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           updates: deleteResult.hierarchyUpdates, 
           options: { suppressInvalidate: true } 
         });
+        
+        // Immediately patch cache with Phase 2 updates
+        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(task => {
+            const update = deleteResult.hierarchyUpdates.find(u => u.id === task.id);
+            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+          });
+        });
       }
       
       // Phase 3: Bulk update predecessors
@@ -661,6 +670,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         await bulkUpdateHierarchies.mutateAsync({ 
           updates: normalizationResult.hierarchyUpdates, 
           options: { suppressInvalidate: true } 
+        });
+        
+        // Immediately patch cache with Phase 4 normalization updates
+        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(task => {
+            const update = normalizationResult.hierarchyUpdates.find(u => u.id === task.id);
+            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+          });
         });
       }
       
@@ -751,6 +769,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           updates: deleteResult.hierarchyUpdates, 
           options: { suppressInvalidate: true } 
         });
+        
+        // Immediately patch cache with Phase 2 updates
+        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(task => {
+            const update = deleteResult.hierarchyUpdates.find(u => u.id === task.id);
+            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+          });
+        });
       }
       
       // Phase 3: Bulk update predecessors if needed
@@ -791,6 +818,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         await bulkUpdateHierarchies.mutateAsync({ 
           updates: normalizationResult.hierarchyUpdates, 
           options: { suppressInvalidate: true } 
+        });
+        
+        // Immediately patch cache with Phase 4 normalization updates
+        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(task => {
+            const update = normalizationResult.hierarchyUpdates.find(u => u.id === task.id);
+            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+          });
         });
       }
       

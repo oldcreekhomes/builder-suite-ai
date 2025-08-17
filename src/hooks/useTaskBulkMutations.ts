@@ -60,23 +60,53 @@ export const useTaskBulkMutations = (projectId: string) => {
     mutationFn: async ({ updates, options }: { updates: BulkHierarchyUpdate[], options?: BulkUpdateOptions }) => {
       if (!user || updates.length === 0) return [];
 
-      console.log('🔄 Performing sequential hierarchy update for', updates.length, 'tasks');
+      console.log('🔄 Performing smart hierarchy update for', updates.length, 'tasks');
       
-      // Sort updates by hierarchy number in descending order to avoid constraint violations
-      // Higher numbers get updated first to clear the way for lower numbers
-      const sortedUpdates = [...updates].sort((a, b) => {
-        const aLevel = a.hierarchy_number.split('.').length;
-        const bLevel = b.hierarchy_number.split('.').length;
-        if (aLevel !== bLevel) return bLevel - aLevel; // Deeper levels first
+      // Get current tasks from cache to compare directions
+      const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      
+      // Analyze update directions: increment (1 -> 2) vs decrement (3 -> 2)
+      const incrementUpdates: BulkHierarchyUpdate[] = [];
+      const decrementUpdates: BulkHierarchyUpdate[] = [];
+      
+      updates.forEach(update => {
+        const currentTask = currentTasks.find(t => t.id === update.id);
+        if (currentTask && currentTask.hierarchy_number) {
+          const currentNum = parseFloat(currentTask.hierarchy_number);
+          const targetNum = parseFloat(update.hierarchy_number);
+          
+          if (targetNum > currentNum) {
+            incrementUpdates.push(update);
+          } else {
+            decrementUpdates.push(update);
+          }
+        } else {
+          // If we can't find current task, treat as increment (safer)
+          incrementUpdates.push(update);
+        }
+      });
+      
+      console.log(`📊 Direction analysis: ${incrementUpdates.length} increments, ${decrementUpdates.length} decrements`);
+      
+      // Sort increments descending (higher numbers first to clear the way)
+      const sortedIncrements = incrementUpdates.sort((a, b) => {
         return b.hierarchy_number.localeCompare(a.hierarchy_number, undefined, { numeric: true });
       });
       
-      console.log('📊 Sequential update order:', sortedUpdates.map(u => `${u.id}: ${u.hierarchy_number}`));
+      // Sort decrements ascending (lower numbers first - natural renumbering order)
+      const sortedDecrements = decrementUpdates.sort((a, b) => {
+        return a.hierarchy_number.localeCompare(b.hierarchy_number, undefined, { numeric: true });
+      });
+      
+      // Execute in safe order: increments first (desc), then decrements (asc)
+      const finalOrder = [...sortedIncrements, ...sortedDecrements];
+      
+      console.log('📊 Safe update order:', finalOrder.map(u => `${u.id}: ${u.hierarchy_number}`));
       
       const results = [];
       
       // Process updates one by one to avoid unique constraint violations
-      for (const update of sortedUpdates) {
+      for (const update of finalOrder) {
         console.log(`🔄 Updating task ${update.id} to hierarchy ${update.hierarchy_number}`);
         
         const { data, error } = await supabase
@@ -86,8 +116,8 @@ export const useTaskBulkMutations = (projectId: string) => {
           .select('id');
           
         if (error) {
-          console.error('Sequential hierarchy update error:', error);
-          throw error;
+          console.error('Sequential hierarchy update error:', error.message);
+          throw new Error(`Failed to update hierarchy: ${error.message}`);
         }
         
         if (data) results.push(...data);
@@ -96,7 +126,7 @@ export const useTaskBulkMutations = (projectId: string) => {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
 
-      console.log('✅ Sequential hierarchy update completed for', results.length, 'tasks');
+      console.log('✅ Smart hierarchy update completed for', results.length, 'tasks');
       return results;
     },
     onSuccess: (data, variables) => {
