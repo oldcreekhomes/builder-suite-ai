@@ -227,7 +227,7 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
             
             // Calculate complex orthogonal path: right, down longer, left longer, down, right
             const rightOffset = 10; // Distance to go right from predecessor
-            const leftOffset = 16;  // Distance to go left in middle section (doubled)
+            const leftOffset = 20;  // Distance to go left in middle section (125% of previous)
             const rightTurnX = from.x + rightOffset;
             const intermediateY = from.y + (to.y - from.y) * 0.52; // 75% of previous value (higher position)
             const leftTurnX = rightTurnX - leftOffset;
