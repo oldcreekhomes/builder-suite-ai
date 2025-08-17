@@ -911,17 +911,29 @@ export type Database = {
     }
     Functions: {
       add_task_above_atomic: {
-        Args: {
-          duration_param?: number
-          end_date_param: string
-          predecessor_param?: string
-          progress_param?: number
-          project_id_param: string
-          resources_param?: string
-          start_date_param: string
-          target_hierarchy_param: string
-          task_name_param: string
-        }
+        Args:
+          | {
+              duration_param?: number
+              end_date_param: string
+              predecessor_param?: Json
+              progress_param?: number
+              project_id_param: string
+              resources_param?: string
+              start_date_param: string
+              target_hierarchy_param: string
+              task_name_param: string
+            }
+          | {
+              duration_param?: number
+              end_date_param: string
+              predecessor_param?: string
+              progress_param?: number
+              project_id_param: string
+              resources_param?: string
+              start_date_param: string
+              target_hierarchy_param: string
+              task_name_param: string
+            }
         Returns: string
       }
       approve_employee: {
