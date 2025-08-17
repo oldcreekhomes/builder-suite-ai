@@ -1,36 +1,35 @@
 import React from "react";
-import { format, addDays, isSameMonth } from "date-fns";
-import { isBusinessDay } from "@/utils/businessDays";
+import { DateString, addDays, getCalendarDaysBetween, isBusinessDay, getMonthName, getDayOfMonth } from "@/utils/dateOnly";
 
 interface TimelineHeaderProps {
-  startDate: Date;
-  endDate: Date;
+  startDate: DateString;
+  endDate: DateString;
   dayWidth: number;
   timelineWidth: number;
 }
 
 export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: TimelineHeaderProps) {
   // Validate dates first
-  if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+  if (!startDate || !endDate) {
     return <div className="bg-background border-b border-border mt-4 h-8 flex items-center justify-center text-muted-foreground">Invalid date range</div>;
   }
 
-  const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const totalDays = getCalendarDaysBetween(startDate, endDate);
   
   // Generate month headers
   const months: { name: string; width: number; left: number }[] = [];
-  let currentDate = new Date(startDate);
   let currentMonthStart = 0;
-  let currentMonth = format(currentDate, "MMM yyyy");
+  let currentMonth = getMonthName(startDate);
   
-  for (let day = 0; day <= totalDays; day++) {
+  for (let day = 0; day < totalDays; day++) {
     const dayDate = addDays(startDate, day);
-    const monthName = format(dayDate, "MMM yyyy");
+    const monthName = getMonthName(dayDate);
     
-    if (monthName !== currentMonth || day === totalDays) {
+    if (monthName !== currentMonth || day === totalDays - 1) {
+      const dayCount = day === totalDays - 1 ? day - currentMonthStart + 1 : day - currentMonthStart;
       months.push({
         name: currentMonth,
-        width: (day - currentMonthStart) * dayWidth,
+        width: dayCount * dayWidth,
         left: currentMonthStart * dayWidth
       });
       currentMonth = monthName;
@@ -73,7 +72,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
                 width: dayWidth
               }}
             >
-              {format(dayDate, "dd")}
+              {getDayOfMonth(dayDate)}
             </div>
           );
         })}

@@ -9,7 +9,7 @@ import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
-import { calculateBusinessEndDate } from "@/utils/businessDays";
+import { calculateBusinessEndDate, formatDisplayDate, DateString } from "@/utils/dateOnly";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -139,19 +139,9 @@ export function TaskRow({
         return new Date().toISOString().split('T')[0] + 'T00:00:00';
       }
       
-      const end = calculateBusinessEndDate(start, duration);
+      const endDateStr = calculateBusinessEndDate(normalizedStart, duration);
       
-      // Validate the calculated end date
-      if (isNaN(end.getTime())) {
-        console.warn('Invalid calculated end date for:', { startDate, duration });
-        return new Date().toISOString().split('T')[0] + 'T00:00:00';
-      }
-      
-      // Format as YYYY-MM-DD
-      const year = end.getFullYear();
-      const month = String(end.getMonth() + 1).padStart(2, '0');
-      const day = String(end.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}T00:00:00`;
+      return endDateStr + 'T00:00:00';
     } catch (error) {
       console.error('Error in calculateEndDate:', error, { startDate, duration });
       return new Date().toISOString().split('T')[0] + 'T00:00:00';

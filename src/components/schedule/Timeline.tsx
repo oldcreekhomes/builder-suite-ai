@@ -2,18 +2,24 @@ import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineBar } from "./TimelineBar";
-import { isBusinessDay, getBusinessDaysBetween, calculateBusinessEndDate } from "@/utils/businessDays";
+import { 
+  DateString, 
+  addDays, 
+  getCalendarDaysBetween, 
+  calculateBusinessEndDate,
+  isBusinessDay 
+} from "@/utils/dateOnly";
 
 interface TimelineProps {
   tasks: ProjectTask[];
-  startDate: Date;
-  endDate: Date;
+  startDate: DateString;
+  endDate: DateString;
   onTaskUpdate: (taskId: string, updates: any) => void;
 }
 
 export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelineProps) {
   // Calculate timeline width with hard limits for performance
-  const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const totalDays = getCalendarDaysBetween(startDate, endDate);
   
   // Hard guard: Cap total days to prevent performance issues
   const maxDays = 1095; // 3 years worth of days
@@ -26,30 +32,25 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
     console.warn(`⚠️ Timeline capped at ${maxDays} days for performance (was ${totalDays} days)`);
   }
 
-  const parseDate = (dateStr: string): Date => {
+  const parseTaskDate = (dateStr: string): DateString => {
     try {
       // Handle invalid or empty date strings
       if (!dateStr || dateStr === 'Invalid Date') {
-        return new Date(); // Return current date as fallback
+        console.warn('Invalid date in Timeline, using today:', dateStr);
+        return addDays(startDate, 0); // Use timeline start as fallback
       }
       
       // Extract just the date part (YYYY-MM-DD) and validate
       const datePart = dateStr.split('T')[0].split(' ')[0];
       if (!datePart || datePart.length < 10) {
         console.warn('Invalid date part in Timeline:', dateStr);
-        return new Date();
+        return addDays(startDate, 0);
       }
       
-      const date = new Date(datePart + "T12:00:00");
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid date in Timeline:', dateStr);
-        return new Date();
-      }
-      
-      return date;
+      return datePart;
     } catch (error) {
       console.error('Error parsing date in Timeline:', dateStr, error);
-      return new Date();
+      return addDays(startDate, 0);
     }
   };
 
@@ -61,25 +62,17 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
         return { left: 0, width: 40, progress: task.progress || 0 };
       }
       
-      const taskStart = parseDate(task.start_date);
-      const taskEnd = parseDate(task.end_date);
+      const taskStartDate = parseTaskDate(task.start_date);
       
-      // Validate parsed dates
-      if (isNaN(taskStart.getTime()) || isNaN(taskEnd.getTime())) {
-        console.warn('Invalid task dates:', task.task_name, task.start_date, task.end_date);
-        return { left: 0, width: 40, progress: task.progress || 0 };
-      }
-      
-      // Calculate actual calendar days from timeline start to task start for positioning
-      const daysFromStart = Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate calendar days from timeline start to task start for positioning
+      const daysFromStart = getCalendarDaysBetween(startDate, taskStartDate) - 1; // -1 because we want 0-based index
       
       // Calculate correct end date based on duration (inclusive calculation)
       const taskDuration = task.duration || 1;
-      const correctEndDate = calculateBusinessEndDate(taskStart, taskDuration);
+      const correctEndDate = calculateBusinessEndDate(taskStartDate, taskDuration);
       
-      // Calculate actual calendar days between task start and correct end (inclusive)
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const widthDays = Math.max(1, Math.floor((correctEndDate.getTime() - taskStart.getTime()) / msPerDay) + 1);
+      // Calculate calendar days between task start and correct end (inclusive)
+      const widthDays = getCalendarDaysBetween(taskStartDate, correctEndDate);
       
       return {
         left: Math.max(0, daysFromStart) * dayWidth, // Ensure non-negative position

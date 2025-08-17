@@ -5,7 +5,7 @@ import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
-import { ensureBusinessDay, calculateBusinessEndDate, formatYMD } from "@/utils/businessDays";
+import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -119,77 +119,77 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const visibleTasks = getVisibleTasks();
 
-  // Calculate timeline range with hard limits for performance
-  const getTimelineRange = () => {
-    // Start from current business day or next Monday
-    const currentBusinessDay = ensureBusinessDay(new Date());
-    
-    if (!tasks || tasks.length === 0) {
-      return {
-        start: currentBusinessDay,
-        end: new Date(currentBusinessDay.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days
-      };
-    }
+  // Timeline range calculation using date-only approach
+  const getTimelineRange = (): { start: DateString; end: DateString } => {
+    try {
+      if (!tasks || tasks.length === 0) {
+        const todayStr = today();
+        return {
+          start: todayStr,
+          end: addBusinessDays(todayStr, 30) // Default 30 business days
+        };
+      }
 
-    // Parse dates defensively - ignore invalid dates
-    const validStartDates = tasks
-      .map(task => {
-        try {
+      // Get all valid dates as date strings
+      const validDates: DateString[] = [];
+      tasks.forEach(task => {
+        if (task.start_date) {
           const datePart = task.start_date.split('T')[0];
-          const date = new Date(datePart + "T12:00:00");
-          return isNaN(date.getTime()) ? null : date;
-        } catch {
-          return null;
+          if (datePart && datePart.length === 10) {
+            validDates.push(datePart);
+          }
         }
-      })
-      .filter(Boolean) as Date[];
-      
-    const validEndDates = tasks
-      .map(task => {
-        try {
+        if (task.end_date) {
           const datePart = task.end_date.split('T')[0];
-          const date = new Date(datePart + "T12:00:00");
-          return isNaN(date.getTime()) ? null : date;
-        } catch {
-          return null;
+          if (datePart && datePart.length === 10) {
+            validDates.push(datePart);
+          }
         }
-      })
-      .filter(Boolean) as Date[];
-    
-    if (validStartDates.length === 0 || validEndDates.length === 0) {
+      });
+
+      if (validDates.length === 0) {
+        const todayStr = today();
+        return {
+          start: todayStr,
+          end: addBusinessDays(todayStr, 30)
+        };
+      }
+
+      // Find the min and max dates using string comparison (YYYY-MM-DD)
+      const minDate = validDates.reduce((min, current) => current < min ? current : min);
+      const maxDate = validDates.reduce((max, current) => current > max ? current : max);
+
+      // Ensure we start from at least the current business day
+      const todayStr = today();
+      const currentBusinessDay = isBusinessDay(todayStr) ? todayStr : getNextBusinessDay(todayStr);
+      const timelineStart = minDate < currentBusinessDay ? minDate : currentBusinessDay;
+
+      // Add buffer to end date
+      const bufferedEnd = addBusinessDays(maxDate, 5);
+
+      // Cap the total range to prevent performance issues (3 years max)
+      const totalDays = getCalendarDaysBetween(timelineStart, bufferedEnd);
+      const maxDays = 1095; // 3 years
+      const finalEnd = totalDays > maxDays 
+        ? addDays(timelineStart, maxDays - 1)
+        : bufferedEnd;
+
+      if (totalDays > maxDays) {
+        console.warn(`⚠️ Timeline range capped at ${maxDays} days for performance`);
+      }
+
       return {
-        start: currentBusinessDay,
-        end: new Date(currentBusinessDay.getTime() + 90 * 24 * 60 * 60 * 1000)
+        start: timelineStart,
+        end: finalEnd
+      };
+    } catch (error) {
+      console.error('Error calculating timeline range:', error);
+      const todayStr = today();
+      return {
+        start: todayStr,
+        end: addBusinessDays(todayStr, 30)
       };
     }
-    
-    const latestEnd = new Date(Math.max(...validEndDates.map(d => d.getTime())));
-    
-    // Use current business day as start (don't show past days)
-    let finalStart = currentBusinessDay;
-    let finalEnd = latestEnd;
-    
-    // Ensure end date is not before start date
-    if (finalEnd < finalStart) {
-      finalEnd = new Date(finalStart.getTime() + 90 * 24 * 60 * 60 * 1000);
-    }
-    
-    // Hard limit: cap timeline to 3 years max to prevent performance issues
-    const maxTimespan = 3 * 365 * 24 * 60 * 60 * 1000; // 3 years in ms
-    const actualTimespan = finalEnd.getTime() - finalStart.getTime();
-    
-    if (actualTimespan > maxTimespan) {
-      console.warn('⚠️ Timeline span exceeds 3 years, capping for performance');
-      finalEnd = new Date(finalStart.getTime() + maxTimespan);
-    }
-    
-    // Add minimal padding to the end only
-    const paddedEnd = new Date(finalEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
-    return {
-      start: finalStart,
-      end: paddedEnd
-    };
   };
 
   const timelineRange = getTimelineRange();
@@ -357,8 +357,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     try {
       const newHierarchyNumber = getNextTopLevelNumber(tasks);
       
-      // Use business day utilities
-      const startDate = ensureBusinessDay(new Date());
+      // Use business day utilities with date strings
+      const startDate = ensureBusinessDay(today());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
       // Format as YYYY-MM-DDT00:00:00 using local dates
@@ -407,7 +407,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       (window as any).__batchOperationInProgress = true;
 
       // Create optimistic task immediately with business day logic
-      const startDate = ensureBusinessDay(new Date());
+      const startDate = ensureBusinessDay(today());
       const endDate = calculateBusinessEndDate(startDate, 1);
       
       const optimisticTask: ProjectTask = {
@@ -771,8 +771,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <Timeline
               tasks={visibleTasks}
-              startDate={timelineStart}
-              endDate={timelineEnd}
+              startDate={timelineRange.start}
+              endDate={timelineRange.end}
               onTaskUpdate={handleTaskUpdate}
             />
           </ResizablePanel>

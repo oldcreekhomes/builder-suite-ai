@@ -48,16 +48,16 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
     // Generate next order index for new task
     const nextOrderIndex = (tasks || []).length + 1;
     
-    createTask.mutate({
-      project_id: projectId,
-      task_name: formData.task_name,
-      start_date: new Date(formData.start_date).toISOString(),
-      end_date: new Date(formData.end_date).toISOString(),
-      duration: formData.duration,
-      progress: formData.progress,
-      resources: formData.resources || null,
-      predecessor: formData.predecessor || null,
-    });
+      createTask.mutate({
+        project_id: projectId,
+        task_name: formData.task_name,
+        start_date: formData.start_date + "T00:00:00.000Z",
+        end_date: formData.end_date + "T00:00:00.000Z",
+        duration: formData.duration,
+        progress: formData.progress,
+        resources: formData.resources || null,
+        predecessor: formData.predecessor || null,
+      });
 
     setFormData({
       task_name: 'New Task',
