@@ -121,11 +121,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Calculate timeline range with hard limits for performance
   const getTimelineRange = () => {
+    // Start from current business day or next Monday
+    const currentBusinessDay = ensureBusinessDay(new Date());
+    
     if (!tasks || tasks.length === 0) {
-      const today = new Date();
       return {
-        start: today,
-        end: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days
+        start: currentBusinessDay,
+        end: new Date(currentBusinessDay.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days
       };
     }
 
@@ -155,34 +157,37 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       .filter(Boolean) as Date[];
     
     if (validStartDates.length === 0 || validEndDates.length === 0) {
-      const today = new Date();
       return {
-        start: today,
-        end: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000)
+        start: currentBusinessDay,
+        end: new Date(currentBusinessDay.getTime() + 90 * 24 * 60 * 60 * 1000)
       };
     }
     
-    const earliestStart = new Date(Math.min(...validStartDates.map(d => d.getTime())));
     const latestEnd = new Date(Math.max(...validEndDates.map(d => d.getTime())));
+    
+    // Use current business day as start (don't show past days)
+    let finalStart = currentBusinessDay;
+    let finalEnd = latestEnd;
+    
+    // Ensure end date is not before start date
+    if (finalEnd < finalStart) {
+      finalEnd = new Date(finalStart.getTime() + 90 * 24 * 60 * 60 * 1000);
+    }
     
     // Hard limit: cap timeline to 3 years max to prevent performance issues
     const maxTimespan = 3 * 365 * 24 * 60 * 60 * 1000; // 3 years in ms
-    const actualTimespan = latestEnd.getTime() - earliestStart.getTime();
-    
-    let finalStart = earliestStart;
-    let finalEnd = latestEnd;
+    const actualTimespan = finalEnd.getTime() - finalStart.getTime();
     
     if (actualTimespan > maxTimespan) {
       console.warn('⚠️ Timeline span exceeds 3 years, capping for performance');
       finalEnd = new Date(finalStart.getTime() + maxTimespan);
     }
     
-    // Add padding but respect the limits
-    const paddedStart = new Date(finalStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Add minimal padding to the end only
     const paddedEnd = new Date(finalEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
     
     return {
-      start: paddedStart,
+      start: finalStart,
       end: paddedEnd
     };
   };
