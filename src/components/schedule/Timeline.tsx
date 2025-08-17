@@ -225,14 +225,14 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           {connections.map((connection, index) => {
             const { from, to } = connection;
             
-            // Calculate orthogonal path: right, down, left (matching second image style)
-            const horizontalExtension = 15; // How far right to extend from predecessor
-            const rightExtendX = from.x + horizontalExtension;
+            // Calculate orthogonal path: left (short), down, right
+            const leftOffset = 10; // Short distance to go left from predecessor
+            const leftTurnX = from.x + leftOffset;
             
-            // Create path that goes right from predecessor, down, then left to successor
+            // Create path that goes left short distance, down, then right to successor
             const pathData = `M ${from.x} ${from.y} 
-                             L ${rightExtendX} ${from.y} 
-                             L ${rightExtendX} ${to.y} 
+                             L ${leftTurnX} ${from.y} 
+                             L ${leftTurnX} ${to.y} 
                              L ${to.x} ${to.y}`;
 
             return (
@@ -240,21 +240,21 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
                 {/* Connection path */}
                 <path
                   d={pathData}
-                  stroke="#FF8C00" 
+                  stroke="black"
                   strokeWidth="2"
                   fill="none"
                 />
-                {/* Small diamond at junction */}
+                {/* Small diamond at first junction */}
                 <circle
-                  cx={rightExtendX}
+                  cx={leftTurnX}
                   cy={from.y}
-                  r="3"
-                  fill="#FF8C00"
+                  r="2"
+                  fill="black"
                 />
-                {/* Arrow head pointing left into successor task */}
+                {/* Arrow head pointing right into successor task */}
                 <polygon
-                  points={`${to.x},${to.y} ${to.x + 8},${to.y - 4} ${to.x + 8},${to.y + 4}`}
-                  fill="#FF8C00"
+                  points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
+                  fill="black"
                 />
               </g>
             );
