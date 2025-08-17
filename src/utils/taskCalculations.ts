@@ -136,8 +136,10 @@ export const calculateTaskDatesFromPredecessors = (
     
     if (!predTask) continue;
     
-    // Calculate the end date of the predecessor with business day lag
-    const predEndDate = new Date(predTask.end_date);
+    // Get the end date as YYYY-MM-DD string and parse as local date
+    const predEndDateStr = predTask.end_date.split('T')[0]; // Get YYYY-MM-DD part
+    const [year, month, day] = predEndDateStr.split('-').map(Number);
+    const predEndDate = new Date(year, month - 1, day); // Create local date
     
     // Apply lag using business days
     let adjustedPredEndDate: Date;

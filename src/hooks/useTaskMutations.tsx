@@ -85,7 +85,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task created successfully');
       
       // Trigger parent recalculation for new task
@@ -178,7 +178,7 @@ export const useTaskMutations = (projectId: string) => {
       // Only invalidate cache if not suppressed (for bulk operations)
       if (!variables.suppressInvalidate) {
         console.log('✅ Task updated - refreshing cache');
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
       // Only trigger parent recalculation if not suppressed and dates/duration changed
@@ -214,7 +214,7 @@ export const useTaskMutations = (projectId: string) => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task deleted successfully');
       
       // Trigger parent recalculation for deleted task

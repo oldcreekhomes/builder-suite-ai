@@ -426,7 +426,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       };
 
       // Immediately update the cache with optimistic data
-      queryClient.setQueryData(['project-tasks', projectId], (oldData: ProjectTask[] | undefined) => {
+      queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
         if (!oldData) return [optimisticTask];
         
         // Apply hierarchy updates optimistically
