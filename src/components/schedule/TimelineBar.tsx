@@ -64,19 +64,22 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
       <div
         className={`absolute h-6 rounded cursor-move border ${
           isDragging ? "opacity-70" : ""
-        } bg-${barColorClass}/25 border-${barColorClass}`}
+        }`}
         style={{
           left: position.left,
           width: position.width,
           top: (rowHeight - 24) / 2, // Center the 24px bar in the row
+          backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
+          borderColor: `hsl(var(--timeline-${barColorClass}))`
         }}
         onMouseDown={handleMouseDown}
       >
         {/* Progress Fill */}
         <div
-          className={`h-full rounded-l bg-${barColorClass} opacity-80`}
+          className="h-full rounded-l opacity-80"
           style={{
             width: progressWidth,
+            backgroundColor: `hsl(var(--timeline-${barColorClass}))`
           }}
         />
         
