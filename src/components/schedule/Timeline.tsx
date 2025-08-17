@@ -2,6 +2,7 @@ import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineBar } from "./TimelineBar";
+import { parsePredecessors } from "@/utils/predecessorValidation";
 import { 
   DateString, 
   addDays, 
@@ -131,6 +132,59 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
 
   const visibleTasks = getVisibleTasks();
 
+  // Function to generate dependency connections
+  const generateDependencyConnections = () => {
+    const connections: {
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      fromTaskName: string;
+      toTaskName: string;
+    }[] = [];
+
+    visibleTasks.forEach((task, taskIndex) => {
+      // Handle predecessor as either string[] or string
+      const predecessorList = Array.isArray(task.predecessor) 
+        ? task.predecessor 
+        : task.predecessor 
+          ? [task.predecessor] 
+          : [];
+      
+      if (!predecessorList.length) return;
+
+      const taskPosition = getTaskPosition(task);
+      const toY = taskIndex * 32 + 16; // Center of task bar
+      const toX = taskPosition.left;
+
+      // Parse predecessors
+      const parsedPreds = parsePredecessors(predecessorList, tasks);
+      
+      parsedPreds.forEach(pred => {
+        if (!pred.isValid) return;
+
+        // Find predecessor task in visible tasks
+        const predTask = visibleTasks.find(t => t.hierarchy_number === pred.taskId);
+        if (!predTask) return;
+
+        const predIndex = visibleTasks.indexOf(predTask);
+        const predPosition = getTaskPosition(predTask);
+        
+        const fromY = predIndex * 32 + 16; // Center of predecessor bar
+        const fromX = predPosition.left + predPosition.width; // End of predecessor bar
+
+        connections.push({
+          from: { x: fromX, y: fromY },
+          to: { x: toX, y: toY },
+          fromTaskName: predTask.task_name || '',
+          toTaskName: task.task_name || ''
+        });
+      });
+    });
+
+    return connections;
+  };
+
+  const connections = generateDependencyConnections();
+
   return (
     <div className="h-[600px] overflow-auto">
       {/* Timeline Header */}
@@ -153,6 +207,45 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
             />
           ))}
         </div>
+
+        {/* Dependency Wires */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: timelineWidth, height: visibleTasks.length * 32 }}
+        >
+          {connections.map((connection, index) => {
+            const { from, to } = connection;
+            
+            // Calculate path for smooth connection
+            const midX = (from.x + to.x) / 2;
+            const controlPoint1X = from.x + Math.min(50, (to.x - from.x) / 3);
+            const controlPoint2X = to.x - Math.min(50, (to.x - from.x) / 3);
+            
+            const pathData = `M ${from.x} ${from.y} 
+                             C ${controlPoint1X} ${from.y}, 
+                               ${controlPoint2X} ${to.y}, 
+                               ${to.x - 8} ${to.y}`;
+
+            return (
+              <g key={`${connection.fromTaskName}-${connection.toTaskName}-${index}`}>
+                {/* Connection path */}
+                <path
+                  d={pathData}
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth="2"
+                  fill="none"
+                  opacity="0.6"
+                />
+                {/* Arrow head */}
+                <polygon
+                  points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
+                  fill="hsl(var(--muted-foreground))"
+                  opacity="0.6"
+                />
+              </g>
+            );
+          })}
+        </svg>
 
         {/* Task Bars - Now properly aligned */}
         <div className="relative">
