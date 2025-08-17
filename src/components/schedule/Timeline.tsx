@@ -76,12 +76,13 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
       // Calculate task width based on duration (business days) but show full calendar width
       const taskDuration = task.duration || 1;
       
-      // Calculate actual calendar days between task start and end
-      const calendarDaysWidth = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Calculate actual calendar days between task start and end (exclusive end date)
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const widthDays = Math.max(1, Math.floor((taskEnd.getTime() - taskStart.getTime()) / msPerDay) || 1);
       
       return {
         left: Math.max(0, daysFromStart) * dayWidth, // Ensure non-negative position
-        width: Math.max(dayWidth, calendarDaysWidth * dayWidth), // Ensure minimum width
+        width: Math.max(dayWidth, widthDays * dayWidth), // Ensure minimum width
         progress: task.progress || 0
       };
     } catch (error) {
