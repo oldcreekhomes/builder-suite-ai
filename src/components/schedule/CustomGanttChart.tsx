@@ -193,8 +193,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   };
 
   const timelineRange = getTimelineRange();
-  const timelineStart = timelineRange.start;
-  const timelineEnd = timelineRange.end;
+  const { start: timelineStart, end: timelineEnd } = timelineRange;
 
 
   // Handle expansion state changes
@@ -771,8 +770,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
             <Timeline
               tasks={visibleTasks}
-              startDate={timelineRange.start}
-              endDate={timelineRange.end}
+              startDate={timelineStart}
+              endDate={timelineEnd}
               onTaskUpdate={handleTaskUpdate}
             />
           </ResizablePanel>
