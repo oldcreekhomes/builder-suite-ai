@@ -20,11 +20,11 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
   const getBarColorClass = (task: ProjectTask) => {
     // Check if task has confirmed status
     if (task.confirmed === false) {
-      return "timeline-unconfirmed"; // Red for unconfirmed
+      return "unconfirmed"; // Red for unconfirmed
     } else if (task.confirmed === true) {
-      return "timeline-confirmed"; // Green for confirmed
+      return "confirmed"; // Green for confirmed
     } else {
-      return "timeline-default"; // Blue (default)
+      return "default"; // Blue (default)
     }
   };
 

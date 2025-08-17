@@ -84,7 +84,7 @@ export function InlineEditCell({
   // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
-      <span className={cn("text-xs px-1 py-0.5 block text-primary", className)}>
+      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
         {getDisplayValue()}
       </span>
     );
@@ -145,7 +145,7 @@ export function InlineEditCell({
           ref={spanRef}
           onClick={() => setIsEditing(true)}
           className={cn(
-            "cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs text-primary",
+            "cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs text-black",
             className
           )}
         >
