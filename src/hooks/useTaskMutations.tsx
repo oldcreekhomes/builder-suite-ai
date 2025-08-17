@@ -36,19 +36,9 @@ export const useTaskMutations = (projectId: string) => {
     mutationFn: async (params: CreateTaskParams) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Check for duplicate hierarchy number before inserting
-      if (params.hierarchy_number) {
-        const { data: existingTask } = await supabase
-          .from('project_schedule_tasks')
-          .select('id')
-          .eq('project_id', params.project_id)
-          .eq('hierarchy_number', params.hierarchy_number)
-          .maybeSingle();
-
-        if (existingTask) {
-          throw new Error(`Hierarchy number "${params.hierarchy_number}" already exists in this project`);
-        }
-      }
+      // Note: We removed the pre-check for duplicate hierarchy numbers here
+      // because the bulk hierarchy updates should have cleared the way
+      // The database constraint will catch any real duplicates as a failsafe
 
       // Normalize dates to include T00:00:00 format
       const normalizeDate = (date: string) => {

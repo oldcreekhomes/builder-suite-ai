@@ -452,7 +452,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         return updatedTasks;
       });
 
-      // Phase 1: Bulk hierarchy updates
+      // Phase 1: Bulk hierarchy updates (MUST happen before creating new task to avoid constraint violation)
       if (hierarchyUpdates.length > 0) {
         console.log("🔄 Phase 1: Bulk hierarchy updates");
         await bulkUpdateHierarchies.mutateAsync({ 
@@ -474,7 +474,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         });
       }
 
-      // Phase 3: Create the actual task
+      // Phase 3: Create the actual task (after hierarchy updates to avoid constraint violation)
       console.log("🔄 Phase 3: Creating new task");
       
       // Use same business day logic as optimistic task
