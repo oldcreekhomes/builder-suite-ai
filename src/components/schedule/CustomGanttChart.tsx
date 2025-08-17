@@ -31,11 +31,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
+  // Add flag to prevent infinite loops in parent recalculation
+  const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
+  
   // Listen for parent recalculation events from mutations
   useEffect(() => {
     const handleParentRecalculation = (event: CustomEvent) => {
       const { hierarchyNumber } = event.detail;
-      if (hierarchyNumber) {
+      if (hierarchyNumber && !isRecalculatingParents) {
         // Add delay to ensure React Query cache is refreshed with latest data
         setTimeout(() => {
           recalculateParentHierarchy(hierarchyNumber);
@@ -45,7 +48,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
     return () => window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
-  }, []);
+  }, [isRecalculatingParents]);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
@@ -210,9 +213,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Comprehensive function to recalculate all parent tasks in a hierarchy
   const recalculateParentHierarchy = (hierarchyNumber: string) => {
-    if (!hierarchyNumber || !user) return;
+    if (!hierarchyNumber || !user || isRecalculatingParents) return;
     
     console.log('🔄 Starting parent hierarchy recalculation for:', hierarchyNumber);
+    setIsRecalculatingParents(true);
     
     // Get fresh task data from React Query cache
     const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
@@ -249,11 +253,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           
           if (shouldUpdateParentTask(parentTask, calculations)) {
             console.log(`✅ Updating parent task: ${parentTask.task_name}`);
-            handleTaskUpdate(parentTask.id, {
+            updateTask.mutate({
+              id: parentTask.id,
               start_date: calculations.startDate,
               end_date: calculations.endDate,
               duration: calculations.duration,
-              progress: calculations.progress
+              progress: calculations.progress,
+              suppressInvalidate: true // Prevent infinite loops
             });
           } else {
             console.log(`⏸️ Parent task ${parentTask.task_name} is already up to date`);
@@ -265,6 +271,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.log(`⚠️ Parent task not found for hierarchy: ${parentHierarchy}`);
       }
     });
+    
+    // Reset the flag after completion
+    setTimeout(() => setIsRecalculatingParents(false), 500);
   };
 
   // SIMPLE: Just add tasks at the end for now
