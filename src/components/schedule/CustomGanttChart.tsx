@@ -18,7 +18,7 @@ import { getTasksWithDependency } from "@/utils/predecessorValidation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 // Simplified hierarchy imports - only basic functions
 import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
-import { computeBulkDeleteUpdates } from "@/utils/deleteTaskLogic";
+import { computeBulkDeleteUpdates, computeDeleteUpdates } from "@/utils/deleteTaskLogic";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -27,7 +27,7 @@ interface CustomGanttChartProps {
 export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
-  const { bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
+  const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -451,7 +451,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Phase 1: Bulk hierarchy updates
       if (hierarchyUpdates.length > 0) {
         console.log("🔄 Phase 1: Bulk hierarchy updates");
-        await bulkUpdateHierarchies.mutateAsync(hierarchyUpdates);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
       }
 
       // Phase 2: Bulk predecessor updates 
@@ -461,7 +464,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           id: update.taskId,
           predecessor: JSON.stringify(update.newPredecessors)
         }));
-        await bulkUpdatePredecessors.mutateAsync(predecessorBulkUpdates);
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorBulkUpdates, 
+          options: { suppressInvalidate: true } 
+        });
       }
 
       // Phase 3: Create the actual task
@@ -530,28 +536,37 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       console.log(`🗑️ DELETE OPERATION: ${deleteResult.tasksToDelete.length} tasks to delete, ${deleteResult.hierarchyUpdates.length} hierarchy updates, ${deleteResult.predecessorUpdates.length} predecessor updates`);
       
-      // Phase 1: Delete all tasks
-      console.log('🔄 Phase 1: Deleting tasks');
-      for (const taskToDeleteId of deleteResult.tasksToDelete) {
-        await deleteTask.mutateAsync(taskToDeleteId);
-      }
-      
-      // Phase 2: Apply hierarchy renumbering (ascending order is safe after deletion)
-      console.log(`🔄 Phase 2: Applying ${deleteResult.hierarchyUpdates.length} hierarchy updates`);
-      for (const update of deleteResult.hierarchyUpdates) {
-        console.log('🔧 Updating task hierarchy:', update.id, '->', update.hierarchy_number);
-        await updateTask.mutateAsync({
-          id: update.id,
-          hierarchy_number: update.hierarchy_number
+      // Set batch operation flag
+      (window as any).batchOperationInProgress = true;
+
+      // Phase 1: Delete all tasks in bulk
+      console.log('🔄 Phase 1: Bulk deleting tasks');
+      if (deleteResult.tasksToDelete.length > 0) {
+        await bulkDeleteTasks.mutateAsync({ 
+          taskIds: deleteResult.tasksToDelete, 
+          options: { suppressInvalidate: true } 
         });
       }
       
-      // Phase 3: Clean up predecessors
-      console.log(`🔄 Phase 3: Cleaning up ${deleteResult.predecessorUpdates.length} predecessor references`);
-      for (const update of deleteResult.predecessorUpdates) {
-        await updateTask.mutateAsync({
+      // Phase 2: Bulk update hierarchies
+      if (deleteResult.hierarchyUpdates.length > 0) {
+        console.log(`🔄 Phase 2: Bulk updating ${deleteResult.hierarchyUpdates.length} hierarchy updates`);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: deleteResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 3: Bulk update predecessors
+      if (deleteResult.predecessorUpdates.length > 0) {
+        console.log(`🔄 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} predecessor references`);
+        const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
           id: update.taskId,
-          predecessor: JSON.stringify(update.newPredecessors)
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorUpdates, 
+          options: { suppressInvalidate: true } 
         });
       }
       
@@ -572,6 +587,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     } catch (error) {
       console.error("Failed to delete task:", error);
       toast.error("Failed to delete task");
+    } finally {
+      // Clear batch flag and invalidate cache once
+      (window as any).batchOperationInProgress = false;
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
   };
 
@@ -605,19 +624,27 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Use the proper bulk delete logic with renumbering
       const deleteResult = computeBulkDeleteUpdates(selectedTaskIds, tasks);
       
-      console.log(`🚀 Starting bulk delete of ${deleteResult.tasksToDelete.length} tasks`);
+      console.log(`🚀 Starting optimized bulk delete of ${deleteResult.tasksToDelete.length} tasks`);
       
-      // Phase 1: Delete all tasks in parallel
-      console.log(`🗑️ Phase 1: Deleting ${deleteResult.tasksToDelete.length} tasks`);
-      const deletePromises = deleteResult.tasksToDelete.map(taskId => 
-        deleteTask.mutateAsync(taskId)
-      );
-      await Promise.all(deletePromises);
+      // Set batch operation flag
+      (window as any).batchOperationInProgress = true;
+      
+      // Phase 1: Bulk delete all tasks
+      if (deleteResult.tasksToDelete.length > 0) {
+        console.log(`🗑️ Phase 1: Bulk deleting ${deleteResult.tasksToDelete.length} tasks`);
+        await bulkDeleteTasks.mutateAsync({ 
+          taskIds: deleteResult.tasksToDelete, 
+          options: { suppressInvalidate: true } 
+        });
+      }
       
       // Phase 2: Bulk update hierarchies if needed
       if (deleteResult.hierarchyUpdates.length > 0) {
         console.log(`📋 Phase 2: Bulk updating ${deleteResult.hierarchyUpdates.length} task hierarchies`);
-        await bulkUpdateHierarchies.mutateAsync(deleteResult.hierarchyUpdates);
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: deleteResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
       }
       
       // Phase 3: Bulk update predecessors if needed
@@ -627,7 +654,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           id: update.taskId,
           predecessor: update.newPredecessors
         }));
-        await bulkUpdatePredecessors.mutateAsync(predecessorUpdates);
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorUpdates, 
+          options: { suppressInvalidate: true } 
+        });
       }
       
       // Phase 4: Recalculate parent groups
@@ -643,6 +673,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     } catch (error) {
       console.error("Failed to delete tasks:", error);
       toast.error("Failed to delete selected tasks");
+    } finally {
+      // Clear batch flag and invalidate cache once
+      (window as any).batchOperationInProgress = false;
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
   };
 
