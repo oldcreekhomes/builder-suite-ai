@@ -56,7 +56,7 @@ export const useTaskMutations = (projectId: string) => {
           end_date: normalizeDate(params.end_date),
           duration: params.duration || 1,
           progress: params.progress || 0,
-          predecessor: Array.isArray(params.predecessor) ? JSON.stringify(params.predecessor) : params.predecessor || null,
+          predecessor: Array.isArray(params.predecessor) ? params.predecessor : (params.predecessor ? [params.predecessor] : null),
           resources: params.resources || null,
           hierarchy_number: params.hierarchy_number || "1",
         })
@@ -135,7 +135,7 @@ export const useTaskMutations = (projectId: string) => {
       if (params.duration !== undefined) updateData.duration = params.duration;
       if (params.progress !== undefined) updateData.progress = params.progress;
       if (params.predecessor !== undefined) {
-        updateData.predecessor = Array.isArray(params.predecessor) ? JSON.stringify(params.predecessor) : params.predecessor;
+        updateData.predecessor = Array.isArray(params.predecessor) ? params.predecessor : (params.predecessor ? [params.predecessor] : null);
       }
       if (params.resources !== undefined) updateData.resources = params.resources;
       if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;

@@ -438,7 +438,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           return {
             ...task,
             ...(hierarchyUpdate && { hierarchy_number: hierarchyUpdate.hierarchy_number }),
-            ...(predecessorUpdate && { predecessor: JSON.stringify(predecessorUpdate.newPredecessors) })
+            ...(predecessorUpdate && { predecessor: predecessorUpdate.newPredecessors })
           } as ProjectTask;
         });
         
@@ -483,7 +483,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.log("🔄 Updating predecessors separately...");
         const predecessorBulkUpdates = predecessorUpdates.map(update => ({
           id: update.taskId,
-          predecessor: JSON.stringify(update.newPredecessors)
+          predecessor: update.newPredecessors
         }));
         await bulkUpdatePredecessors.mutateAsync({ 
           updates: predecessorBulkUpdates, 

@@ -123,7 +123,7 @@ export const useTaskBulkMutations = (projectId: string) => {
         const batch = updates.slice(i, i + batchSize);
         const batchPromises = batch.map(update => {
           const predecessorValue = Array.isArray(update.predecessor) 
-            ? JSON.stringify(update.predecessor) 
+            ? update.predecessor 
             : update.predecessor;
             
           return supabase
