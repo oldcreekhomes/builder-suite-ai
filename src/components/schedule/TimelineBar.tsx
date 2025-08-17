@@ -17,15 +17,14 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
-  const getBarColor = (task: ProjectTask) => {
-    // Check if task has confirmed status - assuming this might be in a field like 'confirmed' or 'status'
-    // Default to blue, red if confirmed is false, green if confirmed is true
+  const getBarColorClass = (task: ProjectTask) => {
+    // Check if task has confirmed status
     if (task.confirmed === false) {
-      return "#ef4444"; // Red
+      return "timeline-unconfirmed"; // Red for unconfirmed
     } else if (task.confirmed === true) {
-      return "#22c55e"; // Green  
+      return "timeline-confirmed"; // Green for confirmed
     } else {
-      return "#3b82f6"; // Blue (default)
+      return "timeline-default"; // Blue (default)
     }
   };
 
@@ -49,7 +48,7 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  const barColor = getBarColor(task);
+  const barColorClass = getBarColorClass(task);
   const progressWidth = (position.width * position.progress) / 100;
 
   return (
@@ -63,25 +62,21 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
     >
       {/* Task Bar */}
       <div
-        className={`absolute h-6 rounded cursor-move border border-border/50 ${
+        className={`absolute h-6 rounded cursor-move border ${
           isDragging ? "opacity-70" : ""
-        }`}
+        } bg-${barColorClass}/25 border-${barColorClass}`}
         style={{
           left: position.left,
           width: position.width,
           top: (rowHeight - 24) / 2, // Center the 24px bar in the row
-          backgroundColor: barColor + "40", // Add transparency
-          borderColor: barColor
         }}
         onMouseDown={handleMouseDown}
       >
         {/* Progress Fill */}
         <div
-          className="h-full rounded-l"
+          className={`h-full rounded-l bg-${barColorClass} opacity-80`}
           style={{
             width: progressWidth,
-            backgroundColor: barColor,
-            opacity: 0.8
           }}
         />
         
