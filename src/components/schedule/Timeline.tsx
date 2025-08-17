@@ -225,14 +225,19 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           {connections.map((connection, index) => {
             const { from, to } = connection;
             
-            // Calculate orthogonal path: left (short), down, right
-            const leftOffset = 10; // Short distance to go left from predecessor
-            const leftTurnX = from.x + leftOffset;
+            // Calculate complex orthogonal path: right, down 1/3, left, down, right
+            const rightOffset = 10; // Distance to go right from predecessor
+            const leftOffset = 8;   // Distance to go left in middle section
+            const rightTurnX = from.x + rightOffset;
+            const intermediateY = from.y + (to.y - from.y) * 0.33; // 1/3 down
+            const leftTurnX = rightTurnX - leftOffset;
             
-            // Create path that goes left short distance, down, then right to successor
+            // Create stepped path
             const pathData = `M ${from.x} ${from.y} 
-                             L ${leftTurnX} ${from.y} 
-                             L ${leftTurnX} ${to.y} 
+                             L ${rightTurnX} ${from.y} 
+                             L ${rightTurnX} ${intermediateY}
+                             L ${leftTurnX} ${intermediateY}
+                             L ${leftTurnX} ${to.y}
                              L ${to.x} ${to.y}`;
 
             return (
@@ -243,13 +248,6 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
                   stroke="black"
                   strokeWidth="2"
                   fill="none"
-                />
-                {/* Small diamond at first junction */}
-                <circle
-                  cx={leftTurnX}
-                  cy={from.y}
-                  r="2"
-                  fill="black"
                 />
                 {/* Arrow head pointing right into successor task */}
                 <polygon
