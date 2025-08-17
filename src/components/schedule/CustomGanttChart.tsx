@@ -454,28 +454,40 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
       // Phase 1: Bulk hierarchy updates (MUST happen before creating new task to avoid constraint violation)
       if (hierarchyUpdates.length > 0) {
-        console.log("🔄 Phase 1: Bulk hierarchy updates");
-        await bulkUpdateHierarchies.mutateAsync({ 
-          updates: hierarchyUpdates, 
-          options: { suppressInvalidate: true } 
-        });
+        console.log("🔄 Phase 1: Sequential hierarchy updates for", hierarchyUpdates.length, "tasks");
+        try {
+          await bulkUpdateHierarchies.mutateAsync({ 
+            updates: hierarchyUpdates, 
+            options: { suppressInvalidate: true } 
+          });
+          console.log("✅ Phase 1 completed: Hierarchy updates successful");
+        } catch (error) {
+          console.error("❌ Phase 1 failed: Hierarchy updates error:", error);
+          throw new Error(`Failed to update task hierarchy: ${error.message}`);
+        }
       }
 
       // Phase 2: Bulk predecessor updates 
       if (predecessorUpdates.length > 0) {
-        console.log("🔄 Phase 2: Bulk predecessor updates");
-        const predecessorBulkUpdates = predecessorUpdates.map(update => ({
-          id: update.taskId,
-          predecessor: JSON.stringify(update.newPredecessors)
-        }));
-        await bulkUpdatePredecessors.mutateAsync({ 
-          updates: predecessorBulkUpdates, 
-          options: { suppressInvalidate: true } 
-        });
+        console.log("🔄 Phase 2: Bulk predecessor updates for", predecessorUpdates.length, "tasks");
+        try {
+          const predecessorBulkUpdates = predecessorUpdates.map(update => ({
+            id: update.taskId,
+            predecessor: JSON.stringify(update.newPredecessors)
+          }));
+          await bulkUpdatePredecessors.mutateAsync({ 
+            updates: predecessorBulkUpdates, 
+            options: { suppressInvalidate: true } 
+          });
+          console.log("✅ Phase 2 completed: Predecessor updates successful");
+        } catch (error) {
+          console.error("❌ Phase 2 failed: Predecessor updates error:", error);
+          throw new Error(`Failed to update task predecessors: ${error.message}`);
+        }
       }
 
       // Phase 3: Create the actual task (after hierarchy updates to avoid constraint violation)
-      console.log("🔄 Phase 3: Creating new task");
+      console.log("🔄 Phase 3: Creating new task with hierarchy", newTaskHierarchy);
       
       // Use same business day logic as optimistic task
       const startString = formatYMD(startDate) + 'T00:00:00';
