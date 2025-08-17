@@ -213,8 +213,8 @@ export function TaskTable({
   };
 
   return (
-    <div className="h-full overflow-auto">
-      <Table>
+    <div className="h-full">
+      <Table containerClassName="relative w-full h-full overflow-auto">
         <TableHeader>
           <TableRow className="h-8">
             <TableHead className="w-10 text-xs py-1 px-2">
