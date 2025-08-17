@@ -225,29 +225,36 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           {connections.map((connection, index) => {
             const { from, to } = connection;
             
-            // Calculate orthogonal path: right, down, right
-            const horizontalDistance = 20; // How far right to go first
-            const intermediateX = from.x + horizontalDistance;
+            // Calculate orthogonal path: right, down, left (matching second image style)
+            const horizontalExtension = 15; // How far right to extend from predecessor
+            const rightExtendX = from.x + horizontalExtension;
             
-            // Create elbow path that goes right, then down, then right to target
+            // Create path that goes right from predecessor, down, then left to successor
             const pathData = `M ${from.x} ${from.y} 
-                             L ${intermediateX} ${from.y} 
-                             L ${intermediateX} ${to.y} 
-                             L ${to.x - 8} ${to.y}`;
+                             L ${rightExtendX} ${from.y} 
+                             L ${rightExtendX} ${to.y} 
+                             L ${to.x} ${to.y}`;
 
             return (
               <g key={`${connection.fromTaskName}-${connection.toTaskName}-${index}`}>
                 {/* Connection path */}
                 <path
                   d={pathData}
-                  stroke="black"
+                  stroke="#FF8C00" 
                   strokeWidth="2"
                   fill="none"
                 />
-                {/* Arrow head pointing right */}
+                {/* Small diamond at junction */}
+                <circle
+                  cx={rightExtendX}
+                  cy={from.y}
+                  r="3"
+                  fill="#FF8C00"
+                />
+                {/* Arrow head pointing left into successor task */}
                 <polygon
-                  points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
-                  fill="black"
+                  points={`${to.x},${to.y} ${to.x + 8},${to.y - 4} ${to.x + 8},${to.y + 4}`}
+                  fill="#FF8C00"
                 />
               </g>
             );
