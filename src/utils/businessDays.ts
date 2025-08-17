@@ -85,14 +85,13 @@ export const getBusinessDaysBetween = (startDate: Date, endDate: Date): number =
  * Calculate end date from start date and business day duration
  */
 export const calculateBusinessEndDate = (startDate: Date, businessDaysDuration: number): Date => {
-  if (businessDaysDuration <= 1) {
-    // For 1-day tasks, start and end on the same business day
-    return isBusinessDay(startDate) ? new Date(startDate) : getNextBusinessDay(startDate);
+  if (businessDaysDuration <= 0) {
+    return new Date(startDate);
   }
   
-  // For multi-day tasks, add (duration - 1) business days to start date
+  // Add the full duration in business days to get the end date
   const adjustedStart = isBusinessDay(startDate) ? new Date(startDate) : getNextBusinessDay(startDate);
-  return addBusinessDays(adjustedStart, businessDaysDuration - 1);
+  return addBusinessDays(adjustedStart, businessDaysDuration);
 };
 
 /**
