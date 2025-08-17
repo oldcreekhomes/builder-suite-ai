@@ -225,11 +225,11 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
           {connections.map((connection, index) => {
             const { from, to } = connection;
             
-            // Calculate complex orthogonal path: right, down 1/3, left, down, right
+            // Calculate complex orthogonal path: right, down longer, left longer, down, right
             const rightOffset = 10; // Distance to go right from predecessor
-            const leftOffset = 8;   // Distance to go left in middle section
+            const leftOffset = 16;  // Distance to go left in middle section (doubled)
             const rightTurnX = from.x + rightOffset;
-            const intermediateY = from.y + (to.y - from.y) * 0.33; // 1/3 down
+            const intermediateY = from.y + (to.y - from.y) * 0.44; // Extended down by another 1/3
             const leftTurnX = rightTurnX - leftOffset;
             
             // Create stepped path
