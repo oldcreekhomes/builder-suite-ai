@@ -63,26 +63,46 @@ export function TaskRow({
   const formatDate = (dateString: string) => {
     try {
       // Handle invalid or empty date strings
-      if (!dateString || dateString === 'Invalid Date') {
+      if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
         return "—";
       }
       
-      // Extract date part and validate
-      const datePart = dateString.includes('T') ? dateString.split('T')[0] : dateString;
-      if (!datePart || datePart.length < 10) {
+      // Convert to string if not already
+      const dateStr = String(dateString);
+      
+      // Extract date part and validate format
+      const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+      if (!datePart || datePart.length < 8) { // Minimum YYYY-MM-DD is 10, but be more lenient
+        console.warn('Invalid date format:', dateString);
         return "—";
       }
       
-      // Create date and validate
+      // Additional validation - check if it looks like a date
+      const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
+      if (!dateRegex.test(datePart)) {
+        console.warn('Date does not match expected format:', dateString);
+        return "—";
+      }
+      
+      // Create date and validate BEFORE calling format
       const date = new Date(datePart + "T12:00:00");
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', dateString);
+      const timestamp = date.getTime();
+      
+      if (isNaN(timestamp) || timestamp < 0) {
+        console.warn('Invalid date timestamp:', dateString, timestamp);
+        return "—";
+      }
+      
+      // Additional sanity check - ensure year is reasonable
+      const year = date.getFullYear();
+      if (year < 1900 || year > 2100) {
+        console.warn('Date year out of reasonable range:', dateString, year);
         return "—";
       }
       
       return format(date, "MM/dd/yy");
     } catch (error) {
-      console.warn('Error formatting date:', dateString, error);
+      console.error('Error formatting date:', dateString, error);
       return "—";
     }
   };
@@ -257,7 +277,22 @@ export function TaskRow({
         {/* Start Date */}
         <TableCell className="py-1 px-2">
           <InlineEditCell
-            value={task.start_date ? task.start_date.split("T")[0] : ""}
+            value={(() => {
+              try {
+                if (!task.start_date) return "";
+                const datePart = task.start_date.split("T")[0];
+                // Validate the date part before using it
+                const testDate = new Date(datePart + "T12:00:00");
+                if (isNaN(testDate.getTime())) {
+                  console.warn('Invalid start_date for task:', task.task_name, task.start_date);
+                  return "";
+                }
+                return datePart;
+              } catch (error) {
+                console.error('Error processing start_date:', task.start_date, error);
+                return "";
+              }
+            })()}
             type="date"
             onSave={handleFieldUpdate("start_date")}
             displayFormat={formatDate}
@@ -279,10 +314,16 @@ export function TaskRow({
         {/* End Date - Read Only for all tasks */}
         <TableCell className="py-1 px-2">
           <span className="text-xs px-1 py-0.5 text-black">
-            {task.start_date && task.duration ? 
-              formatDate(calculateEndDate(task.start_date, task.duration)) : 
-              "—"
-            }
+            {(() => {
+              try {
+                if (!task.start_date || !task.duration) return "—";
+                const endDate = calculateEndDate(task.start_date, task.duration);
+                return formatDate(endDate);
+              } catch (error) {
+                console.error('Error calculating/formatting end date:', error);
+                return "—";
+              }
+            })()}
           </span>
         </TableCell>
 
