@@ -25,7 +25,6 @@ interface MarketplaceRepresentativeWithCompany {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary?: boolean;
   marketplace_companies: {
     company_name: string;
     company_type: string;
@@ -130,15 +129,8 @@ export function MarketplaceRepresentativesTable() {
             {representatives.map((rep) => (
               <TableRow key={rep.id} className="h-10">
                 <TableCell className="px-2 py-1">
-                  <div className="flex flex-col">
-                    <div className="text-xs font-medium">
-                      {rep.first_name} {rep.last_name}
-                    </div>
-                    {rep.is_primary && (
-                      <Badge variant="secondary" className="text-[10px] mt-0.5 w-fit px-1 py-0">
-                        Primary Contact
-                      </Badge>
-                    )}
+                  <div className="text-xs font-medium">
+                    {rep.first_name} {rep.last_name}
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-1">

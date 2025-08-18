@@ -132,7 +132,6 @@ export type Database = {
           email: string | null
           first_name: string
           id: string
-          is_primary: boolean | null
           last_name: string
           phone_number: string | null
           receive_bid_notifications: boolean | null
@@ -147,7 +146,6 @@ export type Database = {
           email?: string | null
           first_name: string
           id?: string
-          is_primary?: boolean | null
           last_name: string
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
@@ -162,7 +160,6 @@ export type Database = {
           email?: string | null
           first_name?: string
           id?: string
-          is_primary?: boolean | null
           last_name?: string
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
@@ -365,7 +362,6 @@ export type Database = {
           email: string | null
           first_name: string
           id: string
-          is_primary: boolean | null
           last_name: string
           marketplace_company_id: string
           phone_number: string | null
@@ -377,7 +373,6 @@ export type Database = {
           email?: string | null
           first_name: string
           id?: string
-          is_primary?: boolean | null
           last_name: string
           marketplace_company_id: string
           phone_number?: string | null
@@ -389,7 +384,6 @@ export type Database = {
           email?: string | null
           first_name?: string
           id?: string
-          is_primary?: boolean | null
           last_name?: string
           marketplace_company_id?: string
           phone_number?: string | null

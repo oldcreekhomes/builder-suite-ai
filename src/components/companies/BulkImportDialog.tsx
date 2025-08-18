@@ -91,7 +91,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Title: "Project Manager",
         Email: "john.smith@abcconstruction.com",
         PhoneNumber: "(555) 123-4567",
-        IsPrimary: "TRUE",
         ReceiveBidNotifications: "TRUE",
         ReceiveScheduleNotifications: "FALSE",
         ReceivePONotifications: "TRUE"
@@ -103,7 +102,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Title: "Estimator",
         Email: "jane.doe@abcconstruction.com", 
         PhoneNumber: "(555) 123-4568",
-        IsPrimary: "FALSE",
         ReceiveBidNotifications: "FALSE",
         ReceiveScheduleNotifications: "TRUE",
         ReceivePONotifications: "FALSE"
@@ -115,7 +113,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Title: "Owner",
         Email: "mike@xyzelectrical.com",
         PhoneNumber: "(555) 987-6543",
-        IsPrimary: "TRUE",
         ReceiveBidNotifications: "TRUE",
         ReceiveScheduleNotifications: "TRUE",
         ReceivePONotifications: "TRUE"
@@ -323,7 +320,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             title: row.Title || null,
             email: row.Email || null,
             phone_number: row.PhoneNumber || null,
-            is_primary: row.IsPrimary === 'TRUE',
             receive_bid_notifications: row.ReceiveBidNotifications === 'TRUE',
             receive_schedule_notifications: row.ReceiveScheduleNotifications === 'TRUE',
             receive_po_notifications: row.ReceivePONotifications === 'TRUE'

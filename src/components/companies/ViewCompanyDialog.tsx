@@ -40,7 +40,6 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
-  is_primary: boolean;
 }
 
 interface ViewCompanyDialogProps {
@@ -65,7 +64,6 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
         .from('company_representatives')
         .select('*')
         .eq('company_id', company.id)
-        .order('is_primary', { ascending: false })
         .order('first_name');
       
       if (error) throw error;
@@ -203,16 +201,11 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
                     <div key={rep.id} className="border rounded-lg p-4 bg-gray-50">
                       <div className="flex items-start justify-between">
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">
-                              {rep.first_name} {rep.last_name}
-                            </span>
-                            {rep.is_primary && (
-                              <Badge variant="secondary" className="text-xs">
-                                Primary
-                              </Badge>
-                            )}
-                          </div>
+                           <div className="flex items-center space-x-2">
+                             <span className="font-medium">
+                               {rep.first_name} {rep.last_name}
+                             </span>
+                           </div>
                           
                           {rep.title && (
                             <div className="text-sm text-gray-600">{rep.title}</div>
