@@ -8,10 +8,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { useProjectManagers } from "@/hooks/useProjectManagers";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Accounting() {
-  const [selectedApprover, setSelectedApprover] = useState('Sarah Wilson');
+  const { data: projectManagersData, isLoading } = useProjectManagers();
+  const [selectedManagerId, setSelectedManagerId] = useState<string>('');
   const [jobApprovals, setJobApprovals] = useState<Record<string, boolean>>({});
+
+  // Set the first manager as selected when data loads
+  useEffect(() => {
+    if (projectManagersData?.managers && projectManagersData.managers.length > 0 && !selectedManagerId) {
+      setSelectedManagerId(projectManagersData.managers[0].id);
+    }
+  }, [projectManagersData, selectedManagerId]);
 
   // Load approvals from localStorage on mount
   useEffect(() => {
@@ -26,35 +37,6 @@ export default function Accounting() {
     localStorage.setItem('accountingJobApprovals', JSON.stringify(jobApprovals));
   }, [jobApprovals]);
 
-  const approvers = [
-    { id: 1, name: 'Sarah Wilson', initial: 'SW' },
-    { id: 2, name: 'Mike Johnson', initial: 'MJ' },
-    { id: 3, name: 'Lisa Chen', initial: 'LC' }
-  ];
-
-  const jobs = [
-    { id: 'JOB-001', name: 'Riverside Residence', approver: 'Sarah Wilson', pending: 2, approved: 1, status: 'pending' },
-    { id: 'JOB-002', name: 'Downtown Office Complex', approver: 'Mike Johnson', pending: 0, approved: 3, status: 'approved' },
-    { id: 'JOB-003', name: 'Maple Street Duplex', approver: 'Lisa Chen', pending: 1, approved: 0, status: 'pending' },
-    { id: 'JOB-004', name: 'Sunset Villa', approver: 'Sarah Wilson', pending: 0, approved: 2, status: 'approved' },
-    { id: 'JOB-005', name: 'Pine Grove Townhomes', approver: 'Mike Johnson', pending: 0, approved: 0, status: 'current' },
-    { id: 'JOB-006', name: 'Lakefront Cabin', approver: 'Lisa Chen', pending: 1, approved: 0, status: 'pending' },
-    { id: 'JOB-007', name: 'Industrial Warehouse', approver: 'Sarah Wilson', pending: 0, approved: 4, status: 'approved' },
-    { id: 'JOB-008', name: 'Greenfield Apartments', approver: 'Mike Johnson', pending: 3, approved: 1, status: 'pending' },
-    { id: 'JOB-009', name: 'Oak Street Renovation', approver: 'Lisa Chen', pending: 0, approved: 0, status: 'current' },
-    { id: 'JOB-010', name: 'Tech Campus Phase 1', approver: 'Sarah Wilson', pending: 2, approved: 2, status: 'pending' },
-    { id: 'JOB-011', name: 'Retail Plaza', approver: 'Mike Johnson', pending: 0, approved: 1, status: 'approved' },
-    { id: 'JOB-012', name: 'Mountain View Condos', approver: 'Lisa Chen', pending: 1, approved: 0, status: 'pending' },
-    { id: 'JOB-013', name: 'Community Center', approver: 'Sarah Wilson', pending: 0, approved: 3, status: 'approved' },
-    { id: 'JOB-014', name: 'Luxury Hotel', approver: 'Mike Johnson', pending: 4, approved: 1, status: 'pending' },
-    { id: 'JOB-015', name: 'School Addition', approver: 'Lisa Chen', pending: 0, approved: 0, status: 'current' },
-    { id: 'JOB-016', name: 'Medical Building', approver: 'Sarah Wilson', pending: 1, approved: 2, status: 'pending' },
-    { id: 'JOB-017', name: 'Sports Complex', approver: 'Mike Johnson', pending: 0, approved: 2, status: 'approved' },
-    { id: 'JOB-018', name: 'Senior Housing', approver: 'Lisa Chen', pending: 2, approved: 0, status: 'pending' },
-    { id: 'JOB-019', name: 'Transit Station', approver: 'Sarah Wilson', pending: 0, approved: 1, status: 'approved' },
-    { id: 'JOB-020', name: 'Fire Station', approver: 'Mike Johnson', pending: 0, approved: 0, status: 'current' }
-  ];
-
   const handleApprovalChange = (jobId: string, isApproved: boolean) => {
     setJobApprovals(prev => ({
       ...prev,
@@ -66,13 +48,64 @@ export default function Accounting() {
     return jobApprovals[jobId] || false;
   };
 
-  const filteredJobs = jobs.filter(job => job.approver === selectedApprover);
+  // Get projects for the selected manager
+  const selectedManagerProjects = selectedManagerId && projectManagersData?.projectsByManager 
+    ? projectManagersData.projectsByManager[selectedManagerId] || []
+    : [];
 
   const summaryStats = {
-    totalApproved: filteredJobs.filter(job => isJobApproved(job.id)).length,
-    totalUnapproved: filteredJobs.filter(job => !isJobApproved(job.id)).length,
-    totalJobs: filteredJobs.length
+    totalApproved: selectedManagerProjects.filter(project => isJobApproved(project.id)).length,
+    totalUnapproved: selectedManagerProjects.filter(project => !isJobApproved(project.id)).length,
+    totalJobs: selectedManagerProjects.length
   };
+
+  if (isLoading) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1 flex flex-col">
+            <CompanyDashboardHeader title="My Invoice Dashboard" />
+            <div className="flex-1 p-6 space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4 text-center">
+                      <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                      <Skeleton className="h-4 w-20 mx-auto" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <Card>
+                <div className="p-4">
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </Card>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  if (!projectManagersData?.managers || projectManagersData.managers.length === 0) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1 flex flex-col">
+            <CompanyDashboardHeader title="My Invoice Dashboard" />
+            <div className="flex-1 p-6 space-y-6">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No project managers found. Assign managers to projects to use the invoice dashboard.</p>
+              </div>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -103,62 +136,85 @@ export default function Accounting() {
               </Card>
             </div>
 
-            {/* Jobs Table with Approver Tabs */}
+            {/* Jobs Table with Manager Tabs */}
             <Card>
-              <Tabs value={selectedApprover} onValueChange={setSelectedApprover} className="w-full">
+              <Tabs value={selectedManagerId} onValueChange={setSelectedManagerId} className="w-full">
                 <div className="p-4 border-b">
-                  <TabsList className="grid w-full grid-cols-3">
-                    {approvers.map((approver) => (
+                  <TabsList className={`grid w-full grid-cols-${Math.min(projectManagersData.managers.length, 4)}`}>
+                    {projectManagersData.managers.map((manager) => (
                       <TabsTrigger 
-                        key={approver.id} 
-                        value={approver.name}
+                        key={manager.id} 
+                        value={manager.id}
                         className="flex items-center gap-2"
                       >
                         <div className="w-3 h-3 rounded-full bg-primary"></div>
-                        {approver.name}
+                        <span className="truncate">
+                          {`${manager.first_name} ${manager.last_name}`.trim() || manager.email}
+                        </span>
+                        {manager.project_count > 0 && (
+                          <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                            {manager.project_count}
+                          </Badge>
+                        )}
                       </TabsTrigger>
                     ))}
                   </TabsList>
                 </div>
                 
-                {approvers.map((approver) => (
-                  <TabsContent key={approver.id} value={approver.name} className="m-0">
+                {projectManagersData.managers.map((manager) => (
+                  <TabsContent key={manager.id} value={manager.id} className="m-0">
                     <div className="p-4 border-b bg-muted/30">
-                      <h3 className="text-lg font-semibold text-foreground">{approver.name}'s Jobs</h3>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {`${manager.first_name} ${manager.last_name}`.trim() || manager.email}'s Projects
+                      </h3>
                     </div>
                     
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-left">Job Name</TableHead>
-                          <TableHead className="text-center">Approved</TableHead>
+                          <TableHead className="text-left">Project Name</TableHead>
                           <TableHead className="text-center">Status</TableHead>
+                          <TableHead className="text-center">Invoice Approved</TableHead>
+                          <TableHead className="text-center">Approval Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredJobs.map((job) => {
-                          const approved = isJobApproved(job.id);
-                          return (
-                            <TableRow 
-                              key={job.id} 
-                              className={`hover:bg-muted/50 ${approved ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-muted'}`}
-                            >
-                              <TableCell className="font-medium text-foreground">{job.name}</TableCell>
-                              <TableCell className="text-center">
-                                <Checkbox
-                                  checked={approved}
-                                  onCheckedChange={(checked) => handleApprovalChange(job.id, checked as boolean)}
-                                  className="w-4 h-4"
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="text-sm font-medium text-foreground">
-                                  {approved ? 'Approved' : 'Unapproved'}
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                        {selectedManagerProjects.length > 0 ? (
+                          selectedManagerProjects.map((project) => {
+                            const approved = isJobApproved(project.id);
+                            return (
+                              <TableRow 
+                                key={project.id} 
+                                className={`hover:bg-muted/50 ${approved ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-muted'}`}
+                              >
+                                <TableCell className="font-medium text-foreground">{project.name}</TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                                    {project.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={approved}
+                                    onCheckedChange={(checked) => handleApprovalChange(project.id, checked as boolean)}
+                                    className="w-4 h-4"
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <span className="text-sm font-medium text-foreground">
+                                    {approved ? 'Approved' : 'Unapproved'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                              No projects assigned to this manager
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </TabsContent>
