@@ -168,18 +168,11 @@ export default function Accounting() {
                 
                 {projectManagersData.managers.map((manager) => (
                   <TabsContent key={manager.id} value={manager.id} className="m-0">
-                    <div className="p-4 border-b bg-muted/30">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {manager.first_name || manager.email}'s Projects
-                      </h3>
-                    </div>
-                    
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="text-left">Project Name</TableHead>
-                          <TableHead className="text-center">Status</TableHead>
-                          <TableHead className="text-center">Invoice Approved</TableHead>
+                          <TableHead className="text-center">Invoice Status</TableHead>
                           <TableHead className="text-center">Approval Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -194,16 +187,13 @@ export default function Accounting() {
                               >
                                 <TableCell className="font-medium text-foreground">{project.name}</TableCell>
                                 <TableCell className="text-center">
-                                  <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                                    {project.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={approved}
-                                    onCheckedChange={(checked) => handleApprovalChange(project.id, checked as boolean)}
-                                    className="w-4 h-4"
-                                  />
+                                  <div className="flex justify-center">
+                                    <Checkbox
+                                      checked={approved}
+                                      onCheckedChange={(checked) => handleApprovalChange(project.id, checked as boolean)}
+                                      className="w-4 h-4"
+                                    />
+                                  </div>
                                 </TableCell>
                                 <TableCell className="text-center">
                                   <span className="text-sm font-medium text-foreground">
@@ -215,7 +205,7 @@ export default function Accounting() {
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                               No projects assigned to this manager
                             </TableCell>
                           </TableRow>
