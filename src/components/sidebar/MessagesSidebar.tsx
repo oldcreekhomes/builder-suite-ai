@@ -107,7 +107,7 @@ export function MessagesSidebar({
   return (
     <SidebarContent className="px-3 pt-0 flex-1 overflow-hidden">
       <SidebarGroup className="p-0">
-        <SidebarGroupLabel className="text-lg font-semibold mb-2">
+        <SidebarGroupLabel className="text-lg font-semibold mb-2 mt-4">
           Messages
         </SidebarGroupLabel>
         
