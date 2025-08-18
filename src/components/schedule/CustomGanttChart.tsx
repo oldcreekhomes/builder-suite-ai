@@ -98,6 +98,56 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const timeoutId = setTimeout(autoNormalize, 1000);
     return () => clearTimeout(timeoutId);
   }, [tasks, projectId, user?.id]);
+
+  // Debounced parent recalculation when tasks change
+  useEffect(() => {
+    if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc) return;
+    
+    const recalculateParents = async () => {
+      console.log('🔄 Auto-recalculating parent tasks');
+      
+      // Find all parent tasks that have children
+      const parentTasks = tasks.filter(task => {
+        if (!task.hierarchy_number) return false;
+        return tasks.some(child => 
+          child.hierarchy_number?.startsWith(task.hierarchy_number + '.')
+        );
+      });
+      
+      if (parentTasks.length === 0) return;
+      
+      setIsRecalculatingParents(true);
+      
+      try {
+        for (const parentTask of parentTasks) {
+          const calculations = calculateParentTaskValues(parentTask, tasks);
+          if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
+            console.log(`🔄 Updating parent: ${parentTask.task_name}`, calculations);
+            await updateTask.mutateAsync({
+              id: parentTask.id,
+              start_date: calculations.startDate,
+              end_date: calculations.endDate,
+              duration: calculations.duration,
+              progress: calculations.progress,
+              suppressInvalidate: true
+            });
+          }
+        }
+        
+        // Invalidate queries once at the end
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      } catch (error) {
+        console.error('❌ Failed to recalculate parents:', error);
+      } finally {
+        setIsRecalculatingParents(false);
+      }
+    };
+    
+    // Debounce to prevent rapid recalculations
+    const timeoutId = setTimeout(recalculateParents, 500);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, updateTask, queryClient, projectId, user?.id, isRecalculatingParents, skipRecalc]);
+
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
