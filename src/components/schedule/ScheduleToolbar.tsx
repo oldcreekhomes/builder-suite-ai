@@ -28,31 +28,27 @@ export function ScheduleToolbar({
         size="sm"
         className="flex items-center gap-2"
       >
-        <Plus className="h-4 w-4" />
-        Add
+        <Plus className="h-4 w-4 text-white" />
+        <span className="text-white">Add</span>
       </Button>
 
       <Button
         onClick={onCopySchedule}
         size="sm"
-        variant="outline"
         className="flex items-center gap-2"
       >
-        <Copy className="h-4 w-4" />
-        Copy Schedule
+        <Copy className="h-4 w-4 text-white" />
+        <span className="text-white">Copy Schedule</span>
       </Button>
       
-      <div className="ml-auto">
-        <Button
-          onClick={onPublish}
-          size="sm"
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <Send className="h-4 w-4" />
-          Publish
-        </Button>
-      </div>
+      <Button
+        onClick={onPublish}
+        size="sm"
+        className="flex items-center gap-2"
+      >
+        <Send className="h-4 w-4 text-white" />
+        <span className="text-white">Publish</span>
+      </Button>
     </div>
   );
 }
