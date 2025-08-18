@@ -26,7 +26,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
   
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
-  const isCompanyDashboard = location.pathname === '/' || location.pathname === '/accounting';
+  const isCompanyDashboard = location.pathname === '/';
   const isIssuesPage = location.pathname === '/issues';
 
   return (
