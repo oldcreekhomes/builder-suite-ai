@@ -151,6 +151,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                   <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">No Manager</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
