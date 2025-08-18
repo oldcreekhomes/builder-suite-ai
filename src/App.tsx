@@ -26,6 +26,7 @@ import Landing from "./pages/Landing";
 import PasswordReset from "./pages/PasswordReset";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Accounting from "./pages/Accounting";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
@@ -105,6 +106,9 @@ const AppContent = () => {
           
           {/* Root route - show Index for authenticated users, redirect to auth for unauthenticated */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          
+          {/* Accounting route */}
+          <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />

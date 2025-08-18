@@ -1,9 +1,10 @@
 import { useLocation } from "react-router-dom";
-import { Sidebar } from "@/components/ui/sidebar";
+import { Sidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { SidebarBranding } from "./sidebar/SidebarBranding";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
+import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
@@ -31,7 +32,19 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   return (
     <Sidebar className="border-r border-border">
       <SidebarBranding />
-      {(isMessagesPage || isCompanyDashboard) ? (
+      {isCompanyDashboard ? (
+        <>
+          <CompanyDashboardNav />
+          <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
+          <MessagesSidebar 
+            selectedUser={selectedUser || null}
+            onUserSelect={onUserSelect}
+            onStartChat={onStartChat}
+            unreadCounts={unreadCounts}
+            markConversationAsRead={markConversationAsRead}
+          />
+        </>
+      ) : isMessagesPage ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
           onUserSelect={onUserSelect}
