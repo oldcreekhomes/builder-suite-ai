@@ -337,7 +337,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // Import the outdent logic
     const { computeOutdentUpdates } = await import("@/utils/outdentLogic");
-    const result = computeOutdentUpdates(task, tasks);
+    
+    // Capture original tasks before any optimistic updates
+    const originalTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+    const result = computeOutdentUpdates(task, originalTasks);
     
     if (result.hierarchyUpdates.length === 0) {
       toast.error("Cannot outdent this task");
@@ -345,18 +348,24 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
     
     try {
+      console.log('🔄 Starting outdent for task:', task.task_name);
+      console.log('📊 Outdent updates computed:', {
+        hierarchyUpdates: result.hierarchyUpdates.length,
+        predecessorUpdates: result.predecessorUpdates.length
+      });
+      
       // Apply optimistic update to cache first for instant UI feedback
-      const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
-      const optimisticTasks = currentTasks.map(t => {
+      const optimisticTasks = originalTasks.map(t => {
         const hierarchyUpdate = result.hierarchyUpdates.find(u => u.id === t.id);
         return hierarchyUpdate ? { ...t, hierarchy_number: hierarchyUpdate.hierarchy_number } : t;
       });
       
       queryClient.setQueryData(['project-tasks', projectId, user.id], optimisticTasks);
       
-      // Apply bulk hierarchy updates to database
+      // Apply bulk hierarchy updates to database with original tasks for comparison
       await bulkUpdateHierarchies.mutateAsync({
         updates: result.hierarchyUpdates,
+        originalTasks,
         options: { suppressInvalidate: true }
       });
       

@@ -57,13 +57,13 @@ export const useTaskBulkMutations = (projectId: string) => {
   });
 
   const bulkUpdateHierarchies = useMutation({
-    mutationFn: async ({ updates, options }: { updates: BulkHierarchyUpdate[], options?: BulkUpdateOptions }) => {
+    mutationFn: async ({ updates, originalTasks, options }: { updates: BulkHierarchyUpdate[], originalTasks?: ProjectTask[], options?: BulkUpdateOptions }) => {
       if (!user || updates.length === 0) return [];
 
       console.log('🔄 Performing smart hierarchy update for', updates.length, 'tasks');
       
-      // Get current tasks from cache to compare directions
-      const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      // Use provided originalTasks or get current tasks from cache to compare directions
+      const currentTasks = originalTasks || queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
       
       // Analyze update directions: increment (1 -> 2) vs decrement (3 -> 2)
       const incrementUpdates: BulkHierarchyUpdate[] = [];
