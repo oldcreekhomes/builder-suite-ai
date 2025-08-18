@@ -53,10 +53,15 @@ export default function Accounting() {
     ? projectManagersData.projectsByManager[selectedManagerId] || []
     : [];
 
+  // Calculate company-wide statistics across all managers
+  const allProjects = projectManagersData?.projectsByManager 
+    ? Object.values(projectManagersData.projectsByManager).flat()
+    : [];
+
   const summaryStats = {
-    totalApproved: selectedManagerProjects.filter(project => isJobApproved(project.id)).length,
-    totalUnapproved: selectedManagerProjects.filter(project => !isJobApproved(project.id)).length,
-    totalJobs: selectedManagerProjects.length
+    totalApproved: allProjects.filter(project => isJobApproved(project.id)).length,
+    totalUnapproved: allProjects.filter(project => !isJobApproved(project.id)).length,
+    totalJobs: allProjects.length
   };
 
   if (isLoading) {
