@@ -12,6 +12,8 @@ import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { ScheduleToolbar } from "./ScheduleToolbar";
+import { CopyScheduleDialog } from "./CopyScheduleDialog";
+import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
@@ -29,6 +31,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
   const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
+  const copyScheduleMutation = useCopySchedule();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -150,6 +153,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -619,6 +623,35 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     } catch (error) {
       console.error("Failed to add group:", error);
       toast.error("Failed to add group");
+    }
+  };
+
+  const handleCopySchedule = () => {
+    setShowCopyScheduleDialog(true);
+  };
+
+  const handleCopyScheduleSubmit = async (options: any) => {
+    const { data: sourceTasks } = await supabase
+      .from('project_schedule_tasks')
+      .select('*')
+      .eq('project_id', options.sourceProjectId);
+
+    if (sourceTasks) {
+      // Transform the tasks to match ProjectTask interface
+      const transformedTasks: ProjectTask[] = sourceTasks.map(task => ({
+        ...task,
+        predecessor: typeof task.predecessor === 'string' 
+          ? task.predecessor 
+          : task.predecessor 
+            ? String(task.predecessor) 
+            : null
+      }));
+
+      await copyScheduleMutation.mutateAsync({
+        targetProjectId: projectId,
+        options,
+        sourceTasks: transformedTasks
+      });
     }
   };
 
@@ -1190,6 +1223,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           projectId={projectId}
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
+          onCopySchedule={handleCopySchedule}
         />
         
         <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
@@ -1273,6 +1307,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CopyScheduleDialog
+        isOpen={showCopyScheduleDialog}
+        onClose={() => setShowCopyScheduleDialog(false)}
+        currentProjectId={projectId}
+        onCopySchedule={handleCopyScheduleSubmit}
+      />
     </div>
   );
 }

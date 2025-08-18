@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Trash2 } from "lucide-react";
+import { Plus, Send, Copy } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -9,6 +9,7 @@ interface ScheduleToolbarProps {
   projectId: string;
   onAddTask: () => void;
   onPublish: () => void;
+  onCopySchedule: () => void;
 }
 
 export function ScheduleToolbar({ 
@@ -16,7 +17,8 @@ export function ScheduleToolbar({
   tasks, 
   projectId,
   onAddTask,
-  onPublish 
+  onPublish,
+  onCopySchedule
 }: ScheduleToolbarProps) {
 
   return (
@@ -28,6 +30,16 @@ export function ScheduleToolbar({
       >
         <Plus className="h-4 w-4" />
         Add
+      </Button>
+
+      <Button
+        onClick={onCopySchedule}
+        size="sm"
+        variant="outline"
+        className="flex items-center gap-2"
+      >
+        <Copy className="h-4 w-4" />
+        Copy Schedule
       </Button>
       
       <div className="ml-auto">
