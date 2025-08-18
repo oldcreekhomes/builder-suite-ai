@@ -50,7 +50,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Address: "123 Main Street, City, State 12345",
         PhoneNumber: "(555) 123-4567",
         Website: "www.abcconstruction.com",
-        AssociatedCostCodes: "01-001;02-005;03-010"
+        AssociatedCostCodes: "REPLACE_WITH_YOUR_COST_CODES;EXAMPLE_CODE_2"
       },
       {
         CompanyName: "XYZ Electrical Services",
@@ -58,7 +58,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Address: "456 Oak Avenue, City, State 12345",
         PhoneNumber: "(555) 987-6543",
         Website: "www.xyzelectrical.com",
-        AssociatedCostCodes: "16-001;16-002"
+        AssociatedCostCodes: "YOUR_ACTUAL_COST_CODE_HERE"
       }
     ];
 
