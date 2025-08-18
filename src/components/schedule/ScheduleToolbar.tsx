@@ -26,11 +26,10 @@ export function ScheduleToolbar({
       <Button
         onClick={onAddTask}
         size="sm"
-        className="flex items-center gap-2 [&_svg]:fill-white [&_svg]:stroke-white [&_svg]:text-white"
-        style={{ color: '#ffffff' }}
+        className="flex items-center gap-2"
       >
-        <Plus style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Add</span>
+        <Plus style={{ color: '#000000', fill: '#000000', stroke: '#000000' }} />
+        <span style={{ color: '#000000' }}>Add</span>
       </Button>
 
       <Button
@@ -38,8 +37,8 @@ export function ScheduleToolbar({
         size="sm"
         className="flex items-center gap-2"
       >
-        <Copy className="h-4 w-4" style={{ color: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Copy Schedule</span>
+        <Copy style={{ color: '#000000', fill: '#000000', stroke: '#000000' }} />
+        <span style={{ color: '#000000' }}>Copy Schedule</span>
       </Button>
       
       <Button
@@ -47,8 +46,8 @@ export function ScheduleToolbar({
         size="sm"
         className="flex items-center gap-2"
       >
-        <Send className="h-4 w-4" style={{ color: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Publish</span>
+        <Send style={{ color: '#000000', fill: '#000000', stroke: '#000000' }} />
+        <span style={{ color: '#000000' }}>Publish</span>
       </Button>
     </div>
   );
