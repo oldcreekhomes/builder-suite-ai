@@ -140,7 +140,7 @@ export default function Accounting() {
             <Card>
               <Tabs value={selectedManagerId} onValueChange={setSelectedManagerId} className="w-full">
                 <div className="p-4 border-b">
-                  <TabsList className={`grid w-full grid-cols-${Math.min(projectManagersData.managers.length, 4)}`}>
+                  <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(projectManagersData.managers.length, 4)}, minmax(0, 1fr))` }}>
                     {projectManagersData.managers.map((manager) => (
                       <TabsTrigger 
                         key={manager.id} 
