@@ -152,14 +152,13 @@ export default function Accounting() {
                         value={manager.id}
                         className="flex items-center gap-2"
                       >
-                        <div className="w-3 h-3 rounded-full bg-primary"></div>
                         <span className="truncate">
                           {manager.first_name || manager.email}
                         </span>
                         {manager.project_count > 0 && (
-                          <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                          <div className="ml-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">
                             {manager.project_count}
-                          </Badge>
+                          </div>
                         )}
                       </TabsTrigger>
                     ))}
