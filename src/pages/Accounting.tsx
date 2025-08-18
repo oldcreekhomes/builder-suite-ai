@@ -70,7 +70,7 @@ export default function Accounting() {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <CompanyDashboardHeader title="My Invoice Dashboard" />
+            <CompanyDashboardHeader title="Accounting" />
             <div className="flex-1 p-6 space-y-6">
               <div className="grid grid-cols-3 gap-4">
                 {[1, 2, 3].map((i) => (
@@ -100,7 +100,7 @@ export default function Accounting() {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1 flex flex-col">
-            <CompanyDashboardHeader title="My Invoice Dashboard" />
+            <CompanyDashboardHeader title="Accounting" />
             <div className="flex-1 p-6 space-y-6">
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No project managers found. Assign managers to projects to use the invoice dashboard.</p>
@@ -117,7 +117,7 @@ export default function Accounting() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
-          <CompanyDashboardHeader title="My Invoice Dashboard" />
+          <CompanyDashboardHeader title="Accounting" />
           <div className="flex-1 p-6 space-y-6">
             {/* Summary KPIs */}
             <div className="grid grid-cols-3 gap-4">
@@ -154,7 +154,7 @@ export default function Accounting() {
                       >
                         <div className="w-3 h-3 rounded-full bg-primary"></div>
                         <span className="truncate">
-                          {`${manager.first_name} ${manager.last_name}`.trim() || manager.email}
+                          {manager.first_name || manager.email}
                         </span>
                         {manager.project_count > 0 && (
                           <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
@@ -170,7 +170,7 @@ export default function Accounting() {
                   <TabsContent key={manager.id} value={manager.id} className="m-0">
                     <div className="p-4 border-b bg-muted/30">
                       <h3 className="text-lg font-semibold text-foreground">
-                        {`${manager.first_name} ${manager.last_name}`.trim() || manager.email}'s Projects
+                        {manager.first_name || manager.email}'s Projects
                       </h3>
                     </div>
                     
