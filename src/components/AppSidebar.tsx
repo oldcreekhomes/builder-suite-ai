@@ -35,7 +35,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
       {isCompanyDashboard ? (
         <>
           <CompanyDashboardNav />
-          <SidebarSeparator className="my-1 bg-gray-200 -mx-3" />
+          <SidebarSeparator className="my-0 bg-gray-200 -mx-3" />
           <MessagesSidebar 
             selectedUser={selectedUser || null}
             onUserSelect={onUserSelect}

@@ -90,7 +90,7 @@ export function MessagesSidebar({
 
   if (isLoading) {
     return (
-      <SidebarContent className="px-3 py-1">
+      <SidebarContent className="px-3 pt-1">
         <SidebarGroup>
           <SidebarGroupContent>
             <div className="flex items-center justify-center py-8">
@@ -103,7 +103,7 @@ export function MessagesSidebar({
   }
 
   return (
-    <SidebarContent className="px-3 py-1 overflow-hidden">
+    <SidebarContent className="px-3 pt-1 overflow-hidden">
       <SidebarGroup>
         <SidebarGroupLabel className="text-lg font-semibold mb-4">
           Messages
