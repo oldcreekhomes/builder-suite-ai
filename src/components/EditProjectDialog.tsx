@@ -31,7 +31,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     name: project?.name || "",
     address: project?.address || "",
     status: project?.status || "In Design",
-    manager: project?.manager || "", // This stores the user ID
+    manager: project?.manager || "no-manager", // This stores the user ID or "no-manager"
     total_lots: project?.total_lots?.toString() || "",
   });
 
@@ -42,7 +42,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         name: project.name,
         address: project.address,
         status: project.status,
-        manager: project.manager || "", // Use the manager UUID
+        manager: project.manager || "no-manager", // Use the manager UUID or "no-manager"
         total_lots: project.total_lots?.toString() || "",
       });
     }
@@ -64,7 +64,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         name: data.name,
         address: data.address,
         status: data.status,
-        manager: data.manager || null, // Convert empty string to null for UUID field
+        manager: data.manager === "no-manager" ? null : data.manager || null, // Convert "no-manager" or empty string to null for UUID field
         total_lots: data.total_lots ? parseInt(data.total_lots) : null,
         updated_at: new Date().toISOString(),
       };
@@ -151,7 +151,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                   <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Manager</SelectItem>
+                  <SelectItem value="no-manager">No Manager</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
