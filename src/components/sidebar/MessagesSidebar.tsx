@@ -103,7 +103,7 @@ export function MessagesSidebar({
   }
 
   return (
-    <SidebarContent className="px-3 py-4">
+    <SidebarContent className="px-3 py-4 overflow-hidden">
       <SidebarGroup>
         <SidebarGroupLabel className="text-lg font-semibold mb-4">
           Messages
