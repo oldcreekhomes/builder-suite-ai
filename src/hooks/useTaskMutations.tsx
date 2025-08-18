@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { ProjectTask } from "./useProjectTasks";
 
 interface CreateTaskParams {
   project_id: string;
@@ -135,6 +136,25 @@ export const useTaskMutations = (projectId: string) => {
       if (params.duration !== undefined) updateData.duration = params.duration;
       if (params.progress !== undefined) updateData.progress = params.progress;
       if (params.predecessor !== undefined) {
+        // Validate predecessors before updating
+        const { data: allTasks } = await supabase
+          .from('project_schedule_tasks')
+          .select('*')
+          .eq('project_id', projectId);
+
+        if (allTasks) {
+          const predecessorArray = Array.isArray(params.predecessor) 
+            ? params.predecessor 
+            : params.predecessor ? [params.predecessor] : [];
+          
+          const { validatePredecessors } = await import('@/utils/predecessorValidation');
+          const validation = validatePredecessors(params.id, predecessorArray, allTasks as ProjectTask[]);
+          
+          if (!validation.isValid) {
+            throw new Error(validation.errors[0]);
+          }
+        }
+        
         updateData.predecessor = Array.isArray(params.predecessor) ? params.predecessor : (params.predecessor ? [params.predecessor] : null);
       }
       if (params.resources !== undefined) updateData.resources = params.resources;

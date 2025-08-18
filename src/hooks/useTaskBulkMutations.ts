@@ -178,6 +178,35 @@ export const useTaskBulkMutations = (projectId: string) => {
       if (!user || updates.length === 0) return [];
 
       console.log('🔄 Performing bulk predecessor update for', updates.length, 'tasks');
+
+      // Get all tasks for validation
+      const { data: allTasks, error: fetchError } = await supabase
+        .from('project_schedule_tasks')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (fetchError) throw fetchError;
+      if (!allTasks) throw new Error('Failed to fetch tasks for validation');
+
+      // Validate all predecessor updates before applying any
+      const invalidUpdates: string[] = [];
+      for (const update of updates) {
+        const predecessorArray = Array.isArray(update.predecessor) 
+          ? update.predecessor 
+          : update.predecessor ? [update.predecessor] : [];
+        
+        const { validatePredecessors } = await import('@/utils/predecessorValidation');
+        const validation = validatePredecessors(update.id, predecessorArray, allTasks as ProjectTask[]);
+        
+        if (!validation.isValid) {
+          const task = allTasks.find(t => t.id === update.id);
+          invalidUpdates.push(`${task?.hierarchy_number || update.id}: ${validation.errors[0]}`);
+        }
+      }
+
+      if (invalidUpdates.length > 0) {
+        throw new Error(`Invalid predecessor updates:\n${invalidUpdates.join('\n')}`);
+      }
       
       // Use batch updates for better performance
       const results = [];

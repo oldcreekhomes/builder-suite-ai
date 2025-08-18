@@ -42,6 +42,16 @@ export function parsePredecessors(predecessors: string[], allTasks: ProjectTask[
   });
 }
 
+// Helper function to check if one task is an ancestor of another
+function isAncestor(ancestorHierarchy: string, descendantHierarchy: string): boolean {
+  if (!ancestorHierarchy || !descendantHierarchy) return false;
+  
+  // An ancestor's hierarchy number should be a prefix of the descendant's
+  // e.g., "2" is ancestor of "2.1", "2.1.3", etc.
+  return descendantHierarchy.startsWith(ancestorHierarchy + '.') || 
+         descendantHierarchy === ancestorHierarchy;
+}
+
 export function validatePredecessors(
   currentTaskId: string,
   predecessors: string[],
@@ -73,6 +83,15 @@ export function validatePredecessors(
   const invalidRefs = parsedPredecessors.filter(pred => !pred.isValid);
   if (invalidRefs.length > 0) {
     errors.push(`Invalid task references: ${invalidRefs.map(ref => ref.taskId).join(', ')}`);
+  }
+
+  // Check for parent-child predecessor relationships
+  const parentPredecessors = parsedPredecessors.filter(pred => {
+    return pred.isValid && currentTask.hierarchy_number && 
+           isAncestor(pred.taskId, currentTask.hierarchy_number);
+  });
+  if (parentPredecessors.length > 0) {
+    errors.push(`A parent task cannot be a predecessor of its child. Invalid: ${parentPredecessors.map(pred => pred.taskId).join(', ')}`);
   }
 
   // Check for circular dependencies
