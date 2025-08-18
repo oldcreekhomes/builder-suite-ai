@@ -3,6 +3,7 @@ import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors, getDependentTasks } from "@/utils/taskCalculations";
+import { canMoveDown } from "@/utils/moveDownLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -211,8 +212,6 @@ export function TaskTable({
   };
 
   const getCanMoveDown = (task: ProjectTask) => {
-    // Import and use the move down validation logic
-    const { canMoveDown } = require("@/utils/moveDownLogic");
     return canMoveDown(task, visibleTasks);
   };
 
