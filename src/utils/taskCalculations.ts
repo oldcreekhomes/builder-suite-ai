@@ -39,6 +39,13 @@ export const getAllDescendantTasks = (parentTask: ProjectTask, allTasks: Project
   });
 };
 
+// Helper function to parse ISO date strings as local calendar dates (ignoring timezone)
+function toLocalDate(isoDateString: string): Date {
+  const dateOnly = isoDateString.split('T')[0]; // Get YYYY-MM-DD part
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+}
+
 export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: ProjectTask[]): TaskCalculations | null => {
   const childTasks = getAllDescendantTasks(parentTask, allTasks);
   
@@ -46,12 +53,12 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
     return null;
   }
   
-  // Calculate start date (earliest start date among children)
-  const startDates = childTasks.map(task => new Date(task.start_date));
+  // Calculate start date (earliest start date among children) using local date parsing
+  const startDates = childTasks.map(task => toLocalDate(task.start_date));
   const earliestStartDate = new Date(Math.min(...startDates.map(date => date.getTime())));
   
-  // Calculate end date (latest end date among children)
-  const endDates = childTasks.map(task => new Date(task.end_date));
+  // Calculate end date (latest end date among children) using local date parsing
+  const endDates = childTasks.map(task => toLocalDate(task.end_date));
   const latestEndDate = new Date(Math.max(...endDates.map(date => date.getTime())));
   
   // Calculate duration as sum of all child durations (not date span)
@@ -59,8 +66,8 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   
   console.log('🔢 Parent calculation debug:', {
     childTasks: childTasks.map(t => ({ name: t.task_name, start: t.start_date.split('T')[0], end: t.end_date.split('T')[0], duration: t.duration })),
-    earliestStartDate: earliestStartDate.toISOString().split('T')[0],
-    latestEndDate: latestEndDate.toISOString().split('T')[0],
+    earliestStartDate: formatYMD(earliestStartDate),
+    latestEndDate: formatYMD(latestEndDate),
     calculatedDuration: duration
   });
   
