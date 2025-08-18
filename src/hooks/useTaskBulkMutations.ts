@@ -57,10 +57,44 @@ export const useTaskBulkMutations = (projectId: string) => {
   });
 
   const bulkUpdateHierarchies = useMutation({
-    mutationFn: async ({ updates, originalTasks, options }: { updates: BulkHierarchyUpdate[], originalTasks?: ProjectTask[], options?: BulkUpdateOptions }) => {
+    mutationFn: async ({ updates, originalTasks, options, ordered }: { 
+      updates: BulkHierarchyUpdate[], 
+      originalTasks?: ProjectTask[], 
+      options?: BulkUpdateOptions,
+      ordered?: boolean 
+    }) => {
       if (!user || updates.length === 0) return [];
 
       console.log('🔄 Performing smart hierarchy update for', updates.length, 'tasks');
+      
+      // If ordered execution is requested, apply updates sequentially
+      if (ordered) {
+        console.log('📋 Applying updates in provided order');
+        const results = [];
+        
+        for (const update of updates) {
+          const { data, error } = await supabase
+            .from('project_schedule_tasks')
+            .update({ 
+              hierarchy_number: update.hierarchy_number,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', update.id)
+            .select();
+            
+          if (error) {
+            console.error('❌ Hierarchy update failed:', error, 'for task:', update.id);
+            throw error;
+          }
+          
+          if (data) {
+            results.push(...data);
+          }
+        }
+        
+        console.log('✅ All ordered hierarchy updates completed successfully');
+        return results;
+      }
       
       // Use provided originalTasks or get current tasks from cache to compare directions
       const currentTasks = originalTasks || queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];

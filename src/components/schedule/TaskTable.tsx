@@ -211,8 +211,9 @@ export function TaskTable({
   };
 
   const getCanMoveDown = (task: ProjectTask) => {
-    const currentIndex = visibleTasks.findIndex(t => t.id === task.id);
-    return currentIndex < visibleTasks.length - 1;
+    // Import and use the move down validation logic
+    const { canMoveDown } = require("@/utils/moveDownLogic");
+    return canMoveDown(task, visibleTasks);
   };
 
   return (

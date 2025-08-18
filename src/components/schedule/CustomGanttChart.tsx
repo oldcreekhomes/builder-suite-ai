@@ -266,9 +266,80 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   }, [expandAllTasks, tasks]);
 
-  // DISABLED: Task move functionality - will be reimplemented later
   const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
-    toast.info("Task movement temporarily disabled during refactoring");
+    if (direction === 'up') {
+      // TODO: Implement move up logic
+      console.log(`Moving task ${taskId} ${direction}`);
+      return;
+    }
+    
+    // Handle move down
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !user) {
+      console.error('❌ Task or user not found for move down');
+      return;
+    }
+    
+    // Import the move down logic
+    const { computeMoveDownUpdates } = await import("@/utils/moveDownLogic");
+    
+    // Capture original tasks before any optimistic updates
+    const originalTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+    const result = computeMoveDownUpdates(task, originalTasks);
+    
+    if (result.hierarchyUpdates.length === 0) {
+      toast.error("Cannot move this task down");
+      return;
+    }
+    
+    try {
+      console.log('🔄 Starting move down for task:', task.task_name);
+      console.log('📊 Move down updates computed:', {
+        hierarchyUpdates: result.hierarchyUpdates.length,
+        predecessorUpdates: result.predecessorUpdates.length
+      });
+      
+      // Apply optimistic update to cache first for instant UI feedback
+      const optimisticTasks = originalTasks.map(t => {
+        const hierarchyUpdate = result.hierarchyUpdates.find(u => u.id === t.id);
+        return hierarchyUpdate ? { ...t, hierarchy_number: hierarchyUpdate.hierarchy_number } : t;
+      });
+      
+      queryClient.setQueryData(['project-tasks', projectId, user.id], optimisticTasks);
+      
+      // Apply bulk hierarchy updates to database with ordered execution
+      await bulkUpdateHierarchies.mutateAsync({
+        updates: result.hierarchyUpdates,
+        originalTasks,
+        ordered: true, // Use ordered execution for move operations
+        options: { suppressInvalidate: true }
+      });
+      
+      // Apply predecessor updates if needed
+      if (result.predecessorUpdates.length > 0) {
+        const predecessorUpdates = result.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({
+          updates: predecessorUpdates,
+          options: { suppressInvalidate: true }
+        });
+      }
+      
+      // Final cache invalidation
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
+      
+      toast.success(`Moved "${task.task_name}" down successfully`);
+      
+    } catch (error) {
+      console.error('❌ Failed to move task down:', error);
+      
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
+      
+      toast.error("Failed to move task down");
+    }
   };
 
   const handleTaskUpdate = async (taskId: string, updates: any) => {
