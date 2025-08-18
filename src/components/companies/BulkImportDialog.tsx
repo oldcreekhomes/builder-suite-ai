@@ -49,14 +49,16 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         CompanyType: "Subcontractor",
         Address: "123 Main Street, City, State 12345",
         PhoneNumber: "(555) 123-4567",
-        Website: "www.abcconstruction.com"
+        Website: "www.abcconstruction.com",
+        AssociatedCostCodes: "01-001;02-005;03-010"
       },
       {
         CompanyName: "XYZ Electrical Services",
         CompanyType: "Subcontractor", 
         Address: "456 Oak Avenue, City, State 12345",
         PhoneNumber: "(555) 987-6543",
-        Website: "www.xyzelectrical.com"
+        Website: "www.xyzelectrical.com",
+        AssociatedCostCodes: "16-001;16-002"
       }
     ];
 
@@ -205,6 +207,40 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             }
           }
 
+          // Handle cost code associations
+          if (row.AssociatedCostCodes && companyNameToIdMap.has(row.CompanyName)) {
+            const companyId = companyNameToIdMap.get(row.CompanyName)!;
+            const costCodes = row.AssociatedCostCodes.split(';').filter(Boolean);
+            
+            // Remove existing associations for this company
+            await supabase
+              .from('company_cost_codes')
+              .delete()
+              .eq('company_id', companyId);
+            
+            // Add new associations
+            for (const costCodeStr of costCodes) {
+              // Find cost code by code
+              const { data: costCode } = await supabase
+                .from('cost_codes')
+                .select('id')
+                .eq('code', costCodeStr.trim())
+                .eq('owner_id', user.id)
+                .maybeSingle();
+              
+              if (costCode) {
+                await supabase
+                  .from('company_cost_codes')
+                  .insert({
+                    company_id: companyId,
+                    cost_code_id: costCode.id
+                  });
+              } else {
+                result.errors.push(`Cost code ${costCodeStr} not found for company ${row.CompanyName}`);
+              }
+            }
+          }
+
         } catch (error: any) {
           result.errors.push(`Error processing company ${row.CompanyName}: ${error.message}`);
           result.companiesSkipped++;
@@ -324,7 +360,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               Download Excel Template
             </Button>
             <p className="text-sm text-muted-foreground">
-              Download the template, fill in your data, and upload it back.
+              Download the template, fill in your data, and upload it back. For Associated Cost Codes, use semicolon-separated cost codes (e.g., "01-001;02-005").
             </p>
           </div>
 
