@@ -569,12 +569,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       };
 
       // Replace optimistic task with real task
-      queryClient.setQueryData(['project-tasks', projectId], (oldData: ProjectTask[] | undefined) => {
+      queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
         if (!oldData) return [newTask];
         return oldData.map(task => 
           task.id === optimisticTask.id ? newTask : task
         );
       });
+
+      // Also invalidate to ensure immediate sync with database
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
 
       console.log("✅ Add Above operation completed successfully");
       toast.success("Task added above successfully");
@@ -582,7 +585,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       console.error("❌ Add Above operation failed:", error);
       
       // Rollback optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.error("Failed to add task above");
     } finally {
       // Clear batch operation flag
