@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { IssueFileUpload } from './IssueFileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import type { CompanyIssue } from '@/hooks/useCompanyIssues';
+import { useQuery } from '@tanstack/react-query';
 
 interface IssueFile {
   id: string;
@@ -34,6 +35,22 @@ export function IssuesTableRow({
   const [title, setTitle] = useState(issue.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [files, setFiles] = useState<IssueFile[]>([]);
+
+  // Fetch user data for author initials
+  const { data: author } = useQuery({
+    queryKey: ['user', issue.created_by],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', issue.created_by)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!issue.created_by,
+  });
 
   // Fetch files for this issue
   useEffect(() => {
@@ -79,10 +96,19 @@ export function IssuesTableRow({
     );
   };
 
+  const getAuthorInitials = () => {
+    if (!author?.first_name || !author?.last_name) return '??';
+    return `${author.first_name.charAt(0).toUpperCase()}.${author.last_name.charAt(0).toUpperCase()}.`;
+  };
+
   return (
     <TableRow className="min-h-12">
       <TableCell className="py-2 text-sm font-medium w-12">
         {issueNumber}
+      </TableCell>
+      
+      <TableCell className="py-2 text-sm w-20">
+        {getAuthorInitials()}
       </TableCell>
       
       <TableCell className="py-2">

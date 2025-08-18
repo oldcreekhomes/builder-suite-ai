@@ -6,6 +6,7 @@ export function IssuesTableHeader() {
     <TableHeader>
       <TableRow className="h-10">
         <TableHead className="font-bold w-12 py-2 text-sm">#</TableHead>
+        <TableHead className="font-bold py-2 text-sm w-20">Author</TableHead>
         <TableHead className="font-bold py-2 text-sm">Title</TableHead>
         <TableHead className="font-bold py-2 text-sm w-20">Priority</TableHead>
         <TableHead className="font-bold py-2 text-sm w-28">Files</TableHead>
