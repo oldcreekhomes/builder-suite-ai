@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { CopyScheduleOptions } from "@/components/schedule/CopyScheduleDialog";
-import { addDays, parseISO } from "date-fns";
+import { addDays } from "@/utils/dateOnly";
 
 interface CopyScheduleParams {
   targetProjectId: string;
@@ -55,8 +55,11 @@ export function useCopySchedule() {
 
         // Apply date shift if specified
         if (shiftDays && shiftDays !== 0) {
-          newStartDate = addDays(parseISO(task.start_date), shiftDays).toISOString();
-          newEndDate = addDays(parseISO(task.end_date), shiftDays).toISOString();
+          // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
+          const startDateStr = task.start_date.split('T')[0];
+          const endDateStr = task.end_date.split('T')[0];
+          newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
+          newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
         }
 
         // Adjust hierarchy numbers for append mode
