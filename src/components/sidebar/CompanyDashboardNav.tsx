@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Company Dashboard", url: "/", icon: Home },
   { title: "Accounting", url: "/accounting", icon: Calculator },
 ];
 
