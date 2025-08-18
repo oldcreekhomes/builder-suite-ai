@@ -33,17 +33,14 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
     <Sidebar className="border-r border-border">
       <SidebarBranding />
       {isCompanyDashboard ? (
-        <>
-          <CompanyDashboardNav />
-          <SidebarSeparator className="my-2 bg-gray-200 -mx-0" />
-          <MessagesSidebar 
-            selectedUser={selectedUser || null}
-            onUserSelect={onUserSelect}
-            onStartChat={onStartChat}
-            unreadCounts={unreadCounts}
-            markConversationAsRead={markConversationAsRead}
-          />
-        </>
+        <MessagesSidebar 
+          selectedUser={selectedUser || null}
+          onUserSelect={onUserSelect}
+          onStartChat={onStartChat}
+          unreadCounts={unreadCounts}
+          markConversationAsRead={markConversationAsRead}
+          showAccountingLink={true}
+        />
       ) : isMessagesPage ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
