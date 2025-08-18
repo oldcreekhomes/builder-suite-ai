@@ -15,7 +15,7 @@ const items = [
 
 export function CompanyDashboardNav() {
   return (
-    <SidebarContent className="px-3 pb-0">
+    <SidebarContent className="px-3 pt-2 pb-0">
       <SidebarGroup className="p-0">
         <SidebarGroupContent>
           <SidebarMenu>
