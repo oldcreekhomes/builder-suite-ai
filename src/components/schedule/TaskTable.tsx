@@ -199,7 +199,10 @@ export function TaskTable({
   };
 
   const getCanOutdent = (task: ProjectTask) => {
-    return task.hierarchy_number && task.hierarchy_number.split(".").length > 1;
+    // Only children (level 2) can be outdented to become groups (level 1)
+    return task.hierarchy_number && 
+           task.hierarchy_number.includes('.') && 
+           task.hierarchy_number.split('.').length === 2;
   };
 
   const getCanMoveUp = (task: ProjectTask) => {

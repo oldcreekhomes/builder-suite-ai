@@ -331,9 +331,58 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // DISABLED: Outdent functionality - will be reimplemented step by step
   const handleOutdent = async (taskId: string) => {
-    toast.info("Outdent functionality temporarily disabled during refactoring");
+    const task = tasks?.find(t => t.id === taskId);
+    if (!task || !tasks || !user) return;
+    
+    // Import the outdent logic
+    const { computeOutdentUpdates } = await import("@/utils/outdentLogic");
+    const result = computeOutdentUpdates(task, tasks);
+    
+    if (result.hierarchyUpdates.length === 0) {
+      toast.error("Cannot outdent this task");
+      return;
+    }
+    
+    try {
+      // Apply optimistic update to cache first for instant UI feedback
+      const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+      const optimisticTasks = currentTasks.map(t => {
+        const hierarchyUpdate = result.hierarchyUpdates.find(u => u.id === t.id);
+        return hierarchyUpdate ? { ...t, hierarchy_number: hierarchyUpdate.hierarchy_number } : t;
+      });
+      
+      queryClient.setQueryData(['project-tasks', projectId, user.id], optimisticTasks);
+      
+      // Apply bulk hierarchy updates to database
+      await bulkUpdateHierarchies.mutateAsync({
+        updates: result.hierarchyUpdates,
+        options: { suppressInvalidate: true }
+      });
+      
+      // Apply predecessor updates if any
+      if (result.predecessorUpdates.length > 0) {
+        const predecessorUpdates = result.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        
+        await bulkUpdatePredecessors.mutateAsync({
+          updates: predecessorUpdates,
+          options: { suppressInvalidate: true }
+        });
+      }
+      
+      // Expand all tasks after successful outdent
+      setExpandAllTasks(true);
+      
+      toast.success("Task outdented successfully");
+    } catch (error) {
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
+      toast.error("Failed to outdent task");
+      console.error("Error outdenting task:", error);
+    }
   };
 
   // Comprehensive function to recalculate all parent tasks in a hierarchy
