@@ -26,9 +26,10 @@ export function ScheduleToolbar({
       <Button
         onClick={onAddTask}
         size="sm"
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 [&_svg]:fill-white [&_svg]:stroke-white [&_svg]:text-white"
+        style={{ color: '#ffffff' }}
       >
-        <Plus style={{ color: '#ffffff !important', width: '16px', height: '16px' }} />
+        <Plus style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
         <span style={{ color: '#ffffff' }}>Add</span>
       </Button>
 
