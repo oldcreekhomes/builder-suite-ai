@@ -49,28 +49,14 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         CompanyType: "Subcontractor",
         Address: "123 Main Street, City, State 12345",
         PhoneNumber: "(555) 123-4567",
-        Website: "www.abcconstruction.com",
-        ServiceAreas: "City;Metro Area",
-        Specialties: "Concrete;Framing",
-        LicenseNumbers: "LIC123456;LIC789012",
-        Rating: "4.5",
-        ReviewCount: "25",
-        Description: "Professional construction services",
-        InsuranceVerified: "TRUE"
+        Website: "www.abcconstruction.com"
       },
       {
         CompanyName: "XYZ Electrical Services",
         CompanyType: "Subcontractor", 
         Address: "456 Oak Avenue, City, State 12345",
         PhoneNumber: "(555) 987-6543",
-        Website: "www.xyzelectrical.com",
-        ServiceAreas: "City;Suburbs",
-        Specialties: "Electrical;Lighting",
-        LicenseNumbers: "ELE456789",
-        Rating: "4.8",
-        ReviewCount: "18",
-        Description: "Licensed electrical contractors",
-        InsuranceVerified: "FALSE"
+        Website: "www.xyzelectrical.com"
       }
     ];
 
@@ -219,41 +205,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             }
           }
 
-          // Process marketplace company if additional fields exist
-          if (row.ServiceAreas || row.Specialties || row.LicenseNumbers || row.Rating) {
-            const marketplaceData = {
-              company_name: row.CompanyName,
-              company_type: row.CompanyType || 'Subcontractor',
-              address: row.Address || null,
-              phone_number: row.PhoneNumber || null,
-              website: row.Website || null,
-              service_areas: row.ServiceAreas ? row.ServiceAreas.split(';').filter(Boolean) : null,
-              specialties: row.Specialties ? row.Specialties.split(';').filter(Boolean) : null,
-              license_numbers: row.LicenseNumbers ? row.LicenseNumbers.split(';').filter(Boolean) : null,
-              rating: row.Rating ? parseFloat(row.Rating) : null,
-              review_count: row.ReviewCount ? parseInt(row.ReviewCount) : null,
-              description: row.Description || null,
-              insurance_verified: row.InsuranceVerified === 'TRUE'
-            };
-
-            // Check if marketplace company exists
-            const { data: existingMarketplace } = await supabase
-              .from('marketplace_companies')
-              .select('id')
-              .eq('company_name', row.CompanyName)
-              .maybeSingle();
-
-            if (existingMarketplace) {
-              await supabase
-                .from('marketplace_companies')
-                .update(marketplaceData)
-                .eq('id', existingMarketplace.id);
-            } else {
-              await supabase
-                .from('marketplace_companies')
-                .insert(marketplaceData);
-            }
-          }
         } catch (error: any) {
           result.errors.push(`Error processing company ${row.CompanyName}: ${error.message}`);
           result.companiesSkipped++;
@@ -312,37 +263,6 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             }
           }
 
-          // Also create marketplace representative if marketplace company exists
-          const { data: marketplaceCompany } = await supabase
-            .from('marketplace_companies')
-            .select('id')
-            .eq('company_name', row.CompanyName)
-            .maybeSingle();
-
-          if (marketplaceCompany) {
-            const { data: existingMarketplaceRep } = await supabase
-              .from('marketplace_company_representatives')
-              .select('id')
-              .eq('marketplace_company_id', marketplaceCompany.id)
-              .eq('email', row.Email)
-              .maybeSingle();
-
-            const marketplaceRepData = {
-              marketplace_company_id: marketplaceCompany.id,
-              first_name: row.FirstName,
-              last_name: row.LastName,
-              title: row.Title || null,
-              email: row.Email || null,
-              phone_number: row.PhoneNumber || null,
-              is_primary: row.IsPrimary === 'TRUE'
-            };
-
-            if (!existingMarketplaceRep) {
-              await supabase
-                .from('marketplace_company_representatives')
-                .insert(marketplaceRepData);
-            }
-          }
         } catch (error: any) {
           result.errors.push(`Error processing representative ${row.FirstName} ${row.LastName}: ${error.message}`);
           result.representativesSkipped++;
@@ -356,8 +276,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-      queryClient.invalidateQueries({ queryKey: ['marketplace-companies'] });
-      queryClient.invalidateQueries({ queryKey: ['marketplace-representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
 
       toast({
         title: "Import Complete",
