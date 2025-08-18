@@ -41,8 +41,28 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  const downloadTemplate = () => {
-    // Create companies data
+  const downloadTemplate = async () => {
+    // Fetch current cost codes to include in template
+    let costCodesData: any[] = [];
+    
+    if (user) {
+      try {
+        const { data } = await supabase
+          .from('cost_codes')
+          .select('code, name')
+          .order('code');
+        
+        costCodesData = (data || []).map(cc => ({
+          Code: cc.code,
+          Name: cc.name,
+          Format: `${cc.code} - ${cc.name}`
+        }));
+      } catch (error) {
+        console.error('Error fetching cost codes for template:', error);
+      }
+    }
+
+    // Create companies data with proper format examples
     const companiesData = [
       {
         CompanyName: "ABC Construction Co.",
@@ -50,7 +70,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Address: "123 Main Street, City, State 12345",
         PhoneNumber: "(555) 123-4567",
         Website: "www.abcconstruction.com",
-        AssociatedCostCodes: "REPLACE_WITH_YOUR_COST_CODES;EXAMPLE_CODE_2"
+        AssociatedCostCodes: "4470 - Siding;3000 - Concrete Work"
       },
       {
         CompanyName: "XYZ Electrical Services",
@@ -58,7 +78,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         Address: "456 Oak Avenue, City, State 12345",
         PhoneNumber: "(555) 987-6543",
         Website: "www.xyzelectrical.com",
-        AssociatedCostCodes: "YOUR_ACTUAL_COST_CODE_HERE"
+        AssociatedCostCodes: "1600 - Electrical"
       }
     ];
 
@@ -102,7 +122,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       }
     ];
 
-    // Create workbook with two sheets
+    // Create workbook with three sheets
     const workbook = XLSX.utils.book_new();
     
     const companiesSheet = XLSX.utils.json_to_sheet(companiesData);
@@ -110,6 +130,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     
     const representativesSheet = XLSX.utils.json_to_sheet(representativesData);
     XLSX.utils.book_append_sheet(workbook, representativesSheet, "Representatives");
+
+    // Add Cost Codes reference sheet if we have cost codes
+    if (costCodesData.length > 0) {
+      const costCodesSheet = XLSX.utils.json_to_sheet(costCodesData);
+      XLSX.utils.book_append_sheet(workbook, costCodesSheet, "Cost Codes Reference");
+    }
 
     // Download the file
     XLSX.writeFile(workbook, 'bulk_import_template.xlsx');
@@ -219,7 +245,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
           // Handle cost code associations
           if (row.AssociatedCostCodes && companyNameToIdMap.has(row.CompanyName)) {
             const companyId = companyNameToIdMap.get(row.CompanyName)!;
-            const costCodes = row.AssociatedCostCodes.split(';').filter(Boolean);
+            
+            // Parse cost codes - handle both "CODE - Name" and plain "CODE" formats
+            const costCodeStrings = row.AssociatedCostCodes
+              .split(/[;,]/) // Split by semicolon or comma
+              .map((str: string) => str.trim())
+              .filter(Boolean);
             
             // Remove existing associations for this company
             await supabase
@@ -228,12 +259,17 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               .eq('company_id', companyId);
             
             // Add new associations
-            for (const costCodeStr of costCodes) {
+            for (const costCodeStr of costCodeStrings) {
+              // Extract code from "CODE - Name" format or use as-is for plain code
+              const code = costCodeStr.includes(' - ') 
+                ? costCodeStr.split(' - ')[0].trim()
+                : costCodeStr.trim();
+              
               // Find cost code by code
               const { data: costCode } = await supabase
                 .from('cost_codes')
                 .select('id')
-                .eq('code', costCodeStr.trim())
+                .eq('code', code)
                 .eq('owner_id', user.id)
                 .maybeSingle();
               
@@ -245,7 +281,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                     cost_code_id: costCode.id
                   });
               } else {
-                result.errors.push(`Cost code ${costCodeStr} not found for company ${row.CompanyName}`);
+                result.errors.push(`Cost code "${code}" not found for company ${row.CompanyName}`);
               }
             }
           }
@@ -372,7 +408,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               Download Excel Template
             </Button>
             <p className="text-sm text-muted-foreground">
-              Download the template, fill in your data, and upload it back. For Associated Cost Codes, use semicolon-separated cost codes (e.g., "01-001;02-005").
+              Download the template with your actual cost codes included. For Associated Cost Codes, use either "CODE - Name" format (e.g., "4470 - Siding;1600 - Electrical") or plain codes (e.g., "4470;1600"). Separate multiple codes with semicolons.
             </p>
           </div>
 
