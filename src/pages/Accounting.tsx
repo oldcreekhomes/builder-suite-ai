@@ -2,7 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
-import { AccountingTabs } from "@/components/accounting/AccountingTabs";
+
 
 export default function Accounting() {
   return (
@@ -19,8 +19,8 @@ export default function Accounting() {
                   Manage your financial data with spreadsheet-like functionality.
                 </p>
               </div>
-              <div className="flex-1 border rounded-lg overflow-hidden">
-                <AccountingTabs />
+              <div className="flex-1 border rounded-lg p-6 bg-card">
+                <p className="text-muted-foreground">Ready to build your accounting functionality.</p>
               </div>
             </div>
           </div>
