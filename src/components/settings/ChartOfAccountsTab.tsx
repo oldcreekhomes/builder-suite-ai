@@ -58,6 +58,7 @@ export const ChartOfAccountsTab = () => {
       });
 
       console.log('Function response:', { data, error });
+      console.log('Function response data:', JSON.stringify(data, null, 2));
 
       if (error) {
         console.error('Supabase function error:', error);

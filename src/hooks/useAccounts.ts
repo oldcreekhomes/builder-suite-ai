@@ -48,9 +48,12 @@ export const useAccounts = () => {
         .from('accounting_settings')
         .select('*')
         .eq('owner_id', owner_id)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching accounting settings:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!user
