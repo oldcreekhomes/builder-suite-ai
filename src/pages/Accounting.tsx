@@ -104,45 +104,6 @@ export default function Accounting() {
               </CardContent>
             </Card>
 
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest accounting transactions and approvals
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-3 bg-muted/50 rounded-lg">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Bill #1234 approved</p>
-                      <p className="text-xs text-muted-foreground">ABC Supply - $1,250.00</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">2 hours ago</p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 p-3 bg-muted/50 rounded-lg">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">New bill submitted</p>
-                      <p className="text-xs text-muted-foreground">XYZ Materials - $3,750.00</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">4 hours ago</p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 p-3 bg-muted/50 rounded-lg">
-                    <Clock className="h-4 w-4 text-orange-600" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Payment reminder</p>
-                      <p className="text-xs text-muted-foreground">DEF Services - Due in 2 days</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </SidebarInset>
       </div>
