@@ -1203,13 +1203,27 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Calculate minimum day width to fit entire timeline in viewport
+  const calculateMinDayWidth = () => {
+    const timelineRange = getTimelineRange();
+    const totalDays = getCalendarDaysBetween(timelineRange.start, timelineRange.end);
+    const maxDays = Math.min(totalDays, 1095); // Cap for performance
+    
+    // Assume viewport width is around 800px for timeline panel (rough estimate)
+    const viewportWidth = 800;
+    const minDayWidthToFit = Math.max(viewportWidth / maxDays, 5); // Minimum 5px per day
+    
+    return Math.min(minDayWidthToFit, 20); // Don't exceed 20px as previous minimum
+  };
+
   // Zoom handlers
   const handleZoomIn = () => {
     setDayWidth(prev => Math.min(prev + 10, 100)); // Max zoom: 100px per day
   };
 
   const handleZoomOut = () => {
-    setDayWidth(prev => Math.max(prev - 10, 20)); // Min zoom: 20px per day
+    const minWidth = calculateMinDayWidth();
+    setDayWidth(prev => Math.max(prev - 10, minWidth)); // Min zoom: fit entire timeline or 5px minimum
   };
 
   if (isLoading) {
