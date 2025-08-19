@@ -223,11 +223,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Timeline range calculation using date-only approach
   const getTimelineRange = (): { start: DateString; end: DateString } => {
     try {
+      const todayStr = today();
+      const futureBuffer = addBusinessDays(todayStr, 30); // Always include 30 business days from today
+      
       if (!tasks || tasks.length === 0) {
-        const todayStr = today();
         return {
           start: todayStr,
-          end: addBusinessDays(todayStr, 30) // Default 30 business days
+          end: futureBuffer
         };
       }
 
@@ -249,10 +251,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       });
 
       if (validDates.length === 0) {
-        const todayStr = today();
         return {
           start: todayStr,
-          end: addBusinessDays(todayStr, 30)
+          end: futureBuffer
         };
       }
 
@@ -260,20 +261,19 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const minDate = validDates.reduce((min, current) => current < min ? current : min);
       const maxDate = validDates.reduce((max, current) => current > max ? current : max);
 
-      // Ensure we start from at least the current business day
-      const todayStr = today();
-      const currentBusinessDay = isBusinessDay(todayStr) ? todayStr : getNextBusinessDay(todayStr);
-      const timelineStart = minDate < currentBusinessDay ? minDate : currentBusinessDay;
+      // Timeline start: use the earlier of project start or today
+      const timelineStart = minDate < todayStr ? minDate : todayStr;
 
-      // Add buffer to end date
-      const bufferedEnd = addBusinessDays(maxDate, 5);
+      // Timeline end: use the later of project end + buffer or today + 30 business days
+      const projectEndWithBuffer = addBusinessDays(maxDate, 5);
+      const timelineEnd = projectEndWithBuffer > futureBuffer ? projectEndWithBuffer : futureBuffer;
 
       // Cap the total range to prevent performance issues (3 years max)
-      const totalDays = getCalendarDaysBetween(timelineStart, bufferedEnd);
+      const totalDays = getCalendarDaysBetween(timelineStart, timelineEnd);
       const maxDays = 1095; // 3 years
       const finalEnd = totalDays > maxDays 
         ? addDays(timelineStart, maxDays - 1)
-        : bufferedEnd;
+        : timelineEnd;
 
       if (totalDays > maxDays) {
         console.warn(`⚠️ Timeline range capped at ${maxDays} days for performance`);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TimelineHeader } from "./TimelineHeader";
 import { TimelineBar } from "./TimelineBar";
@@ -8,7 +8,8 @@ import {
   addDays, 
   getCalendarDaysBetween, 
   calculateBusinessEndDate,
-  isBusinessDay 
+  isBusinessDay,
+  today 
 } from "@/utils/dateOnly";
 
 interface TimelineProps {
@@ -19,6 +20,8 @@ interface TimelineProps {
 }
 
 export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelineProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
   // Calculate timeline width with hard limits for performance
   const totalDays = getCalendarDaysBetween(startDate, endDate);
   
@@ -32,6 +35,21 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   if (totalDays > maxDays) {
     console.warn(`⚠️ Timeline capped at ${maxDays} days for performance (was ${totalDays} days)`);
   }
+
+  // Auto-scroll to today's date on first render
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+
+    const todayStr = today();
+    const daysFromStart = getCalendarDaysBetween(startDate, todayStr) - 1;
+    const todayPosition = Math.max(0, daysFromStart) * dayWidth;
+    
+    // Center today's position in the view
+    const containerWidth = scrollContainerRef.current.clientWidth;
+    const scrollPosition = todayPosition - (containerWidth / 2);
+    
+    scrollContainerRef.current.scrollLeft = Math.max(0, scrollPosition);
+  }, [startDate, dayWidth]); // Only run when these dependencies change
 
   const parseTaskDate = (dateStr: string): DateString => {
     try {
@@ -195,7 +213,7 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const connections = generateDependencyConnections();
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={scrollContainerRef} className="h-full overflow-auto">
       {/* Timeline Header */}
       <TimelineHeader
         startDate={startDate}
