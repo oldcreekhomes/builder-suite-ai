@@ -6,13 +6,15 @@ import { useCompanySearch } from "@/hooks/useCompanySearch";
 interface VendorSearchInputProps {
   value: string;
   onChange: (value: string) => void;
+  onCompanySelect?: (company: { company_name: string; address?: string }) => void;
   placeholder?: string;
   className?: string;
 }
 
 export function VendorSearchInput({ 
   value, 
-  onChange, 
+  onChange,
+  onCompanySelect,
   placeholder = "Vendor",
   className 
 }: VendorSearchInputProps) {
@@ -44,11 +46,19 @@ export function VendorSearchInput({
     setTimeout(() => setShowResults(false), 200);
   };
 
-  const handleSelectCompany = (company: { company_name: string; company_type?: string }) => {
+  const handleSelectCompany = (company: { company_name: string; company_type?: string; address?: string }) => {
     const selectedValue = company.company_name;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
     setShowResults(false);
+    
+    // Call the onCompanySelect callback with company details including address
+    if (onCompanySelect) {
+      onCompanySelect({
+        company_name: company.company_name,
+        address: company.address
+      });
+    }
   };
 
   return (

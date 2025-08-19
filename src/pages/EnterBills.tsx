@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,15 +27,47 @@ interface ExpenseRow {
 }
 
 export default function EnterBills() {
-  const [billDate, setBillDate] = useState<Date>();
+  const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", amount: "", memo: "", customerJob: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", amount: "", memo: "", customerJob: "" }
   ]);
+
+  // Calculate due date when bill date or terms change
+  useEffect(() => {
+    if (billDate && terms) {
+      let daysToAdd = 0;
+      switch (terms) {
+        case "net-15":
+          daysToAdd = 15;
+          break;
+        case "net-30":
+          daysToAdd = 30;
+          break;
+        case "net-60":
+          daysToAdd = 60;
+          break;
+        case "due-on-receipt":
+          daysToAdd = 0;
+          break;
+        default:
+          daysToAdd = 30;
+      }
+      setBillDueDate(addDays(billDate, daysToAdd));
+    }
+  }, [billDate, terms]);
+
+  // Set initial due date
+  useEffect(() => {
+    const today = new Date();
+    setBillDueDate(addDays(today, 30)); // Default to Net 30
+  }, []);
 
   // Job Cost handlers
   const addJobCostRow = () => {
@@ -121,6 +153,11 @@ export default function EnterBills() {
                     <VendorSearchInput
                       value={vendor}
                       onChange={setVendor}
+                      onCompanySelect={(company) => {
+                        if (company.address) {
+                          setAddress(company.address);
+                        }
+                      }}
                       placeholder="Search vendors..."
                     />
                   </div>
@@ -199,7 +236,7 @@ export default function EnterBills() {
 
                   <div className="space-y-2">
                     <Label htmlFor="terms">Terms</Label>
-                    <Select>
+                    <Select value={terms} onValueChange={setTerms}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select terms" />
                       </SelectTrigger>
@@ -219,6 +256,8 @@ export default function EnterBills() {
                     <Textarea 
                       id="address" 
                       placeholder="Enter vendor address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
                       rows={4}
                     />
                   </div>
