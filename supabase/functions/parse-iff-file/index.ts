@@ -169,8 +169,55 @@ function parseIFFFile(content: string): IFFAccount[] {
 }
 
 function mapQBAccountType(qbType: string): 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | null {
+  // Handle both numeric codes and text-based account types
   const type = qbType.toLowerCase().replace(/\s+/g, '');
+  const numericType = parseInt(qbType);
   
+  // QuickBooks numeric account type mapping
+  if (!isNaN(numericType)) {
+    switch (numericType) {
+      // Asset accounts
+      case 8:   // Bank
+      case 9:   // Other Current Asset  
+      case 10:  // Fixed Asset
+      case 11:  // Other Asset
+      case 12:  // Accounts Receivable
+      case 65:  // Inventory Asset
+        return 'asset';
+      
+      // Liability accounts
+      case 13:  // Accounts Payable
+      case 15:  // Credit Card
+      case 16:  // Long Term Liability
+      case 17:  // Other Current Liability
+        return 'liability';
+      
+      // Equity accounts
+      case 18:  // Equity
+      case 19:  // Retained Earnings
+        return 'equity';
+      
+      // Revenue/Income accounts
+      case 25:  // Income
+      case 27:  // Other Income
+        return 'revenue';
+      
+      // Expense accounts
+      case 30:  // Cost of Goods Sold
+      case 31:  // Expense
+      case 34:  // Other Expense
+      case 39:  // Direct Expense
+      case 40:  // Operating Expense
+      case 63:  // Non-posting
+        return 'expense';
+      
+      default:
+        console.log(`Unknown numeric account type: ${numericType}, trying text mapping...`);
+        // Fall through to text-based mapping
+    }
+  }
+  
+  // Text-based account type mapping (fallback)
   // Asset accounts
   if (type.includes('asset') || 
       type.includes('cash') || 
