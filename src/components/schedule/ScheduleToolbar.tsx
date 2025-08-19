@@ -30,51 +30,47 @@ export function ScheduleToolbar({
       <Button
         onClick={onAddTask}
         size="sm"
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
       >
-        <Plus style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Add</span>
+        <Plus className="h-4 w-4 text-white" />
+        <span className="text-white">Add</span>
       </Button>
 
       <Button
         onClick={onCopySchedule}
         size="sm"
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
       >
-        <Copy style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Copy Schedule</span>
+        <Copy className="h-4 w-4 text-white" />
+        <span className="text-white">Copy</span>
+      </Button>
+
+      <Button
+        onClick={onZoomIn}
+        size="sm"
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+      >
+        <ZoomIn className="h-4 w-4 text-white" />
+        <span className="text-white">Zoom In</span>
+      </Button>
+
+      <Button
+        onClick={onZoomOut}
+        size="sm"
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+      >
+        <ZoomOut className="h-4 w-4 text-white" />
+        <span className="text-white">Zoom Out</span>
       </Button>
 
       <Button
         onClick={onPublish}
         size="sm"
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
       >
-        <Send style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
-        <span style={{ color: '#ffffff' }}>Publish</span>
+        <Send className="h-4 w-4 text-white" />
+        <span className="text-white">Publish</span>
       </Button>
-
-      <div className="flex items-center gap-1 ml-4">
-        <Button
-          onClick={onZoomOut}
-          size="sm"
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ZoomOut className="h-4 w-4" />
-          <span>Zoom Out</span>
-        </Button>
-
-        <Button
-          onClick={onZoomIn}
-          size="sm"
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ZoomIn className="h-4 w-4" />
-          <span>Zoom In</span>
-        </Button>
-      </div>
     </div>
   );
 }
