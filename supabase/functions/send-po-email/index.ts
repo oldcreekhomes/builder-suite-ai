@@ -270,7 +270,7 @@ const handler = async (req: Request): Promise<Response> => {
         price,
         companies!inner(
           company_name,
-          company_representatives(
+          company_representatives!company_representatives_company_id_fkey(
             id,
             first_name,
             last_name,
