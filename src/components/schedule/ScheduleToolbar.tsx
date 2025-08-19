@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy } from "lucide-react";
+import { Plus, Send, Copy, RotateCcw } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -10,6 +10,7 @@ interface ScheduleToolbarProps {
   onAddTask: () => void;
   onPublish: () => void;
   onCopySchedule: () => void;
+  onResetStartDates: () => void;
 }
 
 export function ScheduleToolbar({ 
@@ -18,7 +19,8 @@ export function ScheduleToolbar({
   projectId,
   onAddTask,
   onPublish,
-  onCopySchedule
+  onCopySchedule,
+  onResetStartDates
 }: ScheduleToolbarProps) {
 
   return (
@@ -39,6 +41,16 @@ export function ScheduleToolbar({
       >
         <Copy style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
         <span style={{ color: '#ffffff' }}>Copy Schedule</span>
+      </Button>
+
+      <Button
+        onClick={onResetStartDates}
+        size="sm"
+        variant="secondary"
+        className="flex items-center gap-2"
+      >
+        <RotateCcw style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
+        <span style={{ color: '#ffffff' }}>Reset Start Dates to 01/01/2025</span>
       </Button>
       
       <Button

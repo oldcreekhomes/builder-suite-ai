@@ -30,7 +30,7 @@ interface CustomGanttChartProps {
 export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
-  const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
+  const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors, bulkResetStartDates } = useTaskBulkMutations(projectId);
   const copyScheduleMutation = useCopySchedule();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -154,6 +154,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
+  const [showResetStartDatesDialog, setShowResetStartDatesDialog] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -628,6 +629,21 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const handleCopySchedule = () => {
     setShowCopyScheduleDialog(true);
+  };
+
+  const handleResetStartDates = () => {
+    setShowResetStartDatesDialog(true);
+  };
+
+  const handleResetStartDatesConfirm = async () => {
+    try {
+      await bulkResetStartDates.mutateAsync({ targetDate: '2025-01-01' });
+      toast.success('All task start dates reset to 01/01/2025');
+      setShowResetStartDatesDialog(false);
+    } catch (error) {
+      console.error('Failed to reset start dates:', error);
+      toast.error('Failed to reset start dates');
+    }
   };
 
   const handleCopyScheduleSubmit = async (options: any) => {
@@ -1224,6 +1240,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
+          onResetStartDates={handleResetStartDates}
         />
         
         <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
@@ -1314,6 +1331,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         currentProjectId={projectId}
         onCopySchedule={handleCopyScheduleSubmit}
       />
+
+      {/* Reset Start Dates Confirmation Dialog */}
+      <AlertDialog open={showResetStartDatesDialog} onOpenChange={setShowResetStartDatesDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset All Start Dates to 01/01/2025?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset ALL task start dates in this project schedule to January 1st, 2025. 
+              End dates will be recalculated based on each task's duration. 
+              <br /><br />
+              <strong>This action cannot be undone.</strong>
+              <br /><br />
+              Only this project schedule will be affected. No other schedules will be changed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetStartDatesConfirm}>
+              Reset Start Dates
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
