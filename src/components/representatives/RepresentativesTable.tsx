@@ -32,7 +32,11 @@ interface Representative {
   };
 }
 
-export function RepresentativesTable() {
+interface RepresentativesTableProps {
+  searchQuery?: string;
+}
+
+export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingRepresentative, setEditingRepresentative] = useState<Representative | null>(null);
@@ -102,6 +106,21 @@ export function RepresentativesTable() {
     setEditDialogOpen(true);
   };
 
+  // Filter representatives based on search query
+  const filteredRepresentatives = representatives.filter(rep => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const fullName = `${rep.first_name} ${rep.last_name}`.toLowerCase();
+    return (
+      fullName.includes(query) ||
+      (rep.companies?.company_name && rep.companies.company_name.toLowerCase().includes(query)) ||
+      (rep.title && rep.title.toLowerCase().includes(query)) ||
+      (rep.email && rep.email.toLowerCase().includes(query)) ||
+      (rep.phone_number && rep.phone_number.toLowerCase().includes(query))
+    );
+  });
+
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading representatives...</div>;
   }
@@ -121,14 +140,20 @@ export function RepresentativesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {representatives.length === 0 ? (
+            {filteredRepresentatives.length === 0 && searchQuery ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                  No representatives found matching "{searchQuery}".
+                </TableCell>
+              </TableRow>
+            ) : representatives.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
             ) : (
-              representatives.map((rep) => (
+              filteredRepresentatives.map((rep) => (
                 <TableRow key={rep.id} className="h-10">
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {rep.first_name} {rep.last_name}

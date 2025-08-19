@@ -22,7 +22,8 @@ export default function Companies() {
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
   const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
+  const [representativeSearchQuery, setRepresentativeSearchQuery] = useState("");
 
   return (
     <SidebarProvider>
@@ -53,8 +54,8 @@ export default function Companies() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       placeholder="Search companies..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      value={companySearchQuery}
+                      onChange={(e) => setCompanySearchQuery(e.target.value)}
                       className="pl-9"
                     />
                   </div>
@@ -63,17 +64,26 @@ export default function Companies() {
                     Add Company
                   </Button>
                 </div>
-                <CompaniesTable searchQuery={searchQuery} />
+                <CompaniesTable searchQuery={companySearchQuery} />
               </TabsContent>
               
               <TabsContent value="representatives" className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center gap-4">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search representatives..."
+                      value={representativeSearchQuery}
+                      onChange={(e) => setRepresentativeSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
                   <Button onClick={() => setAddRepresentativeOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Representative
                   </Button>
                 </div>
-                <RepresentativesTable />
+                <RepresentativesTable searchQuery={representativeSearchQuery} />
               </TabsContent>
               
               <TabsContent value="address-finder" className="space-y-4">
