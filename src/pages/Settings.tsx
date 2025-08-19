@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
+import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
 import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
@@ -157,18 +158,8 @@ const Settings = () => {
                   />
                 </TabsContent>
 
-                <TabsContent value="chart-of-accounts" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Chart of Accounts</CardTitle>
-                      <CardDescription>
-                        Manage your chart of accounts and accounting settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground">Chart of accounts management coming soon...</p>
-                    </CardContent>
-                  </Card>
+                <TabsContent value="chart-of-accounts" className="mt-6">
+                  <ChartOfAccountsTab />
                 </TabsContent>
               </Tabs>
             </div>
