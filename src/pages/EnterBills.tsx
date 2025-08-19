@@ -261,16 +261,16 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-2">Memo</div>
-                          <div className="col-span-2">Quantity</div>
-                          <div className="col-span-2">Cost</div>
+                          <div className="col-span-4">Cost Code</div>
+                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-4">
                               <CostCodeSearchInput 
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, 'account', value)}
@@ -278,7 +278,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-3">
                               <Input 
                                 placeholder="Job cost memo"
                                 value={row.memo}
@@ -286,7 +286,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-1">
                               <Input 
                                 type="number"
                                 step="0.01"
@@ -296,7 +296,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-1">
                               <Input 
                                 type="number"
                                 step="0.01"
@@ -345,16 +345,16 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
-                          <div className="col-span-2">Memo</div>
-                          <div className="col-span-2">Quantity</div>
-                          <div className="col-span-2">Cost</div>
+                          <div className="col-span-4">Account</div>
+                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {expenseRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-4">
                               <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="Select account" />
@@ -368,7 +368,7 @@ export default function EnterBills() {
                                 </SelectContent>
                               </Select>
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-3">
                               <Input 
                                 placeholder="Expense memo"
                                 value={row.memo}
@@ -376,7 +376,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-1">
                               <Input 
                                 type="number"
                                 step="0.01"
@@ -386,7 +386,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-1">
                               <Input 
                                 type="number"
                                 step="0.01"
