@@ -43,6 +43,13 @@ export function AccountingSidebar() {
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link to="/accounting/bills/enter" className="w-full">
+                      Enter Bills
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
               </SidebarMenuSub>
             </SidebarMenuItem>
           </SidebarMenu>

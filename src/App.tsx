@@ -28,6 +28,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
 import BillsApprovalStatus from "./pages/BillsApprovalStatus";
+import EnterBills from "./pages/EnterBills";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
@@ -111,6 +112,7 @@ const AppContent = () => {
           {/* Accounting routes */}
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
+          <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
