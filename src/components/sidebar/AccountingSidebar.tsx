@@ -4,7 +4,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -17,11 +16,8 @@ const items = [
 
 export function AccountingSidebar() {
   return (
-    <SidebarContent className="px-3 py-4 flex-none">
+    <SidebarContent className="px-3 py-4 flex-1">
       <SidebarGroup>
-        <SidebarGroupLabel className="text-lg font-semibold mb-2 mt-4">
-          Accounting
-        </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {items.map((item) => (
