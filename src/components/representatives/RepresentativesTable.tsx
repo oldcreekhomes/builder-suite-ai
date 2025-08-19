@@ -27,6 +27,7 @@ interface Representative {
   company_id: string;
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
+  receive_po_notifications?: boolean;
   companies?: {
     company_name: string;
   } | null;
@@ -58,6 +59,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           company_id,
           receive_bid_notifications,
           receive_schedule_notifications,
+          receive_po_notifications,
           created_at,
           updated_at,
           companies!company_representatives_company_id_fkey (
