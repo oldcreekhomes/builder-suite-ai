@@ -74,7 +74,7 @@ export function JobSearchInput({
             >
               <span className="font-medium">{project.name}</span>
               {project.address && (
-                <span className="text-muted-foreground"> - {project.address}</span>
+                <span className="text-foreground"> - {project.address}</span>
               )}
             </button>
           ))}
