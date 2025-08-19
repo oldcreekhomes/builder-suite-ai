@@ -4,6 +4,7 @@ import { SidebarBranding } from "./sidebar/SidebarBranding";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
+import { AccountingSidebar } from "./sidebar/AccountingSidebar";
 import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
@@ -27,6 +28,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isCompanyDashboard = location.pathname === '/';
+  const isAccountingPage = location.pathname === '/accounting';
   const isIssuesPage = location.pathname === '/issues';
 
   return (
@@ -39,8 +41,10 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
           onStartChat={onStartChat}
           unreadCounts={unreadCounts}
           markConversationAsRead={markConversationAsRead}
-          showAccountingLink={false}
+          showAccountingLink={true}
         />
+      ) : isAccountingPage ? (
+        <AccountingSidebar />
       ) : isMessagesPage ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
