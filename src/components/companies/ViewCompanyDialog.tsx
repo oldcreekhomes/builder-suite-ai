@@ -40,6 +40,9 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
+  receive_bid_notifications?: boolean;
+  receive_schedule_notifications?: boolean;
+  receive_po_notifications?: boolean;
 }
 
 interface ViewCompanyDialogProps {
@@ -62,7 +65,7 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
       
       const { data, error } = await supabase
         .from('company_representatives')
-        .select('*')
+        .select('id, first_name, last_name, email, phone_number, title, receive_bid_notifications, receive_schedule_notifications, receive_po_notifications')
         .eq('company_id', company.id)
         .order('first_name');
       
