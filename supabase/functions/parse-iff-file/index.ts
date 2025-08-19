@@ -74,14 +74,41 @@ Deno.serve(async (req) => {
       throw new Error('No valid accounts found in IFF file');
     }
 
-    // Insert accounts into database
-    const accountsToInsert = accounts.map(account => ({
+    // Check for existing accounts first
+    const existingCodes = accounts.map(account => account.code);
+    const { data: existingAccounts } = await supabase
+      .from('accounts')
+      .select('code')
+      .eq('owner_id', owner_id)
+      .in('code', existingCodes);
+
+    const existingCodesSet = new Set(existingAccounts?.map(acc => acc.code) || []);
+    
+    // Filter out accounts that already exist
+    const newAccounts = accounts.filter(account => !existingCodesSet.has(account.code));
+    
+    if (newAccounts.length === 0) {
+      console.log('All accounts already exist in database');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `All ${accounts.length} accounts already exist in the database`,
+          accounts: []
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Insert only new accounts
+    const accountsToInsert = newAccounts.map(account => ({
       ...account,
       owner_id,
       is_active: true
     }));
 
-    console.log(`Attempting to insert ${accountsToInsert.length} accounts`);
+    console.log(`Attempting to insert ${accountsToInsert.length} new accounts (${existingCodesSet.size} already exist)`);
     console.log(`Sample account data:`, JSON.stringify(accountsToInsert[0] || {}, null, 2));
 
     const { data: insertedAccounts, error: insertError } = await supabase
