@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -39,6 +40,7 @@ export function CompaniesTable() {
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [collapsedCostCodes, setCollapsedCostCodes] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -120,10 +122,22 @@ export function CompaniesTable() {
 
   // Group companies by cost codes - restructure to match settings hierarchy
   const costCodeToCompaniesMap = useMemo(() => {
+    // Filter companies based on search query first
+    const filteredCompanies = companies.filter(company => {
+      if (!searchQuery.trim()) return true;
+      
+      const query = searchQuery.toLowerCase();
+      return (
+        company.company_name.toLowerCase().includes(query) ||
+        company.company_type.toLowerCase().includes(query) ||
+        (company.address && company.address.toLowerCase().includes(query))
+      );
+    });
+
     // Create a map from cost code ID to companies that have that cost code
     const costCodeCompanyMap = new Map<string, Company[]>();
     
-    companies.forEach(company => {
+    filteredCompanies.forEach(company => {
       company.cost_codes?.forEach(costCode => {
         if (!costCodeCompanyMap.has(costCode.id)) {
           costCodeCompanyMap.set(costCode.id, []);
@@ -156,6 +170,14 @@ export function CompaniesTable() {
         return a.localeCompare(b);
       })
       .forEach(([groupKey, codes]) => {
+        // Check if this group has any companies after filtering
+        const childCodes = codes.filter(code => !parentCodes.has(code.code));
+        const hasFilteredCompanies = childCodes.some(costCode => 
+          costCodeCompanyMap.has(costCode.id) && costCodeCompanyMap.get(costCode.id)!.length > 0
+        );
+        
+        if (!hasFilteredCompanies) return;
+
         // Add parent group row
         if (groupKey !== 'ungrouped') {
           tableRows.push({
@@ -167,8 +189,10 @@ export function CompaniesTable() {
         }
 
         // Add child cost codes and their companies
-        const childCodes = codes.filter(code => !parentCodes.has(code.code));
         childCodes.sort((a, b) => a.code.localeCompare(b.code)).forEach(costCode => {
+          const companiesForCostCode = costCodeCompanyMap.get(costCode.id) || [];
+          if (companiesForCostCode.length === 0) return;
+
           // Add cost code row
           tableRows.push({
             id: `child-${costCode.id}`,
@@ -180,7 +204,6 @@ export function CompaniesTable() {
           });
 
           // Add company rows under this cost code
-          const companiesForCostCode = costCodeCompanyMap.get(costCode.id) || [];
           companiesForCostCode.forEach(company => {
             tableRows.push({
               id: `company-${costCode.id}-${company.id}`,
@@ -195,8 +218,8 @@ export function CompaniesTable() {
         });
       });
 
-    return { tableRows };
-  }, [companies, groupedCostCodes, parentCodes]);
+    return { tableRows, filteredCompanies };
+  }, [companies, groupedCostCodes, parentCodes, searchQuery]);
 
   const toggleGroupCollapse = (groupKey: string) => {
     setCollapsedGroups(prev => {
@@ -267,10 +290,22 @@ export function CompaniesTable() {
     return <div className="p-4 text-sm">Loading companies...</div>;
   }
 
-  const { tableRows } = costCodeToCompaniesMap;
+  const { tableRows, filteredCompanies } = costCodeToCompaniesMap;
 
   return (
     <>
+      <div className="mb-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search companies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+      
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
@@ -452,7 +487,15 @@ export function CompaniesTable() {
                 return null;
               })}
 
-            {companies.length === 0 && (
+            {filteredCompanies.length === 0 && searchQuery && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <p className="text-gray-500">No companies found matching "{searchQuery}"</p>
+                </TableCell>
+              </TableRow>
+            )}
+
+            {companies.length === 0 && !searchQuery && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No companies found. Start by adding your first company.

@@ -1,13 +1,12 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CompaniesTable } from "@/components/companies/CompaniesTable";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
-import { BulkImportDialog } from "@/components/companies/BulkImportDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RepresentativesTable } from "@/components/representatives/RepresentativesTable";
 import { AddRepresentativeModal } from "@/components/representatives/AddRepresentativeModal";
@@ -22,7 +21,6 @@ export default function Companies() {
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
   const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
-  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   return (
     <SidebarProvider>
@@ -48,11 +46,7 @@ export default function Companies() {
               </TabsList>
               
               <TabsContent value="companies" className="space-y-4">
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Bulk Import
-                  </Button>
+                <div className="flex justify-end">
                   <Button onClick={() => setAddCompanyOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Company
@@ -123,11 +117,6 @@ export default function Companies() {
           <AddMarketplaceRepresentativeDialog 
             open={addMarketplaceRepresentativeOpen} 
             onOpenChange={setAddMarketplaceRepresentativeOpen} 
-          />
-
-          <BulkImportDialog 
-            open={bulkImportOpen} 
-            onOpenChange={setBulkImportOpen} 
           />
         </SidebarInset>
       </div>
