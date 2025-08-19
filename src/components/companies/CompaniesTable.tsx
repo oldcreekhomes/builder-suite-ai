@@ -130,8 +130,8 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       
       const query = searchQuery.toLowerCase();
       return (
-        company.company_name.toLowerCase().includes(query) ||
-        company.company_type.toLowerCase().includes(query) ||
+        (company.company_name && company.company_name.toLowerCase().includes(query)) ||
+        (company.company_type && company.company_type.toLowerCase().includes(query)) ||
         (company.address && company.address.toLowerCase().includes(query))
       );
     });
