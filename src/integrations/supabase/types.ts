@@ -14,6 +14,238 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_settings: {
+        Row: {
+          ap_account_id: string | null
+          created_at: string
+          owner_id: string
+          updated_at: string
+          wip_account_id: string | null
+        }
+        Insert: {
+          ap_account_id?: string | null
+          created_at?: string
+          owner_id: string
+          updated_at?: string
+          wip_account_id?: string | null
+        }
+        Update: {
+          ap_account_id?: string | null
+          created_at?: string
+          owner_id?: string
+          updated_at?: string
+          wip_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_settings_ap_account_id_fkey"
+            columns: ["ap_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_settings_wip_account_id_fkey"
+            columns: ["wip_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string
+          parent_id: string | null
+          type: Database["public"]["Enums"]["account_type"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id: string
+          parent_id?: string | null
+          type: Database["public"]["Enums"]["account_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string
+          parent_id?: string | null
+          type?: Database["public"]["Enums"]["account_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          bill_id: string
+          cost_code_id: string | null
+          created_at: string
+          id: string
+          line_number: number
+          line_type: Database["public"]["Enums"]["bill_line_type"]
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          quantity: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          bill_id: string
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type: Database["public"]["Enums"]["bill_line_type"]
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          bill_id?: string
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type?: Database["public"]["Enums"]["bill_line_type"]
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          bill_date: string
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          project_id: string | null
+          reference_number: string | null
+          status: Database["public"]["Enums"]["bill_status"]
+          terms: string | null
+          total_amount: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          bill_date?: string
+          created_at?: string
+          created_by: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          project_id?: string | null
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["bill_status"]
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          bill_date?: string
+          created_at?: string
+          created_by?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          project_id?: string | null
+          reference_number?: string | null
+          status?: Database["public"]["Enums"]["bill_status"]
+          terms?: string | null
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -298,6 +530,116 @@ export type Database = {
             columns: ["issue_id"]
             isOneToOne: false
             referencedRelation: "company_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          created_at: string
+          description: string | null
+          entry_date: string
+          id: string
+          owner_id: string
+          posted_at: string | null
+          source_id: string
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          owner_id: string
+          posted_at?: string | null
+          source_id: string
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          id?: string
+          owner_id?: string
+          posted_at?: string | null
+          source_id?: string
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      journal_entry_lines: {
+        Row: {
+          account_id: string
+          cost_code_id: string | null
+          created_at: string
+          credit: number
+          debit: number
+          id: string
+          journal_entry_id: string
+          line_number: number
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          cost_code_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          id?: string
+          journal_entry_id: string
+          line_number?: number
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          cost_code_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          id?: string
+          journal_entry_id?: string
+          line_number?: number
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1076,6 +1418,9 @@ export type Database = {
       }
     }
     Enums: {
+      account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
+      bill_line_type: "job_cost" | "expense"
+      bill_status: "draft" | "posted" | "void"
       user_type: "home_builder" | "employee"
     }
     CompositeTypes: {
@@ -1204,6 +1549,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["asset", "liability", "equity", "revenue", "expense"],
+      bill_line_type: ["job_cost", "expense"],
+      bill_status: ["draft", "posted", "void"],
       user_type: ["home_builder", "employee"],
     },
   },

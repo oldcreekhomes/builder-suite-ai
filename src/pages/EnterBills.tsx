@@ -18,6 +18,9 @@ import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AccountSearchInput } from "@/components/AccountSearchInput";
+import { useBills, BillData, BillLineData } from "@/hooks/useBills";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface ExpenseRow {
   id: string;
@@ -39,6 +42,10 @@ export default function EnterBills() {
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", quantity: "", amount: "", memo: "" }
   ]);
+  const [savedBillId, setSavedBillId] = useState<string | null>(null);
+
+  const { createBill, postBill } = useBills();
+  const { accountingSettings } = useAccounts();
 
   // Calculate due date when bill date or terms change
   useEffect(() => {
@@ -129,6 +136,104 @@ export default function EnterBills() {
     }, 0);
     
     return (jobCostTotal + expenseTotal).toFixed(2);
+  };
+
+  const handleSaveAndClose = async () => {
+    if (!vendor) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a vendor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const billData: BillData = {
+      vendor_id: vendor,
+      project_id: job || undefined,
+      bill_date: billDate.toISOString().split('T')[0],
+      due_date: billDueDate?.toISOString().split('T')[0],
+      terms,
+      reference_number: document.getElementById('refNo')?.value || undefined,
+      notes: undefined
+    };
+
+    const billLines: BillLineData[] = [
+      ...jobCostRows
+        .filter(row => row.account || row.amount)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.account || undefined,
+          project_id: job || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        })),
+      ...expenseRows
+        .filter(row => row.account || row.amount)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.account || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        }))
+    ];
+
+    if (billLines.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one line item",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const bill = await createBill.mutateAsync({ billData, billLines });
+      setSavedBillId(bill.id);
+    } catch (error) {
+      console.error('Error saving bill:', error);
+    }
+  };
+
+  const handlePost = async () => {
+    if (!savedBillId) {
+      await handleSaveAndClose();
+      return;
+    }
+
+    if (!accountingSettings?.ap_account_id) {
+      toast({
+        title: "Setup Required",
+        description: "Please configure Accounts Payable account in Accounting Settings",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await postBill.mutateAsync(savedBillId);
+    } catch (error) {
+      console.error('Error posting bill:', error);
+    }
+  };
+
+  const handleClear = () => {
+    setBillDate(new Date());
+    setBillDueDate(undefined);
+    setVendor("");
+    setTerms("net-30");
+    setJob("");
+    setJobCostRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
+    setSavedBillId(null);
+    
+    // Clear reference number field
+    const refNoInput = document.getElementById('refNo') as HTMLInputElement;
+    if (refNoInput) refNoInput.value = '';
   };
 
   return (
@@ -352,18 +457,13 @@ export default function EnterBills() {
                         {expenseRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select account" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="materials">Materials</SelectItem>
-                                  <SelectItem value="labor">Labor</SelectItem>
-                                  <SelectItem value="equipment">Equipment</SelectItem>
-                                  <SelectItem value="supplies">Supplies</SelectItem>
-                                  <SelectItem value="utilities">Utilities</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <AccountSearchInput
+                                value={row.account}
+                                onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                                placeholder="Select account"
+                                accountType="expense"
+                                className="h-8"
+                              />
                             </div>
                             <div className="col-span-4">
                               <Input 
@@ -429,13 +529,28 @@ export default function EnterBills() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-4">
-                  <Button type="button" className="flex-1">
-                    Save & Close
+                  <Button 
+                    type="button" 
+                    className="flex-1"
+                    onClick={handleSaveAndClose}
+                    disabled={createBill.isPending}
+                  >
+                    {createBill.isPending ? "Saving..." : "Save & Close"}
                   </Button>
-                  <Button type="button" variant="outline" className="flex-1">
-                    Save & New
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={handlePost}
+                    disabled={postBill.isPending || (!savedBillId && createBill.isPending)}
+                  >
+                    {postBill.isPending ? "Posting..." : "Save & Post"}
                   </Button>
-                  <Button type="button" variant="outline">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={handleClear}
+                  >
                     Clear
                   </Button>
                 </div>

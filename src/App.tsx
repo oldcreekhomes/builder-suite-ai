@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -33,6 +32,7 @@ import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import SubmitBid from "./pages/SubmitBid";
+import AccountingSettings from "./pages/AccountingSettings";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
@@ -113,6 +113,7 @@ const AppContent = () => {
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
           <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
+          <Route path="/accounting/settings" element={<ProtectedRoute><AccountingSettings /></ProtectedRoute>} />
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
