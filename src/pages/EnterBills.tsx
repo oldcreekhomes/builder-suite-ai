@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
+import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,6 @@ interface ExpenseRow {
   quantity: string;
   amount: string;
   memo: string;
-  customerJob: string;
 }
 
 export default function EnterBills() {
@@ -32,11 +32,12 @@ export default function EnterBills() {
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
+  const [job, setJob] = useState<string>("");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", quantity: "", amount: "", memo: "", customerJob: "" }
+    { id: "1", account: "", quantity: "", amount: "", memo: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", quantity: "", amount: "", memo: "", customerJob: "" }
+    { id: "1", account: "", quantity: "", amount: "", memo: "" }
   ]);
 
   // Calculate due date when bill date or terms change
@@ -69,15 +70,13 @@ export default function EnterBills() {
     setBillDueDate(addDays(today, 30)); // Default to Net 30
   }, []);
 
-  // Job Cost handlers
   const addJobCostRow = () => {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
       account: "",
       quantity: "",
       amount: "",
-      memo: "",
-      customerJob: ""
+      memo: ""
     };
     setJobCostRows([...jobCostRows, newRow]);
   };
@@ -101,8 +100,7 @@ export default function EnterBills() {
       account: "",
       quantity: "",
       amount: "",
-      memo: "",
-      customerJob: ""
+      memo: ""
     };
     setExpenseRows([...expenseRows, newRow]);
   };
@@ -192,15 +190,11 @@ export default function EnterBills() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="amountDue">Amount Due</Label>
-                    <Input 
-                      id="amountDue" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="0.00"
-                      value={calculateTotal()}
-                      readOnly
-                      className="bg-muted"
+                    <Label htmlFor="job">Job</Label>
+                    <JobSearchInput
+                      value={job}
+                      onChange={setJob}
+                      placeholder="Search jobs..."
                     />
                   </div>
 
@@ -266,17 +260,16 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Cost Code</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
                           <div className="col-span-2">Memo</div>
-                          <div className="col-span-2">Job</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                             <div className="col-span-3">
                               <CostCodeSearchInput 
                                 value={row.account}
@@ -312,18 +305,6 @@ export default function EnterBills() {
                                 onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                                 className="h-8"
                               />
-                            </div>
-                            <div className="col-span-2">
-                              <Select value={row.customerJob} onValueChange={(value) => updateJobCostRow(row.id, 'customerJob', value)}>
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select job" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="project-a">Project A</SelectItem>
-                                  <SelectItem value="project-b">Project B</SelectItem>
-                                  <SelectItem value="project-c">Project C</SelectItem>
-                                </SelectContent>
-                              </Select>
                             </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
@@ -363,17 +344,16 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
                           <div className="col-span-2">Memo</div>
-                          <div className="col-span-2">Job</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {expenseRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                             <div className="col-span-3">
                               <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
                                 <SelectTrigger className="h-8">
@@ -416,18 +396,6 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
-                              <Select value={row.customerJob} onValueChange={(value) => updateExpenseRow(row.id, 'customerJob', value)}>
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select job" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="project-a">Project A</SelectItem>
-                                  <SelectItem value="project-b">Project B</SelectItem>
-                                  <SelectItem value="project-c">Project C</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
                                 onClick={() => removeExpenseRow(row.id)}
@@ -443,7 +411,7 @@ export default function EnterBills() {
                         ))}
 
                         <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
+                          <div className="grid grid-cols-10 gap-2">
                             <div className="col-span-3 font-medium">Total:</div>
                             <div className="col-span-2 font-medium">
                               ${expenseRows.reduce((total, row) => {
@@ -451,7 +419,7 @@ export default function EnterBills() {
                                 return total + amount;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-7"></div>
+                            <div className="col-span-5"></div>
                           </div>
                         </div>
                       </div>
