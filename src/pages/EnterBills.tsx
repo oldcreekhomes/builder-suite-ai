@@ -139,13 +139,7 @@ export default function EnterBills() {
           <CompanyDashboardHeader title="Bills - Enter Bills" />
           <div className="flex-1 p-6 space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Enter New Bill</CardTitle>
-                <CardDescription>
-                  Create a new bill entry for processing and approval
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 pt-6">
                 {/* Bill Header Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
