@@ -189,7 +189,7 @@ export function MessagesSidebar({
                 >
                   <Link to="/accounting" className="flex items-center p-3 rounded-lg w-full">
                     <Calculator className="h-5 w-5 mr-3 flex-shrink-0" />
-                    <span className="font-medium whitespace-nowrap">Accounting</span>
+                    <span className="font-medium whitespace-nowrap">Accounting (Alpha)</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
