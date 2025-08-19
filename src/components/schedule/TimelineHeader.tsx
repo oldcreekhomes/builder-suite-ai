@@ -65,7 +65,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
             <div
               key={i}
               className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
-                isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
+                isWeekend ? "bg-red-100 text-red-700" : "bg-background"
               }`}
               style={{
                 left: i * dayWidth,
