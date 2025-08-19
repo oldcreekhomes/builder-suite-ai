@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ interface ExpenseRow {
 export default function EnterBills() {
   const [billDate, setBillDate] = useState<Date>();
   const [billDueDate, setBillDueDate] = useState<Date>();
+  const [vendor, setVendor] = useState<string>("");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", amount: "", memo: "", customerJob: "" }
   ]);
@@ -116,16 +118,11 @@ export default function EnterBills() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="vendor">Vendor</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select vendor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="abc-supply">ABC Supply Co.</SelectItem>
-                        <SelectItem value="xyz-materials">XYZ Materials</SelectItem>
-                        <SelectItem value="def-services">DEF Services</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <VendorSearchInput
+                      value={vendor}
+                      onChange={setVendor}
+                      placeholder="Search vendors..."
+                    />
                   </div>
 
                   <div className="space-y-2">
