@@ -156,6 +156,48 @@ export function BulkAddressFinder() {
     }
   };
 
+  const massApplyAddresses = async () => {
+    const successfulResults = Array.from(results.entries()).filter(
+      ([_, result]) => result.success && result.data
+    );
+
+    if (successfulResults.length === 0) return;
+
+    setLoading(true);
+    let appliedCount = 0;
+    let errorCount = 0;
+
+    for (const [companyId, result] of successfulResults) {
+      try {
+        const { error } = await supabase
+          .from('companies')
+          .update({
+            address: result.data.address,
+            phone_number: result.data.phoneNumber || null,
+            website: result.data.website || null,
+          })
+          .eq('id', companyId);
+
+        if (error) throw error;
+        appliedCount++;
+      } catch (error) {
+        console.error(`Error updating company ${companyId}:`, error);
+        errorCount++;
+      }
+    }
+
+    toast({
+      title: appliedCount > 0 ? "Success" : "Error",
+      description: `Applied ${appliedCount} addresses successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      variant: errorCount > 0 && appliedCount === 0 ? "destructive" : "default",
+    });
+
+    // Refresh the companies list and clear results
+    await fetchCompaniesWithoutAddresses();
+    setResults(new Map());
+    setLoading(false);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -218,10 +260,33 @@ export function BulkAddressFinder() {
       {results.size > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Search Results</CardTitle>
-            <CardDescription>
-              Review and apply the found addresses
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Search Results</CardTitle>
+                <CardDescription>
+                  Review and apply the found addresses
+                </CardDescription>
+              </div>
+              {Array.from(results.values()).some(result => result.success && result.data) && (
+                <Button
+                  onClick={massApplyAddresses}
+                  disabled={loading}
+                  variant="default"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Apply All
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
