@@ -17,9 +17,10 @@ interface TimelineProps {
   startDate: DateString;
   endDate: DateString;
   onTaskUpdate: (taskId: string, updates: any) => void;
+  dayWidth?: number;
 }
 
-export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelineProps) {
+export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 40 }: TimelineProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Calculate timeline width with hard limits for performance
@@ -29,7 +30,6 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate }: TimelinePr
   const maxDays = 1095; // 3 years worth of days
   const safeTotalDays = Math.min(totalDays, maxDays);
   
-  const dayWidth = 40; // pixels per day
   const timelineWidth = safeTotalDays * dayWidth;
   
   if (totalDays > maxDays) {

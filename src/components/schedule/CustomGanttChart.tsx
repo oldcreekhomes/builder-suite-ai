@@ -155,6 +155,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
   
+  // Zoom state for timeline
+  const [dayWidth, setDayWidth] = useState(40); // pixels per day
+  
   // Debug: Force rebuild to clear any cache issues
   console.log('CustomGanttChart component loaded - no reset dialog references should exist');
   
@@ -1200,6 +1203,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setDayWidth(prev => Math.min(prev + 10, 100)); // Max zoom: 100px per day
+  };
+
+  const handleZoomOut = () => {
+    setDayWidth(prev => Math.max(prev - 10, 20)); // Min zoom: 20px per day
+  };
+
   if (isLoading) {
     return (
       <div className="bg-card text-card-foreground rounded-lg border p-6">
@@ -1228,6 +1240,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
         />
         
         <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
@@ -1262,6 +1276,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
               startDate={timelineStart}
               endDate={timelineEnd}
               onTaskUpdate={handleTaskUpdate}
+              dayWidth={dayWidth}
             />
           </ResizablePanel>
         </ResizablePanelGroup>

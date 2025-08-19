@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -10,6 +10,8 @@ interface ScheduleToolbarProps {
   onAddTask: () => void;
   onPublish: () => void;
   onCopySchedule: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }
 
 export function ScheduleToolbar({ 
@@ -18,7 +20,9 @@ export function ScheduleToolbar({
   projectId,
   onAddTask,
   onPublish,
-  onCopySchedule
+  onCopySchedule,
+  onZoomIn,
+  onZoomOut
 }: ScheduleToolbarProps) {
 
   return (
@@ -49,6 +53,28 @@ export function ScheduleToolbar({
         <Send style={{ color: '#ffffff', fill: '#ffffff', stroke: '#ffffff' }} />
         <span style={{ color: '#ffffff' }}>Publish</span>
       </Button>
+
+      <div className="flex items-center gap-1 ml-4">
+        <Button
+          onClick={onZoomOut}
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <ZoomOut className="h-4 w-4" />
+          <span>Zoom Out</span>
+        </Button>
+
+        <Button
+          onClick={onZoomIn}
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <ZoomIn className="h-4 w-4" />
+          <span>Zoom In</span>
+        </Button>
+      </div>
     </div>
   );
 }
