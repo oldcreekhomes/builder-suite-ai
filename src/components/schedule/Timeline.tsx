@@ -224,15 +224,64 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 4
 
       {/* Timeline Content */}
       <div className="relative" style={{ width: timelineWidth }}>
-        {/* Grid Lines - Use safeTotalDays */}
+        {/* Grid Lines */}
         <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: safeTotalDays }, (_, i) => (
-            <div
-              key={i}
-              className="absolute top-0 bottom-0 border-l border-border/30"
-              style={{ left: i * dayWidth }}
-            />
-          ))}
+          {dayWidth <= 12 ? (
+            // Weekly grid lines - show lines at weekly boundaries
+            (() => {
+              // Generate month boundaries for weekly grid
+              const months: { name: string; width: number; left: number }[] = [];
+              let currentMonthStart = 0;
+              let currentMonth = "";
+              
+              for (let day = 0; day < safeTotalDays; day++) {
+                const dayDate = addDays(startDate, day);
+                const monthName = `${dayDate.split('-')[0]}-${dayDate.split('-')[1]}`;
+                
+                if (monthName !== currentMonth || day === safeTotalDays - 1) {
+                  if (currentMonth !== "") {
+                    const dayCount = day === safeTotalDays - 1 ? day - currentMonthStart + 1 : day - currentMonthStart;
+                    months.push({
+                      name: currentMonth,
+                      width: dayCount * dayWidth,
+                      left: currentMonthStart * dayWidth
+                    });
+                  }
+                  currentMonth = monthName;
+                  currentMonthStart = day;
+                }
+              }
+              
+              // Add final month if needed
+              if (currentMonthStart < safeTotalDays) {
+                months.push({
+                  name: currentMonth,
+                  width: (safeTotalDays - currentMonthStart) * dayWidth,
+                  left: currentMonthStart * dayWidth
+                });
+              }
+              
+              return months.flatMap(month => {
+                const weekWidth = month.width / 4;
+                return [0, 1, 2, 3, 4].map(weekNum => (
+                  <div
+                    key={`${month.name}-week-${weekNum}`}
+                    className="absolute top-0 bottom-0 border-l border-border/30"
+                    style={{ left: month.left + weekNum * weekWidth }}
+                  />
+                ));
+              });
+            })()
+          ) : (
+            // Daily grid lines
+            Array.from({ length: safeTotalDays }, (_, i) => (
+              <div
+                key={i}
+                className="absolute top-0 bottom-0 border-l border-border/30"
+                style={{ left: i * dayWidth }}
+              />
+            ))
+          )}
         </div>
 
         {/* Dependency Wires */}

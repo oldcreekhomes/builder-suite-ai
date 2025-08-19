@@ -15,6 +15,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
   }
 
   const totalDays = getCalendarDaysBetween(startDate, endDate);
+  const showWeekly = dayWidth <= 12; // Switch to weekly view when zoomed out
   
   // Generate month headers
   const months: { name: string; width: number; left: number }[] = [];
@@ -55,27 +56,51 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
         ))}
       </div>
       
-      {/* Day Row */}
+      {/* Day/Week Row */}
       <div className="relative h-4" style={{ width: timelineWidth }}>
-        {Array.from({ length: totalDays }, (_, i) => {
-          const dayDate = addDays(startDate, i);
-          const isWeekend = !isBusinessDay(dayDate);
-          
-          return (
-            <div
-              key={i}
-              className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
-                isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
-              }`}
-              style={{
-                left: i * dayWidth,
-                width: dayWidth
-              }}
-            >
-              {getDayOfMonth(dayDate)}
-            </div>
-          );
-        })}
+        {showWeekly ? (
+          // Weekly view - show 4 weeks per month
+          months.map((month, monthIndex) => {
+            const weekWidth = month.width / 4;
+            return (
+              <React.Fragment key={monthIndex}>
+                {[1, 2, 3, 4].map(weekNum => (
+                  <div
+                    key={`${monthIndex}-week-${weekNum}`}
+                    className="absolute top-0 h-full flex items-center justify-center border-r border-border text-xs bg-background"
+                    style={{
+                      left: month.left + (weekNum - 1) * weekWidth,
+                      width: weekWidth
+                    }}
+                  >
+                    Week {weekNum}
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          })
+        ) : (
+          // Daily view - show individual days
+          Array.from({ length: totalDays }, (_, i) => {
+            const dayDate = addDays(startDate, i);
+            const isWeekend = !isBusinessDay(dayDate);
+            
+            return (
+              <div
+                key={i}
+                className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
+                  isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
+                }`}
+                style={{
+                  left: i * dayWidth,
+                  width: dayWidth
+                }}
+              >
+                {getDayOfMonth(dayDate)}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
