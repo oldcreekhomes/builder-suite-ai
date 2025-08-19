@@ -316,6 +316,13 @@ export type Database = {
             referencedRelation: "cost_codes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_company_cost_codes_company_id"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_issues: {
@@ -403,6 +410,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "company_representatives_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_company_representatives_company_id"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
