@@ -30,7 +30,6 @@ export default function EnterBills() {
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
-  const [address, setAddress] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", amount: "", memo: "", customerJob: "" }
@@ -153,11 +152,6 @@ export default function EnterBills() {
                     <VendorSearchInput
                       value={vendor}
                       onChange={setVendor}
-                      onCompanySelect={(company) => {
-                        if (company.address) {
-                          setAddress(company.address);
-                        }
-                      }}
                       placeholder="Search vendors..."
                     />
                   </div>
@@ -247,28 +241,6 @@ export default function EnterBills() {
                         <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Textarea 
-                      id="address" 
-                      placeholder="Enter vendor address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="memo">Memo</Label>
-                    <Textarea 
-                      id="memo" 
-                      placeholder="Enter memo or notes"
-                      rows={4}
-                    />
                   </div>
                 </div>
 
