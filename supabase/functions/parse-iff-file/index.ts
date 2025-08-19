@@ -76,6 +76,9 @@ Deno.serve(async (req) => {
       is_active: true
     }));
 
+    console.log(`Attempting to insert ${accountsToInsert.length} accounts`);
+    console.log(`Sample account data:`, JSON.stringify(accountsToInsert[0] || {}, null, 2));
+
     const { data: insertedAccounts, error: insertError } = await supabase
       .from('accounts')
       .insert(accountsToInsert)
@@ -83,7 +86,7 @@ Deno.serve(async (req) => {
 
     if (insertError) {
       console.error('Database insert error:', insertError);
-      throw insertError;
+      throw new Error(`Database insert failed: ${insertError.message}`);
     }
 
     console.log(`Successfully imported ${insertedAccounts?.length || 0} accounts`);
