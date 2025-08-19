@@ -1,9 +1,10 @@
 
-import { Home, Users, Building2, Settings } from "lucide-react";
+import { Home, Users, Building2, Settings, Calculator } from "lucide-react";
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Companies from "./pages/Companies";
 import SettingsPage from "./pages/Settings";
+import Accounting from "./pages/Accounting";
 import Landing from "./pages/Landing";
 
 // Component to handle root route logic
@@ -30,6 +31,12 @@ export const navItems = [
     to: "/companies",
     icon: Building2,
     page: <Companies />,
+  },
+  {
+    title: "Accounting", 
+    to: "/accounting",
+    icon: Calculator,
+    page: <Accounting />,
   },
   {
     title: "Settings", 

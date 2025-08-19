@@ -27,20 +27,19 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isCompanyDashboard = location.pathname === '/';
-  const isAccountingPage = location.pathname === '/accounting';
   const isIssuesPage = location.pathname === '/issues';
 
   return (
     <Sidebar className="border-r border-border">
       <SidebarBranding />
-      {isCompanyDashboard || isAccountingPage ? (
+      {isCompanyDashboard ? (
         <MessagesSidebar 
           selectedUser={selectedUser || null}
           onUserSelect={onUserSelect}
           onStartChat={onStartChat}
           unreadCounts={unreadCounts}
           markConversationAsRead={markConversationAsRead}
-          showAccountingLink={true}
+          showAccountingLink={false}
         />
       ) : isMessagesPage ? (
         <MessagesSidebar 
