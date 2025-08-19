@@ -39,6 +39,7 @@ export const ChartOfAccountsTab = () => {
     setIsImporting(true);
     
     try {
+      console.log('Starting IFF import process...');
       const formData = new FormData();
       formData.append('file', file);
 
@@ -48,6 +49,7 @@ export const ChartOfAccountsTab = () => {
         throw new Error('Not authenticated');
       }
 
+      console.log('Calling parse-iff-file function...');
       const { data, error } = await supabase.functions.invoke('parse-iff-file', {
         body: formData,
         headers: {
@@ -55,20 +57,22 @@ export const ChartOfAccountsTab = () => {
         },
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) {
         console.error('Supabase function error:', error);
         throw error;
       }
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: "Import Successful",
           description: data.message,
         });
-        // Refresh the accounts list
+        // Refresh the accounts list instead of full page reload
         window.location.reload();
       } else {
-        throw new Error(data.error || 'Unknown error occurred');
+        throw new Error(data?.error || 'Unknown error occurred');
       }
     } catch (error) {
       console.error('Import error:', error);
