@@ -27,9 +27,9 @@ interface Representative {
   company_id: string;
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
-  companies: {
+  companies?: {
     company_name: string;
-  };
+  } | null;
 }
 
 interface RepresentativesTableProps {
@@ -49,15 +49,32 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
       const { data, error } = await supabase
         .from('company_representatives')
         .select(`
-          *,
-          companies (
+          id,
+          first_name,
+          last_name,
+          email,
+          phone_number,
+          title,
+          company_id,
+          receive_bid_notifications,
+          receive_schedule_notifications,
+          created_at,
+          updated_at,
+          companies!company_representatives_company_id_fkey (
             company_name
           )
         `)
         .order('first_name');
       
       if (error) throw error;
-      return data as Representative[];
+      
+      // Handle the data safely, in case the join fails
+      return (data || []).map(item => ({
+        ...item,
+        companies: (item.companies && typeof item.companies === 'object' && 'company_name' in item.companies) 
+          ? { company_name: item.companies.company_name } 
+          : null
+      })) as Representative[];
     },
   });
 

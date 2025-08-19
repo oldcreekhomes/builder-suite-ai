@@ -58,9 +58,9 @@ interface Representative {
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;
-  companies: {
+  companies?: {
     company_name: string;
-  };
+  } | null;
 }
 
 interface EditRepresentativeDialogProps {
