@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CostCodeAutocomplete } from "@/components/CostCodeAutocomplete";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -265,18 +266,12 @@ export default function EnterBills() {
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <Select value={row.account} onValueChange={(value) => updateJobCostRow(row.id, 'account', value)}>
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select account" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="materials">Materials</SelectItem>
-                                  <SelectItem value="labor">Labor</SelectItem>
-                                  <SelectItem value="equipment">Equipment</SelectItem>
-                                  <SelectItem value="supplies">Supplies</SelectItem>
-                                  <SelectItem value="utilities">Utilities</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <CostCodeAutocomplete
+                                value={row.account}
+                                onChange={(value) => updateJobCostRow(row.id, 'account', value)}
+                                placeholder="Search cost codes..."
+                                className="h-8"
+                              />
                             </div>
                             <div className="col-span-2">
                               <Input 
