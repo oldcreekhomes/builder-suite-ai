@@ -249,82 +249,9 @@ export const useTaskBulkMutations = (projectId: string) => {
     },
   });
 
-  const bulkResetStartDates = useMutation({
-    mutationFn: async ({ targetDate }: { targetDate: string }) => {
-      if (!user) return [];
-
-      console.log('🗓️ Performing bulk start date reset to', targetDate);
-      
-      // Fetch all tasks for this project
-      const { data: allTasks, error: fetchError } = await supabase
-        .from('project_schedule_tasks')
-        .select('*')
-        .eq('project_id', projectId);
-
-      if (fetchError) throw fetchError;
-      if (!allTasks) throw new Error('Failed to fetch tasks');
-
-      console.log(`📋 Resetting start dates for ${allTasks.length} tasks`);
-
-      // Calculate new dates for all tasks
-      const updates = allTasks.map(task => {
-        const newStartDate = `${targetDate}T00:00:00.000Z`;
-        // Calculate end date based on duration (business days)
-        const { calculateBusinessEndDate } = require('@/utils/dateOnly');
-        const endDateStr = calculateBusinessEndDate(targetDate as any, task.duration || 1);
-        const newEndDate = `${endDateStr}T23:59:59.999Z`;
-        
-        return {
-          id: task.id,
-          start_date: newStartDate,
-          end_date: newEndDate,
-          updated_at: new Date().toISOString()
-        };
-      });
-
-      // Process updates in batches for better performance
-      const results = [];
-      const batchSize = 20;
-      
-      for (let i = 0; i < updates.length; i += batchSize) {
-        const batch = updates.slice(i, i + batchSize);
-        const batchPromises = batch.map(update => {
-          return supabase
-            .from('project_schedule_tasks')
-            .update({
-              start_date: update.start_date,
-              end_date: update.end_date,
-              updated_at: update.updated_at
-            })
-            .eq('id', update.id)
-            .select('id');
-        });
-        
-        const batchResults = await Promise.all(batchPromises);
-        for (const result of batchResults) {
-          if (result.error) {
-            console.error('Bulk start date reset error:', result.error);
-            throw result.error;
-          }
-          if (result.data) results.push(...result.data);
-        }
-      }
-
-      console.log('✅ Bulk start date reset completed for', results.length, 'tasks');
-      return results;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-    },
-    onError: (error) => {
-      console.error('Bulk start date reset failed:', error);
-    },
-  });
-
   return {
     bulkDeleteTasks,
     bulkUpdateHierarchies,
     bulkUpdatePredecessors,
-    bulkResetStartDates,
   };
 };

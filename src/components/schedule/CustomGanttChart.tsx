@@ -155,6 +155,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
   
+  // Debug: Force rebuild to clear any cache issues
+  console.log('CustomGanttChart component loaded - no reset dialog references should exist');
+  
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
