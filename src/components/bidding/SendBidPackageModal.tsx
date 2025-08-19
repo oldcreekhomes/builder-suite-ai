@@ -38,7 +38,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
             company_name,
             address,
             phone_number,
-            company_representatives (
+            company_representatives!company_representatives_company_id_fkey (
               id,
               first_name,
               last_name,
@@ -171,9 +171,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
           company_name: company.companies.company_name,
           address: company.companies.address,
           phone_number: company.companies.phone_number,
-          representatives: company.companies.company_representatives.filter(
-            (rep: any) => rep.receive_bid_notifications
-          )
+          representatives: company.companies.company_representatives?.filter(
+            (rep: any) => rep.receive_bid_notifications && rep.email
+          ) || []
         })).filter(company => company.representatives.length > 0)
       };
 
@@ -243,7 +243,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
   const costCode = bidPackage.cost_codes;
   const recipients = companiesData?.reduce((acc, company) => {
     const reps = company.companies?.company_representatives?.filter(
-      (rep: any) => rep.receive_bid_notifications
+      (rep: any) => rep.receive_bid_notifications && rep.email
     ) || [];
     return acc + reps.length;
   }, 0) || 0;
@@ -358,7 +358,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
               <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
-                    (rep: any) => rep.receive_bid_notifications
+                    (rep: any) => rep.receive_bid_notifications && rep.email
                   ) || [];
 
                   if (notificationReps.length === 0) return null;

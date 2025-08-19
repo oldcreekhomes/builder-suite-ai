@@ -40,7 +40,7 @@ export function SendSingleCompanyEmailModal({
             company_name,
             address,
             phone_number,
-            company_representatives (
+            company_representatives!company_representatives_company_id_fkey (
               id,
               first_name,
               last_name,
@@ -130,7 +130,7 @@ export function SendSingleCompanyEmailModal({
     setIsSending(true);
     try {
       const notificationReps = companyData.companies?.company_representatives?.filter(
-        (rep: any) => rep.receive_bid_notifications
+        (rep: any) => rep.receive_bid_notifications && rep.email
       ) || [];
 
       if (notificationReps.length === 0) {
@@ -207,7 +207,7 @@ export function SendSingleCompanyEmailModal({
 
   const costCode = bidPackage.cost_codes;
   const notificationReps = companyData.companies?.company_representatives?.filter(
-    (rep: any) => rep.receive_bid_notifications
+    (rep: any) => rep.receive_bid_notifications && rep.email
   ) || [];
 
   return (
