@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
+import { ProgressSelector } from "./ProgressSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 import { calculateBusinessEndDate, formatDisplayDate, DateString } from "@/utils/dateOnly";
@@ -327,11 +328,9 @@ export function TaskRow({
 
         {/* Progress */}
         <TableCell className="py-1 px-2">
-          <InlineEditCell
+          <ProgressSelector
             value={task.progress || 0}
-            type="number"
             onSave={handleFieldUpdate("progress")}
-            displayFormat={(value) => `${value}%`}
             readOnly={hasChildren}
           />
         </TableCell>

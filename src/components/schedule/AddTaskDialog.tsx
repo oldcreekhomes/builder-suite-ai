@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResourcesSelector } from './ResourcesSelector';
 
 interface AddTaskDialogProps {
@@ -140,14 +141,23 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
             </div>
             <div>
               <Label htmlFor="progress">Progress (%)</Label>
-              <Input
-                id="progress"
-                type="number"
-                min="0"
-                max="100"
-                value={formData.progress}
-                onChange={(e) => handleChange('progress', parseInt(e.target.value) || 0)}
-              />
+              <Select 
+                value={formData.progress.toString()} 
+                onValueChange={(value) => handleChange('progress', parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select progress">
+                    {formData.progress}%
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">0%</SelectItem>
+                  <SelectItem value="25">25%</SelectItem>
+                  <SelectItem value="50">50%</SelectItem>
+                  <SelectItem value="75">75%</SelectItem>
+                  <SelectItem value="100">100%</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
