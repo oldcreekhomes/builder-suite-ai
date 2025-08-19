@@ -42,24 +42,38 @@ export const ChartOfAccountsTab = () => {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Get the user session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('parse-iff-file', {
         body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
       if (data.success) {
         toast({
           title: "Import Successful",
           description: data.message,
         });
+        // Refresh the accounts list
+        window.location.reload();
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || 'Unknown error occurred');
       }
     } catch (error) {
       console.error('Import error:', error);
       toast({
-        title: "Import Failed",
+        title: "Import Failed", 
         description: error.message || "Failed to import chart of accounts",
         variant: "destructive",
       });

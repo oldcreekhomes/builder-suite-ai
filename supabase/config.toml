@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.handle-schedule-response]
 verify_jwt = false
+
+[functions.parse-iff-file]
+verify_jwt = true
