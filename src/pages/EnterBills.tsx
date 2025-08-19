@@ -266,10 +266,10 @@ export default function EnterBills() {
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <CostCodeAutocomplete
+                              <Input 
+                                placeholder="Account"
                                 value={row.account}
-                                onChange={(value) => updateJobCostRow(row.id, 'account', value)}
-                                placeholder="Search cost codes..."
+                                onChange={(e) => updateJobCostRow(row.id, 'account', e.target.value)}
                                 className="h-8"
                               />
                             </div>
