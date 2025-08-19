@@ -4,26 +4,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, ChevronsUpDown, X, Users, Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-
-interface User {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  role: string;
-  company_name: string;
-}
-
-interface CompanyRepresentative {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  title: string;
-  company_id: string;
-}
+import { useProjectResources } from "@/hooks/useProjectResources";
 
 interface ResourcesSelectorProps {
   value: string;
@@ -35,64 +17,20 @@ interface ResourcesSelectorProps {
 export function ResourcesSelector({ value, onValueChange, className, readOnly = false }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [representatives, setRepresentatives] = useState<CompanyRepresentative[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  
+  // Use the project resources hook
+  const { resources, isLoading } = useProjectResources();
 
   // Parse the current value into selected resources
   useEffect(() => {
     if (value) {
-      const resources = value.split(',').map(r => r.trim()).filter(Boolean);
-      setSelectedResources(resources);
+      const resourceNames = value.split(',').map(r => r.trim()).filter(Boolean);
+      setSelectedResources(resourceNames);
     } else {
       setSelectedResources([]);
     }
   }, [value]);
-
-  // Fetch users and representatives
-  useEffect(() => {
-    const fetchResources = async () => {
-      setLoading(true);
-      try {
-        // Fetch internal users
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, email, role, company_name')
-          .order('first_name');
-
-        if (usersError) throw usersError;
-
-        // Fetch company representatives with company names (only those with schedule notifications enabled)
-        const { data: repsData, error: repsError } = await supabase
-          .from('company_representatives')
-          .select(`
-            id, 
-            first_name, 
-            last_name, 
-            email, 
-            title,
-            company_id,
-            companies(company_name)
-          `)
-          .eq('receive_schedule_notifications', true)
-          .order('first_name');
-
-        if (repsError) throw repsError;
-
-        setUsers(usersData || []);
-        setRepresentatives(repsData || []);
-      } catch (error) {
-        console.error('Error fetching resources:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (open) {
-      fetchResources();
-    }
-  }, [open]);
 
   const handleSelect = (resourceName: string) => {
     const newResources = selectedResources.includes(resourceName)
@@ -109,10 +47,6 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     onValueChange(newResources.join(', '));
   };
 
-  const formatUserName = (user: User) => `${user.first_name} ${user.last_name}`;
-  const formatRepName = (rep: CompanyRepresentative & { companies?: { company_name: string } }) => 
-    `${rep.first_name} ${rep.last_name}`;
-  
   const getInitials = (name: string) => {
     return name.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
   };
@@ -207,66 +141,65 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
             }} />
             <CommandList>
               <CommandEmpty>
-                {loading ? "Loading..." : "No resources found."}
+                {isLoading ? "Loading..." : "No resources found."}
               </CommandEmpty>
               
               {/* Internal Users */}
               <CommandGroup heading="Internal Users">
-                {users.map((user) => {
-                  const userName = formatUserName(user);
-                  const isSelected = selectedResources.includes(userName);
-                  
-                  return (
-                    <CommandItem
-                      key={`user-${user.id}`}
-                      value={userName}
-                      onSelect={() => handleSelect(userName)}
-                    >
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <div className="font-medium">{userName}</div>
-                        <Check
-                          className={cn(
-                            "ml-auto h-4 w-4",
-                            isSelected ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                      </div>
-                    </CommandItem>
-                  );
-                })}
+                {resources
+                  .filter(resource => resource.resourceGroup === 'Internal')
+                  .map((resource) => {
+                    const isSelected = selectedResources.includes(resource.resourceName);
+                    
+                    return (
+                      <CommandItem
+                        key={`user-${resource.resourceId}`}
+                        value={resource.resourceName}
+                        onSelect={() => handleSelect(resource.resourceName)}
+                      >
+                        <div className="flex items-center space-x-2 flex-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <div className="font-medium">{resource.resourceName}</div>
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
               </CommandGroup>
 
               {/* Company Representatives */}
               <CommandGroup heading="Company Representatives">
-                {representatives.map((rep: any) => {
-                  const repName = formatRepName(rep);
-                  const isSelected = selectedResources.includes(repName);
-                  
-                  return (
-                    <CommandItem
-                      key={`rep-${rep.id}`}
-                      value={repName}
-                      onSelect={() => handleSelect(repName)}
-                    >
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <div className="font-medium truncate">
-                          <span>{repName}</span>
-                          {rep.companies && (
-                            <span className="text-muted-foreground font-normal"> - {rep.companies.company_name}</span>
-                          )}
+                {resources
+                  .filter(resource => resource.resourceGroup === 'External')
+                  .map((resource) => {
+                    const isSelected = selectedResources.includes(resource.resourceName);
+                    
+                    return (
+                      <CommandItem
+                        key={`rep-${resource.resourceId}`}
+                        value={resource.resourceName}
+                        onSelect={() => handleSelect(resource.resourceName)}
+                      >
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="font-medium truncate">
+                            <span>{resource.resourceName}</span>
+                          </div>
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4 flex-shrink-0",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
                         </div>
-                        <Check
-                          className={cn(
-                            "ml-auto h-4 w-4 flex-shrink-0",
-                            isSelected ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                      </div>
-                    </CommandItem>
-                  );
-                })}
+                      </CommandItem>
+                    );
+                  })}
               </CommandGroup>
             </CommandList>
           </Command>
