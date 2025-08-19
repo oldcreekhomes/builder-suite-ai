@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CostCodeAutocomplete } from "@/components/CostCodeAutocomplete";
+import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -256,7 +256,7 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
+                          <div className="col-span-3">Cost Code</div>
                           <div className="col-span-2">Amount</div>
                           <div className="col-span-3">Memo</div>
                           <div className="col-span-3">Customer/Job</div>
@@ -266,10 +266,10 @@ export default function EnterBills() {
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <Input 
-                                placeholder="Account"
+                              <CostCodeSearchInput 
                                 value={row.account}
-                                onChange={(e) => updateJobCostRow(row.id, 'account', e.target.value)}
+                                onChange={(value) => updateJobCostRow(row.id, 'account', value)}
+                                placeholder="Cost Code"
                                 className="h-8"
                               />
                             </div>
