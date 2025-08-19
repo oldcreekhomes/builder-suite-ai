@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
 import { EditSpecificationDescriptionDialog } from "@/components/settings/EditSpecificationDescriptionDialog";
 import {
@@ -112,11 +113,12 @@ const Settings = () => {
                 <h1 className="text-2xl font-bold text-black">Settings</h1>
               </div>
 
-              <Tabs defaultValue="cost-codes" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
-                  <TabsTrigger value="specifications">Specifications</TabsTrigger>
-                </TabsList>
+        <Tabs defaultValue="cost-codes" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
+            <TabsTrigger value="specifications">Specifications</TabsTrigger>
+            <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
+          </TabsList>
                 
                 <TabsContent value="cost-codes" className="mt-6">
                   <CostCodesTab
@@ -153,6 +155,20 @@ const Settings = () => {
                     onFileUpload={handleSpecificationFileUpload}
                     onDeleteAllFiles={handleDeleteAllSpecificationFiles}
                   />
+                </TabsContent>
+
+                <TabsContent value="chart-of-accounts" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Chart of Accounts</CardTitle>
+                      <CardDescription>
+                        Manage your chart of accounts and accounting settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">Chart of accounts management coming soon...</p>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </div>

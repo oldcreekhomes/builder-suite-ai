@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { useAccounts } from "@/hooks/useAccounts";
+import { toast } from "@/hooks/use-toast";
 
 interface ExpenseRow {
   id: string;
@@ -154,7 +155,7 @@ export default function EnterBills() {
       bill_date: billDate.toISOString().split('T')[0],
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,
-      reference_number: document.getElementById('refNo')?.value || undefined,
+      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
       notes: undefined
     };
 

@@ -60,7 +60,8 @@ export const useBills = () => {
       const billLinesWithBillId = billLines.map((line, index) => ({
         ...line,
         bill_id: bill.id,
-        line_number: index + 1
+        line_number: index + 1,
+        owner_id
       }));
 
       const { error: linesError } = await supabase
