@@ -45,7 +45,7 @@ export function JobSearchInput({
   };
 
   const handleSelectProject = (project: { name: string; address?: string }) => {
-    const selectedValue = project.name;
+    const selectedValue = project.address || project.name; // Use address if available, fallback to name
     setSearchQuery(selectedValue);
     onChange(selectedValue);
     setShowResults(false);
@@ -72,9 +72,10 @@ export function JobSearchInput({
               className="block w-full px-2 py-1 text-left text-xs hover:bg-muted"
               onMouseDown={() => handleSelectProject(project)}
             >
-              <span className="font-medium">{project.name}</span>
-              {project.address && (
-                <span className="text-foreground"> - {project.address}</span>
+              {project.address ? (
+                <span className="text-foreground">{project.address}</span>
+              ) : (
+                <span className="font-medium">{project.name}</span>
               )}
             </button>
           ))}
