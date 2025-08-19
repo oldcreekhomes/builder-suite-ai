@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -33,14 +32,17 @@ interface Company {
   cost_codes?: CostCode[];
 }
 
-export function CompaniesTable() {
+interface CompaniesTableProps {
+  searchQuery?: string;
+}
+
+export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [collapsedCostCodes, setCollapsedCostCodes] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -293,19 +295,7 @@ export function CompaniesTable() {
   const { tableRows, filteredCompanies } = costCodeToCompaniesMap;
 
   return (
-    <>
-      <div className="mb-4">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search companies..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-      
+    <>      
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>

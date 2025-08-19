@@ -1,7 +1,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -21,6 +22,7 @@ export default function Companies() {
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
   const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <SidebarProvider>
@@ -46,13 +48,22 @@ export default function Companies() {
               </TabsList>
               
               <TabsContent value="companies" className="space-y-4">
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center gap-4">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search companies..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
                   <Button onClick={() => setAddCompanyOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Company
                   </Button>
                 </div>
-                <CompaniesTable />
+                <CompaniesTable searchQuery={searchQuery} />
               </TabsContent>
               
               <TabsContent value="representatives" className="space-y-4">
