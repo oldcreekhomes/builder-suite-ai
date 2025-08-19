@@ -73,7 +73,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
                       width: weekWidth
                     }}
                   >
-                    Week {weekNum}
+                    {weekNum}
                   </div>
                 ))}
               </React.Fragment>
