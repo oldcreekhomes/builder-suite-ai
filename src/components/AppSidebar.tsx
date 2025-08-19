@@ -28,7 +28,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isCompanyDashboard = location.pathname === '/';
-  const isAccountingPage = location.pathname === '/accounting';
+  const isAccountingPage = location.pathname === '/accounting' || location.pathname.includes('/accounting');
   const isIssuesPage = location.pathname === '/issues';
 
   return (

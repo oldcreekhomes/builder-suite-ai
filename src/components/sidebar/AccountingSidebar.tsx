@@ -1,4 +1,4 @@
-import { Calculator, Home } from "lucide-react";
+import { Calculator, Home, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   SidebarContent,
@@ -7,12 +7,10 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
-
-const items = [
-  { title: "Company Dashboard", url: "/", icon: Home },
-  { title: "Accounting", url: "/accounting", icon: Calculator },
-];
 
 export function AccountingSidebar() {
   return (
@@ -20,19 +18,33 @@ export function AccountingSidebar() {
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            {items.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild 
-                  className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                >
-                  <Link to={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                    <item.icon className="h-5 w-5" />
-                    <span className="font-medium flex-1">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+              >
+                <Link to="/" className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                  <Home className="h-5 w-5" />
+                  <span className="font-medium flex-1">Company Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <div className="flex items-center space-x-3 p-3 rounded-lg w-full text-gray-700 cursor-default">
+                <FileText className="h-5 w-5" />
+                <span className="font-medium flex-1">Bills</span>
+              </div>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild>
+                    <Link to="/accounting/bills/approval-status" className="w-full">
+                      Approval Status
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
