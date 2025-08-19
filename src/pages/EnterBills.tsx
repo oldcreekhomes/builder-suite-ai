@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 interface ExpenseRow {
   id: string;
   account: string;
+  quantity: string;
   amount: string;
   memo: string;
   customerJob: string;
@@ -32,10 +33,10 @@ export default function EnterBills() {
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", amount: "", memo: "", customerJob: "" }
+    { id: "1", account: "", quantity: "", amount: "", memo: "", customerJob: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", amount: "", memo: "", customerJob: "" }
+    { id: "1", account: "", quantity: "", amount: "", memo: "", customerJob: "" }
   ]);
 
   // Calculate due date when bill date or terms change
@@ -73,6 +74,7 @@ export default function EnterBills() {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
       account: "",
+      quantity: "",
       amount: "",
       memo: "",
       customerJob: ""
@@ -97,6 +99,7 @@ export default function EnterBills() {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
       account: "",
+      quantity: "",
       amount: "",
       memo: "",
       customerJob: ""
@@ -265,9 +268,10 @@ export default function EnterBills() {
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-2">Amount</div>
-                          <div className="col-span-3">Memo</div>
-                          <div className="col-span-3">Customer/Job</div>
+                          <div className="col-span-2">Quantity</div>
+                          <div className="col-span-2">Cost</div>
+                          <div className="col-span-2">Memo</div>
+                          <div className="col-span-2">Job</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
@@ -285,13 +289,23 @@ export default function EnterBills() {
                               <Input 
                                 type="number"
                                 step="0.01"
+                                placeholder="1"
+                                value={row.quantity}
+                                onChange={(e) => updateJobCostRow(row.id, 'quantity', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number"
+                                step="0.01"
                                 placeholder="0.00"
                                 value={row.amount}
                                 onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Input 
                                 placeholder="Job cost memo"
                                 value={row.memo}
@@ -299,7 +313,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Select value={row.customerJob} onValueChange={(value) => updateJobCostRow(row.id, 'customerJob', value)}>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="Select job" />
@@ -351,9 +365,10 @@ export default function EnterBills() {
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
-                          <div className="col-span-2">Amount</div>
-                          <div className="col-span-3">Memo</div>
-                          <div className="col-span-3">Customer/Job</div>
+                          <div className="col-span-2">Quantity</div>
+                          <div className="col-span-2">Cost</div>
+                          <div className="col-span-2">Memo</div>
+                          <div className="col-span-2">Job</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
@@ -377,13 +392,23 @@ export default function EnterBills() {
                               <Input 
                                 type="number"
                                 step="0.01"
+                                placeholder="1"
+                                value={row.quantity}
+                                onChange={(e) => updateExpenseRow(row.id, 'quantity', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number"
+                                step="0.01"
                                 placeholder="0.00"
                                 value={row.amount}
                                 onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Input 
                                 placeholder="Expense memo"
                                 value={row.memo}
@@ -391,7 +416,7 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Select value={row.customerJob} onValueChange={(value) => updateExpenseRow(row.id, 'customerJob', value)}>
                                 <SelectTrigger className="h-8">
                                   <SelectValue placeholder="Select job" />
