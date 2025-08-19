@@ -262,9 +262,9 @@ export default function EnterBills() {
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Cost Code</div>
+                          <div className="col-span-2">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
-                          <div className="col-span-2">Memo</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
@@ -275,6 +275,14 @@ export default function EnterBills() {
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, 'account', value)}
                                 placeholder="Cost Code"
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                placeholder="Job cost memo"
+                                value={row.memo}
+                                onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                                 className="h-8"
                               />
                             </div>
@@ -298,19 +306,11 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
-                              <Input 
-                                placeholder="Job cost memo"
-                                value={row.memo}
-                                onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
-                                className="h-8"
-                              />
-                            </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
                                 onClick={() => removeJobCostRow(row.id)}
                                 size="sm"
-                                variant="ghost"
+                                variant="destructive"
                                 disabled={jobCostRows.length === 1}
                                 className="h-8 w-8 p-0"
                               >
@@ -346,9 +346,9 @@ export default function EnterBills() {
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
+                          <div className="col-span-2">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
-                          <div className="col-span-2">Memo</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
@@ -370,6 +370,14 @@ export default function EnterBills() {
                             </div>
                             <div className="col-span-2">
                               <Input 
+                                placeholder="Expense memo"
+                                value={row.memo}
+                                onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
                                 type="number"
                                 step="0.01"
                                 placeholder="1"
@@ -388,19 +396,11 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-2">
-                              <Input 
-                                placeholder="Expense memo"
-                                value={row.memo}
-                                onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                                className="h-8"
-                              />
-                            </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
                                 onClick={() => removeExpenseRow(row.id)}
                                 size="sm"
-                                variant="ghost"
+                                variant="destructive"
                                 disabled={expenseRows.length === 1}
                                 className="h-8 w-8 p-0"
                               >
