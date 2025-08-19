@@ -83,9 +83,6 @@ export function VendorSearchInput({
               onMouseDown={() => handleSelectCompany(company)}
             >
               <span className="font-medium">{company.company_name}</span>
-              {company.company_type && (
-                <span className="text-muted-foreground"> - {company.company_type}</span>
-              )}
             </button>
           ))}
         </div>
