@@ -64,10 +64,15 @@ Deno.serve(async (req) => {
     // Read file content
     const fileContent = await file.text();
     console.log('File content length:', fileContent.length);
+    console.log('First 500 characters:', fileContent.substring(0, 500));
 
     // Parse IFF file
     const accounts = parseIFFFile(fileContent);
     console.log(`Parsed ${accounts.length} accounts from IFF file`);
+
+    if (accounts.length === 0) {
+      throw new Error('No valid accounts found in IFF file');
+    }
 
     // Insert accounts into database
     const accountsToInsert = accounts.map(account => ({
