@@ -79,7 +79,7 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
           className="h-full rounded-l opacity-80"
           style={{
             width: progressWidth,
-            backgroundColor: `hsl(var(--timeline-${barColorClass}))`
+            backgroundColor: `hsl(var(--timeline-confirmed))`
           }}
         />
         
