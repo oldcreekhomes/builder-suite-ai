@@ -8,9 +8,9 @@ import { TaskContextMenu } from "./TaskContextMenu";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { ProgressSelector } from "./ProgressSelector";
-import { PredecessorSelector } from "./PredecessorSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 import { calculateBusinessEndDate, formatDisplayDate, DateString } from "@/utils/dateOnly";
+import { PredecessorSelector } from "./PredecessorSelector";
 
 interface TaskRowProps {
   task: ProjectTask;
