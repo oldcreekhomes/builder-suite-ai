@@ -1,9 +1,65 @@
+import { useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ExpenseRow {
+  id: string;
+  account: string;
+  amount: string;
+  memo: string;
+  customerJob: string;
+}
 
 export default function EnterBills() {
+  const [billDate, setBillDate] = useState<Date>();
+  const [billDueDate, setBillDueDate] = useState<Date>();
+  const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
+    { id: "1", account: "", amount: "", memo: "", customerJob: "" }
+  ]);
+
+  const addExpenseRow = () => {
+    const newRow: ExpenseRow = {
+      id: Date.now().toString(),
+      account: "",
+      amount: "",
+      memo: "",
+      customerJob: ""
+    };
+    setExpenseRows([...expenseRows, newRow]);
+  };
+
+  const removeExpenseRow = (id: string) => {
+    if (expenseRows.length > 1) {
+      setExpenseRows(expenseRows.filter(row => row.id !== id));
+    }
+  };
+
+  const updateExpenseRow = (id: string, field: keyof ExpenseRow, value: string) => {
+    setExpenseRows(expenseRows.map(row => 
+      row.id === id ? { ...row, [field]: value } : row
+    ));
+  };
+
+  const calculateTotal = () => {
+    return expenseRows.reduce((total, row) => {
+      const amount = parseFloat(row.amount) || 0;
+      return total + amount;
+    }, 0).toFixed(2);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -11,9 +67,241 @@ export default function EnterBills() {
         <SidebarInset className="flex-1 flex flex-col">
           <CompanyDashboardHeader title="Bills - Enter Bills" />
           <div className="flex-1 p-6 space-y-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Enter Bills page content coming soon...</p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Enter New Bill</CardTitle>
+                <CardDescription>
+                  Create a new bill entry for processing and approval
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Bill Header Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="vendor">Vendor</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select vendor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="abc-supply">ABC Supply Co.</SelectItem>
+                        <SelectItem value="xyz-materials">XYZ Materials</SelectItem>
+                        <SelectItem value="def-services">DEF Services</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !billDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {billDate ? format(billDate, "MM/dd/yyyy") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={billDate}
+                          onSelect={setBillDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="refNo">Reference No.</Label>
+                    <Input id="refNo" placeholder="Enter reference number" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="amountDue">Amount Due</Label>
+                    <Input 
+                      id="amountDue" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0.00"
+                      value={calculateTotal()}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Bill Due Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !billDueDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {billDueDate ? format(billDueDate, "MM/dd/yyyy") : "Select due date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={billDueDate}
+                          onSelect={setBillDueDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="terms">Terms</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select terms" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="net-15">Net 15</SelectItem>
+                        <SelectItem value="net-30">Net 30</SelectItem>
+                        <SelectItem value="net-60">Net 60</SelectItem>
+                        <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Textarea 
+                      id="address" 
+                      placeholder="Enter vendor address"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="memo">Memo</Label>
+                    <Textarea 
+                      id="memo" 
+                      placeholder="Enter memo or notes"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+
+                {/* Expenses Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Expenses</h3>
+                    <Button onClick={addExpenseRow} size="sm" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Row
+                    </Button>
+                  </div>
+
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                      <div className="col-span-3">Account</div>
+                      <div className="col-span-2">Amount</div>
+                      <div className="col-span-3">Memo</div>
+                      <div className="col-span-3">Customer/Job</div>
+                      <div className="col-span-1">Action</div>
+                    </div>
+
+                    {expenseRows.map((row, index) => (
+                      <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                        <div className="col-span-3">
+                          <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="materials">Materials</SelectItem>
+                              <SelectItem value="labor">Labor</SelectItem>
+                              <SelectItem value="equipment">Equipment</SelectItem>
+                              <SelectItem value="supplies">Supplies</SelectItem>
+                              <SelectItem value="utilities">Utilities</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2">
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={row.amount}
+                            onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Input 
+                            placeholder="Expense memo"
+                            value={row.memo}
+                            onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Select value={row.customerJob} onValueChange={(value) => updateExpenseRow(row.id, 'customerJob', value)}>
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select job" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="project-a">Project A</SelectItem>
+                              <SelectItem value="project-b">Project B</SelectItem>
+                              <SelectItem value="project-c">Project C</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-1 flex justify-center">
+                          <Button
+                            onClick={() => removeExpenseRow(row.id)}
+                            size="sm"
+                            variant="ghost"
+                            disabled={expenseRows.length === 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="p-3 bg-muted border-t">
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-3 font-medium">Total:</div>
+                        <div className="col-span-2 font-medium">${calculateTotal()}</div>
+                        <div className="col-span-7"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-4">
+                  <Button type="button" className="flex-1">
+                    Save & Close
+                  </Button>
+                  <Button type="button" variant="outline" className="flex-1">
+                    Save & New
+                  </Button>
+                  <Button type="button" variant="outline">
+                    Clear
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </SidebarInset>
       </div>
