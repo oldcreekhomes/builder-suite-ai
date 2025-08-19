@@ -66,6 +66,8 @@ export const ChartOfAccountsTab = () => {
       }
 
       if (data?.success) {
+        console.log('Import successful, data returned:', data);
+        console.log('Accounts imported:', data.accounts?.length || 0);
         toast({
           title: "Import Successful",
           description: data.message,
@@ -73,6 +75,7 @@ export const ChartOfAccountsTab = () => {
         // Refresh the accounts list instead of full page reload
         window.location.reload();
       } else {
+        console.error('Import failed with data:', data);
         throw new Error(data?.error || 'Unknown error occurred');
       }
     } catch (error) {
