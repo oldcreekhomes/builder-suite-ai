@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,10 +27,38 @@ interface ExpenseRow {
 export default function EnterBills() {
   const [billDate, setBillDate] = useState<Date>();
   const [billDueDate, setBillDueDate] = useState<Date>();
+  const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
+    { id: "1", account: "", amount: "", memo: "", customerJob: "" }
+  ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", amount: "", memo: "", customerJob: "" }
   ]);
 
+  // Job Cost handlers
+  const addJobCostRow = () => {
+    const newRow: ExpenseRow = {
+      id: Date.now().toString(),
+      account: "",
+      amount: "",
+      memo: "",
+      customerJob: ""
+    };
+    setJobCostRows([...jobCostRows, newRow]);
+  };
+
+  const removeJobCostRow = (id: string) => {
+    if (jobCostRows.length > 1) {
+      setJobCostRows(jobCostRows.filter(row => row.id !== id));
+    }
+  };
+
+  const updateJobCostRow = (id: string, field: keyof ExpenseRow, value: string) => {
+    setJobCostRows(jobCostRows.map(row => 
+      row.id === id ? { ...row, [field]: value } : row
+    ));
+  };
+
+  // Expense handlers
   const addExpenseRow = () => {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
@@ -54,10 +83,17 @@ export default function EnterBills() {
   };
 
   const calculateTotal = () => {
-    return expenseRows.reduce((total, row) => {
+    const jobCostTotal = jobCostRows.reduce((total, row) => {
       const amount = parseFloat(row.amount) || 0;
       return total + amount;
-    }, 0).toFixed(2);
+    }, 0);
+    
+    const expenseTotal = expenseRows.reduce((total, row) => {
+      const amount = parseFloat(row.amount) || 0;
+      return total + amount;
+    }, 0);
+    
+    return (jobCostTotal + expenseTotal).toFixed(2);
   };
 
   return (
@@ -199,93 +235,200 @@ export default function EnterBills() {
                   </div>
                 </div>
 
-                {/* Expenses Section */}
+                {/* Expenses Section with Tabs */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Expenses</h3>
-                    <Button onClick={addExpenseRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Row
-                    </Button>
-                  </div>
+                  <h3 className="text-lg font-medium">Expenses</h3>
+                  
+                  <Tabs defaultValue="job-cost" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                      <TabsTrigger value="expense">Expense</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="job-cost" className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button onClick={addJobCostRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Row
+                        </Button>
+                      </div>
 
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                      <div className="col-span-3">Account</div>
-                      <div className="col-span-2">Amount</div>
-                      <div className="col-span-3">Memo</div>
-                      <div className="col-span-3">Customer/Job</div>
-                      <div className="col-span-1">Action</div>
-                    </div>
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Account</div>
+                          <div className="col-span-2">Amount</div>
+                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-3">Customer/Job</div>
+                          <div className="col-span-1">Action</div>
+                        </div>
 
-                    {expenseRows.map((row, index) => (
-                      <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                        <div className="col-span-3">
-                          <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Select account" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="materials">Materials</SelectItem>
-                              <SelectItem value="labor">Labor</SelectItem>
-                              <SelectItem value="equipment">Equipment</SelectItem>
-                              <SelectItem value="supplies">Supplies</SelectItem>
-                              <SelectItem value="utilities">Utilities</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-2">
-                          <Input 
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={row.amount}
-                            onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
-                            className="h-8"
-                          />
-                        </div>
-                        <div className="col-span-3">
-                          <Input 
-                            placeholder="Expense memo"
-                            value={row.memo}
-                            onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                            className="h-8"
-                          />
-                        </div>
-                        <div className="col-span-3">
-                          <Select value={row.customerJob} onValueChange={(value) => updateExpenseRow(row.id, 'customerJob', value)}>
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Select job" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="project-a">Project A</SelectItem>
-                              <SelectItem value="project-b">Project B</SelectItem>
-                              <SelectItem value="project-c">Project C</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-1 flex justify-center">
-                          <Button
-                            onClick={() => removeExpenseRow(row.id)}
-                            size="sm"
-                            variant="ghost"
-                            disabled={expenseRows.length === 1}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        {jobCostRows.map((row, index) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <Select value={row.account} onValueChange={(value) => updateJobCostRow(row.id, 'account', value)}>
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="materials">Materials</SelectItem>
+                                  <SelectItem value="labor">Labor</SelectItem>
+                                  <SelectItem value="equipment">Equipment</SelectItem>
+                                  <SelectItem value="supplies">Supplies</SelectItem>
+                                  <SelectItem value="utilities">Utilities</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={row.amount}
+                                onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Input 
+                                placeholder="Job cost memo"
+                                value={row.memo}
+                                onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Select value={row.customerJob} onValueChange={(value) => updateJobCostRow(row.id, 'customerJob', value)}>
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Select job" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="project-a">Project A</SelectItem>
+                                  <SelectItem value="project-b">Project B</SelectItem>
+                                  <SelectItem value="project-c">Project C</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-1 flex justify-center">
+                              <Button
+                                onClick={() => removeJobCostRow(row.id)}
+                                size="sm"
+                                variant="ghost"
+                                disabled={jobCostRows.length === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-3 font-medium">Total:</div>
+                            <div className="col-span-2 font-medium">
+                              ${jobCostRows.reduce((total, row) => {
+                                const amount = parseFloat(row.amount) || 0;
+                                return total + amount;
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="col-span-7"></div>
+                          </div>
                         </div>
                       </div>
-                    ))}
-
-                    <div className="p-3 bg-muted border-t">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-3 font-medium">Total:</div>
-                        <div className="col-span-2 font-medium">${calculateTotal()}</div>
-                        <div className="col-span-7"></div>
+                    </TabsContent>
+                    
+                    <TabsContent value="expense" className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button onClick={addExpenseRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Row
+                        </Button>
                       </div>
-                    </div>
-                  </div>
+
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Account</div>
+                          <div className="col-span-2">Amount</div>
+                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-3">Customer/Job</div>
+                          <div className="col-span-1">Action</div>
+                        </div>
+
+                        {expenseRows.map((row, index) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <Select value={row.account} onValueChange={(value) => updateExpenseRow(row.id, 'account', value)}>
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="materials">Materials</SelectItem>
+                                  <SelectItem value="labor">Labor</SelectItem>
+                                  <SelectItem value="equipment">Equipment</SelectItem>
+                                  <SelectItem value="supplies">Supplies</SelectItem>
+                                  <SelectItem value="utilities">Utilities</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-2">
+                              <Input 
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={row.amount}
+                                onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Input 
+                                placeholder="Expense memo"
+                                value={row.memo}
+                                onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <Select value={row.customerJob} onValueChange={(value) => updateExpenseRow(row.id, 'customerJob', value)}>
+                                <SelectTrigger className="h-8">
+                                  <SelectValue placeholder="Select job" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="project-a">Project A</SelectItem>
+                                  <SelectItem value="project-b">Project B</SelectItem>
+                                  <SelectItem value="project-c">Project C</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-1 flex justify-center">
+                              <Button
+                                onClick={() => removeExpenseRow(row.id)}
+                                size="sm"
+                                variant="ghost"
+                                disabled={expenseRows.length === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-3 font-medium">Total:</div>
+                            <div className="col-span-2 font-medium">
+                              ${expenseRows.reduce((total, row) => {
+                                const amount = parseFloat(row.amount) || 0;
+                                return total + amount;
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="col-span-7"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 {/* Action Buttons */}
