@@ -44,7 +44,8 @@ export function CostCodeAutocomplete({
     const newValue = e.target.value;
     setSearchQuery(newValue);
     onChange(newValue);
-    setIsOpen(true);
+    // Only open dropdown if there are at least 3 characters
+    setIsOpen(newValue.length >= 3);
   };
 
   const handleSelectCostCode = (costCode: { code: string; name: string }) => {
@@ -61,7 +62,7 @@ export function CostCodeAutocomplete({
           type="text"
           value={searchQuery}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => setIsOpen(searchQuery.length >= 3)}
           placeholder={placeholder}
           className={cn("pr-8", className)}
         />
