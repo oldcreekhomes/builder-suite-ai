@@ -143,7 +143,7 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
       console.error('Error in handleFileOpen:', error);
       toast({
         title: "Error",
-        description: `Failed to open file: ${error.message}`,
+        description: `Failed to open file: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
