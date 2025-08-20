@@ -5,6 +5,7 @@ import { DeleteButton } from '@/components/ui/delete-button';
 import { Upload } from 'lucide-react';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { openInNewTabSafely, getSpecificationFileUrl } from '@/utils/fileOpenUtils';
 
 interface BiddingTableRowFilesProps {
   item: any;
@@ -40,7 +41,6 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
   };
 
   const handleFilePreview = async (fileName: string) => {
-    const { openInNewTabSafely, getSpecificationFileUrl } = await import('@/utils/fileOpenUtils');
     await openInNewTabSafely(() => getSpecificationFileUrl(fileName));
   };
 

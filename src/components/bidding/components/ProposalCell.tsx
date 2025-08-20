@@ -4,6 +4,7 @@ import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
+import { openInNewTabSafely, getProposalFileUrl } from '@/utils/fileOpenUtils';
 
 interface ProposalCellProps {
   proposals: string[] | null;
@@ -21,7 +22,6 @@ export function ProposalCell({
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
-    const { openInNewTabSafely, getProposalFileUrl } = await import('@/utils/fileOpenUtils');
     await openInNewTabSafely(() => getProposalFileUrl(fileName));
   };
 
