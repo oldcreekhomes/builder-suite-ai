@@ -63,17 +63,8 @@ export function ConfirmPODialog({
   };
 
   const handleFilePreview = async (fileName: string) => {
-    try {
-      const { data } = await supabase.storage
-        .from('project-files')
-        .getPublicUrl(`proposals/${fileName}`);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('Error previewing file:', error);
-    }
+    const { openInNewTabSafely, getProposalFileUrl } = await import('@/utils/fileOpenUtils');
+    await openInNewTabSafely(() => getProposalFileUrl(fileName));
   };
 
   if (!biddingCompany) return null;

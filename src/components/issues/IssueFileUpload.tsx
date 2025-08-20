@@ -119,23 +119,8 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
   };
 
   const handleFileOpen = async (filePath: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('issue-files')
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
-
-      if (error) throw error;
-
-      // Open file in new tab
-      window.open(data.signedUrl, '_blank');
-    } catch (error) {
-      console.error('Open error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to open file",
-        variant: "destructive",
-      });
-    }
+    const { openInNewTabSafely, getIssueFileUrl } = await import('@/utils/fileOpenUtils');
+    await openInNewTabSafely(() => getIssueFileUrl(filePath));
   };
 
   const formatFileSize = (bytes?: number) => {

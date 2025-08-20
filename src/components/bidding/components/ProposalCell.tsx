@@ -21,28 +21,8 @@ export function ProposalCell({
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
-    try {
-      // Try to get a signed URL first for better security
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('project-files')
-        .createSignedUrl(`proposals/${fileName}`, 3600); // 1 hour expiry
-      
-      if (signedError) {
-        console.error('Error creating signed URL:', signedError);
-        // Fallback to public URL
-        const { data } = supabase.storage
-          .from('project-files')
-          .getPublicUrl(`proposals/${fileName}`);
-        
-        if (data?.publicUrl) {
-          window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
-        }
-      } else if (signedData?.signedUrl) {
-        window.open(signedData.signedUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
-    }
+    const { openInNewTabSafely, getProposalFileUrl } = await import('@/utils/fileOpenUtils');
+    await openInNewTabSafely(() => getProposalFileUrl(fileName));
   };
 
   return (

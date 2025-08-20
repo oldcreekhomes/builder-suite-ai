@@ -40,17 +40,8 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
   };
 
   const handleFilePreview = async (fileName: string) => {
-    try {
-      const { data } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(`specifications/${fileName}`);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
-    }
+    const { openInNewTabSafely, getSpecificationFileUrl } = await import('@/utils/fileOpenUtils');
+    await openInNewTabSafely(() => getSpecificationFileUrl(fileName));
   };
 
   return (
