@@ -119,38 +119,30 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     }
   };
 
-  const handleFileOpen = (filePath: string) => {
+  const handleFileOpen = async (filePath: string) => {
     console.log('handleFileOpen called with filePath:', filePath);
     
-    // Open blank tab immediately (synchronous) to preserve user gesture
-    const newTab = window.open("", "_blank", "noopener,noreferrer");
-    console.log('window.open result:', newTab);
-    
-    if (!newTab) {
-      console.log('Popup was blocked by browser');
+    try {
+      // Get the signed URL first
+      const url = await getIssueFileUrl(filePath);
+      console.log('Got file URL:', url);
+      
+      // Create a temporary anchor element and click it (bypasses popup blockers)
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error getting file URL:', error);
       toast({
         title: "Error",
-        description: "Popup blocked. Please allow popups for this site to open files.",
+        description: "Failed to open file",
         variant: "destructive",
       });
-      return;
     }
-
-    // Now get the file URL asynchronously and update the tab
-    getIssueFileUrl(filePath)
-      .then(url => {
-        console.log('Got file URL:', url);
-        newTab.location.href = url;
-      })
-      .catch(error => {
-        console.error('Error getting file URL:', error);
-        newTab.close();
-        toast({
-          title: "Error",
-          description: "Failed to open file",
-          variant: "destructive",
-        });
-      });
   };
 
   const formatFileSize = (bytes?: number) => {
