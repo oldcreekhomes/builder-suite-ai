@@ -42,12 +42,26 @@ export async function openInNewTabSafely(getUrlFn: () => Promise<string>) {
  * Get signed URL for issue files
  */
 export async function getIssueFileUrl(filePath: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from('issue-files')
-    .createSignedUrl(filePath, 3600); // 1 hour expiry
+  console.log('getIssueFileUrl called with filePath:', filePath);
+  
+  try {
+    const { data, error } = await supabase.storage
+      .from('issue-files')
+      .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-  if (error) throw error;
-  return data.signedUrl;
+    console.log('Supabase response:', { data, error });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('Returning signed URL:', data.signedUrl);
+    return data.signedUrl;
+  } catch (err) {
+    console.error('Error in getIssueFileUrl:', err);
+    throw err;
+  }
 }
 
 /**
