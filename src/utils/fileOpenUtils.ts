@@ -2,7 +2,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Opens a file using the redirect page approach to avoid popup blockers
+ * Opens a file using anchor element approach to completely avoid popup blockers
  */
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
   const params = new URLSearchParams({
@@ -12,15 +12,15 @@ export function openFileViaRedirect(bucket: string, path: string, fileName?: str
   });
   
   const redirectUrl = `/file-redirect?${params.toString()}`;
-  const newTab = window.open(redirectUrl, '_blank', 'noopener,noreferrer');
   
-  if (!newTab) {
-    toast({
-      title: "Error",
-      description: "Popup blocked. Please allow popups for this site to open files.",
-      variant: "destructive",
-    });
-  }
+  // Create temporary anchor element and click it (no popup blocker issues)
+  const link = document.createElement('a');
+  link.href = redirectUrl;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 /**
