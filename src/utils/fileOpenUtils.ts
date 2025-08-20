@@ -2,8 +2,30 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Safely opens a file in a new tab without being blocked by popup blockers.
- * Opens a blank tab immediately, then updates its URL once the file URL is ready.
+ * Opens a file using the redirect page approach to avoid popup blockers
+ */
+export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
+  const params = new URLSearchParams({
+    bucket,
+    path,
+    ...(fileName && { fileName })
+  });
+  
+  const redirectUrl = `/file-redirect?${params.toString()}`;
+  const newTab = window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+  
+  if (!newTab) {
+    toast({
+      title: "Error",
+      description: "Popup blocked. Please allow popups for this site to open files.",
+      variant: "destructive",
+    });
+  }
+}
+
+/**
+ * Legacy function - kept for backward compatibility
+ * @deprecated Use openFileViaRedirect instead
  */
 export async function openInNewTabSafely(getUrlFn: () => Promise<string>) {
   // Open blank tab immediately to avoid popup blocker

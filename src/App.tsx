@@ -32,6 +32,7 @@ import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import SubmitBid from "./pages/SubmitBid";
+import FileRedirect from "./pages/FileRedirect";
 
 
 import { supabase } from "@/integrations/supabase/client";
@@ -168,6 +169,9 @@ const AppContent = () => {
           
           {/* Bid Submission Confirmation - no auth required */}
           <Route path="/bid-submission-confirmation" element={<BidSubmissionConfirmation />} />
+          
+          {/* File Redirect - no auth required */}
+          <Route path="/file-redirect" element={<FileRedirect />} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (

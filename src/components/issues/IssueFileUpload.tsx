@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, File, X, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { openInNewTabSafely, getIssueFileUrl } from '@/utils/fileOpenUtils';
 
 interface IssueFile {
   id: string;
@@ -121,32 +120,9 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
 
   const handleFileOpen = async (filePath: string) => {
     console.log('handleFileOpen called with filePath:', filePath);
-    
-    try {
-      console.log('About to call getIssueFileUrl...');
-      // Get the signed URL first
-      const url = await getIssueFileUrl(filePath);
-      console.log('Got file URL:', url);
-      
-      // Create a temporary anchor element and click it (bypasses popup blockers)
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      console.log('About to click link...');
-      link.click();
-      console.log('Link clicked, removing from DOM...');
-      document.body.removeChild(link);
-      console.log('File opening process completed');
-    } catch (error) {
-      console.error('Error in handleFileOpen:', error);
-      toast({
-        title: "Error",
-        description: `Failed to open file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
-    }
+    const { openFileViaRedirect } = await import('@/utils/fileOpenUtils');
+    const fileName = filePath.split('/').pop() || 'file';
+    openFileViaRedirect('issue-files', filePath, fileName);
   };
 
   const formatFileSize = (bytes?: number) => {

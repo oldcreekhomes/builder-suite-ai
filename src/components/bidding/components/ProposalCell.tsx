@@ -2,9 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { supabase } from '@/integrations/supabase/client';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { openInNewTabSafely, getProposalFileUrl } from '@/utils/fileOpenUtils';
 
 interface ProposalCellProps {
   proposals: string[] | null;
@@ -22,7 +20,8 @@ export function ProposalCell({
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
-    await openInNewTabSafely(() => getProposalFileUrl(fileName));
+    const { openFileViaRedirect } = await import('@/utils/fileOpenUtils');
+    openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
   };
 
   return (
