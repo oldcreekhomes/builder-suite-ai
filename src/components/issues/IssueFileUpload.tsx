@@ -119,8 +119,38 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     }
   };
 
-  const handleFileOpen = async (filePath: string) => {
-    await openInNewTabSafely(() => getIssueFileUrl(filePath));
+  const handleFileOpen = (filePath: string) => {
+    console.log('handleFileOpen called with filePath:', filePath);
+    
+    // Open blank tab immediately (synchronous) to preserve user gesture
+    const newTab = window.open("", "_blank", "noopener,noreferrer");
+    console.log('window.open result:', newTab);
+    
+    if (!newTab) {
+      console.log('Popup was blocked by browser');
+      toast({
+        title: "Error",
+        description: "Popup blocked. Please allow popups for this site to open files.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Now get the file URL asynchronously and update the tab
+    getIssueFileUrl(filePath)
+      .then(url => {
+        console.log('Got file URL:', url);
+        newTab.location.href = url;
+      })
+      .catch(error => {
+        console.error('Error getting file URL:', error);
+        newTab.close();
+        toast({
+          title: "Error",
+          description: "Failed to open file",
+          variant: "destructive",
+        });
+      });
   };
 
   const formatFileSize = (bytes?: number) => {
