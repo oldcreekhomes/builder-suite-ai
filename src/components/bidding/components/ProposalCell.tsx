@@ -20,8 +20,8 @@ export function ProposalCell({
   isReadOnly = false 
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
-    const { openFileViaRedirect } = await import('@/utils/fileOpenUtils');
-    openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
+    const { openInNewTabSafely, getProposalFileUrl } = await import('@/utils/fileOpenUtils');
+    openInNewTabSafely(() => getProposalFileUrl(fileName));
   };
 
   return (

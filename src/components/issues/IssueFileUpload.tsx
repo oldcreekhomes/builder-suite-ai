@@ -120,9 +120,8 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
 
   const handleFileOpen = async (filePath: string) => {
     console.log('handleFileOpen called with filePath:', filePath);
-    const { openFileViaRedirect } = await import('@/utils/fileOpenUtils');
-    const fileName = filePath.split('/').pop() || 'file';
-    openFileViaRedirect('issue-files', filePath, fileName);
+    const { openInNewTabSafely, getIssueFileUrl } = await import('@/utils/fileOpenUtils');
+    openInNewTabSafely(() => getIssueFileUrl(filePath));
   };
 
   const formatFileSize = (bytes?: number) => {

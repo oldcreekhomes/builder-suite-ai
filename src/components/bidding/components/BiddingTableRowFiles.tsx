@@ -39,9 +39,22 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
   };
 
   const handleFilePreview = async (fileName: string) => {
-    const { openFileViaRedirect } = await import('@/utils/fileOpenUtils');
+    const { supabase } = await import('@/integrations/supabase/client');
     const filePath = fileName.startsWith('specifications/') ? fileName : `specifications/${fileName}`;
-    openFileViaRedirect('project-files', filePath, fileName);
+    
+    const { data } = supabase.storage
+      .from('project-files')
+      .getPublicUrl(filePath);
+      
+    if (data?.publicUrl) {
+      const link = document.createElement('a');
+      link.href = data.publicUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
