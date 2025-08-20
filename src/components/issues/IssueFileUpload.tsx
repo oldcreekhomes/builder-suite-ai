@@ -123,6 +123,7 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     console.log('handleFileOpen called with filePath:', filePath);
     
     try {
+      console.log('About to call getIssueFileUrl...');
       // Get the signed URL first
       const url = await getIssueFileUrl(filePath);
       console.log('Got file URL:', url);
@@ -133,13 +134,16 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
+      console.log('About to click link...');
       link.click();
+      console.log('Link clicked, removing from DOM...');
       document.body.removeChild(link);
+      console.log('File opening process completed');
     } catch (error) {
-      console.error('Error getting file URL:', error);
+      console.error('Error in handleFileOpen:', error);
       toast({
         title: "Error",
-        description: "Failed to open file",
+        description: `Failed to open file: ${error.message}`,
         variant: "destructive",
       });
     }
