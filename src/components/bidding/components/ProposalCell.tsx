@@ -25,13 +25,15 @@ export function ProposalCell({
       console.log('PROPOSAL CELL: Opening file', fileName);
       const url = await getProposalFileUrl(fileName);
       console.log('PROPOSAL CELL: Got URL', url);
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      
+      // Use window.open directly - more reliable with modern browsers
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      
+      // Fallback if popup blocked
+      if (!newWindow || newWindow.closed) {
+        console.log('PROPOSAL CELL: Popup blocked, using location.href');
+        window.location.href = url;
+      }
     } catch (error) {
       console.error('PROPOSAL CELL: Error opening file:', error);
     }
