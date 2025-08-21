@@ -5,7 +5,7 @@ import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { openInNewTabSafely, getProposalFileUrl } from '@/utils/fileOpenUtils';
+import { openProposalFile } from '@/utils/fileOpenUtils';
 
 interface Company {
   id: string;
@@ -63,8 +63,8 @@ export function ConfirmPODialog({
     }
   };
 
-  const handleFilePreview = async (fileName: string) => {
-    await openInNewTabSafely(() => getProposalFileUrl(fileName));
+  const handleFilePreview = (fileName: string) => {
+    openProposalFile(fileName);
   };
 
   if (!biddingCompany) return null;

@@ -17,7 +17,10 @@ const FileRedirect = () => {
 
   useEffect(() => {
     const handleFileRedirect = async () => {
+      console.log('FileRedirect processing:', { bucket, path, fileName });
+      
       if (!bucket || !path) {
+        console.error('Missing required parameters:', { bucket, path });
         setError('Invalid file parameters');
         setLoading(false);
         return;
@@ -85,9 +88,14 @@ const FileRedirect = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.close()} variant="outline" className="w-full">
-              Close Window
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => window.history.back()} variant="outline" className="flex-1">
+                Go Back
+              </Button>
+              <Button onClick={() => window.close()} variant="outline" className="flex-1">
+                Close Window
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

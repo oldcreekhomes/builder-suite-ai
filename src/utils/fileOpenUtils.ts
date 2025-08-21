@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Universal file opener - works for all buckets and file types
- * Uses redirect approach to avoid popup blockers completely
+ * Uses same-tab navigation to avoid any popup issues
  */
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
   console.log('openFileViaRedirect called:', { bucket, path, fileName });
@@ -15,15 +15,10 @@ export function openFileViaRedirect(bucket: string, path: string, fileName?: str
   });
   
   const redirectUrl = `/file-redirect?${params.toString()}`;
+  console.log('Redirecting to:', redirectUrl);
   
-  // Create temporary anchor element and click it (no popup blocker issues)
-  const link = document.createElement('a');
-  link.href = redirectUrl;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // Use same-tab navigation - no popup blockers, no new tabs
+  window.location.assign(redirectUrl);
 }
 
 /**
@@ -42,8 +37,21 @@ export function openProposalFile(fileName: string) {
 }
 
 export function openSpecificationFile(filePath: string, fileName?: string) {
-  const fullPath = filePath.startsWith('specifications/') ? filePath : `specifications/${filePath}`;
-  openFileViaRedirect('project-files', fullPath, fileName);
+  console.log('openSpecificationFile called with:', { filePath, fileName });
+  
+  // Normalize the path - remove any "project-files/" prefix and ensure exactly one "specifications/" prefix
+  let normalizedPath = filePath;
+  if (normalizedPath.startsWith('project-files/specifications/')) {
+    normalizedPath = normalizedPath.replace('project-files/specifications/', 'specifications/');
+  } else if (normalizedPath.startsWith('project-files/')) {
+    normalizedPath = normalizedPath.replace('project-files/', '');
+  }
+  if (!normalizedPath.startsWith('specifications/')) {
+    normalizedPath = `specifications/${normalizedPath}`;
+  }
+  
+  console.log('Normalized specification path:', normalizedPath);
+  openFileViaRedirect('project-files', normalizedPath, fileName);
 }
 
 /**
