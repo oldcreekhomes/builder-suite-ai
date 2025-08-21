@@ -264,14 +264,32 @@ export async function getProjectFileUrl(filePath: string): Promise<string> {
 }
 
 /**
- * Open project file directly in new tab using signed URL
+ * Open file via redirect page in new tab (avoids popup blockers)
  */
-export async function openProjectFileDirectly(filePath: string, fileName?: string) {
-  console.log('openProjectFileDirectly called with:', { filePath, fileName });
-  
-  await openInNewTabSafely(async () => {
-    return await getProjectFileUrl(filePath);
+export function openFileViaRedirectNewTab(bucket: string, path: string, fileName?: string): void {
+  const params = new URLSearchParams({
+    bucket,
+    path,
+    ...(fileName && { fileName })
   });
+  
+  const redirectUrl = `/file-redirect?${params.toString()}`;
+  console.log('Opening file via redirect:', redirectUrl);
+  
+  const newTab = window.open(redirectUrl, '_blank');
+  if (!newTab) {
+    // Fallback to same tab if new tab blocked
+    console.log('New tab blocked, opening in same tab');
+    window.location.href = redirectUrl;
+  }
+}
+
+/**
+ * Open project file directly in new tab using redirect approach
+ */
+export function openProjectFileDirectly(filePath: string, fileName?: string) {
+  console.log('openProjectFileDirectly called with:', { filePath, fileName });
+  openFileViaRedirectNewTab('project-files', filePath, fileName);
 }
 
 /**
