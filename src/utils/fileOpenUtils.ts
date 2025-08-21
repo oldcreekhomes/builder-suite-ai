@@ -33,7 +33,8 @@ export function openIssueFile(filePath: string, fileName?: string) {
 }
 
 export function openProposalFile(fileName: string) {
-  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
+  // Use direct signed URL approach like live version
+  openProposalFileDirectly(fileName);
 }
 
 export function openSpecificationFile(filePath: string, fileName?: string) {
@@ -140,6 +141,47 @@ export async function getProposalFileUrl(fileName: string): Promise<string> {
   }
   
   return data.publicUrl;
+}
+
+/**
+ * Open proposal file directly using signed URL (like live version)
+ */
+export async function openProposalFileDirectly(fileName: string) {
+  console.log('openProposalFileDirectly called with:', fileName);
+  
+  try {
+    // Get signed URL directly
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('project-files')
+      .createSignedUrl(`proposals/${fileName}`, 3600);
+    
+    if (!signedError && signedData?.signedUrl) {
+      console.log('Opening signed URL directly:', signedData.signedUrl);
+      // Open in new tab like live version
+      window.open(signedData.signedUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    // Fallback to public URL
+    const { data } = supabase.storage
+      .from('project-files')
+      .getPublicUrl(`proposals/${fileName}`);
+    
+    if (data?.publicUrl) {
+      console.log('Opening public URL directly:', data.publicUrl);
+      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    throw new Error('Failed to get file URL');
+  } catch (error) {
+    console.error('Error opening proposal file:', error);
+    toast({
+      title: "Error",
+      description: "Failed to open proposal file",
+      variant: "destructive",
+    });
+  }
 }
 
 /**
