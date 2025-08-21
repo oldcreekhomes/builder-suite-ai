@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { openInNewTabSafely, getProposalFileUrl } from '@/utils/fileOpenUtils';
+import { getProposalFileUrl } from '@/utils/fileOpenUtils';
 
 interface ProposalCellProps {
   proposals: string[] | null;
@@ -20,8 +20,19 @@ export function ProposalCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: ProposalCellProps) {
-  const handleFilePreview = (fileName: string) => {
-    openInNewTabSafely(() => getProposalFileUrl(fileName));
+  const handleFilePreview = async (fileName: string) => {
+    try {
+      const url = await getProposalFileUrl(fileName);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
   };
 
   return (
