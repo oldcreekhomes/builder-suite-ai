@@ -33,8 +33,8 @@ const FileRedirect = () => {
           .createSignedUrl(path, 3600); // 1 hour expiry
 
         if (!signedError && signedData?.signedUrl) {
-          setFileUrl(signedData.signedUrl);
-          setLoading(false);
+          console.log('FileRedirect: Opening signed URL', signedData.signedUrl);
+          window.location.replace(signedData.signedUrl);
           return;
         }
 
@@ -44,8 +44,8 @@ const FileRedirect = () => {
           .getPublicUrl(path);
 
         if (publicData?.publicUrl) {
-          setFileUrl(publicData.publicUrl);
-          setLoading(false);
+          console.log('FileRedirect: Opening public URL', publicData.publicUrl);
+          window.location.replace(publicData.publicUrl);
           return;
         }
 
