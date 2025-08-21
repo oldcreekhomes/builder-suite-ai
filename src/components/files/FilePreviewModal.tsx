@@ -20,15 +20,23 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
   }, [isOpen, file, onClose]);
 
   const openFileInNewTab = async () => {
-    const { openInNewTabSafely } = await import('@/utils/fileOpenUtils');
-    await openInNewTabSafely(async () => {
+    try {
       const { data, error } = await supabase.storage
         .from('project-files')
         .createSignedUrl(file.storage_path, 7200); // 2 hours expiry
 
       if (error) throw error;
-      return data.signedUrl;
-    });
+      
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
   };
 
   // Return null since we don't want to render any modal
