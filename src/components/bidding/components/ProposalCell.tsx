@@ -22,7 +22,9 @@ export function ProposalCell({
 }: ProposalCellProps) {
   const handleFilePreview = async (fileName: string) => {
     try {
+      console.log('PROPOSAL CELL: Opening file', fileName);
       const url = await getProposalFileUrl(fileName);
+      console.log('PROPOSAL CELL: Got URL', url);
       const link = document.createElement('a');
       link.href = url;
       link.target = '_blank';
@@ -31,7 +33,7 @@ export function ProposalCell({
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error('Error opening file:', error);
+      console.error('PROPOSAL CELL: Error opening file:', error);
     }
   };
 

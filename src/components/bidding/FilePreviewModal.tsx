@@ -12,6 +12,13 @@ interface FilePreviewModalProps {
 }
 
 export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl }: FilePreviewModalProps) {
+  const [filePreview, setFilePreview] = React.useState<JSX.Element | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && fileName) {
+      getFilePreview().then(setFilePreview);
+    }
+  }, [isOpen, fileName]);
   const handleDownload = async () => {
     if (!fileName) return;
     
@@ -35,36 +42,51 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl }: FilePre
     }
   };
 
-  const getFilePreview = () => {
+  const getFilePreview = async () => {
     if (!fileName) return null;
     
+    console.log('BIDDING FilePreviewModal: Getting preview for', fileName);
     const extension = fileName.split('.').pop()?.toLowerCase();
-    const { data: { publicUrl } } = supabase.storage
-      .from('project-files')
-      .getPublicUrl(`proposals/${fileName}`);
     
-    if (extension === 'pdf') {
+    // Use signed URL instead of public URL for better security
+    try {
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(`proposals/${fileName}`, 7200); // 2 hours
+      
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        return <div>Error loading file preview</div>;
+      }
+      
+      const signedUrl = data.signedUrl;
+    
+      if (extension === 'pdf') {
+        return (
+          <iframe
+            src={signedUrl}
+            className="w-full h-96 border rounded"
+            title="PDF Preview"
+          />
+        );
+      }
+      
+      // For Excel and Word files, show download message since they can't be previewed in browser
       return (
-        <iframe
-          src={publicUrl}
-          className="w-full h-96 border rounded"
-          title="PDF Preview"
-        />
+        <div className="flex flex-col items-center justify-center h-96 bg-gray-50 rounded border">
+          <p className="text-gray-600 mb-4">
+            This file type cannot be previewed in the browser.
+          </p>
+          <Button onClick={handleDownload} className="flex items-center space-x-2">
+            <Download className="h-4 w-4" />
+            <span>Download to View</span>
+          </Button>
+        </div>
       );
+    } catch (error) {
+      console.error('Error in getFilePreview:', error);
+      return <div>Error loading file preview</div>;
     }
-    
-    // For Excel and Word files, show download message since they can't be previewed in browser
-    return (
-      <div className="flex flex-col items-center justify-center h-96 bg-gray-50 rounded border">
-        <p className="text-gray-600 mb-4">
-          This file type cannot be previewed in the browser.
-        </p>
-        <Button onClick={handleDownload} className="flex items-center space-x-2">
-          <Download className="h-4 w-4" />
-          <span>Download to View</span>
-        </Button>
-      </div>
-    );
   };
 
   return (
@@ -83,7 +105,7 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl }: FilePre
           </div>
         </DialogHeader>
         <div className="mt-4">
-          {getFilePreview()}
+          {filePreview}
         </div>
       </DialogContent>
     </Dialog>

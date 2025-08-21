@@ -14,6 +14,7 @@ export function FilePreviewModal({ file, isOpen, onClose }: FilePreviewModalProp
 
   useEffect(() => {
     if (isOpen && file) {
+      console.log('FILES FilePreviewModal: Opening file', file);
       openFileInNewTab();
       onClose(); // Close the modal immediately
     }
