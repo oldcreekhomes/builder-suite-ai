@@ -34,8 +34,9 @@ export function openIssueFile(filePath: string, fileName?: string) {
 }
 
 export function openProposalFile(fileName: string) {
-  // Use direct signed URL approach like live version
-  openProposalFileDirectly(fileName);
+  console.log('openProposalFile called with:', fileName);
+  // Use redirect approach for project-files bucket (same as project files)
+  openFileViaRedirectNewTab('project-files', `proposals/${fileName}`, fileName);
 }
 
 export function openSpecificationFile(filePath: string, fileName?: string) {
@@ -53,8 +54,8 @@ export function openSpecificationFile(filePath: string, fileName?: string) {
   }
   
   console.log('Normalized specification path:', normalizedPath);
-  // Use direct signed URL approach like live version
-  openSpecificationFileDirectly(normalizedPath, fileName);
+  // Use redirect approach for project-files bucket (same as project files)
+  openFileViaRedirectNewTab('project-files', normalizedPath, fileName);
 }
 
 /**
