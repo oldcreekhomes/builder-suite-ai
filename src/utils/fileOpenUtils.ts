@@ -239,6 +239,42 @@ export async function openSpecificationFileDirectly(filePath: string, fileName?:
 }
 
 /**
+ * Get URL for project files (tries signed URL first, falls back to public)
+ */
+export async function getProjectFileUrl(filePath: string): Promise<string> {
+  // Try signed URL first
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from('project-files')
+    .createSignedUrl(filePath, 3600);
+  
+  if (!signedError && signedData?.signedUrl) {
+    return signedData.signedUrl;
+  }
+  
+  // Fallback to public URL
+  const { data } = supabase.storage
+    .from('project-files')
+    .getPublicUrl(filePath);
+  
+  if (!data?.publicUrl) {
+    throw new Error('Failed to get file URL');
+  }
+  
+  return data.publicUrl;
+}
+
+/**
+ * Open project file directly in new tab using signed URL
+ */
+export async function openProjectFileDirectly(filePath: string, fileName?: string) {
+  console.log('openProjectFileDirectly called with:', { filePath, fileName });
+  
+  await openInNewTabSafely(async () => {
+    return await getProjectFileUrl(filePath);
+  });
+}
+
+/**
  * Get public URL for specification files
  */
 export async function getSpecificationFileUrl(fileName: string): Promise<string> {
