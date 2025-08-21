@@ -2,9 +2,12 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Opens a file using anchor element approach to completely avoid popup blockers
+ * Universal file opener - works for all buckets and file types
+ * Uses redirect approach to avoid popup blockers completely
  */
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
+  console.log('openFileViaRedirect called:', { bucket, path, fileName });
+  
   const params = new URLSearchParams({
     bucket,
     path,
@@ -21,6 +24,26 @@ export function openFileViaRedirect(bucket: string, path: string, fileName?: str
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+/**
+ * Helper functions for different file types - all use openFileViaRedirect internally
+ */
+export function openProjectFile(filePath: string, fileName?: string) {
+  openFileViaRedirect('project-files', filePath, fileName);
+}
+
+export function openIssueFile(filePath: string, fileName?: string) {
+  openFileViaRedirect('issue-files', filePath, fileName);
+}
+
+export function openProposalFile(fileName: string) {
+  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
+}
+
+export function openSpecificationFile(filePath: string, fileName?: string) {
+  const fullPath = filePath.startsWith('specifications/') ? filePath : `specifications/${filePath}`;
+  openFileViaRedirect('project-files', fullPath, fileName);
 }
 
 /**

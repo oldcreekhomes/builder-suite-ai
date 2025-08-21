@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Upload } from 'lucide-react';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { openSpecificationFile } from '@/utils/fileOpenUtils';
 
 interface BiddingTableRowFilesProps {
   item: any;
@@ -40,21 +40,8 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
   };
 
   const handleFilePreview = (fileName: string) => {
-    const filePath = fileName.startsWith('specifications/') ? fileName : `specifications/${fileName}`;
-    
-    const { data } = supabase.storage
-      .from('project-files')
-      .getPublicUrl(filePath);
-      
-    if (data?.publicUrl) {
-      const link = document.createElement('a');
-      link.href = data.publicUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    console.log('BIDDING FILES: Opening file', fileName);
+    openSpecificationFile(fileName, fileName.split('/').pop());
   };
 
   return (

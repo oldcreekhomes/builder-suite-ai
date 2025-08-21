@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, File, X, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getIssueFileUrl } from '@/utils/fileOpenUtils';
+import { openIssueFile } from '@/utils/fileOpenUtils';
 
 interface IssueFile {
   id: string;
@@ -119,20 +119,9 @@ export function IssueFileUpload({ issueId, files = [], onFilesChange, className 
     }
   };
 
-  const handleFileOpen = async (filePath: string) => {
-    console.log('handleFileOpen called with filePath:', filePath);
-    try {
-      const url = await getIssueFileUrl(filePath);
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Error opening file:', error);
-    }
+  const handleFileOpen = (filePath: string) => {
+    console.log('ISSUE FILES: Opening file', filePath);
+    openIssueFile(filePath, filePath.split('/').pop());
   };
 
   const formatFileSize = (bytes?: number) => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { supabase } from '@/integrations/supabase/client';
+import { openSpecificationFile } from '@/utils/fileOpenUtils';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 
 interface SpecificationFilesCellProps {
@@ -20,19 +20,10 @@ export function SpecificationFilesCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: SpecificationFilesCellProps) {
-  const handleFilePreview = async (filePath: string) => {
-    try {
-      // filePath now contains the full path: specifications/{companyId}/{costCodeId}/{fileName}
-      const { data } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(filePath);
-      
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening file:', error);
-    }
+  const handleFilePreview = (filePath: string) => {
+    console.log('SPECIFICATION FILES: Opening file', filePath);
+    const fileName = filePath.split('/').pop() || filePath;
+    openSpecificationFile(filePath, fileName);
   };
 
   return (

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { getProposalFileUrl } from '@/utils/fileOpenUtils';
+import { openProposalFile } from '@/utils/fileOpenUtils';
 
 interface ProposalCellProps {
   proposals: string[] | null;
@@ -20,23 +20,9 @@ export function ProposalCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: ProposalCellProps) {
-  const handleFilePreview = async (fileName: string) => {
-    try {
-      console.log('PROPOSAL CELL: Opening file', fileName);
-      const url = await getProposalFileUrl(fileName);
-      console.log('PROPOSAL CELL: Got URL', url);
-      
-      // Use window.open directly - more reliable with modern browsers
-      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-      
-      // Fallback if popup blocked
-      if (!newWindow || newWindow.closed) {
-        console.log('PROPOSAL CELL: Popup blocked, using location.href');
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('PROPOSAL CELL: Error opening file:', error);
-    }
+  const handleFilePreview = (fileName: string) => {
+    console.log('PROPOSAL CELL: Opening file', fileName);
+    openProposalFile(fileName);
   };
 
   return (
