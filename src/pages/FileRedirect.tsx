@@ -34,8 +34,7 @@ const FileRedirect = () => {
 
         if (!signedError && signedData?.signedUrl) {
           setFileUrl(signedData.signedUrl);
-          // Redirect immediately
-          window.location.href = signedData.signedUrl;
+          setLoading(false);
           return;
         }
 
@@ -46,8 +45,7 @@ const FileRedirect = () => {
 
         if (publicData?.publicUrl) {
           setFileUrl(publicData.publicUrl);
-          // Redirect immediately
-          window.location.href = publicData.publicUrl;
+          setLoading(false);
           return;
         }
 
@@ -102,30 +100,82 @@ const FileRedirect = () => {
     );
   }
 
+  const getFileExtension = (fileName: string) => {
+    return fileName.split('.').pop()?.toLowerCase() || '';
+  };
+
+  const isPDF = (fileName: string) => {
+    return getFileExtension(fileName) === 'pdf';
+  };
+
+  const isViewable = (fileName: string) => {
+    const ext = getFileExtension(fileName);
+    return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Card className="w-96">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileIcon className="h-5 w-5" />
-            {fileName}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
-            If the file didn't open automatically, click the button below:
-          </p>
-          {fileUrl && (
-            <Button 
-              onClick={() => window.location.href = fileUrl} 
-              className="w-full"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Open File
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => window.history.back()} variant="outline" size="sm">
+            ← Back
+          </Button>
+          <FileIcon className="h-5 w-5" />
+          <span className="font-medium">{fileName}</span>
+        </div>
+        {fileUrl && (
+          <Button 
+            onClick={() => window.open(fileUrl, '_blank')} 
+            variant="outline" 
+            size="sm"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download
+          </Button>
+        )}
+      </div>
+
+      {/* File Viewer */}
+      <div className="flex-1 h-[calc(100vh-64px)]">
+        {fileUrl && isViewable(fileName) ? (
+          isPDF(fileName) ? (
+            <iframe
+              src={fileUrl}
+              className="w-full h-full border-0"
+              title={fileName}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <img 
+                src={fileUrl} 
+                alt={fileName}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          )
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <Card className="w-96">
+              <CardContent className="flex flex-col items-center p-6">
+                <FileIcon className="h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-center text-muted-foreground mb-4">
+                  This file type cannot be previewed in the browser.
+                </p>
+                {fileUrl && (
+                  <Button 
+                    onClick={() => window.open(fileUrl, '_blank')} 
+                    className="w-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download File
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
