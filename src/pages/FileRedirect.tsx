@@ -118,9 +118,6 @@ const FileRedirect = () => {
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button onClick={() => window.history.back()} variant="outline" size="sm">
-            ← Back
-          </Button>
           <FileIcon className="h-5 w-5" />
           <span className="font-medium">{fileName}</span>
         </div>
