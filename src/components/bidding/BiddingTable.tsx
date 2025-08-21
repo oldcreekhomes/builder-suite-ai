@@ -102,47 +102,46 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
               </TableRow>
             ) : (
               <>
-                {Object.entries(groupedBiddingItems).map(([group, items]) => (
-                  <React.Fragment key={group}>
-                    <BiddingGroupHeader
-                      group={group}
-                      isExpanded={expandedGroups.has(group)}
-                      onToggle={handleGroupToggle}
-                      isSelected={isGroupSelected(items)}
-                      isPartiallySelected={isGroupPartiallySelected(items)}
-                      onCheckboxChange={onGroupCheckboxChange}
-                      onEditGroup={() => {}}
-                      onDeleteGroup={onDeleteGroup}
-                      isDeleting={deletingGroups.has(group)}
+                {Object.entries(groupedBiddingItems).map(([group, items]) => [
+                  <BiddingGroupHeader
+                    key={`header-${group}`}
+                    group={group}
+                    isExpanded={expandedGroups.has(group)}
+                    onToggle={handleGroupToggle}
+                    isSelected={isGroupSelected(items)}
+                    isPartiallySelected={isGroupPartiallySelected(items)}
+                    onCheckboxChange={onGroupCheckboxChange}
+                    onEditGroup={() => {}}
+                    onDeleteGroup={onDeleteGroup}
+                    isDeleting={deletingGroups.has(group)}
+                  />,
+                  
+                  ...(expandedGroups.has(group) ? items.map((item) => (
+                    <BiddingTableRow
+                      key={item.id}
+                      item={item}
+                      onDelete={onDeleteItem}
+                      onUpdateStatus={handleUpdateStatus}
+                      onUpdateDueDate={handleUpdateDueDate}
+                      onUpdateReminderDate={handleUpdateReminderDate}
+                      onUpdateSpecifications={handleUpdateSpecifications}
+                      onToggleBidStatus={toggleBidStatus}
+                      onUpdatePrice={updatePrice}
+                      onUploadProposal={uploadProposal}
+                      onDeleteAllProposals={deleteAllProposals}
+                      onDeleteCompany={deleteCompany}
+                      formatUnitOfMeasure={formatUnitOfMeasure}
+                      isSelected={selectedItems.has(item.id)}
+                      onCheckboxChange={handleItemCheckboxChange}
+                      isDeleting={deletingItems.has(item.id)}
+                      isReadOnly={isReadOnly}
+                      isCompanyReadOnly={status === 'closed'}
+                      projectAddress={projectAddress}
+                      onFileUpload={handleFileUpload}
+                      onDeleteFiles={handleDeleteFiles}
                     />
-                    
-                    {expandedGroups.has(group) && items.map((item) => (
-                      <BiddingTableRow
-                        key={item.id}
-                        item={item}
-                        onDelete={onDeleteItem}
-                        onUpdateStatus={handleUpdateStatus}
-                        onUpdateDueDate={handleUpdateDueDate}
-                        onUpdateReminderDate={handleUpdateReminderDate}
-                        onUpdateSpecifications={handleUpdateSpecifications}
-                        onToggleBidStatus={toggleBidStatus}
-                        onUpdatePrice={updatePrice}
-                        onUploadProposal={uploadProposal}
-                        onDeleteAllProposals={deleteAllProposals}
-                        onDeleteCompany={deleteCompany}
-                        formatUnitOfMeasure={formatUnitOfMeasure}
-                        isSelected={selectedItems.has(item.id)}
-                        onCheckboxChange={handleItemCheckboxChange}
-                        isDeleting={deletingItems.has(item.id)}
-                        isReadOnly={isReadOnly}
-                        isCompanyReadOnly={status === 'closed'}
-                        projectAddress={projectAddress}
-                        onFileUpload={handleFileUpload}
-                        onDeleteFiles={handleDeleteFiles}
-                      />
-                    ))}
-                  </React.Fragment>
-                ))}
+                  )) : [])
+                ]).flat()}
               </>
             )}
           </TableBody>
