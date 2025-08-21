@@ -151,7 +151,7 @@ export async function getProposalFileUrl(fileName: string): Promise<string> {
 export async function openProposalFileDirectly(fileName: string) {
   console.log('openProposalFileDirectly called with:', fileName);
   
-  try {
+  await openInNewTabSafely(async () => {
     // Get signed URL directly
     const { data: signedData, error: signedError } = await supabase.storage
       .from('project-files')
@@ -159,9 +159,7 @@ export async function openProposalFileDirectly(fileName: string) {
     
     if (!signedError && signedData?.signedUrl) {
       console.log('Opening signed URL directly:', signedData.signedUrl);
-      // Open in new tab like live version
-      window.open(signedData.signedUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return signedData.signedUrl;
     }
     
     // Fallback to public URL
@@ -171,19 +169,11 @@ export async function openProposalFileDirectly(fileName: string) {
     
     if (data?.publicUrl) {
       console.log('Opening public URL directly:', data.publicUrl);
-      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return data.publicUrl;
     }
     
     throw new Error('Failed to get file URL');
-  } catch (error) {
-    console.error('Error opening proposal file:', error);
-    toast({
-      title: "Error",
-      description: "Failed to open proposal file",
-      variant: "destructive",
-    });
-  }
+  });
 }
 
 /**
@@ -192,7 +182,7 @@ export async function openProposalFileDirectly(fileName: string) {
 export async function openIssueFileDirectly(filePath: string, fileName?: string) {
   console.log('openIssueFileDirectly called with:', { filePath, fileName });
   
-  try {
+  await openInNewTabSafely(async () => {
     // Get signed URL directly
     const { data: signedData, error: signedError } = await supabase.storage
       .from('issue-files')
@@ -200,9 +190,7 @@ export async function openIssueFileDirectly(filePath: string, fileName?: string)
     
     if (!signedError && signedData?.signedUrl) {
       console.log('Opening signed URL directly:', signedData.signedUrl);
-      // Open in new tab like live version
-      window.open(signedData.signedUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return signedData.signedUrl;
     }
     
     // Fallback to public URL
@@ -212,19 +200,11 @@ export async function openIssueFileDirectly(filePath: string, fileName?: string)
     
     if (data?.publicUrl) {
       console.log('Opening public URL directly:', data.publicUrl);
-      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return data.publicUrl;
     }
     
     throw new Error('Failed to get file URL');
-  } catch (error) {
-    console.error('Error opening issue file:', error);
-    toast({
-      title: "Error",
-      description: "Failed to open issue file",
-      variant: "destructive",
-    });
-  }
+  });
 }
 
 /**
@@ -233,7 +213,7 @@ export async function openIssueFileDirectly(filePath: string, fileName?: string)
 export async function openSpecificationFileDirectly(filePath: string, fileName?: string) {
   console.log('openSpecificationFileDirectly called with:', { filePath, fileName });
   
-  try {
+  await openInNewTabSafely(async () => {
     // Get signed URL directly
     const { data: signedData, error: signedError } = await supabase.storage
       .from('project-files')
@@ -241,9 +221,7 @@ export async function openSpecificationFileDirectly(filePath: string, fileName?:
     
     if (!signedError && signedData?.signedUrl) {
       console.log('Opening signed URL directly:', signedData.signedUrl);
-      // Open in new tab like live version
-      window.open(signedData.signedUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return signedData.signedUrl;
     }
     
     // Fallback to public URL
@@ -253,19 +231,11 @@ export async function openSpecificationFileDirectly(filePath: string, fileName?:
     
     if (data?.publicUrl) {
       console.log('Opening public URL directly:', data.publicUrl);
-      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
-      return;
+      return data.publicUrl;
     }
     
     throw new Error('Failed to get file URL');
-  } catch (error) {
-    console.error('Error opening specification file:', error);
-    toast({
-      title: "Error",
-      description: "Failed to open specification file",
-      variant: "destructive",
-    });
-  }
+  });
 }
 
 /**
