@@ -9,6 +9,7 @@ import { PhotoUploadDropzone } from "@/components/photos/PhotoUploadDropzone";
 import { PhotoGrid } from "@/components/photos/PhotoGrid";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
+import { useHeicConverter } from "@/hooks/useHeicConverter";
 
 export default function ProjectPhotos() {
   const { projectId } = useParams();
@@ -17,6 +18,7 @@ export default function ProjectPhotos() {
   const [showViewer, setShowViewer] = useState(false);
 
   const { data: photos = [], isLoading, refetch } = useProjectPhotos(projectId || '');
+  const { isConverting } = useHeicConverter(photos, refetch);
 
   const handlePhotoSelect = (photo: any) => {
     setSelectedPhoto(photo);
@@ -59,9 +61,12 @@ export default function ProjectPhotos() {
               onUploadSuccess={handleUploadSuccess}
             />
 
-            {isLoading ? (
+            {isLoading || isConverting ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+                {isConverting && (
+                  <p className="ml-3 text-sm text-muted-foreground">Converting HEIC photos...</p>
+                )}
               </div>
             ) : (
               <PhotoGrid
