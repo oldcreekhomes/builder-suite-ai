@@ -4,11 +4,13 @@ import { Image, Plus } from "lucide-react";
 import { useRecentPhoto } from "@/hooks/useRecentPhoto";
 import { useAllPhotos } from "@/hooks/useAllPhotos";
 import { CompanyPhotoViewer } from "@/components/CompanyPhotoViewer";
+import { useHeicConverter } from "@/hooks/useHeicConverter";
 
 export function RecentPhotos() {
   const { data: recentPhoto } = useRecentPhoto();
-  const { data: allPhotos = [] } = useAllPhotos();
+  const { data: allPhotos = [], refetch } = useAllPhotos();
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const { isConverting } = useHeicConverter(allPhotos, refetch);
 
   const recentPhotosSlice = allPhotos.slice(0, 8); // Show 8 photos in 3x3 grid, reserve 1 spot for "+X more"
 
