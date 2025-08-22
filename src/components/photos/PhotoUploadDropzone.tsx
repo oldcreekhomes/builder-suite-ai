@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
+import heic2any from "heic2any";
 
 interface PhotoUploadDropzoneProps {
   projectId: string;
@@ -27,17 +28,57 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     uploading: boolean;
   }>>([]);
 
-  const uploadPhoto = async (file: File, relativePath: string = '') => {
-    if (!user) return;
-
-    const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/photos/${fileId}_${relativePath || file.name}`;
+  const convertHeicToJpeg = async (file: File): Promise<File> => {
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic';
     
+    if (!isHeic) {
+      return file;
+    }
+
     try {
+      console.log('Converting HEIC file to JPEG:', file.name);
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.8
+      }) as Blob;
+
+      // Create a new file with .jpg extension
+      const originalName = file.name.replace(/\.heic$/i, '');
+      const convertedFile = new File([convertedBlob], `${originalName}.jpg`, {
+        type: 'image/jpeg',
+        lastModified: file.lastModified
+      });
+
+      console.log('HEIC conversion successful:', convertedFile.name);
+      return convertedFile;
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      toast({
+        title: "Conversion Error",
+        description: `Failed to convert ${file.name}. Please try a different format.`,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const uploadPhoto = async (file: File, relativePath: string = '') => {
+    if (!user) return false;
+
+    try {
+      // Convert HEIC files to JPEG before upload
+      const processedFile = await convertHeicToJpeg(file);
+      
+      const fileId = crypto.randomUUID();
+      // Use processed file name for the path
+      const processedRelativePath = relativePath === file.name ? processedFile.name : relativePath.replace(/\.heic$/i, '.jpg');
+      const fileName = `${user.id}/${projectId}/photos/${fileId}_${processedRelativePath}`;
+      
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(fileName, file);
+        .upload(fileName, processedFile);
 
       if (uploadError) throw uploadError;
 
@@ -52,7 +93,7 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         .insert({
           project_id: projectId,
           url: publicUrl,
-          description: relativePath || file.name,
+          description: processedRelativePath,
           uploaded_by: user.id,
         });
 
