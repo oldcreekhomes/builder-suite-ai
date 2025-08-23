@@ -31,7 +31,7 @@ interface NewProjectDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const statuses = ["In Design", "Permitting", "Under Construction", "Completed", "Template"];
+const statuses = ["In Design", "Permitting", "Under Construction", "Completed"];
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
