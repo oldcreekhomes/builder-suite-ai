@@ -1,14 +1,16 @@
 import { useState } from "react";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CopyScheduleDialogProps {
   isOpen: boolean;
@@ -19,8 +21,7 @@ interface CopyScheduleDialogProps {
 
 export interface CopyScheduleOptions {
   sourceProjectId: string;
-  mode: 'replace' | 'append';
-  shiftDays?: number;
+  projectStartDate: Date;
 }
 
 export function CopyScheduleDialog({ 
@@ -30,9 +31,7 @@ export function CopyScheduleDialog({
   onCopySchedule 
 }: CopyScheduleDialogProps) {
   const [sourceProjectId, setSourceProjectId] = useState<string>("");
-  const [mode, setMode] = useState<'replace' | 'append'>('replace');
-  const [shiftDays, setShiftDays] = useState<number>(0);
-  const [applyDateShift, setApplyDateShift] = useState(false);
+  const [projectStartDate, setProjectStartDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: projects } = useProjects();
@@ -42,14 +41,13 @@ export function CopyScheduleDialog({
   const availableProjects = projects?.filter(p => p.id !== currentProjectId) || [];
 
   const handleCopy = async () => {
-    if (!sourceProjectId) return;
+    if (!sourceProjectId || !projectStartDate) return;
     
     setIsLoading(true);
     try {
       await onCopySchedule({
         sourceProjectId,
-        mode,
-        shiftDays: applyDateShift ? shiftDays : undefined
+        projectStartDate
       });
       onClose();
     } catch (error) {
@@ -61,9 +59,7 @@ export function CopyScheduleDialog({
 
   const handleClose = () => {
     setSourceProjectId("");
-    setMode('replace');
-    setShiftDays(0);
-    setApplyDateShift(false);
+    setProjectStartDate(undefined);
     onClose();
   };
 
@@ -97,42 +93,31 @@ export function CopyScheduleDialog({
             </div>
           )}
 
-          <div>
-            <Label>Copy Mode</Label>
-            <RadioGroup value={mode} onValueChange={(value: 'replace' | 'append') => setMode(value)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="replace" id="replace" />
-                <Label htmlFor="replace">Replace existing schedule</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="append" id="append" />
-                <Label htmlFor="append">Append to existing schedule</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="date-shift" 
-                checked={applyDateShift}
-                onCheckedChange={(checked) => setApplyDateShift(checked === true)}
-              />
-              <Label htmlFor="date-shift">Adjust start dates</Label>
-            </div>
-            
-            {applyDateShift && (
-              <div>
-                <Label htmlFor="shift-days">Days to shift (positive = later, negative = earlier)</Label>
-                <Input
-                  id="shift-days"
-                  type="number"
-                  value={shiftDays}
-                  onChange={(e) => setShiftDays(parseInt(e.target.value) || 0)}
-                  placeholder="0"
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="project-start-date">Project Start Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !projectStartDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {projectStartDate ? format(projectStartDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={projectStartDate}
+                  onSelect={setProjectStartDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
                 />
-              </div>
-            )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex gap-2 pt-4">
@@ -141,7 +126,7 @@ export function CopyScheduleDialog({
             </Button>
             <Button 
               onClick={handleCopy}
-              disabled={!sourceProjectId || isLoading}
+              disabled={!sourceProjectId || !projectStartDate || isLoading}
               className="flex-1"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

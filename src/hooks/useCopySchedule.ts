@@ -17,35 +17,29 @@ export function useCopySchedule() {
 
   return useMutation({
     mutationFn: async ({ targetProjectId, options, sourceTasks }: CopyScheduleParams) => {
-      const { sourceProjectId, mode, shiftDays } = options;
+      const { sourceProjectId, projectStartDate } = options;
 
-      // If replacing, delete existing tasks first
-      if (mode === 'replace') {
-        const { error: deleteError } = await supabase
-          .from('project_schedule_tasks')
-          .delete()
-          .eq('project_id', targetProjectId);
+      // Delete existing tasks first (always replace mode now)
+      const { error: deleteError } = await supabase
+        .from('project_schedule_tasks')
+        .delete()
+        .eq('project_id', targetProjectId);
 
-        if (deleteError) throw deleteError;
-      }
+      if (deleteError) throw deleteError;
 
-      // Get existing task count for append mode hierarchy numbering
-      let hierarchyOffset = 0;
-      if (mode === 'append') {
-        const { data: existingTasks } = await supabase
-          .from('project_schedule_tasks')
-          .select('hierarchy_number')
-          .eq('project_id', targetProjectId);
+      // Calculate date shift based on project start date and first task
+      let shiftDays = 0;
+      if (sourceTasks.length > 0) {
+        // Find the earliest start date in source tasks
+        const earliestDate = sourceTasks.reduce((earliest, task) => {
+          const taskDate = new Date(task.start_date);
+          return taskDate < earliest ? taskDate : earliest;
+        }, new Date(sourceTasks[0].start_date));
 
-        if (existingTasks && existingTasks.length > 0) {
-          // Find the highest top-level hierarchy number
-          const topLevelNumbers = existingTasks
-            .filter(task => task.hierarchy_number && !task.hierarchy_number.includes('.'))
-            .map(task => parseInt(task.hierarchy_number || '0'))
-            .filter(num => !isNaN(num));
-          
-          hierarchyOffset = topLevelNumbers.length > 0 ? Math.max(...topLevelNumbers) : 0;
-        }
+        // Calculate shift in days
+        const targetStartTime = projectStartDate.getTime();
+        const sourceStartTime = earliestDate.getTime();
+        shiftDays = Math.round((targetStartTime - sourceStartTime) / (1000 * 60 * 60 * 24));
       }
 
       // Process and copy tasks
@@ -53,24 +47,13 @@ export function useCopySchedule() {
         let newStartDate = task.start_date;
         let newEndDate = task.end_date;
 
-        // Apply date shift if specified
-        if (shiftDays && shiftDays !== 0) {
+        // Apply date shift based on project start date
+        if (shiftDays !== 0) {
           // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
           const startDateStr = task.start_date.split('T')[0];
           const endDateStr = task.end_date.split('T')[0];
           newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
           newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
-        }
-
-        // Adjust hierarchy numbers for append mode
-        let newHierarchyNumber = task.hierarchy_number;
-        if (mode === 'append' && hierarchyOffset > 0 && task.hierarchy_number) {
-          const hierarchyParts = task.hierarchy_number.split('.');
-          if (hierarchyParts.length > 0) {
-            const topLevel = parseInt(hierarchyParts[0]) + hierarchyOffset;
-            hierarchyParts[0] = topLevel.toString();
-            newHierarchyNumber = hierarchyParts.join('.');
-          }
         }
 
         return {
@@ -82,7 +65,7 @@ export function useCopySchedule() {
           progress: 0, // Reset progress for copied tasks
           predecessor: task.predecessor,
           resources: task.resources,
-          hierarchy_number: newHierarchyNumber,
+          hierarchy_number: task.hierarchy_number,
           confirmed: false // Reset confirmation status
         };
       });
