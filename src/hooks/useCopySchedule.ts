@@ -53,17 +53,40 @@ export function useCopySchedule() {
       }
 
       // Process and copy tasks
-      const tasksToInsert = sourceTasks.map(task => {
+      const tasksToInsert = sourceTasks.map((task, index) => {
         let newStartDate = task.start_date;
         let newEndDate = task.end_date;
 
-        // Apply date shift
-        if (shiftDays !== 0) {
-          // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
-          const startDateStr = task.start_date.split('T')[0];
-          const endDateStr = task.end_date.split('T')[0];
-          newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
-          newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
+        if (restartAllStartDates) {
+          // When restarting all start dates, ensure the earliest task starts on 01/01/2025
+          // and all other tasks maintain their relative positions
+          const restartDate = new Date(new Date().getFullYear(), 0, 1); // 01/01/current year
+          
+          // Find the earliest start date in source tasks
+          const earliestSourceDate = sourceTasks.reduce((earliest, t) => {
+            const taskDate = new Date(t.start_date);
+            return taskDate < earliest ? taskDate : earliest;
+          }, new Date(sourceTasks[0].start_date));
+          
+          // Calculate the difference between this task's start date and the earliest start date
+          const taskStartDate = new Date(task.start_date);
+          const daysDifference = Math.round((taskStartDate.getTime() - earliestSourceDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Set the new start date based on 01/01/2025 + the relative difference
+          const newStart = new Date(restartDate.getTime() + (daysDifference * 24 * 60 * 60 * 1000));
+          const newEnd = new Date(newStart.getTime() + ((task.duration || 1) * 24 * 60 * 60 * 1000));
+          
+          newStartDate = newStart.toISOString();
+          newEndDate = newEnd.toISOString();
+        } else {
+          // Apply date shift based on project start date
+          if (shiftDays !== 0) {
+            // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
+            const startDateStr = task.start_date.split('T')[0];
+            const endDateStr = task.end_date.split('T')[0];
+            newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
+            newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
+          }
         }
 
         return {
