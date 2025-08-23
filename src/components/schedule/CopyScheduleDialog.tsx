@@ -95,11 +95,6 @@ export function CopyScheduleDialog({
             </Select>
           </div>
 
-          {sourceProjectId && sourceTasks && (
-            <div className="text-sm text-muted-foreground">
-              Found {sourceTasks.length} tasks to copy
-            </div>
-          )}
 
           <div className="flex flex-col space-y-2">
             <Label htmlFor="project-start-date">Project Start Date</Label>
