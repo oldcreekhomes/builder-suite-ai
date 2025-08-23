@@ -22,6 +22,8 @@ interface CopyScheduleDialogProps {
 export interface CopyScheduleOptions {
   sourceProjectId: string;
   projectStartDate: Date;
+  removeAllResources: boolean;
+  restartAllStartDates: boolean;
 }
 
 export function CopyScheduleDialog({ 
@@ -32,6 +34,8 @@ export function CopyScheduleDialog({
 }: CopyScheduleDialogProps) {
   const [sourceProjectId, setSourceProjectId] = useState<string>("");
   const [projectStartDate, setProjectStartDate] = useState<Date>();
+  const [removeAllResources, setRemoveAllResources] = useState(false);
+  const [restartAllStartDates, setRestartAllStartDates] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: projects } = useProjects();
@@ -41,13 +45,15 @@ export function CopyScheduleDialog({
   const availableProjects = projects?.filter(p => p.id !== currentProjectId) || [];
 
   const handleCopy = async () => {
-    if (!sourceProjectId || !projectStartDate) return;
+    if (!sourceProjectId || (!projectStartDate && !restartAllStartDates)) return;
     
     setIsLoading(true);
     try {
       await onCopySchedule({
         sourceProjectId,
-        projectStartDate
+        projectStartDate: projectStartDate || new Date(), // fallback date when restarting
+        removeAllResources,
+        restartAllStartDates
       });
       onClose();
     } catch (error) {
@@ -60,6 +66,8 @@ export function CopyScheduleDialog({
   const handleClose = () => {
     setSourceProjectId("");
     setProjectStartDate(undefined);
+    setRemoveAllResources(false);
+    setRestartAllStartDates(false);
     onClose();
   };
 
@@ -120,13 +128,39 @@ export function CopyScheduleDialog({
             </Popover>
           </div>
 
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="remove-resources">Remove All Resources</Label>
+            <Select value={removeAllResources.toString()} onValueChange={(value) => setRemoveAllResources(value === "true")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="false">No - Keep resources from source</SelectItem>
+                <SelectItem value="true">Yes - Remove all resources</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="restart-dates">Restart All Start Dates</Label>
+            <Select value={restartAllStartDates.toString()} onValueChange={(value) => setRestartAllStartDates(value === "true")}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="false">No - Use project start date</SelectItem>
+                <SelectItem value="true">Yes - Restart to 01/01/2025</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex gap-2 pt-4">
             <Button variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
             <Button 
               onClick={handleCopy}
-              disabled={!sourceProjectId || !projectStartDate || isLoading}
+              disabled={!sourceProjectId || (!projectStartDate && !restartAllStartDates) || isLoading}
               className="flex-1"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

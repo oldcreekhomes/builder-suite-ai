@@ -17,7 +17,7 @@ export function useCopySchedule() {
 
   return useMutation({
     mutationFn: async ({ targetProjectId, options, sourceTasks }: CopyScheduleParams) => {
-      const { sourceProjectId, projectStartDate } = options;
+      const { sourceProjectId, projectStartDate, removeAllResources, restartAllStartDates } = options;
 
       // Delete existing tasks first (always replace mode now)
       const { error: deleteError } = await supabase
@@ -27,8 +27,18 @@ export function useCopySchedule() {
 
       if (deleteError) throw deleteError;
 
-      // Calculate date shift based on project start date and first task
+      // Calculate date shift based on options
       let shiftDays = 0;
+      let targetDate: Date;
+
+      if (restartAllStartDates) {
+        // Use January 1st of current year
+        targetDate = new Date(new Date().getFullYear(), 0, 1);
+      } else {
+        // Use the selected project start date
+        targetDate = projectStartDate;
+      }
+
       if (sourceTasks.length > 0) {
         // Find the earliest start date in source tasks
         const earliestDate = sourceTasks.reduce((earliest, task) => {
@@ -37,7 +47,7 @@ export function useCopySchedule() {
         }, new Date(sourceTasks[0].start_date));
 
         // Calculate shift in days
-        const targetStartTime = projectStartDate.getTime();
+        const targetStartTime = targetDate.getTime();
         const sourceStartTime = earliestDate.getTime();
         shiftDays = Math.round((targetStartTime - sourceStartTime) / (1000 * 60 * 60 * 24));
       }
@@ -47,7 +57,7 @@ export function useCopySchedule() {
         let newStartDate = task.start_date;
         let newEndDate = task.end_date;
 
-        // Apply date shift based on project start date
+        // Apply date shift
         if (shiftDays !== 0) {
           // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
           const startDateStr = task.start_date.split('T')[0];
@@ -64,7 +74,7 @@ export function useCopySchedule() {
           duration: task.duration,
           progress: 0, // Reset progress for copied tasks
           predecessor: task.predecessor,
-          resources: task.resources,
+          resources: removeAllResources ? null : task.resources, // Remove resources if requested
           hierarchy_number: task.hierarchy_number,
           confirmed: false // Reset confirmation status
         };
