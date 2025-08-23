@@ -29,8 +29,8 @@ export function openProjectFile(filePath: string, fileName?: string) {
 }
 
 export function openIssueFile(filePath: string, fileName?: string) {
-  // Use direct signed URL approach like live version
-  openIssueFileDirectly(filePath, fileName);
+  // Use redirect approach for issue-files bucket (same as other file types)
+  openFileViaRedirectNewTab('issue-files', filePath, fileName);
 }
 
 export function openProposalFile(fileName: string) {
