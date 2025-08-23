@@ -58,26 +58,13 @@ export function useCopySchedule() {
         let newEndDate = task.end_date;
 
         if (restartAllStartDates) {
-          // When restarting all start dates, ensure the earliest task starts on 01/01/2025
-          // and all other tasks maintain their relative positions
-          const restartDate = new Date(new Date().getFullYear(), 0, 1); // 01/01/current year
+          // Set ALL tasks to start on 01/01/current year - no logic, just set the date
+          const restartDate = new Date(Date.UTC(new Date().getFullYear(), 0, 1)); // 01/01/current year at UTC midnight
+          const duration = task.duration || 1;
+          const endDate = new Date(restartDate.getTime() + (duration * 24 * 60 * 60 * 1000));
           
-          // Find the earliest start date in source tasks
-          const earliestSourceDate = sourceTasks.reduce((earliest, t) => {
-            const taskDate = new Date(t.start_date);
-            return taskDate < earliest ? taskDate : earliest;
-          }, new Date(sourceTasks[0].start_date));
-          
-          // Calculate the difference between this task's start date and the earliest start date
-          const taskStartDate = new Date(task.start_date);
-          const daysDifference = Math.round((taskStartDate.getTime() - earliestSourceDate.getTime()) / (1000 * 60 * 60 * 24));
-          
-          // Set the new start date based on 01/01/2025 + the relative difference
-          const newStart = new Date(restartDate.getTime() + (daysDifference * 24 * 60 * 60 * 1000));
-          const newEnd = new Date(newStart.getTime() + ((task.duration || 1) * 24 * 60 * 60 * 1000));
-          
-          newStartDate = newStart.toISOString();
-          newEndDate = newEnd.toISOString();
+          newStartDate = restartDate.toISOString();
+          newEndDate = endDate.toISOString();
         } else {
           // Apply date shift based on project start date
           if (shiftDays !== 0) {
