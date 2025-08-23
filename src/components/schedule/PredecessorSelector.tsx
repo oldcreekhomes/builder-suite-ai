@@ -14,7 +14,7 @@ import {
 // Fixed component after removing selectedPredecessors reference
 
 interface PredecessorSelectorProps {
-  value: string[];
+  value: string[] | string | null | undefined;
   onValueChange: (value: string[]) => void;
   currentTaskId: string;
   allTasks: ProjectTask[];
@@ -35,10 +35,21 @@ export function PredecessorSelector({
   const [validationResult, setValidationResult] = useState({ isValid: true, errors: [], warnings: [] });
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to safely convert value to string array
+  const valueToArray = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') return [val];
+    return [];
+  };
+
+  // Get the current value as a safe array
+  const safeValue = valueToArray(value);
+
   // Initialize input value from props
   useEffect(() => {
     if (!isEditing) {
-      setInputValue(value.join(', '));
+      setInputValue(safeValue.join(', '));
     }
   }, [value, isEditing]);
 
@@ -75,7 +86,7 @@ export function PredecessorSelector({
           className: "[&_*]:!text-red-500"
         });
         // Reject invalid input - reset to original value and don't call onValueChange
-        setInputValue(value.join(', '));
+        setInputValue(safeValue.join(', '));
         return;
       }
     }
@@ -92,18 +103,18 @@ export function PredecessorSelector({
     if (e.key === 'Enter') {
       handleFinishEdit();
     } else if (e.key === 'Escape') {
-      setInputValue(value.join(', '));
+      setInputValue(safeValue.join(', '));
       setIsEditing(false);
     }
   };
 
   const handleRemove = (predecessorToRemove: string) => {
-    const newPredecessors = value.filter(p => p !== predecessorToRemove);
+    const newPredecessors = safeValue.filter(p => p !== predecessorToRemove);
     onValueChange(newPredecessors);
   };
 
   const getParsedPredecessors = (): ParsedPredecessor[] => {
-    return parsePredecessors(value, allTasks);
+    return parsePredecessors(safeValue, allTasks);
   };
 
   // If readOnly, always show as non-editable text
@@ -117,7 +128,7 @@ export function PredecessorSelector({
   }
 
   // Always show selected predecessors as chips when not editing and has predecessors
-  if (value.length > 0 && !isEditing) {
+  if (safeValue.length > 0 && !isEditing) {
     const parsed = getParsedPredecessors();
     return (
       <div 
