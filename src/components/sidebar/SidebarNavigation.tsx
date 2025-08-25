@@ -9,7 +9,8 @@ import {
   MessageSquare,
   HelpCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ShoppingCart
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -62,6 +63,12 @@ const navigationItems = [
     title: "Budget",
     url: "/budget",
     icon: DollarSign,
+    enabled: true,
+  },
+  {
+    title: "Purchase Orders",
+    url: "/purchase-orders",
+    icon: ShoppingCart,
     enabled: true,
   },
   {
