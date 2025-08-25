@@ -31,6 +31,7 @@ import BillsApprovalStatus from "./pages/BillsApprovalStatus";
 import EnterBills from "./pages/EnterBills";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
+import POResponseConfirmation from "./pages/POResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import SubmitBid from "./pages/SubmitBid";
 import FileRedirect from "./pages/FileRedirect";
@@ -167,6 +168,9 @@ const AppContent = () => {
           
           {/* Schedule Response Confirmation - no auth required */}
           <Route path="/schedule-response-confirmation" element={<ScheduleResponseConfirmation />} />
+          
+          {/* PO Response Confirmation - no auth required */}
+          <Route path="/po-response-confirmation" element={<POResponseConfirmation />} />
           
           {/* Submit Bid - no auth required */}
           <Route path="/submit-bid" element={<SubmitBid />} />

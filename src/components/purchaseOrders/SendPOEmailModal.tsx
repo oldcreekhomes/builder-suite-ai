@@ -27,6 +27,14 @@ export function SendPOEmailModal({
   const handleSend = async () => {
     setIsSending(true);
     try {
+      // Get sender company name from current user
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', userData.user?.id)
+        .single();
+
       const { data, error } = await supabase.functions.invoke('send-po-email', {
         body: {
           purchaseOrderId: purchaseOrder.id,
@@ -35,7 +43,8 @@ export function SendPOEmailModal({
           companyName: purchaseOrder.companies?.company_name || 'N/A',
           customMessage: customMessage.trim() || undefined,
           totalAmount: purchaseOrder.total_amount,
-          costCode: purchaseOrder.cost_codes
+          costCode: purchaseOrder.cost_codes,
+          senderCompanyName: userDetails?.company_name || 'Builder Suite AI'
         }
       });
 

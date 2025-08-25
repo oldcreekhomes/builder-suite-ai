@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.parse-iff-file]
 verify_jwt = true
+
+[functions.handle-po-response]
+verify_jwt = false
