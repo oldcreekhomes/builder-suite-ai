@@ -21,7 +21,8 @@ export default function ProjectPurchaseOrders() {
   } = useProject(projectId!);
   const {
     purchaseOrders,
-    isLoading
+    isLoading,
+    error
   } = usePurchaseOrders(projectId!);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   if (!project) {
@@ -123,9 +124,16 @@ export default function ProjectPurchaseOrders() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? <div className="text-center py-6">
+                  {error ? (
+                    <div className="text-center py-6">
+                      <div className="text-sm text-red-600">Error loading purchase orders: {error.message}</div>
+                    </div>
+                  ) : isLoading ? (
+                    <div className="text-center py-6">
                       <div className="text-sm text-muted-foreground">Loading purchase orders...</div>
-                    </div> : purchaseOrders.length === 0 ? <div className="text-center py-6">
+                    </div>
+                  ) : purchaseOrders.length === 0 ? (
+                    <div className="text-center py-6">
                       <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                       <h3 className="mt-2 text-sm font-semibold text-gray-900">No purchase orders</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
@@ -134,8 +142,11 @@ export default function ProjectPurchaseOrders() {
                       <div className="mt-6">
                         
                       </div>
-                    </div> : <div className="space-y-4">
-                      {purchaseOrders.map(po => <div key={po.id} className="border rounded-lg p-4">
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {purchaseOrders.map(po => (
+                        <div key={po.id} className="border rounded-lg p-4">
                           <div className="flex items-start justify-between">
                             <div className="space-y-2">
                               <div className="flex items-center space-x-2">
@@ -151,18 +162,24 @@ export default function ProjectPurchaseOrders() {
                               {po.notes && <div className="text-sm text-muted-foreground">{po.notes}</div>}
                               <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                 <span>Created {new Date(po.created_at).toLocaleDateString()}</span>
-                                 {po.files && Array.isArray(po.files) && (po.files as any[]).length > 0 && <div className="flex items-center space-x-1">
+                                 {po.files && Array.isArray(po.files) && (po.files as any[]).length > 0 && (
+                                   <div className="flex items-center space-x-1">
                                      <Paperclip className="h-3 w-3" />
                                      <span>{(po.files as any[]).length} file{(po.files as any[]).length !== 1 ? 's' : ''}</span>
-                                   </div>}
+                                   </div>
+                                 )}
                               </div>
                             </div>
-                            {po.total_amount > 0 && <div className="text-lg font-semibold">
+                            {po.total_amount > 0 && (
+                              <div className="text-lg font-semibold">
                                 ${po.total_amount.toLocaleString()}
-                              </div>}
+                              </div>
+                            )}
                           </div>
-                        </div>)}
-                    </div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </main>
