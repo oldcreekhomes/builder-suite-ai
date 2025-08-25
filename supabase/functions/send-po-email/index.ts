@@ -428,7 +428,7 @@ const handler = async (req: Request): Promise<Response> => {
       return await resend.emails.send({
         from: `${senderCompanyName || 'Builder Suite AI'} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
-        subject: `Purchase Order - ${projectAddress || 'Project'}: ${costCodeInfo?.name || 'Cost Code'}`,
+        subject: `Purchase Order - ${projectAddress || 'Project'}`,
         html: emailHTML,
       });
     });
