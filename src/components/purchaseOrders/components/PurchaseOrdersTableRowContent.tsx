@@ -17,6 +17,7 @@ interface PurchaseOrdersTableRowContentProps {
   onDelete: (itemId: string) => void;
   onSendClick: () => void;
   onTestEmailClick: () => void;
+  onEditClick: () => void;
 }
 
 export function PurchaseOrdersTableRowContent({
@@ -28,7 +29,8 @@ export function PurchaseOrdersTableRowContent({
   onUpdateNotes,
   onDelete,
   onSendClick,
-  onTestEmailClick
+  onTestEmailClick,
+  onEditClick
 }: PurchaseOrdersTableRowContentProps) {
   const costCode = item.cost_codes;
 
@@ -86,6 +88,7 @@ export function PurchaseOrdersTableRowContent({
         onDelete={onDelete}
         onSendClick={onSendClick}
         onTestEmailClick={onTestEmailClick}
+        onEditClick={onEditClick}
         isDeleting={isDeleting}
       />
     </TableRow>

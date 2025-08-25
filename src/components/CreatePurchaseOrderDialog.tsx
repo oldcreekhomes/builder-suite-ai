@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ interface CreatePurchaseOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   onSuccess: () => void;
+  editOrder?: any;
 }
 
 interface UploadedFile {
@@ -30,6 +31,7 @@ export const CreatePurchaseOrderDialog = ({
   onOpenChange,
   projectId,
   onSuccess,
+  editOrder,
 }: CreatePurchaseOrderDialogProps) => {
   const [selectedCompany, setSelectedCompany] = useState<{ id: string; name: string } | null>(null);
   const [selectedCostCode, setSelectedCostCode] = useState<{ id: string; code: string; name: string } | null>(null);
@@ -39,6 +41,32 @@ export const CreatePurchaseOrderDialog = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (editOrder && open) {
+      setSelectedCompany({
+        id: editOrder.companies?.id,
+        name: editOrder.companies?.company_name
+      });
+      setSelectedCostCode({
+        id: editOrder.cost_codes?.id,
+        code: editOrder.cost_codes?.code,
+        name: editOrder.cost_codes?.name
+      });
+      setExtra(editOrder.extra || false);
+      setAmount(editOrder.total_amount?.toString() || "");
+      setNotes(editOrder.notes || "");
+      setUploadedFiles(editOrder.files || []);
+    } else if (!editOrder && open) {
+      // Reset form for new order
+      setSelectedCompany(null);
+      setSelectedCostCode(null);
+      setExtra(false);
+      setAmount("");
+      setNotes("");
+      setUploadedFiles([]);
+    }
+  }, [editOrder, open]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -122,26 +150,51 @@ export const CreatePurchaseOrderDialog = ({
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('project_purchase_orders')
-        .insert([{
-          project_id: projectId,
-          company_id: selectedCompany.id,
-          cost_code_id: selectedCostCode.id,
-          extra,
-          total_amount: amount ? parseFloat(amount) : null,
-          notes: notes.trim() || null,
-          files: JSON.parse(JSON.stringify(uploadedFiles)),
-        }])
-        .select()
-        .single();
+      if (editOrder) {
+        // Update existing purchase order
+        const { data, error } = await supabase
+          .from('project_purchase_orders')
+          .update({
+            company_id: selectedCompany.id,
+            cost_code_id: selectedCostCode.id,
+            extra,
+            total_amount: amount ? parseFloat(amount) : null,
+            notes: notes.trim() || null,
+            files: JSON.parse(JSON.stringify(uploadedFiles)),
+          })
+          .eq('id', editOrder.id)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Purchase order created successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Purchase order updated successfully",
+        });
+      } else {
+        // Create new purchase order
+        const { data, error } = await supabase
+          .from('project_purchase_orders')
+          .insert([{
+            project_id: projectId,
+            company_id: selectedCompany.id,
+            cost_code_id: selectedCostCode.id,
+            extra,
+            total_amount: amount ? parseFloat(amount) : null,
+            notes: notes.trim() || null,
+            files: JSON.parse(JSON.stringify(uploadedFiles)),
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Purchase order created successfully",
+        });
+      }
 
       // Reset form
       setSelectedCompany(null);
@@ -169,7 +222,7 @@ export const CreatePurchaseOrderDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Purchase Order</DialogTitle>
+          <DialogTitle>{editOrder ? "Edit Purchase Order" : "Create Purchase Order"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -321,7 +374,7 @@ export const CreatePurchaseOrderDialog = ({
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedCompany || !selectedCostCode}
           >
-            {isSubmitting ? "Creating..." : "Create Purchase Order"}
+            {isSubmitting ? (editOrder ? "Updating..." : "Creating...") : (editOrder ? "Update Purchase Order" : "Create Purchase Order")}
           </Button>
         </div>
       </DialogContent>

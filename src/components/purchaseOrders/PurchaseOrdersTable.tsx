@@ -17,6 +17,7 @@ interface PurchaseOrdersTableProps {
 
 export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrdersTableProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
   
   const { purchaseOrders, groupedPurchaseOrders } = usePurchaseOrders(projectId);
   
@@ -40,6 +41,16 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
     handleUpdateStatus, 
     handleUpdateNotes 
   } = usePurchaseOrderMutations(projectId);
+
+  const handleEditOrder = (order: any) => {
+    setEditingOrder(order);
+    setShowCreateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setEditingOrder(null);
+  };
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedPurchaseOrders[group] || [];
@@ -111,6 +122,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
                       onCheckboxChange={handleItemCheckboxChange}
                       isDeleting={deletingItems.has(item.id)}
                       projectAddress={projectAddress}
+                      onEditClick={handleEditOrder}
                     />
                   )) : [])
                 ]).flat()}
@@ -123,10 +135,11 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
       <PurchaseOrdersTableFooter purchaseOrders={purchaseOrders} />
 
       <CreatePurchaseOrderDialog
-        projectId={projectId}
         open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onSuccess={() => setShowCreateModal(false)}
+        onOpenChange={handleCloseModal}
+        projectId={projectId}
+        onSuccess={() => window.location.reload()}
+        editOrder={editingOrder}
       />
     </div>
   );
