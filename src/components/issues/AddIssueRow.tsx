@@ -106,6 +106,10 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         New
       </TableCell>
       
+      <TableCell className="py-2 text-sm font-medium text-muted-foreground">
+        You
+      </TableCell>
+      
       <TableCell className="py-2">
         <Input
           value={title}
