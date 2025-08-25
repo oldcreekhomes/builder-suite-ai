@@ -35,6 +35,7 @@ interface POEmailRequest {
   totalAmount?: number;
   costCode?: any;
   testEmail?: string;
+  files?: any[];
 }
 
 const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: string) => {
@@ -47,6 +48,8 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const managerPhone = data.projectManager?.phone || '';
   const costCodeName = data.costCode?.name || 'Cost Code';
   const totalAmount = data.totalAmount;
+  const files = data.files || [];
+  const firstFile = files.length > 0 ? files[0] : null;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -114,14 +117,29 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName}</span>
                                                             </td>
                                                         </tr>
-                                                        ${totalAmount ? `
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Amount:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(totalAmount).toLocaleString()}</span>
-                                                            </td>
-                                                        </tr>
-                                                        ` : ''}
+                                                         ${totalAmount ? `
+                                                         <tr>
+                                                             <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Amount:</span>
+                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(totalAmount).toLocaleString()}</span>
+                                                             </td>
+                                                         </tr>
+                                                         ` : ''}
+                                                         ${firstFile ? `
+                                                         <tr>
+                                                             <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved File:</span>
+                                                                 <span style="display: inline-block; vertical-align: top;">
+                                                                     <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${purchaseOrderId}/${firstFile.id || firstFile.name || firstFile}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
+                                                                         ${firstFile.name || firstFile.id || firstFile}
+                                                                     </a>
+                                                                     <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                                         APPROVED
+                                                                     </span>
+                                                                 </span>
+                                                             </td>
+                                                         </tr>
+                                                         ` : ''}
                                                         ${proposals.length > 0 ? `
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
@@ -181,10 +199,9 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                     <!-- Footer -->
                     <tr>
                         <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
-                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                From ${senderCompanyName}<br>
-                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
-                            </p>
+                             <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                 <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                             </p>
                         </td>
                     </tr>
                     
@@ -296,6 +313,7 @@ const handler = async (req: Request): Promise<Response> => {
         .select(`
           project_id,
           cost_code_id,
+          files,
           projects!inner(
             address,
             manager,
@@ -376,6 +394,21 @@ const handler = async (req: Request): Promise<Response> => {
       phone: projectManagerData.phone_number
     } : null;
 
+    // Get project details and files
+    let purchaseOrderFiles: any[] = [];
+    
+    if (purchaseOrderId) {
+      const { data: poData } = await supabase
+        .from('project_purchase_orders')
+        .select('files')
+        .eq('id', purchaseOrderId)
+        .single();
+      
+      if (poData?.files && Array.isArray(poData.files)) {
+        purchaseOrderFiles = poData.files;
+      }
+    }
+
     // Generate email HTML with confirmation buttons for regular emails (not test)
     const emailHTML = generatePOEmailHTML({
       projectAddress,
@@ -384,7 +417,8 @@ const handler = async (req: Request): Promise<Response> => {
       senderCompanyName: senderCompanyName || 'Builder Suite AI',
       projectManager,
       costCode: costCodeInfo,
-      totalAmount
+      totalAmount,
+      files: purchaseOrderFiles
     }, testEmail ? undefined : purchaseOrderId, testEmail ? undefined : companyId);
 
     // Send emails to all recipients
