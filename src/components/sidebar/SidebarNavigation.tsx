@@ -181,7 +181,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   return (
     <TooltipProvider>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-3 pt-1">
+        <div className="px-3 py-2">
           <div>
             {filteredItems.map((item) => (
               <div key={item.title} className="mb-1">
