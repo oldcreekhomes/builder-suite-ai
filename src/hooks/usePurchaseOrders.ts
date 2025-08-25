@@ -41,15 +41,26 @@ export const usePurchaseOrders = (projectId: string) => {
           companies!project_purchase_orders_company_id_fkey(company_name),
           cost_codes!project_purchase_orders_cost_code_id_fkey(code, name)
         `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        .eq('project_id', projectId);
 
       if (error) {
         console.error('Error fetching purchase orders:', error);
         throw error;
       }
 
-      return data || [];
+      // Sort by cost code numerically
+      const sortedData = (data || []).sort((a, b) => {
+        const codeA = (a.cost_codes as any)?.code || '';
+        const codeB = (b.cost_codes as any)?.code || '';
+        
+        // Extract numeric part from cost code for sorting
+        const numA = parseInt(codeA.replace(/\D/g, '')) || 0;
+        const numB = parseInt(codeB.replace(/\D/g, '')) || 0;
+        
+        return numA - numB;
+      });
+
+      return sortedData;
     },
     enabled: !!user && !!projectId,
   });
