@@ -263,8 +263,8 @@ const handler = async (req: Request): Promise<Response> => {
         .from('project_purchase_orders')
         .select(`
           *,
-          projects!inner(id, name, address, manager),
-          cost_codes!inner(id, code, name)
+          projects(id, name, address, manager),
+          cost_codes(id, code, name)
         `)
         .eq('id', purchaseOrderId)
         .single();
@@ -417,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Use project address from fetched data if available, otherwise use provided address
     const finalProjectAddress = projectDetails?.address || projectAddress;
 
-    // Generate email HTML with confirmation buttons for regular emails (not test)
+    // Generate email HTML with confirmation buttons (including for test emails)
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
       companyName: companyName || 'Unknown Company',
@@ -427,7 +427,7 @@ const handler = async (req: Request): Promise<Response> => {
       costCode: costCodeInfo,
       totalAmount,
       files: purchaseOrderFiles
-    }, testEmail ? undefined : purchaseOrderId, testEmail ? undefined : companyId);
+    }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
     const emailPromises = notificationRecipients.map(async (rep: any) => {
