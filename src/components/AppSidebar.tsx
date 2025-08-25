@@ -1,11 +1,14 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Sidebar, SidebarSeparator } from "@/components/ui/sidebar";
+import { Menu, MessageSquare } from "lucide-react";
+import { Sidebar, SidebarContent, SidebarGroup } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { UnreadBadge } from "@/components/ui/unread-badge";
 import { SidebarBranding } from "./sidebar/SidebarBranding";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
 import { AccountingSidebar } from "./sidebar/AccountingSidebar";
-import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
@@ -19,44 +22,83 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
   
-  console.log('🔥 AppSidebar: Rendering with users:', users?.length);
-  
+  // State for active tab with localStorage persistence
+  const [activeTab, setActiveTab] = useState<'menus' | 'messages'>(() => {
+    const saved = localStorage.getItem('sidebar-active-tab');
+    return (saved as 'menus' | 'messages') || 'menus';
+  });
+
+  // Save tab state to localStorage
+  useEffect(() => {
+    localStorage.setItem('sidebar-active-tab', activeTab);
+  }, [activeTab]);
+
   // Get user IDs for unread count tracking (excluding current user)
   const userIds = users?.filter(user => user.id !== currentUserId).map(user => user.id) || [];
-  console.log('🔥 AppSidebar: User IDs for unread tracking:', userIds);
   const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
-  
-  const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
-  const isCompanyDashboard = location.pathname === '/';
+
+  // Calculate total unread count for Messages tab badge
+  const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+
   const isAccountingPage = location.pathname === '/accounting' || location.pathname.includes('/accounting');
-  const isIssuesPage = location.pathname === '/issues';
+
+  // For accounting pages, show the specialized accounting sidebar
+  if (isAccountingPage) {
+    return (
+      <Sidebar className="border-r border-border">
+        <SidebarBranding />
+        <AccountingSidebar />
+        <SidebarUserDropdown />
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar className="border-r border-border">
       <SidebarBranding />
-      {isCompanyDashboard ? (
-        <MessagesSidebar 
-          selectedUser={selectedUser || null}
-          onUserSelect={onUserSelect}
-          onStartChat={onStartChat}
-          unreadCounts={unreadCounts}
-          markConversationAsRead={markConversationAsRead}
-        />
-      ) : isAccountingPage ? (
-        <AccountingSidebar />
-      ) : isMessagesPage ? (
-        <MessagesSidebar 
-          selectedUser={selectedUser || null}
-          onUserSelect={onUserSelect}
-          onStartChat={onStartChat}
-          unreadCounts={unreadCounts}
-          markConversationAsRead={markConversationAsRead}
-        />
+      
+      {/* Tab Navigation */}
+      <SidebarContent>
+        <SidebarGroup>
+          <div className="flex border-b border-border">
+            <Button
+              variant={activeTab === 'menus' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('menus')}
+              className="flex-1 rounded-none border-0 justify-center"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Menus
+            </Button>
+            <Button
+              variant={activeTab === 'messages' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('messages')}
+              className="flex-1 rounded-none border-0 justify-center relative"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Messages
+              {totalUnreadCount > 0 && (
+                <UnreadBadge count={totalUnreadCount} className="ml-1" />
+              )}
+            </Button>
+          </div>
+        </SidebarGroup>
+      </SidebarContent>
+
+      {/* Tab Content */}
+      {activeTab === 'menus' ? (
+        <SidebarNavigation unreadCounts={unreadCounts} />
       ) : (
-        <SidebarNavigation 
+        <MessagesSidebar
+          selectedUser={selectedUser || null}
+          onUserSelect={onUserSelect}
+          onStartChat={onStartChat}
           unreadCounts={unreadCounts}
+          markConversationAsRead={markConversationAsRead}
         />
       )}
+
       <SidebarUserDropdown />
     </Sidebar>
   );
