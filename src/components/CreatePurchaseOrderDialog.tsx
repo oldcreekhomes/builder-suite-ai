@@ -210,6 +210,7 @@ export const CreatePurchaseOrderDialog = ({
               <RadioGroup
                 value={extra ? "yes" : "no"}
                 onValueChange={(value) => setExtra(value === "yes")}
+                className="flex flex-row space-x-4"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="no" id="extra-no" />
