@@ -258,28 +258,57 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Always fetch project details and cost code if purchaseOrderId is provided
     if (purchaseOrderId) {
-      console.log('🔍 Fetching project and cost code details...');
+      console.log('🔍 Fetching purchase order details...');
+      
+      // First, get the purchase order data
       const { data: poData, error: poError } = await supabase
         .from('project_purchase_orders')
-        .select(`
-          *,
-          projects(id, name, address, manager),
-          cost_codes(id, code, name)
-        `)
+        .select('*')
         .eq('id', purchaseOrderId)
         .single();
 
       if (poError) {
         console.error('❌ Error fetching purchase order details:', poError);
       } else {
-        projectDetails = poData.projects;
-        costCodeInfo = poData.cost_codes;
-        console.log('✅ Found project details:', projectDetails);
-        console.log('✅ Found cost code:', costCodeInfo);
+        console.log('✅ Found purchase order data:', poData);
+        
+        // Explicitly fetch project details
+        if (poData.project_id) {
+          console.log('🔍 Fetching project details for ID:', poData.project_id);
+          const { data: projectData, error: projectError } = await supabase
+            .from('projects')
+            .select('id, name, address, manager')
+            .eq('id', poData.project_id)
+            .single();
+
+          if (projectError) {
+            console.error('❌ Error fetching project details:', projectError);
+          } else {
+            projectDetails = projectData;
+            console.log('✅ Found project details:', projectDetails);
+          }
+        }
+        
+        // Explicitly fetch cost code details
+        if (poData.cost_code_id) {
+          console.log('🔍 Fetching cost code details for ID:', poData.cost_code_id);
+          const { data: costCodeData, error: costCodeError } = await supabase
+            .from('cost_codes')
+            .select('id, code, name')
+            .eq('id', poData.cost_code_id)
+            .single();
+
+          if (costCodeError) {
+            console.error('❌ Error fetching cost code details:', costCodeError);
+          } else {
+            costCodeInfo = costCodeData;
+            console.log('✅ Found cost code details:', costCodeInfo);
+          }
+        }
 
         // Fetch project manager details if manager ID is available
         if (projectDetails?.manager) {
-          console.log('🔍 Fetching project manager details...');
+          console.log('🔍 Fetching project manager details for ID:', projectDetails.manager);
           const { data: managerData, error: managerError } = await supabase
             .from('users')
             .select('id, first_name, last_name, email, phone_number')
