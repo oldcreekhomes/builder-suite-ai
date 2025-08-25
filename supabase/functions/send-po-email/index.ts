@@ -46,7 +46,10 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const managerName = data.projectManager?.name || 'Project Manager';
   const managerEmail = data.projectManager?.email || '';
   const managerPhone = data.projectManager?.phone || '';
-  const costCodeName = data.costCode?.name || 'Cost Code';
+  // Format cost code as "code: name" if both are available
+  const costCodeName = data.costCode?.code && data.costCode?.name 
+    ? `${data.costCode.code}: ${data.costCode.name}` 
+    : data.costCode?.name || 'Cost Code';
   const totalAmount = data.totalAmount;
   const files = data.files || [];
   const firstFile = files.length > 0 ? files[0] : null;
@@ -57,7 +60,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Purchase Order - ${projectAddress}: ${costCodeName}</title>
+    <title>Purchase Order - ${projectAddress}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -251,6 +254,51 @@ const handler = async (req: Request): Promise<Response> => {
     let notificationRecipients: any[] = [];
     let projectDetails: any = null;
     let costCodeInfo: any = null;
+    let projectManager: any = null;
+
+    // Always fetch project details and cost code if purchaseOrderId is provided
+    if (purchaseOrderId) {
+      console.log('🔍 Fetching project and cost code details...');
+      const { data: poData, error: poError } = await supabase
+        .from('project_purchase_orders')
+        .select(`
+          *,
+          projects!inner(id, name, address, manager),
+          cost_codes!inner(id, code, name)
+        `)
+        .eq('id', purchaseOrderId)
+        .single();
+
+      if (poError) {
+        console.error('❌ Error fetching purchase order details:', poError);
+      } else {
+        projectDetails = poData.projects;
+        costCodeInfo = poData.cost_codes;
+        console.log('✅ Found project details:', projectDetails);
+        console.log('✅ Found cost code:', costCodeInfo);
+
+        // Fetch project manager details if manager ID is available
+        if (projectDetails?.manager) {
+          console.log('🔍 Fetching project manager details...');
+          const { data: managerData, error: managerError } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, email, phone_number')
+            .eq('id', projectDetails.manager)
+            .single();
+
+          if (managerError) {
+            console.error('❌ Error fetching project manager:', managerError);
+          } else {
+            projectManager = {
+              name: `${managerData.first_name || ''} ${managerData.last_name || ''}`.trim(),
+              email: managerData.email,
+              phone: managerData.phone_number
+            };
+            console.log('✅ Found project manager:', projectManager);
+          }
+        }
+      }
+    }
 
     // Handle test email case
     if (testEmail) {
@@ -259,7 +307,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: 'User',
         email: testEmail
       }];
-    } 
+    }
     // Handle purchase order case
     else if (purchaseOrderId && companyId) {
       const { data: company, error: companyError } = await supabase
@@ -306,36 +354,6 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
       }
-
-      // Get project details from purchase order
-      const { data: projectData, error: projectError } = await supabase
-        .from('project_purchase_orders')
-        .select(`
-          project_id,
-          cost_code_id,
-          files,
-          projects!inner(
-            address,
-            manager,
-            users!inner(
-              first_name,
-              last_name,
-              email,
-              phone_number
-            )
-          ),
-          cost_codes!inner(
-            code,
-            name
-          )
-        `)
-        .eq('id', purchaseOrderId)
-        .single();
-
-      if (!projectError && projectData) {
-        projectDetails = projectData.projects;
-        costCodeInfo = projectData.cost_codes;
-      }
     }
     // Handle backward compatibility with biddingCompanyId
     else if (biddingCompanyId) {
@@ -381,19 +399,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get project manager details
-    const { data: projectManagerData } = await supabase
-      .from('users')
-      .select('first_name, last_name, email, phone_number')
-      .eq('id', projectDetails?.manager || '')
-      .single();
-
-    const projectManager = projectManagerData ? {
-      name: `${projectManagerData.first_name || ''} ${projectManagerData.last_name || ''}`.trim(),
-      email: projectManagerData.email,
-      phone: projectManagerData.phone_number
-    } : null;
-
     // Get project details and files
     let purchaseOrderFiles: any[] = [];
     
@@ -409,9 +414,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Use project address from fetched data if available, otherwise use provided address
+    const finalProjectAddress = projectDetails?.address || projectAddress;
+
     // Generate email HTML with confirmation buttons for regular emails (not test)
     const emailHTML = generatePOEmailHTML({
-      projectAddress,
+      projectAddress: finalProjectAddress,
       companyName: companyName || 'Unknown Company',
       proposals: proposals || [],
       senderCompanyName: senderCompanyName || 'Builder Suite AI',
@@ -428,7 +436,7 @@ const handler = async (req: Request): Promise<Response> => {
       return await resend.emails.send({
         from: `${senderCompanyName || 'Builder Suite AI'} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
-        subject: `Purchase Order - ${projectAddress || 'Project'}`,
+        subject: `Purchase Order - ${finalProjectAddress || 'Project'}`,
         html: emailHTML,
       });
     });
