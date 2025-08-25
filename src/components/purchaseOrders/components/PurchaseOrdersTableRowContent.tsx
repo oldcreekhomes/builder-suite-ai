@@ -46,7 +46,7 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell className="py-1">
-        <div className={`text-sm ${costCode?.parent_group ? 'ml-8' : ''}`}>
+        <div className={`text-sm ${costCode?.parent_group ? 'ml-4' : ''}`}>
           <div className="font-medium">
             {costCode?.code}: {costCode?.name}
           </div>
