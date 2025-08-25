@@ -74,11 +74,11 @@ export function CostCodeSearchInput({
             <button
               key={costCode.id}
               type="button"
-              className="block w-full px-2 py-1 text-left text-xs hover:bg-muted"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
               onMouseDown={() => handleSelectCostCode(costCode)}
             >
-              <span className="font-medium">{costCode.code}</span>
-              <span className="text-muted-foreground"> - {costCode.name}</span>
+              <div className="font-medium">{costCode.code}</div>
+              <div className="text-muted-foreground text-xs">{costCode.name}</div>
             </button>
           ))}
         </div>

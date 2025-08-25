@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -33,6 +34,7 @@ export const CreatePurchaseOrderDialog = ({
   const [selectedCompany, setSelectedCompany] = useState<{ id: string; name: string } | null>(null);
   const [selectedCostCode, setSelectedCostCode] = useState<{ id: string; code: string; name: string } | null>(null);
   const [extra, setExtra] = useState<boolean>(false);
+  const [amount, setAmount] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -127,6 +129,7 @@ export const CreatePurchaseOrderDialog = ({
           company_id: selectedCompany.id,
           cost_code_id: selectedCostCode.id,
           extra,
+          total_amount: amount ? parseFloat(amount) : null,
           notes: notes.trim() || null,
           files: JSON.parse(JSON.stringify(uploadedFiles)),
         }])
@@ -144,6 +147,7 @@ export const CreatePurchaseOrderDialog = ({
       setSelectedCompany(null);
       setSelectedCostCode(null);
       setExtra(false);
+      setAmount("");
       setNotes("");
       setUploadedFiles([]);
       
@@ -198,22 +202,36 @@ export const CreatePurchaseOrderDialog = ({
             />
           </div>
 
-          {/* Extra */}
-          <div className="space-y-3">
-            <Label>Extra</Label>
-            <RadioGroup
-              value={extra ? "yes" : "no"}
-              onValueChange={(value) => setExtra(value === "yes")}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="no" id="extra-no" />
-                <Label htmlFor="extra-no">No</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="yes" id="extra-yes" />
-                <Label htmlFor="extra-yes">Yes</Label>
-              </div>
-            </RadioGroup>
+          {/* Extra and Amount */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <Label>Extra</Label>
+              <RadioGroup
+                value={extra ? "yes" : "no"}
+                onValueChange={(value) => setExtra(value === "yes")}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="extra-no" />
+                  <Label htmlFor="extra-no">No</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="extra-yes" />
+                  <Label htmlFor="extra-yes">Yes</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           {/* Notes */}
