@@ -16,6 +16,7 @@ import ProjectFiles from "./pages/ProjectFiles";
 import ProjectBudget from "./pages/ProjectBudget";
 import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
+import ProjectPurchaseOrders from "./pages/ProjectPurchaseOrders";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
@@ -139,6 +140,9 @@ const AppContent = () => {
           
           {/* Project Bidding route */}
           <Route path="/project/:projectId/bidding" element={<ProtectedRoute><ProjectBidding /></ProtectedRoute>} />
+          
+          {/* Project Purchase Orders route */}
+          <Route path="/project/:projectId/purchase-orders" element={<ProtectedRoute><ProjectPurchaseOrders /></ProtectedRoute>} />
           
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedule" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
