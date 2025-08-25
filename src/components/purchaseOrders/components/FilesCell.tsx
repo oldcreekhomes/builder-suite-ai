@@ -1,18 +1,22 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { openProjectFile } from '@/utils/fileOpenUtils';
+import { openProjectFileDirectly } from '@/utils/fileOpenUtils';
 
 interface FilesCellProps {
   files: any;
+  projectId: string;
 }
 
-export function FilesCell({ files }: FilesCellProps) {
+export function FilesCell({ files, projectId }: FilesCellProps) {
   const fileCount = files && Array.isArray(files) ? files.length : 0;
 
-  const handleFilePreview = (fileName: string) => {
-    console.log('PURCHASE ORDER FILES: Opening file', fileName);
-    // Purchase order files are stored in the project-files bucket under the purchase-orders path  
-    openProjectFile(`purchase-orders/${fileName}`, fileName);
+  const handleFilePreview = (file: any) => {
+    console.log('PURCHASE ORDER FILES: Opening file', file);
+    // Build the correct path: purchase-orders/{projectId}/{fileId}
+    const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
+    const fileName = file.name || file.id || file;
+    console.log('File path:', filePath, 'File name:', fileName);
+    openProjectFileDirectly(filePath, fileName);
   };
 
   if (fileCount === 0) {
@@ -27,14 +31,15 @@ export function FilesCell({ files }: FilesCellProps) {
   return (
     <div className="flex items-center gap-1">
       {files.slice(0, 3).map((file: any, index: number) => {
-        const IconComponent = getFileIcon(file.name);
-        const iconColorClass = getFileIconColor(file.name);
+        const fileName = file.name || file.id || file;
+        const IconComponent = getFileIcon(fileName);
+        const iconColorClass = getFileIconColor(fileName);
         return (
           <button
-            key={`${file.name}-${index}`}
-            onClick={() => handleFilePreview(file.name)}
+            key={`${fileName}-${index}`}
+            onClick={() => handleFilePreview(file)}
             className={`inline-block ${iconColorClass} transition-colors p-1`}
-            title={file.name}
+            title={fileName}
           >
             <IconComponent className="h-4 w-4" />
           </button>

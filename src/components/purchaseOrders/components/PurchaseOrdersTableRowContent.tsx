@@ -18,6 +18,7 @@ interface PurchaseOrdersTableRowContentProps {
   onSendClick: () => void;
   onTestEmailClick: () => void;
   onEditClick: () => void;
+  projectId: string;
 }
 
 export function PurchaseOrdersTableRowContent({
@@ -30,7 +31,8 @@ export function PurchaseOrdersTableRowContent({
   onDelete,
   onSendClick,
   onTestEmailClick,
-  onEditClick
+  onEditClick,
+  projectId
 }: PurchaseOrdersTableRowContentProps) {
   const costCode = item.cost_codes;
 
@@ -79,7 +81,7 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell className="py-1">
-        <FilesCell files={item.files} />
+        <FilesCell files={item.files} projectId={projectId} />
       </TableCell>
       
       <PurchaseOrdersTableRowActions

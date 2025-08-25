@@ -13,6 +13,7 @@ interface PurchaseOrdersTableRowProps {
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   isDeleting?: boolean;
   projectAddress?: string;
+  projectId: string;
   onEditClick: (item: PurchaseOrder) => void;
 }
 
@@ -25,6 +26,7 @@ export function PurchaseOrdersTableRow({
   onCheckboxChange,
   isDeleting = false,
   projectAddress,
+  projectId,
   onEditClick
 }: PurchaseOrdersTableRowProps) {
   const [showSendModal, setShowSendModal] = useState(false);
@@ -43,6 +45,7 @@ export function PurchaseOrdersTableRow({
         onSendClick={() => setShowSendModal(true)}
         onTestEmailClick={() => setShowTestEmailModal(true)}
         onEditClick={() => onEditClick(item)}
+        projectId={projectId}
       />
       
       <SendPOEmailModal

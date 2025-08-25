@@ -112,18 +112,19 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
                   />,
                   
                   ...(expandedGroups.has(group) ? items.map((item) => (
-                    <PurchaseOrdersTableRow
-                      key={item.id}
-                      item={item}
-                      onDelete={onDeleteItem}
-                      onUpdateStatus={handleUpdateStatus}
-                      onUpdateNotes={handleUpdateNotes}
-                      isSelected={selectedItems.has(item.id)}
-                      onCheckboxChange={handleItemCheckboxChange}
-                      isDeleting={deletingItems.has(item.id)}
-                      projectAddress={projectAddress}
-                      onEditClick={handleEditOrder}
-                    />
+                     <PurchaseOrdersTableRow
+                       key={item.id}
+                       item={item}
+                       onDelete={onDeleteItem}
+                       onUpdateStatus={handleUpdateStatus}
+                       onUpdateNotes={handleUpdateNotes}
+                       isSelected={selectedItems.has(item.id)}
+                       onCheckboxChange={handleItemCheckboxChange}
+                       isDeleting={deletingItems.has(item.id)}
+                       projectAddress={projectAddress}
+                       projectId={projectId}
+                       onEditClick={handleEditOrder}
+                     />
                   )) : [])
                 ]).flat()}
               </>
