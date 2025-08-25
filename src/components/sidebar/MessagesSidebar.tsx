@@ -1,23 +1,15 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, User, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
 import { UnreadCounts } from "@/hooks/useUnreadCounts";
-import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 interface MessagesSidebarProps {
   selectedUser: CompanyUser | null;
@@ -35,7 +27,6 @@ export function MessagesSidebar({
   markConversationAsRead
 }: MessagesSidebarProps) {
   const { users, currentUserId, isLoading } = useCompanyUsers();
-  const { data: issueCounts } = useIssueCounts();
 
   // Filter and sort users alphabetically by first name
   const filteredUsers = users
@@ -45,20 +36,6 @@ export function MessagesSidebar({
       const nameB = b.first_name || b.email;
       return nameA.localeCompare(nameB);
     });
-
-  // Get user IDs for unread count tracking - removed since it's now passed as props
-  // const userIds = filteredUsers.map(user => user.id);
-  // const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
-
-  // Calculate total issue counts
-  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.normal,
-    0
-  );
-  const totalHighIssues = Object.values(issueCounts || {}).reduce(
-    (total, category) => total + category.high,
-    0
-  );
 
   const getInitials = (user: CompanyUser) => {
     if (user.first_name && user.last_name) {
@@ -146,38 +123,6 @@ export function MessagesSidebar({
               </div>
             )}
           </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
-      {/* Software Issues Section */}
-      <SidebarSeparator className="my-4 bg-gray-200 -mx-3" />
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                asChild 
-                className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-              >
-                <Link to="/issues" className="flex items-center p-3 rounded-lg w-full">
-                  <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
-                  <span className="font-medium whitespace-nowrap">Software Issues</span>
-                  <div className="flex items-center gap-1 ml-auto">
-                    {totalNormalIssues > 0 && (
-                      <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                        {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
-                      </span>
-                    )}
-                    {totalHighIssues > 0 && (
-                      <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                        {totalHighIssues > 99 ? '99+' : totalHighIssues}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
