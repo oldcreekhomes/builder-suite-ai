@@ -1,60 +1,73 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
-import { toast } from "@/hooks/use-toast";
+import { useState, useMemo, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
+// Enhanced Purchase Order interface with related data
 export interface PurchaseOrder {
   id: string;
   project_id: string;
   company_id: string;
   cost_code_id: string;
-  extra: boolean;
+  total_amount: number | null;
   status: string;
-  total_amount: number;
-  notes?: string;
-  files: any[];
+  notes: string | null;
+  files: any;
   created_at: string;
-  updated_at: string;
   created_by: string;
+  updated_at: string;
+  extra: boolean;
   companies?: {
+    id: string;
     company_name: string;
   };
   cost_codes?: {
+    id: string;
     code: string;
     name: string;
+    parent_group: string | null;
+    category: string | null;
   };
 }
 
 export const usePurchaseOrders = (projectId: string) => {
-  const { user } = useAuth();
+  const [groupedPurchaseOrders, setGroupedPurchaseOrders] = useState<Record<string, PurchaseOrder[]>>({});
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const { data: purchaseOrders, isLoading, error } = useQuery({
+  // Fetch purchase orders with related data
+  const {
+    data: purchaseOrders = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
     queryKey: ['purchase-orders', projectId],
     queryFn: async () => {
-      if (!user || !projectId) return [];
-
+      console.log('Fetching purchase orders for project:', projectId);
+      
       // Fetch purchase orders
-      const { data: poData, error: poError } = await supabase
+      const { data: pos, error: posError } = await supabase
         .from('project_purchase_orders')
         .select('*')
-        .eq('project_id', projectId);
+        .eq('project_id', projectId)
+        .order('updated_at', { ascending: false });
 
-      if (poError) {
-        console.error('Error fetching purchase orders:', poError);
-        throw poError;
+      if (posError) {
+        console.error('Error fetching purchase orders:', posError);
+        throw posError;
       }
 
-      if (!poData || poData.length === 0) {
+      if (!pos || pos.length === 0) {
         return [];
       }
 
       // Get unique company and cost code IDs
-      const companyIds = [...new Set(poData.map(po => po.company_id))];
-      const costCodeIds = [...new Set(poData.map(po => po.cost_code_id))];
+      const companyIds = [...new Set(pos.map(po => po.company_id))];
+      const costCodeIds = [...new Set(pos.map(po => po.cost_code_id))];
 
       // Fetch companies
-      const { data: companiesData, error: companiesError } = await supabase
+      const { data: companies, error: companiesError } = await supabase
         .from('companies')
         .select('id, company_name')
         .in('id', companyIds);
@@ -65,9 +78,9 @@ export const usePurchaseOrders = (projectId: string) => {
       }
 
       // Fetch cost codes
-      const { data: costCodesData, error: costCodesError } = await supabase
+      const { data: costCodes, error: costCodesError } = await supabase
         .from('cost_codes')
-        .select('id, code, name')
+        .select('id, code, name, parent_group, category')
         .in('id', costCodeIds);
 
       if (costCodesError) {
@@ -76,45 +89,122 @@ export const usePurchaseOrders = (projectId: string) => {
       }
 
       // Create lookup maps
-      const companiesMap = new Map(companiesData?.map(c => [c.id, c]) || []);
-      const costCodesMap = new Map(costCodesData?.map(cc => [cc.id, cc]) || []);
+      const companyMap = new Map(companies?.map(c => [c.id, c]) || []);
+      const costCodeMap = new Map(costCodes?.map(cc => [cc.id, cc]) || []);
 
-      // Merge data
-      const mergedData = poData.map(po => ({
+      // Merge data and return as PurchaseOrder objects
+      const enrichedPOs: PurchaseOrder[] = pos.map(po => ({
         ...po,
-        companies: companiesMap.get(po.company_id),
-        cost_codes: costCodesMap.get(po.cost_code_id)
+        companies: companyMap.get(po.company_id),
+        cost_codes: costCodeMap.get(po.cost_code_id)
       }));
 
       // Sort by cost code numerically
-      const sortedData = mergedData.sort((a, b) => {
-        const codeA = a.cost_codes?.code || '';
-        const codeB = b.cost_codes?.code || '';
-        
-        // Extract numeric part from cost code for sorting
-        const numA = parseInt(codeA.replace(/\D/g, '')) || 0;
-        const numB = parseInt(codeB.replace(/\D/g, '')) || 0;
-        
-        return numA - numB;
+      enrichedPOs.sort((a, b) => {
+        const aCode = parseInt(a.cost_codes?.code || '0');
+        const bCode = parseInt(b.cost_codes?.code || '0');
+        return aCode - bCode;
       });
 
-      return sortedData;
+      console.log('Fetched and processed purchase orders:', enrichedPOs.length);
+      return enrichedPOs;
     },
-    enabled: !!user && !!projectId,
+    enabled: !!projectId,
   });
 
-  const createPurchaseOrderMutation = useMutation({
-    mutationFn: async (newPO: {
+  // Group purchase orders by cost code parent group
+  useEffect(() => {
+    const groups: Record<string, PurchaseOrder[]> = {};
+    
+    purchaseOrders.forEach(po => {
+      const costCode = po.cost_codes;
+      const groupKey = costCode?.parent_group || costCode?.category || 'Ungrouped';
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(po);
+    });
+
+    // Sort each group by cost code
+    Object.keys(groups).forEach(groupKey => {
+      groups[groupKey].sort((a, b) => {
+        const aCode = parseInt(a.cost_codes?.code || '0');
+        const bCode = parseInt(b.cost_codes?.code || '0');
+        return aCode - bCode;
+      });
+    });
+
+    setGroupedPurchaseOrders(groups);
+  }, [purchaseOrders]);
+
+  // Delete purchase order mutation
+  const deletePurchaseOrder = useMutation({
+    mutationFn: async (poId: string) => {
+      const { error } = await supabase
+        .from('project_purchase_orders')
+        .delete()
+        .eq('id', poId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+      toast({
+        title: "Success",
+        description: "Purchase order deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting purchase order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete purchase order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete purchase order group mutation
+  const deletePurchaseOrderGroup = useMutation({
+    mutationFn: async (poIds: string[]) => {
+      const { error } = await supabase
+        .from('project_purchase_orders')
+        .delete()
+        .in('id', poIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+      toast({
+        title: "Success",
+        description: "Purchase order group deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting purchase order group:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete purchase order group",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create purchase order mutation
+  const createPurchaseOrder = useMutation({
+    mutationFn: async (purchaseOrderData: {
       project_id: string;
       company_id: string;
       cost_code_id: string;
-      extra: boolean;
+      total_amount?: number;
+      status?: string;
       notes?: string;
-      files: any[];
     }) => {
       const { data, error } = await supabase
         .from('project_purchase_orders')
-        .insert([newPO])
+        .insert([purchaseOrderData])
         .select()
         .single();
 
@@ -138,8 +228,9 @@ export const usePurchaseOrders = (projectId: string) => {
     },
   });
 
-  const updatePurchaseOrderMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<PurchaseOrder> }) => {
+  // Update purchase order mutation
+  const updatePurchaseOrder = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
         .from('project_purchase_orders')
         .update(updates)
@@ -168,12 +259,17 @@ export const usePurchaseOrders = (projectId: string) => {
   });
 
   return {
-    purchaseOrders: purchaseOrders || [],
+    purchaseOrders,
+    groupedPurchaseOrders,
     isLoading,
     error,
-    createPurchaseOrder: createPurchaseOrderMutation.mutate,
-    updatePurchaseOrder: updatePurchaseOrderMutation.mutate,
-    isCreating: createPurchaseOrderMutation.isPending,
-    isUpdating: updatePurchaseOrderMutation.isPending,
+    refetch,
+    createPurchaseOrder,
+    updatePurchaseOrder,
+    deletePurchaseOrder,
+    deletePurchaseOrderGroup,
+    isCreating: createPurchaseOrder.isPending,
+    isUpdating: updatePurchaseOrder.isPending,
+    isDeleting: deletePurchaseOrder.isPending,
   };
 };

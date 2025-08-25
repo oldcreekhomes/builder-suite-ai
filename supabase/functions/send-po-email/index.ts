@@ -24,11 +24,17 @@ const corsHeaders = {
 };
 
 interface POEmailRequest {
-  biddingCompanyId: string;
+  purchaseOrderId?: string;
+  companyId?: string;
+  biddingCompanyId?: string; // Keep for backward compatibility
   projectAddress: string;
   companyName: string;
   proposals?: string[];
   senderCompanyName?: string;
+  customMessage?: string;
+  totalAmount?: number;
+  costCode?: any;
+  testEmail?: string;
 }
 
 const generatePOEmailHTML = (data: { 
@@ -258,17 +264,50 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('📧 Processing PO email request...');
-    const { biddingCompanyId, projectAddress, companyName, proposals, senderCompanyName }: POEmailRequest = await req.json();
+    const { 
+      purchaseOrderId, 
+      companyId, 
+      biddingCompanyId, 
+      projectAddress, 
+      companyName, 
+      proposals, 
+      senderCompanyName, 
+      customMessage, 
+      totalAmount, 
+      costCode,
+      testEmail 
+    }: POEmailRequest = await req.json();
 
-    console.log('📝 Request data:', { biddingCompanyId, projectAddress, companyName, proposalsCount: proposals?.length || 0, senderCompanyName });
+    console.log('📝 Request data:', { 
+      purchaseOrderId, 
+      companyId, 
+      biddingCompanyId, 
+      projectAddress, 
+      companyName, 
+      proposalsCount: proposals?.length || 0, 
+      senderCompanyName,
+      totalAmount,
+      testEmail 
+    });
 
-    // Get the bidding company details to find the company ID and price
-    const { data: biddingCompany, error: biddingError } = await supabase
-      .from('project_bid_package_companies')
-      .select(`
-        company_id,
-        price,
-        companies!inner(
+    let notificationRecipients: any[] = [];
+    let finalCompanyName = companyName;
+    let finalProposals = proposals || [];
+    let finalPrice = totalAmount;
+
+    // Handle test email case
+    if (testEmail) {
+      notificationRecipients = [{
+        first_name: 'Test',
+        last_name: 'User',
+        email: testEmail
+      }];
+    } 
+    // Handle purchase order case
+    else if (purchaseOrderId && companyId) {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select(`
           company_name,
           company_representatives!company_representatives_company_id_fkey(
             id,
@@ -277,33 +316,64 @@ const handler = async (req: Request): Promise<Response> => {
             email,
             receive_po_notifications
           )
-        )
-      `)
-      .eq('id', biddingCompanyId)
-      .maybeSingle();
+        `)
+        .eq('id', companyId)
+        .single();
 
-    if (biddingError) {
-      console.error('❌ Error fetching bidding company:', biddingError);
-      throw new Error(`Failed to fetch bidding company: ${biddingError.message}`);
+      if (companyError) {
+        console.error('❌ Error fetching company:', companyError);
+        throw new Error(`Failed to fetch company: ${companyError.message}`);
+      }
+
+      finalCompanyName = company.company_name;
+      notificationRecipients = company.company_representatives.filter(
+        (rep: any) => rep.receive_po_notifications === true && rep.email
+      );
+    }
+    // Handle bidding company case (backward compatibility)
+    else if (biddingCompanyId) {
+      const { data: biddingCompany, error: biddingError } = await supabase
+        .from('project_bid_package_companies')
+        .select(`
+          company_id,
+          price,
+          companies!inner(
+            company_name,
+            company_representatives!company_representatives_company_id_fkey(
+              id,
+              first_name,
+              last_name,
+              email,
+              receive_po_notifications
+            )
+          )
+        `)
+        .eq('id', biddingCompanyId)
+        .maybeSingle();
+
+      if (biddingError) {
+        console.error('❌ Error fetching bidding company:', biddingError);
+        throw new Error(`Failed to fetch bidding company: ${biddingError.message}`);
+      }
+
+      if (!biddingCompany) {
+        throw new Error('Bidding company not found');
+      }
+
+      finalCompanyName = biddingCompany.companies.company_name;
+      finalPrice = biddingCompany.price;
+      notificationRecipients = biddingCompany.companies.company_representatives.filter(
+        (rep: any) => rep.receive_po_notifications === true && rep.email
+      );
     }
 
-    if (!biddingCompany) {
-      throw new Error('Bidding company not found');
-    }
-
-    console.log('🏢 Found company:', biddingCompany.companies.company_name);
-
-    // Filter representatives who want to receive PO notifications
-    const notificationRecipients = biddingCompany.companies.company_representatives.filter(
-      (rep: any) => rep.receive_po_notifications === true && rep.email
-    );
-
+    console.log('🏢 Found company:', finalCompanyName);
     console.log('📬 Notification recipients:', notificationRecipients.length);
 
     if (notificationRecipients.length === 0) {
       console.log('⚠️ No recipients have PO notifications enabled');
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           success: true, 
           message: 'No representatives have PO notifications enabled',
           emailsSent: 0 
