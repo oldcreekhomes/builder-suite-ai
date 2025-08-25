@@ -64,9 +64,9 @@ export function CostCodeGroup({
               />
               <label
                 htmlFor={costCode.id}
-                className="text-sm cursor-pointer flex-1"
+                className="text-sm cursor-pointer flex-1 ml-4"
               >
-                {costCode.code} - {costCode.name}
+                {costCode.code}: {costCode.name}
               </label>
             </div>
           ))}
