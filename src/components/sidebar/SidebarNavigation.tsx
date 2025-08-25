@@ -181,18 +181,18 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   return (
     <TooltipProvider>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-3 py-2">
+        <div className="px-3 py-1">
           <div>
             {filteredItems.map((item) => (
-              <div key={item.title} className="mb-1">
+              <div key={item.title}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <a 
                       href={item.url} 
-                      className="flex items-center space-x-3 p-3 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
+                      className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
                     >
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium flex-1">{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="flex-1">{item.title}</span>
                     </a>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -205,11 +205,11 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
           {/* Software Issues Section - Show on company dashboard and project pages */}
           {(isCompanyDashboard || (projectId && !isIssuesPage)) && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="mb-1">
-                <a href="/issues" className="flex items-center p-3 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors">
-                  <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
-                  <span className="font-medium whitespace-nowrap">Software Issues</span>
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div>
+                <a href="/issues" className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                  <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Software Issues</span>
                   <div className="flex items-center gap-1 ml-auto">
                     {totalNormalIssues > 0 && (
                       <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
