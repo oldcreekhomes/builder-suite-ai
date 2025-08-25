@@ -1047,6 +1047,51 @@ export type Database = {
           },
         ]
       }
+      project_purchase_orders: {
+        Row: {
+          company_id: string
+          cost_code_id: string
+          created_at: string
+          created_by: string
+          extra: boolean
+          files: Json | null
+          id: string
+          notes: string | null
+          project_id: string
+          status: string
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cost_code_id: string
+          created_at?: string
+          created_by?: string
+          extra?: boolean
+          files?: Json | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          status?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cost_code_id?: string
+          created_at?: string
+          created_by?: string
+          extra?: boolean
+          files?: Json | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          status?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_schedule_tasks: {
         Row: {
           confirmed: boolean | null

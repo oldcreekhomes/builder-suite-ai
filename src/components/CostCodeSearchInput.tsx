@@ -6,6 +6,7 @@ import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 interface CostCodeSearchInputProps {
   value: string;
   onChange: (value: string) => void;
+  onCostCodeSelect?: (costCode: { id: string; code: string; name: string }) => void;
   placeholder?: string;
   className?: string;
 }
@@ -13,6 +14,7 @@ interface CostCodeSearchInputProps {
 export function CostCodeSearchInput({ 
   value, 
   onChange, 
+  onCostCodeSelect,
   placeholder = "Cost Code",
   className 
 }: CostCodeSearchInputProps) {
@@ -44,11 +46,14 @@ export function CostCodeSearchInput({
     setTimeout(() => setShowResults(false), 200);
   };
 
-  const handleSelectCostCode = (costCode: { code: string; name: string }) => {
+  const handleSelectCostCode = (costCode: { id: string; code: string; name: string }) => {
     const selectedValue = `${costCode.code} - ${costCode.name}`;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
     setShowResults(false);
+    if (onCostCodeSelect) {
+      onCostCodeSelect(costCode);
+    }
   };
 
   return (
