@@ -66,15 +66,15 @@ const navigationItems = [
     enabled: true,
   },
   {
-    title: "Purchase Orders",
-    url: "/purchase-orders",
-    icon: ShoppingCart,
-    enabled: true,
-  },
-  {
     title: "Bidding",
     url: "/bidding",
     icon: FileText,
+    enabled: true,
+  },
+  {
+    title: "Purchase Orders",
+    url: "/purchase-orders",
+    icon: ShoppingCart,
     enabled: true,
   },
   {
