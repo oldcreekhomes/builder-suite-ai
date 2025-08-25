@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, User, AlertTriangle, Calculator } from "lucide-react";
+import { MessageSquare, User, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ interface MessagesSidebarProps {
   onStartChat: (user: CompanyUser) => void;
   unreadCounts: UnreadCounts;
   markConversationAsRead: (otherUserId: string) => Promise<void>;
-  showAccountingLink?: boolean;
 }
 
 export function MessagesSidebar({ 
@@ -33,8 +32,7 @@ export function MessagesSidebar({
   onUserSelect, 
   onStartChat, 
   unreadCounts, 
-  markConversationAsRead,
-  showAccountingLink = false
+  markConversationAsRead
 }: MessagesSidebarProps) {
   const { users, currentUserId, isLoading } = useCompanyUsers();
   const { data: issueCounts } = useIssueCounts();
@@ -179,21 +177,6 @@ export function MessagesSidebar({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            
-            {/* Accounting Link - only show on company dashboard */}
-            {showAccountingLink && (
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                >
-                  <Link to="/accounting" className="flex items-center p-3 rounded-lg w-full">
-                    <Calculator className="h-5 w-5 mr-3 flex-shrink-0" />
-                    <span className="font-medium whitespace-nowrap">Accounting (Alpha)</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

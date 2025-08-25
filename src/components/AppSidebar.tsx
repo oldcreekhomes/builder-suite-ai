@@ -41,7 +41,6 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
           onStartChat={onStartChat}
           unreadCounts={unreadCounts}
           markConversationAsRead={markConversationAsRead}
-          showAccountingLink={true}
         />
       ) : isAccountingPage ? (
         <AccountingSidebar />
