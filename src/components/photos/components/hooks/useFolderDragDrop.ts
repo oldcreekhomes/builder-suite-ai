@@ -4,6 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { convertHeicToJpeg, updateHeicPath } from "@/utils/heicConverter";
 
 interface UseFolderDragDropProps {
   folderPath: string;
@@ -18,14 +19,26 @@ export function useFolderDragDrop({ folderPath, projectId, onUploadSuccess }: Us
   const uploadPhoto = async (file: File, relativePath: string) => {
     if (!user) return false;
 
-    const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/photos/${fileId}_${relativePath}`;
-    
     try {
+      // Convert HEIC files to JPEG before upload
+      const processedFile = await convertHeicToJpeg(file).catch(error => {
+        toast({
+          title: "Conversion Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      });
+
+      const fileId = crypto.randomUUID();
+      // Use processed file name for the path
+      const processedRelativePath = relativePath === file.name ? processedFile.name : updateHeicPath(relativePath);
+      const fileName = `${user.id}/${projectId}/photos/${fileId}_${processedRelativePath}`;
+      
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(fileName, file);
+        .upload(fileName, processedFile);
 
       if (uploadError) throw uploadError;
 
@@ -40,7 +53,7 @@ export function useFolderDragDrop({ folderPath, projectId, onUploadSuccess }: Us
         .insert({
           project_id: projectId,
           url: publicUrl,
-          description: relativePath,
+          description: processedRelativePath,
           uploaded_by: user.id,
         });
 
