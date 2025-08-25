@@ -10,7 +10,8 @@ import {
   HelpCircle,
   Clock,
   AlertTriangle,
-  ShoppingCart
+  ShoppingCart,
+  Calculator
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -81,6 +82,12 @@ const navigationItems = [
     title: "Schedule",
     url: "/schedule",
     icon: Clock,
+    enabled: true,
+  },
+  {
+    title: "Accounting",
+    url: "/accounting",
+    icon: Calculator,
     enabled: true,
   },
 ];
