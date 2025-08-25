@@ -1,7 +1,9 @@
 
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MoreVertical, Download, Trash2, Share2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -17,6 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
+import { getThumbnailUrl } from "@/utils/thumbnailUtils";
 
 interface ProjectPhoto {
   id: string;
@@ -49,6 +52,28 @@ export function PhotoCard({
   onShare,
   onDelete
 }: PhotoCardProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Intersection observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
   const getPhotoDisplayName = (photo: ProjectPhoto) => {
     if (!photo.description) return `photo-${photo.id}`;
     
@@ -67,7 +92,7 @@ export function PhotoCard({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
+        <Card ref={cardRef} className="group overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative aspect-square">
             <div className="absolute top-2 left-2 z-10">
               <Checkbox
@@ -77,12 +102,27 @@ export function PhotoCard({
               />
             </div>
 
-            <img
-              src={photo.url}
-              alt={getPhotoDisplayName(photo)}
-              className="w-full h-full object-cover cursor-pointer"
-              onClick={() => onPhotoSelect(photo)}
-            />
+            {!isInView ? (
+              <Skeleton className="w-full h-full" />
+            ) : (
+              <>
+                {!isImageLoaded && <Skeleton className="w-full h-full absolute inset-0" />}
+                <img
+                  src={getThumbnailUrl(photo.url, 512)}
+                  alt={getPhotoDisplayName(photo)}
+                  className={`w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${
+                    isImageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  onClick={() => onPhotoSelect(photo)}
+                  onLoad={() => setIsImageLoaded(true)}
+                  onError={() => setIsImageLoaded(true)}
+                />
+              </>
+            )}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
