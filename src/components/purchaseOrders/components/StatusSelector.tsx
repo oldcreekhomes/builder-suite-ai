@@ -11,8 +11,7 @@ export function StatusSelector({ value, onChange }: StatusSelectorProps) {
     { value: 'draft', label: 'Draft' },
     { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'completed', label: 'Completed' }
+    { value: 'rejected', label: 'Rejected' }
   ];
 
   const getStatusColor = (status: string) => {
