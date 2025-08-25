@@ -1,5 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
+import { openProjectFile } from '@/utils/fileOpenUtils';
 
 interface FilesCellProps {
   files: any;
@@ -7,6 +8,12 @@ interface FilesCellProps {
 
 export function FilesCell({ files }: FilesCellProps) {
   const fileCount = files && Array.isArray(files) ? files.length : 0;
+
+  const handleFilePreview = (fileName: string) => {
+    console.log('PURCHASE ORDER FILES: Opening file', fileName);
+    // Purchase order files are stored in the project-files bucket under the purchase-orders path  
+    openProjectFile(`purchase-orders/${fileName}`, fileName);
+  };
 
   if (fileCount === 0) {
     return (
@@ -23,9 +30,14 @@ export function FilesCell({ files }: FilesCellProps) {
         const IconComponent = getFileIcon(file.name);
         const iconColorClass = getFileIconColor(file.name);
         return (
-          <span key={`${file.name}-${index}`} className={`inline-block ${iconColorClass}`}>
+          <button
+            key={`${file.name}-${index}`}
+            onClick={() => handleFilePreview(file.name)}
+            className={`inline-block ${iconColorClass} transition-colors p-1`}
+            title={file.name}
+          >
             <IconComponent className="h-4 w-4" />
-          </span>
+          </button>
         );
       })}
       {files.length > 3 && (
