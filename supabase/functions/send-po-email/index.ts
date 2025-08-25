@@ -128,21 +128,21 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                              </td>
                                                          </tr>
                                                          ` : ''}
-                                                         ${firstFile ? `
-                                                         <tr>
-                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved File:</span>
-                                                                 <span style="display: inline-block; vertical-align: top;">
-                                                                     <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${purchaseOrderId}/${firstFile.id || firstFile.name || firstFile}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
-                                                                         ${firstFile.name || firstFile.id || firstFile}
-                                                                     </a>
-                                                                     <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                         APPROVED
-                                                                     </span>
-                                                                 </span>
-                                                             </td>
-                                                         </tr>
-                                                         ` : ''}
+                                                          ${firstFile ? `
+                                                          <tr>
+                                                              <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved File:</span>
+                                                                  <span style="display: inline-block; vertical-align: top;">
+                                                                      <a href="${firstFile.url || `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${data.projectId}/${firstFile.id || firstFile.name || firstFile}`}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
+                                                                          ${firstFile.name || firstFile.id || firstFile}
+                                                                      </a>
+                                                                      <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                                          APPROVED
+                                                                      </span>
+                                                                  </span>
+                                                              </td>
+                                                          </tr>
+                                                          ` : ''}
                                                         ${proposals.length > 0 ? `
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
@@ -455,7 +455,8 @@ const handler = async (req: Request): Promise<Response> => {
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
-      files: purchaseOrderFiles
+      files: purchaseOrderFiles,
+      projectId: projectDetails?.id
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
