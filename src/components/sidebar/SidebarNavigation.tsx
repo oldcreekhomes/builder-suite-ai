@@ -149,7 +149,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? [] // No navigation items on company dashboard
+    ? dynamicNavigationItems // Show all navigation items on company dashboard in Menus tab
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage
