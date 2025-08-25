@@ -53,6 +53,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const totalAmount = data.totalAmount;
   const files = data.files || [];
   const firstFile = files.length > 0 ? files[0] : null;
+  const customMessage = data.customMessage;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -142,8 +143,16 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                                   </span>
                                                               </td>
                                                           </tr>
-                                                          ` : ''}
-                                                        ${proposals.length > 0 ? `
+                                                           ` : ''}
+                                                         ${customMessage ? `
+                                                         <tr>
+                                                             <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Message:</span>
+                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; line-height: 1.4;">${customMessage}</span>
+                                                             </td>
+                                                         </tr>
+                                                         ` : ''}
+                                                         ${proposals.length > 0 ? `
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Proposals:</span>
@@ -456,7 +465,8 @@ const handler = async (req: Request): Promise<Response> => {
       costCode: costCodeInfo,
       totalAmount,
       files: purchaseOrderFiles,
-      projectId: projectDetails?.id
+      projectId: projectDetails?.id,
+      customMessage
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
