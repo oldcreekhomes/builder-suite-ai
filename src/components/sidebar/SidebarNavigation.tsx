@@ -42,13 +42,6 @@ const navigationItems = [
     enabled: true,
   },
   {
-    title: "Messages",
-    url: "/messages",
-    icon: MessageSquare,
-    enabled: true,
-    showBadge: true,
-  },
-  {
     title: "Files",
     url: "/files",
     icon: File,
@@ -139,8 +132,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     if (!projectId) return navigationItems;
     
     return navigationItems.map(item => {
-      // Keep Company Dashboard and Messages as-is (not project-specific)
-      if (item.title === "Company Dashboard" || item.title === "Messages") {
+      // Keep Company Dashboard as-is (not project-specific)
+      if (item.title === "Company Dashboard") {
         return item;
       }
       
@@ -156,13 +149,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? dynamicNavigationItems.filter(item => item.title === "Messages")
+    ? [] // No navigation items on company dashboard
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage
         ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page
         : projectId 
-          ? dynamicNavigationItems.filter(item => item.title !== "Messages") // Exclude Messages from project pages
+          ? dynamicNavigationItems // Show all items for project pages
           : [];
 
   // Don't show navigation items if no project is selected and not on dashboard, messages, or issues
@@ -199,15 +192,10 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         asChild 
                         className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
                       >
-                        <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                          <item.icon className="h-5 w-5" />
-                          <span className="font-medium flex-1">{item.title}</span>
-                           {item.showBadge && item.title === "Messages" && (
-                            <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ml-2">
-                              {(totalUnread as number) > 99 ? '99+' : (totalUnread as number)}
-                            </span>
-                          )}
-                        </a>
+                         <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
+                           <item.icon className="h-5 w-5" />
+                           <span className="font-medium flex-1">{item.title}</span>
+                         </a>
                       </SidebarMenuButton>
                     </TooltipTrigger>
                     <TooltipContent side="right">
