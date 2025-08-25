@@ -38,8 +38,8 @@ export const usePurchaseOrders = (projectId: string) => {
         .from('project_purchase_orders')
         .select(`
           *,
-          companies!project_purchase_orders_company_id_fkey(company_name),
-          cost_codes!project_purchase_orders_cost_code_id_fkey(code, name)
+          companies(company_name),
+          cost_codes(code, name)
         `)
         .eq('project_id', projectId);
 
