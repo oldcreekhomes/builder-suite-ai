@@ -173,33 +173,34 @@ export const CreatePurchaseOrderDialog = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Company Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="company">Company *</Label>
-            <CompanySearchInput
-              value={selectedCompany?.name || ""}
-              onChange={() => {}}
-              onCompanySelect={(company) => setSelectedCompany(company)}
-              placeholder="Search for a company..."
-              className="w-full"
-            />
-          </div>
-
-          {/* Cost Code Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="cost-code">Cost Code *</Label>
-            <CostCodeSearchInput
-              value={selectedCostCode ? `${selectedCostCode.code} - ${selectedCostCode.name}` : ""}
-              onChange={(value) => {
-                // If the value is cleared, reset the selected cost code
-                if (!value) {
-                  setSelectedCostCode(null);
-                }
-              }}
-              onCostCodeSelect={(costCode) => setSelectedCostCode(costCode)}
-              placeholder="Search for a cost code..."
-              className="w-full"
-            />
+          {/* Company and Cost Code Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">Company *</Label>
+              <CompanySearchInput
+                value={selectedCompany?.name || ""}
+                onChange={() => {}}
+                onCompanySelect={(company) => setSelectedCompany(company)}
+                placeholder="Search for a company..."
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="cost-code">Cost Code *</Label>
+              <CostCodeSearchInput
+                value={selectedCostCode ? `${selectedCostCode.code} - ${selectedCostCode.name}` : ""}
+                onChange={(value) => {
+                  // If the value is cleared, reset the selected cost code
+                  if (!value) {
+                    setSelectedCostCode(null);
+                  }
+                }}
+                onCostCodeSelect={(costCode) => setSelectedCostCode(costCode)}
+                placeholder="Search for a cost code..."
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Extra and Amount */}
