@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload, X, FileText } from "lucide-react";
+import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { CompanySearchInput } from "./CompanySearchInput";
@@ -68,14 +69,23 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [editOrder, open]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
 
     setIsUploading(true);
     
     try {
-      for (const file of Array.from(files)) {
+      for (const file of files) {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: `${file.name} is larger than 10MB. Please select a smaller file.`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `purchase-orders/${projectId}/${fileName}`;
@@ -118,6 +128,28 @@ export const CreatePurchaseOrderDialog = ({
       setIsUploading(false);
     }
   };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFiles(Array.from(files));
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: uploadFiles,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/plain': ['.txt'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+    },
+    disabled: isUploading,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
 
   const removeFile = async (fileToRemove: UploadedFile) => {
     try {
@@ -305,26 +337,30 @@ export const CreatePurchaseOrderDialog = ({
           <div className="space-y-3">
             <Label>Attachments</Label>
             
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+            <div 
+              {...getRootProps()} 
+              className={`border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer ${
+                isDragActive 
+                  ? 'border-primary/50 bg-primary/5' 
+                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <input {...getInputProps()} />
               <div className="text-center">
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                  disabled={isUploading}
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {isUploading ? "Uploading..." : "Click to upload files or drag and drop"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PDF, DOC, XLS, images up to 10MB each
-                  </p>
-                </label>
+                <Upload className={`mx-auto h-8 w-8 mb-2 ${
+                  isDragActive ? 'text-primary' : 'text-muted-foreground'
+                }`} />
+                <p className="text-sm text-muted-foreground">
+                  {isUploading 
+                    ? "Uploading..." 
+                    : isDragActive 
+                      ? "Drop files here..." 
+                      : "Click to upload files or drag and drop"
+                  }
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PDF, DOC, XLS, images up to 10MB each
+                </p>
               </div>
             </div>
 
