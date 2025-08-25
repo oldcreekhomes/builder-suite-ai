@@ -148,6 +148,11 @@ const AppContent = () => {
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedule" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
           
+          {/* Project Accounting routes */}
+          <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
+          
           
           {/* Messages route - TEMPORARILY DISABLED
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
