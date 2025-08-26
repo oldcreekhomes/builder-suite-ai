@@ -1,4 +1,5 @@
 import { Calculator, Home, FileText, AlertTriangle } from "lucide-react";
+import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 const items = [
   { title: "Company Dashboard", url: "/", icon: Home },
@@ -10,6 +11,18 @@ const billsSubItems = [
 ];
 
 export function AccountingSidebar() {
+  const { data: issueCounts } = useIssueCounts();
+  
+  // Calculate total issue counts
+  const totalNormalIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.normal,
+    0
+  );
+  const totalHighIssues = Object.values(issueCounts || {}).reduce(
+    (total, category) => total + category.high,
+    0
+  );
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-3 py-1">
@@ -53,6 +66,18 @@ export function AccountingSidebar() {
             <a href="/issues" className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
               <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
               <span className="whitespace-nowrap">Software Issues</span>
+              <div className="flex items-center gap-1 ml-auto">
+                {totalNormalIssues > 0 && (
+                  <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                    {totalNormalIssues > 99 ? '99+' : totalNormalIssues}
+                  </span>
+                )}
+                {totalHighIssues > 0 && (
+                  <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                    {totalHighIssues > 99 ? '99+' : totalHighIssues}
+                  </span>
+                )}
+              </div>
             </a>
           </div>
         </div>
