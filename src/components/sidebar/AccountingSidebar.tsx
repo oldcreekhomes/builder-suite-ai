@@ -19,21 +19,18 @@ export function AccountingSidebar() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton 
-                asChild 
-                className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-              >
-                <Link to="/" className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                  <Home className="h-5 w-5" />
-                  <span className="font-medium flex-1">Company Dashboard</span>
+              <SidebarMenuButton asChild>
+                <Link to="/" className="flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  <span>Company Dashboard</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             
             <SidebarMenuItem>
-              <div className="flex items-center space-x-3 p-3 rounded-lg w-full text-gray-700 cursor-default">
-                <FileText className="h-5 w-5" />
-                <span className="font-medium flex-1">Bills</span>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span>Bills</span>
               </div>
               <SidebarMenuSub>
                 <SidebarMenuSubItem>
