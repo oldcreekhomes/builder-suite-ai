@@ -8,7 +8,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { PhotoUploadDropzone } from "@/components/photos/PhotoUploadDropzone";
 import { PhotoGrid } from "@/components/photos/PhotoGrid";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
-import { HeicRepairButton } from "@/components/photos/HeicRepairButton";
+
 import { useInfiniteProjectPhotos } from "@/hooks/useInfiniteProjectPhotos";
 import { useHeicConverter } from "@/hooks/useHeicConverter";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
@@ -90,20 +90,10 @@ export default function ProjectPhotos() {
           />
           
           <div className="flex-1 p-6 space-y-6">
-            <div className="flex gap-4 items-start">
-              <div className="flex-1">
-                <PhotoUploadDropzone
-                  projectId={projectId}
-                  onUploadSuccess={handleUploadSuccess}
-                />
-              </div>
-              <div>
-                <HeicRepairButton 
-                  projectId={projectId}
-                  onRepairComplete={handleUploadSuccess}
-                />
-              </div>
-            </div>
+            <PhotoUploadDropzone
+              projectId={projectId}
+              onUploadSuccess={handleUploadSuccess}
+            />
 
             {isLoading && photos.length === 0 ? (
               <div className="flex items-center justify-center py-12">
