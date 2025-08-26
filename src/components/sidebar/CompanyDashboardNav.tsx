@@ -1,4 +1,4 @@
-import { Home, Calculator } from "lucide-react";
+import { Home, Calculator, Bug } from "lucide-react";
 import {
   SidebarContent,
   SidebarGroup,
@@ -11,6 +11,7 @@ import {
 const items = [
   { title: "Company Dashboard", url: "/", icon: Home },
   { title: "Accounting", url: "/accounting", icon: Calculator },
+  { title: "Software Issues", url: "/issues", icon: Bug },
 ];
 
 export function CompanyDashboardNav() {
