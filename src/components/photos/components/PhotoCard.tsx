@@ -115,7 +115,7 @@ export function PhotoCard({
                     <div className="text-center p-4">
                       <div className="text-2xl mb-2">📸</div>
                       <div className="text-sm text-gray-600">HEIC Photo</div>
-                      <div className="text-xs text-blue-600 mt-1">Converting...</div>
+                      <div className="text-xs text-red-600 mt-1">Needs Conversion</div>
                     </div>
                   </div>
                 ) : (

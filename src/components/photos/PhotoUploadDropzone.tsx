@@ -33,8 +33,13 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     if (!user) return false;
 
     try {
-      // Convert HEIC files to JPEG before upload
+      // Convert HEIC files to JPEG before upload - STRICT: no upload if conversion fails
       const conversionResult: ConversionResult = await convertHeicToJpeg(file);
+      
+      // Reject upload if HEIC conversion failed
+      if (!conversionResult.wasConverted && conversionResult.error) {
+        throw new Error(conversionResult.error);
+      }
       
       const fileId = crypto.randomUUID();
       // Use processed file name for the path
@@ -66,22 +71,11 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
 
       if (dbError) throw dbError;
 
-      // Show conversion status toast
+      // Show conversion success toast
       if (conversionResult.wasConverted) {
         toast({
           title: "HEIC Converted",
           description: `Successfully converted ${file.name} to JPEG using ${conversionResult.strategy}`,
-        });
-      } else if (conversionResult.error && !conversionResult.uploadedOriginal) {
-        toast({
-          title: "Upload Error", 
-          description: conversionResult.error,
-          variant: "destructive",
-        });
-      } else if (conversionResult.uploadedOriginal) {
-        toast({
-          title: "HEIC Uploaded",
-          description: `${file.name} uploaded - converting to JPEG in background`,
         });
       }
 

@@ -39,14 +39,17 @@ export const convertHeicToJpeg = async (file: File, quality: number = 0.8): Prom
   try {
     console.log('📝 Trying heic2any library...');
     
-    const convertedBlob = await withTimeout(
+    const result = await withTimeout(
       heic2any({
         blob: file,
         toType: "image/jpeg",
         quality
-      }) as Promise<Blob>,
-      30000 // 30 second timeout
+      }),
+      45000 // 45 second timeout
     );
+
+    // Handle both Blob and Blob[] results from heic2any
+    const convertedBlob = Array.isArray(result) ? result[0] : result;
 
     if (!convertedBlob || convertedBlob.size === 0) {
       throw new Error('heic2any returned empty blob');
@@ -139,14 +142,14 @@ export const convertHeicToJpeg = async (file: File, quality: number = 0.8): Prom
     console.warn('❌ Blob URL conversion failed:', error);
   }
 
-  // Strategy 4: Upload original HEIC file (fallback)
-  console.log('⚠️ All conversion strategies failed, uploading original HEIC file');
+  // All strategies failed - return error instead of uploading original
+  console.error('❌ All HEIC conversion strategies failed');
   return { 
     file, 
     wasConverted: false,
-    uploadedOriginal: true,
+    uploadedOriginal: false,
     strategy: 'upload-original',
-    error: 'Client-side conversion failed - uploading original for server processing'
+    error: 'HEIC conversion failed. Please try a different image or convert to JPEG manually.'
   };
 };
 
