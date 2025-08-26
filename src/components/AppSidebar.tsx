@@ -42,12 +42,54 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
 
   const isAccountingPage = location.pathname === '/accounting' || location.pathname.includes('/accounting');
 
-  // For accounting pages, show the specialized accounting sidebar
+  // For accounting pages, show the specialized accounting sidebar with tabs
   if (isAccountingPage) {
     return (
-      <Sidebar className="border-r border-border">
+      <Sidebar className="border-r border-border overflow-hidden">
         <SidebarBranding />
-        <AccountingSidebar />
+        
+        {/* Tab Navigation */}
+        <div className="px-3">
+          <div className="flex border-b border-border">
+            <Button
+              variant={activeTab === 'menus' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('menus')}
+              className="flex-1 rounded-none border-0 justify-center"
+            >
+              <Menu className="h-4 w-4 mr-2" />
+              Menus
+            </Button>
+            <Button
+              variant={activeTab === 'messages' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('messages')}
+              className="flex-1 rounded-none border-0 justify-center relative"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Messages
+              {totalUnreadCount > 0 && (
+                <UnreadBadge count={totalUnreadCount} className="ml-1" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'menus' ? (
+            <AccountingSidebar />
+          ) : (
+            <MessagesSidebar
+              selectedUser={selectedUser || null}
+              onUserSelect={onUserSelect}
+              onStartChat={onStartChat}
+              unreadCounts={unreadCounts}
+              markConversationAsRead={markConversationAsRead}
+            />
+          )}
+        </div>
+        
         <SidebarUserDropdown />
       </Sidebar>
     );
