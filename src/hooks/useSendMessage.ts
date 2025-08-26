@@ -38,26 +38,15 @@ export const useSendMessage = () => {
         currentUserAvatar = currentUserData.avatar_url;
       }
 
-      // Deduplicate files before upload
-      const deduplicateFiles = (files: File[]): File[] => {
-        const fileMap = new Map<string, File>();
-        files.forEach(file => {
-          const key = `${file.name}-${file.size}-${file.lastModified}`;
-          fileMap.set(key, file);
-        });
-        return Array.from(fileMap.values());
-      };
-
       // Upload files if any
       let fileUrls: string[] = [];
       if (files.length > 0) {
-        const uniqueFiles = deduplicateFiles(files);
-        for (const file of uniqueFiles) {
+        for (const file of files) {
           // Sanitize filename by removing spaces and special characters
           const sanitizedName = file.name
             .replace(/[^a-zA-Z0-9.-]/g, '_')
             .replace(/_{2,}/g, '_');
-          const fileName = `${Date.now()}_${sanitizedName}`;
+          const fileName = `${Date.now()}_${Math.random()}_${sanitizedName}`;
           const { data, error } = await supabase.storage
             .from('chat-attachments')
             .upload(fileName, file);
@@ -70,9 +59,6 @@ export const useSendMessage = () => {
           
           fileUrls.push(publicUrl);
         }
-        
-        // Deduplicate URLs as well (in case of any edge cases)
-        fileUrls = [...new Set(fileUrls)];
       }
 
       // Add optimistic message immediately with proper avatar
