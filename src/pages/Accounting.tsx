@@ -4,31 +4,15 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, Clock, CheckCircle } from "lucide-react";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
-import { useSimpleChat } from "@/hooks/useSimpleChat";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function Accounting() {
-  const { 
-    selectedRoom, 
-    startChatWithUser 
-  } = useSimpleChat();
-
-  const handleUserSelect = (user: any) => {
-    console.log('User selected for chat:', user);
-    startChatWithUser(user);
-  };
-
-  const handleStartChat = (user: any) => {
-    console.log('Starting chat with user:', user);
-    startChatWithUser(user);
-  };
+  const { openFloatingChat } = useFloatingChat();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar 
-          selectedUser={selectedRoom}
-          onUserSelect={handleUserSelect}
-          onStartChat={handleStartChat}
+          onStartChat={openFloatingChat}
         />
         <SidebarInset className="flex-1 flex flex-col">
           <CompanyDashboardHeader title="Accounting Dashboard" />
@@ -127,7 +111,6 @@ export default function Accounting() {
           </div>
         </SidebarInset>
       </div>
-      <FloatingChatManager />
     </SidebarProvider>
   );
 }
