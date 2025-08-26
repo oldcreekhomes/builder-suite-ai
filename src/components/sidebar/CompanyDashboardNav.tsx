@@ -22,13 +22,10 @@ export function CompanyDashboardNav() {
           <SidebarMenu>
             {items.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild 
-                  className="w-full justify-start hover:bg-gray-100 text-gray-700 hover:text-black transition-colors"
-                >
-                  <a href={item.url} className="flex items-center space-x-3 p-3 rounded-lg w-full">
-                    <item.icon className="h-5 w-5" />
-                    <span className="font-medium flex-1">{item.title}</span>
+                <SidebarMenuButton asChild>
+                  <a href={item.url} className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
