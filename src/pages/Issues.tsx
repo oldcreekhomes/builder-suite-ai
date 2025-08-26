@@ -5,10 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IssuesList } from "@/components/issues/IssuesList";
 import { useBrowserTitle } from "@/hooks/useBrowserTitle";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 const Issues = () => {
   useBrowserTitle();
   const { data: issueCounts = {} } = useIssueCounts();
+  const { openFloatingChat } = useFloatingChat();
 
   const categories = [
     "Messages",
@@ -22,7 +24,7 @@ const Issues = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader title="Software Issues" />
           
