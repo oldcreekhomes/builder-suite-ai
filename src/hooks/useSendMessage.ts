@@ -78,7 +78,7 @@ export const useSendMessage = () => {
       // Add optimistic message immediately with proper avatar
       const optimisticMessage: ChatMessage = {
         id: 'temp-' + Date.now(),
-        message_text: messageText.trim(),
+        message_text: messageText.trim() || null,
         file_urls: fileUrls.length > 0 ? fileUrls : undefined,
         created_at: new Date().toISOString(),
         sender_id: currentUser.user.id,

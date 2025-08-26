@@ -148,8 +148,9 @@ export const useMessages = () => {
             return false;
           }
           
-          // Compare message text
-          const textMatches = msg.message_text === newMessage.message_text;
+          // Compare message text (normalize null and empty string)
+          const normalizeText = (text?: string | null) => text?.trim() || null;
+          const textMatches = normalizeText(msg.message_text) === normalizeText(newMessage.message_text);
           
           // Compare file URLs (both must be arrays or both null/undefined)
           const msgFiles = msg.file_urls || [];
