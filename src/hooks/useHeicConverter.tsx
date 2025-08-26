@@ -20,35 +20,35 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
     if (!isHeicFile) return false;
 
     try {
-      console.log('Converting existing HEIC photo via server:', photo.description);
+      console.log('🔄 Converting existing HEIC photo:', photo.description);
       
-      // Try server-side conversion first
-      const { data, error } = await supabase.functions.invoke('convert-heic-photo', {
-        body: { photoId: photo.id }
-      });
-
-      if (!error && data?.success) {
-        console.log('Successfully converted HEIC photo via server:', data.newDescription);
-        return true;
-      }
-
-      console.log('Server-side conversion failed, trying client-side:', error?.message);
+      // Skip server-side conversion since it's failing, go straight to client-side
+      console.log('📥 Fetching HEIC file for client-side conversion...');
       
-      // Fallback to client-side conversion
       const response = await fetch(photo.url);
-      if (!response.ok) throw new Error('Failed to fetch HEIC file');
+      if (!response.ok) throw new Error(`Failed to fetch HEIC file: ${response.statusText}`);
       
       const heicBlob = await response.blob();
+      console.log('📁 Downloaded HEIC file:', `${(heicBlob.size / 1024 / 1024).toFixed(2)}MB`);
+      
       const heicFile = new File([heicBlob], photo.description || 'photo.heic', {
         type: 'image/heic'
       });
       
+      console.log('🚀 Starting client-side HEIC conversion...');
       const conversionResult: ConversionResult = await convertHeicToJpeg(heicFile);
       
       if (!conversionResult.wasConverted) {
-        console.log('HEIC file could not be converted, keeping original');
+        console.log('⚠️ HEIC file could not be converted:', conversionResult.error);
+        toast({
+          title: "Conversion Failed",
+          description: `Could not convert ${photo.description}: ${conversionResult.error}`,
+          variant: "destructive"
+        });
         return false;
       }
+
+      console.log('✅ Client-side conversion successful, uploading converted file...');
 
       // Create new filename with .jpg extension
       const originalName = photo.description?.replace(/\.heic$/i, '') || 'photo';
@@ -61,6 +61,7 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
       const newFileName = `${user.id}/${photo.project_id}/photos/${fileId}_${newDescription}`;
       
       // Upload the converted file
+      console.log('📤 Uploading converted JPEG...');
       const { error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(newFileName, conversionResult.file);
@@ -73,6 +74,7 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
         .getPublicUrl(newFileName);
 
       // Update the database record
+      console.log('💾 Updating database record...');
       const { error: updateError } = await supabase
         .from('project_photos')
         .update({
@@ -84,15 +86,21 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
       if (updateError) throw updateError;
 
       // Delete the old HEIC file
+      console.log('🗑️ Cleaning up old HEIC file...');
       const oldFileName = photo.url.split('/').slice(-4).join('/');
       await supabase.storage
         .from('project-files')
         .remove([oldFileName]);
 
-      console.log(`Successfully converted HEIC photo using ${conversionResult.strategy}:`, newDescription);
+      console.log(`🎉 Successfully converted HEIC photo using ${conversionResult.strategy}:`, newDescription);
       return true;
     } catch (error) {
-      console.error('Failed to convert HEIC photo:', photo.description, error);
+      console.error('❌ Failed to convert HEIC photo:', photo.description, error);
+      toast({
+        title: "Conversion Error",
+        description: `Failed to convert ${photo.description}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      });
       return false;
     }
   };
