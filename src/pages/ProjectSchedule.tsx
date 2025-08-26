@@ -6,7 +6,6 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CustomGanttChart } from "@/components/schedule/CustomGanttChart";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectSchedule() {

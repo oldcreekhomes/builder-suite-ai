@@ -40,7 +40,6 @@ export default function Index() {
           </div>
         </SidebarInset>
       </div>
-      <FloatingChatManager onOpenChat={registerChatManager} />
     </SidebarProvider>
   );
 }

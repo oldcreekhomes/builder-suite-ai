@@ -10,7 +10,6 @@ import { PhotoGrid } from "@/components/photos/PhotoGrid";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { useInfiniteProjectPhotos } from "@/hooks/useInfiniteProjectPhotos";
 import { useHeicConverter } from "@/hooks/useHeicConverter";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectPhotos() {

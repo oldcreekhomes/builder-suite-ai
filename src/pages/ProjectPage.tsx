@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectPage() {
   const { projectId } = useParams();
@@ -244,7 +244,6 @@ export default function ProjectPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
-      <FloatingChatManager onOpenChat={registerChatManager} />
     </>
   );
 }

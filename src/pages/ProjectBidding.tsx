@@ -8,7 +8,6 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BiddingTable } from "@/components/bidding/BiddingTable";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBidding() {

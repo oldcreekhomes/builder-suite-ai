@@ -18,7 +18,6 @@ import {
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { formatDistanceToNow } from "date-fns";
 import { WeatherForecast } from "@/components/WeatherForecast";
@@ -185,7 +184,6 @@ export default function ProjectDashboard() {
           />
         )}
       </div>
-      <FloatingChatManager />
     </SidebarProvider>
   );
 }

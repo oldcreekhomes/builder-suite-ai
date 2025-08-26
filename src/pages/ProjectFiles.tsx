@@ -4,7 +4,6 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { SimpleFileManager } from '@/components/files/SimpleFileManager';
-import { FloatingChatManager } from '@/components/chat/FloatingChatManager';
 import { useFloatingChat } from '@/components/chat/FloatingChatManager';
 
 const ProjectFiles = () => {

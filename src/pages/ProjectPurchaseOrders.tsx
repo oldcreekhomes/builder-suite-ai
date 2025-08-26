@@ -7,7 +7,6 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PurchaseOrdersTable } from "@/components/purchaseOrders/PurchaseOrdersTable";
 import { FileText, Clock, CheckCircle, DollarSign } from "lucide-react";
-import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 export default function ProjectPurchaseOrders() {
   const {
