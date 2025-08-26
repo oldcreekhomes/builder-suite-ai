@@ -1,4 +1,5 @@
-import { Home, Calculator, Bug } from "lucide-react";
+import { Home, Calculator, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   SidebarContent,
   SidebarGroup,
@@ -11,7 +12,7 @@ import {
 const items = [
   { title: "Company Dashboard", url: "/", icon: Home },
   { title: "Accounting", url: "/accounting", icon: Calculator },
-  { title: "Software Issues", url: "/issues", icon: Bug },
+  { title: "Software Issues", url: "/issues", icon: AlertTriangle },
 ];
 
 export function CompanyDashboardNav() {
@@ -23,10 +24,10 @@ export function CompanyDashboardNav() {
             {items.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url} className="flex items-center gap-2">
+                  <Link to={item.url} className="flex items-center gap-2">
                     <item.icon className="h-4 w-4" />
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
