@@ -184,7 +184,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                   )}
 
                   {/* File attachments */}
-                  {message.file_urls && message.file_urls.filter((url, index, array) => array.indexOf(url) === index).map((url, index) => 
+                  {message.file_urls && [...new Set(message.file_urls)].map((url, index) => 
                     renderFileAttachment(url, index, isOwn)
                   )}
                 </div>
