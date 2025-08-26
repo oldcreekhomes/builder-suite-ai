@@ -8,9 +8,12 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BiddingTable } from "@/components/bidding/BiddingTable";
+import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBidding() {
   const { projectId } = useParams();
+  const { openFloatingChat } = useFloatingChat();
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -41,7 +44,7 @@ export default function ProjectBidding() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title="Project Bidding" 

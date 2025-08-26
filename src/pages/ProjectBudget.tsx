@@ -7,9 +7,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { BudgetTable } from "@/components/budget/BudgetTable";
+import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBudget() {
   const { projectId } = useParams();
+  const { openFloatingChat } = useFloatingChat();
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -40,7 +43,7 @@ export default function ProjectBudget() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title="Project Budget" 

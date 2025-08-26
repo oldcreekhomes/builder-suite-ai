@@ -7,12 +7,15 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PurchaseOrdersTable } from "@/components/purchaseOrders/PurchaseOrdersTable";
 import { FileText, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 export default function ProjectPurchaseOrders() {
   const {
     projectId
   } = useParams<{
     projectId: string;
   }>();
+  const { openFloatingChat } = useFloatingChat();
   const {
     data: project
   } = useProject(projectId!);
@@ -37,7 +40,7 @@ export default function ProjectPurchaseOrders() {
   };
   return <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/40">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <div className="flex flex-col min-h-screen">
             <DashboardHeader title={`${project.name} - Purchase Orders`} />
