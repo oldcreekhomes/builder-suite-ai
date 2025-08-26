@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { FileOperationsContextMenu } from "@/components/files/FileOperationsContextMenu";
 import { NewFolderModal } from "@/components/files/NewFolderModal";
-import { convertHeicToJpeg, updateHeicPath } from "@/utils/heicConverter";
+import { convertHeicToJpeg, updateHeicPath, ConversionResult } from "@/utils/heicConverter";
 
 interface PhotoUploadDropzoneProps {
   projectId: string;
@@ -34,24 +34,18 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
 
     try {
       // Convert HEIC files to JPEG before upload
-      const processedFile = await convertHeicToJpeg(file).catch(error => {
-        toast({
-          title: "Conversion Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        throw error;
-      });
+      const conversionResult: ConversionResult = await convertHeicToJpeg(file);
       
       const fileId = crypto.randomUUID();
       // Use processed file name for the path
-      const processedRelativePath = relativePath === file.name ? processedFile.name : updateHeicPath(relativePath);
+      const processedRelativePath = relativePath === file.name ? conversionResult.file.name : 
+        (conversionResult.wasConverted ? updateHeicPath(relativePath) : relativePath);
       const fileName = `${user.id}/${projectId}/photos/${fileId}_${processedRelativePath}`;
       
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(fileName, processedFile);
+        .upload(fileName, conversionResult.file);
 
       if (uploadError) throw uploadError;
 
@@ -71,6 +65,20 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
         });
 
       if (dbError) throw dbError;
+
+      // Show conversion status toast
+      if (conversionResult.wasConverted) {
+        toast({
+          title: "HEIC Converted",
+          description: `Successfully converted ${file.name} to JPEG using ${conversionResult.strategy}`,
+        });
+      } else if (conversionResult.error) {
+        toast({
+          title: "HEIC Upload",
+          description: conversionResult.error,
+          variant: "destructive",
+        });
+      }
 
       return true;
     } catch (error) {

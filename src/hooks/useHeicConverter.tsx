@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
-import heic2any from "heic2any";
+import { convertHeicToJpeg, ConversionResult } from "@/utils/heicConverter";
 import { ProjectPhoto } from "./useProjectPhotos";
 
 export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) => {
@@ -27,13 +27,17 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
       if (!response.ok) throw new Error('Failed to fetch HEIC file');
       
       const heicBlob = await response.blob();
+      const heicFile = new File([heicBlob], photo.description || 'photo.heic', {
+        type: 'image/heic'
+      });
       
-      // Convert HEIC to JPEG
-      const convertedBlob = await heic2any({
-        blob: heicBlob,
-        toType: "image/jpeg",
-        quality: 0.8
-      }) as Blob;
+      // Use the enhanced conversion function
+      const conversionResult: ConversionResult = await convertHeicToJpeg(heicFile);
+      
+      if (!conversionResult.wasConverted) {
+        console.log('HEIC file could not be converted, keeping original');
+        return false;
+      }
 
       // Create new filename with .jpg extension
       const originalName = photo.description?.replace(/\.heic$/i, '') || 'photo';
@@ -48,7 +52,7 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
       // Upload the converted file
       const { error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(newFileName, convertedBlob);
+        .upload(newFileName, conversionResult.file);
 
       if (uploadError) throw uploadError;
 
@@ -74,7 +78,7 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
         .from('project-files')
         .remove([oldFileName]);
 
-      console.log('Successfully converted HEIC photo:', newDescription);
+      console.log(`Successfully converted HEIC photo using ${conversionResult.strategy}:`, newDescription);
       return true;
     } catch (error) {
       console.error('Failed to convert HEIC photo:', photo.description, error);
