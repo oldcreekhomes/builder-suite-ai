@@ -38,10 +38,29 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
     }
   }, [messageInput]);
 
+  // Deduplicate files based on name, size, and lastModified
+  const deduplicateFiles = (existingFiles: File[], newFiles: File[]): File[] => {
+    const fileMap = new Map<string, File>();
+    
+    // Add existing files to map
+    existingFiles.forEach(file => {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      fileMap.set(key, file);
+    });
+    
+    // Add new files to map (will overwrite duplicates)
+    newFiles.forEach(file => {
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      fileMap.set(key, file);
+    });
+    
+    return Array.from(fileMap.values());
+  };
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setSelectedFiles(prev => [...prev, ...files]);
+    setSelectedFiles(prev => deduplicateFiles(prev, files));
   };
 
   // Send a message
@@ -80,7 +99,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      setSelectedFiles(prev => [...prev, ...files]);
+      setSelectedFiles(prev => deduplicateFiles(prev, files));
     }
   };
 
