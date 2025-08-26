@@ -35,14 +35,22 @@ export default function ProjectPhotos() {
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (isLoading || isFetchingNextPage || !hasNextPage) return;
     
-    const observer = new IntersectionObserver((entries) => {
+    let observer: IntersectionObserver;
+    
+    const cleanup = () => {
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+    
+    observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         fetchNextPage();
       }
     }, { threshold: 0.1 });
     
     if (node) observer.observe(node);
-    return () => observer.disconnect();
+    return cleanup;
   }, [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   const handlePhotoSelect = (photo: any) => {

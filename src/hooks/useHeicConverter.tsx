@@ -20,9 +20,21 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
     if (!isHeicFile) return false;
 
     try {
-      console.log('Converting existing HEIC photo:', photo.description);
+      console.log('Converting existing HEIC photo via server:', photo.description);
       
-      // Fetch the HEIC file from storage
+      // Try server-side conversion first
+      const { data, error } = await supabase.functions.invoke('convert-heic-photo', {
+        body: { photoId: photo.id }
+      });
+
+      if (!error && data?.success) {
+        console.log('Successfully converted HEIC photo via server:', data.newDescription);
+        return true;
+      }
+
+      console.log('Server-side conversion failed, trying client-side:', error?.message);
+      
+      // Fallback to client-side conversion
       const response = await fetch(photo.url);
       if (!response.ok) throw new Error('Failed to fetch HEIC file');
       
@@ -31,7 +43,6 @@ export const useHeicConverter = (photos: ProjectPhoto[], onSuccess: () => void) 
         type: 'image/heic'
       });
       
-      // Use the enhanced conversion function
       const conversionResult: ConversionResult = await convertHeicToJpeg(heicFile);
       
       if (!conversionResult.wasConverted) {

@@ -3,6 +3,7 @@ import heic2any from "heic2any";
 export interface ConversionResult {
   file: File;
   wasConverted: boolean;
+  uploadedOriginal?: boolean;
   strategy?: 'heic2any' | 'canvas' | 'upload-original';
   error?: string;
 }
@@ -81,9 +82,10 @@ export const convertHeicToJpeg = async (file: File, quality: number = 0.8): Prom
   console.log('All conversion strategies failed, uploading original HEIC file');
   return { 
     file, 
-    wasConverted: false, 
+    wasConverted: false,
+    uploadedOriginal: true,
     strategy: 'upload-original',
-    error: 'Conversion failed, uploaded original HEIC file'
+    error: 'Client-side conversion failed - uploading original for server processing'
   };
 };
 

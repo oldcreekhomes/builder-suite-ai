@@ -53,17 +53,22 @@ export function useFolderDragDrop({ folderPath, projectId, onUploadSuccess }: Us
 
       if (dbError) throw dbError;
 
-      // Show conversion status toast if converted
+      // Show conversion status toast
       if (conversionResult.wasConverted) {
         toast({
           title: "HEIC Converted",
           description: `Converted ${file.name} to JPEG using ${conversionResult.strategy}`,
         });
-      } else if (conversionResult.error) {
+      } else if (conversionResult.error && !conversionResult.uploadedOriginal) {
         toast({
-          title: "HEIC Upload",
+          title: "Upload Error",
           description: conversionResult.error,
           variant: "destructive",
+        });
+      } else if (conversionResult.uploadedOriginal) {
+        toast({
+          title: "HEIC Uploaded",
+          description: `${file.name} uploaded - converting to JPEG in background`,
         });
       }
 

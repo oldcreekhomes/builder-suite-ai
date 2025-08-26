@@ -107,20 +107,33 @@ export function PhotoCard({
             ) : (
               <>
                 {!isImageLoaded && <Skeleton className="w-full h-full absolute inset-0" />}
-                <img
-                  src={getThumbnailUrl(photo.url, 512)}
-                  alt={getPhotoDisplayName(photo)}
-                  className={`w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${
-                    isImageLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                  onClick={() => onPhotoSelect(photo)}
-                  onLoad={() => setIsImageLoaded(true)}
-                  onError={() => setIsImageLoaded(true)}
-                />
+                {photo.description?.toLowerCase().endsWith('.heic') ? (
+                  <div 
+                    className="w-full h-full flex items-center justify-center bg-gray-100 cursor-pointer"
+                    onClick={() => onPhotoSelect(photo)}
+                  >
+                    <div className="text-center p-4">
+                      <div className="text-2xl mb-2">📸</div>
+                      <div className="text-sm text-gray-600">HEIC Photo</div>
+                      <div className="text-xs text-blue-600 mt-1">Converting...</div>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={getThumbnailUrl(photo.url, 512)}
+                    alt={getPhotoDisplayName(photo)}
+                    className={`w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${
+                      isImageLoaded ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                    onClick={() => onPhotoSelect(photo)}
+                    onLoad={() => setIsImageLoaded(true)}
+                    onError={() => setIsImageLoaded(true)}
+                  />
+                )}
               </>
             )}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

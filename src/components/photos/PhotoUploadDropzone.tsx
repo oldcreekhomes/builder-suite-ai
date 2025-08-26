@@ -72,11 +72,16 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
           title: "HEIC Converted",
           description: `Successfully converted ${file.name} to JPEG using ${conversionResult.strategy}`,
         });
-      } else if (conversionResult.error) {
+      } else if (conversionResult.error && !conversionResult.uploadedOriginal) {
         toast({
-          title: "HEIC Upload",
+          title: "Upload Error", 
           description: conversionResult.error,
           variant: "destructive",
+        });
+      } else if (conversionResult.uploadedOriginal) {
+        toast({
+          title: "HEIC Uploaded",
+          description: `${file.name} uploaded - converting to JPEG in background`,
         });
       }
 
