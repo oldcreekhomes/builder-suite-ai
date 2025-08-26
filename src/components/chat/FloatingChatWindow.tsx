@@ -69,7 +69,7 @@ export function FloatingChatWindow({
   if (isMinimized) {
     return (
       <Card 
-        className="fixed bottom-4 w-64 h-12 shadow-lg border bg-background cursor-pointer hover:shadow-xl transition-shadow"
+        className="fixed bottom-4 w-64 h-12 shadow-lg border bg-background cursor-pointer hover:shadow-xl transition-shadow z-[9999]"
         style={{ right: `${position.right}px` }}
         onClick={onMinimize}
       >
@@ -93,7 +93,7 @@ export function FloatingChatWindow({
 
   return (
     <Card 
-      className="fixed bottom-4 h-[500px] shadow-lg border bg-background flex flex-col"
+      className="fixed bottom-4 h-[500px] shadow-lg border bg-background flex flex-col z-[9999]"
       style={{ right: `${position.right}px`, width: '423px' }}
     >
       {/* Header */}
