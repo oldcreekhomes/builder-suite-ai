@@ -93,12 +93,12 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
           }
         );
 
-        channelRef.current = channel;
-        
-        channel.subscribe((status) => {
+        // Subscribe first, then store the reference
+        await channel.subscribe((status) => {
           console.log('🔄 usePOStatus: Subscription status:', status, 'for channel:', channelName);
           if (status === 'SUBSCRIBED') {
             isSubscribingRef.current = false;
+            channelRef.current = channel; // Only store reference after successful subscription
           } else if (status === 'CHANNEL_ERROR') {
             console.error('🔄 usePOStatus: Channel error for:', channelName);
             isSubscribingRef.current = false;

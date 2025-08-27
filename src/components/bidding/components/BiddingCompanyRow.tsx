@@ -136,7 +136,7 @@ export function BiddingCompanyRow({
           )}
           {!isReadOnly && (
             <DeleteButton
-              onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.company_id)}
+              onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.id)}
               title="Remove Company"
               description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
               size="sm"

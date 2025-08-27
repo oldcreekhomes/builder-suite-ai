@@ -307,8 +307,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     deleteAllProposalsMutation.mutate(companyId);
   };
 
-  const deleteCompany = (biddingItemId: string, companyId: string) => {
-    deleteCompanyMutation.mutate(companyId);
+  const deleteCompany = (biddingItemId: string, bidId: string) => {
+    deleteCompanyMutation.mutate(bidId);
   };
 
   return {
