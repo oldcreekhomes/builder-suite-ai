@@ -22,40 +22,55 @@ export function openFileViaRedirect(bucket: string, path: string, fileName?: str
 }
 
 /**
- * Helper functions for different file types - all use openFileViaRedirect internally
+ * Direct public URL opening for project-files bucket (fast and reliable)
+ */
+export function openProjectFilePublic(filePath: string, fileName?: string) {
+  console.log('openProjectFilePublic called with:', { filePath, fileName });
+  
+  // Build direct public URL
+  const publicUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${encodeURI(filePath)}`;
+  
+  console.log('Opening public URL:', publicUrl);
+  window.open(publicUrl, '_blank');
+}
+
+/**
+ * Helper functions for different file types - standardized approach
  */
 export function openProjectFile(filePath: string, fileName?: string) {
-  openFileViaRedirect('project-files', filePath, fileName);
+  openProjectFilePublic(filePath, fileName);
 }
 
 export function openIssueFile(filePath: string, fileName?: string) {
-  // Use redirect approach for issue-files bucket (same as other file types)
+  // Use redirect approach for issue-files bucket (private)
   openFileViaRedirectNewTab('issue-files', filePath, fileName);
 }
 
 export function openProposalFile(fileName: string) {
   console.log('openProposalFile called with:', fileName);
-  // Use redirect approach for project-files bucket (same as project files)
-  openFileViaRedirectNewTab('project-files', `proposals/${fileName}`, fileName);
+  // Use direct public URL for project-files bucket
+  openProjectFilePublic(`proposals/${fileName}`, fileName);
 }
 
 export function openSpecificationFile(filePath: string, fileName?: string) {
   console.log('openSpecificationFile called with:', { filePath, fileName });
   
-  // Normalize the path - remove any "project-files/" prefix and ensure exactly one "specifications/" prefix
+  // Normalize the path - remove any prefixes and ensure proper specifications path
   let normalizedPath = filePath;
   if (normalizedPath.startsWith('project-files/specifications/')) {
-    normalizedPath = normalizedPath.replace('project-files/specifications/', 'specifications/');
+    normalizedPath = normalizedPath.replace('project-files/specifications/', '');
   } else if (normalizedPath.startsWith('project-files/')) {
     normalizedPath = normalizedPath.replace('project-files/', '');
-  }
-  if (!normalizedPath.startsWith('specifications/')) {
-    normalizedPath = `specifications/${normalizedPath}`;
+  } else if (normalizedPath.startsWith('specifications/')) {
+    normalizedPath = normalizedPath.replace('specifications/', '');
   }
   
-  console.log('Normalized specification path:', normalizedPath);
-  // Use redirect approach for project-files bucket (same as project files)
-  openFileViaRedirectNewTab('project-files', normalizedPath, fileName);
+  // Build final path with specifications prefix
+  const finalPath = `specifications/${normalizedPath}`;
+  
+  console.log('Opening specification file:', { originalPath: filePath, normalizedPath, finalPath });
+  // Use direct public URL for fast access
+  openProjectFilePublic(finalPath, fileName);
 }
 
 /**

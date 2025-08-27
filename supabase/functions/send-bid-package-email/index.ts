@@ -93,10 +93,20 @@ const generateFileDownloadLinks = (files: string[]) => {
     // Extract filename for display
     const fileName = file.split('/').pop() || file;
     
-    // Bid package files are stored in specifications subfolder
-    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURIComponent(file)}`;
+    // Normalize path: remove any prefixes and ensure proper specifications path
+    let normalizedPath = file;
+    if (normalizedPath.startsWith('project-files/specifications/')) {
+      normalizedPath = normalizedPath.replace('project-files/specifications/', '');
+    } else if (normalizedPath.startsWith('project-files/')) {
+      normalizedPath = normalizedPath.replace('project-files/', '');
+    } else if (normalizedPath.startsWith('specifications/')) {
+      normalizedPath = normalizedPath.replace('specifications/', '');
+    }
     
-    console.log('🔗 Generating file link:', { originalFile: file, fileName, downloadUrl });
+    // Build proper public URL with correct encoding
+    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURI(normalizedPath)}`;
+    
+    console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName, downloadUrl });
     
     return `<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
   }).join(' ');

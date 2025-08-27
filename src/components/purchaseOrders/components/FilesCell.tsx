@@ -1,6 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { openProjectFileDirectly } from '@/utils/fileOpenUtils';
+import { openProjectFile } from '@/utils/fileOpenUtils';
 
 interface FilesCellProps {
   files: any;
@@ -16,7 +16,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
     const fileName = file.name || file.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
-    openProjectFileDirectly(filePath, fileName);
+    openProjectFile(filePath, fileName);
   };
 
   if (fileCount === 0) {
