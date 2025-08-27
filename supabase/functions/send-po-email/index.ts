@@ -56,6 +56,27 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const customMessage = data.customMessage;
   const contractFiles = data.contractFiles || [];
 
+  // Helper function to extract simple filename from technical filename
+  const getSimpleFilename = (filename: string) => {
+    if (!filename) return 'file.pdf';
+    
+    // Extract the extension
+    const parts = filename.split('.');
+    const extension = parts.length > 1 ? parts[parts.length - 1] : 'pdf';
+    
+    // Check if filename contains typical generated patterns (UUIDs, timestamps, etc.)
+    const hasGeneratedPattern = /^[a-f0-9\-]+_[a-f0-9\-]+_\d+_[a-z0-9]+\./i.test(filename) || 
+                              /\d{13,}_[a-z0-9]+\./i.test(filename);
+    
+    if (hasGeneratedPattern) {
+      // Return generic filename based on context
+      return `bid.${extension}`;
+    }
+    
+    // If it's already a simple filename, return as is
+    return filename;
+  };
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,9 +149,9 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contract:</span>
                                                                  <span style="display: inline-block; vertical-align: top;">
                                                                      ${contractFiles.map(file => `
-                                                                         <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
-                                                                             ${file.name}
-                                                                         </a>
+                                                                          <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
+                                                                              ${getSimpleFilename(file.name)}
+                                                                          </a>
                                                                          <span style="background-color: #3B82F6; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
                                                                              CONTRACT
                                                                          </span><br>
@@ -152,9 +173,9 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                               <td style="margin: 0; padding: 0 0 8px 0;">
                                                                   <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved File:</span>
                                                                   <span style="display: inline-block; vertical-align: top;">
-                                                                      <a href="${firstFile.url || `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${data.projectId}/${firstFile.id || firstFile.name || firstFile}`}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
-                                                                          ${firstFile.name || firstFile.id || firstFile}
-                                                                      </a>
+                                                                       <a href="${firstFile.url || `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${data.projectId}/${firstFile.id || firstFile.name || firstFile}`}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
+                                                                           ${getSimpleFilename(firstFile.name || firstFile.id || firstFile)}
+                                                                       </a>
                                                                       <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
                                                                           APPROVED
                                                                       </span>
