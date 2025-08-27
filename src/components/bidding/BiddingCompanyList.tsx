@@ -29,6 +29,8 @@ interface BiddingCompanyListProps {
   onSendEmail?: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
   projectAddress?: string;
+  projectId: string;
+  costCodeId: string;
 }
 
 export function BiddingCompanyList({ 
@@ -41,7 +43,9 @@ export function BiddingCompanyList({
   onDeleteCompany,
   onSendEmail,
   isReadOnly = false,
-  projectAddress
+  projectAddress,
+  projectId,
+  costCodeId
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
 
@@ -131,6 +135,8 @@ export function BiddingCompanyList({
           isReadOnly={isReadOnly}
           bidPackageId={biddingItemId}
           projectAddress={projectAddress || ''}
+          projectId={projectId}
+          costCodeId={costCodeId}
         />
       ))}
     </>

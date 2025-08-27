@@ -101,6 +101,8 @@ export function BiddingTableRow({
           onSendEmail={handleSendEmailToCompany}
           isReadOnly={isCompanyReadOnly}
           projectAddress={projectAddress}
+          projectId={item.project_id}
+          costCodeId={item.cost_code_id}
         />
       )}
       

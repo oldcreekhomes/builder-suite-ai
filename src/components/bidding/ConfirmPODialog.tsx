@@ -29,6 +29,8 @@ interface ConfirmPODialogProps {
   onConfirm: () => void;
   bidPackageId: string;
   projectAddress: string;
+  projectId: string;
+  costCodeId: string;
 }
 
 export function ConfirmPODialog({
@@ -37,28 +39,29 @@ export function ConfirmPODialog({
   biddingCompany,
   onConfirm,
   bidPackageId,
-  projectAddress
+  projectAddress,
+  projectId,
+  costCodeId
 }: ConfirmPODialogProps) {
-  const { sendPOAndUpdateStatus, isLoading } = usePOMutations('project-id');
+  const { createPOSendEmailAndUpdateStatus, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
 
     try {
-      await sendPOAndUpdateStatus.mutateAsync({
-        biddingCompanyId: biddingCompany.id,
-        bidPackageId,
-        projectAddress,
-        companyName: biddingCompany.companies.company_name,
-        proposals: biddingCompany.proposals || [],
-        senderCompanyName: profile?.company_name
+      await createPOSendEmailAndUpdateStatus.mutateAsync({
+        companyId: biddingCompany.company_id,
+        costCodeId: costCodeId,
+        totalAmount: biddingCompany.price || 0,
+        biddingCompany: biddingCompany,
+        bidPackageId: bidPackageId
       });
       
       onConfirm();
       onClose();
     } catch (error) {
-      console.error('Error sending PO:', error);
+      console.error('Error creating PO and sending email:', error);
       // Error is already handled in the mutation
     }
   };

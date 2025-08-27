@@ -37,6 +37,8 @@ interface BiddingCompanyRowProps {
   isReadOnly?: boolean;
   bidPackageId: string;
   projectAddress: string;
+  projectId: string;
+  costCodeId: string;
 }
 
 export function BiddingCompanyRow({
@@ -52,7 +54,9 @@ export function BiddingCompanyRow({
   onSendEmail,
   isReadOnly = false,
   bidPackageId,
-  projectAddress
+  projectAddress,
+  projectId,
+  costCodeId
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
 
@@ -150,6 +154,8 @@ export function BiddingCompanyRow({
         onConfirm={handleSendPO}
         bidPackageId={bidPackageId}
         projectAddress={projectAddress}
+        projectId={projectId}
+        costCodeId={costCodeId}
       />
     </TableRow>
   );

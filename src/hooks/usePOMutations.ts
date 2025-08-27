@@ -6,52 +6,73 @@ export const usePOMutations = (projectId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Send PO email mutation
-  const sendPOEmail = useMutation({
+  // Create Purchase Order and send email mutation
+  const createPOAndSendEmail = useMutation({
     mutationFn: async ({ 
-      biddingCompanyId, 
-      projectAddress, 
-      companyName, 
-      proposals,
-      senderCompanyName
+      companyId,
+      costCodeId,
+      totalAmount,
+      biddingCompany
     }: { 
-      biddingCompanyId: string; 
-      projectAddress: string; 
-      companyName: string; 
-      proposals?: string[];
-      senderCompanyName?: string;
+      companyId: string;
+      costCodeId: string;
+      totalAmount?: number;
+      biddingCompany: any;
     }) => {
-      console.log('Sending PO email:', { biddingCompanyId, projectAddress, companyName, proposals });
+      console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount });
       
-      const { data, error } = await supabase.functions.invoke('send-po-email', {
+      // Step 1: Create the Purchase Order
+      const { data: purchaseOrder, error: createError } = await supabase
+        .from('project_purchase_orders')
+        .insert([{
+          project_id: projectId,
+          company_id: companyId,
+          cost_code_id: costCodeId,
+          total_amount: totalAmount || 0,
+          status: 'draft',
+          notes: `PO created from bid package for ${biddingCompany.companies.company_name}`
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating purchase order:', createError);
+        throw createError;
+      }
+
+      console.log('Purchase order created:', purchaseOrder);
+
+      // Step 2: Send the PO email using the Purchase Order ID
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
         body: {
-          biddingCompanyId,
-          projectAddress,
-          companyName,
-          proposals,
-          senderCompanyName
+          purchaseOrderId: purchaseOrder.id,
+          companyId: companyId
         }
       });
 
-      if (error) {
-        console.error('Error sending PO email:', error);
-        throw error;
+      if (emailError) {
+        console.error('Error sending PO email:', emailError);
+        throw emailError;
       }
 
-      return data;
+      return { purchaseOrder, emailData };
     },
     onSuccess: (data) => {
-      console.log('PO email sent successfully:', data);
+      console.log('PO created and email sent successfully:', data);
+      // Invalidate both purchase orders and bidding queries
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      
       toast({
         title: "PO Email Sent",
-        description: data.message || `PO notification sent to ${data.emailsSent} recipients`,
+        description: data.emailData.message || `PO notification sent to ${data.emailData.emailsSent} recipients`,
       });
     },
     onError: (error: any) => {
-      console.error('Failed to send PO email:', error);
+      console.error('Failed to create PO and send email:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to send PO email",
+        description: error.message || "Failed to create PO and send email",
         variant: "destructive",
       });
     },
@@ -94,39 +115,36 @@ export const usePOMutations = (projectId: string) => {
     },
   });
 
-  // Combined mutation to send PO and update status
-  const sendPOAndUpdateStatus = useMutation({
+  // Combined mutation to create PO, send email, and update bid package status
+  const createPOSendEmailAndUpdateStatus = useMutation({
     mutationFn: async ({ 
-      biddingCompanyId, 
-      bidPackageId,
-      projectAddress, 
-      companyName, 
-      proposals,
-      senderCompanyName
+      companyId,
+      costCodeId,
+      totalAmount,
+      biddingCompany,
+      bidPackageId
     }: { 
-      biddingCompanyId: string; 
+      companyId: string;
+      costCodeId: string;
+      totalAmount?: number;
+      biddingCompany: any;
       bidPackageId: string;
-      projectAddress: string; 
-      companyName: string; 
-      proposals?: string[];
-      senderCompanyName?: string;
     }) => {
-      // First send the PO email
-      const emailData = await sendPOEmail.mutateAsync({
-        biddingCompanyId,
-        projectAddress,
-        companyName,
-        proposals,
-        senderCompanyName
+      // First create PO and send email
+      const result = await createPOAndSendEmail.mutateAsync({
+        companyId,
+        costCodeId,
+        totalAmount,
+        biddingCompany
       });
 
-      // Then update the bid package status
+      // Then update the bid package status to closed
       await updateBidPackageStatus.mutateAsync({ bidPackageId });
 
-      return { emailData };
+      return result;
     },
     onError: (error: any) => {
-      console.error('Failed to send PO and update status:', error);
+      console.error('Failed to create PO, send email, and update status:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to process PO",
@@ -136,9 +154,9 @@ export const usePOMutations = (projectId: string) => {
   });
 
   return {
-    sendPOEmail,
+    createPOAndSendEmail,
     updateBidPackageStatus,
-    sendPOAndUpdateStatus,
-    isLoading: sendPOEmail.isPending || updateBidPackageStatus.isPending || sendPOAndUpdateStatus.isPending,
+    createPOSendEmailAndUpdateStatus,
+    isLoading: createPOAndSendEmail.isPending || updateBidPackageStatus.isPending || createPOSendEmailAndUpdateStatus.isPending,
   };
 };
