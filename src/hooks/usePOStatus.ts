@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -8,6 +8,8 @@ export interface POStatus {
 }
 
 export const usePOStatus = (projectId: string, costCodeId: string) => {
+  const channelRef = useRef<any>(null);
+
   // Query to get PO status for all companies in this cost code
   const { data: poStatuses = [], isLoading } = useQuery({
     queryKey: ['po-status', projectId, costCodeId],
@@ -35,8 +37,17 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
   useEffect(() => {
     if (!projectId || !costCodeId) return;
 
-    const channel = supabase
-      .channel('po-status-updates')
+    // Clean up any existing channel first
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Create unique channel name to avoid conflicts
+    const channelName = `po-status-${projectId}-${costCodeId}-${Date.now()}`;
+    
+    channelRef.current = supabase
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -53,7 +64,10 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [projectId, costCodeId]);
 
