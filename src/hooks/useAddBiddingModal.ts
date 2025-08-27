@@ -114,11 +114,14 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
       // Create the project bidding items with specifications data
       const biddingItems = costCodeIds.map(costCodeId => {
         const specs = specsMap.get(costCodeId);
+        const costCode = costCodes.find(cc => cc.id === costCodeId);
+        const bidPackageName = costCode ? `${costCode.code} - ${costCode.name}` : `Bid Package for ${costCodeId}`;
+        
         return {
           project_id: projectId,
           cost_code_id: costCodeId,
           status: 'draft',
-          name: '', // Add required name field
+          name: bidPackageName,
           specifications: specs?.description || null,
           files: specs?.files || []
         };
