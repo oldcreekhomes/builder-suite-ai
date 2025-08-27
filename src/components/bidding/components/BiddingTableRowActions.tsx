@@ -48,17 +48,17 @@ export function BiddingTableRowActions({
                 <TestTube className="h-4 w-4 text-blue-600" />
               </Button>
             )}
-            <DeleteButton
-              onDelete={() => onDelete(item.id)}
-              title="Delete Bidding Item"
-              description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-              size="sm"
-              variant="ghost"
-              isLoading={isDeleting}
-              showIcon={true}
-            />
           </>
         )}
+        <DeleteButton
+          onDelete={() => onDelete(item.id)}
+          title="Delete Bidding Item"
+          description={`Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+          size="sm"
+          variant="ghost"
+          isLoading={isDeleting}
+          showIcon={true}
+        />
       </div>
     </TableCell>
   );
