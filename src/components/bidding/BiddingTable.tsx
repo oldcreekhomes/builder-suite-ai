@@ -114,6 +114,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                     onEditGroup={() => {}}
                     onDeleteGroup={onDeleteGroup}
                     isDeleting={deletingGroups.has(group)}
+                    hasChildren={items.length > 0}
                   />,
                   
                   ...(expandedGroups.has(group) ? items.map((item) => (

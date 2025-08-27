@@ -15,6 +15,7 @@ interface BiddingGroupHeaderProps {
   onEditGroup: (group: string) => void;
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
+  hasChildren?: boolean;
 }
 
 export function BiddingGroupHeader({ 
@@ -25,7 +26,8 @@ export function BiddingGroupHeader({
   isPartiallySelected, 
   onCheckboxChange,
   onDeleteGroup,
-  isDeleting = false
+  isDeleting = false,
+  hasChildren = false
 }: BiddingGroupHeaderProps) {
   return (
     <TableRow className="bg-gray-50 h-10">
@@ -56,15 +58,17 @@ export function BiddingGroupHeader({
       </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center justify-end space-x-2">
-          <DeleteButton
-            onDelete={() => onDeleteGroup(group)}
-            title="Delete Group"
-            description={`Are you sure you want to delete all bidding items in the "${group}" group? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-          />
+          {!hasChildren && (
+            <DeleteButton
+              onDelete={() => onDeleteGroup(group)}
+              title="Delete Group"
+              description={`Are you sure you want to delete all bidding items in the "${group}" group? This action cannot be undone.`}
+              size="sm"
+              variant="ghost"
+              isLoading={isDeleting}
+              showIcon={true}
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>
