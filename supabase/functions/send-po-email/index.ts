@@ -338,6 +338,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    let fetchedCompanyName = companyName; // Default to request parameter
+
     // Handle test email case
     if (testEmail) {
       notificationRecipients = [{
@@ -371,6 +373,10 @@ const handler = async (req: Request): Promise<Response> => {
       if (!company) {
         throw new Error('Company not found');
       }
+
+      // Use the fetched company name
+      fetchedCompanyName = company.company_name;
+      console.log('✅ Using fetched company name:', fetchedCompanyName);
 
       // Filter representatives who want PO notifications
       notificationRecipients = company.company_representatives?.filter(
@@ -458,7 +464,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate email HTML with confirmation buttons (including for test emails)
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
-      companyName: companyName || 'Unknown Company',
+      companyName: fetchedCompanyName || 'Unknown Company',
       proposals: proposals || [],
       senderCompanyName: senderCompanyName || 'Builder Suite AI',
       projectManager,
