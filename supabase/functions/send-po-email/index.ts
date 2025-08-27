@@ -529,7 +529,7 @@ const handler = async (req: Request): Promise<Response> => {
             // Generate public URLs for each proposal file
             contractFiles = biddingCompanyData.proposals.map((fileName: string) => ({
               name: fileName,
-              url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/bidding-proposals/${poData.project_id}/${fileName}`
+              url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${encodeURIComponent(fileName)}`
             }));
             
             console.log('📋 Contract files prepared:', contractFiles);
