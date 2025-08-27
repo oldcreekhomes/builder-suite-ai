@@ -756,60 +756,6 @@ export type Database = {
           },
         ]
       }
-      project_bid_package_companies: {
-        Row: {
-          bid_package_id: string
-          bid_status: string | null
-          company_id: string
-          created_at: string
-          due_date: string | null
-          id: string
-          price: number | null
-          proposals: string[] | null
-          reminder_date: string | null
-          updated_at: string
-        }
-        Insert: {
-          bid_package_id: string
-          bid_status?: string | null
-          company_id: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          price?: number | null
-          proposals?: string[] | null
-          reminder_date?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bid_package_id?: string
-          bid_status?: string | null
-          company_id?: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          price?: number | null
-          proposals?: string[] | null
-          reminder_date?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_bidding_bid_package_companies_bid_package_id_fkey"
-            columns: ["bid_package_id"]
-            isOneToOne: false
-            referencedRelation: "project_bid_packages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_bidding_bid_package_companies_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_bid_packages: {
         Row: {
           cost_code_id: string
@@ -866,6 +812,60 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_bids: {
+        Row: {
+          bid_package_id: string
+          bid_status: string | null
+          company_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          price: number | null
+          proposals: string[] | null
+          reminder_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          bid_package_id: string
+          bid_status?: string | null
+          company_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          price?: number | null
+          proposals?: string[] | null
+          reminder_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bid_package_id?: string
+          bid_status?: string | null
+          company_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          price?: number | null
+          proposals?: string[] | null
+          reminder_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_bidding_bid_package_companies_bid_package_id_fkey"
+            columns: ["bid_package_id"]
+            isOneToOne: false
+            referencedRelation: "project_bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bidding_bid_package_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
