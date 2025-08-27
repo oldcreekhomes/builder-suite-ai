@@ -156,7 +156,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           projectId={projectId}
           open={showAddBiddingModal}
           onOpenChange={setShowAddBiddingModal}
-          existingCostCodeIds={existingCostCodeIds}
+          existingCostCodeIds={Array.from(existingCostCodeIds)}
         />
       )}
     </div>

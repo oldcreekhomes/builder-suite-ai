@@ -139,7 +139,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
       if (companyError) throw companyError;
 
-      // Create project_bidding_companies entries
+      // Create project_bids entries
       if (companyCostCodes && companyCostCodes.length > 0) {
         const biddingCompanies = [];
         
@@ -151,7 +151,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
           
           if (biddingItem) {
             biddingCompanies.push({
-              project_bidding_id: biddingItem.id,
+              bid_package_id: biddingItem.id,
               company_id: companyCostCode.company_id,
               bid_status: null
             });
@@ -160,12 +160,8 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
         if (biddingCompanies.length > 0) {
           const { error: companyBiddingError } = await supabase
-            .from('project_bid_package_companies')
-            .insert(biddingCompanies.map(company => ({
-              bid_package_id: company.project_bidding_id,
-              company_id: company.company_id,
-              bid_status: company.bid_status
-            })));
+            .from('project_bids')
+            .insert(biddingCompanies);
 
           if (companyBiddingError) throw companyBiddingError;
         }

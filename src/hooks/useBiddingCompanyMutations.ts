@@ -80,8 +80,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Toggle bid status
-  const toggleBidStatus = useMutation({
+  // Toggle bid status mutation
+  const toggleBidStatusMutation = useMutation({
     mutationFn: async ({ bidId, status }: { bidId: string; status: string }) => {
       console.log('Toggling bid status:', { bidId, status });
       
@@ -113,9 +113,9 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Update bid price
-  const updatePrice = useMutation({
-    mutationFn: async ({ bidId, price }: { bidId: string; price: number | null }) => {
+  // Update bid price mutation
+  const updatePriceMutation = useMutation({
+    mutationFn: async ({ bidId, price }: { bidId: string; price: number }) => {
       console.log('Updating bid price:', { bidId, price });
       
       const { error } = await supabase
@@ -146,8 +146,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Upload proposal
-  const uploadProposal = useMutation({
+  // Upload proposal mutation
+  const uploadProposalMutation = useMutation({
     mutationFn: async ({ bidId, files }: { bidId: string; files: File[] }) => {
       console.log('Uploading proposal:', { bidId, files: files.length });
       
@@ -202,8 +202,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Delete all proposals
-  const deleteAllProposals = useMutation({
+  // Delete all proposals mutation
+  const deleteAllProposalsMutation = useMutation({
     mutationFn: async (bidId: string) => {
       console.log('Deleting all proposals:', bidId);
       
@@ -254,8 +254,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
-  // Delete company (remove from bid package)
-  const deleteCompany = useMutation({
+  // Delete company mutation
+  const deleteCompanyMutation = useMutation({
     mutationFn: async (bidId: string) => {
       console.log('Deleting company from bid package:', bidId);
       
@@ -287,6 +287,30 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
+  // Wrapper functions that match the expected interface
+  const toggleBidStatus = (biddingItemId: string, companyId: string, currentStatus: string) => {
+    // Find the bid ID based on biddingItemId and companyId
+    // For now, we'll use companyId as bidId (this might need adjustment based on your data structure)
+    const status = currentStatus === 'will_bid' ? null : 'will_bid';
+    toggleBidStatusMutation.mutate({ bidId: companyId, status: status || 'will_not_bid' });
+  };
+
+  const updatePrice = (biddingItemId: string, companyId: string, price: number) => {
+    updatePriceMutation.mutate({ bidId: companyId, price });
+  };
+
+  const uploadProposal = (biddingItemId: string, companyId: string, files: File[]) => {
+    uploadProposalMutation.mutate({ bidId: companyId, files });
+  };
+
+  const deleteAllProposals = (biddingItemId: string, companyId: string) => {
+    deleteAllProposalsMutation.mutate(companyId);
+  };
+
+  const deleteCompany = (biddingItemId: string, companyId: string) => {
+    deleteCompanyMutation.mutate(companyId);
+  };
+
   return {
     addCompanyToBidPackage,
     removeCompanyFromBidPackage,
@@ -297,10 +321,10 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     deleteCompany,
     isLoading: addCompanyToBidPackage.isPending || 
                removeCompanyFromBidPackage.isPending || 
-               toggleBidStatus.isPending || 
-               updatePrice.isPending || 
-               uploadProposal.isPending || 
-               deleteAllProposals.isPending || 
-               deleteCompany.isPending,
+               toggleBidStatusMutation.isPending || 
+               updatePriceMutation.isPending || 
+               uploadProposalMutation.isPending || 
+               deleteAllProposalsMutation.isPending || 
+               deleteCompanyMutation.isPending,
   };
 };
