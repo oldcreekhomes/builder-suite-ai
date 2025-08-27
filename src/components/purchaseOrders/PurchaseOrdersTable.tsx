@@ -109,6 +109,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
                     onCheckboxChange={onGroupCheckboxChange}
                     onDeleteGroup={onDeleteGroup}
                     isDeleting={deletingGroups.has(group)}
+                    hasChildren={items.length > 0}
                   />,
                   
                   ...(expandedGroups.has(group) ? items.map((item) => (

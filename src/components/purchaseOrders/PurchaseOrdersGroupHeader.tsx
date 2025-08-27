@@ -13,6 +13,7 @@ interface PurchaseOrdersGroupHeaderProps {
   onCheckboxChange: (group: string, checked: boolean) => void;
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
+  hasChildren?: boolean;
 }
 
 export function PurchaseOrdersGroupHeader({ 
@@ -23,7 +24,8 @@ export function PurchaseOrdersGroupHeader({
   isPartiallySelected, 
   onCheckboxChange,
   onDeleteGroup,
-  isDeleting = false
+  isDeleting = false,
+  hasChildren = false
 }: PurchaseOrdersGroupHeaderProps) {
   return (
     <TableRow className="bg-gray-50 h-10">
@@ -54,15 +56,17 @@ export function PurchaseOrdersGroupHeader({
       </TableCell>
       <TableCell className="py-1">
         <div className="flex items-center justify-end space-x-2">
-          <DeleteButton
-            onDelete={() => onDeleteGroup(group)}
-            title="Delete Group"
-            description={`Are you sure you want to delete all purchase orders in the "${group}" group? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-          />
+          {!hasChildren && (
+            <DeleteButton
+              onDelete={() => onDeleteGroup(group)}
+              title="Delete Group"
+              description={`Are you sure you want to delete all purchase orders in the "${group}" group? This action cannot be undone.`}
+              size="sm"
+              variant="ghost"
+              isLoading={isDeleting}
+              showIcon={true}
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>
