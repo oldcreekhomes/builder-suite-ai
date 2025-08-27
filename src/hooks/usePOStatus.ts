@@ -21,19 +21,28 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
       
       const { data, error } = await supabase
         .from('project_purchase_orders')
-        .select('company_id, status')
+        .select('company_id, status, updated_at')
         .eq('project_id', projectId)
-        .eq('cost_code_id', costCodeId);
+        .eq('cost_code_id', costCodeId)
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
+      console.log('🔄 usePOStatus: Raw PO data:', data);
+
       // Map database status to display status
-      return data.map(po => ({
-        company_id: po.company_id,
-        status: po.status === 'confirmed' ? 'Confirmed' as const :
-               po.status === 'denied' ? 'Denied' as const :
-               'Pending' as const
-      }));
+      return data.map(po => {
+        const mappedStatus = po.status === 'approved' ? 'Confirmed' as const :
+                           po.status === 'rejected' ? 'Denied' as const :
+                           'Pending' as const;
+        
+        console.log(`🔄 usePOStatus: Mapping ${po.status} -> ${mappedStatus} for company ${po.company_id}`);
+        
+        return {
+          company_id: po.company_id,
+          status: mappedStatus
+        };
+      });
     },
     enabled: !!projectId && !!costCodeId,
     staleTime: 5000, // Consider data fresh for 5 seconds to prevent excessive refetching
