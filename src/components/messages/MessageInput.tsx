@@ -155,7 +155,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
                 <Smile className="h-4 w-4 text-gray-400" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" side="top">
+            <PopoverContent className="w-64 p-2 z-[10000]" side="top">
               <div className="grid grid-cols-10 gap-1">
                 {commonEmojis.map((emoji, index) => (
                   <Button
