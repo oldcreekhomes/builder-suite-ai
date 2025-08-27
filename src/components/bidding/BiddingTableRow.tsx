@@ -92,7 +92,7 @@ export function BiddingTableRow({
       {isExpanded && (
         <BiddingCompanyList
           biddingItemId={item.id}
-          companies={item.project_bid_package_companies || []}
+          companies={item.project_bids || []}
           onToggleBidStatus={onToggleBidStatus}
           onUpdatePrice={onUpdatePrice}
           onUploadProposal={onUploadProposal}
