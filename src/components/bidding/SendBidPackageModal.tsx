@@ -31,7 +31,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       if (!bidPackage?.id) return [];
 
       const { data, error } = await supabase
-        .from('project_bid_package_companies')
+        .from('project_bids')
         .select(`
           *,
           companies (

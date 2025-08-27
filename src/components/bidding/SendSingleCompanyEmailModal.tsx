@@ -32,7 +32,7 @@ export function SendSingleCompanyEmailModal({
       if (!bidPackage?.id || !companyId) return null;
 
       const { data, error } = await supabase
-        .from('project_bid_package_companies')
+        .from('project_bids')
         .select(`
           *,
           companies (

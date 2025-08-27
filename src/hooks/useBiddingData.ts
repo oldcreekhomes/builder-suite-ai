@@ -46,12 +46,12 @@ export interface BiddingPackage {
 }
 
 export const useBiddingData = (projectId: string, status?: string) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['project-bidding', projectId, status],
     queryFn: async () => {
       console.log('Fetching bidding data for project:', projectId, 'status:', status);
       
-      let query = supabase
+      let queryBuilder = supabase
         .from('project_bid_packages')
         .select(`
           *,
@@ -77,10 +77,10 @@ export const useBiddingData = (projectId: string, status?: string) => {
         .eq('project_id', projectId);
 
       if (status) {
-        query = query.eq('status', status);
+        queryBuilder = queryBuilder.eq('status', status);
       }
 
-      const { data, error } = await query.order('updated_at', { ascending: false });
+      const { data, error } = await queryBuilder.order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching bidding data:', error);
@@ -92,6 +92,29 @@ export const useBiddingData = (projectId: string, status?: string) => {
     },
     enabled: !!projectId,
   });
+
+  // Transform data to match expected interface
+  const biddingItems = query.data || [];
+  
+  // Group items by cost code parent group
+  const groupedBiddingItems = biddingItems.reduce((groups, item) => {
+    const group = item.cost_codes?.parent_group || 'Other';
+    if (!groups[group]) {
+      groups[group] = [];
+    }
+    groups[group].push(item);
+    return groups;
+  }, {} as Record<string, BiddingPackage[]>);
+
+  // Get existing cost code IDs
+  const existingCostCodeIds = new Set(biddingItems.map(item => item.cost_code_id));
+
+  return {
+    ...query,
+    biddingItems,
+    groupedBiddingItems,
+    existingCostCodeIds,
+  };
 };
 
 export const useAllBiddingData = (projectId: string) => {
