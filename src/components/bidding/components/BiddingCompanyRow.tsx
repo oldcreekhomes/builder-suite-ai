@@ -121,6 +121,17 @@ export function BiddingCompanyRow({
               <Send className="h-3 w-3" />
             </Button>
           )}
+          {isReadOnly && (
+            <Button
+              onClick={() => setShowConfirmPODialog(true)}
+              size="sm"
+              variant="ghost"
+              title="Resend PO Email"
+              className="h-6 w-6 p-0"
+            >
+              <Send className="h-3 w-3" />
+            </Button>
+          )}
           {!isReadOnly && (
             <DeleteButton
               onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.company_id)}
