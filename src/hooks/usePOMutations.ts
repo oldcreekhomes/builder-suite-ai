@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,26 +13,40 @@ export const usePOMutations = (projectId: string) => {
       companyId,
       costCodeId,
       totalAmount,
-      biddingCompany
+      biddingCompany,
+      bidPackageId,
+      bidId
     }: { 
       companyId: string;
       costCodeId: string;
       totalAmount?: number;
       biddingCompany: any;
+      bidPackageId?: string;
+      bidId?: string;
     }) => {
-      console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount });
+      console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
       
-      // Step 1: Create the Purchase Order
+      // Step 1: Create the Purchase Order with proper linking
+      const purchaseOrderData: any = {
+        project_id: projectId,
+        company_id: companyId,
+        cost_code_id: costCodeId,
+        total_amount: totalAmount || 0,
+        status: 'draft',
+        notes: `PO created from bid package for ${biddingCompany.companies.company_name}`
+      };
+
+      // Add bid package and bid IDs if provided (from bidding page)
+      if (bidPackageId) {
+        purchaseOrderData.bid_package_id = bidPackageId;
+      }
+      if (bidId) {
+        purchaseOrderData.bid_id = bidId;
+      }
+
       const { data: purchaseOrder, error: createError } = await supabase
         .from('project_purchase_orders')
-        .insert([{
-          project_id: projectId,
-          company_id: companyId,
-          cost_code_id: costCodeId,
-          total_amount: totalAmount || 0,
-          status: 'draft',
-          notes: `PO created from bid package for ${biddingCompany.companies.company_name}`
-        }])
+        .insert([purchaseOrderData])
         .select()
         .single();
 
@@ -122,20 +137,24 @@ export const usePOMutations = (projectId: string) => {
       costCodeId,
       totalAmount,
       biddingCompany,
-      bidPackageId
+      bidPackageId,
+      bidId
     }: { 
       companyId: string;
       costCodeId: string;
       totalAmount?: number;
       biddingCompany: any;
       bidPackageId: string;
+      bidId?: string;
     }) => {
-      // First create PO and send email
+      // First create PO and send email with proper linking
       const result = await createPOAndSendEmail.mutateAsync({
         companyId,
         costCodeId,
         totalAmount,
-        biddingCompany
+        biddingCompany,
+        bidPackageId,
+        bidId
       });
 
       // Then update the bid package status to closed
