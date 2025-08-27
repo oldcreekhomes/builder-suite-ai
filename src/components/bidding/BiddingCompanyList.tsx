@@ -116,7 +116,7 @@ export function BiddingCompanyList({
         <TableCell className="font-bold py-2 text-sm">Price</TableCell>
         <TableCell className="font-bold py-2 text-sm">Proposals</TableCell>
         <TableCell className="font-bold py-2 text-sm">Actions</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Accept PO</TableCell>
+        <TableCell className="font-bold py-2 text-sm">Status</TableCell>
       </TableRow>
       
       {companies.map((biddingCompany) => (

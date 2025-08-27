@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
+import { usePOStatus } from '@/hooks/usePOStatus';
 
 interface Company {
   id: string;
@@ -59,6 +60,7 @@ export function BiddingCompanyRow({
   costCodeId
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
+  const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
 
   const handleSendPO = () => {
     console.log('Send PO confirmed for company:', biddingCompany.company_id);
@@ -155,6 +157,11 @@ export function BiddingCompanyRow({
             <Mail className="h-3 w-3 mr-1" />
             Send PO
           </Button>
+        )}
+        {isReadOnly && (
+          <span className="text-sm font-medium">
+            {getPOStatusForCompany(biddingCompany.company_id)}
+          </span>
         )}
       </TableCell>
 
