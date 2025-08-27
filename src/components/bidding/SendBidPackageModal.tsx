@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
+import { openSpecificationFile } from '@/utils/fileOpenUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 
@@ -327,10 +328,18 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                         {bidPackage.files.map((fileName: string, index: number) => {
                           const IconComponent = getFileIcon(fileName);
                           const iconColorClass = getFileIconColor(fileName);
+                          const displayName = fileName.split('/').pop() || fileName;
+                          
                           return (
-                            <div key={index} className="flex items-center justify-center p-1" title={fileName}>
-                              <IconComponent className={`h-4 w-4 ${iconColorClass}`} />
-                            </div>
+                            <button
+                              key={index}
+                              onClick={() => openSpecificationFile(fileName, displayName)}
+                              className={`flex items-center justify-center p-1 hover:bg-muted-foreground/10 rounded transition-colors ${iconColorClass}`}
+                              title={`Click to open ${displayName}`}
+                              type="button"
+                            >
+                              <IconComponent className="h-4 w-4" />
+                            </button>
                           );
                         })}
                       </div>
