@@ -54,6 +54,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const files = data.files || [];
   const firstFile = files.length > 0 ? files[0] : null;
   const customMessage = data.customMessage;
+  const contractFiles = data.contractFiles || [];
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -121,6 +122,23 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                                  <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName}</span>
                                                              </td>
                                                          </tr>
+                                                         ${contractFiles.length > 0 ? `
+                                                         <tr>
+                                                             <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contract:</span>
+                                                                 <span style="display: inline-block; vertical-align: top;">
+                                                                     ${contractFiles.map(file => `
+                                                                         <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
+                                                                             ${file.name}
+                                                                         </a>
+                                                                         <span style="background-color: #3B82F6; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                                             CONTRACT
+                                                                         </span><br>
+                                                                     `).join('')}
+                                                                 </span>
+                                                             </td>
+                                                         </tr>
+                                                         ` : ''}
                                                          ${totalAmount ? `
                                                          <tr>
                                                              <td style="margin: 0; padding: 0 0 8px 0;">
@@ -445,16 +463,57 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get project details and files
     let purchaseOrderFiles: any[] = [];
+    let contractFiles: any[] = [];
     
     if (purchaseOrderId) {
       const { data: poData } = await supabase
         .from('project_purchase_orders')
-        .select('files')
+        .select('files, project_id, cost_code_id')
         .eq('id', purchaseOrderId)
         .single();
       
       if (poData?.files && Array.isArray(poData.files)) {
         purchaseOrderFiles = poData.files;
+      }
+
+      // Fetch contract files from the awarded company's bid package
+      if (poData?.project_id && poData?.cost_code_id && companyId) {
+        console.log('🔍 Fetching contract files for project:', poData.project_id, 'cost code:', poData.cost_code_id, 'company:', companyId);
+        
+        const { data: bidPackageData, error: bidPackageError } = await supabase
+          .from('project_bid_packages')
+          .select('id')
+          .eq('project_id', poData.project_id)
+          .eq('cost_code_id', poData.cost_code_id)
+          .single();
+
+        if (bidPackageError) {
+          console.error('❌ Error fetching bid package:', bidPackageError);
+        } else if (bidPackageData) {
+          console.log('✅ Found bid package:', bidPackageData.id);
+          
+          // Get the company's proposal files from the bid package
+          const { data: biddingCompanyData, error: biddingCompanyError } = await supabase
+            .from('project_bid_package_companies')
+            .select('proposals')
+            .eq('bid_package_id', bidPackageData.id)
+            .eq('company_id', companyId)
+            .single();
+
+          if (biddingCompanyError) {
+            console.error('❌ Error fetching bidding company data:', biddingCompanyError);
+          } else if (biddingCompanyData?.proposals && Array.isArray(biddingCompanyData.proposals)) {
+            console.log('✅ Found proposal files:', biddingCompanyData.proposals);
+            
+            // Generate public URLs for each proposal file
+            contractFiles = biddingCompanyData.proposals.map((fileName: string) => ({
+              name: fileName,
+              url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/bidding-proposals/${poData.project_id}/${fileName}`
+            }));
+            
+            console.log('📋 Contract files prepared:', contractFiles);
+          }
+        }
       }
     }
 
@@ -472,7 +531,8 @@ const handler = async (req: Request): Promise<Response> => {
       totalAmount,
       files: purchaseOrderFiles,
       projectId: projectDetails?.id,
-      customMessage
+      customMessage,
+      contractFiles
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
