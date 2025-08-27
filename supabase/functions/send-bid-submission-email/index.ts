@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Submit Your Bid - ${bidPackage.projects?.address}: ${bidPackage.cost_codes?.name}</title>
+    <title>Submit Your Bid - ${bidPackage.projects?.address}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
@@ -212,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
       to: [recipientEmail],
-      subject: `Submit Your Bid - ${bidPackage.projects?.address}: ${bidPackage.cost_codes?.name}`,
+      subject: `Submit Your Bid - ${bidPackage.projects?.address}`,
       html: htmlContent
     });
 
