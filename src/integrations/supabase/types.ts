@@ -1049,6 +1049,7 @@ export type Database = {
       }
       project_purchase_orders: {
         Row: {
+          bid_package_id: string | null
           company_id: string
           cost_code_id: string
           created_at: string
@@ -1063,6 +1064,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bid_package_id?: string | null
           company_id: string
           cost_code_id: string
           created_at?: string
@@ -1077,6 +1079,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bid_package_id?: string | null
           company_id?: string
           cost_code_id?: string
           created_at?: string
@@ -1090,7 +1093,15 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_purchase_orders_bid_package_id_fkey"
+            columns: ["bid_package_id"]
+            isOneToOne: false
+            referencedRelation: "project_bid_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_schedule_tasks: {
         Row: {

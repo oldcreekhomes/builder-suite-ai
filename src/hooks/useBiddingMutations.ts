@@ -24,6 +24,8 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
+      // Invalidate purchase orders since deleting bid packages also deletes linked POs
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       toast({
         title: "Success",
         description: "Bidding package deleted successfully",
@@ -53,6 +55,8 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
+      // Invalidate purchase orders since deleting bid packages also deletes linked POs
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       toast({
         title: "Success",
         description: "Bidding group deleted successfully",
