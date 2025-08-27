@@ -9,6 +9,7 @@ export interface POStatus {
 
 export const usePOStatus = (projectId: string, costCodeId: string) => {
   const channelRef = useRef<any>(null);
+  const isSubscribingRef = useRef(false);
 
   // Query to get PO status for all companies in this cost code
   const { data: poStatuses = [], isLoading } = useQuery({
@@ -35,37 +36,65 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
 
   // Set up real-time subscription for PO status updates
   useEffect(() => {
-    if (!projectId || !costCodeId) return;
+    if (!projectId || !costCodeId || isSubscribingRef.current) return;
+
+    console.log('🔄 usePOStatus: Setting up subscription for', projectId, costCodeId);
 
     // Clean up any existing channel first
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      console.log('🔄 usePOStatus: Cleaning up existing channel');
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.warn('🔄 usePOStatus: Error removing channel:', error);
+      }
       channelRef.current = null;
     }
 
+    isSubscribingRef.current = true;
+
     // Create unique channel name to avoid conflicts
-    const channelName = `po-status-${projectId}-${costCodeId}-${Date.now()}`;
+    const channelName = `po-status-${projectId}-${costCodeId}-${Date.now()}-${Math.random()}`;
+    console.log('🔄 usePOStatus: Creating channel:', channelName);
     
-    channelRef.current = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'project_purchase_orders',
-          filter: `project_id=eq.${projectId}`
-        },
-        () => {
-          // Refetch data when PO status changes
-          // This will be handled automatically by React Query
-        }
-      )
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'project_purchase_orders',
+            filter: `project_id=eq.${projectId}`
+          },
+          () => {
+            console.log('🔄 usePOStatus: Received realtime update');
+            // Refetch data when PO status changes
+            // This will be handled automatically by React Query
+          }
+        );
+
+      channelRef.current = channel;
+      
+      channel.subscribe((status) => {
+        console.log('🔄 usePOStatus: Subscription status:', status, 'for channel:', channelName);
+        isSubscribingRef.current = false;
+      });
+    } catch (error) {
+      console.error('🔄 usePOStatus: Error setting up subscription:', error);
+      isSubscribingRef.current = false;
+    }
 
     return () => {
+      console.log('🔄 usePOStatus: Cleanup function called for', projectId, costCodeId);
+      isSubscribingRef.current = false;
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (error) {
+          console.warn('🔄 usePOStatus: Error removing channel in cleanup:', error);
+        }
         channelRef.current = null;
       }
     };

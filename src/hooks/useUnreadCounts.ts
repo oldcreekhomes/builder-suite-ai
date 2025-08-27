@@ -55,59 +55,74 @@ export const useUnreadCounts = (userIds: string[]) => {
     console.log('🔥 useUnreadCounts: Setting up subscription for userIds:', userIds);
 
     // Create a unique channel name to avoid conflicts
-    const channelName = `unread_counts_${user.id}_${userIds.join('_')}_${Date.now()}`;
+    const channelName = `unread_counts_${user.id}_${userIds.join('_')}_${Date.now()}_${Math.random()}`;
     console.log('🔥 useUnreadCounts: Channel name:', channelName);
     
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'user_chat_messages'
-        },
-        (payload) => {
-          const messageData = payload.new;
-          if (!messageData) return;
+    let channel: any = null;
+    
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'user_chat_messages'
+          },
+          (payload) => {
+            const messageData = payload.new;
+            if (!messageData) return;
 
-          const senderId = messageData.sender_id;
-          const recipientId = messageData.recipient_id;
+            const senderId = messageData.sender_id;
+            const recipientId = messageData.recipient_id;
 
-          // Update count if this message is for the current user
-          if (recipientId === user.id && userIds.includes(senderId)) {
-            setUnreadCounts(prev => ({
-              ...prev,
-              [senderId]: (prev[senderId] || 0) + 1
-            }));
+            // Update count if this message is for the current user
+            if (recipientId === user.id && userIds.includes(senderId)) {
+              setUnreadCounts(prev => ({
+                ...prev,
+                [senderId]: (prev[senderId] || 0) + 1
+              }));
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'user_chat_messages'
-        },
-        (payload) => {
-          const messageData = payload.new;
-          if (!messageData) return;
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'user_chat_messages'
+          },
+          (payload) => {
+            const messageData = payload.new;
+            if (!messageData) return;
 
-          const senderId = messageData.sender_id;
-          const recipientId = messageData.recipient_id;
+            const senderId = messageData.sender_id;
+            const recipientId = messageData.recipient_id;
 
-          // If a message was read (read_at changed), refresh the count
-          if (recipientId === user.id && userIds.includes(senderId)) {
-            fetchUnreadCounts();
+            // If a message was read (read_at changed), refresh the count
+            if (recipientId === user.id && userIds.includes(senderId)) {
+              fetchUnreadCounts();
+            }
           }
-        }
-      )
-      .subscribe();
+        );
+
+      channel.subscribe((status) => {
+        console.log('🔥 useUnreadCounts: Subscription status:', status, 'for channel:', channelName);
+      });
+    } catch (error) {
+      console.error('🔥 useUnreadCounts: Error setting up subscription:', error);
+    }
 
     return () => {
       console.log('🔥 useUnreadCounts: Cleaning up subscription for channel:', channelName);
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (error) {
+          console.warn('🔥 useUnreadCounts: Error removing channel:', error);
+        }
+      }
     };
   }, [user?.id, userIds.join(',')]);
 
