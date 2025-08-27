@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface POStatus {
   company_id: string;
@@ -10,11 +10,15 @@ export interface POStatus {
 export const usePOStatus = (projectId: string, costCodeId: string) => {
   const channelRef = useRef<any>(null);
   const isSubscribingRef = useRef(false);
+  const queryClient = useQueryClient();
+  const stableKey = `${projectId}-${costCodeId}`;
 
   // Query to get PO status for all companies in this cost code
   const { data: poStatuses = [], isLoading } = useQuery({
     queryKey: ['po-status', projectId, costCodeId],
     queryFn: async () => {
+      if (!projectId || !costCodeId) return [];
+      
       const { data, error } = await supabase
         .from('project_purchase_orders')
         .select('company_id, status')
@@ -31,36 +35,37 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
                'Pending' as const
       }));
     },
-    enabled: !!projectId && !!costCodeId
+    enabled: !!projectId && !!costCodeId,
+    staleTime: 5000, // Consider data fresh for 5 seconds to prevent excessive refetching
   });
 
-  // Set up real-time subscription for PO status updates
+  // Set up real-time subscription for PO status updates with better debouncing
   useEffect(() => {
     if (!projectId || !costCodeId || isSubscribingRef.current) return;
 
-    console.log('🔄 usePOStatus: Setting up subscription for', projectId, costCodeId);
+    const setupSubscription = async () => {
+      console.log('🔄 usePOStatus: Setting up subscription for', stableKey);
 
-    // Clean up any existing channel first
-    if (channelRef.current) {
-      console.log('🔄 usePOStatus: Cleaning up existing channel');
-      try {
-        supabase.removeChannel(channelRef.current);
-      } catch (error) {
-        console.warn('🔄 usePOStatus: Error removing channel:', error);
+      // Clean up any existing channel first
+      if (channelRef.current) {
+        console.log('🔄 usePOStatus: Cleaning up existing channel');
+        try {
+          await supabase.removeChannel(channelRef.current);
+        } catch (error) {
+          console.warn('🔄 usePOStatus: Error removing channel:', error);
+        }
+        channelRef.current = null;
       }
-      channelRef.current = null;
-    }
 
-    isSubscribingRef.current = true;
+      isSubscribingRef.current = true;
 
-    // Create unique channel name to avoid conflicts
-    const channelName = `po-status-${projectId}-${costCodeId}-${Date.now()}-${Math.random()}`;
-    console.log('🔄 usePOStatus: Creating channel:', channelName);
-    
-    try {
-      const channel = supabase
-        .channel(channelName)
-        .on(
+      // Create unique channel name to avoid conflicts
+      const channelName = `po-status-${stableKey}-${Date.now()}`;
+      
+      try {
+        const channel = supabase.channel(channelName);
+        
+        channel.on(
           'postgres_changes',
           {
             event: '*',
@@ -69,36 +74,53 @@ export const usePOStatus = (projectId: string, costCodeId: string) => {
             filter: `project_id=eq.${projectId}`
           },
           () => {
-            console.log('🔄 usePOStatus: Received realtime update');
-            // Refetch data when PO status changes
-            // This will be handled automatically by React Query
+            console.log('🔄 usePOStatus: Received realtime update for', stableKey);
+            // Debounce the invalidation to prevent rapid refetches
+            setTimeout(() => {
+              queryClient.invalidateQueries({ 
+                queryKey: ['po-status', projectId, costCodeId] 
+              });
+            }, 100);
           }
         );
 
-      channelRef.current = channel;
-      
-      channel.subscribe((status) => {
-        console.log('🔄 usePOStatus: Subscription status:', status, 'for channel:', channelName);
+        channelRef.current = channel;
+        
+        channel.subscribe((status) => {
+          console.log('🔄 usePOStatus: Subscription status:', status, 'for channel:', channelName);
+          if (status === 'SUBSCRIBED') {
+            isSubscribingRef.current = false;
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('🔄 usePOStatus: Channel error for:', channelName);
+            isSubscribingRef.current = false;
+          }
+        });
+      } catch (error) {
+        console.error('🔄 usePOStatus: Error setting up subscription:', error);
         isSubscribingRef.current = false;
-      });
-    } catch (error) {
-      console.error('🔄 usePOStatus: Error setting up subscription:', error);
-      isSubscribingRef.current = false;
-    }
-
-    return () => {
-      console.log('🔄 usePOStatus: Cleanup function called for', projectId, costCodeId);
-      isSubscribingRef.current = false;
-      if (channelRef.current) {
-        try {
-          supabase.removeChannel(channelRef.current);
-        } catch (error) {
-          console.warn('🔄 usePOStatus: Error removing channel in cleanup:', error);
-        }
-        channelRef.current = null;
       }
     };
-  }, [projectId, costCodeId]);
+
+    setupSubscription();
+
+    return () => {
+      console.log('🔄 usePOStatus: Cleanup function called for', stableKey);
+      isSubscribingRef.current = false;
+      if (channelRef.current) {
+        // Use setTimeout to ensure cleanup happens after current execution
+        setTimeout(async () => {
+          try {
+            if (channelRef.current) {
+              await supabase.removeChannel(channelRef.current);
+              channelRef.current = null;
+            }
+          } catch (error) {
+            console.warn('🔄 usePOStatus: Error removing channel in cleanup:', error);
+          }
+        }, 0);
+      }
+    };
+  }, [stableKey, queryClient]); // Use stableKey instead of individual params
 
   const getPOStatusForCompany = (companyId: string): 'Confirmed' | 'Denied' | 'Pending' => {
     const poStatus = poStatuses.find(po => po.company_id === companyId);
