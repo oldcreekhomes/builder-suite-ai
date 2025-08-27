@@ -7,6 +7,7 @@ import { BiddingTableHeader } from './BiddingTableHeader';
 import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
 import { BiddingTableFooter } from './BiddingTableFooter';
+import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { useBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBiddingMutations } from '@/hooks/useBiddingMutations';
@@ -56,6 +57,19 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     newSelectedItems.delete(itemId);
   };
 
+  const onBulkDelete = () => {
+    // Get all selected items from the bidding data
+    const selectedBiddingItems = biddingItems.filter(item => selectedItems.has(item.id));
+    
+    // Delete each selected item
+    selectedBiddingItems.forEach(item => {
+      handleDeleteItem(item.id);
+    });
+    
+    // Clear selections after deletion
+    removeDeletedItemsFromSelection(selectedBiddingItems);
+  };
+
   const onGroupCheckboxChange = (group: string, checked: boolean) => {
     const groupItems = groupedBiddingItems[group] || [];
     handleGroupCheckboxChange(group, checked, groupItems);
@@ -80,6 +94,9 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
 
   const isReadOnly = status === 'closed';
 
+  const selectedCount = selectedItems.size;
+  const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
+
   return (
     <div className="space-y-4">
       {status === 'draft' && (
@@ -88,6 +105,15 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
             {getLoadButtonText()}
           </Button>
         </div>
+      )}
+
+      {selectedCount > 0 && status === 'draft' && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          selectedFolderCount={0}
+          onBulkDelete={onBulkDelete}
+          isDeleting={isDeletingSelected}
+        />
       )}
 
       <div className="border rounded-lg overflow-hidden">
