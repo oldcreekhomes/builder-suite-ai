@@ -174,6 +174,7 @@ export function BiddingCompanyRow({
         projectAddress={projectAddress}
         projectId={projectId}
         costCodeId={costCodeId}
+        mode={isReadOnly ? 'resend' : 'send'}
       />
     </TableRow>
   );

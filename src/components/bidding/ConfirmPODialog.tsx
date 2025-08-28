@@ -31,6 +31,7 @@ interface ConfirmPODialogProps {
   projectAddress: string;
   projectId: string;
   costCodeId: string;
+  mode?: 'send' | 'resend';
 }
 
 export function ConfirmPODialog({
@@ -41,27 +42,38 @@ export function ConfirmPODialog({
   bidPackageId,
   projectAddress,
   projectId,
-  costCodeId
+  costCodeId,
+  mode = 'send'
 }: ConfirmPODialogProps) {
-  const { createPOSendEmailAndUpdateStatus, isLoading } = usePOMutations(projectId);
+  const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
 
     try {
-      await createPOSendEmailAndUpdateStatus.mutateAsync({
-        companyId: biddingCompany.company_id,
-        costCodeId: costCodeId,
-        totalAmount: biddingCompany.price || 0,
-        biddingCompany: biddingCompany,
-        bidPackageId: bidPackageId
-      });
+      if (mode === 'resend') {
+        await resendPOEmail.mutateAsync({
+          companyId: biddingCompany.company_id,
+          costCodeId: costCodeId,
+          totalAmount: biddingCompany.price || 0,
+          biddingCompany: biddingCompany,
+          bidPackageId: bidPackageId
+        });
+      } else {
+        await createPOSendEmailAndUpdateStatus.mutateAsync({
+          companyId: biddingCompany.company_id,
+          costCodeId: costCodeId,
+          totalAmount: biddingCompany.price || 0,
+          biddingCompany: biddingCompany,
+          bidPackageId: bidPackageId
+        });
+      }
       
       onConfirm();
       onClose();
     } catch (error) {
-      console.error('Error creating PO and sending email:', error);
+      console.error(`Error ${mode === 'resend' ? 'resending' : 'creating'} PO and sending email:`, error);
       // Error is already handled in the mutation
     }
   };
@@ -76,7 +88,7 @@ export function ConfirmPODialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirm PO</DialogTitle>
+          <DialogTitle>{mode === 'resend' ? 'Resend PO' : 'Confirm PO'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -130,7 +142,7 @@ export function ConfirmPODialog({
             disabled={isLoading}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
-            {isLoading ? "Sending..." : "Send PO"}
+            {isLoading ? "Sending..." : mode === 'resend' ? "Resend PO" : "Send PO"}
           </Button>
         </div>
       </DialogContent>

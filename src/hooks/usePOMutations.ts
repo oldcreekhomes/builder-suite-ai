@@ -130,6 +130,89 @@ export const usePOMutations = (projectId: string) => {
     },
   });
 
+  // Resend existing PO email mutation
+  const resendPOEmail = useMutation({
+    mutationFn: async ({ 
+      companyId,
+      costCodeId,
+      totalAmount,
+      biddingCompany,
+      bidPackageId
+    }: { 
+      companyId: string;
+      costCodeId: string;
+      totalAmount?: number;
+      biddingCompany: any;
+      bidPackageId?: string;
+    }) => {
+      console.log('Looking up existing PO for resend:', { projectId, companyId, costCodeId });
+      
+      // Look up the latest existing PO for this project, cost code, and company
+      const { data: existingPO, error: lookupError } = await supabase
+        .from('project_purchase_orders')
+        .select('id, total_amount, files, bid_package_id')
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCodeId)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lookupError && lookupError.code !== 'PGRST116') {
+        console.error('Error looking up existing PO:', lookupError);
+        throw lookupError;
+      }
+
+      if (existingPO) {
+        console.log('Found existing PO for resend:', existingPO.id);
+        
+        // Send email using existing PO
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+          body: {
+            purchaseOrderId: existingPO.id,
+            companyId: companyId
+          }
+        });
+
+        if (emailError) {
+          console.error('Error resending PO email:', emailError);
+          throw emailError;
+        }
+
+        return { purchaseOrder: existingPO, emailData };
+      } else {
+        console.log('No existing PO found, creating new one for resend');
+        
+        // Fallback: create new PO if none exists
+        return await createPOAndSendEmail.mutateAsync({
+          companyId,
+          costCodeId,
+          totalAmount,
+          biddingCompany,
+          bidPackageId
+        });
+      }
+    },
+    onSuccess: (data) => {
+      console.log('PO email resent successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      
+      toast({
+        title: "PO Email Resent",
+        description: data.emailData.message || `PO notification resent to ${data.emailData.emailsSent} recipients`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Failed to resend PO email:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend PO email",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Combined mutation to create PO, send email, and update bid package status
   const createPOSendEmailAndUpdateStatus = useMutation({
     mutationFn: async ({ 
@@ -176,6 +259,7 @@ export const usePOMutations = (projectId: string) => {
     createPOAndSendEmail,
     updateBidPackageStatus,
     createPOSendEmailAndUpdateStatus,
-    isLoading: createPOAndSendEmail.isPending || updateBidPackageStatus.isPending || createPOSendEmailAndUpdateStatus.isPending,
+    resendPOEmail,
+    isLoading: createPOAndSendEmail.isPending || updateBidPackageStatus.isPending || createPOSendEmailAndUpdateStatus.isPending || resendPOEmail.isPending,
   };
 };
