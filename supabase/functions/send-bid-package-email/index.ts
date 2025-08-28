@@ -124,10 +124,10 @@ const generateFileDownloadLinks = (files: string[]) => {
     
     console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName, downloadUrl });
     
-    return `<a href="${downloadUrl}" style="color: #000000; text-decoration: underline; margin-right: 15px;" target="_blank" download>📎 ${fileName}</a>`;
-  }).join(' ');
+    return `<div style="line-height: 20px; margin: 2px 0;"><a href="${downloadUrl}" style="color: #000000; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></div>`;
+  }).join('');
   
-  // Wrap in container div for proper alignment
+  // Return vertical list container
   return `<div style="display: inline-block; vertical-align: top;">${fileLinks}</div>`;
 };
 
