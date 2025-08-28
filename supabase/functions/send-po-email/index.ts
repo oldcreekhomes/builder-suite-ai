@@ -320,6 +320,12 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         console.log('✅ Found purchase order data:', poData);
         
+        // Use PO's total amount if not provided in request
+        if (!totalAmount && poData.total_amount) {
+          totalAmount = poData.total_amount;
+          console.log('✅ Using PO total amount:', totalAmount);
+        }
+        
         // Explicitly fetch project details
         if (poData.project_id) {
           console.log('🔍 Fetching project details for ID:', poData.project_id);
@@ -552,6 +558,16 @@ const handler = async (req: Request): Promise<Response> => {
     // Use project address from fetched data if available, otherwise use provided address
     const finalProjectAddress = projectDetails?.address || projectAddress;
 
+    // Determine final files to use in email
+    const finalFiles = purchaseOrderFiles.length > 0 ? purchaseOrderFiles : proposalFiles;
+    
+    console.log('📋 Final email files:', {
+      purchaseOrderFilesCount: purchaseOrderFiles.length,
+      proposalFilesCount: proposalFiles.length,
+      finalFilesCount: finalFiles.length,
+      firstFileName: finalFiles.length > 0 ? finalFiles[0]?.name || 'unknown' : 'none'
+    });
+
     // Generate email HTML with confirmation buttons (including for test emails)
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
@@ -561,7 +577,7 @@ const handler = async (req: Request): Promise<Response> => {
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
-      files: purchaseOrderFiles.length > 0 ? purchaseOrderFiles : proposalFiles, // Use proposal files if no PO files
+      files: finalFiles, // Use the already calculated final files
       projectId: projectDetails?.id,
       customMessage,
       contractFiles: [] // Clear contract files since we're using proposal files as approved files
