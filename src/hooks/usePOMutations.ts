@@ -25,7 +25,10 @@ export const usePOMutations = (projectId: string) => {
       bidId?: string;
       customMessage?: string;
     }) => {
-      console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
+      console.log('=== PO CREATION DEBUG ===');
+      console.log('Creating PO with params:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
+      console.log('Full biddingCompany object:', JSON.stringify(biddingCompany, null, 2));
+      console.log('Proposals from biddingCompany:', biddingCompany?.proposals);
       
       // Step 1: Get all required data for the email
       const [projectData, costCodeData, senderData] = await Promise.all([
@@ -67,13 +70,16 @@ export const usePOMutations = (projectId: string) => {
       };
 
       // Include proposal files from bidding company
+      console.log('Bidding company proposals:', biddingCompany?.proposals);
       if (biddingCompany?.proposals && biddingCompany.proposals.length > 0) {
-        purchaseOrderData.files = biddingCompany.proposals.map((fileName: string) => ({
+        const proposalFiles = biddingCompany.proposals.map((fileName: string) => ({
           id: fileName,
           name: fileName.split('_').pop() || fileName,
           url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
           size: 0 // Size not available but not critical for display
         }));
+        purchaseOrderData.files = proposalFiles;
+        console.log('Adding proposal files to PO:', proposalFiles);
       }
 
       // Add bid package and bid IDs if provided (from bidding page)
@@ -83,6 +89,8 @@ export const usePOMutations = (projectId: string) => {
       if (bidId) {
         purchaseOrderData.bid_id = bidId;
       }
+
+      console.log('Final purchase order data:', purchaseOrderData);
 
       const { data: purchaseOrder, error: createError } = await supabase
         .from('project_purchase_orders')
