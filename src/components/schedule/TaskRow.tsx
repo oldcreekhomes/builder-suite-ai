@@ -62,8 +62,11 @@ export function TaskRow({
   canIndent,
   canOutdent,
   canMoveUp,
-  canMoveDown
+  canMoveDown,
 }: TaskRowProps) {
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+
   const formatDate = (dateString: string) => {
     try {
       // Handle invalid or empty date strings
@@ -81,69 +84,44 @@ export function TaskRow({
         return "—";
       }
       
-      // Additional validation - check if it looks like a date
-      const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
-      if (!dateRegex.test(datePart)) {
-        console.warn('Date does not match expected format:', dateString);
+      // Further validate the date parts
+      const [year, month, day] = datePart.split('-');
+      if (!year || !month || !day || year.length !== 4) {
+        console.warn('Invalid date parts:', { year, month, day });
         return "—";
       }
       
-      // Create date and validate BEFORE calling format
-      const date = new Date(datePart + "T12:00:00");
-      const timestamp = date.getTime();
-      
-      if (isNaN(timestamp) || timestamp < 0) {
-        console.warn('Invalid date timestamp:', dateString, timestamp);
+      // Try to create a Date object to validate
+      const testDate = new Date(datePart + 'T12:00:00'); // Use noon to avoid timezone issues
+      if (isNaN(testDate.getTime())) {
+        console.warn('Date parsing failed:', datePart);
         return "—";
       }
       
-      // Additional sanity check - ensure year is reasonable
-      const year = date.getFullYear();
-      if (year < 1900 || year > 2100) {
-        console.warn('Date year out of reasonable range:', dateString, year);
-        return "—";
-      }
-      
-      return format(date, "MM/dd/yy");
+      // Format as MM/dd/yy
+      return format(testDate, "MM/dd/yy");
     } catch (error) {
       console.error('Error formatting date:', dateString, error);
       return "—";
     }
   };
 
-  const getIndentLevel = (hierarchyNumber: string) => {
-    const parts = hierarchyNumber.split(".");
-    return Math.max(0, parts.length - 1);
+  const getIndentLevel = (hierarchyNumber?: string): number => {
+    if (!hierarchyNumber) return 0;
+    return hierarchyNumber.split('.').length - 1;
   };
 
-  const indentLevel = task.hierarchy_number ? getIndentLevel(task.hierarchy_number) : 0;
+  const indentLevel = getIndentLevel(task.hierarchy_number);
 
-  const calculateEndDate = (startDate: string, duration: number) => {
+  const calculateEndDate = (startDate: string, duration: number): string => {
     try {
-      // Validate inputs
-      if (!startDate || !duration || duration < 0) {
-        console.warn('Invalid inputs for calculateEndDate:', { startDate, duration });
-        return new Date().toISOString().split('T')[0] + 'T00:00:00'; // Return today as fallback
-      }
-      
-      // Parse date locally (no timezone conversion) - handle both formats
-      const normalizedStart = startDate.includes('T') ? startDate.split('T')[0] : startDate;
-      
-      // Validate date format (YYYY-MM-DD)
-      if (!normalizedStart || normalizedStart.length < 10) {
-        console.warn('Invalid start date format:', startDate);
+      if (!startDate || duration <= 0) {
         return new Date().toISOString().split('T')[0] + 'T00:00:00';
       }
-      
-      const start = new Date(normalizedStart + 'T00:00:00');
-      
-      // Validate the parsed date
-      if (isNaN(start.getTime())) {
-        console.warn('Invalid start date:', startDate);
-        return new Date().toISOString().split('T')[0] + 'T00:00:00';
-      }
-      
-      const endDateStr = calculateBusinessEndDate(normalizedStart, duration);
+
+      const start = startDate.split('T')[0]; // Get just the date part
+      const endDate = calculateBusinessEndDate(start as DateString, duration - 1);
+      const endDateStr = formatDisplayDate(endDate);
       
       return endDateStr + 'T00:00:00';
     } catch (error) {
@@ -151,9 +129,6 @@ export function TaskRow({
       return new Date().toISOString().split('T')[0] + 'T00:00:00';
     }
   };
-
-  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
   const handleFieldUpdate = (field: string) => (value: string | number | string[]) => {
     const updates: any = { [field]: value };
@@ -169,16 +144,16 @@ export function TaskRow({
         updates.end_date = dateUpdate.endDate + 'T00:00:00';
         updates.duration = dateUpdate.duration;
       }
-    }
-    // Auto-calculate end date when start date or duration changes (for non-parent tasks)
-    else if (!hasChildren) {
-      if (field === "start_date") {
-        updates.end_date = calculateEndDate(value as string, task.duration);
-      } else if (field === "duration") {
-        updates.end_date = calculateEndDate(task.start_date, value as number);
+    } else if (field === "start_date" || field === "duration") {
+      // For start date or duration changes, recalculate end date
+      const newStartDate = field === "start_date" ? value as string : task.start_date;
+      const newDuration = field === "duration" ? value as number : task.duration;
+      
+      if (newStartDate && newDuration > 0) {
+        updates.end_date = calculateEndDate(newStartDate, newDuration);
       }
     }
-    
+
     onTaskUpdate(task.id, updates);
   };
 
@@ -224,178 +199,185 @@ export function TaskRow({
         canMoveDown={canMoveDown}
         onContextMenuChange={setIsContextMenuOpen}
       >
-      <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
-        {/* Selection Checkbox */}
-        <TableCell className="py-1 px-2 w-10">
-          <div
-            className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
-              isSelected ? 'bg-black' : 'bg-white'
-            }`}
-            onClick={() => onTaskSelection(task.id, !isSelected)}
-          />
-        </TableCell>
+        <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
+          {/* Selection Checkbox */}
+          <TableCell className="py-1 px-2 w-10">
+            <div
+              className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
+                isSelected ? 'bg-black' : 'bg-white'
+              }`}
+              onClick={() => onTaskSelection(task.id, !isSelected)}
+            />
+          </TableCell>
 
-        {/* Hierarchy Number */}
-        <TableCell className="text-xs py-1 px-1 w-16">
-          <div className="flex items-center">
-            <span className="text-xs">{task.hierarchy_number || "—"}</span>
-          </div>
-        </TableCell>
-
-        {/* Task Name with Indentation */}
-        <TableCell className="py-1 pl-2 pr-2 w-48">
-          <div className="flex items-center">
-            {/* Indentation spacer - only for child tasks (level > 0) */}
-            {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
-            
-            {/* Fixed-width space for expand/collapse button - ensures alignment */}
-            <div className="w-4 flex-shrink-0 mr-1 flex items-center justify-center">
-              {hasChildren ? (
-                <button
-                  onClick={() => onToggleExpand(task.id)}
-                  className="p-0.5 hover:bg-muted rounded"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                  )}
-                </button>
-              ) : null}
+          {/* Hierarchy Number */}
+          <TableCell className="text-xs py-1 px-1 w-16">
+            <div className="flex items-center">
+              <span className="text-xs">{task.hierarchy_number || "—"}</span>
             </div>
-            
-            {/* Task name aligned with column header */}
-            <div className="flex-1 flex items-center">
-              <InlineEditCell
-                value={task.task_name}
-                type="text"
-                onSave={handleFieldUpdate("task_name")}
-                className="truncate text-left"
-              />
+          </TableCell>
+
+          {/* Task Name with Indentation */}
+          <TableCell className="py-1 pl-2 pr-2 w-48">
+            <div className="flex items-center">
+              {/* Indentation spacer - only for child tasks (level > 0) */}
+              {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
               
-              {/* Sticky note icon for tasks with notes */}
-              {task.notes?.trim() && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0 ml-1 hover:bg-muted"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsNotesDialogOpen(true);
-                        }}
-                      >
-                        <StickyNote className="h-3 w-3 text-yellow-600" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>View notes</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+              {/* Fixed-width space for expand/collapse button - ensures alignment */}
+              <div className="w-4 flex-shrink-0 mr-1 flex items-center justify-center">
+                {hasChildren ? (
+                  <button
+                    onClick={() => onToggleExpand(task.id)}
+                    className="p-0.5 hover:bg-muted rounded"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                ) : null}
+              </div>
+              
+              {/* Task name aligned with column header */}
+              <div className="flex-1 flex items-center">
+                <InlineEditCell
+                  value={task.task_name}
+                  type="text"
+                  onSave={handleFieldUpdate("task_name")}
+                  className="truncate text-left"
+                />
+                
+                {/* Sticky note icon for tasks with notes */}
+                {task.notes?.trim() && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 ml-1 hover:bg-muted"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsNotesDialogOpen(true);
+                          }}
+                        >
+                          <StickyNote className="h-3 w-3 text-yellow-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View notes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
-          </div>
-        </TableCell>
+          </TableCell>
 
-        {/* Start Date */}
-        <TableCell className="py-1 px-2">
-          <InlineEditCell
-            value={(() => {
-              try {
-                if (!task.start_date) return "";
-                const datePart = task.start_date.split("T")[0];
-                // Validate the date part before using it
-                const testDate = new Date(datePart + "T12:00:00");
-                if (isNaN(testDate.getTime())) {
-                  console.warn('Invalid start_date for task:', task.task_name, task.start_date);
+          {/* Start Date */}
+          <TableCell className="py-1 px-2">
+            <InlineEditCell
+              value={(() => {
+                try {
+                  if (!task.start_date) return "";
+                  const datePart = task.start_date.split("T")[0];
+                  // Validate the date part before using it
+                  const testDate = new Date(datePart + "T12:00:00");
+                  if (isNaN(testDate.getTime())) {
+                    console.warn('Invalid start_date for task:', task.task_name, task.start_date);
+                    return "";
+                  }
+                  return datePart;
+                } catch (error) {
+                  console.error('Error processing start_date:', task.start_date, error);
                   return "";
                 }
-                return datePart;
-              } catch (error) {
-                console.error('Error processing start_date:', task.start_date, error);
-                return "";
-              }
-            })()}
-            type="date"
-            onSave={handleFieldUpdate("start_date")}
-            displayFormat={formatDate}
-            readOnly={hasChildren}
-          />
-        </TableCell>
+              })()}
+              type="date"
+              onSave={handleFieldUpdate("start_date")}
+              readOnly={hasChildren}
+            />
+          </TableCell>
 
-        {/* Duration */}
-        <TableCell className="py-1 px-2">
-          <InlineEditCell
-            value={task.duration}
-            type="number"
-            onSave={handleFieldUpdate("duration")}
-            displayFormat={(value) => `${value}d`}
-            readOnly={hasChildren}
-          />
-        </TableCell>
+          {/* End Date */}
+          <TableCell className="py-1 px-2">
+            <InlineEditCell
+              value={(() => {
+                try {
+                  if (!task.end_date) return "";
+                  const datePart = task.end_date.split("T")[0];
+                  // Validate the date part before using it
+                  const testDate = new Date(datePart + "T12:00:00");
+                  if (isNaN(testDate.getTime())) {
+                    console.warn('Invalid end_date for task:', task.task_name, task.end_date);
+                    return "";
+                  }
+                  return datePart;
+                } catch (error) {
+                  console.error('Error processing end_date:', task.end_date, error);
+                  return "";
+                }
+              })()}
+              type="date"
+              onSave={handleFieldUpdate("end_date")}
+              readOnly={hasChildren}
+            />
+          </TableCell>
 
-        {/* End Date - Read Only for all tasks */}
-        <TableCell className="py-1 px-2">
-          <span className="text-xs px-1 py-0.5 text-black">
-            {(() => {
-              try {
-                if (!task.start_date || !task.duration) return "—";
-                const endDate = calculateEndDate(task.start_date, task.duration);
-                return formatDate(endDate);
-              } catch (error) {
-                console.error('Error calculating/formatting end date:', error);
-                return "—";
-              }
-            })()}
-          </span>
-        </TableCell>
+          {/* Duration */}
+          <TableCell className="py-1 px-2">
+            <InlineEditCell
+              value={task.duration?.toString() || "1"}
+              type="number"
+              onSave={handleFieldUpdate("duration")}
+              readOnly={hasChildren}
+            />
+          </TableCell>
 
-        {/* Predecessors */}
-        <TableCell className="py-1 px-2 w-24">
-          <PredecessorSelector
-            value={getPredecessorArray()}
-            onValueChange={handleFieldUpdate('predecessor')}
-            currentTaskId={task.id}
-            allTasks={allTasks}
-            className="w-full"
-          />
-        </TableCell>
+          {/* Predecessors */}
+          <TableCell className="py-1 px-2">
+            <PredecessorSelector
+              value={getPredecessorArray()}
+              onValueChange={handleFieldUpdate("predecessor")}
+              allTasks={allTasks}
+              currentTaskId={task.id}
+              readOnly={hasChildren || isOptimistic}
+            />
+          </TableCell>
 
-        {/* Progress */}
-        <TableCell className="py-1 px-2">
-          <ProgressSelector
-            value={task.progress || 0}
-            onSave={handleFieldUpdate("progress")}
-            readOnly={hasChildren}
-          />
-        </TableCell>
+          {/* Progress */}
+          <TableCell className="py-1 px-2">
+            <ProgressSelector
+              value={task.progress || 0}
+              onSave={(value) => handleFieldUpdate("progress")(value)}
+              readOnly={hasChildren}
+            />
+          </TableCell>
 
-        {/* Resources */}
-        <TableCell className="py-1 px-2">
-          <ResourcesSelector
-            value={task.resources || ""}
-            onValueChange={(value) => handleFieldUpdate("resources")(value)}
-            readOnly={hasChildren}
-          />
-        </TableCell>
+          {/* Resources */}
+          <TableCell className="py-1 px-2">
+            <ResourcesSelector
+              value={task.resources || ""}
+              onValueChange={(value) => handleFieldUpdate("resources")(value)}
+              readOnly={hasChildren}
+            />
+          </TableCell>
 
-        {/* Actions */}
-        <TableCell className="py-1 px-2">
-          {/* Empty cell - actions now handled by context menu */}
-        </TableCell>
-      </TableRow>
-    </TaskContextMenu>
-    
-    <TaskNotesDialog
-      open={isNotesDialogOpen}
-      onOpenChange={setIsNotesDialogOpen}
-      taskName={task.task_name}
-      initialValue={task.notes || ""}
-      onSave={handleSaveNotes}
-    />
-  </>
+          {/* Actions */}
+          <TableCell className="py-1 px-2">
+            {/* Empty cell - actions now handled by context menu */}
+          </TableCell>
+        </TableRow>
+      </TaskContextMenu>
+      
+      <TaskNotesDialog
+        open={isNotesDialogOpen}
+        onOpenChange={setIsNotesDialogOpen}
+        taskName={task.task_name}
+        initialValue={task.notes || ""}
+        onSave={handleSaveNotes}
+      />
+    </>
   );
 }
