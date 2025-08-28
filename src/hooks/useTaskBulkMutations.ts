@@ -106,10 +106,25 @@ export const useTaskBulkMutations = (projectId: string) => {
       updates.forEach(update => {
         const currentTask = currentTasks.find(t => t.id === update.id);
         if (currentTask && currentTask.hierarchy_number) {
-          const currentNum = parseFloat(currentTask.hierarchy_number);
-          const targetNum = parseFloat(update.hierarchy_number);
+          // Use hierarchy-aware comparison instead of parseFloat
+          const currentHierarchy = currentTask.hierarchy_number.split('.').map(n => parseInt(n));
+          const targetHierarchy = update.hierarchy_number.split('.').map(n => parseInt(n));
           
-          if (targetNum > currentNum) {
+          // Compare hierarchies segment by segment
+          let isIncrement = false;
+          for (let i = 0; i < Math.max(currentHierarchy.length, targetHierarchy.length); i++) {
+            const currentPart = currentHierarchy[i] || 0;
+            const targetPart = targetHierarchy[i] || 0;
+            
+            if (targetPart > currentPart) {
+              isIncrement = true;
+              break;
+            } else if (targetPart < currentPart) {
+              break;
+            }
+          }
+          
+          if (isIncrement) {
             incrementUpdates.push(update);
           } else {
             decrementUpdates.push(update);
@@ -127,9 +142,13 @@ export const useTaskBulkMutations = (projectId: string) => {
         return b.hierarchy_number.localeCompare(a.hierarchy_number, undefined, { numeric: true });
       });
       
-      // Sort decrements ascending (lower numbers first - natural renumbering order)
+      // Sort decrements by current hierarchy ascending (for safe renumbering: 1.5->1.4, then 1.6->1.5)
       const sortedDecrements = decrementUpdates.sort((a, b) => {
-        return a.hierarchy_number.localeCompare(b.hierarchy_number, undefined, { numeric: true });
+        const taskA = currentTasks.find(t => t.id === a.id);
+        const taskB = currentTasks.find(t => t.id === b.id);
+        const hierarchyA = taskA?.hierarchy_number || a.hierarchy_number;
+        const hierarchyB = taskB?.hierarchy_number || b.hierarchy_number;
+        return hierarchyA.localeCompare(hierarchyB, undefined, { numeric: true });
       });
       
       // Execute in safe order: increments first (desc), then decrements (asc)
@@ -215,6 +234,7 @@ export const useTaskBulkMutations = (projectId: string) => {
       for (let i = 0; i < updates.length; i += batchSize) {
         const batch = updates.slice(i, i + batchSize);
         const batchPromises = batch.map(update => {
+          // Ensure consistent storage format - always use arrays for consistency
           const predecessorValue = Array.isArray(update.predecessor) 
             ? update.predecessor 
             : update.predecessor;
