@@ -26,6 +26,7 @@ interface UpdateTaskParams {
   predecessor?: string[] | string;
   resources?: string;
   hierarchy_number?: string;
+  notes?: string;
   suppressInvalidate?: boolean;
 }
 
@@ -159,6 +160,7 @@ export const useTaskMutations = (projectId: string) => {
       }
       if (params.resources !== undefined) updateData.resources = params.resources;
       if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;
+      if (params.notes !== undefined) updateData.notes = params.notes;
 
       console.log('🔧 Update data being sent to database:', updateData);
 

@@ -10,7 +10,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Indent, Outdent, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Indent, Outdent, Plus, Trash2, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
 
 interface TaskContextMenuProps {
   children: React.ReactNode;
@@ -24,6 +24,7 @@ interface TaskContextMenuProps {
   onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
+  onOpenNotes: (taskId: string) => void;
   canIndent: boolean;
   canOutdent: boolean;
   canMoveUp: boolean;
@@ -43,6 +44,7 @@ export function TaskContextMenu({
   onBulkDelete,
   onMoveUp,
   onMoveDown,
+  onOpenNotes,
   canIndent,
   canOutdent,
   canMoveUp,
@@ -103,6 +105,14 @@ export function TaskContextMenu({
         >
           <Plus className="h-4 w-4" />
           Add Above
+        </ContextMenuItem>
+        
+        <ContextMenuItem
+          onClick={() => onOpenNotes(task.id)}
+          className="flex items-center gap-2"
+        >
+          <StickyNote className="h-4 w-4" />
+          Notes
         </ContextMenuItem>
         
         <ContextMenuSeparator />

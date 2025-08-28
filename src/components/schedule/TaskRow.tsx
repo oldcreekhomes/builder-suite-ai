@@ -2,15 +2,18 @@ import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, StickyNote } from "lucide-react";
 import { format } from "date-fns";
 import { TaskContextMenu } from "./TaskContextMenu";
+import { TaskNotesDialog } from "./TaskNotesDialog";
 import { InlineEditCell } from "./InlineEditCell";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { ProgressSelector } from "./ProgressSelector";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 import { calculateBusinessEndDate, formatDisplayDate, DateString } from "@/utils/dateOnly";
 import { PredecessorSelector } from "./PredecessorSelector";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -150,6 +153,7 @@ export function TaskRow({
   };
 
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
   const handleFieldUpdate = (field: string) => (value: string | number | string[]) => {
     const updates: any = { [field]: value };
@@ -192,24 +196,34 @@ export function TaskRow({
   // Check if this is an optimistic (unsaved) task
   const isOptimistic = task.id.startsWith('optimistic-');
 
+  const handleOpenNotes = () => {
+    setIsNotesDialogOpen(true);
+  };
+
+  const handleSaveNotes = (notes: string) => {
+    onTaskUpdate(task.id, { notes });
+  };
+
   return (
-    <TaskContextMenu
-      task={task}
-      selectedTasks={selectedTasks}
-      onIndent={onIndent}
-      onOutdent={onOutdent}
-      onAddAbove={onAddAbove}
-      onAddBelow={onAddBelow}
-      onDelete={onDelete}
-      onBulkDelete={onBulkDelete}
-      onMoveUp={onMoveUp}
-      onMoveDown={onMoveDown}
-      canIndent={canIndent}
-      canOutdent={canOutdent}
-      canMoveUp={canMoveUp}
-      canMoveDown={canMoveDown}
-      onContextMenuChange={setIsContextMenuOpen}
-    >
+    <>
+      <TaskContextMenu
+        task={task}
+        selectedTasks={selectedTasks}
+        onIndent={onIndent}
+        onOutdent={onOutdent}
+        onAddAbove={onAddAbove}
+        onAddBelow={onAddBelow}
+        onDelete={onDelete}
+        onBulkDelete={onBulkDelete}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        onOpenNotes={handleOpenNotes}
+        canIndent={canIndent}
+        canOutdent={canOutdent}
+        canMoveUp={canMoveUp}
+        canMoveDown={canMoveDown}
+        onContextMenuChange={setIsContextMenuOpen}
+      >
       <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
         {/* Selection Checkbox */}
         <TableCell className="py-1 px-2 w-10">
@@ -258,6 +272,30 @@ export function TaskRow({
                 onSave={handleFieldUpdate("task_name")}
                 className="truncate text-left"
               />
+              
+              {/* Sticky note icon for tasks with notes */}
+              {task.notes?.trim() && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 ml-1 hover:bg-muted"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsNotesDialogOpen(true);
+                        }}
+                      >
+                        <StickyNote className="h-3 w-3 text-yellow-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View notes</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
         </TableCell>
@@ -350,5 +388,14 @@ export function TaskRow({
         </TableCell>
       </TableRow>
     </TaskContextMenu>
+    
+    <TaskNotesDialog
+      open={isNotesDialogOpen}
+      onOpenChange={setIsNotesDialogOpen}
+      taskName={task.task_name}
+      initialValue={task.notes || ""}
+      onSave={handleSaveNotes}
+    />
+  </>
   );
 }

@@ -18,6 +18,7 @@ export interface ProjectTask {
   created_at: string;
   updated_at: string;
   confirmed?: boolean;
+  notes?: string;
 }
 
 // Global subscription manager to prevent duplicate subscriptions
