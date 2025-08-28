@@ -484,12 +484,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get project details and files
     let purchaseOrderFiles: any[] = [];
-    let contractFiles: any[] = [];
+    let proposalFiles: any[] = [];
     
     if (purchaseOrderId) {
       const { data: poData } = await supabase
         .from('project_purchase_orders')
-        .select('files, project_id, cost_code_id')
+        .select('files, project_id, cost_code_id, bid_package_id')
         .eq('id', purchaseOrderId)
         .single();
       
@@ -497,42 +497,53 @@ const handler = async (req: Request): Promise<Response> => {
         purchaseOrderFiles = poData.files;
       }
 
-      // Fetch contract files from the awarded company's bid package
+      // Fetch proposal files from the company's bid
       if (poData?.project_id && poData?.cost_code_id && companyId) {
-        console.log('🔍 Fetching contract files for project:', poData.project_id, 'cost code:', poData.cost_code_id, 'company:', companyId);
+        console.log('🔍 Fetching proposal files for project:', poData.project_id, 'cost code:', poData.cost_code_id, 'company:', companyId);
         
-        const { data: bidPackageData, error: bidPackageError } = await supabase
-          .from('project_bid_packages')
-          .select('id')
-          .eq('project_id', poData.project_id)
-          .eq('cost_code_id', poData.cost_code_id)
-          .single();
+        // First try to get from bid_package_id if available
+        let bidPackageId = poData.bid_package_id;
+        
+        // If no bid_package_id, find it by project and cost code
+        if (!bidPackageId) {
+          const { data: bidPackageData, error: bidPackageError } = await supabase
+            .from('project_bid_packages')
+            .select('id')
+            .eq('project_id', poData.project_id)
+            .eq('cost_code_id', poData.cost_code_id)
+            .single();
 
-        if (bidPackageError) {
-          console.error('❌ Error fetching bid package:', bidPackageError);
-        } else if (bidPackageData) {
-          console.log('✅ Found bid package:', bidPackageData.id);
-          
-          // Get the company's proposal files from the bid package
-          const { data: biddingCompanyData, error: biddingCompanyError } = await supabase
-            .from('project_bid_package_companies')
+          if (bidPackageError) {
+            console.error('❌ Error fetching bid package:', bidPackageError);
+          } else if (bidPackageData) {
+            bidPackageId = bidPackageData.id;
+            console.log('✅ Found bid package:', bidPackageId);
+          }
+        } else {
+          console.log('✅ Using bid package from PO:', bidPackageId);
+        }
+        
+        // Get the company's proposal files from the project_bids table
+        if (bidPackageId) {
+          const { data: bidData, error: bidError } = await supabase
+            .from('project_bids')
             .select('proposals')
-            .eq('bid_package_id', bidPackageData.id)
+            .eq('bid_package_id', bidPackageId)
             .eq('company_id', companyId)
             .single();
 
-          if (biddingCompanyError) {
-            console.error('❌ Error fetching bidding company data:', biddingCompanyError);
-          } else if (biddingCompanyData?.proposals && Array.isArray(biddingCompanyData.proposals)) {
-            console.log('✅ Found proposal files:', biddingCompanyData.proposals);
+          if (bidError) {
+            console.error('❌ Error fetching bid data:', bidError);
+          } else if (bidData?.proposals && Array.isArray(bidData.proposals)) {
+            console.log('✅ Found proposal files:', bidData.proposals);
             
             // Generate public URLs for each proposal file
-            contractFiles = biddingCompanyData.proposals.map((fileName: string) => ({
+            proposalFiles = bidData.proposals.map((fileName: string) => ({
               name: fileName,
               url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${encodeURIComponent(fileName)}`
             }));
             
-            console.log('📋 Contract files prepared:', contractFiles);
+            console.log('📋 Proposal files prepared:', proposalFiles);
           }
         }
       }
@@ -550,10 +561,10 @@ const handler = async (req: Request): Promise<Response> => {
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
-      files: purchaseOrderFiles,
+      files: purchaseOrderFiles.length > 0 ? purchaseOrderFiles : proposalFiles, // Use proposal files if no PO files
       projectId: projectDetails?.id,
       customMessage,
-      contractFiles
+      contractFiles: [] // Clear contract files since we're using proposal files as approved files
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
