@@ -822,6 +822,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    // Check if task has children - prevent deletion if so
+    if (hasChildren(taskId)) {
+      toast.error("Cannot delete parent task - delete all child tasks first");
+      return;
+    }
+
     // Check for dependent tasks
     const dependentTasks = getTasksWithDependency(task.hierarchy_number!, tasks);
     
@@ -962,8 +968,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       return;
     }
 
-    // Check for dependencies across all selected tasks
     const selectedTaskIds = Array.from(selectedTasks);
+    
+    // Check if any parent groups are selected without all their children
+    for (const taskId of selectedTaskIds) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task && hasChildren(taskId)) {
+        // Get all children of this parent
+        const children = tasks.filter(t => 
+          t.hierarchy_number && 
+          t.hierarchy_number.startsWith(task.hierarchy_number + ".") &&
+          t.hierarchy_number.split(".").length === task.hierarchy_number.split(".").length + 1
+        );
+        
+        // Check if all direct children are also selected
+        const allChildrenSelected = children.every(child => selectedTasks.has(child.id));
+        if (!allChildrenSelected) {
+          toast.error("Cannot delete parent task - select all child tasks first or delete child tasks individually");
+          return;
+        }
+      }
+    }
+
+    // Check for dependencies across all selected tasks
     const dependentTasks: any[] = [];
     
     for (const taskId of selectedTaskIds) {

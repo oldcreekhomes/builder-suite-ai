@@ -184,6 +184,7 @@ export function TaskRow({
       <TaskContextMenu
         task={task}
         selectedTasks={selectedTasks}
+        allTasks={allTasks}
         onIndent={onIndent}
         onOutdent={onOutdent}
         onAddAbove={onAddAbove}
