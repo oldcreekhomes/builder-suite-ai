@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
+import { openSpecificationFile } from '@/utils/fileOpenUtils';
 
 interface SendSingleCompanyEmailModalProps {
   open: boolean;
@@ -290,9 +291,14 @@ export function SendSingleCompanyEmailModal({
                           const IconComponent = getFileIcon(fileName);
                           const iconColorClass = getFileIconColor(fileName);
                           return (
-                            <div key={index} className="flex items-center justify-center p-1" title={fileName}>
-                              <IconComponent className={`h-4 w-4 ${iconColorClass}`} />
-                            </div>
+                            <button
+                              key={index}
+                              onClick={() => openSpecificationFile(fileName)}
+                              className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
+                              title={`Click to open ${fileName}`}
+                            >
+                              <IconComponent className="h-4 w-4" />
+                            </button>
                           );
                         })}
                       </div>
