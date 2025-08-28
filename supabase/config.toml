@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.handle-po-response]
 verify_jwt = false
+
+[functions.submit-bid]
+verify_jwt = false

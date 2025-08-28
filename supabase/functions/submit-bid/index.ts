@@ -80,9 +80,9 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Check if bid package company record exists
+    // Check if bid record exists
     const { data: existingRecord, error: checkError } = await supabase
-      .from('project_bid_package_companies')
+      .from('project_bids')
       .select('id, proposals')
       .eq('bid_package_id', bidPackageId)
       .eq('company_id', companyId)
@@ -108,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (existingRecord) {
       // Update existing record
       const { error: updateError } = await supabase
-        .from('project_bid_package_companies')
+        .from('project_bids')
         .update(updateData)
         .eq('id', existingRecord.id);
 
@@ -123,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
       updateData.bid_status = 'submitted';
 
       const { error: insertError } = await supabase
-        .from('project_bid_package_companies')
+        .from('project_bids')
         .insert(updateData);
 
       if (insertError) {
