@@ -62,8 +62,19 @@ export const usePOMutations = (projectId: string) => {
         cost_code_id: costCodeId,
         total_amount: totalAmount || 0,
         status: 'draft',
-        notes: `PO created from bid package for ${biddingCompany.companies.company_name}`
+        notes: `PO created from bid package for ${biddingCompany.companies.company_name}`,
+        files: []
       };
+
+      // Include proposal files from bidding company
+      if (biddingCompany?.proposals && biddingCompany.proposals.length > 0) {
+        purchaseOrderData.files = biddingCompany.proposals.map((fileName: string) => ({
+          id: fileName,
+          name: fileName.split('_').pop() || fileName,
+          url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
+          size: 0 // Size not available but not critical for display
+        }));
+      }
 
       // Add bid package and bid IDs if provided (from bidding page)
       if (bidPackageId) {
