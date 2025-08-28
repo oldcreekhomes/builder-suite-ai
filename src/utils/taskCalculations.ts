@@ -1,5 +1,6 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { getBusinessDaysBetween, calculateBusinessEndDate, addBusinessDays, isBusinessDay, ensureBusinessDay, getNextBusinessDay, formatYMD, startOfLocalDay } from "./businessDays";
+import { safeParsePredecessors } from "./predecessorValidation";
 
 export interface TaskCalculations {
   startDate: string;
@@ -110,17 +111,7 @@ export const calculateTaskDatesFromPredecessors = (
   if (!task.predecessor) return null;
   
   // Parse predecessors
-  let predecessors: string[] = [];
-  try {
-    if (Array.isArray(task.predecessor)) {
-      predecessors = task.predecessor;
-    } else if (typeof task.predecessor === 'string') {
-      predecessors = JSON.parse(task.predecessor);
-    }
-  } catch {
-    // If parsing fails, treat as single predecessor
-    predecessors = [task.predecessor as string];
-  }
+  const predecessors = safeParsePredecessors(task.predecessor);
   
   if (predecessors.length === 0) return null;
   
@@ -196,12 +187,7 @@ export const getDependentTasks = (taskId: string, allTasks: ProjectTask[]): Proj
     if (!t.predecessor || t.id === taskId) return false;
     
     try {
-      let predecessors: string[] = [];
-      if (Array.isArray(t.predecessor)) {
-        predecessors = t.predecessor;
-      } else if (typeof t.predecessor === 'string') {
-        predecessors = JSON.parse(t.predecessor);
-      }
+      const predecessors = safeParsePredecessors(t.predecessor);
       
       const isDependent = predecessors.some(predStr => {
         const match = predStr.match(/^(.+?)([+-]\d+)?$/);

@@ -14,6 +14,7 @@ import { calculateBusinessEndDate, formatDisplayDate, DateString } from "@/utils
 import { PredecessorSelector } from "./PredecessorSelector";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { safeParsePredecessors } from "@/utils/predecessorValidation";
 
 interface TaskRowProps {
   task: ProjectTask;
@@ -159,13 +160,7 @@ export function TaskRow({
 
   // Parse predecessors for display
   const getPredecessorArray = (): string[] => {
-    if (!task.predecessor) return [];
-    if (Array.isArray(task.predecessor)) return task.predecessor;
-    try {
-      return JSON.parse(task.predecessor as string);
-    } catch {
-      return task.predecessor ? [task.predecessor] : [];
-    }
+    return safeParsePredecessors(task.predecessor);
   };
 
   // Check if this is an optimistic (unsaved) task

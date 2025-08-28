@@ -1,5 +1,41 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
+/**
+ * Safely parse predecessors from any format (string, array, or JSON string) 
+ * Always returns a string array
+ */
+export function safeParsePredecessors(predecessors: any): string[] {
+  // Handle null, undefined, empty cases
+  if (!predecessors) return [];
+  
+  // Already an array
+  if (Array.isArray(predecessors)) {
+    return predecessors.filter(p => typeof p === 'string' && p.trim().length > 0);
+  }
+  
+  // String that might be JSON
+  if (typeof predecessors === 'string') {
+    const trimmed = predecessors.trim();
+    if (!trimmed) return [];
+    
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(p => typeof p === 'string' && p.trim().length > 0);
+      }
+    } catch {
+      // Not JSON, treat as single predecessor
+    }
+    
+    // Single predecessor string
+    return [trimmed];
+  }
+  
+  // Unknown format
+  return [];
+}
+
 export interface ParsedPredecessor {
   taskId: string;
   lagDays: number;
@@ -13,8 +49,9 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-export function parsePredecessors(predecessors: string[], allTasks: ProjectTask[]): ParsedPredecessor[] {
-  return predecessors.map(pred => {
+export function parsePredecessors(predecessors: any, allTasks: ProjectTask[]): ParsedPredecessor[] {
+  const predecessorArray = safeParsePredecessors(predecessors);
+  return predecessorArray.map(pred => {
     const parts = pred.split('+');
     const taskId = parts[0];
     const lagPart = parts[1] || '';
@@ -54,14 +91,15 @@ function isAncestor(ancestorHierarchy: string, descendantHierarchy: string): boo
 
 export function validatePredecessors(
   currentTaskId: string,
-  predecessors: string[],
+  predecessors: any,
   allTasks: ProjectTask[]
 ): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check for empty or invalid predecessors
-  if (!predecessors || predecessors.length === 0) {
+  // Parse and validate predecessors
+  const predecessorArray = safeParsePredecessors(predecessors);
+  if (predecessorArray.length === 0) {
     return { isValid: true, errors, warnings };
   }
 
@@ -71,7 +109,7 @@ export function validatePredecessors(
     return { isValid: false, errors, warnings };
   }
 
-  const parsedPredecessors = parsePredecessors(predecessors, allTasks);
+  const parsedPredecessors = parsePredecessors(predecessorArray, allTasks);
 
   // Check for self-references
   const selfRefs = parsedPredecessors.filter(pred => pred.taskId === currentTask.hierarchy_number);
@@ -101,7 +139,7 @@ export function validatePredecessors(
   }
 
   // Check for duplicate predecessors
-  const duplicates = findDuplicates(predecessors);
+  const duplicates = findDuplicates(predecessorArray);
   if (duplicates.length > 0) {
     warnings.push(`Duplicate predecessors: ${duplicates.join(', ')}`);
   }
@@ -115,7 +153,7 @@ export function validatePredecessors(
 
 function detectCircularDependencies(
   currentTask: ProjectTask,
-  predecessors: string[],
+  predecessors: any,
   allTasks: ProjectTask[]
 ): string[] {
   const visited = new Set<string>();
@@ -136,24 +174,11 @@ function detectCircularDependencies(
     // Get predecessors for this task
     const task = allTasks.find(t => t.hierarchy_number === taskHierarchy);
     if (task && task.predecessor) {
-      try {
-        const taskPredecessors = Array.isArray(task.predecessor) 
-          ? task.predecessor 
-          : JSON.parse(task.predecessor as string);
-        
-        for (const pred of taskPredecessors) {
-          const predTaskId = pred.split('+')[0];
-          if (hasCycle(predTaskId)) {
-            return true;
-          }
-        }
-      } catch (e) {
-        // Handle legacy string format
-        if (typeof task.predecessor === 'string') {
-          const predTaskId = task.predecessor.split('+')[0];
-          if (hasCycle(predTaskId)) {
-            return true;
-          }
+      const taskPredecessors = safeParsePredecessors(task.predecessor);
+      for (const pred of taskPredecessors) {
+        const predTaskId = pred.split('+')[0];
+        if (hasCycle(predTaskId)) {
+          return true;
         }
       }
     }
@@ -163,7 +188,8 @@ function detectCircularDependencies(
   }
 
   // Check if adding these predecessors would create a cycle
-  for (const pred of predecessors) {
+  const predecessorArray = safeParsePredecessors(predecessors);
+  for (const pred of predecessorArray) {
     const predTaskId = pred.split('+')[0];
     visited.clear();
     path.length = 0;
@@ -215,27 +241,14 @@ export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTa
 
   for (const task of allTasks) {
     if (task.predecessor) {
-      try {
-        const predecessors = Array.isArray(task.predecessor) 
-          ? task.predecessor 
-          : JSON.parse(task.predecessor as string);
-        
-        const hasDependency = predecessors.some((pred: string) => {
-          const predTaskId = pred.split('+')[0];
-          return predTaskId === targetTaskId;
-        });
+      const predecessors = safeParsePredecessors(task.predecessor);
+      const hasDependency = predecessors.some((pred: string) => {
+        const predTaskId = pred.split('+')[0];
+        return predTaskId === targetTaskId;
+      });
 
-        if (hasDependency) {
-          dependentTasks.push(task);
-        }
-      } catch (e) {
-        // Handle legacy string format
-        if (typeof task.predecessor === 'string') {
-          const predTaskId = task.predecessor.split('+')[0];
-          if (predTaskId === targetTaskId) {
-            dependentTasks.push(task);
-          }
-        }
+      if (hasDependency) {
+        dependentTasks.push(task);
       }
     }
   }

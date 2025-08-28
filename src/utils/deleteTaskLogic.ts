@@ -1,4 +1,5 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { safeParsePredecessors } from "./predecessorValidation";
 
 export interface TaskUpdate {
   id: string;
@@ -29,16 +30,7 @@ export const cleanupPredecessors = (
   allTasks.forEach(task => {
     if (!task.predecessor) return;
     
-    let predecessors: string[] = [];
-    try {
-      if (Array.isArray(task.predecessor)) {
-        predecessors = task.predecessor;
-      } else if (typeof task.predecessor === 'string') {
-        predecessors = JSON.parse(task.predecessor);
-      }
-    } catch {
-      predecessors = [task.predecessor as string];
-    }
+    const predecessors = safeParsePredecessors(task.predecessor);
     
     // Remove deleted task references
     const cleanedPredecessors = predecessors.filter(predStr => {
@@ -72,16 +64,7 @@ export const remapPredecessors = (
   allTasks.forEach(task => {
     if (!task.predecessor) return;
     
-    let predecessors: string[] = [];
-    try {
-      if (Array.isArray(task.predecessor)) {
-        predecessors = task.predecessor;
-      } else if (typeof task.predecessor === 'string') {
-        predecessors = JSON.parse(task.predecessor);
-      }
-    } catch {
-      predecessors = [task.predecessor as string];
-    }
+    const predecessors = safeParsePredecessors(task.predecessor);
     
     // Remap predecessor hierarchy numbers
     const remappedPredecessors = predecessors.map(predStr => {

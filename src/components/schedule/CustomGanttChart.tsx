@@ -841,7 +841,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const { computeDeleteUpdates } = await import('@/utils/deleteTaskLogic');
       
       // Compute all updates needed for this deletion
-      const deleteResult = computeDeleteUpdates(task, tasks);
+      let deleteResult;
+      try {
+        deleteResult = computeDeleteUpdates(task, tasks);
+      } catch (error) {
+        console.error("❌ Pre-flight failed - Delete computation:", error);
+        toast.error(`Failed to compute delete updates: ${error instanceof Error ? error.message : String(error)}`);
+        return;
+      }
       
       console.log(`🗑️ DELETE OPERATION: ${deleteResult.tasksToDelete.length} tasks to delete, ${deleteResult.hierarchyUpdates.length} hierarchy updates, ${deleteResult.predecessorUpdates.length} predecessor updates`);
       
@@ -861,7 +868,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       } catch (error) {
         console.error('❌ Phase 1 (Bulk Delete) failed:', error);
         toast.error(`Failed to delete task - Phase 1: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        throw error;
+        return;
       }
       
       // Phase 2: Bulk update hierarchies with ordered execution
@@ -887,7 +894,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         } catch (error) {
           console.error('❌ Phase 2 (Hierarchy Updates) failed:', error);
           toast.error(`Failed to delete task - Phase 2: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          throw error;
+          return;
         }
       }
       
@@ -897,8 +904,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           console.log(`🔄 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} predecessor references`);
           const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
             id: update.taskId,
-            // Ensure consistent JSON string storage
-            predecessor: Array.isArray(update.newPredecessors) ? update.newPredecessors : update.newPredecessors
+            // Always store predecessor as array for consistency
+            predecessor: update.newPredecessors
           }));
           await bulkUpdatePredecessors.mutateAsync({ 
             updates: predecessorUpdates, 

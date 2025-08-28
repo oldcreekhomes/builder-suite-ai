@@ -234,14 +234,10 @@ export const useTaskBulkMutations = (projectId: string) => {
       for (let i = 0; i < updates.length; i += batchSize) {
         const batch = updates.slice(i, i + batchSize);
         const batchPromises = batch.map(update => {
-          // Ensure consistent storage format - always use arrays for consistency
-          const predecessorValue = Array.isArray(update.predecessor) 
-            ? update.predecessor 
-            : update.predecessor;
-            
+          // Always store predecessor as JSON array for consistency
           return supabase
             .from('project_schedule_tasks')
-            .update({ predecessor: predecessorValue })
+            .update({ predecessor: update.predecessor })
             .eq('id', update.id)
             .select('id');
         });

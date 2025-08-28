@@ -1,4 +1,5 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { safeParsePredecessors } from "./predecessorValidation";
 
 export interface HierarchyUpdate {
   id: string;
@@ -168,11 +169,8 @@ function calculatePredecessorUpdates(
   allTasks.forEach(task => {
     if (!task.predecessor) return;
     
-    const predecessors = Array.isArray(task.predecessor) 
-      ? task.predecessor 
-      : JSON.parse(task.predecessor);
-      
-    if (!Array.isArray(predecessors) || predecessors.length === 0) return;
+    const predecessors = safeParsePredecessors(task.predecessor);
+    if (predecessors.length === 0) return;
     
     const newPredecessors = predecessors.map(pred => {
       return hierarchyMapping.get(pred) || pred;
