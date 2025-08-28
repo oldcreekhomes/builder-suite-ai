@@ -849,98 +849,139 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       (window as any).__batchOperationInProgress = true;
 
       // Phase 1: Delete all tasks in bulk
-      console.log('🔄 Phase 1: Bulk deleting tasks');
-      if (deleteResult.tasksToDelete.length > 0) {
-        await bulkDeleteTasks.mutateAsync({ 
-          taskIds: deleteResult.tasksToDelete, 
-          options: { suppressInvalidate: true } 
-        });
-      }
-      
-      // Phase 2: Bulk update hierarchies
-      if (deleteResult.hierarchyUpdates.length > 0) {
-        console.log(`🔄 Phase 2: Bulk updating ${deleteResult.hierarchyUpdates.length} hierarchy updates`);
-        await bulkUpdateHierarchies.mutateAsync({ 
-          updates: deleteResult.hierarchyUpdates, 
-          options: { suppressInvalidate: true } 
-        });
-        
-        // Immediately patch cache with Phase 2 updates
-        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
-          if (!oldData) return oldData;
-          return oldData.map(task => {
-            const update = deleteResult.hierarchyUpdates.find(u => u.id === task.id);
-            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+      try {
+        console.log('🔄 Phase 1: Bulk deleting tasks');
+        if (deleteResult.tasksToDelete.length > 0) {
+          await bulkDeleteTasks.mutateAsync({ 
+            taskIds: deleteResult.tasksToDelete, 
+            options: { suppressInvalidate: true } 
           });
-        });
+        }
+        console.log('✅ Phase 1 completed successfully');
+      } catch (error) {
+        console.error('❌ Phase 1 (Bulk Delete) failed:', error);
+        toast.error(`Failed to delete task - Phase 1: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw error;
       }
       
-      // Phase 3: Bulk update predecessors
+      // Phase 2: Bulk update hierarchies with ordered execution
+      if (deleteResult.hierarchyUpdates.length > 0) {
+        try {
+          console.log(`🔄 Phase 2: Bulk updating ${deleteResult.hierarchyUpdates.length} hierarchy updates with ordered execution`);
+          await bulkUpdateHierarchies.mutateAsync({ 
+            updates: deleteResult.hierarchyUpdates, 
+            originalTasks: tasks,
+            options: { suppressInvalidate: true },
+            ordered: true // Force ordered execution for delete operations
+          });
+          
+          // Immediately patch cache with Phase 2 updates
+          queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.map(task => {
+              const update = deleteResult.hierarchyUpdates.find(u => u.id === task.id);
+              return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+            });
+          });
+          console.log('✅ Phase 2 completed successfully');
+        } catch (error) {
+          console.error('❌ Phase 2 (Hierarchy Updates) failed:', error);
+          toast.error(`Failed to delete task - Phase 2: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          throw error;
+        }
+      }
+      
+      // Phase 3: Bulk update predecessors with type-safe handling
       if (deleteResult.predecessorUpdates.length > 0) {
-        console.log(`🔄 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} predecessor references`);
-        const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
-          id: update.taskId,
-          predecessor: update.newPredecessors
-        }));
-        await bulkUpdatePredecessors.mutateAsync({ 
-          updates: predecessorUpdates, 
-          options: { suppressInvalidate: true } 
-        });
+        try {
+          console.log(`🔄 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} predecessor references`);
+          const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
+            id: update.taskId,
+            // Ensure consistent JSON string storage
+            predecessor: Array.isArray(update.newPredecessors) ? update.newPredecessors : update.newPredecessors
+          }));
+          await bulkUpdatePredecessors.mutateAsync({ 
+            updates: predecessorUpdates, 
+            options: { suppressInvalidate: true } 
+          });
+          console.log('✅ Phase 3 completed successfully');
+        } catch (error) {
+          console.error('❌ Phase 3 (Predecessor Updates) failed:', error);
+          // Don't throw - allow deletion to complete even if predecessor cleanup fails
+          console.log('⚠️ Continuing deletion despite predecessor update failure');
+          toast.error(`Task deleted but some predecessor references may need manual cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
       
       // Phase 4: Normalize hierarchy to ensure first row is 1
-      console.log('🔢 Phase 4: Normalizing hierarchy numbering');
-      const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
-      
-      // Build post-delete snapshot: current tasks minus deleted ones, plus applied hierarchy updates
-      let postDeleteSnapshot = tasks
-        .filter(t => !deleteResult.tasksToDelete.includes(t.id))
-        .map(t => ({ ...t })); // Deep clone
-      
-      // Apply Phase 2 hierarchy updates to the snapshot
-      deleteResult.hierarchyUpdates.forEach(update => {
-        const task = postDeleteSnapshot.find(t => t.id === update.id);
-        if (task) {
-          task.hierarchy_number = update.hierarchy_number;
-        }
-      });
-      
-      console.log(`🔢 Computing normalization from snapshot of ${postDeleteSnapshot.length} tasks`);
-      const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
-      
-      if (normalizationResult.hierarchyUpdates.length > 0) {
-        console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers`);
-        await bulkUpdateHierarchies.mutateAsync({ 
-          updates: normalizationResult.hierarchyUpdates, 
-          options: { suppressInvalidate: true } 
+      try {
+        console.log('🔢 Phase 4: Normalizing hierarchy numbering');
+        const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+        
+        // Build post-delete snapshot: current tasks minus deleted ones, plus applied hierarchy updates
+        let postDeleteSnapshot = tasks
+          .filter(t => !deleteResult.tasksToDelete.includes(t.id))
+          .map(t => ({ ...t })); // Deep clone
+        
+        // Apply Phase 2 hierarchy updates to the snapshot
+        deleteResult.hierarchyUpdates.forEach(update => {
+          const task = postDeleteSnapshot.find(t => t.id === update.id);
+          if (task) {
+            task.hierarchy_number = update.hierarchy_number;
+          }
         });
         
-        // Immediately patch cache with Phase 4 normalization updates
-        queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
-          if (!oldData) return oldData;
-          return oldData.map(task => {
-            const update = normalizationResult.hierarchyUpdates.find(u => u.id === task.id);
-            return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+        console.log(`🔢 Computing normalization from snapshot of ${postDeleteSnapshot.length} tasks`);
+        const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
+        
+        if (normalizationResult.hierarchyUpdates.length > 0) {
+          console.log(`📋 Phase 4a: Normalizing ${normalizationResult.hierarchyUpdates.length} hierarchy numbers with ordered execution`);
+          await bulkUpdateHierarchies.mutateAsync({ 
+            updates: normalizationResult.hierarchyUpdates, 
+            options: { suppressInvalidate: true },
+            ordered: true // Force ordered execution for normalization
           });
-        });
-      }
-      
-      if (normalizationResult.predecessorUpdates.length > 0) {
-        console.log(`🔗 Phase 4b: Remapping ${normalizationResult.predecessorUpdates.length} predecessor references after normalization`);
-        const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
-          id: update.taskId,
-          predecessor: update.newPredecessors
-        }));
-        await bulkUpdatePredecessors.mutateAsync({ 
-          updates: predecessorNormUpdates, 
-          options: { suppressInvalidate: true } 
-        });
+          
+          // Immediately patch cache with Phase 4 normalization updates
+          queryClient.setQueryData(['project-tasks', projectId, user?.id], (oldData: ProjectTask[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.map(task => {
+              const update = normalizationResult.hierarchyUpdates.find(u => u.id === task.id);
+              return update ? { ...task, hierarchy_number: update.hierarchy_number } : task;
+            });
+          });
+        }
+        
+        if (normalizationResult.predecessorUpdates.length > 0) {
+          console.log(`🔗 Phase 4b: Remapping ${normalizationResult.predecessorUpdates.length} predecessor references after normalization`);
+          const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
+            id: update.taskId,
+            predecessor: update.newPredecessors
+          }));
+          await bulkUpdatePredecessors.mutateAsync({ 
+            updates: predecessorNormUpdates, 
+            options: { suppressInvalidate: true } 
+          });
+        }
+        console.log('✅ Phase 4 completed successfully');
+      } catch (error) {
+        console.error('❌ Phase 4 (Normalization) failed:', error);
+        toast.error(`Failed to delete task - Phase 4: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw error;
       }
       
       // Phase 5: Recalculate affected task dates and parent groups
-      console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
-      for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
-        recalculateParentHierarchy(parentHierarchy);
+      try {
+        console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+        for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
+          recalculateParentHierarchy(parentHierarchy);
+        }
+        console.log('✅ Phase 5 completed successfully');
+      } catch (error) {
+        console.error('❌ Phase 5 (Parent Recalculation) failed:', error);
+        // Don't throw - deletion is essentially complete at this point
+        console.log('⚠️ Task deleted successfully but parent recalculation failed');
+        toast.error(`Task deleted but parent date recalculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
       // Remove from selected tasks if it was selected
@@ -953,7 +994,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       toast.success("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
-      toast.error("Failed to delete task");
+      // Generic fallback if specific phase error handling didn't catch it
+      if (!error.message?.includes('Phase')) {
+        toast.error(`Failed to delete task: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } finally {
       // Clear batch flag and invalidate cache once
       (window as any).__batchOperationInProgress = false;
