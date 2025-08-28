@@ -27,7 +27,35 @@ export const usePOMutations = (projectId: string) => {
     }) => {
       console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
       
-      // Step 1: Create the Purchase Order with proper linking
+      // Step 1: Get all required data for the email
+      const [projectData, costCodeData, senderData] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('address')
+          .eq('id', projectId)
+          .single(),
+        supabase
+          .from('cost_codes')
+          .select('code, name')
+          .eq('id', costCodeId)
+          .single(),
+        supabase.auth.getUser().then(async (userResult) => {
+          if (userResult.data.user) {
+            const { data } = await supabase
+              .from('users')
+              .select('company_name')
+              .eq('id', userResult.data.user.id)
+              .single();
+            return data;
+          }
+          return null;
+        })
+      ]);
+
+      if (projectData.error) throw projectData.error;
+      if (costCodeData.error) throw costCodeData.error;
+
+      // Step 2: Create the Purchase Order with proper linking
       const purchaseOrderData: any = {
         project_id: projectId,
         company_id: companyId,
@@ -58,12 +86,17 @@ export const usePOMutations = (projectId: string) => {
 
       console.log('Purchase order created:', purchaseOrder);
 
-      // Step 2: Send the PO email using the Purchase Order ID
+      // Step 3: Send the PO email with complete payload (same as manual flow)
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
         body: {
           purchaseOrderId: purchaseOrder.id,
           companyId: companyId,
-          customMessage: customMessage
+          projectAddress: projectData.data?.address || 'N/A',
+          companyName: biddingCompany.companies.company_name || 'N/A',
+          customMessage: customMessage,
+          totalAmount: totalAmount || 0,
+          costCode: costCodeData.data,
+          senderCompanyName: senderData?.company_name || 'Builder Suite AI'
         }
       });
 
@@ -170,12 +203,45 @@ export const usePOMutations = (projectId: string) => {
       if (existingPO) {
         console.log('Found existing PO for resend:', existingPO.id);
         
-        // Send email using existing PO
+        // Get all required data for the email (same as create flow)
+        const [projectData, costCodeData, senderData] = await Promise.all([
+          supabase
+            .from('projects')
+            .select('address')
+            .eq('id', projectId)
+            .single(),
+          supabase
+            .from('cost_codes')
+            .select('code, name')
+            .eq('id', costCodeId)
+            .single(),
+          supabase.auth.getUser().then(async (userResult) => {
+            if (userResult.data.user) {
+              const { data } = await supabase
+                .from('users')
+                .select('company_name')
+                .eq('id', userResult.data.user.id)
+                .single();
+              return data;
+            }
+            return null;
+          })
+        ]);
+
+        if (projectData.error) throw projectData.error;
+        if (costCodeData.error) throw costCodeData.error;
+        
+        // Send email using existing PO with complete payload (same as manual flow)
         const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
           body: {
             purchaseOrderId: existingPO.id,
             companyId: companyId,
-            customMessage: customMessage
+            projectAddress: projectData.data?.address || 'N/A',
+            companyName: biddingCompany.companies.company_name || 'N/A',
+            customMessage: customMessage,
+            totalAmount: totalAmount || 0,
+            costCode: costCodeData.data,
+            senderCompanyName: senderData?.company_name || 'Builder Suite AI'
           }
         });
 
