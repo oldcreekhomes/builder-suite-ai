@@ -12,7 +12,15 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
 
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
-    // Build the correct path: purchase-orders/{projectId}/{fileId}
+    
+    // If the file has a direct URL (like proposal files), open it directly
+    if (file.url) {
+      console.log('Opening file with direct URL:', file.url);
+      window.open(file.url, '_blank');
+      return;
+    }
+    
+    // Otherwise, build the correct path: purchase-orders/{projectId}/{fileId}
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
     const fileName = file.name || file.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
