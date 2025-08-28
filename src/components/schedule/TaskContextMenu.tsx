@@ -59,7 +59,7 @@ export function TaskContextMenu({
   
   // Helper function to check if a task has children
   const hasChildren = (taskToCheck: ProjectTask) => {
-    if (!taskToCheck?.hierarchy_number) return false;
+    if (!taskToCheck?.hierarchy_number || !allTasks) return false;
     return allTasks.some(t => 
       t.hierarchy_number && 
       t.hierarchy_number.startsWith(taskToCheck.hierarchy_number + ".") &&
