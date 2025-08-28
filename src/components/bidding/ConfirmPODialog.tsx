@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
@@ -47,6 +47,7 @@ export function ConfirmPODialog({
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
+  const [customMessage, setCustomMessage] = useState('');
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
@@ -58,7 +59,8 @@ export function ConfirmPODialog({
           costCodeId: costCodeId,
           totalAmount: biddingCompany.price || 0,
           biddingCompany: biddingCompany,
-          bidPackageId: bidPackageId
+          bidPackageId: bidPackageId,
+          customMessage: customMessage.trim() || undefined
         });
       } else {
         await createPOSendEmailAndUpdateStatus.mutateAsync({
@@ -66,16 +68,23 @@ export function ConfirmPODialog({
           costCodeId: costCodeId,
           totalAmount: biddingCompany.price || 0,
           biddingCompany: biddingCompany,
-          bidPackageId: bidPackageId
+          bidPackageId: bidPackageId,
+          customMessage: customMessage.trim() || undefined
         });
       }
       
       onConfirm();
       onClose();
+      setCustomMessage(''); // Reset custom message after successful send
     } catch (error) {
       console.error(`Error ${mode === 'resend' ? 'resending' : 'creating'} PO and sending email:`, error);
       // Error is already handled in the mutation
     }
+  };
+
+  const handleCancel = () => {
+    setCustomMessage(''); // Reset custom message on cancel
+    onClose();
   };
 
   const handleFilePreview = (fileName: string) => {
@@ -95,6 +104,30 @@ export function ConfirmPODialog({
           <div>
             <label className="text-sm font-medium text-muted-foreground">Company:</label>
             <p className="text-sm font-semibold">{biddingCompany.companies.company_name}</p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Cost Code:</label>
+            <p className="text-sm font-semibold">{costCodeId}</p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground">Amount:</label>
+            <p className="text-sm font-semibold">
+              {biddingCompany.price ? `$${Number(biddingCompany.price).toLocaleString()}` : 'N/A'}
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">Custom Message (Optional)</label>
+            <textarea
+              id="custom-message"
+              placeholder="Add a custom message to include in the email..."
+              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
+              rows={3}
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+            />
           </div>
 
           {biddingCompany.proposals && biddingCompany.proposals.length > 0 && (
@@ -131,7 +164,7 @@ export function ConfirmPODialog({
         <div className="flex justify-end gap-2 mt-6">
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={handleCancel}
             disabled={isLoading}
             className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
           >

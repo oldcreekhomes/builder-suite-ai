@@ -273,6 +273,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('📧 Processing PO email request...');
+    const requestData: POEmailRequest = await req.json();
     const { 
       purchaseOrderId, 
       companyId, 
@@ -282,10 +283,12 @@ const handler = async (req: Request): Promise<Response> => {
       proposals, 
       senderCompanyName, 
       customMessage, 
-      totalAmount, 
       costCode,
       testEmail 
-    }: POEmailRequest = await req.json();
+    } = requestData;
+    
+    // Make totalAmount mutable so we can update it from PO data
+    let totalAmount = requestData.totalAmount;
 
     console.log('📝 Request data:', { 
       purchaseOrderId, 

@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,8 @@ export const usePOMutations = (projectId: string) => {
       totalAmount,
       biddingCompany,
       bidPackageId,
-      bidId
+      bidId,
+      customMessage
     }: { 
       companyId: string;
       costCodeId: string;
@@ -23,6 +23,7 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany: any;
       bidPackageId?: string;
       bidId?: string;
+      customMessage?: string;
     }) => {
       console.log('Creating PO and sending email:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
       
@@ -61,7 +62,8 @@ export const usePOMutations = (projectId: string) => {
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
         body: {
           purchaseOrderId: purchaseOrder.id,
-          companyId: companyId
+          companyId: companyId,
+          customMessage: customMessage
         }
       });
 
@@ -137,13 +139,15 @@ export const usePOMutations = (projectId: string) => {
       costCodeId,
       totalAmount,
       biddingCompany,
-      bidPackageId
+      bidPackageId,
+      customMessage
     }: { 
       companyId: string;
       costCodeId: string;
       totalAmount?: number;
       biddingCompany: any;
       bidPackageId?: string;
+      customMessage?: string;
     }) => {
       console.log('Looking up existing PO for resend:', { projectId, companyId, costCodeId });
       
@@ -170,7 +174,8 @@ export const usePOMutations = (projectId: string) => {
         const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
           body: {
             purchaseOrderId: existingPO.id,
-            companyId: companyId
+            companyId: companyId,
+            customMessage: customMessage
           }
         });
 
@@ -189,7 +194,8 @@ export const usePOMutations = (projectId: string) => {
           costCodeId,
           totalAmount,
           biddingCompany,
-          bidPackageId
+          bidPackageId,
+          customMessage
         });
       }
     },
@@ -221,7 +227,8 @@ export const usePOMutations = (projectId: string) => {
       totalAmount,
       biddingCompany,
       bidPackageId,
-      bidId
+      bidId,
+      customMessage
     }: { 
       companyId: string;
       costCodeId: string;
@@ -229,6 +236,7 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany: any;
       bidPackageId: string;
       bidId?: string;
+      customMessage?: string;
     }) => {
       // First create PO and send email with proper linking
       const result = await createPOAndSendEmail.mutateAsync({
@@ -237,7 +245,8 @@ export const usePOMutations = (projectId: string) => {
         totalAmount,
         biddingCompany,
         bidPackageId,
-        bidId
+        bidId,
+        customMessage
       });
 
       // Then update the bid package status to closed
