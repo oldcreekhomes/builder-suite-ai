@@ -50,17 +50,31 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update the bid status in the database
-    const { error: updateError } = await supabase
-      .from('project_bid_package_companies')
+    console.log('Attempting to update bid status:', { bidPackageId, companyId, response });
+    
+    const { data: updateData, error: updateError, count } = await supabase
+      .from('project_bids')
       .update({ 
         bid_status: response,
         updated_at: new Date().toISOString()
       })
       .eq('bid_package_id', bidPackageId)
-      .eq('company_id', companyId);
+      .eq('company_id', companyId)
+      .select();
 
     if (updateError) {
       console.error('Error updating bid status:', updateError);
+      
+      // Check if the row exists for debugging
+      const { data: existingBid } = await supabase
+        .from('project_bids')
+        .select('id, bid_status')
+        .eq('bid_package_id', bidPackageId)
+        .eq('company_id', companyId)
+        .single();
+      
+      console.log('Existing bid record:', existingBid);
+      
       const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
@@ -69,7 +83,27 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    console.log('Bid status updated successfully');
+    if (!updateData || updateData.length === 0) {
+      console.error('No rows were updated. Checking if bid record exists...');
+      
+      // Check if the row exists for debugging
+      const { data: existingBid } = await supabase
+        .from('project_bids')
+        .select('id, bid_status')
+        .eq('bid_package_id', bidPackageId)
+        .eq('company_id', companyId);
+      
+      console.log('Found bid records:', existingBid);
+      
+      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      errorUrl.searchParams.set('status', 'error');
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+      });
+    }
+
+    console.log('Bid status updated successfully:', updateData);
 
     // If they will bid, send the submission email
     if (response === 'will_bid') {
