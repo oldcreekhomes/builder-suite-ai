@@ -102,6 +102,13 @@ const generateFileDownloadLinks = (files: string[]) => {
       fileName = originalFilenameParts.join('_');
     }
     
+    // Also handle timestamp-hyphen prefix pattern: [timestamp]-[originalfilename]
+    // Pattern: 1751840477323-new.xlsx
+    const timestampMatch = fileName.match(/^\d{13}-(.+)$/);
+    if (timestampMatch) {
+      fileName = timestampMatch[1];
+    }
+    
     // Normalize path: remove any prefixes and ensure proper specifications path
     let normalizedPath = file;
     if (normalizedPath.startsWith('project-files/specifications/')) {
