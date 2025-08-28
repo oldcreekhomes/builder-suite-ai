@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
@@ -48,6 +49,26 @@ export function ConfirmPODialog({
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
   const [customMessage, setCustomMessage] = useState('');
+  const [costCodeData, setCostCodeData] = useState<{code: string, name: string} | null>(null);
+
+  // Fetch cost code data when dialog opens
+  useEffect(() => {
+    if (isOpen && costCodeId) {
+      const fetchCostCode = async () => {
+        const { data, error } = await supabase
+          .from('cost_codes')
+          .select('code, name')
+          .eq('id', costCodeId)
+          .single();
+        
+        if (!error && data) {
+          setCostCodeData(data);
+        }
+      };
+      
+      fetchCostCode();
+    }
+  }, [isOpen, costCodeId]);
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
@@ -108,7 +129,9 @@ export function ConfirmPODialog({
 
           <div>
             <label className="text-sm font-medium text-muted-foreground">Cost Code:</label>
-            <p className="text-sm font-semibold">{costCodeId}</p>
+            <p className="text-sm font-semibold">
+              {costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : 'Loading...'}
+            </p>
           </div>
 
           <div>
@@ -120,10 +143,10 @@ export function ConfirmPODialog({
 
           <div>
             <label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">Custom Message (Optional)</label>
-            <textarea
+            <Textarea
               id="custom-message"
               placeholder="Add a custom message to include in the email..."
-              className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
+              className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
               rows={3}
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
