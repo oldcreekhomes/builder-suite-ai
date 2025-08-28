@@ -90,8 +90,17 @@ const generateFileDownloadLinks = (files: string[]) => {
   if (!files || files.length === 0) return 'No files attached';
   
   const fileLinks = files.map(file => {
-    // Extract filename for display
-    const fileName = file.split('/').pop() || file;
+    // Extract filename for display - get just the original filename
+    let fileName = file.split('/').pop() || file;
+    
+    // If filename contains UUID and timestamp pattern, extract the original filename
+    // Pattern: bidding_[uuid]_[timestamp]_[originalfilename]
+    const parts = fileName.split('_');
+    if (parts.length >= 4 && parts[0] === 'bidding') {
+      // Take everything after the third underscore
+      const originalFilenameParts = parts.slice(3);
+      fileName = originalFilenameParts.join('_');
+    }
     
     // Normalize path: remove any prefixes and ensure proper specifications path
     let normalizedPath = file;
