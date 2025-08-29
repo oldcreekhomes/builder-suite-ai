@@ -49,26 +49,20 @@ const AppContent = () => {
   // Register Syncfusion license at application startup
   useEffect(() => {
     const registerSyncfusionLicense = async () => {
+      // Set a shorter timeout and ensure the app loads even if this fails
+      const timeoutId = setTimeout(() => {
+        console.warn('Syncfusion license registration timed out, continuing with app load');
+        setSyncfusionLicenseRegistered(true);
+      }, 2000); // Reduced to 2 seconds
+
       try {
         console.log('Registering Syncfusion license...');
         
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('License registration timeout')), 5000)
-        );
-        
-        const licensePromise = supabase.functions.invoke('get-syncfusion-key');
-        
-        const result = await Promise.race([licensePromise, timeoutPromise]) as any;
-        const { data, error } = result;
+        const { data, error } = await supabase.functions.invoke('get-syncfusion-key');
         
         if (error) {
           console.error('Error fetching Syncfusion license:', error);
-          setSyncfusionLicenseRegistered(true); // Allow app to continue even if license fails
-          return;
-        }
-        
-        if (data?.key) {
+        } else if (data?.key) {
           registerLicense(data.key);
           console.log('Syncfusion license registered successfully');
         } else {
@@ -77,6 +71,7 @@ const AppContent = () => {
       } catch (error) {
         console.error('Failed to register Syncfusion license:', error);
       } finally {
+        clearTimeout(timeoutId);
         setSyncfusionLicenseRegistered(true);
       }
     };
