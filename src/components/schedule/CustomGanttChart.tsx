@@ -161,8 +161,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Zoom state for timeline
   const [dayWidth, setDayWidth] = useState(40); // pixels per day
   
-  // Debug: Force rebuild to clear any cache issues
-  console.log('CustomGanttChart component loaded - no reset dialog references should exist');
+  // Debug: Force rebuild to clear any cache issues  
+  console.log('CustomGanttChart component loaded and race condition fixes applied');
   
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
