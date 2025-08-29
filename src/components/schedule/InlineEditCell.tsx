@@ -84,7 +84,7 @@ export function InlineEditCell({
   // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
-      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+      <span className={cn("text-xs px-1 py-0.5 inline-block text-black whitespace-nowrap", className)}>
         {getDisplayValue()}
       </span>
     );
@@ -94,15 +94,15 @@ export function InlineEditCell({
     return (
       <Popover open={showCalendar} onOpenChange={setShowCalendar}>
         <PopoverTrigger asChild>
-          <span
-            className={cn(
-              "cursor-pointer hover:bg-muted rounded px-1 py-0.5 block text-xs",
-              className
-            )}
-            onClick={() => setShowCalendar(true)}
-          >
-            {getDisplayValue()}
-          </span>
+        <span
+          className={cn(
+            "cursor-pointer hover:bg-muted rounded px-1 py-0.5 inline-block text-xs whitespace-nowrap",
+            className
+          )}
+          onClick={() => setShowCalendar(true)}
+        >
+          {getDisplayValue()}
+        </span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
@@ -145,7 +145,7 @@ export function InlineEditCell({
           ref={spanRef}
           onClick={() => setIsEditing(true)}
           className={cn(
-            "cursor-text hover:bg-muted rounded px-1 py-0.5 block text-xs text-black",
+            "cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap",
             className
           )}
         >

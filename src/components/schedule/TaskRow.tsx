@@ -292,6 +292,25 @@ export function TaskRow({
               })()}
               type="date"
               onSave={handleFieldUpdate("start_date")}
+              displayFormat={(value) => {
+                if (!value) return "—";
+                try {
+                  const date = new Date(value + "T12:00:00");
+                  return format(date, "MM/dd/yyyy");
+                } catch {
+                  return "—";
+                }
+              }}
+              readOnly={hasChildren}
+            />
+          </TableCell>
+
+          {/* Duration */}
+          <TableCell className="py-1 px-2">
+            <InlineEditCell
+              value={task.duration?.toString() || "1"}
+              type="number"
+              onSave={handleFieldUpdate("duration")}
               readOnly={hasChildren}
             />
           </TableCell>
@@ -317,16 +336,15 @@ export function TaskRow({
               })()}
               type="date"
               onSave={handleFieldUpdate("end_date")}
-              readOnly={hasChildren}
-            />
-          </TableCell>
-
-          {/* Duration */}
-          <TableCell className="py-1 px-2">
-            <InlineEditCell
-              value={task.duration?.toString() || "1"}
-              type="number"
-              onSave={handleFieldUpdate("duration")}
+              displayFormat={(value) => {
+                if (!value) return "—";
+                try {
+                  const date = new Date(value + "T12:00:00");
+                  return format(date, "MM/dd/yyyy");
+                } catch {
+                  return "—";
+                }
+              }}
               readOnly={hasChildren}
             />
           </TableCell>
