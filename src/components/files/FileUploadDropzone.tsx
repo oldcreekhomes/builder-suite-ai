@@ -45,7 +45,7 @@ export function FileUploadDropzone({
   const uploadFile = async (file: File, relativePath: string = '') => {
     if (!user) return false;
     const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/${fileId}_${relativePath || file.name}`;
+    const fileName = `${projectId}/${fileId}_${relativePath || file.name}`;
     try {
       // Upload to Supabase Storage
       const {
@@ -167,7 +167,7 @@ export function FileUploadDropzone({
       console.log('Creating folders:', Array.from(folderPaths));
       for (const folderPath of folderPaths) {
         try {
-          const keeperFileName = `${user?.id}/${projectId}/${crypto.randomUUID()}_${folderPath}/.folderkeeper`;
+          const keeperFileName = `${projectId}/${crypto.randomUUID()}_${folderPath}/.folderkeeper`;
           const emptyFile = new Blob([''], {
             type: 'text/plain'
           });
@@ -306,7 +306,7 @@ export function FileUploadDropzone({
     if (!user) return;
     try {
       // Create a .folderkeeper file to represent the folder
-      const keeperFileName = `${user.id}/${projectId}/${crypto.randomUUID()}_${folderName}/.folderkeeper`;
+      const keeperFileName = `${projectId}/${crypto.randomUUID()}_${folderName}/.folderkeeper`;
 
       // Create empty file content
       const emptyFile = new Blob([''], {

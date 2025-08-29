@@ -151,7 +151,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const uploadFile = async (file: File, relativePath: string = '') => {
     if (!user) return false;
     const fileId = crypto.randomUUID();
-    const fileName = `${user.id}/${projectId}/${fileId}_${relativePath || file.name}`;
+    const fileName = `${projectId}/${fileId}_${relativePath || file.name}`;
     
     try {
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -299,15 +299,27 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     if (!user) return;
 
     try {
-      const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+      // Trim and validate folder name
+      const trimmedFolderName = folderName.trim();
+      if (!trimmedFolderName) {
+        toast.error('Folder name cannot be empty');
+        return;
+      }
       
-      // Check if folder already exists by looking for existing files with this path
+      if (trimmedFolderName.includes('/') || trimmedFolderName.includes('\\')) {
+        toast.error('Folder name cannot contain slashes');
+        return;
+      }
+
+      const folderPath = currentPath ? `${currentPath}/${trimmedFolderName}` : trimmedFolderName;
+      
+      // Check if folder already exists by looking for files with this folder path
       const { data: existingFiles } = await supabase
         .from('project_files')
         .select('id')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .ilike('storage_path', `${projectId}/${folderPath}/%`)
+        .like('original_filename', `${folderPath}/%`)
         .limit(1);
 
       if (existingFiles && existingFiles.length > 0) {
@@ -320,34 +332,44 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       const folderKeeperFile = new File([folderKeeperContent], '.folderkeeper', { type: 'text/plain' });
       
       const fileName = `${folderPath}/.folderkeeper`;
-      const { error: uploadError } = await supabase.storage
+      const storageFileName = `${projectId}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(`${projectId}/${fileName}`, folderKeeperFile, {
+        .upload(storageFileName, folderKeeperFile, {
           upsert: false
         });
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         if (uploadError.message?.includes('already exists') || uploadError.message?.includes('duplicate')) {
           toast.error('A folder with this name already exists');
-          return;
+        } else {
+          toast.error(`Failed to create folder: ${uploadError.message}`);
         }
-        throw uploadError;
+        return;
       }
 
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
           project_id: projectId,
-          filename: '.folderkeeper',
+          filename: storageFileName,
           original_filename: fileName,
           file_type: 'folderkeeper',
           mime_type: 'text/plain',
           file_size: 0,
-          storage_path: `${projectId}/${fileName}`,
+          storage_path: uploadData.path,
           uploaded_by: user.id,
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        // Try to clean up the storage file if DB insert failed
+        await supabase.storage.from('project-files').remove([storageFileName]);
+        toast.error(`Failed to create folder: ${dbError.message}`);
+        return;
+      }
 
       refetch();
       toast.success('Folder created successfully');
@@ -358,7 +380,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       }
     } catch (error) {
       console.error('Error creating folder:', error);
-      toast.error('Failed to create folder');
+      toast.error(`Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
