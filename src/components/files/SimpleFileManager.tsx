@@ -301,6 +301,20 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     try {
       const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
       
+      // Check if folder already exists by looking for existing files with this path
+      const { data: existingFiles } = await supabase
+        .from('project_files')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false)
+        .ilike('storage_path', `${projectId}/${folderPath}/%`)
+        .limit(1);
+
+      if (existingFiles && existingFiles.length > 0) {
+        toast.error('A folder with this name already exists');
+        return;
+      }
+      
       // Create a folderkeeper file to represent the folder
       const folderKeeperContent = new Blob([''], { type: 'text/plain' });
       const folderKeeperFile = new File([folderKeeperContent], '.folderkeeper', { type: 'text/plain' });
@@ -308,9 +322,17 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       const fileName = `${folderPath}/.folderkeeper`;
       const { error: uploadError } = await supabase.storage
         .from('project-files')
-        .upload(`${projectId}/${fileName}`, folderKeeperFile);
+        .upload(`${projectId}/${fileName}`, folderKeeperFile, {
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message?.includes('already exists') || uploadError.message?.includes('duplicate')) {
+          toast.error('A folder with this name already exists');
+          return;
+        }
+        throw uploadError;
+      }
 
       const { error: dbError } = await supabase
         .from('project_files')
