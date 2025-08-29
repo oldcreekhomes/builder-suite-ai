@@ -27,16 +27,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  console.log("🔑 AuthProvider rendering, loading:", loading, "user:", user?.email || "none");
 
   useEffect(() => {
     let mounted = true;
+    
+    console.log("🔑 AuthProvider initializing...");
 
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mounted) return;
         
-        console.log("Auth state changed:", event, session?.user?.email || "no user");
+        console.log("🔑 Auth state changed:", event, session?.user?.email || "no user");
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -46,20 +50,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
+        console.log("🔑 Getting initial session...");
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Error getting session:", error);
+          console.error("🔑 Error getting session:", error);
         }
         
         if (mounted) {
-          console.log("Initial session:", session?.user?.email || "no user");
+          console.log("🔑 Initial session:", session?.user?.email || "no user");
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
         }
       } catch (error) {
-        console.error("Error in getInitialSession:", error);
+        console.error("🔑 Error in getInitialSession:", error);
         if (mounted) {
           setLoading(false);
         }
