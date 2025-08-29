@@ -43,7 +43,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   useEffect(() => {
     const handleParentRecalculation = (event: CustomEvent) => {
       const { hierarchyNumber } = event.detail;
-      if (hierarchyNumber && !isRecalculatingParents && !skipRecalc) {
+      // Skip during batch operations or if already recalculating
+      if (hierarchyNumber && !isRecalculatingParents && !skipRecalc && !(window as any).__batchOperationInProgress) {
         setSkipRecalc(true); // Prevent new events during processing
         setTimeout(() => {
           recalculateParentHierarchy(hierarchyNumber);
@@ -104,7 +105,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Debounced parent recalculation when tasks change
   useEffect(() => {
-    if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc) return;
+    // Skip if batch operation is in progress or other skip conditions
+    if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc || (window as any).__batchOperationInProgress) return;
     
     const recalculateParents = async () => {
       console.log('🔄 Auto-recalculating parent tasks');
@@ -146,8 +148,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       }
     };
     
-    // Debounce to prevent rapid recalculations
-    const timeoutId = setTimeout(recalculateParents, 500);
+    // Increase debounce during batch operations for stability
+    const debounceMs = (window as any).__batchOperationInProgress ? 2000 : 500;
+    const timeoutId = setTimeout(recalculateParents, debounceMs);
     return () => clearTimeout(timeoutId);
   }, [tasks, updateTask, queryClient, projectId, user?.id, isRecalculatingParents, skipRecalc]);
 
@@ -745,10 +748,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Step 1: Apply hierarchy updates to shift existing tasks using ORIGINAL data
       if (hierarchyUpdates.length > 0) {
         console.log("📊 Applying hierarchy updates:", hierarchyUpdates.length);
-        // Use original tasks to avoid cache collision
+        // Use original tasks to avoid cache collision and force ordered execution
         await bulkUpdateHierarchies.mutateAsync({
           updates: hierarchyUpdates,
           originalTasks,
+          ordered: true, // Force ordered execution for add above operations
           options: { suppressInvalidate: true }
         });
       }

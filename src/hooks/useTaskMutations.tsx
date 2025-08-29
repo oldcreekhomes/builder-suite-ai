@@ -80,8 +80,8 @@ export const useTaskMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task created successfully');
       
-      // Trigger parent recalculation for new task
-      if (data.hierarchy_number) {
+      // Skip parent recalculation if batch operation is in progress
+      if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task created, triggering parent recalculation for:', data.hierarchy_number);
         window.dispatchEvent(new CustomEvent('recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
@@ -193,9 +193,9 @@ export const useTaskMutations = (projectId: string) => {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
-      // Only trigger parent recalculation if not suppressed and dates/duration changed
+      // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
-      if (data.hierarchy_number && dateFieldsChanged && !variables.suppressInvalidate) {
+      if (data.hierarchy_number && dateFieldsChanged && !variables.suppressInvalidate && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
         window.dispatchEvent(new CustomEvent('recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
@@ -229,8 +229,8 @@ export const useTaskMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       toast.success('Task deleted successfully');
       
-      // Trigger parent recalculation for deleted task
-      if (data.hierarchy_number) {
+      // Skip parent recalculation if batch operation is in progress
+      if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task deleted, triggering parent recalculation for:', data.hierarchy_number);
         window.dispatchEvent(new CustomEvent('recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
