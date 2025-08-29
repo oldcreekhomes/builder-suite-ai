@@ -732,34 +732,24 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         return updatedTasks;
       });
 
-      // Use atomic database function for instant hierarchy shifting
-      console.log("🔄 Starting atomic add above operation...");
+      // Use bulk mutations instead of RPC to properly handle hierarchy updates
+      console.log("🔄 Starting add above operation with bulk mutations...");
       
-      // Use atomic RPC function for instant hierarchy shifting
       const startString = formatYMD(startDate) + 'T00:00:00+00:00';
       const endString = formatYMD(endDate) + 'T00:00:00+00:00';
       
-      const { data: newTaskId, error } = await supabase.rpc('add_task_above_atomic', {
-        project_id_param: projectId,
-        target_hierarchy_param: newTaskHierarchy,
-        task_name_param: "New Task",
-        start_date_param: startString,
-        end_date_param: endString,
-        duration_param: 1,
-        progress_param: 0,
-        predecessor_param: [],
-        resources_param: null
-      });
-
-      if (error) {
-        throw new Error(error.message);
+      // Step 1: Apply hierarchy updates to shift existing tasks
+      if (hierarchyUpdates.length > 0) {
+        console.log("📊 Applying hierarchy updates:", hierarchyUpdates.length);
+        await bulkUpdateHierarchies.mutateAsync({
+          updates: hierarchyUpdates,
+          options: { suppressInvalidate: true }
+        });
       }
-
-      console.log("✅ Atomic add above completed, new task ID:", newTaskId);
-
-      // Handle any remaining predecessor updates separately if needed
+      
+      // Step 2: Apply predecessor updates
       if (predecessorUpdates.length > 0) {
-        console.log("🔄 Updating predecessors separately...");
+        console.log("🔗 Applying predecessor updates:", predecessorUpdates.length);
         const predecessorBulkUpdates = predecessorUpdates.map(update => ({
           id: update.taskId,
           predecessor: update.newPredecessors
@@ -769,22 +759,39 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           options: { suppressInvalidate: true } 
         });
       }
-
-      // Create new task object to replace optimistic one
-      const newTask: ProjectTask = {
-        id: newTaskId,
+      
+      // Step 3: Create the new task at the target hierarchy position
+      console.log("➕ Creating new task at hierarchy:", newTaskHierarchy);
+      const createdTask = await createTask.mutateAsync({
         project_id: projectId,
         task_name: "New Task",
         start_date: startString,
         end_date: endString,
         duration: 1,
         progress: 0,
-        predecessor: undefined,
-        resources: undefined,
         hierarchy_number: newTaskHierarchy,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        predecessor: [],
+        resources: null
+      });
+
+      console.log("✅ Add above operation completed, new task ID:", createdTask.id);
+
+      // Create new task object to replace optimistic one
+      const newTask: ProjectTask = {
+        id: createdTask.id,
+        project_id: createdTask.project_id,
+        task_name: createdTask.task_name,
+        start_date: createdTask.start_date,
+        end_date: createdTask.end_date,
+        duration: createdTask.duration,
+        progress: createdTask.progress || 0,
+        predecessor: createdTask.predecessor as string | string[] | undefined,
+        resources: createdTask.resources || undefined,
+        hierarchy_number: createdTask.hierarchy_number,
+        created_at: createdTask.created_at,
+        updated_at: createdTask.updated_at,
         confirmed: true,
+        notes: createdTask.notes || undefined
       };
 
       // Replace optimistic task with real task
