@@ -686,6 +686,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Set batch operation flag to suppress real-time updates
       (window as any).__batchOperationInProgress = true;
 
+      // CRITICAL: Capture original tasks BEFORE any optimistic updates to avoid cache collisions
+      const originalTasks = queryClient.getQueryData(['project-tasks', projectId, user?.id]) as ProjectTask[] || [];
+      console.log("📸 Captured original tasks snapshot:", originalTasks.length);
+
       // Create optimistic task immediately with business day logic
       const startDate = ensureBusinessDay(today());
       const endDate = calculateBusinessEndDate(startDate, 1);
@@ -738,11 +742,13 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const startString = formatYMD(startDate) + 'T00:00:00+00:00';
       const endString = formatYMD(endDate) + 'T00:00:00+00:00';
       
-      // Step 1: Apply hierarchy updates to shift existing tasks
+      // Step 1: Apply hierarchy updates to shift existing tasks using ORIGINAL data
       if (hierarchyUpdates.length > 0) {
         console.log("📊 Applying hierarchy updates:", hierarchyUpdates.length);
+        // Use original tasks to avoid cache collision
         await bulkUpdateHierarchies.mutateAsync({
           updates: hierarchyUpdates,
+          originalTasks,
           options: { suppressInvalidate: true }
         });
       }
@@ -812,7 +818,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       // Rollback optimistic update on error
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-      toast.error("Failed to add task above");
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to add task above: ${errorMessage}`);
     } finally {
       // Clear batch operation flag
       (window as any).__batchOperationInProgress = false;
