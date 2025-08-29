@@ -183,9 +183,13 @@ export const useTaskMutations = (projectId: string) => {
       console.log('🔧 Database update successful:', data);
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       console.log('🔧 Task update success with data:', data);
       console.log('🔧 Variables:', variables);
+      
+      // Add task to pending updates to ignore realtime echoes
+      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+      addPendingUpdate(data.id);
       
       // Only invalidate cache if not suppressed (for bulk operations)
       if (!variables.suppressInvalidate) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
@@ -35,9 +35,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
-  // Add flags to prevent infinite loops
+  // Add flags to prevent infinite loops  
   const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
   const [skipRecalc, setSkipRecalc] = useState(false);
+  const hasNormalizedRef = useRef(false);
+  const lastAutoRecalcAtRef = useRef(0);
   
   // Listen for parent recalculation events from mutations
   useEffect(() => {
@@ -57,15 +59,16 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     return () => window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
   }, [isRecalculatingParents, skipRecalc]);
 
-  // Auto-normalize hierarchy on load if needed
+  // Auto-normalize hierarchy on load if needed (run only once per project load)
   useEffect(() => {
     const autoNormalize = async () => {
-      if (!tasks || tasks.length === 0 || (window as any).__batchOperationInProgress) return;
+      if (!tasks || tasks.length === 0 || hasNormalizedRef.current || (window as any).__batchOperationInProgress) return;
       
       const { needsNormalization, computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
       
       if (needsNormalization(tasks)) {
-        console.log('🔢 Auto-normalizing hierarchy on load');
+        console.log('🔢 Normalization run: yes');
+        hasNormalizedRef.current = true;
         (window as any).__batchOperationInProgress = true;
         
         try {
@@ -74,7 +77,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           if (normalizationResult.hierarchyUpdates.length > 0) {
             await bulkUpdateHierarchies.mutateAsync({ 
               updates: normalizationResult.hierarchyUpdates, 
-              options: { suppressInvalidate: true } 
+              options: { suppressInvalidate: true },
+              ordered: true // Use ordered execution to reduce constraint edge cases
             });
           }
           
@@ -95,6 +99,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         } finally {
           (window as any).__batchOperationInProgress = false;
         }
+      } else {
+        console.log('🔢 Normalization run: no');
       }
     };
     
@@ -103,15 +109,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     return () => clearTimeout(timeoutId);
   }, [tasks, projectId, user?.id]);
 
-  // Debounced parent recalculation when tasks change
+  // Debounced parent recalculation when tasks change  
   useEffect(() => {
     // Skip if batch operation is in progress or other skip conditions
     if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc || (window as any).__batchOperationInProgress) return;
     
+    // Add cooldown to prevent repeated executions
+    const now = Date.now();
+    if (now - lastAutoRecalcAtRef.current < 3000) { // 3s cooldown
+      return;
+    }
+    
     const recalculateParents = async () => {
-      console.log('🔄 Auto-recalculating parent tasks');
+      console.log('🔄 Auto-recalc starting');
+      lastAutoRecalcAtRef.current = Date.now();
       
-      // Find all parent tasks that have children
+      // Find all parent tasks that have children and need updates
       const parentTasks = tasks.filter(task => {
         if (!task.hierarchy_number) return false;
         return tasks.some(child => 
@@ -119,14 +132,29 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         );
       });
       
-      if (parentTasks.length === 0) return;
+      // Compute the set of parents that actually need an update
+      const parentsToUpdate = parentTasks.filter(parentTask => {
+        const calculations = calculateParentTaskValues(parentTask, tasks);
+        return calculations && shouldUpdateParentTask(parentTask, calculations);
+      });
       
+      if (parentsToUpdate.length === 0) {
+        console.log('🔄 Auto-recalc skip (none needed)');
+        return;
+      }
+      
+      console.log(`🔄 Auto-recalc starting, parentsToUpdate: ${parentsToUpdate.length}`);
       setIsRecalculatingParents(true);
       
       try {
-        for (const parentTask of parentTasks) {
+        // Add pending updates to ignore realtime echoes
+        const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+        
+        for (const parentTask of parentsToUpdate) {
+          addPendingUpdate(parentTask.id); // Mark as pending local update
+          
           const calculations = calculateParentTaskValues(parentTask, tasks);
-          if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
+          if (calculations) {
             console.log(`🔄 Updating parent: ${parentTask.task_name}`, calculations);
             await updateTask.mutateAsync({
               id: parentTask.id,
@@ -139,8 +167,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           }
         }
         
-        // Invalidate queries once at the end
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        // REMOVED: Manual queryClient.invalidateQueries - rely on realtime to bring fresh data
       } catch (error) {
         console.error('❌ Failed to recalculate parents:', error);
       } finally {
@@ -148,11 +175,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       }
     };
     
-    // Increase debounce during batch operations for stability
-    const debounceMs = (window as any).__batchOperationInProgress ? 2000 : 500;
+    // Increased debounce for stability
+    const debounceMs = 1500;
     const timeoutId = setTimeout(recalculateParents, debounceMs);
     return () => clearTimeout(timeoutId);
-  }, [tasks, updateTask, queryClient, projectId, user?.id, isRecalculatingParents, skipRecalc]);
+  }, [tasks, updateTask, projectId, user?.id, isRecalculatingParents, skipRecalc]);
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
@@ -363,6 +390,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         predecessorUpdates: result.predecessorUpdates.length
       });
       
+      // Add affected task ids to pending set to ignore realtime echoes
+      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+      result.hierarchyUpdates.forEach(update => addPendingUpdate(update.id));
+      
       // Apply optimistic update to cache first for instant UI feedback
       const optimisticTasks = originalTasks.map(t => {
         const hierarchyUpdate = result.hierarchyUpdates.find(u => u.id === t.id);
@@ -381,6 +412,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       // Apply predecessor updates if needed
       if (result.predecessorUpdates.length > 0) {
+        result.predecessorUpdates.forEach(update => addPendingUpdate(update.taskId));
         const predecessorUpdates = result.predecessorUpdates.map(update => ({
           id: update.taskId,
           predecessor: update.newPredecessors
@@ -439,6 +471,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
     
     try {
+      // Add affected task ids to pending set to ignore realtime echoes
+      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+      updates.forEach(update => addPendingUpdate(update.id));
+      
       // Apply optimistic update to cache first for instant UI feedback
       const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
       const optimisticTasks = currentTasks.map(t => {

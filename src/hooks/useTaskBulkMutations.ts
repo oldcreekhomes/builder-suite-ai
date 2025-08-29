@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { ProjectTask } from "./useProjectTasks";
+import { toast } from "sonner";
 
 interface BulkHierarchyUpdate {
   id: string;
@@ -182,13 +183,18 @@ export const useTaskBulkMutations = (projectId: string) => {
       console.log('✅ Smart hierarchy update completed for', results.length, 'tasks');
       return results;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
+      // Add all updated tasks to pending set to ignore realtime echoes  
+      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+      variables.updates.forEach(update => addPendingUpdate(update.id));
+      
       if (!variables.options?.suppressInvalidate) {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
     },
     onError: (error) => {
       console.error('Bulk hierarchy update failed:', error);
+      toast.error('Failed to update task positions');
     },
   });
 

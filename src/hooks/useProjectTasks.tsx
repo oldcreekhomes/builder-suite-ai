@@ -24,6 +24,37 @@ export interface ProjectTask {
 // Global subscription manager to prevent duplicate subscriptions
 const subscriptionManager = new Map<string, any>();
 
+// Global pending local updates manager (TTL-based to ignore realtime echoes)
+declare global {
+  interface Window {
+    __pendingLocalUpdates?: Map<string, number>;
+  }
+}
+
+const getPendingUpdates = () => {
+  if (!window.__pendingLocalUpdates) {
+    window.__pendingLocalUpdates = new Map();
+  }
+  return window.__pendingLocalUpdates;
+};
+
+export const addPendingUpdate = (taskId: string, ttlMs = 2000) => {
+  const pending = getPendingUpdates();
+  pending.set(taskId, Date.now() + ttlMs);
+};
+
+const isPendingUpdate = (taskId: string) => {
+  const pending = getPendingUpdates();
+  const expireTime = pending.get(taskId);
+  if (!expireTime) return false;
+  
+  if (Date.now() > expireTime) {
+    pending.delete(taskId);
+    return false;
+  }
+  return true;
+};
+
 export const useProjectTasks = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -57,6 +88,13 @@ export const useProjectTasks = (projectId: string) => {
         },
         (payload) => {
           console.log('Real-time task update received:', payload);
+          
+          // Check if this is our own write (ignore local echoes)
+          const recordId = (payload.new as any)?.id || (payload.old as any)?.id;
+          if (recordId && isPendingUpdate(recordId)) {
+            console.log('🚫 Realtime payload ignored (local write) for id:', recordId);
+            return;
+          }
           
           // Check if Syncfusion or batch operation is in progress - if so, skip real-time updates
           const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
