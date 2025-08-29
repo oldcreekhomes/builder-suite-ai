@@ -86,7 +86,7 @@ export function CostCodesTable({
                 return a.localeCompare(b);
               })
               .flatMap(([groupKey, groupCostCodes]) => {
-                const rows = [];
+                const rows: JSX.Element[] = [];
                 
                 // Add group header row if not ungrouped
                 if (groupKey !== 'ungrouped') {
