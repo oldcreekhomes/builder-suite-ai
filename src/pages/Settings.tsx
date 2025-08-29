@@ -3,6 +3,7 @@ import React from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
@@ -27,6 +28,8 @@ import { useSettingsDialogs } from "@/hooks/useSettingsDialogs";
 import type { CostCode, SpecificationWithCostCode } from "@/types/settings";
 
 const Settings = () => {
+  const { openFloatingChat } = useFloatingChat();
+  
   const {
     costCodes,
     loading,
@@ -105,7 +108,7 @@ const Settings = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
+        <AppSidebar onStartChat={openFloatingChat} />
         <main className="flex-1 flex flex-col">
           <DashboardHeader />
           <div className="flex-1 p-6">
