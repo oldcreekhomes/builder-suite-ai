@@ -85,10 +85,14 @@ export function CostCodesTable({
                 if (b === 'ungrouped') return 1;
                 return a.localeCompare(b);
               })
-              .map(([groupKey, groupCostCodes]) => (
-                <React.Fragment key={`group-${groupKey}`}>
-                  {groupKey !== 'ungrouped' && (
+              .flatMap(([groupKey, groupCostCodes]) => {
+                const rows = [];
+                
+                // Add group header row if not ungrouped
+                if (groupKey !== 'ungrouped') {
+                  rows.push(
                     <CostCodeGroupRow
+                      key={`group-${groupKey}`}
                       groupKey={groupKey}
                       parentCostCode={getParentCostCode(groupKey)}
                       isCollapsed={collapsedGroups.has(groupKey)}
@@ -99,29 +103,33 @@ export function CostCodesTable({
                       onDelete={onDeleteCostCode}
                       onUpdate={onUpdateCostCode}
                     />
-                  )}
-                  {/* Show child cost codes when group is expanded or ungrouped */}
-                  {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
-                    groupCostCodes
-                      .filter(costCode => {
-                        // Only show child codes (not the parent code itself in the child list)
-                        return !parentCodes.has(costCode.code);
-                      })
-                      .map((costCode) => (
-                        <CostCodeTableRow
-                          key={`row-${costCode.id}`}
-                          costCode={costCode}
-                          isSelected={selectedCostCodes.has(costCode.id)}
-                          onSelect={onCostCodeSelect}
-                          onEdit={onEditCostCode}
-                          onDelete={onDeleteCostCode}
-                          onUpdate={onUpdateCostCode}
-                          isGrouped={groupKey !== 'ungrouped'}
-                        />
-                      ))
-                  }
-                </React.Fragment>
-              ))
+                  );
+                }
+                
+                // Add child cost codes when group is expanded or ungrouped
+                if (groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) {
+                  const childRows = groupCostCodes
+                    .filter(costCode => {
+                      // Only show child codes (not the parent code itself in the child list)
+                      return !parentCodes.has(costCode.code);
+                    })
+                    .map((costCode) => (
+                      <CostCodeTableRow
+                        key={`row-${costCode.id}`}
+                        costCode={costCode}
+                        isSelected={selectedCostCodes.has(costCode.id)}
+                        onSelect={onCostCodeSelect}
+                        onEdit={onEditCostCode}
+                        onDelete={onDeleteCostCode}
+                        onUpdate={onUpdateCostCode}
+                        isGrouped={groupKey !== 'ungrouped'}
+                      />
+                    ));
+                  rows.push(...childRows);
+                }
+                
+                return rows;
+              })
           )}
         </TableBody>
       </Table>
