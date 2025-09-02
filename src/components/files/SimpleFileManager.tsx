@@ -66,7 +66,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
             });
           }
         } else {
-          // It's a subfolder
+          // It's a subfolder or folderkeeper file
           const folderName = remainingPath.substring(0, nextSlash);
           folders.add(folderName);
         }
@@ -84,7 +84,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
             });
           }
         } else {
-          // Root level folder
+          // Root level folder or folderkeeper file
           const folderName = filePath.substring(0, firstSlash);
           folders.add(folderName);
         }
