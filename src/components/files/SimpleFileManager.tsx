@@ -339,10 +339,14 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const processFiles = async (files: File[]) => {
     const validFiles = files.filter(isValidFile);
     if (validFiles.length === 0) {
-      useToastHook({
-        title: "No Valid Files",
-        description: "No valid files found to upload",
-      });
+      // Don't show generic "No Valid Files" message if files were rejected due to size
+      const hasOversizedFiles = files.some(f => f.size > MAX_FILE_SIZE);
+      if (!hasOversizedFiles) {
+        useToastHook({
+          title: "No Valid Files",
+          description: "No valid files found to upload",
+        });
+      }
       return;
     }
 
