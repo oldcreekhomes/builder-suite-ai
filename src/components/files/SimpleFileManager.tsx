@@ -321,14 +321,23 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         .select('id, original_filename, file_type')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .or(`original_filename.like.${folderPath}/%,original_filename.eq.${folderPath}/.folderkeeper`);
+        .eq('original_filename', `${folderPath}/.folderkeeper`);
 
-      const folderExists = existingFiles && existingFiles.some(file => 
-        file.original_filename.startsWith(`${folderPath}/`) ||
-        file.original_filename === `${folderPath}/.folderkeeper`
-      );
+      if (existingFiles && existingFiles.length > 0) {
+        toast.error('A folder with this name already exists');
+        return;
+      }
 
-      if (folderExists) {
+      // Also check if there are any files in this folder path
+      const { data: folderFiles } = await supabase
+        .from('project_files')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false)
+        .like('original_filename', `${folderPath}/%`)
+        .limit(1);
+
+      if (folderFiles && folderFiles.length > 0) {
         toast.error('A folder with this name already exists');
         return;
       }
