@@ -91,6 +91,18 @@ export function FileUploadDropzone({
     const fileName = file.name;
     const systemFiles = ['.DS_Store', 'Thumbs.db'];
     const hiddenFiles = fileName.startsWith('.');
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+    // Check file size limit
+    if (file.size > MAX_FILE_SIZE) {
+      console.log('File rejected - over size limit:', fileName, 'size:', file.size);
+      toast({
+        title: "ERROR File over 50 MB's",
+        description: "Please reduce file size.",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     // Allow .gitignore and .gitkeep as they're legitimate files
     if (fileName === '.gitignore' || fileName === '.gitkeep') {
@@ -119,13 +131,16 @@ export function FileUploadDropzone({
       size: f.size
     })));
 
-    // Filter out invalid files (system files, hidden files, empty files)
+    // Filter out invalid files (system files, hidden files, empty files, oversized files)
     const validFiles = files.filter(isValidFile);
-    if (validFiles.length === 0) {
+    if (validFiles.length === 0 && !files.some(f => f.size > 50 * 1024 * 1024)) {
       toast({
         title: "No Valid Files",
         description: "No valid files found to upload (system files like .DS_Store are filtered out)"
       });
+      return;
+    } else if (validFiles.length === 0) {
+      // Don't show "No Valid Files" if files were rejected due to size - the size error was already shown
       return;
     }
     if (validFiles.length < files.length) {

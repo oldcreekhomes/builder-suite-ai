@@ -32,6 +32,17 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
   const uploadPhoto = async (file: File, relativePath: string = '') => {
     if (!user) return false;
 
+    // Check file size limit (50MB)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "ERROR File over 50 MB's",
+        description: "Please reduce file size.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     try {
       // Convert HEIC files to JPEG before upload - STRICT: no upload if conversion fails
       const conversionResult: ConversionResult = await convertHeicToJpeg(file);

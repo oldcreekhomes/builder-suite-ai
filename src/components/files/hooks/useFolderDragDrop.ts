@@ -143,8 +143,20 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     const fileName = file.name;
     const systemFiles = ['.DS_Store', 'Thumbs.db', '.gitkeep', '.gitignore'];
     const hiddenFiles = fileName.startsWith('.');
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     
     console.log('Validating file:', fileName, 'size:', file.size);
+    
+    // Check file size limit
+    if (file.size > MAX_FILE_SIZE) {
+      console.log('File rejected - over size limit:', fileName, 'size:', file.size);
+      toast({
+        title: "ERROR File over 50 MB's",
+        description: "Please reduce file size.",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     // Allow .gitignore and .gitkeep as they're legitimate files
     if (fileName === '.gitignore' || fileName === '.gitkeep') {
@@ -211,10 +223,14 @@ export const useFolderDragDrop = ({ uploadFileToFolder, onRefresh }: UseFolderDr
     
     if (filesWithPaths.length === 0) {
       console.log('No valid files found');
-      toast({
-        title: "No Valid Files",
-        description: "No valid files found to upload (system files like .DS_Store are filtered out)",
-      });
+      // Don't show generic "No Valid Files" message if files were rejected due to size
+      const hasOversizedFiles = Array.from(e.dataTransfer.files).some(f => f.size > 50 * 1024 * 1024);
+      if (!hasOversizedFiles) {
+        toast({
+          title: "No Valid Files",
+          description: "No valid files found to upload (system files like .DS_Store are filtered out)",
+        });
+      }
       return;
     }
 
