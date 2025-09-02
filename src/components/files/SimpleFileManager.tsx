@@ -312,23 +312,71 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       }
 
       const folderPath = currentPath ? `${currentPath}/${trimmedFolderName}` : trimmedFolderName;
+      const fileName = `${folderPath}/.folderkeeper`;
+      const storageFileName = `${projectId}/${fileName}`;
       
-      // Check if folder already exists by looking for:
-      // 1. Files with this exact folder path (existing files in the folder)
-      // 2. Folderkeeper file for this folder
-      const { data: existingFiles } = await supabase
+      console.log(`🔍 Creating folder "${trimmedFolderName}" at path: "${folderPath}"`);
+      
+      // Step 1: Check if folder already exists in database
+      const { data: existingDBFiles } = await supabase
         .from('project_files')
         .select('id, original_filename, file_type')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .eq('original_filename', `${folderPath}/.folderkeeper`);
+        .eq('original_filename', fileName);
 
-      if (existingFiles && existingFiles.length > 0) {
+      // Step 2: Check if storage file exists
+      const { data: storageFile, error: storageError } = await supabase.storage
+        .from('project-files')
+        .download(storageFileName);
+      
+      const storageExists = storageFile && !storageError;
+      console.log(`📁 Storage check: ${storageExists ? 'EXISTS' : 'NOT FOUND'}`);
+      console.log(`🗄️ Database check: ${existingDBFiles?.length ? 'EXISTS' : 'NOT FOUND'}`);
+
+      // Step 3: Handle different scenarios
+      if (existingDBFiles && existingDBFiles.length > 0) {
+        // Folder exists in database - show error
+        console.log('❌ Folder already exists in database');
         toast.error('A folder with this name already exists');
         return;
       }
 
-      // Also check if there are any files in this folder path
+      if (storageExists) {
+        // Storage file exists but no DB record - auto-heal by creating DB record
+        console.log('🔧 Auto-healing: Storage exists but no DB record, creating DB entry...');
+        
+        const { error: healError } = await supabase
+          .from('project_files')
+          .insert({
+            project_id: projectId,
+            filename: storageFileName,
+            original_filename: fileName,
+            file_type: 'folderkeeper',
+            mime_type: 'text/plain',
+            file_size: 0,
+            storage_path: storageFileName.replace(`${projectId}/`, ''),
+            uploaded_by: user.id,
+          });
+
+        if (healError) {
+          console.error('❌ Auto-heal failed:', healError);
+          toast.error(`Failed to create folder: ${healError.message}`);
+          return;
+        }
+
+        console.log('✅ Auto-heal successful');
+        refetch();
+        toast.success('Folder created successfully');
+        setShowNewFolderModal(false);
+        
+        if (onUploadSuccess) {
+          onUploadSuccess();
+        }
+        return;
+      }
+
+      // Step 4: Check if there are any files in this folder path (existing folder without folderkeeper)
       const { data: folderFiles } = await supabase
         .from('project_files')
         .select('id')
@@ -338,29 +386,17 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         .limit(1);
 
       if (folderFiles && folderFiles.length > 0) {
+        console.log('❌ Folder path already has files');
         toast.error('A folder with this name already exists');
         return;
       }
 
-      // Also check if the storage file exists (in case DB record is missing)
-      const folderKeeperPath = `${projectId}/${folderPath}/.folderkeeper`;
-      const { data: storageCheck } = await supabase.storage
-        .from('project-files')
-        .list(projectId, {
-          search: `${folderPath}/.folderkeeper`
-        });
-
-      if (storageCheck && storageCheck.length > 0) {
-        toast.error('A folder with this name already exists');
-        return;
-      }
+      // Step 5: Create new folder (both storage and database)
+      console.log('📝 Creating new folder...');
       
-      // Create a folderkeeper file to represent the folder
+      // Create folderkeeper file
       const folderKeeperContent = new Blob([''], { type: 'text/plain' });
       const folderKeeperFile = new File([folderKeeperContent], '.folderkeeper', { type: 'text/plain' });
-      
-      const fileName = `${folderPath}/.folderkeeper`;
-      const storageFileName = `${projectId}/${fileName}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
@@ -369,15 +405,48 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         });
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        console.error('❌ Storage upload error:', uploadError);
+        
+        // Handle the case where storage upload fails due to existing file
         if (uploadError.message?.includes('already exists') || uploadError.message?.includes('duplicate')) {
-          toast.error('A folder with this name already exists');
+          console.log('🔄 Storage file already exists, attempting auto-heal...');
+          
+          // Try to create just the DB record since storage already exists
+          const { error: dbError } = await supabase
+            .from('project_files')
+            .insert({
+              project_id: projectId,
+              filename: storageFileName,
+              original_filename: fileName,
+              file_type: 'folderkeeper',
+              mime_type: 'text/plain',
+              file_size: 0,
+              storage_path: storageFileName.replace(`${projectId}/`, ''),
+              uploaded_by: user.id,
+            });
+
+          if (dbError) {
+            console.error('❌ DB record creation failed:', dbError);
+            toast.error(`Failed to create folder: ${dbError.message}`);
+            return;
+          }
+
+          console.log('✅ Auto-heal successful after storage conflict');
+          refetch();
+          toast.success('Folder created successfully');
+          setShowNewFolderModal(false);
+          
+          if (onUploadSuccess) {
+            onUploadSuccess();
+          }
+          return;
         } else {
           toast.error(`Failed to create folder: ${uploadError.message}`);
+          return;
         }
-        return;
       }
 
+      // Step 6: Create database record
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
@@ -392,13 +461,14 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         });
 
       if (dbError) {
-        console.error('Database insert error:', dbError);
+        console.error('❌ Database insert error:', dbError);
         // Try to clean up the storage file if DB insert failed
         await supabase.storage.from('project-files').remove([storageFileName]);
         toast.error(`Failed to create folder: ${dbError.message}`);
         return;
       }
 
+      console.log('✅ Folder created successfully');
       refetch();
       toast.success('Folder created successfully');
       setShowNewFolderModal(false);
@@ -407,7 +477,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         onUploadSuccess();
       }
     } catch (error) {
-      console.error('Error creating folder:', error);
+      console.error('❌ Error creating folder:', error);
       toast.error(`Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
