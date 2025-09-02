@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FolderPlus, FileText, FolderOpen, Archive, X } from 'lucide-react';
+import { FolderPlus, FileText, FolderOpen, Archive, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -34,6 +34,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     progress: number;
     uploading: boolean;
     relativePath: string;
+    xhr?: XMLHttpRequest;
   }>>([]);
   const { user } = useAuth();
   const { toast: useToastHook } = useToast();
@@ -138,6 +139,8 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   };
 
   // File upload helpers
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+
   const isValidFile = (file: File) => {
     const fileName = file.name;
     const systemFiles = ['.DS_Store', 'Thumbs.db'];
@@ -154,6 +157,17 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     if (file.size === 0) {
       return false;
     }
+
+    // Check file size limit
+    if (file.size > MAX_FILE_SIZE) {
+      useToastHook({
+        title: "File Too Large",
+        description: `${fileName} is ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum file size is 50MB.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+    
     return true;
   };
 
@@ -162,71 +176,153 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     const fileId = crypto.randomUUID();
     const fileName = `${projectId}/${fileId}_${relativePath || file.name}`;
     
-    // Update progress to show upload starting
-    if (uploadId) {
-      setUploadingFiles(prev => 
-        prev.map(item => 
-          item.id === uploadId ? { ...item, progress: 10, uploading: true } : item
-        )
-      );
-    }
-    
     try {
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Get signed upload URL
+      const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
         .from('project-files')
-        .upload(fileName, file);
+        .createSignedUploadUrl(fileName);
       
-      if (uploadError) throw uploadError;
+      if (signedUrlError) throw signedUrlError;
 
-      // Update progress for storage upload complete
-      if (uploadId) {
-        setUploadingFiles(prev => 
-          prev.map(item => 
-            item.id === uploadId ? { ...item, progress: 80 } : item
-          )
-        );
-      }
-
-      const originalFilename = currentPath ? `${currentPath}/${relativePath || file.name}` : relativePath || file.name;
-
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          project_id: projectId,
-          filename: fileName,
-          original_filename: originalFilename,
-          file_size: file.size,
-          file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
-          mime_type: file.type,
-          storage_path: uploadData.path,
-          uploaded_by: user.id,
-        });
-      
-      if (dbError) throw dbError;
-
-      // Update progress to complete
-      if (uploadId) {
-        setUploadingFiles(prev => 
-          prev.map(item => 
-            item.id === uploadId ? { ...item, progress: 100, uploading: false } : item
-          )
-        );
+      return new Promise<boolean>((resolve) => {
+        const xhr = new XMLHttpRequest();
         
-        // Remove from list after a short delay
-        setTimeout(() => {
-          setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
-        }, 2000);
-      }
+        // Update the upload item with xhr reference
+        if (uploadId) {
+          setUploadingFiles(prev => 
+            prev.map(item => 
+              item.id === uploadId ? { ...item, xhr, uploading: true } : item
+            )
+          );
+        }
 
-      return true;
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable && uploadId) {
+            const progress = Math.round((event.loaded / event.total) * 80); // Use 80% for upload progress
+            setUploadingFiles(prev => 
+              prev.map(item => 
+                item.id === uploadId ? { ...item, progress } : item
+              )
+            );
+          }
+        });
+
+        xhr.addEventListener('load', async () => {
+          if (xhr.status === 200) {
+            try {
+              // Update progress for database save
+              if (uploadId) {
+                setUploadingFiles(prev => 
+                  prev.map(item => 
+                    item.id === uploadId ? { ...item, progress: 90 } : item
+                  )
+                );
+              }
+
+              const originalFilename = currentPath ? `${currentPath}/${relativePath || file.name}` : relativePath || file.name;
+
+              const { error: dbError } = await supabase
+                .from('project_files')
+                .insert({
+                  project_id: projectId,
+                  filename: fileName,
+                  original_filename: originalFilename,
+                  file_size: file.size,
+                  file_type: file.name.split('.').pop()?.toLowerCase() || 'unknown',
+                  mime_type: file.type,
+                  storage_path: fileName,
+                  uploaded_by: user.id,
+                });
+              
+              if (dbError) throw dbError;
+
+              // Update progress to complete
+              if (uploadId) {
+                setUploadingFiles(prev => 
+                  prev.map(item => 
+                    item.id === uploadId ? { ...item, progress: 100, uploading: false, xhr: undefined } : item
+                  )
+                );
+                
+                // Remove from list after a short delay
+                setTimeout(() => {
+                  setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
+                }, 2000);
+              }
+
+              resolve(true);
+            } catch (error) {
+              console.error('Database error:', error);
+              
+              if (uploadId) {
+                setUploadingFiles(prev => 
+                  prev.map(item => 
+                    item.id === uploadId ? { ...item, progress: 0, uploading: false, xhr: undefined } : item
+                  )
+                );
+              }
+              
+              useToastHook({
+                title: "Upload Error",
+                description: `Failed to save ${relativePath || file.name} to database`,
+                variant: "destructive",
+              });
+              resolve(false);
+            }
+          } else {
+            // Upload failed
+            if (uploadId) {
+              setUploadingFiles(prev => 
+                prev.map(item => 
+                  item.id === uploadId ? { ...item, progress: 0, uploading: false, xhr: undefined } : item
+                )
+              );
+            }
+            
+            useToastHook({
+              title: "Upload Error",
+              description: `Failed to upload ${relativePath || file.name}`,
+              variant: "destructive",
+            });
+            resolve(false);
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          if (uploadId) {
+            setUploadingFiles(prev => 
+              prev.map(item => 
+                item.id === uploadId ? { ...item, progress: 0, uploading: false, xhr: undefined } : item
+              )
+            );
+          }
+          
+          useToastHook({
+            title: "Upload Error",
+            description: `Network error uploading ${relativePath || file.name}`,
+            variant: "destructive",
+          });
+          resolve(false);
+        });
+
+        xhr.addEventListener('abort', () => {
+          if (uploadId) {
+            setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
+          }
+          resolve(false);
+        });
+
+        xhr.open('PUT', signedUrl);
+        xhr.send(file);
+      });
     } catch (error) {
       console.error('Upload error:', error);
       
-      // Update progress to show error
       if (uploadId) {
         setUploadingFiles(prev => 
           prev.map(item => 
-            item.id === uploadId ? { ...item, progress: 0, uploading: false } : item
+            item.id === uploadId ? { ...item, progress: 0, uploading: false, xhr: undefined } : item
           )
         );
       }
@@ -250,13 +346,21 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       return;
     }
 
+    // Check if any files are too large (already handled in isValidFile, but double-check)
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0 && validFiles.length === 0) {
+      // All files were oversized
+      return;
+    }
+
     // Add files to upload queue with initial progress
     const uploadItems = validFiles.map(file => ({
       id: crypto.randomUUID(),
       file,
       progress: 0,
       uploading: true,
-      relativePath: file.webkitRelativePath || file.name
+      relativePath: file.webkitRelativePath || file.name,
+      xhr: undefined
     }));
 
     setUploadingFiles(prev => [...prev, ...uploadItems]);
@@ -267,16 +371,29 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     });
 
     // Upload files one by one
+    let successCount = 0;
     for (const uploadItem of uploadItems) {
-      await uploadFile(uploadItem.file, uploadItem.relativePath, uploadItem.id);
+      const success = await uploadFile(uploadItem.file, uploadItem.relativePath, uploadItem.id);
+      if (success) successCount++;
     }
 
-    useToastHook({
-      title: "Upload Complete",
-      description: `Successfully uploaded ${validFiles.length} file(s)`,
-    });
+    if (successCount > 0) {
+      useToastHook({
+        title: "Upload Complete",
+        description: `Successfully uploaded ${successCount} of ${validFiles.length} file(s)`,
+      });
+      handleUploadSuccess();
+    }
+  };
 
-    handleUploadSuccess();
+  const cancelUpload = (uploadId: string) => {
+    setUploadingFiles(prev => {
+      const upload = prev.find(item => item.id === uploadId);
+      if (upload?.xhr) {
+        upload.xhr.abort();
+      }
+      return prev.filter(item => item.id !== uploadId);
+    });
   };
 
   const removeUpload = (uploadId: string) => {
@@ -557,51 +674,56 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   return (
     <div className="flex flex-col h-full">
       {/* Breadcrumb Navigation with Upload Buttons */}
-      <div className="flex items-center justify-between gap-4 p-4 border-b">
-        <SimpleBreadcrumb 
-          currentPath={currentPath} 
-          onPathClick={handleBreadcrumbClick} 
-        />
-        
-        <div className="flex items-center space-x-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Choose Files
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={() => folderInputRef.current?.click()}
-          >
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Choose Folder
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={() => zipInputRef.current?.click()}
-            disabled={processingZip}
-          >
-            <Archive className="h-4 w-4 mr-2" />
-            {processingZip ? "Processing..." : "Choose Zip File"}
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowNewFolderModal(true)}
-          >
-            <FolderPlus className="h-4 w-4 mr-2" />
-            Create Folder
-          </Button>
+      <div className="flex flex-col gap-2 p-4 border-b">
+        <div className="flex items-center justify-between gap-4">
+          <SimpleBreadcrumb 
+            currentPath={currentPath} 
+            onPathClick={handleBreadcrumbClick} 
+          />
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Choose Files
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => folderInputRef.current?.click()}
+            >
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Choose Folder
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => zipInputRef.current?.click()}
+              disabled={processingZip}
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              {processingZip ? "Processing..." : "Choose Zip File"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowNewFolderModal(true)}
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Create Folder
+            </Button>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Maximum file size: 50MB
+        </p>
       </div>
 
       {/* Upload Progress */}
@@ -621,19 +743,35 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
                       </span>
                     </div>
                   </div>
-                  {!upload.uploading && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeUpload(upload.id)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
+                  <div className="flex items-center space-x-1">
+                    {upload.uploading ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => cancelUpload(upload.id)}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        title="Cancel upload"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeUpload(upload.id)}
+                        className="h-6 w-6 p-0"
+                        title="Remove from list"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Maximum file size: 50MB
+            </p>
           </div>
         </div>
       )}
