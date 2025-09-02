@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { FolderPlus, FileText, FolderOpen, Archive } from 'lucide-react';
+import { FolderPlus, FileText, FolderOpen, Archive, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -26,6 +28,13 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const [currentPath, setCurrentPath] = useState<string>('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [processingZip, setProcessingZip] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<Array<{
+    id: string;
+    file: File;
+    progress: number;
+    uploading: boolean;
+    relativePath: string;
+  }>>([]);
   const { user } = useAuth();
   const { toast: useToastHook } = useToast();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
@@ -148,10 +157,19 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     return true;
   };
 
-  const uploadFile = async (file: File, relativePath: string = '') => {
+  const uploadFile = async (file: File, relativePath: string = '', uploadId?: string) => {
     if (!user) return false;
     const fileId = crypto.randomUUID();
     const fileName = `${projectId}/${fileId}_${relativePath || file.name}`;
+    
+    // Update progress to show upload starting
+    if (uploadId) {
+      setUploadingFiles(prev => 
+        prev.map(item => 
+          item.id === uploadId ? { ...item, progress: 10, uploading: true } : item
+        )
+      );
+    }
     
     try {
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -159,6 +177,15 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         .upload(fileName, file);
       
       if (uploadError) throw uploadError;
+
+      // Update progress for storage upload complete
+      if (uploadId) {
+        setUploadingFiles(prev => 
+          prev.map(item => 
+            item.id === uploadId ? { ...item, progress: 80 } : item
+          )
+        );
+      }
 
       const originalFilename = currentPath ? `${currentPath}/${relativePath || file.name}` : relativePath || file.name;
 
@@ -176,9 +203,34 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         });
       
       if (dbError) throw dbError;
+
+      // Update progress to complete
+      if (uploadId) {
+        setUploadingFiles(prev => 
+          prev.map(item => 
+            item.id === uploadId ? { ...item, progress: 100, uploading: false } : item
+          )
+        );
+        
+        // Remove from list after a short delay
+        setTimeout(() => {
+          setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
+        }, 2000);
+      }
+
       return true;
     } catch (error) {
       console.error('Upload error:', error);
+      
+      // Update progress to show error
+      if (uploadId) {
+        setUploadingFiles(prev => 
+          prev.map(item => 
+            item.id === uploadId ? { ...item, progress: 0, uploading: false } : item
+          )
+        );
+      }
+      
       useToastHook({
         title: "Upload Error",
         description: `Failed to upload ${relativePath || file.name}`,
@@ -198,9 +250,25 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       return;
     }
 
-    for (const file of validFiles) {
-      const relativePath = file.webkitRelativePath || file.name;
-      await uploadFile(file, relativePath);
+    // Add files to upload queue with initial progress
+    const uploadItems = validFiles.map(file => ({
+      id: crypto.randomUUID(),
+      file,
+      progress: 0,
+      uploading: true,
+      relativePath: file.webkitRelativePath || file.name
+    }));
+
+    setUploadingFiles(prev => [...prev, ...uploadItems]);
+    
+    useToastHook({
+      title: "Upload Started",
+      description: `Starting upload of ${validFiles.length} file(s)`,
+    });
+
+    // Upload files one by one
+    for (const uploadItem of uploadItems) {
+      await uploadFile(uploadItem.file, uploadItem.relativePath, uploadItem.id);
     }
 
     useToastHook({
@@ -209,6 +277,10 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     });
 
     handleUploadSuccess();
+  };
+
+  const removeUpload = (uploadId: string) => {
+    setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -531,6 +603,40 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Upload Progress */}
+      {uploadingFiles.length > 0 && (
+        <div className="border-b bg-background">
+          <div className="p-4">
+            <h3 className="text-sm font-medium mb-3">Uploading Files</h3>
+            <div className="space-y-2 max-h-32 overflow-auto">
+              {uploadingFiles.map((upload) => (
+                <div key={upload.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                  <div className="flex-1 min-w-0 mr-3">
+                    <p className="text-sm font-medium truncate">{upload.file.name}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Progress value={upload.progress} className="flex-1 h-2" />
+                      <span className="text-xs text-muted-foreground min-w-0">
+                        {upload.progress}%
+                      </span>
+                    </div>
+                  </div>
+                  {!upload.uploading && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeUpload(upload.id)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hidden file inputs */}
       <input 
