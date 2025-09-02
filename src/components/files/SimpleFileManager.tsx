@@ -161,8 +161,8 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     // Check file size limit
     if (file.size > MAX_FILE_SIZE) {
       useToastHook({
-        title: "ERROR File over 50 MB's",
-        description: "Please reduce file size.",
+        title: "ERROR",
+        description: "File over 50 MB's. Please reduce file size.",
         variant: "destructive",
       });
       return false;

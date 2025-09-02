@@ -36,8 +36,8 @@ export function PhotoUploadDropzone({ projectId, onUploadSuccess }: PhotoUploadD
     const MAX_FILE_SIZE = 50 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       toast({
-        title: "ERROR File over 50 MB's",
-        description: "Please reduce file size.",
+        title: "ERROR",
+        description: "File over 50 MB's. Please reduce file size.",
         variant: "destructive",
       });
       return false;

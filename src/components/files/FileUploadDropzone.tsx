@@ -97,8 +97,8 @@ export function FileUploadDropzone({
     if (file.size > MAX_FILE_SIZE) {
       console.log('File rejected - over size limit:', fileName, 'size:', file.size);
       toast({
-        title: "ERROR File over 50 MB's",
-        description: "Please reduce file size.",
+        title: "ERROR",
+        description: "File over 50 MB's. Please reduce file size.",
         variant: "destructive",
       });
       return false;
