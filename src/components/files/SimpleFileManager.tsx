@@ -332,6 +332,19 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         toast.error('A folder with this name already exists');
         return;
       }
+
+      // Also check if the storage file exists (in case DB record is missing)
+      const folderKeeperPath = `${projectId}/${folderPath}/.folderkeeper`;
+      const { data: storageCheck } = await supabase.storage
+        .from('project-files')
+        .list(projectId, {
+          search: `${folderPath}/.folderkeeper`
+        });
+
+      if (storageCheck && storageCheck.length > 0) {
+        toast.error('A folder with this name already exists');
+        return;
+      }
       
       // Create a folderkeeper file to represent the folder
       const folderKeeperContent = new Blob([''], { type: 'text/plain' });
