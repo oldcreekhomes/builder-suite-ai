@@ -60,65 +60,83 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     };
 
-    const handleRecalculateDependents = (event: CustomEvent) => {
-      const { taskId } = event.detail;
-      console.log(`🔄 Manual dependent recalculation requested for task: ${taskId}`);
-      
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-        console.warn(`Task ${taskId} not found for dependent recalculation`);
-        return;
-      }
-
-      // Import the necessary utilities and trigger a cascade
-      Promise.all([
-        import('@/utils/taskCalculations'),
-        import('@/utils/predecessorValidation')
-      ]).then(([taskCalc, predValid]) => {
-        const dependentTasks = taskCalc.getDependentTasks(taskId, tasks);
-        console.log(`📋 Manual cascade: Found ${dependentTasks.length} dependent tasks for ${task.hierarchy_number || task.task_name}`);
-        
-        if (dependentTasks.length > 0) {
-          // Simulate a date change to trigger cascading by using today's date
-          const today = new Date().toISOString().split('T')[0];
-          
-          dependentTasks.forEach(depTask => {
-            const dateUpdate = taskCalc.calculateTaskDatesFromPredecessors(depTask, tasks);
-            if (dateUpdate) {
-              console.log(`🔄 Manual cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
-                `${depTask.start_date.split('T')[0]} → ${dateUpdate.startDate}, ${depTask.end_date.split('T')[0]} → ${dateUpdate.endDate}`);
-              
-              updateTask.mutate({
-                id: depTask.id,
-                start_date: dateUpdate.startDate,
-                end_date: dateUpdate.endDate,
-                duration: dateUpdate.duration,
-                suppressInvalidate: true
-              });
-            }
-          });
-
-          // Refresh cache after all updates
-          setTimeout(() => {
-            console.log('✅ Manual cascade complete - refreshing cache');
-            queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-          }, 300);
-        } else {
-          toast.info(`No dependent tasks found for ${task.hierarchy_number || task.task_name}`);
-        }
-      });
-    };
     
     window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
     window.addEventListener('cascade-complete', handleCascadeComplete);
-    window.addEventListener('recalculate-dependents', handleRecalculateDependents as EventListener);
     
     return () => {
       window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
       window.removeEventListener('cascade-complete', handleCascadeComplete);
-      window.removeEventListener('recalculate-dependents', handleRecalculateDependents as EventListener);
     };
   }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
+
+  // Repair pass on load to fix stale schedules
+  useEffect(() => {
+    if (!tasks || tasks.length === 0 || (window as any).__batchOperationInProgress) return;
+    
+    const repairSchedule = async () => {
+      console.log('🔧 Starting repair pass to fix stale schedules');
+      
+      const { calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
+      const { safeParsePredecessors } = await import('@/utils/predecessorValidation');
+      
+      // Find tasks with predecessors that might need repair
+      const tasksWithPredecessors = tasks.filter(task => {
+        const predecessors = safeParsePredecessors(task.predecessor);
+        return predecessors.length > 0;
+      });
+      
+      console.log(`🔧 Repair pass: Found ${tasksWithPredecessors.length} tasks with predecessors`);
+      
+      const repairUpdates: Array<{ task: ProjectTask; dateUpdate: any }> = [];
+      
+      for (const task of tasksWithPredecessors) {
+        const dateUpdate = calculateTaskDatesFromPredecessors(task, tasks);
+        if (dateUpdate) {
+          const currentStartDate = task.start_date.split('T')[0];
+          const currentEndDate = task.end_date.split('T')[0];
+          
+          if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
+            console.log(`🔧 Repair needed: ${task.hierarchy_number}: ${task.task_name}`, 
+              `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
+            repairUpdates.push({ task, dateUpdate });
+          }
+        }
+      }
+      
+      if (repairUpdates.length > 0) {
+        console.log(`🔧 Repairing ${repairUpdates.length} tasks`);
+        
+        // Batch repair updates
+        for (const { task, dateUpdate } of repairUpdates) {
+          try {
+            await updateTask.mutateAsync({
+              id: task.id,
+              start_date: dateUpdate.startDate,
+              end_date: dateUpdate.endDate,
+              duration: dateUpdate.duration,
+              suppressInvalidate: true,
+              skipCascade: true
+            });
+          } catch (error) {
+            console.error(`❌ Failed to repair task ${task.id}:`, error);
+          }
+        }
+        
+        // Single invalidation after all repairs
+        setTimeout(() => {
+          console.log('✅ Repair pass complete - refreshing cache');
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        }, 300);
+      } else {
+        console.log('🔧 Repair pass: No repairs needed');
+      }
+    };
+    
+    // Debounce repair pass
+    const timeoutId = setTimeout(repairSchedule, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, projectId, user?.id, queryClient, updateTask]);
 
   // Auto-normalize hierarchy on load if needed (run only once per project load)
   useEffect(() => {
@@ -509,9 +527,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
     
     try {
+      console.log('📝 Timeline task update called:', taskId, updates);
       await updateTask.mutateAsync({
         id: taskId,
-        ...updates
+        ...updates,
+        suppressInvalidate: true // Let cascade handle final invalidation
       });
       
       if (!options?.silent) {

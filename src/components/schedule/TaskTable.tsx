@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { TaskRow } from "./TaskRow";
 import { generateHierarchyNumber, canIndent } from "@/utils/hierarchyUtils";
-import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors, getDependentTasks } from "@/utils/taskCalculations";
+import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import * as moveDownUtils from "@/utils/moveDownLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -49,135 +49,49 @@ export function TaskTable({
   onMoveDown
 }: TaskTableProps) {
 
-  // Enhanced onTaskUpdate that also updates parent tasks and handles predecessor dependencies
+  // Enhanced onTaskUpdate that also updates parent tasks
   const handleTaskUpdate = (taskId: string, updates: any, options?: { silent?: boolean }) => {
-    // First update the task itself
+    // Update the task itself (cascade will be handled centrally by useTaskMutations)
     onTaskUpdate(taskId, updates, options);
     
-    // Then immediately update any parent tasks and cascade predecessor changes
-    // Use requestAnimationFrame to ensure the update has been processed
+    // Handle parent task updates for hierarchy changes
     requestAnimationFrame(() => {
-      // Get the current task that was updated
       const updatedTask = tasks.find(t => t.id === taskId);
-      if (!updatedTask) return;
+      if (!updatedTask?.hierarchy_number) return;
       
       // Create a simulated updated tasks array for calculation
       const simulatedTasks = tasks.map(task => 
         task.id === taskId ? { ...task, ...updates } : task
       );
       
-      // Find all tasks that could be parents of the updated task
-      const taskHierarchy = updatedTask.hierarchy_number;
-      if (!taskHierarchy) return;
-      
       // Find parent tasks by checking hierarchy levels
       const parentTasks = tasks.filter(task => {
         if (!task.hierarchy_number || task.id === taskId) return false;
         
-        // Check if this task is a parent of the updated task
-        const taskParts = taskHierarchy.split('.');
+        const taskParts = updatedTask.hierarchy_number.split('.');
         const parentParts = task.hierarchy_number.split('.');
         
-        // Parent should have fewer hierarchy levels
         if (parentParts.length >= taskParts.length) return false;
         
-        // All parent parts should match the beginning of task parts
         return parentParts.every((part, index) => part === taskParts[index]);
       });
       
-      // Update each parent task
+      // Update each parent task if needed
       parentTasks.forEach(parentTask => {
         const calculations = calculateParentTaskValues(parentTask, simulatedTasks);
         if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
           console.log('🔄 Cascading parent update:', parentTask.task_name, 'with calculations:', calculations);
-          // Use a slight delay to ensure the child task update has been processed
           setTimeout(() => {
             onTaskUpdate(parentTask.id, {
               start_date: calculations.startDate,
               end_date: calculations.endDate,
               duration: calculations.duration,
               progress: calculations.progress
-            }, { silent: true }); // Silent update for cascaded parent updates
+            }, { silent: true });
           }, 50);
         }
       });
-      
-      // Handle cascading updates for dependent tasks (tasks that have this task as predecessor)
-      if (updates.start_date || updates.end_date || updates.duration) {
-        cascadeTaskUpdates(taskId, simulatedTasks);
-      }
     });
-  };
-  
-  // Cascade updates to dependent tasks when a task's dates change
-  const cascadeTaskUpdates = (changedTaskId: string, allTasks: ProjectTask[], processedTasks = new Set<string>(), maxDepth = 10) => {
-    // Prevent infinite loops and excessive depth
-    if (processedTasks.has(changedTaskId) || processedTasks.size > maxDepth) {
-      console.log(`⚠️ Cascade stopped for ${changedTaskId}: already processed or max depth reached`);
-      return;
-    }
-    processedTasks.add(changedTaskId);
-    
-    const dependentTasks = getDependentTasks(changedTaskId, allTasks);
-    console.log(`📋 Found ${dependentTasks.length} dependent tasks for ${changedTaskId}:`, 
-      dependentTasks.map(t => `${t.hierarchy_number}: ${t.task_name}`));
-    
-    const tasksToUpdate: Array<{ task: ProjectTask; dateUpdate: any }> = [];
-    
-    dependentTasks.forEach(depTask => {
-      const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
-      if (dateUpdate) {
-        // Check if the dates actually need to change
-        const currentStartDate = depTask.start_date.split('T')[0];
-        const currentEndDate = depTask.end_date.split('T')[0];
-        
-        if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-          console.log(`🔄 Will cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
-            `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
-          tasksToUpdate.push({ task: depTask, dateUpdate });
-        } else {
-          console.log(`⏭️ Skip cascade (no change): ${depTask.hierarchy_number}: ${depTask.task_name}`);
-        }
-      }
-    });
-    
-    // Batch all updates with suppressInvalidate to avoid multiple refreshes
-    tasksToUpdate.forEach(({ task, dateUpdate }) => {
-      onTaskUpdate(task.id, {
-        start_date: dateUpdate.startDate,
-        end_date: dateUpdate.endDate,
-        duration: dateUpdate.duration,
-        suppressInvalidate: true // Suppress individual cache invalidations
-      }, { silent: true });
-    });
-    
-    // If we updated tasks, continue cascading recursively
-    if (tasksToUpdate.length > 0) {
-      // Update the simulated tasks array for further cascading
-      const updatedSimulatedTasks = allTasks.map(task => {
-        const updateInfo = tasksToUpdate.find(u => u.task.id === task.id);
-        return updateInfo ? { 
-          ...task, 
-          start_date: updateInfo.dateUpdate.startDate,
-          end_date: updateInfo.dateUpdate.endDate,
-          duration: updateInfo.dateUpdate.duration
-        } : task;
-      });
-      
-      // Recursively cascade to further dependent tasks
-      setTimeout(() => {
-        tasksToUpdate.forEach(({ task }) => {
-          cascadeTaskUpdates(task.id, updatedSimulatedTasks, new Set(processedTasks), maxDepth);
-        });
-        
-        // Fire single query invalidation after all cascades complete
-        setTimeout(() => {
-          console.log('✅ Cascade complete - refreshing cache');
-          // This will trigger a query invalidation to refresh the UI
-          window.dispatchEvent(new CustomEvent('cascade-complete'));
-        }, 200);
-      }, 50);
-    }
   };
 
   // Helper function to check if a task has children based on hierarchy

@@ -28,6 +28,7 @@ interface UpdateTaskParams {
   hierarchy_number?: string;
   notes?: string;
   suppressInvalidate?: boolean;
+  skipCascade?: boolean;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -191,14 +192,32 @@ export const useTaskMutations = (projectId: string) => {
       const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
       addPendingUpdate(data.id);
       
-      // Only invalidate cache if not suppressed (for bulk operations)
-      if (!variables.suppressInvalidate) {
+      // Check if we need to cascade updates to dependent tasks
+      const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
+      const predecessorChanged = variables.predecessor !== undefined;
+      const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade && !variables.suppressInvalidate;
+      
+      if (shouldCascade) {
+        console.log('🔄 Starting cascade for task:', data.id);
+        
+        // Fetch all tasks for cascade calculations
+        const { data: allTasks } = await supabase
+          .from('project_schedule_tasks')
+          .select('*')
+          .eq('project_id', projectId);
+          
+        if (allTasks) {
+          await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
+        }
+      }
+      
+      // Only invalidate cache if not suppressed (for bulk operations) or after cascade
+      if (!variables.suppressInvalidate || shouldCascade) {
         console.log('✅ Task updated - refreshing cache');
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
       // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
-      const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
       if (data.hierarchy_number && dateFieldsChanged && !variables.suppressInvalidate && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
         window.dispatchEvent(new CustomEvent('recalculate-parents', { 
@@ -246,6 +265,76 @@ export const useTaskMutations = (projectId: string) => {
       toast.error('Failed to delete task');
     },
   });
+
+  // Centralized cascade function
+  const cascadeDependentUpdates = async (changedTaskId: string, allTasks: ProjectTask[]) => {
+    const { getDependentTasks, calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
+    
+    const queue: string[] = [changedTaskId];
+    const processed = new Set<string>();
+    const maxDepth = 25;
+    let depth = 0;
+    
+    console.log(`🔄 Starting cascade for task ${changedTaskId}`);
+    
+    while (queue.length > 0 && depth < maxDepth) {
+      const currentTaskId = queue.shift()!;
+      
+      if (processed.has(currentTaskId)) continue;
+      processed.add(currentTaskId);
+      
+      const dependentTasks = getDependentTasks(currentTaskId, allTasks);
+      console.log(`📋 Cascade depth ${depth}: Found ${dependentTasks.length} dependents for task ${currentTaskId}`);
+      
+      for (const depTask of dependentTasks) {
+        const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
+        if (dateUpdate) {
+          const currentStartDate = depTask.start_date.split('T')[0];
+          const currentEndDate = depTask.end_date.split('T')[0];
+          
+          if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
+            console.log(`🔄 Cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
+              `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
+            
+            try {
+              await updateTask.mutateAsync({
+                id: depTask.id,
+                start_date: dateUpdate.startDate,
+                end_date: dateUpdate.endDate,
+                duration: dateUpdate.duration,
+                suppressInvalidate: true,
+                skipCascade: true
+              });
+              
+              // Update the task in our working array for further calculations
+              const taskIndex = allTasks.findIndex(t => t.id === depTask.id);
+              if (taskIndex !== -1) {
+                allTasks[taskIndex] = {
+                  ...allTasks[taskIndex],
+                  start_date: dateUpdate.startDate + 'T00:00:00',
+                  end_date: dateUpdate.endDate + 'T00:00:00',
+                  duration: dateUpdate.duration
+                };
+              }
+              
+              // Add to queue for further cascading
+              queue.push(depTask.id);
+            } catch (error) {
+              console.error(`❌ Failed to cascade update task ${depTask.id}:`, error);
+            }
+          }
+        }
+      }
+      
+      depth++;
+    }
+    
+    if (depth >= maxDepth) {
+      console.warn(`⚠️ Cascade stopped at max depth ${maxDepth}`);
+    }
+    
+    console.log(`✅ Cascade complete after ${depth} levels`);
+  };
 
   return {
     createTask,

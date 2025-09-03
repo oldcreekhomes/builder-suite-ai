@@ -131,14 +131,6 @@ export function TaskContextMenu({
           Notes
         </ContextMenuItem>
         
-        <ContextMenuItem
-          onClick={() => window.dispatchEvent(new CustomEvent('recalculate-dependents', { detail: { taskId: task.id } }))}
-          className="flex items-center gap-2"
-        >
-          <ArrowDown className="h-4 w-4" />
-          Recalculate Dependents
-        </ContextMenuItem>
-        
         <ContextMenuSeparator />
         
         <TooltipProvider>
