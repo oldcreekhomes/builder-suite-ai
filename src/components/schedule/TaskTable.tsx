@@ -110,12 +110,19 @@ export function TaskTable({
   };
   
   // Cascade updates to dependent tasks when a task's dates change
-  const cascadeTaskUpdates = (changedTaskId: string, allTasks: ProjectTask[], processedTasks = new Set<string>()) => {
-    // Prevent infinite loops
-    if (processedTasks.has(changedTaskId)) return;
+  const cascadeTaskUpdates = (changedTaskId: string, allTasks: ProjectTask[], processedTasks = new Set<string>(), maxDepth = 10) => {
+    // Prevent infinite loops and excessive depth
+    if (processedTasks.has(changedTaskId) || processedTasks.size > maxDepth) {
+      console.log(`⚠️ Cascade stopped for ${changedTaskId}: already processed or max depth reached`);
+      return;
+    }
     processedTasks.add(changedTaskId);
     
     const dependentTasks = getDependentTasks(changedTaskId, allTasks);
+    console.log(`📋 Found ${dependentTasks.length} dependent tasks for ${changedTaskId}:`, 
+      dependentTasks.map(t => `${t.hierarchy_number}: ${t.task_name}`));
+    
+    const tasksToUpdate: Array<{ task: ProjectTask; dateUpdate: any }> = [];
     
     dependentTasks.forEach(depTask => {
       const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
@@ -125,32 +132,52 @@ export function TaskTable({
         const currentEndDate = depTask.end_date.split('T')[0];
         
         if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-          console.log(`🔄 Cascading dependent task update: ${depTask.task_name} due to predecessor change`);
-          
-          // Update the task silently for cascaded updates
-          onTaskUpdate(depTask.id, {
-            start_date: dateUpdate.startDate,
-            end_date: dateUpdate.endDate,
-            duration: dateUpdate.duration
-          }, { silent: true }); // Silent update for cascaded dependent task updates
-          
-          // Update the simulated tasks array for further cascading (convert camelCase to snake_case)
-          const updatedSimulatedTasks = allTasks.map(task => 
-            task.id === depTask.id ? { 
-              ...task, 
-              start_date: dateUpdate.startDate,
-              end_date: dateUpdate.endDate,
-              duration: dateUpdate.duration
-            } : task
-          );
-          
-          // Recursively cascade to further dependent tasks
-          setTimeout(() => {
-            cascadeTaskUpdates(depTask.id, updatedSimulatedTasks, processedTasks);
-          }, 100);
+          console.log(`🔄 Will cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
+            `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
+          tasksToUpdate.push({ task: depTask, dateUpdate });
+        } else {
+          console.log(`⏭️ Skip cascade (no change): ${depTask.hierarchy_number}: ${depTask.task_name}`);
         }
       }
     });
+    
+    // Batch all updates with suppressInvalidate to avoid multiple refreshes
+    tasksToUpdate.forEach(({ task, dateUpdate }) => {
+      onTaskUpdate(task.id, {
+        start_date: dateUpdate.startDate,
+        end_date: dateUpdate.endDate,
+        duration: dateUpdate.duration,
+        suppressInvalidate: true // Suppress individual cache invalidations
+      }, { silent: true });
+    });
+    
+    // If we updated tasks, continue cascading recursively
+    if (tasksToUpdate.length > 0) {
+      // Update the simulated tasks array for further cascading
+      const updatedSimulatedTasks = allTasks.map(task => {
+        const updateInfo = tasksToUpdate.find(u => u.task.id === task.id);
+        return updateInfo ? { 
+          ...task, 
+          start_date: updateInfo.dateUpdate.startDate,
+          end_date: updateInfo.dateUpdate.endDate,
+          duration: updateInfo.dateUpdate.duration
+        } : task;
+      });
+      
+      // Recursively cascade to further dependent tasks
+      setTimeout(() => {
+        tasksToUpdate.forEach(({ task }) => {
+          cascadeTaskUpdates(task.id, updatedSimulatedTasks, new Set(processedTasks), maxDepth);
+        });
+        
+        // Fire single query invalidation after all cascades complete
+        setTimeout(() => {
+          console.log('✅ Cascade complete - refreshing cache');
+          // This will trigger a query invalidation to refresh the UI
+          window.dispatchEvent(new CustomEvent('cascade-complete'));
+        }, 200);
+      }, 50);
+    }
   };
 
   // Helper function to check if a task has children based on hierarchy

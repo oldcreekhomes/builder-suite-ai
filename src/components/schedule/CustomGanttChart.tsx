@@ -54,10 +54,71 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         }, 200);
       }
     };
+
+    const handleCascadeComplete = () => {
+      console.log('✅ Cascade complete event received - refreshing cache');
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+    };
+
+    const handleRecalculateDependents = (event: CustomEvent) => {
+      const { taskId } = event.detail;
+      console.log(`🔄 Manual dependent recalculation requested for task: ${taskId}`);
+      
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        console.warn(`Task ${taskId} not found for dependent recalculation`);
+        return;
+      }
+
+      // Import the necessary utilities and trigger a cascade
+      Promise.all([
+        import('@/utils/taskCalculations'),
+        import('@/utils/predecessorValidation')
+      ]).then(([taskCalc, predValid]) => {
+        const dependentTasks = taskCalc.getDependentTasks(taskId, tasks);
+        console.log(`📋 Manual cascade: Found ${dependentTasks.length} dependent tasks for ${task.hierarchy_number || task.task_name}`);
+        
+        if (dependentTasks.length > 0) {
+          // Simulate a date change to trigger cascading by using today's date
+          const today = new Date().toISOString().split('T')[0];
+          
+          dependentTasks.forEach(depTask => {
+            const dateUpdate = taskCalc.calculateTaskDatesFromPredecessors(depTask, tasks);
+            if (dateUpdate) {
+              console.log(`🔄 Manual cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
+                `${depTask.start_date.split('T')[0]} → ${dateUpdate.startDate}, ${depTask.end_date.split('T')[0]} → ${dateUpdate.endDate}`);
+              
+              updateTask.mutate({
+                id: depTask.id,
+                start_date: dateUpdate.startDate,
+                end_date: dateUpdate.endDate,
+                duration: dateUpdate.duration,
+                suppressInvalidate: true
+              });
+            }
+          });
+
+          // Refresh cache after all updates
+          setTimeout(() => {
+            console.log('✅ Manual cascade complete - refreshing cache');
+            queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+          }, 300);
+        } else {
+          toast.info(`No dependent tasks found for ${task.hierarchy_number || task.task_name}`);
+        }
+      });
+    };
     
     window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
-    return () => window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
-  }, [isRecalculatingParents, skipRecalc]);
+    window.addEventListener('cascade-complete', handleCascadeComplete);
+    window.addEventListener('recalculate-dependents', handleRecalculateDependents as EventListener);
+    
+    return () => {
+      window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
+      window.removeEventListener('cascade-complete', handleCascadeComplete);
+      window.removeEventListener('recalculate-dependents', handleRecalculateDependents as EventListener);
+    };
+  }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
 
   // Auto-normalize hierarchy on load if needed (run only once per project load)
   useEffect(() => {

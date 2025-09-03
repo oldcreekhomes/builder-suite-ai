@@ -119,12 +119,17 @@ export const calculateTaskDatesFromPredecessors = (
   
   // Find the latest end date among all predecessors
   for (const predStr of predecessors) {
-    // Parse predecessor format: "taskId" or "taskId+lag" or "taskId-lag"
-    const match = predStr.match(/^(.+?)([+-]\d+)?$/);
+    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+    const match = predStr.trim().match(/^(.+?)([+-]\d+d?)?$/);
     if (!match) continue;
     
     const predTaskId = match[1].trim();
-    const lagDays = match[2] ? parseInt(match[2]) : 0;
+    // Extract lag days, handling both "+3d"/"-2d" and "+3"/"-2" formats
+    let lagDays = 0;
+    if (match[2]) {
+      const lagStr = match[2].endsWith('d') ? match[2].slice(0, -1) : match[2];
+      lagDays = parseInt(lagStr) || 0;
+    }
     
     // Find the predecessor task by hierarchy number or ID
     const predTask = allTasks.find(t => 
@@ -190,7 +195,8 @@ export const getDependentTasks = (taskId: string, allTasks: ProjectTask[]): Proj
       const predecessors = safeParsePredecessors(t.predecessor);
       
       const isDependent = predecessors.some(predStr => {
-        const match = predStr.match(/^(.+?)([+-]\d+)?$/);
+        // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+        const match = predStr.trim().match(/^(.+?)([+-]\d+d?)?$/);
         if (!match) return false;
         const predTaskId = match[1].trim();
         return predTaskId === taskId || predTaskId === taskHierarchy;

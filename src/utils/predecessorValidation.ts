@@ -52,21 +52,33 @@ export interface ValidationResult {
 export function parsePredecessors(predecessors: any, allTasks: ProjectTask[]): ParsedPredecessor[] {
   const predecessorArray = safeParsePredecessors(predecessors);
   return predecessorArray.map(pred => {
-    const parts = pred.split('+');
-    const taskId = parts[0];
-    const lagPart = parts[1] || '';
+    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd" 
+    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
+    if (!match) {
+      return {
+        taskId: pred.trim(),
+        lagDays: 0,
+        displayName: `${pred.trim()}: Invalid format`,
+        isValid: false
+      };
+    }
     
-    // Extract lag days (e.g., "3d" -> 3)
+    const taskId = match[1].trim();
+    const lagPart = match[2] || '';
+    
+    // Extract lag days (e.g., "+3d" -> 3, "-2d" -> -2, "+5" -> 5)
     let lagDays = 0;
-    if (lagPart && lagPart.endsWith('d')) {
-      const lagValue = parseInt(lagPart.slice(0, -1));
+    if (lagPart) {
+      // Remove 'd' suffix if present and parse the number
+      const lagStr = lagPart.endsWith('d') ? lagPart.slice(0, -1) : lagPart;
+      const lagValue = parseInt(lagStr);
       if (!isNaN(lagValue)) {
         lagDays = lagValue;
       }
     }
 
-    // Find the task to get display name
-    const task = allTasks.find(t => t.hierarchy_number === taskId);
+    // Find the task to get display name (support both hierarchy number and task ID)
+    const task = allTasks.find(t => t.hierarchy_number === taskId || t.id === taskId);
     const displayName = task ? `${taskId}: ${task.task_name}` : `${taskId}: Task not found`;
     const isValid = !!task;
 
@@ -176,7 +188,10 @@ function detectCircularDependencies(
     if (task && task.predecessor) {
       const taskPredecessors = safeParsePredecessors(task.predecessor);
       for (const pred of taskPredecessors) {
-        const predTaskId = pred.split('+')[0];
+        // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+        const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
+        if (!match) continue;
+        const predTaskId = match[1].trim();
         if (hasCycle(predTaskId)) {
           return true;
         }
@@ -190,7 +205,10 @@ function detectCircularDependencies(
   // Check if adding these predecessors would create a cycle
   const predecessorArray = safeParsePredecessors(predecessors);
   for (const pred of predecessorArray) {
-    const predTaskId = pred.split('+')[0];
+    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
+    if (!match) continue;
+    const predTaskId = match[1].trim();
     visited.clear();
     path.length = 0;
     path.push(currentTask.hierarchy_number!);
@@ -212,7 +230,10 @@ function findDuplicates(array: string[]): string[] {
   const duplicates = new Set<string>();
   
   for (const item of array) {
-    const taskId = item.split('+')[0];
+    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+    const match = item.trim().match(/^(.+?)([+-]\d+d?)?$/);
+    if (!match) continue;
+    const taskId = match[1].trim();
     if (seen.has(taskId)) {
       duplicates.add(taskId);
     }
@@ -225,6 +246,8 @@ function findDuplicates(array: string[]): string[] {
 export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
   if (pred.lagDays > 0) {
     return `${pred.displayName} +${pred.lagDays}d`;
+  } else if (pred.lagDays < 0) {
+    return `${pred.displayName} ${pred.lagDays}d`;
   }
   return pred.displayName;
 }
@@ -232,6 +255,8 @@ export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
 export function formatPredecessorForStorage(taskId: string, lagDays: number): string {
   if (lagDays > 0) {
     return `${taskId}+${lagDays}d`;
+  } else if (lagDays < 0) {
+    return `${taskId}${lagDays}d`;
   }
   return taskId;
 }
@@ -243,7 +268,10 @@ export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTa
     if (task.predecessor) {
       const predecessors = safeParsePredecessors(task.predecessor);
       const hasDependency = predecessors.some((pred: string) => {
-        const predTaskId = pred.split('+')[0];
+        // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+        const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
+        if (!match) return false;
+        const predTaskId = match[1].trim();
         return predTaskId === targetTaskId;
       });
 
