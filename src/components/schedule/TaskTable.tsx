@@ -18,7 +18,7 @@ interface TaskTableProps {
   visibleTasks: ProjectTask[];
   expandedTasks: Set<string>;
   onToggleExpand: (taskId: string) => void;
-  onTaskUpdate: (taskId: string, updates: any) => void;
+  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
   selectedTasks: Set<string>;
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
   onIndent: (taskId: string) => void;
@@ -50,9 +50,9 @@ export function TaskTable({
 }: TaskTableProps) {
 
   // Enhanced onTaskUpdate that also updates parent tasks and handles predecessor dependencies
-  const handleTaskUpdate = (taskId: string, updates: any) => {
+  const handleTaskUpdate = (taskId: string, updates: any, options?: { silent?: boolean }) => {
     // First update the task itself
-    onTaskUpdate(taskId, updates);
+    onTaskUpdate(taskId, updates, options);
     
     // Then immediately update any parent tasks and cascade predecessor changes
     // Use requestAnimationFrame to ensure the update has been processed
@@ -89,7 +89,7 @@ export function TaskTable({
       parentTasks.forEach(parentTask => {
         const calculations = calculateParentTaskValues(parentTask, simulatedTasks);
         if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
-          console.log('Updating parent task:', parentTask.task_name, 'with calculations:', calculations);
+          console.log('🔄 Cascading parent update:', parentTask.task_name, 'with calculations:', calculations);
           // Use a slight delay to ensure the child task update has been processed
           setTimeout(() => {
             onTaskUpdate(parentTask.id, {
@@ -97,7 +97,7 @@ export function TaskTable({
               end_date: calculations.endDate,
               duration: calculations.duration,
               progress: calculations.progress
-            });
+            }, { silent: true }); // Silent update for cascaded parent updates
           }, 50);
         }
       });
@@ -125,14 +125,14 @@ export function TaskTable({
         const currentEndDate = depTask.end_date.split('T')[0];
         
         if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-          console.log(`Updating dependent task ${depTask.task_name} due to predecessor change`);
+          console.log(`🔄 Cascading dependent task update: ${depTask.task_name} due to predecessor change`);
           
-          // Update the task
+          // Update the task silently for cascaded updates
           onTaskUpdate(depTask.id, {
             start_date: dateUpdate.startDate,
             end_date: dateUpdate.endDate,
             duration: dateUpdate.duration
-          });
+          }, { silent: true }); // Silent update for cascaded dependent task updates
           
           // Update the simulated tasks array for further cascading (convert camelCase to snake_case)
           const updatedSimulatedTasks = allTasks.map(task => 

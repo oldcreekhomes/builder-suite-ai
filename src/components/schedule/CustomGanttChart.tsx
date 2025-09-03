@@ -438,10 +438,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  const handleTaskUpdate = async (taskId: string, updates: any) => {
+  const handleTaskUpdate = async (taskId: string, updates: any, options?: { silent?: boolean }) => {
     // Prevent updates to optimistic (unsaved) tasks
     if (taskId.startsWith('optimistic-')) {
-      toast.error("Please save the task first before editing");
+      if (!options?.silent) {
+        toast.error("Please save the task first before editing", { id: `error-${taskId}` });
+      }
       return;
     }
     
@@ -450,10 +452,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         id: taskId,
         ...updates
       });
-      toast.success("Task updated successfully");
+      
+      if (!options?.silent) {
+        toast.success("Task updated successfully", { id: `success-${taskId}` });
+      }
     } catch (error) {
-      console.error("Failed to update task:", error);
-      toast.error("Failed to update task");
+      console.error("Failed to update task:", error, { taskId, updates });
+      if (!options?.silent) {
+        toast.error("Failed to update task", { id: `error-${taskId}` });
+      }
     }
   };
 

@@ -10,7 +10,7 @@ interface TimelineBarProps {
   };
   rowIndex: number;
   rowHeight: number;
-  onTaskUpdate: (taskId: string, updates: any) => void;
+  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
 }
 
 export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate }: TimelineBarProps) {

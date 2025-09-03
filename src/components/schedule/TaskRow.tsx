@@ -20,7 +20,7 @@ interface TaskRowProps {
   task: ProjectTask;
   allTasks: ProjectTask[];
   index: number;
-  onTaskUpdate: (taskId: string, updates: any) => void;
+  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
   hasChildren: boolean;
   isExpanded: boolean;
   onToggleExpand: (taskId: string) => void;

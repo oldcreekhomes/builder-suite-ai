@@ -16,7 +16,7 @@ interface TimelineProps {
   tasks: ProjectTask[];
   startDate: DateString;
   endDate: DateString;
-  onTaskUpdate: (taskId: string, updates: any) => void;
+  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
   dayWidth?: number;
 }
 
