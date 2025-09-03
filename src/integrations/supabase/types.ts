@@ -252,8 +252,8 @@ export type Database = {
           company_name: string
           company_type: string
           created_at: string
+          home_builder_id: string
           id: string
-          owner_id: string
           phone_number: string | null
           updated_at: string
           website: string | null
@@ -263,8 +263,8 @@ export type Database = {
           company_name: string
           company_type: string
           created_at?: string
+          home_builder_id: string
           id?: string
-          owner_id: string
           phone_number?: string | null
           updated_at?: string
           website?: string | null
@@ -274,8 +274,8 @@ export type Database = {
           company_name?: string
           company_type?: string
           created_at?: string
+          home_builder_id?: string
           id?: string
-          owner_id?: string
           phone_number?: string | null
           updated_at?: string
           website?: string | null
@@ -370,6 +370,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string
+          home_builder_id: string
           id: string
           last_name: string
           phone_number: string | null
@@ -384,6 +385,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name: string
+          home_builder_id: string
           id?: string
           last_name: string
           phone_number?: string | null
@@ -398,6 +400,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string
+          home_builder_id?: string
           id?: string
           last_name?: string
           phone_number?: string | null

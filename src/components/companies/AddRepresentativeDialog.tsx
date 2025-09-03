@@ -62,6 +62,20 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
 
   const createRepresentativeMutation = useMutation({
     mutationFn: async (data: RepresentativeFormData) => {
+      // Get current user's home_builder_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const homeBuilderIdToUse = userDetails?.role === 'employee' 
+        ? userDetails.home_builder_id 
+        : user.id;
+
       const { error } = await supabase
         .from('company_representatives')
         .insert({
@@ -71,6 +85,7 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
           email: data.email || null,
           phone_number: data.phone_number || null,
           title: data.title || null,
+          home_builder_id: homeBuilderIdToUse,
         });
       
       if (error) throw error;

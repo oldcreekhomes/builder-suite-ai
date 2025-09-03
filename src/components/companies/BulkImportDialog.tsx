@@ -199,13 +199,24 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             .eq('company_name', row.CompanyName)
             .maybeSingle();
 
+          // Get user details to determine home_builder_id
+          const { data: userDetails } = await supabase
+            .from('users')
+            .select('role, home_builder_id')
+            .eq('id', user.id)
+            .single();
+
+          const homeBuilderIdToUse = userDetails?.role === 'employee' 
+            ? userDetails.home_builder_id 
+            : user.id;
+
           const companyData = {
             company_name: row.CompanyName,
             company_type: row.CompanyType || 'Subcontractor',
             address: row.Address || null,
             phone_number: row.PhoneNumber || null,
             website: row.Website || null,
-            owner_id: user.id
+            home_builder_id: homeBuilderIdToUse
           };
 
           if (existingCompany) {
@@ -294,6 +305,17 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       // Process representatives
       setImportProgress(70);
       
+      // Get user details for representatives (same logic as companies)
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const homeBuilderIdForReps = userDetails?.role === 'employee' 
+        ? userDetails.home_builder_id 
+        : user.id;
+      
       for (let i = 0; i < representativesData.length; i++) {
         const row = representativesData[i] as any;
         
@@ -322,7 +344,8 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             phone_number: row.PhoneNumber || null,
             receive_bid_notifications: row.ReceiveBidNotifications === 'TRUE',
             receive_schedule_notifications: row.ReceiveScheduleNotifications === 'TRUE',
-            receive_po_notifications: row.ReceivePONotifications === 'TRUE'
+            receive_po_notifications: row.ReceivePONotifications === 'TRUE',
+            home_builder_id: homeBuilderIdForReps
           };
 
           if (existingRep) {

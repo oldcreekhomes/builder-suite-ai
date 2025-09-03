@@ -89,7 +89,7 @@ export const useProjectResources = () => {
       const { data: ownedCompanies } = await supabase
         .from('companies')
         .select('id')
-        .eq('owner_id', homeBuilderOwnerId);
+        .eq('home_builder_id', homeBuilderOwnerId);
 
       if (ownedCompanies && ownedCompanies.length > 0) {
         console.log('Found owned companies:', ownedCompanies);

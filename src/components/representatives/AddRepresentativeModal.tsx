@@ -100,6 +100,17 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
       const selectedCompany = companies.find(c => c.company_name === data.company_name);
       if (!selectedCompany) throw new Error('Company not found');
 
+      // Get user details to determine home_builder_id  
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const homeBuilderIdToUse = userDetails?.role === 'employee' 
+        ? userDetails.home_builder_id 
+        : user.id;
+
       const representativeData = {
         first_name: data.first_name,
         last_name: data.last_name,
@@ -110,6 +121,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
         receive_po_notifications: data.receive_po_notifications,
+        home_builder_id: homeBuilderIdToUse,
       };
 
       const { data: representative, error } = await supabase

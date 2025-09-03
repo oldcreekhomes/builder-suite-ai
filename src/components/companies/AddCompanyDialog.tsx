@@ -80,13 +80,25 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       console.log('Current user:', user);
       if (!user) throw new Error('User not authenticated');
 
+      // Get user details to determine home_builder_id
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      // Use home_builder_id if user is employee, otherwise use user.id (for home builder)
+      const homeBuilderIdToUse = userDetails?.role === 'employee' 
+        ? userDetails.home_builder_id 
+        : user.id;
+
       const insertData = {
         company_name: data.company_name,
         company_type: data.company_type,
         address: data.address || null,
         phone_number: data.phone_number || null,
         website: data.website || null,
-        owner_id: user.id,
+        home_builder_id: homeBuilderIdToUse,
       };
       console.log('Inserting company data:', insertData);
 
