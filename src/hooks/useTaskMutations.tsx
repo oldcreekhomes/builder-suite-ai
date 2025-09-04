@@ -195,7 +195,7 @@ export const useTaskMutations = (projectId: string) => {
       // Check if we need to cascade updates to dependent tasks
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
       const predecessorChanged = variables.predecessor !== undefined;
-      const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade && !variables.suppressInvalidate;
+      const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
       if (shouldCascade) {
         console.log('🔄 Starting cascade for task:', data.id);
@@ -211,8 +211,8 @@ export const useTaskMutations = (projectId: string) => {
         }
       }
       
-      // Only invalidate cache if not suppressed (for bulk operations) or after cascade
-      if (!variables.suppressInvalidate || shouldCascade) {
+      // Always invalidate cache after cascade, or if not suppressed for direct updates
+      if (shouldCascade || !variables.suppressInvalidate) {
         console.log('✅ Task updated - refreshing cache');
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
