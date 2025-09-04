@@ -537,11 +537,52 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     console.log('📝 Timeline task update called:', taskId, updates);
     
-    // Fire-and-forget for instant perceived save
+    // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
+    const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    const optimisticTasks = currentTasks.map(task => {
+      if (task.id === taskId) {
+        const optimisticTask = { ...task };
+        
+        // Normalize date updates
+        if (updates.start_date) {
+          optimisticTask.start_date = updates.start_date.split('T')[0] + 'T00:00:00';
+        }
+        if (updates.end_date) {
+          optimisticTask.end_date = updates.end_date.split('T')[0] + 'T00:00:00';
+        }
+        if (updates.duration !== undefined) {
+          optimisticTask.duration = updates.duration;
+        }
+        if (updates.task_name !== undefined) {
+          optimisticTask.task_name = updates.task_name;
+        }
+        if (updates.progress !== undefined) {
+          optimisticTask.progress = updates.progress;
+        }
+        if (updates.resources !== undefined) {
+          optimisticTask.resources = updates.resources;
+        }
+        if (updates.notes !== undefined) {
+          optimisticTask.notes = updates.notes;
+        }
+        
+        return optimisticTask;
+      }
+      return task;
+    });
+    
+    // Apply optimistic update immediately
+    queryClient.setQueryData(['project-tasks', projectId, user?.id], optimisticTasks);
+    
+    // Add to pending updates to ignore real-time echoes (longer TTL for cascades)
+    const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+    addPendingUpdate(taskId, 6000); // 6s TTL to cover cascade processing
+    
+    // Fire-and-forget mutation (async cascade will refresh cache when complete)
     updateTask.mutate({
       id: taskId,
       ...updates,
-      suppressInvalidate: true // Let cascade handle final invalidation
+      suppressInvalidate: true // Cache already updated optimistically
     });
     
     // Instant success feedback

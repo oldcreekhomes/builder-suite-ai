@@ -221,6 +221,9 @@ export const useTaskMutations = (projectId: string) => {
               // Refresh cache after cascade completes
               console.log('✅ Cascade complete - refreshing cache');
               queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+              
+              // Fire cascade complete event for any listeners
+              window.dispatchEvent(new CustomEvent('cascade-complete'));
             }
           } catch (error) {
             console.error('❌ Cascade failed:', error);
