@@ -84,7 +84,7 @@ export function BiddingCompanyRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
-            <SelectItem value="no_choice">No Choice</SelectItem>
+            <SelectItem value="no_choice">---</SelectItem>
             <SelectItem value="will_bid">Yes</SelectItem>
             <SelectItem value="will_not_bid">No</SelectItem>
           </SelectContent>
