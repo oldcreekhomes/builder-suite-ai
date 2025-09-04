@@ -16,11 +16,11 @@ interface BiddingTableRowProps {
   onUpdateDueDate: (itemId: string, dueDate: string | null) => void;
   onUpdateReminderDate: (itemId: string, reminderDate: string | null) => void;
   onUpdateSpecifications: (itemId: string, specifications: string) => void;
-  onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
-  onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
-  onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
-  onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
-  onDeleteCompany: (biddingItemId: string, companyId: string) => void;
+  onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
+  onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
+  onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
+  onDeleteAllProposals: (biddingItemId: string, bidId: string) => void;
+  onDeleteCompany: (biddingItemId: string, bidId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;

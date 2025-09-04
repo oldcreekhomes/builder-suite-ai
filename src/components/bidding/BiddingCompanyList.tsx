@@ -21,11 +21,11 @@ interface BiddingCompany {
 interface BiddingCompanyListProps {
   biddingItemId: string;
   companies: BiddingCompany[];
-  onToggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string | null) => void;
-  onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
-  onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
-  onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
-  onDeleteCompany: (biddingItemId: string, companyId: string) => void;
+  onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
+  onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
+  onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
+  onDeleteAllProposals: (biddingItemId: string, bidId: string) => void;
+  onDeleteCompany: (biddingItemId: string, bidId: string) => void;
   onSendEmail?: (biddingItemId: string, companyId: string) => void;
   isReadOnly?: boolean;
   projectAddress?: string;
@@ -53,16 +53,16 @@ export function BiddingCompanyList({
   useEffect(() => {
     const prices: Record<string, string> = {};
     companies.forEach(company => {
-      prices[company.company_id] = company.price?.toString() || '';
+      prices[company.id] = company.price?.toString() || '';
     });
     setLocalPrices(prices);
   }, [companies]);
   
-  const handleBidStatusChange = (companyId: string, newStatus: string | null) => {
-    onToggleBidStatus(biddingItemId, companyId, newStatus);
+  const handleBidStatusChange = (bidId: string, newStatus: string | null) => {
+    onToggleBidStatus(biddingItemId, bidId, newStatus);
   };
 
-  const handleFileUpload = (companyId: string) => {
+  const handleFileUpload = (bidId: string) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
@@ -70,29 +70,29 @@ export function BiddingCompanyList({
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
       if (files.length > 0) {
-        onUploadProposal(biddingItemId, companyId, files);
+        onUploadProposal(biddingItemId, bidId, files);
       }
     };
     input.click();
   };
 
-  const handleDeleteAllFiles = (companyId: string) => {
-    onDeleteAllProposals(biddingItemId, companyId);
+  const handleDeleteAllFiles = (bidId: string) => {
+    onDeleteAllProposals(biddingItemId, bidId);
   };
 
-  const handlePriceChange = (companyId: string, value: string) => {
+  const handlePriceChange = (bidId: string, value: string) => {
     // Update local state immediately for responsive UI
     setLocalPrices(prev => ({
       ...prev,
-      [companyId]: value
+      [bidId]: value
     }));
   };
 
-  const handlePriceBlur = (companyId: string, value: string) => {
+  const handlePriceBlur = (bidId: string, value: string) => {
     // Only save to database when user finishes editing
     const price = value === '' ? null : parseFloat(value);
     if (!isNaN(price) || price === null) {
-      onUpdatePrice(biddingItemId, companyId, price);
+      onUpdatePrice(biddingItemId, bidId, price);
     }
   };
 
@@ -124,7 +124,7 @@ export function BiddingCompanyList({
           key={biddingCompany.id}
           biddingItemId={biddingItemId}
           biddingCompany={biddingCompany}
-          localPrice={localPrices[biddingCompany.company_id] || ''}
+          localPrice={localPrices[biddingCompany.id] || ''}
           onBidStatusChange={handleBidStatusChange}
           onPriceChange={handlePriceChange}
           onPriceBlur={handlePriceBlur}

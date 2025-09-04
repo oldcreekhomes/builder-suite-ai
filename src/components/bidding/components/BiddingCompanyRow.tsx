@@ -77,7 +77,7 @@ export function BiddingCompanyRow({
       <TableCell className="py-1">
         <Select 
           value={biddingCompany.bid_status || "no_choice"} 
-          onValueChange={(value) => onBidStatusChange(biddingCompany.company_id, value === "no_choice" ? null : value)}
+          onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >
           <SelectTrigger className="w-20 h-8 text-sm">
@@ -95,8 +95,8 @@ export function BiddingCompanyRow({
           type="text"
           placeholder="$0.00"
           value={localPrice}
-          onChange={(e) => onPriceChange(biddingCompany.company_id, e.target.value)}
-          onBlur={(e) => onPriceBlur(biddingCompany.company_id, e.target.value)}
+          onChange={(e) => onPriceChange(biddingCompany.id, e.target.value)}
+          onBlur={(e) => onPriceBlur(biddingCompany.id, e.target.value)}
           className="w-24 h-8 text-sm"
           disabled={isReadOnly}
         />
@@ -104,7 +104,7 @@ export function BiddingCompanyRow({
       <TableCell className="py-1">
         <ProposalCell
           proposals={biddingCompany.proposals}
-          companyId={biddingCompany.company_id}
+          companyId={biddingCompany.id}
           onFileUpload={onFileUpload}
           onDeleteAllFiles={onDeleteAllFiles}
           isReadOnly={isReadOnly}

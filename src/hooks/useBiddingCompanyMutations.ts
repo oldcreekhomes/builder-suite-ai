@@ -115,7 +115,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
   // Update bid price mutation
   const updatePriceMutation = useMutation({
-    mutationFn: async ({ bidId, price }: { bidId: string; price: number }) => {
+    mutationFn: async ({ bidId, price }: { bidId: string; price: number | null }) => {
       console.log('Updating bid price:', { bidId, price });
       
       const { error } = await supabase
@@ -204,7 +204,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
   // Delete all proposals mutation
   const deleteAllProposalsMutation = useMutation({
-    mutationFn: async (bidId: string) => {
+    mutationFn: async ({ bidId }: { bidId: string }) => {
       console.log('Deleting all proposals:', bidId);
       
       // Get current proposals to delete from storage
@@ -256,7 +256,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
   // Delete company mutation
   const deleteCompanyMutation = useMutation({
-    mutationFn: async (bidId: string) => {
+    mutationFn: async ({ bidId }: { bidId: string }) => {
       console.log('Deleting company from bid package:', bidId);
       
       const { error } = await supabase
@@ -288,26 +288,24 @@ export const useBiddingCompanyMutations = (projectId: string) => {
   });
 
   // Wrapper functions that match the expected interface
-  const toggleBidStatus = (biddingItemId: string, companyId: string, newStatus: string | null) => {
-    // Find the bid ID based on biddingItemId and companyId
-    // For now, we'll use companyId as bidId (this might need adjustment based on your data structure)
-    toggleBidStatusMutation.mutate({ bidId: companyId, status: newStatus });
+  const toggleBidStatus = (biddingItemId: string, bidId: string, newStatus: string | null) => {
+    toggleBidStatusMutation.mutate({ bidId, status: newStatus });
   };
 
-  const updatePrice = (biddingItemId: string, companyId: string, price: number) => {
-    updatePriceMutation.mutate({ bidId: companyId, price });
+  const updatePrice = (biddingItemId: string, bidId: string, price: number | null) => {
+    updatePriceMutation.mutate({ bidId, price });
   };
 
-  const uploadProposal = (biddingItemId: string, companyId: string, files: File[]) => {
-    uploadProposalMutation.mutate({ bidId: companyId, files });
+  const uploadProposal = (biddingItemId: string, bidId: string, files: File[]) => {
+    uploadProposalMutation.mutate({ bidId, files });
   };
 
-  const deleteAllProposals = (biddingItemId: string, companyId: string) => {
-    deleteAllProposalsMutation.mutate(companyId);
+  const deleteAllProposals = (biddingItemId: string, bidId: string) => {
+    deleteAllProposalsMutation.mutate({ bidId });
   };
 
   const deleteCompany = (biddingItemId: string, bidId: string) => {
-    deleteCompanyMutation.mutate(bidId);
+    deleteCompanyMutation.mutate({ bidId });
   };
 
   return {
