@@ -121,10 +121,9 @@ export function TaskRow({
       }
 
       const start = startDate.split('T')[0]; // Get just the date part
-      const endDate = calculateBusinessEndDate(start as DateString, duration - 1);
-      const endDateStr = formatDisplayDate(endDate);
+      const endDate = calculateBusinessEndDate(start as DateString, duration);
       
-      return endDateStr + 'T00:00:00';
+      return endDate + 'T00:00:00';
     } catch (error) {
       console.error('Error in calculateEndDate:', error, { startDate, duration });
       return new Date().toISOString().split('T')[0] + 'T00:00:00';

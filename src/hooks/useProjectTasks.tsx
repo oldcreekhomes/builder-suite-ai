@@ -96,6 +96,13 @@ export const useProjectTasks = (projectId: string) => {
             return;
           }
           
+          // Check for user edit cooldown to prevent stomping optimistic updates
+          const userEditCooldownUntil = (window as any).__userEditCooldownUntil;
+          if (userEditCooldownUntil && Date.now() < userEditCooldownUntil) {
+            console.log('🚫 Realtime payload ignored (user edit cooldown active)');
+            return;
+          }
+          
           // Check if Syncfusion or batch operation is in progress - if so, skip real-time updates
           const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
           const isBatchOperationInProgress = (window as any).__batchOperationInProgress;

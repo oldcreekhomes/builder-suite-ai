@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
-import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
+import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, getBusinessDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { TaskTable } from "./TaskTable";
 import { Timeline } from "./Timeline";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -537,13 +537,16 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     console.log('📝 Timeline task update called:', taskId, updates);
     
+    // Set user edit cooldown to prevent real-time stomping
+    (window as any).__userEditCooldownUntil = Date.now() + 1000; // 1 second cooldown
+    
     // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
     const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
     const optimisticTasks = currentTasks.map(task => {
       if (task.id === taskId) {
         const optimisticTask = { ...task };
         
-        // Normalize date updates
+        // Apply updates and normalize dates
         if (updates.start_date) {
           optimisticTask.start_date = updates.start_date.split('T')[0] + 'T00:00:00';
         }
@@ -564,6 +567,30 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         }
         if (updates.notes !== undefined) {
           optimisticTask.notes = updates.notes;
+        }
+        
+        // Always keep start/end/duration in sync for instant UI feedback
+        
+        // If start_date changed and end_date not provided, compute end_date
+        if (updates.start_date && !updates.end_date) {
+          const currentDuration = optimisticTask.duration || 1;
+          const startYmd = optimisticTask.start_date.split('T')[0];
+          const endYmd = calculateBusinessEndDate(startYmd as DateString, currentDuration);
+          optimisticTask.end_date = endYmd + 'T00:00:00';
+        }
+        
+        // If duration changed and end_date not provided, compute end_date
+        if (updates.duration !== undefined && !updates.end_date) {
+          const startYmd = optimisticTask.start_date.split('T')[0];
+          const endYmd = calculateBusinessEndDate(startYmd as DateString, updates.duration);
+          optimisticTask.end_date = endYmd + 'T00:00:00';
+        }
+        
+        // If end_date changed, recompute duration
+        if (updates.end_date) {
+          const startYmd = optimisticTask.start_date.split('T')[0];
+          const endYmd = optimisticTask.end_date.split('T')[0];
+          optimisticTask.duration = getBusinessDaysBetween(startYmd as DateString, endYmd as DateString);
         }
         
         return optimisticTask;
