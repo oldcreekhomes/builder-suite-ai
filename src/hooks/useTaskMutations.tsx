@@ -197,24 +197,35 @@ export const useTaskMutations = (projectId: string) => {
       const predecessorChanged = variables.predecessor !== undefined;
       const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
-      if (shouldCascade) {
-        console.log('🔄 Starting cascade for task:', data.id);
-        
-        // Fetch all tasks for cascade calculations
-        const { data: allTasks } = await supabase
-          .from('project_schedule_tasks')
-          .select('*')
-          .eq('project_id', projectId);
-          
-        if (allTasks) {
-          await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
-        }
+      // Always invalidate cache immediately for direct updates (instant UI feedback)
+      if (!variables.suppressInvalidate) {
+        console.log('✅ Task updated - immediate cache refresh');
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
-      // Always invalidate cache after cascade, or if not suppressed for direct updates
-      if (shouldCascade || !variables.suppressInvalidate) {
-        console.log('✅ Task updated - refreshing cache');
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      if (shouldCascade) {
+        console.log('🔄 Scheduling async cascade for task:', data.id);
+        
+        // Schedule cascade asynchronously to not block the UI
+        setTimeout(async () => {
+          try {
+            // Fetch all tasks for cascade calculations
+            const { data: allTasks } = await supabase
+              .from('project_schedule_tasks')
+              .select('*')
+              .eq('project_id', projectId);
+              
+            if (allTasks) {
+              await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
+              
+              // Refresh cache after cascade completes
+              console.log('✅ Cascade complete - refreshing cache');
+              queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+            }
+          } catch (error) {
+            console.error('❌ Cascade failed:', error);
+          }
+        }, 0);
       }
       
       // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
@@ -266,7 +277,7 @@ export const useTaskMutations = (projectId: string) => {
     },
   });
 
-  // Centralized cascade function
+  // Centralized cascade function with parallel processing for speed
   const cascadeDependentUpdates = async (changedTaskId: string, allTasks: ProjectTask[]) => {
     const { getDependentTasks, calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
     
@@ -286,7 +297,8 @@ export const useTaskMutations = (projectId: string) => {
       const dependentTasks = getDependentTasks(currentTaskId, allTasks);
       console.log(`📋 Cascade depth ${depth}: Found ${dependentTasks.length} dependents for task ${currentTaskId}`);
       
-      for (const depTask of dependentTasks) {
+      // Process dependent tasks in parallel batches for speed
+      const updatePromises = dependentTasks.map(async (depTask) => {
         const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
         if (dateUpdate) {
           const currentStartDate = depTask.start_date.split('T')[0];
@@ -317,14 +329,20 @@ export const useTaskMutations = (projectId: string) => {
                 };
               }
               
-              // Add to queue for further cascading
-              queue.push(depTask.id);
+              // Return task ID for next level processing
+              return depTask.id;
             } catch (error) {
               console.error(`❌ Failed to cascade update task ${depTask.id}:`, error);
+              return null;
             }
           }
         }
-      }
+        return null;
+      });
+      
+      // Wait for all updates in this level to complete, then add successful ones to queue
+      const results = await Promise.all(updatePromises);
+      results.filter(Boolean).forEach(taskId => queue.push(taskId!));
       
       depth++;
     }

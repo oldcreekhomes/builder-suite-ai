@@ -133,8 +133,17 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       }
     };
     
-    // Debounce repair pass
-    const timeoutId = setTimeout(repairSchedule, 2000);
+    // Run repair pass during idle time to avoid blocking user interactions
+    const scheduleRepair = () => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(repairSchedule, { timeout: 5000 });
+      } else {
+        // Fallback for environments without requestIdleCallback
+        setTimeout(repairSchedule, 2000);
+      }
+    };
+    
+    const timeoutId = setTimeout(scheduleRepair, 1000);
     return () => clearTimeout(timeoutId);
   }, [tasks, projectId, user?.id, queryClient, updateTask]);
 
@@ -526,22 +535,18 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       return;
     }
     
-    try {
-      console.log('📝 Timeline task update called:', taskId, updates);
-      await updateTask.mutateAsync({
-        id: taskId,
-        ...updates,
-        suppressInvalidate: true // Let cascade handle final invalidation
-      });
-      
-      if (!options?.silent) {
-        toast.success("Task updated successfully", { id: `success-${taskId}` });
-      }
-    } catch (error) {
-      console.error("Failed to update task:", error, { taskId, updates });
-      if (!options?.silent) {
-        toast.error("Failed to update task", { id: `error-${taskId}` });
-      }
+    console.log('📝 Timeline task update called:', taskId, updates);
+    
+    // Fire-and-forget for instant perceived save
+    updateTask.mutate({
+      id: taskId,
+      ...updates,
+      suppressInvalidate: true // Let cascade handle final invalidation
+    });
+    
+    // Instant success feedback
+    if (!options?.silent) {
+      toast.success("Task updated successfully", { id: `success-${taskId}` });
     }
   };
 
