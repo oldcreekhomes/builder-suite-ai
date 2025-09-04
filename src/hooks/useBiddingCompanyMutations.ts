@@ -17,7 +17,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
         .insert([{
           bid_package_id: bidPackageId,
           company_id: companyId,
-          bid_status: 'invited'
+          bid_status: null
         }])
         .select()
         .single();
@@ -82,8 +82,8 @@ export const useBiddingCompanyMutations = (projectId: string) => {
 
   // Toggle bid status mutation
   const toggleBidStatusMutation = useMutation({
-    mutationFn: async ({ bidId, status }: { bidId: string; status: string }) => {
-      console.log('Toggling bid status:', { bidId, status });
+    mutationFn: async ({ bidId, status }: { bidId: string; status: string | null }) => {
+      console.log('Updating bid status:', { bidId, status });
       
       const { error } = await supabase
         .from('project_bids')
@@ -288,11 +288,10 @@ export const useBiddingCompanyMutations = (projectId: string) => {
   });
 
   // Wrapper functions that match the expected interface
-  const toggleBidStatus = (biddingItemId: string, companyId: string, currentStatus: string) => {
+  const toggleBidStatus = (biddingItemId: string, companyId: string, newStatus: string | null) => {
     // Find the bid ID based on biddingItemId and companyId
     // For now, we'll use companyId as bidId (this might need adjustment based on your data structure)
-    const status = currentStatus === 'will_bid' ? null : 'will_bid';
-    toggleBidStatusMutation.mutate({ bidId: companyId, status: status || 'will_not_bid' });
+    toggleBidStatusMutation.mutate({ bidId: companyId, status: newStatus });
   };
 
   const updatePrice = (biddingItemId: string, companyId: string, price: number) => {

@@ -12,7 +12,7 @@ interface Company {
 interface BiddingCompany {
   id: string;
   company_id: string;
-  bid_status: 'will_bid' | 'will_not_bid';
+  bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
   companies: Company;
@@ -21,7 +21,7 @@ interface BiddingCompany {
 interface BiddingCompanyListProps {
   biddingItemId: string;
   companies: BiddingCompany[];
-  onToggleBidStatus: (biddingItemId: string, companyId: string, currentStatus: string) => void;
+  onToggleBidStatus: (biddingItemId: string, companyId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, companyId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, companyId: string, files: File[]) => void;
   onDeleteAllProposals: (biddingItemId: string, companyId: string) => void;
@@ -58,7 +58,7 @@ export function BiddingCompanyList({
     setLocalPrices(prices);
   }, [companies]);
   
-  const handleBidStatusChange = (companyId: string, newStatus: string) => {
+  const handleBidStatusChange = (companyId: string, newStatus: string | null) => {
     onToggleBidStatus(biddingItemId, companyId, newStatus);
   };
 

@@ -76,15 +76,15 @@ export function BiddingCompanyRow({
       </TableCell>
       <TableCell className="py-1">
         <Select 
-          value={biddingCompany.bid_status || "sent"} 
-          onValueChange={(value) => onBidStatusChange(biddingCompany.company_id, value === "sent" ? null : value)}
+          value={biddingCompany.bid_status || "no_choice"} 
+          onValueChange={(value) => onBidStatusChange(biddingCompany.company_id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >
           <SelectTrigger className="w-20 h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
-            <SelectItem value="sent">No Choice</SelectItem>
+            <SelectItem value="no_choice">No Choice</SelectItem>
             <SelectItem value="will_bid">Yes</SelectItem>
             <SelectItem value="will_not_bid">No</SelectItem>
           </SelectContent>
