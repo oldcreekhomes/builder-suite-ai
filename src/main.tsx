@@ -10,10 +10,6 @@ import { useFloatingChat } from "./components/chat/FloatingChatManager";
 
 const AppWithTitle = () => {
   useBrowserTitle();
-  const { openFloatingChat } = useFloatingChat();
-  
-  // Set up global notifications with floating chat integration
-  useGlobalChatNotifications(null, openFloatingChat);
   
   return <App />;
 };

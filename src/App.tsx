@@ -45,6 +45,9 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  
+  // Set up global notifications with floating chat integration
+  useGlobalChatNotifications(null, openFloatingChat);
 
   // Register Syncfusion license at application startup
   useEffect(() => {
