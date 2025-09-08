@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { FloatingChatWindow } from './FloatingChatWindow';
 import { User } from '@/hooks/useCompanyUsers';
+import { useGlobalChatNotifications } from '@/hooks/useGlobalChatNotifications';
 
 interface ChatWindow {
   user: User;
@@ -17,17 +18,25 @@ let globalChatManager: { openChat: (user: User) => void } | null = null;
 export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   const [chatWindows, setChatWindows] = useState<Map<string, ChatWindow>>(new Map());
 
+  // Get currently active conversation (first non-minimized chat or null)
+  const activeConversationUserId = Array.from(chatWindows.values())
+    .find(chat => !chat.isMinimized)?.user?.id || null;
+
   const openChat = useCallback((user: User) => {
-    console.log('FloatingChatManager: openChat called with user:', user);
+    console.log('💬 FloatingChatManager: Opening chat for user:', user.id);
     setChatWindows(prev => {
       const newWindows = new Map(prev);
       newWindows.set(user.id, { user, isMinimized: false });
-      console.log('FloatingChatManager: Updated chat windows, total count:', newWindows.size);
+      console.log('💬 FloatingChatManager: Updated chat windows, total count:', newWindows.size);
       return newWindows;
     });
   }, []);
 
+  // Set up global notifications (notifications will be disabled for active conversations)
+  useGlobalChatNotifications(activeConversationUserId, openChat);
+
   const closeChat = useCallback((userId: string) => {
+    console.log('💬 FloatingChatManager: Closing chat for user:', userId);
     setChatWindows(prev => {
       const newWindows = new Map(prev);
       newWindows.delete(userId);
@@ -36,6 +45,7 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   }, []);
 
   const toggleMinimize = useCallback((userId: string) => {
+    console.log('💬 FloatingChatManager: Toggling minimize for user:', userId);
     setChatWindows(prev => {
       const newWindows = new Map(prev);
       const chatWindow = newWindows.get(userId);
@@ -60,7 +70,7 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
     const manager = { openChat };
     globalChatManager = manager;
     onOpenChat?.(manager);
-    console.log('FloatingChatManager: Registered chat manager globally and with parent');
+    console.log('💬 FloatingChatManager: Registered chat manager globally and with parent');
     
     return () => {
       globalChatManager = null;
@@ -85,27 +95,27 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
 
 // Export the function to open chats from other components
 export const openFloatingChat = (user: User) => {
-  console.log('Global openFloatingChat called with user:', user);
-  console.log('Global chatManager is:', globalChatManager);
+  console.log('💬 Global openFloatingChat called with user:', user);
+  console.log('💬 Global chatManager is:', globalChatManager);
   if (globalChatManager) {
     globalChatManager.openChat(user);
   } else {
-    console.error('Global chatManager is not available');
+    console.error('💬 Global chatManager is not available');
   }
 };
 
 // Export the hook for backwards compatibility (but using global manager)
 export const useFloatingChat = () => {
   const registerChatManager = useCallback((manager: { openChat: (user: User) => void }) => {
-    console.log('useFloatingChat: registerChatManager called with manager:', manager);
+    console.log('💬 useFloatingChat: registerChatManager called with manager:', manager);
     globalChatManager = manager;
   }, []);
 
   const openFloatingChatHook = useCallback((user: User) => {
-    console.log('useFloatingChat: openFloatingChatHook called with user:', user);
-    console.log('useFloatingChat: About to call global openFloatingChat');
+    console.log('💬 useFloatingChat: openFloatingChatHook called with user:', user);
+    console.log('💬 useFloatingChat: About to call global openFloatingChat');
     openFloatingChat(user);
-    console.log('useFloatingChat: Global openFloatingChat called');
+    console.log('💬 useFloatingChat: Global openFloatingChat called');
   }, []);
 
   return {

@@ -21,11 +21,11 @@ export const useSimpleChat = () => {
     markConversationAsRead 
   } = useChatRooms();
 
-  // Set up real-time subscription
+  // Set up real-time subscription for chat messages
   useRealtime(selectedUser, addMessage);
   
-  // Set up global chat notifications (skip notifications for active conversation)
-  useGlobalChatNotifications(selectedUser?.id || null);
+  // Note: Global chat notifications are handled by FloatingChatManager, not here
+  // This prevents duplicate subscriptions
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {

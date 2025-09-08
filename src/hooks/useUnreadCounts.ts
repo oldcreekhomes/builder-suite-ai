@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -10,6 +10,11 @@ export const useUnreadCounts = (userIds: string[]) => {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const userIdsRef = useRef<string[]>(userIds);
+  const currentUserRef = useRef<string | null>(null);
+
+  // Update refs when values change
+  userIdsRef.current = userIds;
 
   const fetchUnreadCounts = async () => {
     if (!user?.id || userIds.length === 0) {
@@ -28,7 +33,7 @@ export const useUnreadCounts = (userIds: string[]) => {
         });
 
         if (error) {
-          console.error('Error fetching unread count for user:', userId, error);
+          console.error('📧 Error fetching unread count for user:', userId, error);
           counts[userId] = 0;
         } else {
           counts[userId] = data || 0;
@@ -37,7 +42,7 @@ export const useUnreadCounts = (userIds: string[]) => {
 
       setUnreadCounts(counts);
     } catch (error) {
-      console.error('Error fetching unread counts:', error);
+      console.error('📧 Error fetching unread counts:', error);
     } finally {
       setIsLoading(false);
     }
@@ -52,17 +57,20 @@ export const useUnreadCounts = (userIds: string[]) => {
   useEffect(() => {
     if (!user?.id || userIds.length === 0) return;
 
-    console.log('🔥 useUnreadCounts: Setting up subscription for userIds:', userIds);
-
-    // Create a unique channel name to avoid conflicts
-    const channelName = `unread_counts_${user.id}_${userIds.join('_')}_${Date.now()}`;
-    console.log('🔥 useUnreadCounts: Channel name:', channelName);
-    
+    let isCleanedUp = false;
     let channel: any = null;
     let isSubscribed = false;
     
     const setupSubscription = async () => {
       try {
+        currentUserRef.current = user.id;
+        
+        console.log('🔥 useUnreadCounts: Setting up subscription for userIds:', userIds.length);
+
+        // Create stable channel name to prevent multiple subscriptions
+        const channelName = `unread_counts_${user.id}`;
+        console.log('🔥 useUnreadCounts: Channel name:', channelName);
+        
         channel = supabase.channel(channelName);
         
         channel
@@ -74,18 +82,21 @@ export const useUnreadCounts = (userIds: string[]) => {
               table: 'user_chat_messages'
             },
             (payload) => {
+              if (isCleanedUp) return;
+              
               const messageData = payload.new;
-              if (!messageData) return;
+              if (!messageData || !currentUserRef.current) return;
 
               const senderId = messageData.sender_id;
               const recipientId = messageData.recipient_id;
 
               // Update count if this message is for the current user
-              if (recipientId === user.id && userIds.includes(senderId)) {
+              if (recipientId === currentUserRef.current && userIdsRef.current.includes(senderId)) {
                 setUnreadCounts(prev => ({
                   ...prev,
                   [senderId]: (prev[senderId] || 0) + 1
                 }));
+                console.log('🔥 useUnreadCounts: Updated count for sender:', senderId);
               }
             }
           )
@@ -97,17 +108,19 @@ export const useUnreadCounts = (userIds: string[]) => {
               table: 'user_chat_messages'
             },
             (payload) => {
+              if (isCleanedUp) return;
+              
               const messageData = payload.new;
-              if (!messageData) return;
+              if (!messageData || !currentUserRef.current) return;
 
               const senderId = messageData.sender_id;
               const recipientId = messageData.recipient_id;
 
               // If a message was read (read_at changed), refresh the count
-              if (recipientId === user.id && userIds.includes(senderId)) {
+              if (recipientId === currentUserRef.current && userIdsRef.current.includes(senderId)) {
                 // Debounce the fetch to prevent rapid API calls
                 setTimeout(() => {
-                  if (isSubscribed) {
+                  if (isSubscribed && !isCleanedUp) {
                     fetchUnreadCounts();
                   }
                 }, 200);
@@ -118,6 +131,14 @@ export const useUnreadCounts = (userIds: string[]) => {
         channel.subscribe((status) => {
           console.log('🔥 useUnreadCounts: Subscription status:', status, 'for channel:', channelName);
           isSubscribed = status === 'SUBSCRIBED';
+          
+          if (status === 'CHANNEL_ERROR' && !isCleanedUp) {
+            console.warn('🔥 useUnreadCounts: Channel error, will retry on next effect cycle');
+          }
+          
+          if (status === 'CLOSED' && !isCleanedUp) {
+            console.warn('🔥 useUnreadCounts: Channel closed unexpectedly');
+          }
         });
       } catch (error) {
         console.error('🔥 useUnreadCounts: Error setting up subscription:', error);
@@ -127,7 +148,8 @@ export const useUnreadCounts = (userIds: string[]) => {
     setupSubscription();
 
     return () => {
-      console.log('🔥 useUnreadCounts: Cleaning up subscription for channel:', channelName);
+      console.log('🔥 useUnreadCounts: Cleaning up subscription');
+      isCleanedUp = true;
       isSubscribed = false;
       if (channel) {
         // Use setTimeout to prevent DOM manipulation conflicts
@@ -142,7 +164,7 @@ export const useUnreadCounts = (userIds: string[]) => {
         }, 0);
       }
     };
-  }, [user?.id, userIds.join(',')]);
+  }, [user?.id, userIds.length]); // Use userIds.length instead of join to prevent unnecessary recreations
 
   const markConversationAsRead = async (otherUserId: string) => {
     try {

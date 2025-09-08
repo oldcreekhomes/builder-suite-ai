@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, TestTube } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { toast } from "sonner";
+import { audioManager } from "@/utils/audioManager";
 
 export const NotificationPreferences = () => {
   const { preferences, updatePreferences, isUpdating } = useNotificationPreferences();
@@ -14,36 +15,26 @@ export const NotificationPreferences = () => {
 
     // Test toast notification
     if (preferences.toast_notifications_enabled) {
-      console.log('Showing toast notification');
+      console.log('🧪 Showing test toast notification');
       toast("Test Chat Message", {
         description: "John Doe: Hey there! This is a test message.",
         duration: 5000,
       });
     } else {
-      console.log('Toast notifications not enabled');
+      console.log('🧪 Toast notifications not enabled');
     }
 
-    // Test sound notification
+    // Test sound notification using audio manager
     if (preferences.sound_notifications_enabled) {
-      console.log('Playing test sound');
-      try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.2);
-      } catch (error) {
-        console.log('Sound notification failed:', error);
+      console.log('🧪 Playing test sound');
+      const soundPlayed = await audioManager.playNotificationSound();
+      if (soundPlayed) {
+        console.log('🧪 Test sound played successfully');
+      } else {
+        console.log('🧪 Test sound failed to play');
       }
     } else {
-      console.log('Sound notifications not enabled');
+      console.log('🧪 Sound notifications not enabled');
     }
 
     console.log('=== Notification test complete ===');
