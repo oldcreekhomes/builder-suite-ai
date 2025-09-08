@@ -79,8 +79,8 @@ const AppContent = () => {
     registerSyncfusionLicense();
   }, []);
 
-  // Set up global chat notifications with floating chat integration
-  useGlobalChatNotifications(null, openFloatingChat);
+  // Note: Global chat notifications are handled by useBrowserTitle -> useUnreadCounts
+  // to prevent duplicate Supabase subscriptions
 
   // Show loading while license is being registered
   if (!syncfusionLicenseRegistered) {
