@@ -38,6 +38,7 @@ import SubmitBid from "./pages/SubmitBid";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
+import { DebugErrorBoundary } from "@/components/DebugErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -200,7 +201,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppContent />
+      <DebugErrorBoundary>
+        <AppContent />
+      </DebugErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );
