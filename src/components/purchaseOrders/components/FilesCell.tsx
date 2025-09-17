@@ -13,15 +13,19 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // If the file has a URL or is itself a URL/string, normalize and route through /file-redirect
+    // If file is already normalized with bucket/path, use it directly
+    if (file?.bucket && file?.path) {
+      openFileViaRedirect(file.bucket, file.path, file.name || 'file');
+      return;
+    }
+
+    // Legacy fallback for any remaining non-normalized files
     const maybeUrl = (file && file.url) || (typeof file === 'string' ? file : undefined);
     if (maybeUrl) {
       let raw = String(maybeUrl).trim();
-      // Trim surrounding quotes if present
       raw = raw.replace(/^['"]|['"]$/g, '');
       console.log('Normalized raw URL:', raw);
 
-      // Handle existing redirect links directly
       if (raw.startsWith('/file-redirect')) {
         try {
           const u = new URL(raw, window.location.origin);
@@ -35,7 +39,6 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         }
       }
 
-      // Try to parse direct Supabase public URL
       try {
         const u = new URL(raw, window.location.origin);
         const publicMatch = u.pathname.match(/\/object\/public\/([^/]+)\/(.+)/);
@@ -51,7 +54,6 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         console.warn('Failed to parse URL with URL API, will try regex fallbacks:', error);
       }
 
-      // Regex fallback: extract after '/proposals/' for legacy stored links
       const proposalsIdx = raw.indexOf('/proposals/');
       if (proposalsIdx !== -1) {
         const after = raw.substring(proposalsIdx + '/proposals/'.length).split(/[?#]/)[0];
@@ -60,7 +62,6 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         return;
       }
 
-      // Fallback: if it looks like a proposal id
       const proposalId = file?.id || (typeof file === 'string' && String(file).startsWith('proposal_') ? String(file) : undefined);
       if (proposalId) {
         const name = file?.name || proposalId.split('_').pop() || proposalId;
@@ -68,14 +69,12 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         return;
       }
 
-      // If object carries bucket/path, honor it
       if ((file as any)?.bucket && (file as any)?.path) {
         const name = file?.name || (file as any).path.split('/').pop();
         openFileViaRedirect((file as any).bucket, (file as any).path, name);
         return;
       }
 
-      // Last resort: treat as purchase order attachment by id/name
       const id = file?.id || file?.name || file;
       const fallbackName = file?.name || (typeof file === 'string' ? (String(file).split('_').pop() || String(file)) : 'file');
       const poPath = `purchase-orders/${projectId}/${id}`;
@@ -83,7 +82,6 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
       return;
     }
     
-    // No URL: build the correct path: purchase-orders/{projectId}/{fileId}
     const filePath = `purchase-orders/${projectId}/${file?.id || file?.name || file}`;
     const fileName = file?.name || file?.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
@@ -102,7 +100,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   return (
     <div className="flex items-center gap-1">
       {files.slice(0, 3).map((file: any, index: number) => {
-        const fileName = file.name || file.id || file;
+        const fileName = file.name || file.id || String(file);
         const IconComponent = getFileIcon(fileName);
         const iconColorClass = getFileIconColor(fileName);
         return (
