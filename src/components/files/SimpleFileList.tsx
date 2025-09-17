@@ -60,8 +60,10 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [filesToMove, setFilesToMove] = useState<string[]>([]);
+  const [foldersToMove, setFoldersToMove] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
@@ -330,58 +332,97 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     setSelectedFiles(newSelected);
   };
 
+  const handleSelectFolder = (folderPath: string, checked: boolean) => {
+    const newSelected = new Set(selectedFolders);
+    if (checked) {
+      newSelected.add(folderPath);
+    } else {
+      newSelected.delete(folderPath);
+    }
+    setSelectedFolders(newSelected);
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedFiles(new Set(files.map(file => file.id)));
+      setSelectedFolders(new Set(folders.map(folder => folder.path)));
     } else {
       setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
     }
   };
 
-  const handleMoveFiles = (fileIds?: string[]) => {
-    if (fileIds) {
-      // Individual file move - set specific files to move
-      setFilesToMove(fileIds);
+  const handleMoveFiles = (fileIds?: string[], folderPaths?: string[]) => {
+    if (fileIds || folderPaths) {
+      // Individual item move - set specific items to move
+      setFilesToMove(fileIds || []);
+      setFoldersToMove(folderPaths || []);
     } else {
       // Bulk move - use current selection
       setFilesToMove(Array.from(selectedFiles));
+      setFoldersToMove(Array.from(selectedFolders));
     }
     setShowMoveModal(true);
   };
 
   const handleMoveSuccess = () => {
     setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
     onRefresh();
   };
 
   const handleBulkDelete = () => {
-    if (selectedFiles.size > 0) {
+    if (selectedFiles.size > 0 || selectedFolders.size > 0) {
       setShowBulkDeleteConfirm(true);
     }
   };
 
   const confirmBulkDelete = async () => {
-    if (selectedFiles.size === 0) return;
+    if (selectedFiles.size === 0 && selectedFolders.size === 0) return;
 
     setIsDeleting(true);
     try {
-      const fileIds = Array.from(selectedFiles);
+      let deletedCount = 0;
       
-      // Mark all selected files as deleted
-      const { error } = await supabase
-        .from('project_files')
-        .update({ is_deleted: true })
-        .in('id', fileIds);
+      // Delete selected files
+      if (selectedFiles.size > 0) {
+        const fileIds = Array.from(selectedFiles);
+        const { error } = await supabase
+          .from('project_files')
+          .update({ is_deleted: true })
+          .in('id', fileIds);
 
-      if (error) throw error;
+        if (error) throw error;
+        deletedCount += selectedFiles.size;
+      }
 
-      toast.success(`Successfully deleted ${selectedFiles.size} file(s)`);
+      // Delete selected folders and their contents
+      if (selectedFolders.size > 0) {
+        for (const folderPath of selectedFolders) {
+          const { error } = await supabase
+            .from('project_files')
+            .update({ is_deleted: true })
+            .like('original_filename', `${folderPath}/%`);
+
+          if (error) throw error;
+          deletedCount += 1; // Count folder as 1 item for user feedback
+        }
+      }
+
+      const itemType = selectedFiles.size > 0 && selectedFolders.size > 0 
+        ? 'item(s)' 
+        : selectedFiles.size > 0 
+          ? 'file(s)' 
+          : 'folder(s)';
+      
+      toast.success(`Successfully deleted ${deletedCount} ${itemType}`);
       setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
       setShowBulkDeleteConfirm(false);
       onRefresh();
     } catch (error) {
-      console.error('Error deleting files:', error);
-      toast.error('Failed to delete selected files');
+      console.error('Error deleting items:', error);
+      toast.error('Failed to delete selected items');
     } finally {
       setIsDeleting(false);
     }
@@ -411,28 +452,31 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       {/* Bulk Action Bar */}
       <BulkActionBar
         selectedCount={selectedFiles.size}
-        selectedFolderCount={0}
+        selectedFolderCount={selectedFolders.size}
         onBulkDelete={handleBulkDelete}
         isDeleting={isDeleting}
       />
 
-      {/* Select All for Files */}
-      {files.length > 0 && (
+      {/* Select All Controls */}
+      {(files.length > 0 || folders.length > 0) && (
         <div className="mb-4 flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleSelectAll(!selectedFiles.size || selectedFiles.size < files.length)}
+            onClick={() => {
+              const allSelected = selectedFiles.size === files.length && selectedFolders.size === folders.length;
+              handleSelectAll(!allSelected);
+            }}
             className="gap-2"
           >
-            {selectedFiles.size === files.length ? (
+            {selectedFiles.size === files.length && selectedFolders.size === folders.length ? (
               <CheckSquare className="h-4 w-4" />
             ) : (
               <Square className="h-4 w-4" />
             )}
-            {selectedFiles.size === files.length ? 'Deselect All' : 'Select All'}
+            {selectedFiles.size === files.length && selectedFolders.size === folders.length ? 'Deselect All' : 'Select All'}
           </Button>
-          {selectedFiles.size > 0 && (
+          {(selectedFiles.size > 0 || selectedFolders.size > 0) && (
             <Button
               variant="outline"
               size="sm"
@@ -440,7 +484,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               className="gap-2"
             >
                <FileText className="h-4 w-4" />
-              Move Selected ({selectedFiles.size})
+              Move Selected ({selectedFiles.size + selectedFolders.size})
             </Button>
           )}
         </div>
@@ -451,8 +495,22 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         {folders.map((folder) => (
           <div
             key={folder.path}
-            className="flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors"
+            className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors ${
+              selectedFolders.has(folder.path) ? 'bg-accent border-primary' : ''
+            }`}
           >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleSelectFolder(folder.path, !selectedFolders.has(folder.path))}
+              className="p-1"
+            >
+              {selectedFolders.has(folder.path) ? (
+                <CheckSquare className="h-4 w-4 text-primary" />
+              ) : (
+                <Square className="h-4 w-4" />
+              )}
+            </Button>
             <Folder className="h-5 w-5 text-blue-500" />
             <div 
               className="flex-1 cursor-pointer"
@@ -476,6 +534,15 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 className="gap-1"
               >
                 <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleMoveFiles([], [folder.path])}
+                className="gap-1"
+                title="Move folder"
+              >
+                <FileText className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -657,7 +724,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         isOpen={showMoveModal}
         onClose={() => setShowMoveModal(false)}
         selectedFileIds={filesToMove}
+        selectedFolderPaths={foldersToMove}
         files={files}
+        folders={folders}
         onSuccess={handleMoveSuccess}
         projectId={projectId}
       />
@@ -666,8 +735,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         open={showBulkDeleteConfirm}
         onOpenChange={(open) => !open && setShowBulkDeleteConfirm(false)}
         onConfirm={confirmBulkDelete}
-        title="Delete Selected Files"
-        description={`Are you sure you want to delete ${selectedFiles.size} selected file(s)? This action cannot be undone.`}
+        title="Delete Selected Items"
+        description={`Are you sure you want to delete ${selectedFiles.size + selectedFolders.size} selected item(s)? This action cannot be undone.`}
       />
 
       <FileShareModal

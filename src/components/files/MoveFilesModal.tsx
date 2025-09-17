@@ -22,11 +22,18 @@ interface SimpleFile {
   };
 }
 
+interface SimpleFolder {
+  name: string;
+  path: string;
+}
+
 interface MoveFilesModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedFileIds: string[];
+  selectedFolderPaths?: string[];
   files: SimpleFile[];
+  folders?: SimpleFolder[];
   onSuccess: () => void;
   projectId: string;
 }
@@ -35,16 +42,19 @@ export function MoveFilesModal({
   isOpen, 
   onClose, 
   selectedFileIds, 
+  selectedFolderPaths = [],
   files, 
+  folders = [],
   onSuccess, 
   projectId 
 }: MoveFilesModalProps) {
   const { toast } = useToast();
-  const [folders, setFolders] = useState<string[]>([]);
+  const [existingFolders, setExistingFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>("");
   const [isMoving, setIsMoving] = useState(false);
 
   const selectedFiles = files.filter(file => selectedFileIds.includes(file.id));
+  const selectedFolders = folders.filter(folder => selectedFolderPaths.includes(folder.path));
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -78,7 +88,7 @@ export function MoveFilesModal({
       });
 
       const folderList = Array.from(folderSet).sort();
-      setFolders(folderList);
+      setExistingFolders(folderList);
     } catch (error) {
       console.error('Error fetching folders:', error);
       toast({
@@ -99,10 +109,10 @@ export function MoveFilesModal({
       return;
     }
 
-    if (selectedFiles.length === 0) {
+    if (selectedFiles.length === 0 && selectedFolders.length === 0) {
       toast({
-        title: "No Files Selected",
-        description: "Please select files to move",
+        title: "No Items Selected",
+        description: "Please select files or folders to move",
         variant: "destructive",
       });
       return;
@@ -111,11 +121,64 @@ export function MoveFilesModal({
     setIsMoving(true);
 
     try {
-      console.log(`Starting to move ${selectedFiles.length} files to "${selectedFolder}"`);
+      console.log(`Starting to move ${selectedFiles.length} files and ${selectedFolders.length} folders to "${selectedFolder}"`);
       
       let successCount = 0;
       let failureCount = 0;
       const failures: string[] = [];
+
+      // First, move folders by updating all files within those folders
+      for (const folder of selectedFolders) {
+        try {
+          console.log(`Moving folder: ${folder.path}`);
+          
+          // Get all files in this folder
+          const { data: folderFiles, error: fetchError } = await supabase
+            .from('project_files')
+            .select('id, original_filename')
+            .eq('project_id', projectId)
+            .like('original_filename', `${folder.path}/%`)
+            .eq('is_deleted', false);
+
+          if (fetchError) throw fetchError;
+
+          // Move each file in the folder
+          if (folderFiles && folderFiles.length > 0) {
+            for (const file of folderFiles) {
+              const relativePath = file.original_filename.substring(folder.path.length + 1);
+              const newPath = selectedFolder === "ROOT" ? relativePath : `${selectedFolder}/${relativePath}`;
+              
+              const { error: updateError } = await supabase
+                .from('project_files')
+                .update({ 
+                  original_filename: newPath,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', file.id);
+
+              if (updateError) {
+                console.error(`Failed to move file ${file.original_filename}:`, updateError);
+                failures.push(`${folder.name}: ${updateError.message}`);
+                failureCount++;
+                break; // Stop processing this folder if any file fails
+              }
+            }
+            
+            if (!failures.some(f => f.includes(folder.name))) {
+              console.log(`Successfully moved folder "${folder.path}"`);
+              successCount++;
+            }
+          } else {
+            // Empty folder - consider it successfully moved
+            console.log(`Folder "${folder.path}" is empty - considered moved`);
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Error moving folder ${folder.path}:`, error);
+          failures.push(`${folder.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          failureCount++;
+        }
+      }
 
       // Handle root folder case differently
       if (selectedFolder === "ROOT") {
@@ -293,12 +356,12 @@ export function MoveFilesModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Move Files to Folder</DialogTitle>
+          <DialogTitle>Move Items to Folder</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="text-sm text-muted-foreground">
-            Moving {selectedFiles.length} file(s)
+            Moving {selectedFiles.length} file(s) and {selectedFolders.length} folder(s)
           </div>
 
           <div className="space-y-2">
@@ -316,12 +379,12 @@ export function MoveFilesModal({
                   </div>
                 </SelectItem>
                 
-                {folders.length === 0 ? (
+                {existingFolders.length === 0 ? (
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     No other existing folders
                   </div>
                 ) : (
-                  folders.map((folder) => (
+                  existingFolders.map((folder) => (
                     <SelectItem key={folder} value={folder}>
                       <div className="flex items-center">
                         <FolderOpen className="h-4 w-4 mr-2" />
@@ -343,7 +406,7 @@ export function MoveFilesModal({
             onClick={handleMove} 
             disabled={isMoving || !selectedFolder}
           >
-            {isMoving ? "Moving..." : "Move Files"}
+            {isMoving ? "Moving..." : "Move Items"}
           </Button>
         </DialogFooter>
       </DialogContent>
