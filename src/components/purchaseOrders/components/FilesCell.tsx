@@ -107,8 +107,9 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         const iconColorClass = getFileIconColor(fileName);
         return (
           <button
+            type="button"
             key={`${fileName}-${index}`}
-            onClick={() => handleFilePreview(file)}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFilePreview(file); }}
             className={`inline-block ${iconColorClass} transition-colors p-1`}
             title={fileName}
           >
