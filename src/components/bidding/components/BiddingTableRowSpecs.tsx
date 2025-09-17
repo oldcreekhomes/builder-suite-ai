@@ -22,7 +22,7 @@ export function BiddingTableRowSpecs({
   return (
     <>
       <TableCell className="py-1">
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-start">
           {item.specifications && item.specifications.trim() !== '' ? (
             <Button
               variant="ghost"
