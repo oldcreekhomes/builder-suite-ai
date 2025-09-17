@@ -132,9 +132,6 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
             <p className="text-sm font-medium">
               {getDisplayName(file.original_filename)}
             </p>
-            <p className="text-xs text-gray-500">
-              {file.file_type.toUpperCase()} • {Math.round(file.file_size / 1024)} KB
-            </p>
           </div>
 
           {isGeneratingLink ? (
