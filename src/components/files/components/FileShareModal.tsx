@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,12 +46,35 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       const userId = userData.user?.id;
       if (!userId) throw new Error('You must be logged in to generate a share link.');
       
+      // Check for existing valid share link for this file
+      const { data: existingShare, error: existingError } = await supabase
+        .from('shared_links')
+        .select('share_id, expires_at')
+        .eq('share_type', 'file')
+        .gt('expires_at', new Date().toISOString())
+        .contains('data', { files: [{ file_id: file.id }] })
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingError && existingShare) {
+        // Reuse existing valid link
+        const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
+        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
+        setShareLink(shareUrl);
+        setIsGeneratingLink(false);
+        toast({
+          title: "Link Retrieved",
+          description: "Using existing shareable link",
+        });
+        return;
+      }
+      
       // Create a unique share ID
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       // Store the share data in Supabase database
       const shareData = {
-        folderPath: 'Single File',
         files: [{
           id: file.id,
           original_filename: file.original_filename,
@@ -61,8 +84,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
           project_id: file.project_id,
           uploaded_by: file.uploaded_by,
           uploaded_at: file.uploaded_at
-        }],
-        projectId: file.project_id
+        }]
       };
 
       // Insert share link into database
@@ -81,7 +103,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       }
       
       // Use Supabase Edge Function for stable public links with redirect
-      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&origin=${encodeURIComponent(window.location.origin)}`;
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f`;
       setShareLink(link);
       
       toast({
@@ -148,6 +170,12 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share File</DialogTitle>
+          <DialogDescription>
+            Generate a shareable link for this file that others can use to download it.
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+              ⚠️ This link will expire in 7 days. Please download the file within this timeframe.
+            </div>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

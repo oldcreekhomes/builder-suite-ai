@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.share-redirect]
 verify_jwt = false
+
+[functions.public-file-download]
+verify_jwt = false

@@ -44,10 +44,10 @@ export default function SharedFolder() {
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [folderName, setFolderName] = useState("");
   const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
-  const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [expired, setExpired] = useState(false);
+    const [error, setError] = useState("");
 
   useEffect(() => {
     const loadFolder = async () => {
@@ -57,7 +57,7 @@ export default function SharedFolder() {
         if (!shareId) {
           console.error('No shareId provided');
           setError('Invalid share link');
-          setIsLoading(false);
+          setLoading(false);
           return;
         }
 
@@ -72,14 +72,15 @@ export default function SharedFolder() {
         if (error) {
           console.error('Error fetching share data:', error);
           setError('Failed to load shared folder');
-          setIsLoading(false);
+          setLoading(false);
           return;
         }
 
         if (!shareData) {
           console.error('Share data not found for shareId:', shareId);
           setError('Share not found - the link may be invalid or expired');
-          setIsLoading(false);
+          setExpired(true);
+          setLoading(false);
           return;
         }
 
@@ -91,34 +92,34 @@ export default function SharedFolder() {
         
         if (now > expiryDate) {
           console.log('Share has expired. Now:', now, 'Expires:', expiryDate);
-          setIsExpired(true);
-          setIsLoading(false);
+          setExpired(true);
+          setLoading(false);
           return;
         }
 
-        // Extract data from the database record
-        const data = shareData.data as any as ShareData;
+        // Extract data from the database record (handle both old 'data' and new 'share_data' columns)
+        const data = shareData.data as any;
 
         // Determine share type and set data accordingly
         if (data.files && data.files.length > 0) {
           setShareType('files');
-          setFolderName(data.folderPath === 'Root' ? 'Root Files' : data.folderPath);
+          setFolderName(data.folder_path || data.folderPath || 'Shared Files');
           setFiles(data.files);
           console.log('Successfully loaded shared folder with', data.files.length, 'files');
         } else if (data.photos && data.photos.length > 0) {
           setShareType('photos');
-          setFolderName(data.folderPath === 'Root' ? 'Root Photos' : data.folderPath);
+          setFolderName(data.folder_path || data.folderPath || 'Shared Photos');
           setPhotos(data.photos);
           console.log('Successfully loaded shared folder with', data.photos.length, 'photos');
         } else {
           setError('This shared folder is empty');
         }
         
-        setIsLoading(false);
+        setLoading(false);
       } catch (error) {
         console.error('Error loading shared folder:', error);
-        setError('Failed to load shared folder');
-        setIsLoading(false);
+          setError('Failed to load shared folder');
+          setLoading(false);
       }
     };
 
@@ -217,54 +218,34 @@ export default function SharedFolder() {
 
   const handleFileDownload = async (file: SharedFile) => {
     try {
-      console.log('Downloading file:', file);
-      
-      // Get a signed URL from Supabase storage
-      const { data, error } = await supabase.storage
-        .from('project-files')
-        .createSignedUrl(file.storage_path, 7200); // 2 hours expiry
+      // Use the public download edge function
+      const response = await fetch(
+        `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&file_id=${file.id}`
+      );
 
-      if (error) {
-        console.error('Error creating signed URL:', error);
-        throw error;
-      }
-
-      if (!data?.signedUrl) {
-        throw new Error('No signed URL returned');
-      }
-
-      // Download the file
-      const response = await fetch(data.signedUrl);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error('Failed to get download URL');
       }
+
+      const data = await response.json();
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Use the original filename
-      let fileName = file.original_filename;
-      if (fileName.includes('/')) {
-        fileName = fileName.split('/').pop() || fileName;
-      }
-      a.download = fileName;
-      
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.download_url;
+      link.download = file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       toast({
         title: "Download Complete",
-        description: `${fileName} has been downloaded`,
+        description: `${link.download} has been downloaded`,
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('Error downloading file:', error);
       toast({
-        title: "Download Error",
-        description: "Failed to download file. The file may no longer be available.",
+        title: "Download Error", 
+        description: "Failed to download file",
         variant: "destructive",
       });
     }
@@ -272,31 +253,35 @@ export default function SharedFolder() {
 
   const handlePhotoDownload = async (photo: SharedPhoto) => {
     try {
-      console.log('Downloading individual photo:', photo.url);
-      const response = await fetch(photo.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      // Create a proper filename
-      let fileName = photo.description || `photo-${photo.id}`;
-      if (fileName.includes('/')) {
-        fileName = fileName.split('/').pop() || fileName;
+      // Use the public download edge function
+      const response = await fetch(
+        `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&photo_id=${photo.id}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to get download URL');
       }
-      if (!fileName.includes('.')) {
-        const urlParts = photo.url.split('.');
-        const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
-        fileName += `.${extension}`;
-      }
+
+      const data = await response.json();
       
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.download_url;
+      
+      // Extract filename from URL or use a default name
+      const filename = photo.url.split('/').pop() || 'photo.jpg';
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download Complete",
+        description: `${filename} has been downloaded`,
+      });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('Error downloading photo:', error);
       toast({
         title: "Download Error",
         description: "Failed to download photo",
@@ -305,12 +290,12 @@ export default function SharedFolder() {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading shared folder...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading shared content...</p>
         </div>
       </div>
     );
@@ -318,22 +303,24 @@ export default function SharedFolder() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Share Not Found</h1>
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
           <p className="text-gray-600">{error}</p>
-          <p className="text-sm text-gray-500 mt-2">Please check the link and try again.</p>
         </div>
       </div>
     );
   }
 
-  if (isExpired) {
+  if (expired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Share Expired</h1>
-          <p className="text-gray-600">This shared folder link has expired.</p>
+          <div className="text-yellow-500 text-6xl mb-4">⏰</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Expired</h1>
+          <p className="text-gray-600 mb-4">This share link has expired and is no longer accessible.</p>
+          <p className="text-sm text-gray-500">Share links are valid for 7 days from creation.</p>
         </div>
       </div>
     );
@@ -366,86 +353,43 @@ export default function SharedFolder() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Folder className="h-6 w-6 text-blue-500" />
-            <h1 className="text-2xl font-bold text-black">{folderName}</h1>
-            <span className="text-sm text-gray-500">
-              ({itemCount} {itemType}{itemCount !== 1 ? 's' : ''})
-            </span>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {folderName}
+          </h1>
+          <p className="text-gray-600 mb-3">
+            {files.length} file{files.length !== 1 ? 's' : ''} shared with you
+          </p>
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm font-medium">
+              ⚠️ This share link expires in 7 days. Please download the files you need.
+            </p>
           </div>
         </div>
-      </header>
 
-      {shareType === 'photos' && (
-        <div className="flex justify-center py-4">
-          <Button 
-            onClick={handleDownloadAll}
-            disabled={isDownloading}
-            size="lg"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {isDownloading ? 'Preparing Download...' : `Download All (${itemCount} ${itemType}s)`}
-          </Button>
+        <div className="grid grid-cols-1 gap-4">
+          {files.map((file) => (
+            <div key={file.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">
+                  {file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename}
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleFileDownload(file)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+          ))}
         </div>
-      )}
-
-      <div className="flex-1 p-6">
-        {shareType === 'files' ? (
-          <div className="grid grid-cols-1 gap-4">
-            {files.map((file) => (
-              <div key={file.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">
-                    {file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFileDownload(file)}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {photos.map((photo) => (
-              <div key={photo.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <img
-                  src={photo.url}
-                  alt={photo.description || 'Photo'}
-                  className="w-full h-48 object-cover"
-                  onError={(e) => {
-                    console.error('Failed to load image:', photo.url);
-                    e.currentTarget.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
-                  }}
-                />
-                <div className="p-3">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {photo.description || 'Untitled Photo'}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePhotoDownload(photo)}
-                    className="mt-2 w-full"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

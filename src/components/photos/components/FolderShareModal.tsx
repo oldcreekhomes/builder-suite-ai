@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,12 +41,36 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
       const userId = userData.user?.id;
       if (!userId) throw new Error('You must be logged in to generate a share link.');
 
+      // Check for existing valid share link for this photo folder
+      const { data: existingShare, error: existingError } = await supabase
+        .from('shared_links')
+        .select('share_id, expires_at')
+        .eq('share_type', 'folder')
+        .gt('expires_at', new Date().toISOString())
+        .contains('data', { folder_path: folderPath })
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingError && existingShare) {
+        // Reuse existing valid link
+        const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
+        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
+        setShareLink(shareUrl);
+        setIsGeneratingLink(false);
+        toast({
+          title: "Link Retrieved",
+          description: "Using existing shareable link",
+        });
+        return;
+      }
+
       // Create a unique share ID
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
       // Store the share data in Supabase database
       const shareData = {
-        folderPath,
+        folder_path: folderPath,
         photos: photos.map(photo => ({
           id: photo.id,
           url: photo.url,
@@ -54,15 +78,14 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
           project_id: photo.project_id,
           uploaded_by: photo.uploaded_by,
           uploaded_at: photo.uploaded_at
-        })),
-        projectId
+        }))
       };
 
       const { error } = await supabase
         .from('shared_links')
         .insert({
           share_id: shareId,
-          share_type: 'photos',
+          share_type: 'folder',
           data: shareData,
           created_by: userId,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
@@ -71,7 +94,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
       if (error) throw error;
 
       // Use Supabase Edge Function for stable public links with redirect
-      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&origin=${encodeURIComponent(window.location.origin)}`;
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f`;
       setShareLink(link);
 
       toast({
@@ -130,7 +153,13 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Share Folder</DialogTitle>
+          <DialogTitle>Share Photo Folder</DialogTitle>
+          <DialogDescription>
+            Generate a shareable link for this photo folder that others can use to view and download the photos.
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+              ⚠️ This link will expire in 7 days. Please download the photos within this timeframe.
+            </div>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
