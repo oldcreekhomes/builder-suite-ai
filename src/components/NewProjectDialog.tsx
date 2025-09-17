@@ -149,6 +149,18 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <AddressAutocomplete
+              id="address"
+              value={address}
+              onChange={setAddress}
+              placeholder="Enter project address"
+              disabled={isLoading}
+              className={hasAttemptedSave && !address ? "text-red-500 placeholder:text-red-400" : ""}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus} disabled={isLoading}>
               <SelectTrigger className={hasAttemptedSave && !status ? "text-red-500" : ""}>
@@ -210,18 +222,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <AddressAutocomplete
-              id="address"
-              value={address}
-              onChange={setAddress}
-              placeholder="Enter project address"
-              disabled={isLoading}
-              className={hasAttemptedSave && !address ? "text-red-500 placeholder:text-red-400" : ""}
-            />
           </div>
 
           <DialogFooter>
