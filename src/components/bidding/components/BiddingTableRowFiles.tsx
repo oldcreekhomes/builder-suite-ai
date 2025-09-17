@@ -74,7 +74,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
             onClick={handleFileUpload}
             className="h-8 text-xs"
           >
-            {item.files && item.files.length > 0 ? "Add Files" : "Files"}
+            Add Files
           </Button>
         )}
         
