@@ -52,7 +52,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
         .select('share_id, expires_at')
         .eq('share_type', 'file')
         .gt('expires_at', new Date().toISOString())
-        .contains('data', { files: [{ file_id: file.id }] })
+        .contains('data', { files: [{ id: file.id }] })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -60,7 +60,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       if (!existingError && existingShare) {
         // Reuse existing valid link
         const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
-        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
+        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f&origin=${encodeURIComponent(window.location.origin)}`;
         setShareLink(shareUrl);
         setIsGeneratingLink(false);
         toast({
@@ -103,7 +103,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       }
       
       // Use Supabase Edge Function for stable public links with redirect
-      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f`;
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f&origin=${encodeURIComponent(window.location.origin)}`;
       setShareLink(link);
       
       toast({

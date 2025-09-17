@@ -62,7 +62,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
       if (!existingError && existingShare) {
         // Reuse existing valid link
         const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
-        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
+        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f&origin=${encodeURIComponent(window.location.origin)}`;
         setShareLink(shareUrl);
         setIsGeneratingLink(false);
         toast({
@@ -106,7 +106,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
       }
       
       // Use Supabase Edge Function for stable public links with redirect
-      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f`;
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f&origin=${encodeURIComponent(window.location.origin)}`;
       setShareLink(link);
       
       toast({

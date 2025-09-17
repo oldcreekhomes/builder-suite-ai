@@ -42,7 +42,7 @@ serve(async (req) => {
     // Validate share link exists and not expired
     const { data: share, error: shareError } = await supabase
       .from("shared_links")
-      .select("share_id, share_type, expires_at, share_data")
+      .select("share_id, share_type, expires_at, data")
       .eq("share_id", shareId)
       .gt("expires_at", new Date().toISOString())
       .single();
@@ -60,7 +60,7 @@ serve(async (req) => {
 
     if (fileId) {
       // Find the file in the shared data
-      const shareData = share.share_data as any;
+      const shareData = share.data as any;
       const file = shareData.files?.find((f: any) => f.id === fileId);
       
       if (!file) {
@@ -73,7 +73,7 @@ serve(async (req) => {
       filePath = file.storage_path;
     } else if (photoId) {
       // Find the photo in the shared data
-      const shareData = share.share_data as any;
+      const shareData = share.data as any;
       const photo = shareData.photos?.find((p: any) => p.id === photoId);
       
       if (!photo) {
