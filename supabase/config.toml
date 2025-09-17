@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.submit-bid]
 verify_jwt = false
+
+[functions.share-redirect]
+verify_jwt = false

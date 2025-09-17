@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Folder } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectPhoto {
   id: string;
@@ -32,17 +33,19 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
   const generateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
-      console.log('Generating share link for folder:', folderPath);
-      console.log('Photos to share:', photos.length);
-      console.log('Photos data:', photos);
-      
+      console.log('Generating share link for photos folder:', folderPath);
+
+      // Ensure user is authenticated for RLS policy (created_by = auth.uid())
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const userId = userData.user?.id;
+      if (!userId) throw new Error('You must be logged in to generate a share link.');
+
       // Create a unique share ID
-      const shareId = Math.random().toString(36).substring(2, 15);
-      
-      // Store the share data in localStorage for this demo
-      // In production, this would be stored in a database
+      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      // Store the share data in Supabase database
       const shareData = {
-        shareId,
         folderPath,
         photos: photos.map(photo => ({
           id: photo.id,
@@ -52,21 +55,25 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
           uploaded_by: photo.uploaded_by,
           uploaded_at: photo.uploaded_at
         })),
-        projectId,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        projectId
       };
-      
-      console.log('Storing share data:', shareData);
-      localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
-      
-      // Verify it was stored
-      const storedData = localStorage.getItem(`share_${shareId}`);
-      console.log('Verification - stored data:', storedData);
-      
-      const link = `https://buildersuite.com/s/f/${shareId}`;
+
+      const { error } = await supabase
+        .from('shared_links')
+        .insert({
+          share_id: shareId,
+          share_type: 'photos',
+          data: shareData,
+          created_by: userId,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        });
+
+      if (error) throw error;
+
+      // Use Supabase Edge Function for stable public links with redirect
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&origin=${encodeURIComponent(window.location.origin)}`;
       setShareLink(link);
-      
+
       toast({
         title: "Link Generated",
         description: `Shareable folder link created with ${photos.length} photos`,

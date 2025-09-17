@@ -80,8 +80,8 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
         throw error;
       }
       
-      // Use BuilderSuite domain for share links
-      const link = `https://buildersuite.com/s/f/${shareId}`;
+      // Use Supabase Edge Function for stable public links with redirect
+      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&origin=${encodeURIComponent(window.location.origin)}`;
       setShareLink(link);
       
       toast({
