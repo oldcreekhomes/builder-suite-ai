@@ -16,7 +16,6 @@ interface AddressAutocompleteProps {
   placeholder?: string;
   disabled?: boolean;
   id?: string;
-  className?: string;
 }
 
 export function AddressAutocomplete({ 
@@ -24,8 +23,7 @@ export function AddressAutocomplete({
   onChange, 
   placeholder = "Enter address",
   disabled = false,
-  id,
-  className
+  id
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -106,7 +104,6 @@ export function AddressAutocomplete({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={className}
     />
   );
 }

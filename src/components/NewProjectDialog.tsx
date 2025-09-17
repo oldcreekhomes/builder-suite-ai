@@ -142,21 +142,20 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="projectName" className="text-red-600">Project Name *</Label>
+            <Label htmlFor="projectName">Project Name</Label>
             <Input
               id="projectName"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
               disabled={isLoading}
-              className="border-red-300 focus:border-red-500 focus:ring-red-500"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="status" className="text-red-600">Status *</Label>
+            <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus} disabled={isLoading}>
-              <SelectTrigger className="border-red-300 focus:border-red-500 focus:ring-red-500">
+              <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -170,7 +169,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="totalLots" className="text-red-600">Total Lots *</Label>
+            <Label htmlFor="totalLots">Total Lots</Label>
             <Input
               id="totalLots"
               type="number"
@@ -179,15 +178,15 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               placeholder="Enter total lots"
               disabled={isLoading}
               min="0"
-              className="border-red-300 focus:border-red-500 focus:ring-red-500 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+              className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="constructionManager" className="text-red-600">Construction Manager *</Label>
+              <Label htmlFor="constructionManager">Construction Manager</Label>
               <Select value={constructionManager} onValueChange={setConstructionManager} disabled={isLoading || usersLoading}>
-                <SelectTrigger className="border-red-300 focus:border-red-500 focus:ring-red-500">
+                <SelectTrigger>
                   <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -218,14 +217,13 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address" className="text-red-600">Address *</Label>
+            <Label htmlFor="address">Address</Label>
             <AddressAutocomplete
               id="address"
               value={address}
               onChange={setAddress}
               placeholder="Enter project address"
               disabled={isLoading}
-              className="border-red-300 focus:border-red-500 focus:ring-red-500"
             />
           </div>
 
