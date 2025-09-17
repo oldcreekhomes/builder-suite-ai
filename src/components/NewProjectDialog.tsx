@@ -41,6 +41,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const [totalLots, setTotalLots] = useState("");
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -51,6 +52,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     e.preventDefault();
     
     if (!projectName || !status || !constructionManager || !address || !totalLots) {
+      setHasAttemptedSave(true);
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -115,6 +117,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       setAccountingManager("");
       setTotalLots("");
       setAddress("");
+      setHasAttemptedSave(false);
       onOpenChange(false);
 
       // Navigate to project dashboard
@@ -131,8 +134,15 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setHasAttemptedSave(false);
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
@@ -149,13 +159,14 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Enter project name"
               disabled={isLoading}
+              className={hasAttemptedSave && !projectName ? "text-red-500 placeholder:text-red-400" : ""}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus} disabled={isLoading}>
-              <SelectTrigger>
+              <SelectTrigger className={hasAttemptedSave && !status ? "text-red-500" : ""}>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -178,7 +189,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               placeholder="Enter total lots"
               disabled={isLoading}
               min="0"
-              className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+              className={`[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${hasAttemptedSave && !totalLots ? "text-red-500 placeholder:text-red-400" : ""}`}
             />
           </div>
 
@@ -186,7 +197,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             <div className="space-y-2">
               <Label htmlFor="constructionManager">Construction Manager</Label>
               <Select value={constructionManager} onValueChange={setConstructionManager} disabled={isLoading || usersLoading}>
-                <SelectTrigger>
+                <SelectTrigger className={hasAttemptedSave && !constructionManager ? "text-red-500" : ""}>
                   <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -224,6 +235,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               onChange={setAddress}
               placeholder="Enter project address"
               disabled={isLoading}
+              className={hasAttemptedSave && !address ? "text-red-500 placeholder:text-red-400" : ""}
             />
           </div>
 
@@ -231,7 +243,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
