@@ -1,6 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { openProjectFile } from '@/utils/fileOpenUtils';
+import { openFileViaRedirect } from '@/utils/fileOpenUtils';
 
 interface FilesCellProps {
   files: any;
@@ -13,10 +13,30 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // If the file has a direct URL (like proposal files), open it directly
+    // If the file has a direct URL (like proposal files), parse it and use redirect
     if (file.url) {
       console.log('Opening file with direct URL:', file.url);
-      window.open(file.url, '_blank');
+      
+      // Parse the Supabase URL to extract bucket and path
+      try {
+        const url = new URL(file.url);
+        const pathParts = url.pathname.split('/object/public/');
+        if (pathParts.length === 2) {
+          const [bucket, ...pathSegments] = pathParts[1].split('/');
+          const path = pathSegments.join('/');
+          const fileName = file.name || path.split('/').pop();
+          
+          console.log('Parsed URL:', { bucket, path, fileName });
+          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to parse file URL:', error);
+      }
+      
+      // Fallback: if we can't parse the URL, use redirect with project-files bucket
+      const fileName = file.name || 'file';
+      openFileViaRedirect('project-files', fileName, fileName);
       return;
     }
     
@@ -24,7 +44,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
     const fileName = file.name || file.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
-    openProjectFile(filePath, fileName);
+    openFileViaRedirect('project-files', filePath, fileName);
   };
 
   if (fileCount === 0) {

@@ -38,7 +38,7 @@ export function openProjectFilePublic(filePath: string, fileName?: string) {
  * Helper functions for different file types - standardized approach
  */
 export function openProjectFile(filePath: string, fileName?: string) {
-  openProjectFilePublic(filePath, fileName);
+  openFileViaRedirect('project-files', filePath, fileName);
 }
 
 export function openIssueFile(filePath: string, fileName?: string) {
@@ -48,8 +48,8 @@ export function openIssueFile(filePath: string, fileName?: string) {
 
 export function openProposalFile(fileName: string) {
   console.log('openProposalFile called with:', fileName);
-  // Use direct public URL for project-files bucket
-  openProjectFilePublic(`proposals/${fileName}`, fileName);
+  // Use redirect approach to avoid popup blockers
+  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
 }
 
 export function openSpecificationFile(filePath: string, fileName?: string) {
@@ -69,8 +69,8 @@ export function openSpecificationFile(filePath: string, fileName?: string) {
   const finalPath = `specifications/${normalizedPath}`;
   
   console.log('Opening specification file:', { originalPath: filePath, normalizedPath, finalPath });
-  // Use direct public URL for fast access
-  openProjectFilePublic(finalPath, fileName);
+  // Use redirect approach to avoid popup blockers
+  openFileViaRedirect('project-files', finalPath, fileName);
 }
 
 /**
