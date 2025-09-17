@@ -2,8 +2,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Universal file opener - works for all buckets and file types
- * Uses same-tab navigation to avoid any popup issues
+ * Universal file opener - opens in new tab using direct window.open()
+ * Uses file viewer route to avoid Chrome blocking issues
  */
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
   console.log('openFileViaRedirect called:', { bucket, path, fileName });
@@ -15,10 +15,19 @@ export function openFileViaRedirect(bucket: string, path: string, fileName?: str
   });
   
   const redirectUrl = `/file-redirect?${params.toString()}`;
-  console.log('Redirecting to:', redirectUrl);
+  console.log('Opening file viewer:', redirectUrl);
   
-  // Use same-tab navigation - no popup blockers, no new tabs
-  window.location.assign(redirectUrl);
+  // Use direct window.open() for new tab - called immediately in click handler
+  const newTab = window.open(redirectUrl, '_blank');
+  if (!newTab) {
+    toast({
+      title: "Popup blocked",
+      description: "Please allow popups for this site to open files in new tabs",
+      variant: "destructive",
+    });
+    // Fallback to same tab
+    window.location.href = redirectUrl;
+  }
 }
 
 /**
@@ -35,20 +44,45 @@ export function openProjectFilePublic(filePath: string, fileName?: string) {
 }
 
 /**
- * Helper functions for different file types - standardized approach
+ * Programmatic download function - avoids popup blocking
+ */
+export async function downloadFile(fileUrl: string, fileName: string) {
+  try {
+    const response = await fetch(fileUrl);
+    const blob = await response.blob();
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    
+    toast({
+      title: "Download started",
+      description: `${fileName} is being downloaded`,
+    });
+  } catch (error) {
+    console.error('Download failed:', error);
+    // Fallback to window.open
+    window.open(fileUrl, '_blank');
+  }
+}
+
+/**
+ * Helper functions for different file types - all use direct window.open()
  */
 export function openProjectFile(filePath: string, fileName?: string) {
   openFileViaRedirect('project-files', filePath, fileName);
 }
 
 export function openIssueFile(filePath: string, fileName?: string) {
-  // Use redirect approach for issue-files bucket (private)
-  openFileViaRedirectNewTab('issue-files', filePath, fileName);
+  openFileViaRedirect('issue-files', filePath, fileName);
 }
 
 export function openProposalFile(fileName: string) {
   console.log('openProposalFile called with:', fileName);
-  // Use redirect approach to avoid popup blockers
   openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
 }
 
@@ -69,7 +103,6 @@ export function openSpecificationFile(filePath: string, fileName?: string) {
   const finalPath = `specifications/${normalizedPath}`;
   
   console.log('Opening specification file:', { originalPath: filePath, normalizedPath, finalPath });
-  // Use redirect approach to avoid popup blockers
   openFileViaRedirect('project-files', finalPath, fileName);
 }
 

@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileIcon, Download } from 'lucide-react';
+import { FileIcon, Download, ExternalLink } from 'lucide-react';
+import { PDFViewer } from '@/components/files/PDFViewer';
+import { toast } from '@/hooks/use-toast';
 
 const FileRedirect = () => {
   const [searchParams] = useSearchParams();
@@ -113,6 +115,47 @@ const FileRedirect = () => {
     return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'].includes(ext);
   };
 
+  // Programmatic download function
+  const handleDownload = async () => {
+    if (!fileUrl) return;
+
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      
+      toast({
+        title: "Download started",
+        description: `${fileName} is being downloaded`,
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to window.open
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const handleOpenInNewTab = () => {
+    const params = new URLSearchParams({ bucket: bucket!, path: path!, fileName });
+    const newTabUrl = `/file-redirect?${params.toString()}`;
+    
+    const newTab = window.open(newTabUrl, '_blank');
+    if (!newTab) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups for this site to open files in new tabs",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -121,26 +164,36 @@ const FileRedirect = () => {
           <FileIcon className="h-5 w-5" />
           <span className="font-medium">{fileName}</span>
         </div>
-        {fileUrl && (
+        <div className="flex items-center gap-2">
           <Button 
-            onClick={() => window.open(fileUrl, '_blank')} 
+            onClick={handleOpenInNewTab}
             variant="outline" 
             size="sm"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Download
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open in New Tab
           </Button>
-        )}
+          {fileUrl && (
+            <Button 
+              onClick={handleDownload}
+              variant="outline" 
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* File Viewer */}
       <div className="flex-1 h-[calc(100vh-64px)]">
         {fileUrl && isViewable(fileName) ? (
           isPDF(fileName) ? (
-            <iframe
-              src={fileUrl}
-              className="w-full h-full border-0"
-              title={fileName}
+            <PDFViewer
+              fileUrl={fileUrl}
+              fileName={fileName}
+              onDownload={handleDownload}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -161,7 +214,7 @@ const FileRedirect = () => {
                 </p>
                 {fileUrl && (
                   <Button 
-                    onClick={() => window.open(fileUrl, '_blank')} 
+                    onClick={handleDownload}
                     className="w-full"
                   >
                     <Download className="h-4 w-4 mr-2" />
