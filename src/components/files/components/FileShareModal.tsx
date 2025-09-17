@@ -171,7 +171,6 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
         <DialogHeader>
           <DialogTitle>Share File</DialogTitle>
           <DialogDescription>
-            Generate a shareable link for this file that others can use to download it.
             <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
               ⚠️ This link will expire in 7 days. Please download the file within this timeframe.
             </div>
