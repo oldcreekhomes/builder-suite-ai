@@ -17,7 +17,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-
+import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 interface FileRowProps {
   file: any;
   isSelected: boolean;
@@ -138,6 +138,13 @@ export function FileRow({
       <TableCell 
         className={!isEditing ? "cursor-pointer hover:text-blue-600" : ""}
         onClick={!isEditing ? () => onFileSelect(file) : undefined}
+        onMouseDown={(e) => {
+          if (!isEditing && (e.button === 1 || e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            e.stopPropagation();
+            openFileViaRedirect('project-files', (file.storage_path || file.original_filename), fileName);
+          }
+        }}
       >
         <div>
           {isEditing ? (
@@ -225,6 +232,10 @@ export function FileRow({
     </TableRow>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        <ContextMenuItem onClick={() => openFileViaRedirect('project-files', (file.storage_path || file.original_filename), fileName)}>
+          <Eye className="h-4 w-4 mr-2" />
+          Open in New Tab
+        </ContextMenuItem>
         <ContextMenuItem onClick={() => onFileSelect(file)}>
           <Eye className="h-4 w-4 mr-2" />
           View

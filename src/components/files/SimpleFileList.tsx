@@ -12,7 +12,7 @@ import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useUniversalFilePreviewContext } from './UniversalFilePreviewProvider';
 import { toast } from 'sonner';
-
+import { openFileViaRedirect } from '@/utils/fileOpenUtils';
 interface SimpleFolder {
   name: string;
   path: string;
@@ -587,7 +587,17 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             <div className="text-xl">
               {getFileIcon(file.mime_type)}
             </div>
-            <div className="flex-1 min-w-0">
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              title="Ctrl/Cmd-click or Middle-click to open in new tab"
+              onMouseDown={(e) => {
+                if (e.button === 1 || e.metaKey || e.ctrlKey) {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  openFileViaRedirect('project-files', file.storage_path, file.displayName);
+                }
+              }}
+            >
               <p className="font-medium truncate">{file.displayName}</p>
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground whitespace-nowrap">
