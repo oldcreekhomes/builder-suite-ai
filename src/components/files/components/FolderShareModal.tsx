@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Folder } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectFile {
   id: string;
@@ -32,18 +33,17 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const generateShareLink = async () => {
+    if (!files || files.length === 0) return;
+
     setIsGeneratingLink(true);
     try {
-      console.log('Generating share link for folder:', folderPath);
-      console.log('Files to share:', files.length);
+      console.log('Generating share link for folder:', folderPath, 'with files:', files);
       
       // Create a unique share ID
-      const shareId = Math.random().toString(36).substring(2, 15);
+      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
-      // Store the share data in localStorage for this demo
-      // In production, this would be stored in a database
+      // Store the share data in Supabase database
       const shareData = {
-        shareId,
         folderPath,
         files: files.map(file => ({
           id: file.id,
@@ -51,23 +51,34 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
           file_size: file.file_size,
           file_type: file.file_type,
           storage_path: file.storage_path,
-          project_id: file.project_id,
+          project_id: projectId,
           uploaded_by: file.uploaded_by,
           uploaded_at: file.uploaded_at
         })),
-        projectId,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        projectId
       };
+
+      // Insert share link into database
+      const { error } = await supabase
+        .from('shared_links')
+        .insert({
+          share_id: shareId,
+          share_type: 'folder',
+          data: shareData,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        });
+
+      if (error) {
+        throw error;
+      }
       
-      localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
-      
-      const link = `${window.location.origin}/s/f/${shareId}`;
+      // Use BuilderSuite domain instead of current origin
+      const link = `https://app.buildersuite.com/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
         title: "Link Generated",
-        description: `Shareable folder link created with ${files.length} files`,
+        description: "Shareable folder link has been created",
       });
     } catch (error) {
       console.error('Error generating share link:', error);

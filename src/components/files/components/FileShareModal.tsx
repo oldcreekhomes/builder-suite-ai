@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectFile {
   id: string;
@@ -37,12 +38,10 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       console.log('Generating share link for file:', file);
       
       // Create a unique share ID
-      const shareId = Math.random().toString(36).substring(2, 15);
+      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
-      // Store the share data in localStorage for this demo
-      // In production, this would be stored in a database
+      // Store the share data in Supabase database
       const shareData = {
-        shareId,
         folderPath: 'Single File',
         files: [{
           id: file.id,
@@ -54,14 +53,25 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
           uploaded_by: file.uploaded_by,
           uploaded_at: file.uploaded_at
         }],
-        projectId: file.project_id,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        projectId: file.project_id
       };
+
+      // Insert share link into database
+      const { error } = await supabase
+        .from('shared_links')
+        .insert({
+          share_id: shareId,
+          share_type: 'file',
+          data: shareData,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        });
+
+      if (error) {
+        throw error;
+      }
       
-      localStorage.setItem(`share_${shareId}`, JSON.stringify(shareData));
-      
-      const link = `${window.location.origin}/s/f/${shareId}`;
+      // Use BuilderSuite domain instead of current origin
+      const link = `https://app.buildersuite.com/s/f/${shareId}`;
       setShareLink(link);
       
       toast({

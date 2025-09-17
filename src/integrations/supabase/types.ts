@@ -1209,6 +1209,39 @@ export type Database = {
           },
         ]
       }
+      shared_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json
+          expires_at: string
+          id: string
+          share_id: string
+          share_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: Json
+          expires_at: string
+          id?: string
+          share_id: string
+          share_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          expires_at?: string
+          id?: string
+          share_id?: string
+          share_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_chat_messages: {
         Row: {
           created_at: string
@@ -1439,6 +1472,10 @@ export type Database = {
       mark_message_as_read: {
         Args: { message_id_param: string }
         Returns: undefined
+      }
+      normalize_po_file_elem: {
+        Args: { elem: Json; project_id: string }
+        Returns: Json
       }
       reorder_project_tasks: {
         Args: {

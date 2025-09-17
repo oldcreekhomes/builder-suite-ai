@@ -61,41 +61,37 @@ export default function SharedFolder() {
           return;
         }
 
-        // Check all localStorage items for debugging
-        console.log('All localStorage items:');
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.startsWith('share_')) {
-            console.log(`${key}:`, localStorage.getItem(key));
+        // Query share data from Supabase database
+        const { data: shareData, error } = await supabase
+          .from('shared_links')
+          .select('*')
+          .eq('share_id', shareId)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (error) {
+          console.error('Error fetching share data:', error);
+          if (error.code === 'PGRST116') {
+            setError('Share not found - the link may be invalid or expired');
+          } else {
+            setError('Failed to load shared folder');
           }
+          setIsLoading(false);
+          return;
         }
 
-        // Retrieve share data from localStorage
-        const shareKey = `share_${shareId}`;
-        console.log('Looking for localStorage key:', shareKey);
-        const shareDataString = localStorage.getItem(shareKey);
-        
-        if (!shareDataString) {
+        if (!shareData) {
           console.error('Share data not found for shareId:', shareId);
-          console.error('Looking for key:', shareKey);
-          console.error('Available share keys in localStorage:');
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith('share_')) {
-              console.error('Found key:', key);
-            }
-          }
           setError('Share not found - the link may be invalid or expired');
           setIsLoading(false);
           return;
         }
 
-        const shareData: ShareData = JSON.parse(shareDataString);
         console.log('Retrieved share data:', shareData);
 
-        // Check if the share has expired
+        // Check if the share has expired (additional client-side check)
         const now = new Date();
-        const expiryDate = new Date(shareData.expiresAt);
+        const expiryDate = new Date(shareData.expires_at);
         
         if (now > expiryDate) {
           console.log('Share has expired. Now:', now, 'Expires:', expiryDate);
@@ -104,17 +100,20 @@ export default function SharedFolder() {
           return;
         }
 
+        // Extract data from the database record
+        const data = shareData.data as any as ShareData;
+
         // Determine share type and set data accordingly
-        if (shareData.files && shareData.files.length > 0) {
+        if (data.files && data.files.length > 0) {
           setShareType('files');
-          setFolderName(shareData.folderPath === 'Root' ? 'Root Files' : shareData.folderPath);
-          setFiles(shareData.files);
-          console.log('Successfully loaded shared folder with', shareData.files.length, 'files');
-        } else if (shareData.photos && shareData.photos.length > 0) {
+          setFolderName(data.folderPath === 'Root' ? 'Root Files' : data.folderPath);
+          setFiles(data.files);
+          console.log('Successfully loaded shared folder with', data.files.length, 'files');
+        } else if (data.photos && data.photos.length > 0) {
           setShareType('photos');
-          setFolderName(shareData.folderPath === 'Root' ? 'Root Photos' : shareData.folderPath);
-          setPhotos(shareData.photos);
-          console.log('Successfully loaded shared folder with', shareData.photos.length, 'photos');
+          setFolderName(data.folderPath === 'Root' ? 'Root Photos' : data.folderPath);
+          setPhotos(data.photos);
+          console.log('Successfully loaded shared folder with', data.photos.length, 'photos');
         } else {
           setError('This shared folder is empty');
         }
