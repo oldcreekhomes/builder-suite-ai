@@ -677,7 +677,8 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
+      <div className="flex flex-col h-full">
       {/* Breadcrumb Navigation with Upload Buttons */}
       <div className="flex flex-col gap-2 p-4 border-b">
         <div className="flex items-center justify-between gap-4">
@@ -825,7 +826,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         onCreateFolder={handleCreateFolder}
         parentPath={currentPath}
       />
-    </div>
+      </div>
     </UniversalFilePreviewProvider>
   );
 };
