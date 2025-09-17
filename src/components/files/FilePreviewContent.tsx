@@ -4,7 +4,7 @@ import { Download, FileText, AlertCircle, ZoomIn, ZoomOut, ExternalLink } from "
 import { UniversalFile } from "./FilePreviewModal";
 import { getFileType, FileType } from "./utils/fileTypeUtils";
 import { PDFViewer } from "./PDFViewer";
-import { openFileDirectly } from "@/utils/universalFileOpen";
+import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
 interface FilePreviewContentProps {
   file: UniversalFile;
@@ -27,7 +27,7 @@ export function FilePreviewContent({
   const fileType = getFileType(file.name, file.mimeType);
 
   const handleOpenInBrowser = () => {
-    openFileDirectly(file.bucket, file.path, file.name);
+    openFileViaRedirect(file.bucket, file.path, file.name);
   };
 
   const zoomIn = () => setImageZoom(prev => Math.min(prev + 0.25, 3));

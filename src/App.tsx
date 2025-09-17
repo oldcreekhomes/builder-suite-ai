@@ -34,11 +34,10 @@ import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import POResponseConfirmation from "./pages/POResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import SubmitBid from "./pages/SubmitBid";
-
+import FileRedirect from "./pages/FileRedirect";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
-import { DebugErrorBoundary } from "@/components/DebugErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -119,7 +118,8 @@ const AppContent = () => {
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
           
-          
+          {/* File Redirect route - MUST be accessible without authentication */}
+          <Route path="/file-redirect" element={<FileRedirect />} />
           
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
@@ -201,9 +201,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <DebugErrorBoundary>
-        <AppContent />
-      </DebugErrorBoundary>
+      <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
 );

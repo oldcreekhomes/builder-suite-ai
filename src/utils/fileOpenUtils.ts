@@ -1,11 +1,22 @@
-import { openFileDirectly } from "./universalFileOpen";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Re-export for backward compatibility - now uses universal blob approach
+// Main file opening function - redirects to /file-redirect route like live version
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
-  console.log('openFileViaRedirect (legacy) called:', { bucket, path, fileName });
-  openFileDirectly(bucket, path, fileName);
+  console.log('openFileViaRedirect called:', { bucket, path, fileName });
+  
+  // Build the redirect URL with parameters
+  const params = new URLSearchParams({
+    bucket,
+    path,
+    ...(fileName && { fileName })
+  });
+  
+  const redirectUrl = `/file-redirect?${params.toString()}`;
+  console.log('Opening redirect URL:', redirectUrl);
+  
+  // Open in new tab
+  window.open(redirectUrl, '_blank');
 }
 
 /**
@@ -48,8 +59,33 @@ export async function downloadFile(fileUrl: string, fileName: string) {
   }
 }
 
-// Re-export convenience functions for backward compatibility
-export { openProjectFile, openIssueFile, openProposalFile, openSpecificationFile } from "./universalFileOpen";
+// Convenience functions for different file types
+export const openProjectFile = (filePath: string, fileName?: string) => {
+  openFileViaRedirect('project-files', filePath, fileName);
+};
+
+export const openIssueFile = (filePath: string, fileName?: string) => {
+  openFileViaRedirect('issue-files', filePath, fileName);
+};
+
+export const openProposalFile = (fileName: string) => {
+  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
+};
+
+export const openSpecificationFile = (filePath: string, fileName?: string) => {
+  // Normalize the path - remove any prefixes and ensure proper specifications path
+  let normalizedPath = filePath;
+  if (normalizedPath.startsWith('project-files/specifications/')) {
+    normalizedPath = normalizedPath.replace('project-files/specifications/', '');
+  } else if (normalizedPath.startsWith('project-files/')) {
+    normalizedPath = normalizedPath.replace('project-files/', '');
+  } else if (normalizedPath.startsWith('specifications/')) {
+    normalizedPath = normalizedPath.replace('specifications/', '');
+  }
+  
+  const finalPath = `specifications/${normalizedPath}`;
+  openFileViaRedirect('project-files', finalPath, fileName || normalizedPath.split('/').pop());
+};
 
 /**
  * Legacy function - kept for backward compatibility
@@ -261,11 +297,11 @@ export async function getProjectFileUrl(filePath: string): Promise<string> {
 // Most functions above are deprecated legacy code that should be cleaned up
 
 /**
- * Open project file directly in new tab using direct blob approach
+ * Open project file directly in new tab using redirect approach
  */
 export function openProjectFileDirectly(filePath: string, fileName?: string) {
   console.log('openProjectFileDirectly called with:', { filePath, fileName });
-  openFileDirectly('project-files', filePath, fileName);
+  openFileViaRedirect('project-files', filePath, fileName);
 }
 
 /**
