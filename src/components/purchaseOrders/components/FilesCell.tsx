@@ -13,43 +13,79 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // If the file has a direct URL (like proposal files), parse it and use redirect
-    if (file.url) {
-      console.log('Opening file with direct URL:', file.url);
-      
-      // Parse the Supabase URL to extract bucket and path
+    // If the file has a URL or is itself a URL/string, normalize and route through /file-redirect
+    const maybeUrl = (file && file.url) || (typeof file === 'string' ? file : undefined);
+    if (maybeUrl) {
+      let raw = String(maybeUrl).trim();
+      // Trim surrounding quotes if present
+      raw = raw.replace(/^['"]|['"]$/g, '');
+      console.log('Normalized raw URL:', raw);
+
+      // Handle existing redirect links directly
+      if (raw.startsWith('/file-redirect')) {
+        try {
+          const u = new URL(raw, window.location.origin);
+          const bucket = u.searchParams.get('bucket') || 'project-files';
+          const path = u.searchParams.get('path') || '';
+          const name = u.searchParams.get('fileName') || file?.name || path.split('/').pop() || 'file';
+          openFileViaRedirect(bucket, decodeURIComponent(path), name);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse existing redirect URL, falling back:', e);
+        }
+      }
+
+      // Try to parse direct Supabase public URL
       try {
-        const url = new URL(file.url);
-        const pathParts = url.pathname.split('/object/public/');
-        if (pathParts.length === 2) {
-          const [bucket, ...pathSegments] = pathParts[1].split('/');
-          const path = pathSegments.join('/');
-          const fileName = file.name || path.split('/').pop();
-          
-          console.log('Parsed URL:', { bucket, path, fileName });
-          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
+        const u = new URL(raw, window.location.origin);
+        const publicMatch = u.pathname.match(/\/object\/public\/([^/]+)\/(.+)/);
+        if (publicMatch) {
+          const bucket = publicMatch[1];
+          const path = publicMatch[2];
+          const name = file?.name || decodeURIComponent(path.split('/').pop() || 'file');
+          console.log('Parsed public URL ->', { bucket, path, name });
+          openFileViaRedirect(bucket, decodeURIComponent(path), name);
           return;
         }
       } catch (error) {
-        console.error('Failed to parse file URL:', error);
+        console.warn('Failed to parse URL with URL API, will try regex fallbacks:', error);
       }
-      
-      // Fallback: if we can't parse the URL, route via redirect using known patterns
-      const fallbackName = file.name || (typeof file === 'string' ? (file.split('_').pop() || file) : 'file');
-      const proposalId = file.id || (typeof file === 'string' ? file : undefined);
-      if (proposalId && String(proposalId).startsWith('proposal_')) {
-        openFileViaRedirect('project-files', `proposals/${proposalId}`, fallbackName);
-      } else {
-        const id = file.id || file.name || file;
-        const path = `purchase-orders/${projectId}/${id}`;
-        openFileViaRedirect('project-files', path, fallbackName);
+
+      // Regex fallback: extract after '/proposals/' for legacy stored links
+      const proposalsIdx = raw.indexOf('/proposals/');
+      if (proposalsIdx !== -1) {
+        const after = raw.substring(proposalsIdx + '/proposals/'.length).split(/[?#]/)[0];
+        const name = file?.name || decodeURIComponent(after.split('/').pop() || after);
+        openFileViaRedirect('project-files', `proposals/${decodeURIComponent(after)}`, name);
+        return;
       }
+
+      // Fallback: if it looks like a proposal id
+      const proposalId = file?.id || (typeof file === 'string' && String(file).startsWith('proposal_') ? String(file) : undefined);
+      if (proposalId) {
+        const name = file?.name || proposalId.split('_').pop() || proposalId;
+        openFileViaRedirect('project-files', `proposals/${proposalId}`, name);
+        return;
+      }
+
+      // If object carries bucket/path, honor it
+      if ((file as any)?.bucket && (file as any)?.path) {
+        const name = file?.name || (file as any).path.split('/').pop();
+        openFileViaRedirect((file as any).bucket, (file as any).path, name);
+        return;
+      }
+
+      // Last resort: treat as purchase order attachment by id/name
+      const id = file?.id || file?.name || file;
+      const fallbackName = file?.name || (typeof file === 'string' ? (String(file).split('_').pop() || String(file)) : 'file');
+      const poPath = `purchase-orders/${projectId}/${id}`;
+      openFileViaRedirect('project-files', poPath, fallbackName);
       return;
     }
     
-    // Otherwise, build the correct path: purchase-orders/{projectId}/{fileId}
-    const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
-    const fileName = file.name || file.id || file;
+    // No URL: build the correct path: purchase-orders/{projectId}/{fileId}
+    const filePath = `purchase-orders/${projectId}/${file?.id || file?.name || file}`;
+    const fileName = file?.name || file?.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
     openFileViaRedirect('project-files', filePath, fileName);
   };
