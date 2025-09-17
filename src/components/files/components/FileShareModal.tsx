@@ -80,8 +80,8 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
         throw error;
       }
       
-      // Use current domain for share links
-      const link = `${window.location.origin}/s/f/${shareId}`;
+      // Use BuilderSuite domain for share links
+      const link = `https://buildersuite.com/s/f/${shareId}`;
       setShareLink(link);
       
       toast({

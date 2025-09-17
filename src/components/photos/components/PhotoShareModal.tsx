@@ -34,7 +34,7 @@ export function PhotoShareModal({ isOpen, onClose, photo }: PhotoShareModalProps
     try {
       // Create a shorter shareable link using the photo URL
       const shortId = Math.random().toString(36).substring(2, 8);
-      const link = `${window.location.origin}/s/p/${shortId}`;
+      const link = `https://buildersuite.com/s/p/${shortId}`;
       setShareLink(link);
       
       toast({
