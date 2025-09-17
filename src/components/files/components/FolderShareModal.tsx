@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,13 +31,22 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState("");
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const attemptedRef = useRef(false);
+  const lastErrorRef = useRef<string | null>(null);
 
   const generateShareLink = useCallback(async () => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || attemptedRef.current || isGeneratingLink) return;
 
+    attemptedRef.current = true;
     setIsGeneratingLink(true);
     try {
       console.log('Generating share link for folder:', folderPath, 'with files:', files);
+      
+      // Ensure user is authenticated for RLS policy (created_by = auth.uid())
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const userId = userData.user?.id;
+      if (!userId) throw new Error('You must be logged in to generate a share link.');
       
       // Create a unique share ID
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -65,6 +74,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
           share_id: shareId,
           share_type: 'folder',
           data: shareData,
+          created_by: userId,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
         });
 
@@ -72,25 +82,30 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         throw error;
       }
       
-      // Use BuilderSuite domain instead of current origin
-      const link = `https://app.buildersuite.com/s/f/${shareId}`;
+      // Use BuilderSuite domain in production, origin in development
+      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://app.buildersuite.com';
+      const link = `${baseUrl}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
         title: "Link Generated",
         description: "Shareable folder link has been created",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating share link:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate share link",
-        variant: "destructive",
-      });
+      const msg = error?.message || 'Failed to generate share link';
+      if (lastErrorRef.current !== msg) {
+        lastErrorRef.current = msg;
+        toast({
+          title: "Error",
+          description: msg,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGeneratingLink(false);
     }
-  }, [files, folderPath, projectId, toast]);
+  }, [files, folderPath, projectId, isGeneratingLink, toast]);
 
   // Auto-generate link when modal opens
   useEffect(() => {
@@ -123,6 +138,8 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
 
   const handleClose = () => {
     setShareLink("");
+    attemptedRef.current = false;
+    lastErrorRef.current = null;
     onClose();
   };
 

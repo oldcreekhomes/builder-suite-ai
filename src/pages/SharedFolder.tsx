@@ -67,15 +67,11 @@ export default function SharedFolder() {
           .select('*')
           .eq('share_id', shareId)
           .gt('expires_at', new Date().toISOString())
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching share data:', error);
-          if (error.code === 'PGRST116') {
-            setError('Share not found - the link may be invalid or expired');
-          } else {
-            setError('Failed to load shared folder');
-          }
+          setError('Failed to load shared folder');
           setIsLoading(false);
           return;
         }
