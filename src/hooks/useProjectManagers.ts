@@ -22,62 +22,67 @@ export function useProjectManagers() {
   return useQuery({
     queryKey: ['project-managers'],
     queryFn: async () => {
-      // First, get all projects with their managers
+      // First, get all projects with accounting managers
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          address,
-          status,
-          construction_manager,
-          users:construction_manager (
-            id,
-            first_name,
-            last_name,
-            email,
-            avatar_url
-          )
-        `)
-        .not('construction_manager', 'is', null);
+        .select('id, address, status, accounting_manager')
+        .not('accounting_manager', 'is', null);
 
       if (projectsError) throw projectsError;
+      if (!projects?.length) return { managers: [], projectsByManager: {} };
+
+      // Get unique accounting manager IDs
+      const managerIds = [...new Set(projects.map(p => p.accounting_manager))];
+
+      // Fetch user details for all accounting managers
+      const { data: managers, error: managersError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email, avatar_url')
+        .in('id', managerIds);
+
+      if (managersError) throw managersError;
+
+      // Create a map of manager details
+      const managerDetailsMap = new Map(managers?.map(m => [m.id, m]) || []);
 
       // Group projects by manager and count them
       const managerMap = new Map<string, ProjectManager>();
       const projectsByManager = new Map<string, ProjectWithManager[]>();
 
-      projects?.forEach((project) => {
-        if (project.users && project.construction_manager) {
-          const manager = project.users;
-          const managerId = project.construction_manager;
+      projects.forEach((project) => {
+        if (project.accounting_manager) {
+          const managerId = project.accounting_manager;
+          const managerDetails = managerDetailsMap.get(managerId);
           
-          // Update manager count
-          if (!managerMap.has(managerId)) {
-            managerMap.set(managerId, {
-              id: managerId,
-              first_name: manager.first_name || '',
-              last_name: manager.last_name || '',
-              email: manager.email,
-              avatar_url: manager.avatar_url,
-              project_count: 0
-            });
-            projectsByManager.set(managerId, []);
-          }
-          
-          const managerData = managerMap.get(managerId)!;
-          managerData.project_count++;
-          managerMap.set(managerId, managerData);
+          if (managerDetails) {
+            // Update manager count
+            if (!managerMap.has(managerId)) {
+              managerMap.set(managerId, {
+                id: managerId,
+                first_name: managerDetails.first_name || '',
+                last_name: managerDetails.last_name || '',
+                email: managerDetails.email,
+                avatar_url: managerDetails.avatar_url,
+                project_count: 0
+              });
+              projectsByManager.set(managerId, []);
+            }
+            
+            const managerData = managerMap.get(managerId)!;
+            managerData.project_count++;
+            managerMap.set(managerId, managerData);
 
-          // Add project to manager's list
-          const managerProjects = projectsByManager.get(managerId)!;
-          managerProjects.push({
-            id: project.id,
-            address: project.address,
-            status: project.status,
-            manager_id: managerId,
-            manager_name: `${manager.first_name} ${manager.last_name}`.trim() || manager.email
-          });
-          projectsByManager.set(managerId, managerProjects);
+            // Add project to manager's list
+            const managerProjects = projectsByManager.get(managerId)!;
+            managerProjects.push({
+              id: project.id,
+              address: project.address,
+              status: project.status,
+              manager_id: managerId,
+              manager_name: `${managerDetails.first_name} ${managerDetails.last_name}`.trim() || managerDetails.email
+            });
+            projectsByManager.set(managerId, managerProjects);
+          }
         }
       });
 
@@ -98,7 +103,7 @@ export function useProjectManagerProjects(managerId: string) {
       const { data: projects, error } = await supabase
         .from('projects')
         .select('id, address, status')
-        .eq('construction_manager', managerId);
+        .eq('accounting_manager', managerId);
 
       if (error) throw error;
       return projects || [];
