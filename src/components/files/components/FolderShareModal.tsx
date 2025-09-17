@@ -82,9 +82,8 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         throw error;
       }
       
-      // Use BuilderSuite domain in production, origin in development
-      const baseUrl = window.location.hostname === 'localhost' ? window.location.origin : 'https://app.buildersuite.com';
-      const link = `${baseUrl}/s/f/${shareId}`;
+      // Use current domain for share links
+      const link = `${window.location.origin}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
