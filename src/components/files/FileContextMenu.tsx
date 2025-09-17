@@ -3,6 +3,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { ExternalLink, Download, Copy } from 'lucide-react';
 import { openFileViaRedirect, downloadFile } from '@/utils/fileOpenUtils';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileContextMenuProps {
   children: React.ReactNode;
@@ -30,21 +31,30 @@ export function FileContextMenu({ children, bucket, path, fileName, fileUrl }: F
   };
 
   const handleCopyLink = () => {
-    const params = new URLSearchParams({ bucket, path, fileName });
-    const fileViewerUrl = `${window.location.origin}/file-redirect?${params.toString()}`;
+    // Instead of a redirect URL, generate a direct public URL since files are public
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    const publicUrl = data?.publicUrl;
     
-    navigator.clipboard.writeText(fileViewerUrl).then(() => {
-      toast({
-        title: "Link copied",
-        description: "File viewer link copied to clipboard",
+    if (publicUrl) {
+      navigator.clipboard.writeText(publicUrl).then(() => {
+        toast({
+          title: "Link copied",
+          description: "Direct file link copied to clipboard",
+        });
+      }).catch(() => {
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy link to clipboard",
+          variant: "destructive",
+        });
       });
-    }).catch(() => {
+    } else {
       toast({
         title: "Copy failed",
-        description: "Could not copy link to clipboard",
+        description: "Could not generate file link",
         variant: "destructive",
       });
-    });
+    }
   };
 
   return (

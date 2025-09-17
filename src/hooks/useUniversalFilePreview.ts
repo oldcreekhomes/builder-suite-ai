@@ -1,5 +1,11 @@
 import { useState } from "react";
 import { UniversalFile } from "@/components/files/FilePreviewModal";
+import { 
+  openProjectFile as openProjectFileDirectly, 
+  openIssueFile as openIssueFileDirectly, 
+  openProposalFile as openProposalFileDirectly, 
+  openSpecificationFile as openSpecificationFileDirectly 
+} from '@/utils/universalFileOpen';
 
 export function useUniversalFilePreview() {
   const [previewFile, setPreviewFile] = useState<UniversalFile | null>(null);
@@ -26,53 +32,22 @@ export function useUniversalFilePreview() {
     setPreviewFile(null);
   };
 
-  // Convenience functions for different file types
+  // Convenience functions that bypass the modal and open directly in browser
   const openProjectFile = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
-    openFile({
-      name: fileName || filePath.split('/').pop() || filePath,
-      bucket: 'project-files',
-      path: filePath,
-      ...additionalData
-    });
+    // For now, use direct opening - can be toggled back to modal if needed
+    openProjectFileDirectly(filePath, fileName);
   };
 
   const openIssueFile = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
-    openFile({
-      name: fileName || filePath.split('/').pop() || filePath,
-      bucket: 'issue-files',
-      path: filePath,
-      ...additionalData
-    });
+    openIssueFileDirectly(filePath, fileName);
   };
 
   const openProposalFile = (fileName: string, additionalData?: Partial<UniversalFile>) => {
-    openFile({
-      name: fileName,
-      bucket: 'project-files',
-      path: `proposals/${fileName}`,
-      ...additionalData
-    });
+    openProposalFileDirectly(fileName);
   };
 
   const openSpecificationFile = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
-    // Normalize the path - remove any prefixes and ensure proper specifications path
-    let normalizedPath = filePath;
-    if (normalizedPath.startsWith('project-files/specifications/')) {
-      normalizedPath = normalizedPath.replace('project-files/specifications/', '');
-    } else if (normalizedPath.startsWith('project-files/')) {
-      normalizedPath = normalizedPath.replace('project-files/', '');
-    } else if (normalizedPath.startsWith('specifications/')) {
-      normalizedPath = normalizedPath.replace('specifications/', '');
-    }
-    
-    const finalPath = `specifications/${normalizedPath}`;
-    
-    openFile({
-      name: fileName || normalizedPath.split('/').pop() || normalizedPath,
-      bucket: 'project-files',
-      path: finalPath,
-      ...additionalData
-    });
+    openSpecificationFileDirectly(filePath, fileName);
   };
 
   return {

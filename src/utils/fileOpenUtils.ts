@@ -1,33 +1,11 @@
+import { openFileDirectly } from "./universalFileOpen";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Universal file opener - opens in new tab using direct window.open()
- * Uses file viewer route to avoid Chrome blocking issues
- */
+// Re-export for backward compatibility - now uses universal blob approach
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
-  console.log('openFileViaRedirect called:', { bucket, path, fileName });
-  
-  const params = new URLSearchParams({
-    bucket,
-    path,
-    ...(fileName && { fileName })
-  });
-  
-  const redirectUrl = `/file-redirect?${params.toString()}`;
-  console.log('Opening file viewer:', redirectUrl);
-  
-  // Use direct window.open() for new tab - called immediately in click handler
-  const newTab = window.open(redirectUrl, '_blank');
-  if (!newTab) {
-    toast({
-      title: "Popup blocked",
-      description: "Please allow popups for this site to open files in new tabs",
-      variant: "destructive",
-    });
-    // Fallback to same tab
-    window.location.href = redirectUrl;
-  }
+  console.log('openFileViaRedirect (legacy) called:', { bucket, path, fileName });
+  openFileDirectly(bucket, path, fileName);
 }
 
 /**
@@ -70,41 +48,8 @@ export async function downloadFile(fileUrl: string, fileName: string) {
   }
 }
 
-/**
- * Helper functions for different file types - all use direct window.open()
- */
-export function openProjectFile(filePath: string, fileName?: string) {
-  openFileViaRedirect('project-files', filePath, fileName);
-}
-
-export function openIssueFile(filePath: string, fileName?: string) {
-  openFileViaRedirect('issue-files', filePath, fileName);
-}
-
-export function openProposalFile(fileName: string) {
-  console.log('openProposalFile called with:', fileName);
-  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
-}
-
-export function openSpecificationFile(filePath: string, fileName?: string) {
-  console.log('openSpecificationFile called with:', { filePath, fileName });
-  
-  // Normalize the path - remove any prefixes and ensure proper specifications path
-  let normalizedPath = filePath;
-  if (normalizedPath.startsWith('project-files/specifications/')) {
-    normalizedPath = normalizedPath.replace('project-files/specifications/', '');
-  } else if (normalizedPath.startsWith('project-files/')) {
-    normalizedPath = normalizedPath.replace('project-files/', '');
-  } else if (normalizedPath.startsWith('specifications/')) {
-    normalizedPath = normalizedPath.replace('specifications/', '');
-  }
-  
-  // Build final path with specifications prefix
-  const finalPath = `specifications/${normalizedPath}`;
-  
-  console.log('Opening specification file:', { originalPath: filePath, normalizedPath, finalPath });
-  openFileViaRedirect('project-files', finalPath, fileName);
-}
+// Re-export convenience functions for backward compatibility
+export { openProjectFile, openIssueFile, openProposalFile, openSpecificationFile } from "./universalFileOpen";
 
 /**
  * Legacy function - kept for backward compatibility
@@ -312,33 +257,15 @@ export async function getProjectFileUrl(filePath: string): Promise<string> {
   return data.publicUrl;
 }
 
-/**
- * Open file via redirect page in new tab (avoids popup blockers)
- */
-export function openFileViaRedirectNewTab(bucket: string, path: string, fileName?: string): void {
-  const params = new URLSearchParams({
-    bucket,
-    path,
-    ...(fileName && { fileName })
-  });
-  
-  const redirectUrl = `/file-redirect?${params.toString()}`;
-  console.log('Opening file via redirect:', redirectUrl);
-  
-  const newTab = window.open(redirectUrl, '_blank');
-  if (!newTab) {
-    // Fallback to same tab if new tab blocked
-    console.log('New tab blocked, opening in same tab');
-    window.location.href = redirectUrl;
-  }
-}
+// Legacy functions - kept for backward compatibility but now unused
+// Most functions above are deprecated legacy code that should be cleaned up
 
 /**
- * Open project file directly in new tab using redirect approach
+ * Open project file directly in new tab using direct blob approach
  */
 export function openProjectFileDirectly(filePath: string, fileName?: string) {
   console.log('openProjectFileDirectly called with:', { filePath, fileName });
-  openFileViaRedirectNewTab('project-files', filePath, fileName);
+  openFileDirectly('project-files', filePath, fileName);
 }
 
 /**
