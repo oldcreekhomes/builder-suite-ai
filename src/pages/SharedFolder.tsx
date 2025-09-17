@@ -397,10 +397,9 @@ export default function SharedFolder() {
             {files.map((file) => (
               <div key={file.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{file.original_filename}</h3>
-                  <p className="text-sm text-gray-500">
-                    {file.file_type.toUpperCase()} • {Math.round(file.file_size / 1024)} KB
-                  </p>
+                  <h3 className="font-medium text-gray-900">
+                    {file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename}
+                  </h3>
                   <p className="text-xs text-gray-400">
                     Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
                   </p>
