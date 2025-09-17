@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
   const [shareLink, setShareLink] = useState("");
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  const generateShareLink = async () => {
+  const generateShareLink = useCallback(async () => {
     if (!file) return;
 
     setIsGeneratingLink(true);
@@ -88,14 +88,14 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
     } finally {
       setIsGeneratingLink(false);
     }
-  };
+  }, [file, toast]);
 
   // Auto-generate link when modal opens
   useEffect(() => {
     if (isOpen && file && !shareLink) {
       generateShareLink();
     }
-  }, [isOpen, file]);
+  }, [isOpen, file?.id, shareLink, generateShareLink]);
 
   const copyToClipboard = async () => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   const [shareLink, setShareLink] = useState("");
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  const generateShareLink = async () => {
+  const generateShareLink = useCallback(async () => {
     if (!files || files.length === 0) return;
 
     setIsGeneratingLink(true);
@@ -90,7 +90,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
     } finally {
       setIsGeneratingLink(false);
     }
-  };
+  }, [files, folderPath, projectId, toast]);
 
   // Auto-generate link when modal opens
   useEffect(() => {
@@ -103,7 +103,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         variant: "destructive",
       });
     }
-  }, [isOpen, files.length]);
+  }, [isOpen, files.length, shareLink, generateShareLink, toast]);
 
   const copyToClipboard = async () => {
     try {
