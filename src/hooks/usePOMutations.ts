@@ -72,12 +72,19 @@ export const usePOMutations = (projectId: string) => {
       // Include proposal files from bidding company
       console.log('Bidding company proposals:', biddingCompany?.proposals);
       if (biddingCompany?.proposals && biddingCompany.proposals.length > 0) {
-        const proposalFiles = biddingCompany.proposals.map((fileName: string) => ({
-          id: fileName,
-          name: fileName.split('_').pop() || fileName,
-          url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
-          size: 0 // Size not available but not critical for display
-        }));
+        const proposalFiles = biddingCompany.proposals.map((fileName: string) => {
+          const originalName = fileName.split('_').pop() || fileName;
+          const path = `proposals/${fileName}`;
+          const redirectUrl = `/file-redirect?bucket=project-files&path=${encodeURIComponent(path)}&fileName=${encodeURIComponent(originalName)}`;
+          return {
+            id: fileName,
+            name: originalName,
+            url: redirectUrl,
+            bucket: 'project-files',
+            path,
+            size: 0 // Size not available but not critical for display
+          };
+        });
         purchaseOrderData.files = proposalFiles;
         console.log('Adding proposal files to PO:', proposalFiles);
       }

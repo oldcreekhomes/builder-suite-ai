@@ -34,9 +34,16 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         console.error('Failed to parse file URL:', error);
       }
       
-      // Fallback: if we can't parse the URL, use redirect with project-files bucket
-      const fileName = file.name || 'file';
-      openFileViaRedirect('project-files', fileName, fileName);
+      // Fallback: if we can't parse the URL, route via redirect using known patterns
+      const fallbackName = file.name || (typeof file === 'string' ? (file.split('_').pop() || file) : 'file');
+      const proposalId = file.id || (typeof file === 'string' ? file : undefined);
+      if (proposalId && String(proposalId).startsWith('proposal_')) {
+        openFileViaRedirect('project-files', `proposals/${proposalId}`, fallbackName);
+      } else {
+        const id = file.id || file.name || file;
+        const path = `purchase-orders/${projectId}/${id}`;
+        openFileViaRedirect('project-files', path, fallbackName);
+      }
       return;
     }
     
