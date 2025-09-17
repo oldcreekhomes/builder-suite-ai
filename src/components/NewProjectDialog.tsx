@@ -50,7 +50,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectName || !status || !constructionManager || !address) {
+    if (!projectName || !status || !constructionManager || !address || !totalLots) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -87,7 +87,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           status,
           construction_manager: constructionManager, // Store the user ID
           accounting_manager: accountingManager || null, // Store the user ID or null if not selected
-          total_lots: totalLots ? parseInt(totalLots, 10) : null,
+          total_lots: parseInt(totalLots, 10),
           owner_id,
         })
         .select()
@@ -175,9 +175,10 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
               type="number"
               value={totalLots}
               onChange={(e) => setTotalLots(e.target.value)}
-              placeholder="Enter total lots (optional)"
+              placeholder="Enter total lots"
               disabled={isLoading}
               min="0"
+              className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
           </div>
 

@@ -62,7 +62,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
           status: data.status,
           construction_manager: data.construction_manager === "no-manager" ? null : data.construction_manager, // Convert "no-manager" back to null
           accounting_manager: data.accounting_manager === "no-manager" ? null : data.accounting_manager, // Convert "no-manager" back to null
-          total_lots: data.total_lots ? parseInt(data.total_lots, 10) : null,
+          total_lots: parseInt(data.total_lots, 10),
         };
       
       console.log('Sending update data to database:', updatePayload);
@@ -186,8 +186,9 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                 type="number"
                 value={formData.total_lots}
                 onChange={(e) => handleChange('total_lots', e.target.value)}
-                placeholder="0"
+                placeholder="Enter total lots"
                 min="0"
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
             </div>
 
