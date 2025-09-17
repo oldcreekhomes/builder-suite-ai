@@ -29,6 +29,22 @@ const FileRedirect = () => {
       }
 
       try {
+        // If it's a PDF, try a blob-first approach to avoid CORS/range issues
+        if (isPDF(fileName)) {
+          const { data: blobData, error: blobError } = await supabase.storage
+            .from(bucket)
+            .download(path);
+
+          if (!blobError && blobData) {
+            const objectUrl = URL.createObjectURL(blobData);
+            console.log('FileRedirect: Using blob URL for PDF');
+            setFileUrl(objectUrl);
+            return;
+          } else if (blobError) {
+            console.warn('FileRedirect: Blob download failed, falling back to signed/public URL', blobError);
+          }
+        }
+
         // Try to get signed URL first
         const { data: signedData, error: signedError } = await supabase.storage
           .from(bucket)
@@ -62,6 +78,15 @@ const FileRedirect = () => {
 
     handleFileRedirect();
   }, [bucket, path]);
+
+  // Cleanup any created blob URLs when file changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (fileUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
 
   if (loading) {
     return (
@@ -117,12 +142,33 @@ const FileRedirect = () => {
 
   // Programmatic download function
   const handleDownload = async () => {
-    if (!fileUrl) return;
-
     try {
+      if (bucket && path) {
+        const { data: blobData, error: blobError } = await supabase.storage
+          .from(bucket)
+          .download(path);
+        if (!blobError && blobData) {
+          const url = URL.createObjectURL(blobData);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          toast({
+            title: 'Download started',
+            description: `${fileName} is being downloaded`,
+          });
+          return;
+        }
+      }
+
+      // Fallback to downloading from the current fileUrl (blob or http)
+      if (!fileUrl) return;
       const response = await fetch(fileUrl);
       const blob = await response.blob();
-      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = fileName;
@@ -130,15 +176,22 @@ const FileRedirect = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
-      
+
       toast({
-        title: "Download started",
+        title: 'Download started',
         description: `${fileName} is being downloaded`,
       });
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback to window.open
-      window.open(fileUrl, '_blank');
+      // Fallback to window.open if we have a URL
+      if (fileUrl) {
+        window.open(fileUrl, '_blank');
+      } else if (bucket && path) {
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path);
+        if (publicData?.publicUrl) {
+          window.open(publicData.publicUrl, '_blank');
+        }
+      }
     }
   };
 
