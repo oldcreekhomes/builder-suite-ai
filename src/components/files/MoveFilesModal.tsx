@@ -142,11 +142,12 @@ export function MoveFilesModal({
 
           if (fetchError) throw fetchError;
 
-          // Move each file in the folder
-          if (folderFiles && folderFiles.length > 0) {
-            for (const file of folderFiles) {
-              const relativePath = file.original_filename.substring(folder.path.length + 1);
-              const newPath = selectedFolder === "ROOT" ? relativePath : `${selectedFolder}/${relativePath}`;
+            // Move each file in the folder
+            if (folderFiles && folderFiles.length > 0) {
+              for (const file of folderFiles) {
+                const relativePath = file.original_filename.substring(folder.path.length + 1);
+                const folderName = folder.path.split('/').pop(); // Get the actual folder name
+                const newPath = selectedFolder === "ROOT" ? `${folderName}/${relativePath}` : `${selectedFolder}/${folderName}/${relativePath}`;
               
               const { error: updateError } = await supabase
                 .from('project_files')
