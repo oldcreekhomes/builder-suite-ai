@@ -28,7 +28,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
   const { users, isLoading: usersLoading } = useCompanyUsers();
   
   const [formData, setFormData] = useState({
-    name: "",
     address: "",
     status: "",
     construction_manager: "no-manager", // Default to "no-manager"
@@ -40,7 +39,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
   useEffect(() => {
     if (project) {
       setFormData({
-        name: project.name,
         address: project.address,
         status: project.status,
         construction_manager: project.construction_manager || "no-manager", // Use the construction manager UUID or "no-manager"
@@ -57,7 +55,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
       console.log('Updating project with data:', data);
       
         const updatePayload = {
-          name: data.name,
           address: data.address,
           status: data.status,
           construction_manager: data.construction_manager === "no-manager" ? null : data.construction_manager, // Convert "no-manager" back to null
@@ -115,16 +112,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              required
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
             <Input

@@ -34,7 +34,6 @@ interface NewProjectDialogProps {
 const statuses = ["In Design", "Permitting", "Under Construction", "Completed"];
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
-  const [projectName, setProjectName] = useState("");
   const [status, setStatus] = useState("");
   const [constructionManager, setConstructionManager] = useState(""); // This will store the user ID
   const [accountingManager, setAccountingManager] = useState(""); // This will store the user ID
@@ -51,7 +50,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectName || !status || !constructionManager || !address || !totalLots || !accountingManager) {
+    if (!status || !constructionManager || !address || !totalLots || !accountingManager) {
       setHasAttemptedSave(true);
       toast({
         title: "Error",
@@ -84,11 +83,10 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       const { data: project, error } = await supabase
         .from('projects')
         .insert({
-          name: projectName,
           address,
           status,
           construction_manager: constructionManager, // Store the user ID
-          accounting_manager: accountingManager || null, // Store the user ID or null if not selected
+          accounting_manager: accountingManager, // Store the user ID
           total_lots: parseInt(totalLots, 10),
           owner_id,
         })
@@ -111,7 +109,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       });
 
       // Reset form
-      setProjectName("");
       setStatus("");
       setConstructionManager("");
       setAccountingManager("");
@@ -151,18 +148,6 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="projectName">Project Name</Label>
-            <Input
-              id="projectName"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Enter project name"
-              disabled={isLoading}
-              className={hasAttemptedSave && !projectName ? "text-red-500 placeholder:text-red-400" : ""}
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus} disabled={isLoading}>

@@ -12,7 +12,7 @@ export interface ProjectManager {
 
 export interface ProjectWithManager {
   id: string;
-  name: string;
+  address: string;
   status: string;
   manager_id: string;
   manager_name: string;
@@ -27,7 +27,7 @@ export function useProjectManagers() {
         .from('projects')
         .select(`
           id,
-          name,
+          address,
           status,
           construction_manager,
           users:construction_manager (
@@ -72,7 +72,7 @@ export function useProjectManagers() {
           const managerProjects = projectsByManager.get(managerId)!;
           managerProjects.push({
             id: project.id,
-            name: project.name,
+            address: project.address,
             status: project.status,
             manager_id: managerId,
             manager_name: `${manager.first_name} ${manager.last_name}`.trim() || manager.email
@@ -97,7 +97,7 @@ export function useProjectManagerProjects(managerId: string) {
     queryFn: async () => {
       const { data: projects, error } = await supabase
         .from('projects')
-        .select('id, name, status')
+        .select('id, address, status')
         .eq('construction_manager', managerId);
 
       if (error) throw error;

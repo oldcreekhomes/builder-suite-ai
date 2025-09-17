@@ -4,7 +4,6 @@ import { useAuth } from "./useAuth";
 
 export interface Project {
   id: string;
-  name: string;
   address: string;
   status: string;
   construction_manager: string;

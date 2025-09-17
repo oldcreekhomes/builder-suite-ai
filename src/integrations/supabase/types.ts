@@ -1172,7 +1172,6 @@ export type Database = {
           construction_manager: string | null
           created_at: string
           id: string
-          name: string
           owner_id: string
           status: string
           total_lots: number | null
@@ -1184,7 +1183,6 @@ export type Database = {
           construction_manager?: string | null
           created_at?: string
           id?: string
-          name: string
           owner_id: string
           status: string
           total_lots?: number | null
@@ -1196,7 +1194,6 @@ export type Database = {
           construction_manager?: string | null
           created_at?: string
           id?: string
-          name?: string
           owner_id?: string
           status?: string
           total_lots?: number | null

@@ -147,7 +147,7 @@ export default function ProjectPage() {
                   <div className="flex items-center space-x-3">
                     <Building2 className="h-6 w-6 text-primary" />
                     <div>
-                      <CardTitle>{project.name}</CardTitle>
+                      <CardTitle>{project.address}</CardTitle>
                       <CardDescription className="flex items-center space-x-2 mt-1">
                         <MapPin className="h-4 w-4" />
                         <span>{project.address}</span>

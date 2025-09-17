@@ -25,7 +25,7 @@ export const useAllPhotos = () => {
         .from('project_photos')
         .select(`
           *,
-          projects!inner(name)
+          projects!inner(address)
         `)
         .order('uploaded_at', { ascending: false });
 
@@ -36,7 +36,7 @@ export const useAllPhotos = () => {
 
       return data.map(photo => ({
         ...photo,
-        project_name: photo.projects?.name
+        project_name: photo.projects?.address
       })) as AllPhoto[];
     },
     enabled: !!user,

@@ -3,8 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
   id: string;
-  name: string;
-  address?: string;
+  address: string;
   status?: string;
 }
 
@@ -17,8 +16,8 @@ export function useProjectSearch() {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, name, address, status')
-          .order('name');
+          .select('id, address, status')
+          .order('address');
 
         if (error) throw error;
         setProjects(data || []);
@@ -37,8 +36,7 @@ export function useProjectSearch() {
     
     const lowercaseQuery = query.toLowerCase();
     return projects.filter(project => 
-      project.name.toLowerCase().includes(lowercaseQuery) ||
-      (project.address && project.address.toLowerCase().includes(lowercaseQuery))
+      project.address.toLowerCase().includes(lowercaseQuery)
     );
   };
 
