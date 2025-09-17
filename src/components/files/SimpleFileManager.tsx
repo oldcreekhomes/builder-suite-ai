@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
 import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
 import { NewFolderModal } from './NewFolderModal';
@@ -825,5 +826,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         parentPath={currentPath}
       />
     </div>
+    </UniversalFilePreviewProvider>
   );
 };

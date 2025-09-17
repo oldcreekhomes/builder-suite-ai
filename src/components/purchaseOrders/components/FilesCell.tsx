@@ -1,6 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { openFileViaRedirect } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface FilesCellProps {
   files: any;
@@ -8,43 +8,46 @@ interface FilesCellProps {
 }
 
 export function FilesCell({ files, projectId }: FilesCellProps) {
+  const { openFile } = useUniversalFilePreviewContext();
   const fileCount = files && Array.isArray(files) ? files.length : 0;
 
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // If the file has a direct URL (like proposal files), parse it and use redirect
+    // Convert the file data to UniversalFile format
+    const fileName = file.name || file.id || file;
+    
+    // If the file has a direct URL (like proposal files), parse it
     if (file.url) {
       console.log('Opening file with direct URL:', file.url);
       
-      // Parse the Supabase URL to extract bucket and path
       try {
         const url = new URL(file.url);
         const pathParts = url.pathname.split('/object/public/');
         if (pathParts.length === 2) {
           const [bucket, ...pathSegments] = pathParts[1].split('/');
           const path = pathSegments.join('/');
-          const fileName = file.name || path.split('/').pop();
           
-          console.log('Parsed URL:', { bucket, path, fileName });
-          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
+          openFile({
+            name: fileName,
+            bucket,
+            path: decodeURIComponent(path),
+            url: file.url
+          });
           return;
         }
       } catch (error) {
         console.error('Failed to parse file URL:', error);
       }
-      
-      // Fallback: if we can't parse the URL, use redirect with project-files bucket
-      const fileName = file.name || 'file';
-      openFileViaRedirect('project-files', fileName, fileName);
-      return;
     }
     
-    // Otherwise, build the correct path: purchase-orders/{projectId}/{fileId}
+    // Otherwise, build the correct path for project-files
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
-    const fileName = file.name || file.id || file;
-    console.log('File path:', filePath, 'File name:', fileName);
-    openFileViaRedirect('project-files', filePath, fileName);
+    openFile({
+      name: fileName,
+      bucket: 'project-files', 
+      path: filePath
+    });
   };
 
   if (fileCount === 0) {
