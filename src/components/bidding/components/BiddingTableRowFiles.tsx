@@ -48,47 +48,48 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     <TableCell className="py-1">
       <div className="flex items-center space-x-2">
         {/* Show specification files if they exist */}
-        {item.files && item.files.length > 0 ? (
-          <>
-            <div className="flex items-center space-x-1">
-              {item.files.map((fileName: string, index: number) => {
-                const IconComponent = getFileIcon(fileName);
-                const iconColorClass = getFileIconColor(fileName);
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleFilePreview(fileName)}
-                    className={`${iconColorClass} transition-colors p-1`}
-                    title={fileName}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                  </button>
-                );
-              })}
-            </div>
-            {!isReadOnly && (
-              <DeleteButton
-                onDelete={handleDeleteFiles}
-                title="Delete All Files"
-                description="Are you sure you want to delete all files? This action cannot be undone."
-                size="sm"
-                variant="ghost"
-                showIcon={true}
-              />
-            )}
-          </>
-        ) : (
-          !isReadOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFileUpload}
-              className="h-8 text-xs"
-            >
-              <Upload className="h-3 w-3 mr-1" />
-              Files
-            </Button>
-          )
+        {item.files && item.files.length > 0 && (
+          <div className="flex items-center space-x-1">
+            {item.files.map((fileName: string, index: number) => {
+              const IconComponent = getFileIcon(fileName);
+              const iconColorClass = getFileIconColor(fileName);
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleFilePreview(fileName)}
+                  className={`${iconColorClass} transition-colors p-1`}
+                  title={fileName}
+                >
+                  <IconComponent className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Always show upload button when not read-only */}
+        {!isReadOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFileUpload}
+            className="h-8 text-xs"
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            {item.files && item.files.length > 0 ? "Add Files" : "Files"}
+          </Button>
+        )}
+        
+        {/* Show delete button when files exist and not read-only */}
+        {item.files && item.files.length > 0 && !isReadOnly && (
+          <DeleteButton
+            onDelete={handleDeleteFiles}
+            title="Delete All Files"
+            description="Are you sure you want to delete all files? This action cannot be undone."
+            size="sm"
+            variant="ghost"
+            showIcon={true}
+          />
         )}
       </div>
     </TableCell>
