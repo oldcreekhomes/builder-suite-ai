@@ -1440,10 +1440,6 @@ export type Database = {
         Args: { message_id_param: string }
         Returns: undefined
       }
-      normalize_po_file_elem: {
-        Args: { elem: Json; project_id: string }
-        Returns: Json
-      }
       reorder_project_tasks: {
         Args: {
           new_order_index_param: number

@@ -13,77 +13,36 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // If file is already normalized with bucket/path, use it directly
-    if (file?.bucket && file?.path) {
-      openFileViaRedirect(file.bucket, file.path, file.name || 'file');
-      return;
-    }
-
-    // Legacy fallback for any remaining non-normalized files
-    const maybeUrl = (file && file.url) || (typeof file === 'string' ? file : undefined);
-    if (maybeUrl) {
-      let raw = String(maybeUrl).trim();
-      raw = raw.replace(/^['"]|['"]$/g, '');
-      console.log('Normalized raw URL:', raw);
-
-      if (raw.startsWith('/file-redirect')) {
-        try {
-          const u = new URL(raw, window.location.origin);
-          const bucket = u.searchParams.get('bucket') || 'project-files';
-          const path = u.searchParams.get('path') || '';
-          const name = u.searchParams.get('fileName') || file?.name || path.split('/').pop() || 'file';
-          openFileViaRedirect(bucket, decodeURIComponent(path), name);
-          return;
-        } catch (e) {
-          console.warn('Failed to parse existing redirect URL, falling back:', e);
-        }
-      }
-
+    // If the file has a direct URL (like proposal files), parse it and use redirect
+    if (file.url) {
+      console.log('Opening file with direct URL:', file.url);
+      
+      // Parse the Supabase URL to extract bucket and path
       try {
-        const u = new URL(raw, window.location.origin);
-        const publicMatch = u.pathname.match(/\/object\/public\/([^/]+)\/(.+)/);
-        if (publicMatch) {
-          const bucket = publicMatch[1];
-          const path = publicMatch[2];
-          const name = file?.name || decodeURIComponent(path.split('/').pop() || 'file');
-          console.log('Parsed public URL ->', { bucket, path, name });
-          openFileViaRedirect(bucket, decodeURIComponent(path), name);
+        const url = new URL(file.url);
+        const pathParts = url.pathname.split('/object/public/');
+        if (pathParts.length === 2) {
+          const [bucket, ...pathSegments] = pathParts[1].split('/');
+          const path = pathSegments.join('/');
+          const fileName = file.name || path.split('/').pop();
+          
+          console.log('Parsed URL:', { bucket, path, fileName });
+          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
           return;
         }
       } catch (error) {
-        console.warn('Failed to parse URL with URL API, will try regex fallbacks:', error);
+        console.error('Failed to parse file URL:', error);
       }
-
-      const proposalsIdx = raw.indexOf('/proposals/');
-      if (proposalsIdx !== -1) {
-        const after = raw.substring(proposalsIdx + '/proposals/'.length).split(/[?#]/)[0];
-        const name = file?.name || decodeURIComponent(after.split('/').pop() || after);
-        openFileViaRedirect('project-files', `proposals/${decodeURIComponent(after)}`, name);
-        return;
-      }
-
-      const proposalId = file?.id || (typeof file === 'string' && String(file).startsWith('proposal_') ? String(file) : undefined);
-      if (proposalId) {
-        const name = file?.name || proposalId.split('_').pop() || proposalId;
-        openFileViaRedirect('project-files', `proposals/${proposalId}`, name);
-        return;
-      }
-
-      if ((file as any)?.bucket && (file as any)?.path) {
-        const name = file?.name || (file as any).path.split('/').pop();
-        openFileViaRedirect((file as any).bucket, (file as any).path, name);
-        return;
-      }
-
-      const id = file?.id || file?.name || file;
-      const fallbackName = file?.name || (typeof file === 'string' ? (String(file).split('_').pop() || String(file)) : 'file');
-      const poPath = `purchase-orders/${projectId}/${id}`;
-      openFileViaRedirect('project-files', poPath, fallbackName);
+      
+      // Fallback: if we can't parse the URL, use redirect with project-files bucket
+      const fileName = file.name || 'file';
+      openFileViaRedirect('project-files', fileName, fileName);
       return;
     }
     
-    const filePath = `purchase-orders/${projectId}/${file?.id || file?.name || file}`;
-    const fileName = file?.name || file?.id || file;
+    // Otherwise, build the correct path: purchase-orders/{projectId}/{fileId}
+    const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
+    const fileName = file.name || file.id || file;
     console.log('File path:', filePath, 'File name:', fileName);
     openFileViaRedirect('project-files', filePath, fileName);
   };
@@ -100,14 +59,13 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
   return (
     <div className="flex items-center gap-1">
       {files.slice(0, 3).map((file: any, index: number) => {
-        const fileName = file.name || file.id || String(file);
+        const fileName = file.name || file.id || file;
         const IconComponent = getFileIcon(fileName);
         const iconColorClass = getFileIconColor(fileName);
         return (
           <button
-            type="button"
             key={`${fileName}-${index}`}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleFilePreview(file); }}
+            onClick={() => handleFilePreview(file)}
             className={`inline-block ${iconColorClass} transition-colors p-1`}
             title={fileName}
           >

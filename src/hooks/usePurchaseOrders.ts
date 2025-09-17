@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { normalizePOFiles } from '@/utils/fileNormalize';
 
 // Enhanced Purchase Order interface with related data
 export interface PurchaseOrder {
@@ -97,8 +96,7 @@ export const usePurchaseOrders = (projectId: string) => {
       const enrichedPOs: PurchaseOrder[] = pos.map(po => ({
         ...po,
         companies: companyMap.get(po.company_id),
-        cost_codes: costCodeMap.get(po.cost_code_id),
-        files: normalizePOFiles(po.files, po.project_id),
+        cost_codes: costCodeMap.get(po.cost_code_id)
       }));
 
       // Sort by cost code numerically
