@@ -137,8 +137,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
       let managerPhone = undefined;
       let managerFullName = 'Project Manager'; // Default fallback
       
-      if (projectData?.manager) {
-        const manager = users.find(user => user.id === projectData.manager);
+      if (projectData?.construction_manager) {
+        const manager = users.find(user => user.id === projectData.construction_manager);
         if (manager) {
           managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
           managerEmail = manager.email;

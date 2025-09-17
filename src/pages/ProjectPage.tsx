@@ -173,9 +173,9 @@ export default function ProjectPage() {
                   <div className="flex items-center space-x-3">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">Project Manager</p>
+                      <p className="text-sm font-medium">Construction Manager</p>
                       <p className="text-sm text-muted-foreground">
-                        {project.manager || "Not assigned"}
+                        {project.construction_manager || "Not assigned"}
                       </p>
                     </div>
                   </div>

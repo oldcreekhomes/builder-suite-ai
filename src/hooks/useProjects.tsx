@@ -8,7 +8,8 @@ export interface Project {
   name: string;
   address: string;
   status: string;
-  manager: string;
+  construction_manager: string;
+  accounting_manager?: string;
   total_lots?: number;
   created_at: string;
   updated_at: string;

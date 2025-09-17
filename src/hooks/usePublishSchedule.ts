@@ -213,7 +213,7 @@ export const usePublishSchedule = (projectId: string) => {
         // Get project details for the email
         const { data: project, error: projectError } = await supabase
           .from('projects')
-          .select('name, address, manager')
+          .select('name, address, construction_manager')
           .eq('id', projectId)
           .single();
 
@@ -230,11 +230,11 @@ export const usePublishSchedule = (projectId: string) => {
         let projectManagerEmail = 'N/A';
         let manager = null;
         
-        if (project?.manager) {
+        if (project?.construction_manager) {
           const { data: managerData, error: managerError } = await supabase
             .from('users')
             .select('first_name, last_name, phone_number, email, company_name')
-            .eq('id', project.manager)
+            .eq('id', project.construction_manager)
             .single();
             
           if (managerData && !managerError) {

@@ -1167,10 +1167,11 @@ export type Database = {
       }
       projects: {
         Row: {
+          accounting_manager: string | null
           address: string
+          construction_manager: string | null
           created_at: string
           id: string
-          manager: string | null
           name: string
           owner_id: string
           status: string
@@ -1178,10 +1179,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accounting_manager?: string | null
           address: string
+          construction_manager?: string | null
           created_at?: string
           id?: string
-          manager?: string | null
           name: string
           owner_id: string
           status: string
@@ -1189,10 +1191,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accounting_manager?: string | null
           address?: string
+          construction_manager?: string | null
           created_at?: string
           id?: string
-          manager?: string | null
           name?: string
           owner_id?: string
           status?: string
@@ -1202,7 +1205,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_projects_manager_user"
-            columns: ["manager"]
+            columns: ["construction_manager"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

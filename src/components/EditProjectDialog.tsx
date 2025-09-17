@@ -28,11 +28,12 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
   const { users, isLoading: usersLoading } = useCompanyUsers();
   
   const [formData, setFormData] = useState({
-    name: project?.name || "",
-    address: project?.address || "",
-    status: project?.status || "In Design",
-    manager: project?.manager || "no-manager", // This stores the user ID or "no-manager"
-    total_lots: project?.total_lots?.toString() || "",
+    name: "",
+    address: "",
+    status: "",
+    construction_manager: "no-manager", // Default to "no-manager"
+    accounting_manager: "no-manager", // Default to "no-manager"
+    total_lots: "",
   });
 
   // Update form data when project changes
@@ -42,7 +43,8 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         name: project.name,
         address: project.address,
         status: project.status,
-        manager: project.manager || "no-manager", // Use the manager UUID or "no-manager"
+        construction_manager: project.construction_manager || "no-manager", // Use the construction manager UUID or "no-manager"
+        accounting_manager: project.accounting_manager || "no-manager", // Use the accounting manager UUID or "no-manager"
         total_lots: project.total_lots?.toString() || "",
       });
     }
@@ -54,26 +56,20 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
       
       console.log('Updating project with data:', data);
       
-      // Find the selected manager's details for the manager_name field
-      const selectedUser = users.find(u => u.id === data.manager);
-      const managerName = selectedUser 
-        ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
-        : '';
+        const updatePayload = {
+          name: data.name,
+          address: data.address,
+          status: data.status,
+          construction_manager: data.construction_manager === "no-manager" ? null : data.construction_manager, // Convert "no-manager" back to null
+          accounting_manager: data.accounting_manager === "no-manager" ? null : data.accounting_manager, // Convert "no-manager" back to null
+          total_lots: data.total_lots ? parseInt(data.total_lots, 10) : null,
+        };
       
-      const updateData = {
-        name: data.name,
-        address: data.address,
-        status: data.status,
-        manager: data.manager === "no-manager" ? null : data.manager || null, // Convert "no-manager" or empty string to null for UUID field
-        total_lots: data.total_lots ? parseInt(data.total_lots) : null,
-        updated_at: new Date().toISOString(),
-      };
-      
-      console.log('Sending update data to database:', updateData);
+      console.log('Sending update data to database:', updatePayload);
       
       const { error } = await supabase
         .from('projects')
-        .update(updateData)
+        .update(updatePayload)
         .eq('id', project.id);
 
       if (error) {
@@ -139,26 +135,48 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="manager">Manager</Label>
-              <Select 
-                value={formData.manager} 
-                onValueChange={(value) => handleChange('manager', value)}
-                disabled={usersLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no-manager">No Manager</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="constructionManager">Construction Manager</Label>
+                <Select
+                  value={formData.construction_manager}
+                  onValueChange={(value) => handleChange("construction_manager", value)}
+                  disabled={updateProjectMutation.isPending || usersLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-manager">No Construction Manager</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accountingManager">Accounting Manager</Label>
+                <Select
+                  value={formData.accounting_manager}
+                  onValueChange={(value) => handleChange("accounting_manager", value)}
+                  disabled={updateProjectMutation.isPending || usersLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-manager">No Accounting Manager</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -172,7 +190,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                 min="0"
               />
             </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>

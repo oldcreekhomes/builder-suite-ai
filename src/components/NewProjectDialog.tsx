@@ -36,7 +36,9 @@ const statuses = ["In Design", "Permitting", "Under Construction", "Completed"];
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [projectName, setProjectName] = useState("");
   const [status, setStatus] = useState("");
-  const [manager, setManager] = useState(""); // This will store the user ID
+  const [constructionManager, setConstructionManager] = useState(""); // This will store the user ID
+  const [accountingManager, setAccountingManager] = useState(""); // This will store the user ID
+  const [totalLots, setTotalLots] = useState("");
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -48,10 +50,10 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectName || !status || !manager || !address) {
+    if (!projectName || !status || !constructionManager || !address) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -83,7 +85,9 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           name: projectName,
           address,
           status,
-          manager: manager, // Store the user ID
+          construction_manager: constructionManager, // Store the user ID
+          accounting_manager: accountingManager || null, // Store the user ID or null if not selected
+          total_lots: totalLots ? parseInt(totalLots, 10) : null,
           owner_id,
         })
         .select()
@@ -107,7 +111,9 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       // Reset form
       setProjectName("");
       setStatus("");
-      setManager("");
+      setConstructionManager("");
+      setAccountingManager("");
+      setTotalLots("");
       setAddress("");
       onOpenChange(false);
 
@@ -163,19 +169,50 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="manager">Manager</Label>
-            <Select value={manager} onValueChange={setManager} disabled={isLoading || usersLoading}>
-              <SelectTrigger>
-                <SelectValue placeholder={usersLoading ? "Loading users..." : "Select manager"} />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="totalLots">Total Lots</Label>
+            <Input
+              id="totalLots"
+              type="number"
+              value={totalLots}
+              onChange={(e) => setTotalLots(e.target.value)}
+              placeholder="Enter total lots (optional)"
+              disabled={isLoading}
+              min="0"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="constructionManager">Construction Manager</Label>
+              <Select value={constructionManager} onValueChange={setConstructionManager} disabled={isLoading || usersLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="accountingManager">Accounting Manager</Label>
+              <Select value={accountingManager} onValueChange={setAccountingManager} disabled={isLoading || usersLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

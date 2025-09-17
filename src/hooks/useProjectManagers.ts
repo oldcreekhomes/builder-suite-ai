@@ -29,8 +29,8 @@ export function useProjectManagers() {
           id,
           name,
           status,
-          manager,
-          users:manager (
+          construction_manager,
+          users:construction_manager (
             id,
             first_name,
             last_name,
@@ -38,7 +38,7 @@ export function useProjectManagers() {
             avatar_url
           )
         `)
-        .not('manager', 'is', null);
+        .not('construction_manager', 'is', null);
 
       if (projectsError) throw projectsError;
 
@@ -47,9 +47,9 @@ export function useProjectManagers() {
       const projectsByManager = new Map<string, ProjectWithManager[]>();
 
       projects?.forEach((project) => {
-        if (project.users && project.manager) {
+        if (project.users && project.construction_manager) {
           const manager = project.users;
-          const managerId = project.manager;
+          const managerId = project.construction_manager;
           
           // Update manager count
           if (!managerMap.has(managerId)) {
@@ -98,7 +98,7 @@ export function useProjectManagerProjects(managerId: string) {
       const { data: projects, error } = await supabase
         .from('projects')
         .select('id, name, status')
-        .eq('manager', managerId);
+        .eq('construction_manager', managerId);
 
       if (error) throw error;
       return projects || [];
