@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   fileUrl: string;
@@ -9,16 +13,42 @@ interface PDFViewerProps {
 }
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
-  const [hasError, setHasError] = useState(false);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [scale, setScale] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  const handleIframeLoad = () => {
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setIsLoading(false);
+    setHasError(false);
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF load error:', error);
+    setHasError(true);
     setIsLoading(false);
   };
 
-  const handleIframeError = () => {
-    setHasError(true);
-    setIsLoading(false);
+  const goToPrevPage = () => {
+    setPageNumber(prev => Math.max(1, prev - 1));
+  };
+
+  const goToNextPage = () => {
+    setPageNumber(prev => Math.min(numPages, prev + 1));
+  };
+
+  const zoomIn = () => {
+    setScale(prev => Math.min(3.0, prev + 0.25));
+  };
+
+  const zoomOut = () => {
+    setScale(prev => Math.max(0.5, prev - 0.25));
+  };
+
+  const resetZoom = () => {
+    setScale(1.0);
   };
 
   if (hasError) {
@@ -41,46 +71,75 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
 
   return (
     <div className="flex-1 flex flex-col">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-muted-foreground">Loading PDF...</p>
-          </div>
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-2 p-2 border-b bg-muted/50">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={goToPrevPage} 
+            disabled={pageNumber <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium min-w-[80px] text-center">
+            {isLoading ? 'Loading...' : `${pageNumber} / ${numPages}`}
+          </span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={goToNextPage} 
+            disabled={pageNumber >= numPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-      )}
-      <div className="flex items-center justify-end gap-2 p-2 border-b">
-        <Button variant="ghost" size="sm" onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}>
-          <ExternalLink className="h-4 w-4" />
-          <span className="ml-2">Open in new tab</span>
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={zoomOut} disabled={scale <= 0.5}>
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium min-w-[50px] text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <Button variant="ghost" size="sm" onClick={zoomIn} disabled={scale >= 3.0}>
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={resetZoom}>
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-      
-      {/* Try iframe first, then object, then embed as fallbacks */}
-      <iframe
-        src={fileUrl}
-        className="flex-1 w-full border-0"
-        title={fileName}
-        onLoad={handleIframeLoad}
-        onError={handleIframeError}
-        style={{ minHeight: '600px' }}
-      />
-      
-      {/* Fallback object tag */}
-      <object
-        data={fileUrl}
-        type="application/pdf"
-        className="flex-1 w-full"
-        style={{ display: hasError ? 'none' : 'block', minHeight: '600px' }}
-      >
-        {/* Fallback embed tag */}
-        <embed
-          src={fileUrl}
-          type="application/pdf"
-          className="flex-1 w-full"
-          style={{ minHeight: '600px' }}
-        />
-      </object>
+
+      {/* PDF Viewer */}
+      <div className="flex-1 overflow-auto bg-muted/20 p-4">
+        <div className="flex justify-center">
+          <Document
+            file={fileUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="flex items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-muted-foreground">Loading PDF...</p>
+                </div>
+              </div>
+            }
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              className="shadow-lg border bg-white"
+              loading={
+                <div className="flex items-center justify-center p-8 bg-white border shadow-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              }
+            />
+          </Document>
+        </div>
+      </div>
     </div>
   );
 }
