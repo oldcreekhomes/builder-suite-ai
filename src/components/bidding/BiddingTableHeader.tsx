@@ -13,7 +13,7 @@ export function BiddingTableHeader() {
         <TableHead className="font-bold py-2 text-sm w-32">Reminder Date</TableHead>
         <TableHead className="font-bold py-2 text-sm">Specifications</TableHead>
         <TableHead className="font-bold py-2 text-sm">Files</TableHead>
-        <TableHead className="font-bold py-2 text-sm text-right">Actions</TableHead>
+        <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );

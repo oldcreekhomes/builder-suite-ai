@@ -24,7 +24,7 @@ export function BiddingTableRowActions({
   isReadOnly = false 
 }: BiddingTableRowActionsProps) {
   return (
-    <TableCell className="py-1 pl-0">
+    <TableCell className="py-1">
       <div className="flex items-center justify-start space-x-0.5">
         {!isReadOnly && (
           <>
