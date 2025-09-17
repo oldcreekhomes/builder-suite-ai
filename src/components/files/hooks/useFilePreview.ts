@@ -36,6 +36,24 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
           return;
         }
 
+        // For PDFs, download as blob to avoid Chrome blocking
+        if (file.mimeType === 'application/pdf') {
+          try {
+            const { data: blobData, error: downloadError } = await supabase.storage
+              .from(file.bucket)
+              .download(file.path);
+
+            if (!downloadError && blobData) {
+              const blobUrl = URL.createObjectURL(blobData);
+              setFileUrl(blobUrl);
+              setIsLoading(false);
+              return;
+            }
+          } catch (blobError) {
+            console.log('Blob download failed, trying signed URL');
+          }
+        }
+
         // Try to get signed URL first (for private files)
         try {
           const { data: signedData, error: signedError } = await supabase.storage
@@ -71,6 +89,15 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
 
     loadFileUrl();
   }, [file, isOpen]);
+
+  // Cleanup blob URLs when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (fileUrl && fileUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(fileUrl);
+      }
+    };
+  }, [fileUrl]);
 
   const handleDownload = async () => {
     if (!file) return;
