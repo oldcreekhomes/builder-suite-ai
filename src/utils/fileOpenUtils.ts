@@ -42,8 +42,8 @@ export function openProjectFile(filePath: string, fileName?: string) {
 }
 
 export function openIssueFile(filePath: string, fileName?: string) {
-  // Use redirect approach for issue-files bucket (private)
-  openFileViaRedirectNewTab('issue-files', filePath, fileName);
+  // Use same-tab redirect approach for issue-files bucket (private)
+  openFileViaRedirect('issue-files', filePath, fileName);
 }
 
 export function openProposalFile(fileName: string) {
@@ -162,96 +162,27 @@ export async function getProposalFileUrl(fileName: string): Promise<string> {
 }
 
 /**
- * Open proposal file directly using signed URL (like live version)
+ * Open proposal file directly using same-tab redirect (avoids popup blockers)
  */
-export async function openProposalFileDirectly(fileName: string) {
+export function openProposalFileDirectly(fileName: string) {
   console.log('openProposalFileDirectly called with:', fileName);
-  
-  await openInNewTabSafely(async () => {
-    // Get signed URL directly
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('project-files')
-      .createSignedUrl(`proposals/${fileName}`, 3600);
-    
-    if (!signedError && signedData?.signedUrl) {
-      console.log('Opening signed URL directly:', signedData.signedUrl);
-      return signedData.signedUrl;
-    }
-    
-    // Fallback to public URL
-    const { data } = supabase.storage
-      .from('project-files')
-      .getPublicUrl(`proposals/${fileName}`);
-    
-    if (data?.publicUrl) {
-      console.log('Opening public URL directly:', data.publicUrl);
-      return data.publicUrl;
-    }
-    
-    throw new Error('Failed to get file URL');
-  });
+  openFileViaRedirect('project-files', `proposals/${fileName}`, fileName);
 }
 
 /**
- * Open issue file directly using signed URL (like live version)
+ * Open issue file directly using same-tab redirect (avoids popup blockers)
  */
-export async function openIssueFileDirectly(filePath: string, fileName?: string) {
+export function openIssueFileDirectly(filePath: string, fileName?: string) {
   console.log('openIssueFileDirectly called with:', { filePath, fileName });
-  
-  await openInNewTabSafely(async () => {
-    // Get signed URL directly
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('issue-files')
-      .createSignedUrl(filePath, 3600);
-    
-    if (!signedError && signedData?.signedUrl) {
-      console.log('Opening signed URL directly:', signedData.signedUrl);
-      return signedData.signedUrl;
-    }
-    
-    // Fallback to public URL
-    const { data } = supabase.storage
-      .from('issue-files')
-      .getPublicUrl(filePath);
-    
-    if (data?.publicUrl) {
-      console.log('Opening public URL directly:', data.publicUrl);
-      return data.publicUrl;
-    }
-    
-    throw new Error('Failed to get file URL');
-  });
+  openFileViaRedirect('issue-files', filePath, fileName);
 }
 
 /**
- * Open specification file directly using signed URL (like live version)
+ * Open specification file directly using same-tab redirect (avoids popup blockers)
  */
-export async function openSpecificationFileDirectly(filePath: string, fileName?: string) {
+export function openSpecificationFileDirectly(filePath: string, fileName?: string) {
   console.log('openSpecificationFileDirectly called with:', { filePath, fileName });
-  
-  await openInNewTabSafely(async () => {
-    // Get signed URL directly
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('project-files')
-      .createSignedUrl(filePath, 3600);
-    
-    if (!signedError && signedData?.signedUrl) {
-      console.log('Opening signed URL directly:', signedData.signedUrl);
-      return signedData.signedUrl;
-    }
-    
-    // Fallback to public URL
-    const { data } = supabase.storage
-      .from('project-files')
-      .getPublicUrl(filePath);
-    
-    if (data?.publicUrl) {
-      console.log('Opening public URL directly:', data.publicUrl);
-      return data.publicUrl;
-    }
-    
-    throw new Error('Failed to get file URL');
-  });
+  openFileViaRedirect('project-files', filePath, fileName);
 }
 
 /**
@@ -280,32 +211,19 @@ export async function getProjectFileUrl(filePath: string): Promise<string> {
 }
 
 /**
- * Open file via redirect page in new tab (avoids popup blockers)
+ * @deprecated Use openFileViaRedirect instead (same-tab approach is more reliable)
  */
 export function openFileViaRedirectNewTab(bucket: string, path: string, fileName?: string): void {
-  const params = new URLSearchParams({
-    bucket,
-    path,
-    ...(fileName && { fileName })
-  });
-  
-  const redirectUrl = `/file-redirect?${params.toString()}`;
-  console.log('Opening file via redirect:', redirectUrl);
-  
-  const newTab = window.open(redirectUrl, '_blank');
-  if (!newTab) {
-    // Fallback to same tab if new tab blocked
-    console.log('New tab blocked, opening in same tab');
-    window.location.href = redirectUrl;
-  }
+  console.log('openFileViaRedirectNewTab is deprecated, using same-tab redirect');
+  openFileViaRedirect(bucket, path, fileName);
 }
 
 /**
- * Open project file directly in new tab using redirect approach
+ * Open project file directly using same-tab redirect (avoids popup blockers)
  */
 export function openProjectFileDirectly(filePath: string, fileName?: string) {
   console.log('openProjectFileDirectly called with:', { filePath, fileName });
-  openFileViaRedirectNewTab('project-files', filePath, fileName);
+  openFileViaRedirect('project-files', filePath, fileName);
 }
 
 /**
