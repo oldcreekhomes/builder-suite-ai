@@ -25,7 +25,7 @@ export function BiddingTableRowActions({
 }: BiddingTableRowActionsProps) {
   return (
     <TableCell className="py-1">
-      <div className="flex items-center justify-end space-x-0.5">
+      <div className="flex items-center justify-start space-x-0.5">
         {!isReadOnly && (
           <>
             <Button
