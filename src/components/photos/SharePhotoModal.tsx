@@ -34,7 +34,7 @@ export function SharePhotoModal({ isOpen, onClose, photo }: SharePhotoModalProps
     try {
       // Create a shareable link using the photo URL
       // In a real implementation, you might want to create a dedicated sharing endpoint
-      const link = `https://buildersuite.com/shared/photo/${photo.id}?url=${encodeURIComponent(photo.url)}`;
+      const link = `${window.location.origin}/shared/photo/${photo.id}?url=${encodeURIComponent(photo.url)}`;
       setShareLink(link);
       
       toast({

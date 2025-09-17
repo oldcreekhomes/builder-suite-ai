@@ -82,8 +82,8 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         throw error;
       }
       
-      // Use BuilderSuite domain for share links
-      const link = `https://buildersuite.com/s/f/${shareId}`;
+      // Use current domain for share links
+      const link = `${window.location.origin}/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
