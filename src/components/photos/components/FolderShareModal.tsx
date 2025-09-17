@@ -64,7 +64,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, photos, projectI
       const storedData = localStorage.getItem(`share_${shareId}`);
       console.log('Verification - stored data:', storedData);
       
-      const link = `${window.location.origin}/s/f/${shareId}`;
+      const link = `https://buildersuite.com/s/f/${shareId}`;
       setShareLink(link);
       
       toast({
