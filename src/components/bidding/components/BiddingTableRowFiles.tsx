@@ -2,7 +2,6 @@ import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { Upload } from 'lucide-react';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 import { openSpecificationFile } from '@/utils/fileOpenUtils';
 
@@ -75,7 +74,6 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
             onClick={handleFileUpload}
             className="h-8 text-xs"
           >
-            <Upload className="h-3 w-3 mr-1" />
             {item.files && item.files.length > 0 ? "Add Files" : "Files"}
           </Button>
         )}
