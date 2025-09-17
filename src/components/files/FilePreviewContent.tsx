@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, AlertCircle, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, FileText, AlertCircle, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
 import { UniversalFile } from "./FilePreviewModal";
 import { getFileType, FileType } from "./utils/fileTypeUtils";
 import { PDFViewer } from "./PDFViewer";
+import { openFileDirectly } from "@/utils/universalFileOpen";
 
 interface FilePreviewContentProps {
   file: UniversalFile;
@@ -24,6 +25,10 @@ export function FilePreviewContent({
   const [pdfError, setPdfError] = useState(false);
   
   const fileType = getFileType(file.name, file.mimeType);
+
+  const handleOpenInBrowser = () => {
+    openFileDirectly(file.bucket, file.path, file.name);
+  };
 
   const zoomIn = () => setImageZoom(prev => Math.min(prev + 0.25, 3));
   const zoomOut = () => setImageZoom(prev => Math.max(prev - 0.25, 0.25));
@@ -47,12 +52,18 @@ export function FilePreviewContent({
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-medium text-foreground mb-2">Preview not available</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            {error || "Unable to load file preview. Click download to view the file."}
+            {error || "Unable to load file preview. Try opening in browser or download to view the file."}
           </p>
-          <Button onClick={onDownload} className="gap-2">
-            <Download className="h-4 w-4" />
-            Download File
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={handleOpenInBrowser} variant="default" className="gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Open in Browser
+            </Button>
+            <Button onClick={onDownload} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -114,14 +125,29 @@ export function FilePreviewContent({
     );
   }
 
-  // PDF preview with PDF.js
+  // PDF preview with PDF.js (with fallback to browser viewer)
   if (fileType === FileType.PDF) {
     return (
-      <PDFViewer
-        fileUrl={fileUrl}
-        fileName={file.name}
-        onDownload={onDownload}
-      />
+      <div className="flex-1 flex flex-col">
+        {/* PDF action buttons */}
+        <div className="flex items-center justify-center gap-2 p-2 border-b bg-background/50">
+          <Button onClick={handleOpenInBrowser} variant="default" size="sm" className="gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Open in Browser's PDF Viewer
+          </Button>
+          <Button onClick={onDownload} variant="outline" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
+        </div>
+        
+        {/* Embedded PDF viewer */}
+        <PDFViewer
+          fileUrl={fileUrl}
+          fileName={file.name}
+          onDownload={onDownload}
+        />
+      </div>
     );
   }
 
@@ -148,12 +174,18 @@ export function FilePreviewContent({
           File type: {file.mimeType || 'Unknown'}
         </p>
         <p className="text-sm text-muted-foreground mb-4">
-          This file type can't be previewed in the browser. Download it to view with an appropriate application.
+          This file type can't be previewed here. Use "Open in Browser" for the best viewing experience.
         </p>
-        <Button onClick={onDownload} className="gap-2">
-          <Download className="h-4 w-4" />
-          Download File
-        </Button>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={handleOpenInBrowser} variant="default" className="gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Open in Browser
+          </Button>
+          <Button onClick={onDownload} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
+        </div>
       </div>
     </div>
   );
