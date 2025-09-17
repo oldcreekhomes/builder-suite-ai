@@ -51,7 +51,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectName || !status || !constructionManager || !address || !totalLots) {
+    if (!projectName || !status || !constructionManager || !address || !totalLots || !accountingManager) {
       setHasAttemptedSave(true);
       toast({
         title: "Error",
@@ -213,8 +213,8 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
             <div className="space-y-2">
               <Label htmlFor="accountingManager">Accounting Manager</Label>
               <Select value={accountingManager} onValueChange={setAccountingManager} disabled={isLoading || usersLoading}>
-                <SelectTrigger>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager (optional)"} />
+                <SelectTrigger className={hasAttemptedSave && !accountingManager ? "text-red-500" : ""}>
+                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user) => (
