@@ -36,15 +36,25 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
           return;
         }
 
-        // For PDFs, download as blob to avoid Chrome blocking
-        if (file.mimeType === 'application/pdf') {
+        // For PDFs, download as blob to avoid Chrome blocking (detect by mime or extension)
+        const isPdf = (f: typeof file) => {
+          const name = (f.name || '').toLowerCase();
+          const path = (f.path || '').toLowerCase();
+          return f.mimeType === 'application/pdf' || name.endsWith('.pdf') || path.endsWith('.pdf');
+        };
+
+        if (isPdf(file)) {
           try {
             const { data: blobData, error: downloadError } = await supabase.storage
               .from(file.bucket)
               .download(file.path);
 
             if (!downloadError && blobData) {
-              const blobUrl = URL.createObjectURL(blobData);
+              // Ensure the blob has the correct content type for PDF viewers
+              const pdfBlob = blobData.type === 'application/pdf'
+                ? blobData
+                : new Blob([blobData], { type: 'application/pdf' });
+              const blobUrl = URL.createObjectURL(pdfBlob);
               setFileUrl(blobUrl);
               setIsLoading(false);
               return;

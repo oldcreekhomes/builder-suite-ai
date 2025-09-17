@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, ExternalLink } from 'lucide-react';
 
 interface PDFViewerProps {
   fileUrl: string;
@@ -49,6 +49,12 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
           </div>
         </div>
       )}
+      <div className="flex items-center justify-end gap-2 p-2 border-b">
+        <Button variant="ghost" size="sm" onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}>
+          <ExternalLink className="h-4 w-4" />
+          <span className="ml-2">Open in new tab</span>
+        </Button>
+      </div>
       
       {/* Try iframe first, then object, then embed as fallbacks */}
       <iframe
