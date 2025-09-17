@@ -11,9 +11,23 @@ const FileRedirect = () => {
   const [loading, setLoading] = useState(true);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   
-  const bucket = searchParams.get('bucket');
-  const path = searchParams.get('path');
-  const fileName = searchParams.get('fileName') || 'file';
+  const rawBucket = searchParams.get('bucket');
+  const rawPath = searchParams.get('path');
+  const rawFileName = searchParams.get('fileName') || 'file';
+
+  const decodeParam = (v: string | null) => {
+    if (!v) return null;
+    try {
+      // Convert + to spaces, then decode percent-encodings
+      return decodeURIComponent(v.replace(/\+/g, ' '));
+    } catch {
+      return v.replace(/\+/g, ' ');
+    }
+  };
+
+  const bucket = rawBucket;
+  const path = decodeParam(rawPath)?.replace(/^\/+/, '') || null; // ensure no leading slash
+  const fileName = decodeParam(rawFileName) || 'file';
 
   useEffect(() => {
     const handleFileRedirect = async () => {
@@ -27,27 +41,44 @@ const FileRedirect = () => {
       }
 
       try {
-        // Try to get signed URL first
-        const { data: signedData, error: signedError } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(path, 3600); // 1 hour expiry
+        console.log('FileRedirect normalized params:', { bucket, path, fileName });
 
-        if (!signedError && signedData?.signedUrl) {
-          console.log('FileRedirect: Got signed URL', signedData.signedUrl);
-          setFileUrl(signedData.signedUrl);
-          return;
+        const tryPublic = async () => {
+          const { data: publicData } = supabase.storage
+            .from(bucket!)
+            .getPublicUrl(path!);
+          if (publicData?.publicUrl) {
+            console.log('FileRedirect: Got public URL', publicData.publicUrl);
+            setFileUrl(publicData.publicUrl);
+            return true;
+          }
+          return false;
+        };
+
+        const trySigned = async () => {
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from(bucket!)
+            .createSignedUrl(path!, 3600); // 1 hour expiry
+
+          if (!signedError && signedData?.signedUrl) {
+            console.log('FileRedirect: Got signed URL', signedData.signedUrl);
+            setFileUrl(signedData.signedUrl);
+            return true;
+          }
+          console.warn('FileRedirect: Signed URL failed', signedError);
+          return false;
+        };
+
+        let ok = false;
+        if (bucket === 'project-files') {
+          ok = await tryPublic();
+          if (!ok) ok = await trySigned();
+        } else {
+          ok = await trySigned();
+          if (!ok) ok = await tryPublic();
         }
 
-        // Fallback to public URL for public buckets
-        const { data: publicData } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(path);
-
-        if (publicData?.publicUrl) {
-          console.log('FileRedirect: Got public URL', publicData.publicUrl);
-          setFileUrl(publicData.publicUrl);
-          return;
-        }
+        if (ok) return;
 
         throw new Error('Failed to get file URL');
       } catch (err) {
