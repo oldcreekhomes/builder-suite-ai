@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, CheckSquare, Square } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, CheckSquare, Square, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -7,6 +7,7 @@ import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-di
 import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 import { BulkActionBar } from './components/BulkActionBar';
+import { FileShareModal } from './components/FileShareModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { openProjectFileDirectly } from '@/utils/fileOpenUtils';
@@ -63,6 +64,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [filesToMove, setFilesToMove] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
   const handleFileView = (file: SimpleFile) => {
     console.log('PROJECT FILES: Opening file', file.storage_path, file.displayName);
     openProjectFileDirectly(file.storage_path, file.displayName);
@@ -274,6 +276,27 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleFileDelete = (file: SimpleFile) => {
     setDeleteFile(file);
+  };
+
+  const handleFileShare = (file: SimpleFile) => {
+    setShareFile(file);
+  };
+
+  // Convert SimpleFile to ProjectFile format for the share modal
+  const getShareableFile = (file: SimpleFile | null) => {
+    if (!file) return null;
+    
+    return {
+      id: file.id,
+      project_id: projectId,
+      original_filename: file.original_filename || file.displayName,
+      file_size: file.file_size,
+      file_type: file.mime_type,
+      storage_path: file.storage_path,
+      uploaded_by: file.uploader?.email || 'unknown',
+      uploaded_at: file.uploaded_at,
+      uploaded_by_profile: file.uploader ? { email: file.uploader.email } : undefined
+    };
   };
 
   const confirmDelete = async () => {
@@ -505,6 +528,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => handleFileShare(file)}
+                className="gap-1"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => handleFileView(file)}
                 className="gap-1"
               >
@@ -637,6 +668,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         onConfirm={confirmBulkDelete}
         title="Delete Selected Files"
         description={`Are you sure you want to delete ${selectedFiles.size} selected file(s)? This action cannot be undone.`}
+      />
+
+      <FileShareModal
+        isOpen={!!shareFile}
+        onClose={() => setShareFile(null)}
+        file={getShareableFile(shareFile)}
       />
     </div>
   );
