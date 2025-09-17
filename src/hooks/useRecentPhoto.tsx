@@ -25,7 +25,7 @@ export const useRecentPhoto = () => {
         .from('project_photos')
         .select(`
           *,
-          projects!inner(name)
+          projects!inner(address)
         `)
         .order('uploaded_at', { ascending: false })
         .limit(1)
@@ -42,7 +42,7 @@ export const useRecentPhoto = () => {
 
       return {
         ...data,
-        project_name: data.projects?.name
+        project_name: data.projects?.address
       } as RecentPhoto;
     },
     enabled: !!user,

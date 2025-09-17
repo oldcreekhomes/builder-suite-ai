@@ -213,7 +213,7 @@ export const usePublishSchedule = (projectId: string) => {
         // Get project details for the email
         const { data: project, error: projectError } = await supabase
           .from('projects')
-          .select('name, address, construction_manager')
+          .select('address, construction_manager')
           .eq('id', projectId)
           .single();
 
@@ -221,7 +221,7 @@ export const usePublishSchedule = (projectId: string) => {
           console.error('Error fetching project details:', projectError);
         }
 
-        const projectName = project?.name || 'Your Project';
+        const projectName = project?.address || 'Your Project';
         const projectAddress = project?.address || 'Project Address';
         
         // Get project manager details

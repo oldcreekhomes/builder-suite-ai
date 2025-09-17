@@ -30,7 +30,7 @@ export default function SubmitBid() {
         .select(`
           *,
           cost_codes (name, code),
-          projects (name, address)
+          projects (address)
         `)
         .eq('id', bidPackageId)
         .single();

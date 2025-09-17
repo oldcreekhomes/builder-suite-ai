@@ -88,7 +88,7 @@ export function CopyScheduleDialog({
               <SelectContent>
                 {availableProjects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
-                    {project.name}
+                    {project.address}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -184,7 +184,7 @@ export default function BillsApprovalStatus() {
                                 key={project.id} 
                                 className={`hover:bg-muted/50 ${approved ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-muted'}`}
                               >
-                                <TableCell className="font-medium text-foreground">{project.name}</TableCell>
+                                <TableCell className="font-medium text-foreground">{project.address}</TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex justify-center">
                                     <Checkbox
