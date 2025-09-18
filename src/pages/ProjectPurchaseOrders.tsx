@@ -23,6 +23,12 @@ export default function ProjectPurchaseOrders() {
     isLoading,
     error
   } = usePurchaseOrders(projectId!);
+
+  console.log('ProjectPurchaseOrders - projectId:', projectId);
+  console.log('ProjectPurchaseOrders - project:', project);
+  console.log('ProjectPurchaseOrders - purchaseOrders:', purchaseOrders);
+  console.log('ProjectPurchaseOrders - isLoading:', isLoading);
+  console.log('ProjectPurchaseOrders - error:', error);
   
   if (!project) {
     return <div className="flex items-center justify-center min-h-screen">
