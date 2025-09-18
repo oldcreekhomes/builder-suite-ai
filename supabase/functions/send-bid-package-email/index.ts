@@ -71,12 +71,13 @@ const formatSpecifications = (specifications: string | undefined) => {
   
   // Split by line breaks and process bullet points and numbered lists
   const lines = specifications.split(/\r?\n/);
-  const formattedLines = lines.map(line => {
+  const formattedLines = lines.map((line, index) => {
     const trimmed = line.trim();
     if (!trimmed) return '';
     
-    // Use consistent margin for all lines to align with other fields
-    return `<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
+    // Use consistent margin for all lines, remove top margin from first line to align properly
+    const marginTop = index === 0 ? '0' : '5px';
+    return `<div style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: ${marginTop} 0 5px 0;">${trimmed}</div>`;
   });
   
   return formattedLines.filter(line => line).join('');
@@ -220,7 +221,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Scope of Work:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;">${specifications}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; width: calc(100% - 120px);">${specifications}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
