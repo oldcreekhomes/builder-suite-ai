@@ -205,8 +205,8 @@ export const CreatePurchaseOrderDialog = ({
           description: "Purchase order updated successfully",
         });
       } else {
-        // Create new purchase order
-        const { data, error } = await supabase
+        // Create new purchase order with pending status
+        const { data: purchaseOrder, error } = await supabase
           .from('project_purchase_orders')
           .insert([{
             project_id: projectId,
@@ -216,16 +216,58 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: amount ? parseFloat(amount) : null,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
+            status: 'pending',
           }])
           .select()
           .single();
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Purchase order created successfully",
+        // Get project address and sender company name for the email
+        const [projectData, senderData] = await Promise.all([
+          supabase
+            .from('projects')
+            .select('address')
+            .eq('id', projectId)
+            .single(),
+          supabase.auth.getUser().then(async (userResult) => {
+            if (userResult.data.user) {
+              const { data } = await supabase
+                .from('users')
+                .select('company_name')
+                .eq('id', userResult.data.user.id)
+                .single();
+              return data;
+            }
+            return null;
+          })
+        ]);
+
+        // Send the PO email automatically
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+          body: {
+            purchaseOrderId: purchaseOrder.id,
+            companyId: selectedCompany.id,
+            projectAddress: projectData.data?.address || 'N/A',
+            companyName: selectedCompany.name,
+            totalAmount: amount ? parseFloat(amount) : 0,
+            senderCompanyName: senderData?.company_name || 'Builder Suite AI'
+          }
         });
+
+        if (emailError) {
+          console.error('Error sending PO email:', emailError);
+          toast({
+            title: "Warning",
+            description: "Purchase order created but email failed to send",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: `Purchase order created and email sent to ${emailData.emailsSent} recipients`,
+          });
+        }
       }
 
       // Reset form
