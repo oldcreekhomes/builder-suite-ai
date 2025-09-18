@@ -4,8 +4,9 @@ import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { X, XCircle } from 'lucide-react';
+import { X, XCircle, Settings } from 'lucide-react';
 import { AddBiddingModal } from './AddBiddingModal';
+import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
 import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
@@ -15,6 +16,7 @@ import { useBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBiddingMutations } from '@/hooks/useBiddingMutations';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
+import { useGlobalBiddingSettings } from '@/hooks/useGlobalBiddingSettings';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 
 interface BiddingTableProps {
@@ -25,6 +27,7 @@ interface BiddingTableProps {
 
 export function BiddingTable({ projectId, projectAddress, status }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
+  const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   
   const { biddingItems, groupedBiddingItems, existingCostCodeIds } = useBiddingData(projectId, status);
@@ -43,6 +46,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   
   const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
+  const { applyGlobalSettings, isApplying } = useGlobalBiddingSettings(projectId);
 
   // Company selection handlers
   const handleCompanyCheckboxChange = (companyId: string, checked: boolean) => {
@@ -152,7 +156,15 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   return (
     <div className="space-y-4">
       {status === 'draft' && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowGlobalSettingsModal(true)}
+            disabled={biddingItems.length === 0}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Global Settings
+          </Button>
           <Button onClick={() => setShowAddBiddingModal(true)}>
             {getLoadButtonText()}
           </Button>
@@ -294,12 +306,21 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
       <BiddingTableFooter biddingItems={biddingItems} />
 
       {status === 'draft' && (
-        <AddBiddingModal
-          projectId={projectId}
-          open={showAddBiddingModal}
-          onOpenChange={setShowAddBiddingModal}
-          existingCostCodeIds={Array.from(existingCostCodeIds)}
-        />
+        <>
+          <AddBiddingModal
+            projectId={projectId}
+            open={showAddBiddingModal}
+            onOpenChange={setShowAddBiddingModal}
+            existingCostCodeIds={Array.from(existingCostCodeIds)}
+          />
+          <GlobalBiddingSettingsModal
+            projectId={projectId}
+            open={showGlobalSettingsModal}
+            onOpenChange={setShowGlobalSettingsModal}
+            onApplySettings={applyGlobalSettings}
+            isLoading={isApplying}
+          />
+        </>
       )}
     </div>
   );
