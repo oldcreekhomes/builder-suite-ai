@@ -15,6 +15,13 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
     
     const fileName = file.name || file.id || file;
     
+    // Check for structured file data with direct bucket and path properties (older format)
+    if (file.bucket && file.path) {
+      console.log('Opening file with direct bucket/path:', file.bucket, file.path);
+      openFileViaRedirect(file.bucket, file.path, fileName);
+      return;
+    }
+    
     // If the file has a direct URL (like proposal files), parse it
     if (file.url) {
       console.log('Opening file with direct URL:', file.url);
