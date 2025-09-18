@@ -14,10 +14,15 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('=== BID RESPONSE FUNCTION CALLED ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   console.log('Processing bid response request...');
   
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -107,8 +112,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     // If they will bid, send the submission email
     if (response === 'will_bid') {
+      console.log('🎯 User responded "will_bid", attempting to send submission email...');
       try {
         // Get all company representatives who want bid notifications
+        console.log('📋 Fetching company representatives for company:', companyId);
         const { data: companyReps, error: repError } = await supabase
           .from('company_representatives')
           .select('email, first_name, last_name')
@@ -116,16 +123,17 @@ const handler = async (req: Request): Promise<Response> => {
           .eq('receive_bid_notifications', true);
 
         if (repError) {
-          console.error('Error fetching company representatives:', repError);
+          console.error('❌ Error fetching company representatives:', repError);
         } else if (companyReps && companyReps.length > 0) {
-          console.log(`Sending bid submission emails to ${companyReps.length} recipients`);
+          console.log(`📧 Sending bid submission emails to ${companyReps.length} recipients`);
+          console.log('Recipients:', companyReps.map(r => ({ email: r.email, name: `${r.first_name} ${r.last_name}` })));
           
           // Send emails to all representatives who want bid notifications
           const emailPromises = companyReps.map(async (rep) => {
             if (rep.email) {
-              console.log('Sending bid submission email to:', rep.email);
+              console.log('📩 Sending bid submission email to:', rep.email);
               
-              const { error: emailError } = await supabase.functions.invoke('send-bid-submission-email', {
+              const { data: emailData, error: emailError } = await supabase.functions.invoke('send-bid-submission-email', {
                 body: {
                   bidPackageId,
                   companyId,
@@ -135,13 +143,14 @@ const handler = async (req: Request): Promise<Response> => {
               });
 
               if (emailError) {
-                console.error(`Error sending bid submission email to ${rep.email}:`, emailError);
+                console.error(`❌ Error sending bid submission email to ${rep.email}:`, emailError);
                 return { success: false, email: rep.email, error: emailError };
               } else {
-                console.log(`Bid submission email sent successfully to ${rep.email}`);
-                return { success: true, email: rep.email };
+                console.log(`✅ Bid submission email sent successfully to ${rep.email}:`, emailData);
+                return { success: true, email: rep.email, data: emailData };
               }
             }
+            console.log('⚠️ No email address for rep:', rep);
             return { success: false, email: rep.email, error: 'No email address' };
           });
 
@@ -151,14 +160,17 @@ const handler = async (req: Request): Promise<Response> => {
             result.status === 'fulfilled' && result.value.success
           ).length;
           
-          console.log(`Bid submission emails: ${successCount}/${companyReps.length} sent successfully`);
+          console.log(`📊 Bid submission emails: ${successCount}/${companyReps.length} sent successfully`);
+          console.log('Email results:', emailResults.map(r => r.status === 'fulfilled' ? r.value : r.reason));
         } else {
-          console.log('No company representatives with bid notifications enabled found for company:', companyId);
+          console.log('⚠️ No company representatives with bid notifications enabled found for company:', companyId);
         }
       } catch (emailError) {
-        console.error('Error in email sending process:', emailError);
+        console.error('❌ Error in email sending process:', emailError);
         // Continue with redirect even if email fails
       }
+    } else {
+      console.log('🚫 User responded "will_not_bid", no submission email needed');
     }
 
     // Redirect to confirmation page
@@ -177,7 +189,8 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error("Error in handle-bid-response function:", error);
+    console.error("❌ CRITICAL ERROR in handle-bid-response function:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
     errorUrl.searchParams.set('status', 'error');
     return new Response(null, {

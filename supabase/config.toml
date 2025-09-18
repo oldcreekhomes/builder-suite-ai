@@ -9,6 +9,12 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+[functions.send-bid-package-email]
+verify_jwt = false
+
+[functions.send-bid-submission-email]
+verify_jwt = false
+
 [functions.handle-bid-response]
 verify_jwt = false
 
