@@ -98,7 +98,7 @@ export function AddCompaniesToBidPackageModal({
           <DialogTitle>Add Companies to Bid Package</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto space-y-4">
+        <div className="flex-1 overflow-auto space-y-3">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -111,16 +111,16 @@ export function AddCompaniesToBidPackageModal({
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-6">
               <Loader2 className="h-6 w-6 animate-spin" />
               <span className="ml-2">Loading available companies...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 h-96">
+            <div className="grid grid-cols-2 gap-4 h-64">
               {/* Available Companies */}
-              <div className="p-4">
-                <h3 className="font-medium mb-3">Available Companies</h3>
-                <div className="space-y-1 max-h-80 overflow-auto">
+              <div className="p-3">
+                <h3 className="font-medium mb-2">Available Companies</h3>
+                <div className="space-y-1 max-h-52 overflow-auto">
                   {filteredCompanies
                     .filter(company => !selectedCompanies.has(company.id))
                     .map((company) => (
@@ -133,7 +133,7 @@ export function AddCompaniesToBidPackageModal({
                       </div>
                     ))}
                   {filteredCompanies.filter(company => !selectedCompanies.has(company.id)).length === 0 && (
-                    <div className="text-center py-4 text-muted-foreground text-sm">
+                    <div className="text-center py-3 text-muted-foreground text-sm">
                       {availableCompanies?.length === 0 
                         ? "No companies available"
                         : "No companies match your search"
@@ -144,22 +144,22 @@ export function AddCompaniesToBidPackageModal({
               </div>
 
               {/* Selected Companies */}
-              <div className="p-4">
-                <h3 className="font-medium mb-3">Selected Companies ({selectedCompanies.size})</h3>
-                <div className="space-y-1 max-h-80 overflow-auto">
+              <div className="p-3">
+                <h3 className="font-medium mb-2">Selected Companies ({selectedCompanies.size})</h3>
+                <div className="space-y-1 max-h-52 overflow-auto">
                   {filteredCompanies
                     .filter(company => selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
                         key={company.id} 
-                        className="p-2 cursor-pointer hover:bg-muted transition-colors bg-primary/5 text-sm"
+                        className="p-2 cursor-pointer hover:bg-muted transition-colors text-sm"
                         onClick={() => handleCompanyToggle(company.id)}
                       >
                         {company.company_name}
                       </div>
                     ))}
                   {selectedCompanies.size === 0 && (
-                    <div className="text-center py-4 text-muted-foreground text-sm">
+                    <div className="text-center py-3 text-muted-foreground text-sm">
                       Click companies on the left to select them
                     </div>
                   )}
