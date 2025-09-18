@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useProject } from '@/hooks/useProject';
+import { useCostCodeDistanceFilter } from '@/hooks/useCostCodeDistanceFilter';
 
 interface CostCode {
   id: string;
@@ -27,6 +29,9 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Get project data for address
+  const { data: project } = useProject(projectId);
 
   // Fetch cost codes that have bidding enabled and are not already in the project
   const { data: costCodes = [] } = useQuery({
@@ -88,6 +93,13 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
     setGroupedCostCodes(grouped);
   }, [costCodes]);
+
+  // Distance filtering
+  const distanceFilter = useCostCodeDistanceFilter({
+    projectAddress: project?.address || null,
+    groupedCostCodes,
+    enabled: !!project?.address
+  });
 
   // Create bidding items mutation
   const createBiddingItems = useMutation({
@@ -256,7 +268,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   return {
     selectedCostCodes,
     expandedGroups,
-    groupedCostCodes,
+    groupedCostCodes: distanceFilter.filteredGroupedCostCodes,
     createBiddingItems,
     handleCostCodeToggle,
     handleGroupCheckboxChange,
@@ -267,5 +279,11 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
     handleGroupToggle,
     handleSave,
     resetSelection,
+    // Distance filtering
+    maxDistance: distanceFilter.maxDistance,
+    setMaxDistance: distanceFilter.setMaxDistance,
+    isCalculatingDistances: distanceFilter.isCalculating,
+    distanceStats: distanceFilter.stats,
+    hasProjectAddress: !!project?.address,
   };
 };
