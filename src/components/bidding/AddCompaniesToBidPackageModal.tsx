@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Loader2 } from 'lucide-react';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
 
 interface AddCompaniesToBidPackageModalProps {
@@ -25,7 +24,6 @@ export function AddCompaniesToBidPackageModal({
   existingCompanyIds
 }: AddCompaniesToBidPackageModalProps) {
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState('');
   const { addCompanyToBidPackage } = useBiddingCompanyMutations(projectId);
 
   // Fetch companies associated with this cost code that aren't already in the bid package
@@ -60,11 +58,6 @@ export function AddCompaniesToBidPackageModal({
     enabled: open && !!costCodeId,
   });
 
-  const filteredCompanies = availableCompanies?.filter(company =>
-    company.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.company_type.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
   const handleCompanyToggle = (companyId: string) => {
     setSelectedCompanies(prev => {
       const newSet = new Set(prev);
@@ -87,7 +80,6 @@ export function AddCompaniesToBidPackageModal({
 
   const handleCancel = () => {
     setSelectedCompanies(new Set());
-    setSearchTerm('');
     onOpenChange(false);
   };
 
@@ -98,18 +90,7 @@ export function AddCompaniesToBidPackageModal({
           <DialogTitle>Add Companies to Bid Package</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto space-y-3">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search companies..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
+        <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -121,7 +102,7 @@ export function AddCompaniesToBidPackageModal({
               <div className="p-2">
                 <h3 className="font-medium mb-2">Available Companies</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
-                  {filteredCompanies
+                  {(availableCompanies || [])
                     .filter(company => !selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
@@ -132,12 +113,9 @@ export function AddCompaniesToBidPackageModal({
                         {company.company_name}
                       </div>
                     ))}
-                  {filteredCompanies.filter(company => !selectedCompanies.has(company.id)).length === 0 && (
+                  {(availableCompanies || []).filter(company => !selectedCompanies.has(company.id)).length === 0 && (
                     <div className="text-center py-3 text-muted-foreground text-sm">
-                      {availableCompanies?.length === 0 
-                        ? "No companies available"
-                        : "No companies match your search"
-                      }
+                      No companies available
                     </div>
                   )}
                 </div>
@@ -147,7 +125,7 @@ export function AddCompaniesToBidPackageModal({
               <div className="p-2">
                 <h3 className="font-medium mb-2">Selected Companies ({selectedCompanies.size})</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
-                  {filteredCompanies
+                  {(availableCompanies || [])
                     .filter(company => selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
