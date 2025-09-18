@@ -32,7 +32,7 @@ export function AddCompaniesToBidPackageModal({
   const { data: availableCompanies, isLoading } = useQuery({
     queryKey: ['available-companies-for-bid-package', costCodeId, existingCompanyIds],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('company_cost_codes')
         .select(`
           company_id,
@@ -44,8 +44,14 @@ export function AddCompaniesToBidPackageModal({
             phone_number
           )
         `)
-        .eq('cost_code_id', costCodeId)
-        .not('company_id', 'in', `(${existingCompanyIds.length > 0 ? existingCompanyIds.join(',') : 'null'})`);
+        .eq('cost_code_id', costCodeId);
+
+      // Only exclude existing companies if there are any to exclude
+      if (existingCompanyIds.length > 0) {
+        query = query.not('company_id', 'in', `(${existingCompanyIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
