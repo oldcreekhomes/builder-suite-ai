@@ -169,6 +169,91 @@ const handler = async (req: Request): Promise<Response> => {
         console.error('❌ Error in email sending process:', emailError);
         // Continue with redirect even if email fails
       }
+
+      // SECOND EMAIL: Notify the home builder about the bid confirmation
+      console.log('📬 Now sending notification to home builder about bid confirmation...');
+      try {
+        // Get bid package and project info to find the home builder
+        const { data: bidPackageData, error: bidPackageError } = await supabase
+          .from('project_bid_packages')
+          .select(`
+            id,
+            name,
+            project_id,
+            cost_code_id,
+            projects!inner(
+              address,
+              owner_id,
+              construction_manager,
+              accounting_manager
+            ),
+            cost_codes!inner(
+              code,
+              name
+            )
+          `)
+          .eq('id', bidPackageId)
+          .single();
+
+        if (bidPackageError) {
+          console.error('❌ Error fetching bid package for home builder notification:', bidPackageError);
+        } else {
+          console.log('📊 Bid package data for notification:', bidPackageData);
+          
+          // Get company info
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('company_name')
+            .eq('id', companyId)
+            .single();
+
+          if (companyError) {
+            console.error('❌ Error fetching company data:', companyError);
+          } else {
+            console.log('🏢 Company data:', companyData);
+            
+            // Get home builder contact info (use construction_manager if available, otherwise owner)
+            const homeBuilderContactId = bidPackageData.projects.construction_manager || bidPackageData.projects.owner_id;
+            
+            const { data: homeBuilderData, error: homeBuilderError } = await supabase
+              .from('users')
+              .select('email, first_name, last_name')
+              .eq('id', homeBuilderContactId)
+              .single();
+
+            if (homeBuilderError) {
+              console.error('❌ Error fetching home builder contact:', homeBuilderError);
+            } else {
+              console.log('🏠 Home builder contact:', homeBuilderData);
+              
+              // Send notification email to home builder
+              console.log('📧 Sending bid confirmation notification to home builder:', homeBuilderData.email);
+              
+              const { data: notificationEmailData, error: notificationEmailError } = await supabase.functions.invoke('send-bid-submission-email', {
+                body: {
+                  bidPackageId,
+                  companyId,
+                  recipientEmail: homeBuilderData.email,
+                  recipientName: `${homeBuilderData.first_name} ${homeBuilderData.last_name}`,
+                  isHomeBuilderNotification: true, // Flag to distinguish this from company confirmation
+                  projectAddress: bidPackageData.projects.address,
+                  costCodeName: `${bidPackageData.cost_codes.code}: ${bidPackageData.cost_codes.name}`,
+                  companyName: companyData.company_name
+                }
+              });
+
+              if (notificationEmailError) {
+                console.error('❌ Error sending home builder notification email:', notificationEmailError);
+              } else {
+                console.log('✅ Home builder notification email sent successfully:', notificationEmailData);
+              }
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error('❌ Error in home builder notification process:', notificationError);
+        // Continue with redirect even if notification fails
+      }
     } else {
       console.log('🚫 User responded "will_not_bid", no submission email needed');
     }

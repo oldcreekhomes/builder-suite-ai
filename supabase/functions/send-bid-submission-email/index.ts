@@ -19,6 +19,10 @@ interface BidSubmissionEmailRequest {
   companyId: string;
   recipientEmail: string;
   recipientName?: string;
+  isHomeBuilderNotification?: boolean;
+  projectAddress?: string;
+  costCodeName?: string;
+  companyName?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -30,13 +34,26 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log('Processing bid submission email request...');
     
-    const { bidPackageId, companyId, recipientEmail, recipientName }: BidSubmissionEmailRequest = await req.json();
+    const { 
+      bidPackageId, 
+      companyId, 
+      recipientEmail, 
+      recipientName,
+      isHomeBuilderNotification = false,
+      projectAddress,
+      costCodeName,
+      companyName 
+    }: BidSubmissionEmailRequest = await req.json();
 
     console.log('Email params:', {
       bidPackageId,
       companyId,
       recipientEmail,
-      recipientName
+      recipientName,
+      isHomeBuilderNotification,
+      projectAddress,
+      costCodeName,
+      companyName
     });
 
     if (!bidPackageId || !companyId || !recipientEmail) {
@@ -91,8 +108,119 @@ const handler = async (req: Request): Promise<Response> => {
         })
       : 'TBD';
 
-    // Create the HTML email content using the provided template
-    const htmlContent = `
+    // Create different email content based on recipient type
+    let htmlContent: string;
+    let subject: string;
+
+    if (isHomeBuilderNotification) {
+      // HOME BUILDER NOTIFICATION EMAIL
+      subject = `Bid Confirmation Received - ${projectAddress || bidPackage.projects?.address}`;
+      
+      htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Bid Confirmation Received - ${projectAddress || bidPackage.projects?.address}</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
+                
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 30px; background-color: #10B981; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Confirmation Received</h1>
+                            <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || bidPackage.projects?.address}</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px; margin: 0;">
+                            
+                            <!-- Notification Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <tr>
+                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Company Response
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                            <tr>
+                                                <td style="padding: 20px; margin: 0;">
+                                                    <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        <strong>${companyName || 'A company'}</strong> has confirmed they will participate in the bidding process for:
+                                                    </p>
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || bidPackage.projects?.address}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || bidPackage.cost_codes?.name}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Company:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${companyName || 'Company name not available'}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Due Date:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${dueDateFormatted}</span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <p style="color: #666666; font-size: 14px; margin: 20px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        You will receive their bid submission once it's completed.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
+                            <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+                
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+      
+    } else {
+      // COMPANY BID SUBMISSION EMAIL (existing functionality)
+      subject = `Submit Your Bid - ${bidPackage.projects?.address}`;
+      
+      htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,7 +230,7 @@ const handler = async (req: Request): Promise<Response> => {
     <title>Submit Your Bid - ${bidPackage.projects?.address}</title>
 </head>
 
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segue UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
         <tr>
             <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
@@ -207,12 +335,13 @@ const handler = async (req: Request): Promise<Response> => {
     </table>
 </body>
 </html>`;
+    }
 
     // Send email using Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
       to: [recipientEmail],
-      subject: `Submit Your Bid - ${bidPackage.projects?.address}`,
+      subject,
       html: htmlContent
     });
 
