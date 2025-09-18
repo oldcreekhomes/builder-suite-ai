@@ -170,10 +170,7 @@ export function AddCompaniesToBidPackageModal({
         </div>
 
         <DialogFooter>
-          <div className="flex items-center justify-between w-full">
-            <div className="text-sm text-muted-foreground">
-              {selectedCompanies.size} companies selected
-            </div>
+          <div className="flex items-center justify-end w-full">
             <div className="flex space-x-2">
               <Button variant="outline" onClick={handleCancel}>
                 Cancel
