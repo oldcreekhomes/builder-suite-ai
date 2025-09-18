@@ -80,7 +80,7 @@ export const useBiddingData = (projectId: string, status?: string) => {
         queryBuilder = queryBuilder.eq('status', status);
       }
 
-      const { data, error } = await queryBuilder.order('updated_at', { ascending: false });
+      const { data, error } = await queryBuilder;
 
       if (error) {
         console.error('Error fetching bidding data:', error);
@@ -105,6 +105,25 @@ export const useBiddingData = (projectId: string, status?: string) => {
     groups[group].push(item);
     return groups;
   }, {} as Record<string, BiddingPackage[]>);
+
+  // Sort items within each group by cost code numerically
+  Object.keys(groupedBiddingItems).forEach(group => {
+    groupedBiddingItems[group].sort((a, b) => {
+      const codeA = a.cost_codes?.code || '';
+      const codeB = b.cost_codes?.code || '';
+      
+      // Parse cost codes as actual numbers (handles decimals like 4010.1)
+      const numA = parseFloat(codeA) || 0;
+      const numB = parseFloat(codeB) || 0;
+      
+      if (numA !== numB) {
+        return numA - numB;
+      }
+      
+      // If numeric parts are equal, fall back to string comparison
+      return codeA.localeCompare(codeB);
+    });
+  });
 
   // Get existing cost code IDs
   const existingCostCodeIds = new Set(biddingItems.map(item => item.cost_code_id));
@@ -146,8 +165,7 @@ export const useAllBiddingData = (projectId: string) => {
             )
           )
         `)
-        .eq('project_id', projectId)
-        .order('updated_at', { ascending: false });
+        .eq('project_id', projectId);
 
       if (error) {
         console.error('Error fetching all bidding data:', error);
