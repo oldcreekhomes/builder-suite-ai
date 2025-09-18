@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
-import { openSpecificationFile } from '@/utils/fileOpenUtils';
+import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 
@@ -333,7 +333,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                           return (
                             <button
                               key={index}
-                              onClick={() => openSpecificationFile(fileName, displayName)}
+                              onClick={() => {
+                                console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
+                                const storagePath = getProjectFileStoragePath(fileName);
+                                openFileViaRedirect('project-files', storagePath, displayName);
+                              }}
                               className={`flex items-center justify-center p-1 hover:bg-muted-foreground/10 rounded transition-colors ${iconColorClass}`}
                               title={`Click to open ${displayName}`}
                               type="button"

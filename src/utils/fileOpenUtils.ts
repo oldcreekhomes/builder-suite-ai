@@ -87,6 +87,23 @@ export const openSpecificationFile = (filePath: string, fileName?: string) => {
   openFileViaRedirect('project-files', finalPath, fileName || normalizedPath.split('/').pop());
 };
 
+// Helper to get project file storage path for specification files
+export function getProjectFileStoragePath(fileRef: string): string {
+  console.log('🔧 getProjectFileStoragePath input:', fileRef);
+  
+  // If it already has the specifications/ prefix, use as-is
+  if (fileRef.startsWith('specifications/')) {
+    console.log('🔧 Already prefixed with specifications/', fileRef);
+    return fileRef;
+  }
+  
+  // If it's a file name without path, add specifications prefix
+  const storagePath = `specifications/${fileRef}`;
+  console.log('🔧 Generated storage path:', storagePath);
+  
+  return storagePath;
+}
+
 /**
  * Legacy function - kept for backward compatibility
  * @deprecated Use openFileViaRedirect instead

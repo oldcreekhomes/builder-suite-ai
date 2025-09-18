@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
-import { openSpecificationFile } from '@/utils/fileOpenUtils';
+import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 
 interface SendTestEmailModalProps {
   open: boolean;
@@ -361,9 +361,15 @@ export function SendTestEmailModal({
                           return (
                             <button
                               key={index}
-                              onClick={() => openSpecificationFile(fileName)}
+                              onClick={() => {
+                                console.log('📁 SendTestEmailModal: Opening file', fileName);
+                                const displayName = fileName.split('/').pop() || fileName;
+                                const storagePath = getProjectFileStoragePath(fileName);
+                                openFileViaRedirect('project-files', storagePath, displayName);
+                              }}
                               className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
                               title={`Click to open ${fileName}`}
+                              type="button"
                             >
                               <IconComponent className="h-4 w-4" />
                             </button>

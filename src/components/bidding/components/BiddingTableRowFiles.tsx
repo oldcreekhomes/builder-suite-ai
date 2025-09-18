@@ -3,7 +3,7 @@ import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { openSpecificationFile } from '@/utils/fileOpenUtils';
+import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 
 interface BiddingTableRowFilesProps {
   item: any;
@@ -40,8 +40,10 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
   };
 
   const handleFilePreview = (fileName: string) => {
-    console.log('BIDDING FILES: Opening file', fileName);
-    openSpecificationFile(fileName, fileName.split('/').pop());
+    console.log('📁 BiddingTableRowFiles: Opening file', fileName);
+    const displayName = fileName.split('/').pop() || fileName;
+    const storagePath = getProjectFileStoragePath(fileName);
+    openFileViaRedirect('project-files', storagePath, displayName);
   };
 
   return (
@@ -59,6 +61,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
                   onClick={() => handleFilePreview(fileName)}
                   className={`${iconColorClass} transition-colors p-1`}
                   title={fileName}
+                  type="button"
                 >
                   <IconComponent className="h-4 w-4" />
                 </button>
