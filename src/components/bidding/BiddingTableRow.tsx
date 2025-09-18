@@ -4,6 +4,7 @@ import { BiddingCompanyList } from './BiddingCompanyList';
 import { SendBidPackageModal } from './SendBidPackageModal';
 import { SendSingleCompanyEmailModal } from './SendSingleCompanyEmailModal';
 import { SendTestEmailModal } from './SendTestEmailModal';
+import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -64,6 +65,7 @@ export function BiddingTableRow({
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSingleCompanyModal, setShowSingleCompanyModal] = useState(false);
   const [showTestEmailModal, setShowTestEmailModal] = useState(false);
+  const [showAddCompaniesModal, setShowAddCompaniesModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const costCode = item.cost_codes as CostCode;
 
@@ -91,6 +93,7 @@ export function BiddingTableRow({
         onDelete={onDelete}
         onSendClick={() => setShowSendModal(true)}
         onTestEmailClick={() => setShowTestEmailModal(true)}
+        onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         onFileUpload={onFileUpload}
         onDeleteFiles={onDeleteFiles}
       />
@@ -133,6 +136,15 @@ export function BiddingTableRow({
         onOpenChange={setShowTestEmailModal}
         bidPackage={item}
         companyId={selectedCompanyId}
+      />
+      
+      <AddCompaniesToBidPackageModal
+        open={showAddCompaniesModal}
+        onOpenChange={setShowAddCompaniesModal}
+        bidPackageId={item.id}
+        costCodeId={item.cost_code_id}
+        projectId={item.project_id}
+        existingCompanyIds={(item.project_bids || []).map((bid: any) => bid.company_id)}
       />
     </>
   );

@@ -528,6 +528,43 @@ export const useBiddingMutations = (projectId: string) => {
     deleteBiddingFiles.mutate(itemId);
   };
 
+  // Add companies to bid package mutation
+  const addCompaniesToBidPackage = useMutation({
+    mutationFn: async ({ bidPackageId, companyIds }: { bidPackageId: string; companyIds: string[] }) => {
+      const insertData = companyIds.map(companyId => ({
+        bid_package_id: bidPackageId,
+        company_id: companyId,
+        bid_status: null
+      }));
+
+      const { error } = await supabase
+        .from('project_bids')
+        .insert(insertData);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Companies added to bid package successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding companies to bid package:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add companies to bid package",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddCompaniesToBidPackage = (bidPackageId: string, companyIds: string[]) => {
+    addCompaniesToBidPackage.mutate({ bidPackageId, companyIds });
+  };
+
   return {
     deletingGroups,
     deletingItems,
@@ -540,6 +577,7 @@ export const useBiddingMutations = (projectId: string) => {
     handleUpdateSpecifications,
     handleFileUpload,
     handleDeleteFiles,
+    handleAddCompaniesToBidPackage,
     cancelUpload,
     removeUpload,
   };

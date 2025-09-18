@@ -28,6 +28,7 @@ interface BiddingTableRowContentProps {
   onDelete: (itemId: string) => void;
   onSendClick: () => void;
   onTestEmailClick?: () => void;
+  onAddCompaniesClick?: () => void;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteFiles?: (itemId: string) => void;
 }
@@ -48,6 +49,7 @@ export function BiddingTableRowContent({
   onDelete,
   onSendClick,
   onTestEmailClick,
+  onAddCompaniesClick,
   onFileUpload,
   onDeleteFiles
 }: BiddingTableRowContentProps) {
@@ -131,6 +133,7 @@ export function BiddingTableRowContent({
         onDelete={onDelete}
         onSendClick={onSendClick}
         onTestEmailClick={onTestEmailClick}
+        onAddCompaniesClick={onAddCompaniesClick}
         isDeleting={isDeleting}
         isReadOnly={isReadOnly}
       />
