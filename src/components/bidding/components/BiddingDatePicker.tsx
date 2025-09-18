@@ -36,6 +36,21 @@ export function BiddingDatePicker({
       return;
     }
 
+    // Check if date is today or in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(newDate);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate <= today) {
+      toast({
+        title: "Invalid Date",
+        description: `${field === 'due_date' ? 'Due date' : 'Reminder date'} must be in the future.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validation for reminder date
     if (field === 'reminder_date' && dueDate) {
       const dueDateObj = new Date(dueDate);

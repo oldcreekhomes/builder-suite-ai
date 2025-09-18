@@ -40,10 +40,30 @@ export function GlobalBiddingSettingsModal({
   const { toast } = useToast();
 
   const handleDueDateChange = (newDate: Date | undefined) => {
-    setDueDate(newDate || null);
+    if (!newDate) {
+      setDueDate(null);
+      return;
+    }
+
+    // Check if date is today or in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(newDate);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate <= today) {
+      toast({
+        title: "Invalid Due Date",
+        description: "Due date must be in the future.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDueDate(newDate);
     
     // If reminder date is after new due date, clear it
-    if (newDate && reminderDate && reminderDate >= newDate) {
+    if (reminderDate && reminderDate >= newDate) {
       setReminderDate(null);
       toast({
         title: "Reminder Date Cleared",
@@ -56,6 +76,21 @@ export function GlobalBiddingSettingsModal({
   const handleReminderDateChange = (newDate: Date | undefined) => {
     if (!newDate) {
       setReminderDate(null);
+      return;
+    }
+
+    // Check if date is today or in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(newDate);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate <= today) {
+      toast({
+        title: "Invalid Reminder Date",
+        description: "Reminder date must be in the future.",
+        variant: "destructive",
+      });
       return;
     }
 
