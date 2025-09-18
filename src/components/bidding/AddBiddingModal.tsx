@@ -2,7 +2,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { useAddBiddingModal } from '@/hooks/useAddBiddingModal';
 import { ExpandCollapseControls } from '../budget/ExpandCollapseControls';
 import { CostCodeGroup } from '../budget/CostCodeGroup';
@@ -29,11 +28,6 @@ export function AddBiddingModal({ projectId, open, onOpenChange, existingCostCod
     handleGroupToggle,
     handleSave,
     resetSelection,
-    maxDistance,
-    setMaxDistance,
-    isCalculatingDistances,
-    distanceStats,
-    hasProjectAddress,
   } = useAddBiddingModal(projectId, existingCostCodeIds);
 
   const handleCancel = () => {
@@ -58,45 +52,6 @@ export function AddBiddingModal({ projectId, open, onOpenChange, existingCostCod
         </DialogHeader>
         
         <div className="flex-1 overflow-auto">
-          {hasProjectAddress && (
-            <div className="mb-4 p-4 border rounded-lg bg-muted/50">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium">
-                  Filter by Distance from Job Site
-                </label>
-                {isCalculatingDistances && (
-                  <span className="text-xs text-muted-foreground">Calculating...</span>
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center space-x-4">
-                  <span className="text-xs text-muted-foreground w-8">0mi</span>
-                  <Slider
-                    value={[maxDistance]}
-                    onValueChange={(value) => setMaxDistance(value[0])}
-                    max={30}
-                    step={5}
-                    className="flex-1"
-                  />
-                  <span className="text-xs text-muted-foreground w-12">30mi</span>
-                </div>
-                
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {maxDistance === 0 
-                      ? "Showing all cost codes" 
-                      : `Within ${maxDistance} miles of job site`
-                    }
-                  </span>
-                  <span>
-                    {distanceStats.filteredCostCodes} of {distanceStats.totalCostCodes} cost codes
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
           <ExpandCollapseControls
             onExpandAll={handleExpandAll}
             onCollapseAll={handleCollapseAll}
