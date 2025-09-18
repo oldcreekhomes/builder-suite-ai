@@ -373,7 +373,7 @@ const handler = async (req: Request): Promise<Response> => {
           console.log('🔍 Fetching project details for ID:', poData.project_id);
           const { data: projectData, error: projectError } = await supabase
             .from('projects')
-            .select('id, name, address, manager')
+            .select('id, address, construction_manager')
             .eq('id', poData.project_id)
             .single();
 
@@ -403,12 +403,12 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // Fetch project manager details if manager ID is available
-        if (projectDetails?.manager) {
-          console.log('🔍 Fetching project manager details for ID:', projectDetails.manager);
+        if (projectDetails?.construction_manager) {
+          console.log('🔍 Fetching project manager details for ID:', projectDetails.construction_manager);
           const { data: managerData, error: managerError } = await supabase
             .from('users')
             .select('id, first_name, last_name, email, phone_number')
-            .eq('id', projectDetails.manager)
+            .eq('id', projectDetails.construction_manager)
             .single();
 
           if (managerError) {
