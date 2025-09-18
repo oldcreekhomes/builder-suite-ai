@@ -27,8 +27,8 @@ export function GlobalBiddingSettingsWarningDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Apply Global Settings</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="text-destructive">Apply Global Settings</AlertDialogTitle>
+          <AlertDialogDescription className="text-destructive">
             This will update all due dates, reminder dates and files for all draft bid packages. 
             You can't change this. Are you sure?
           </AlertDialogDescription>
@@ -38,7 +38,7 @@ export function GlobalBiddingSettingsWarningDialog({
           <AlertDialogAction 
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-primary hover:bg-primary/90"
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
             {isLoading ? "Applying..." : "Yes, Apply Settings"}
           </AlertDialogAction>
