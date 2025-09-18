@@ -69,7 +69,7 @@ const generateFileDownloadLinks = (files: any[]) => {
       <a href="${downloadUrl}" style="color: #000000; text-decoration: none; display: inline-block;" target="_blank">
         ${displayName}
       </a>
-      <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+      <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 1px 4px; border-radius: 2px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
         APPROVED
       </span>
     </div>`;
