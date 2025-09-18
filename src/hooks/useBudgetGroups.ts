@@ -1,9 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const initializedRef = useRef(false);
 
   const handleGroupToggle = (group: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -69,10 +70,11 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     setExpandedGroups(newExpanded);
   };
 
-  // Auto-expand all groups when bidding data is available
+  // Initialize groups as expanded only on first load
   useEffect(() => {
-    if (groupedBiddingItems && Object.keys(groupedBiddingItems).length > 0) {
+    if (groupedBiddingItems && Object.keys(groupedBiddingItems).length > 0 && !initializedRef.current) {
       setExpandedGroups(new Set(Object.keys(groupedBiddingItems)));
+      initializedRef.current = true;
     }
   }, [groupedBiddingItems]);
 
