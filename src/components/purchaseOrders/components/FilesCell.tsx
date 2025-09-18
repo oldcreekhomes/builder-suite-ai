@@ -1,6 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { openFileViaRedirect } from '@/utils/fileOpenUtils';
 
 interface FilesCellProps {
   files: any;
@@ -8,13 +8,11 @@ interface FilesCellProps {
 }
 
 export function FilesCell({ files, projectId }: FilesCellProps) {
-  const { openFile } = useUniversalFilePreviewContext();
   const fileCount = files && Array.isArray(files) ? files.length : 0;
 
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
-    // Convert the file data to UniversalFile format
     const fileName = file.name || file.id || file;
     
     // If the file has a direct URL (like proposal files), parse it
@@ -28,12 +26,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
           const [bucket, ...pathSegments] = pathParts[1].split('/');
           const path = pathSegments.join('/');
           
-          openFile({
-            name: fileName,
-            bucket,
-            path: decodeURIComponent(path),
-            url: file.url
-          });
+          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
           return;
         }
       } catch (error) {
@@ -43,11 +36,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
     
     // Otherwise, build the correct path for project-files
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
-    openFile({
-      name: fileName,
-      bucket: 'project-files', 
-      path: filePath
-    });
+    openFileViaRedirect('project-files', filePath, fileName);
   };
 
   if (fileCount === 0) {
