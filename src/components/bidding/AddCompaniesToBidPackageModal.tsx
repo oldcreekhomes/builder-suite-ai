@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -72,14 +71,6 @@ export function AddCompaniesToBidPackageModal({
     });
   };
 
-  const handleSelectAll = () => {
-    if (selectedCompanies.size === filteredCompanies.length) {
-      setSelectedCompanies(new Set());
-    } else {
-      setSelectedCompanies(new Set(filteredCompanies.map(c => c.id)));
-    }
-  };
-
   const handleAddCompanies = async () => {
     for (const companyId of selectedCompanies) {
       await addCompanyToBidPackage.mutateAsync({ bidPackageId, companyId });
@@ -118,52 +109,65 @@ export function AddCompaniesToBidPackageModal({
               <Loader2 className="h-6 w-6 animate-spin" />
               <span className="ml-2">Loading available companies...</span>
             </div>
-          ) : filteredCompanies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {availableCompanies?.length === 0 
-                ? "No additional companies available for this cost code"
-                : "No companies match your search"
-              }
-            </div>
           ) : (
-            <>
-              {/* Select All */}
-              <div className="flex items-center space-x-2 py-2 border-b">
-                <Checkbox
-                  id="select-all"
-                  checked={selectedCompanies.size === filteredCompanies.length && filteredCompanies.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-                <label htmlFor="select-all" className="text-sm font-medium">
-                  Select All ({filteredCompanies.length} companies)
-                </label>
-              </div>
-
-              {/* Company List */}
-              <div className="space-y-2">
-                {filteredCompanies.map((company) => (
-                  <div key={company.id} className="flex items-start space-x-3 p-3 border rounded-lg">
-                    <Checkbox
-                      id={company.id}
-                      checked={selectedCompanies.has(company.id)}
-                      onCheckedChange={() => handleCompanyToggle(company.id)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <label htmlFor={company.id} className="cursor-pointer">
-                        <div className="font-medium">{company.company_name}</div>
-                        <div className="text-sm text-muted-foreground">{company.company_type}</div>
-                        {company.address && (
-                          <div className="text-xs text-muted-foreground">{company.address}</div>
-                        )}
+            <div className="grid grid-cols-2 gap-4 h-96">
+              {/* Available Companies */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium mb-3">Available Companies</h3>
+                <div className="space-y-2 max-h-80 overflow-auto">
+                  {filteredCompanies
+                    .filter(company => !selectedCompanies.has(company.id))
+                    .map((company) => (
+                      <div 
+                        key={company.id} 
+                        className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => handleCompanyToggle(company.id)}
+                      >
+                        <div className="font-medium text-sm">{company.company_name}</div>
+                        <div className="text-xs text-muted-foreground">{company.company_type}</div>
                         {company.phone_number && (
                           <div className="text-xs text-muted-foreground">{company.phone_number}</div>
                         )}
-                      </label>
+                      </div>
+                    ))}
+                  {filteredCompanies.filter(company => !selectedCompanies.has(company.id)).length === 0 && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      {availableCompanies?.length === 0 
+                        ? "No companies available"
+                        : "No companies match your search"
+                      }
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
-            </>
+
+              {/* Selected Companies */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium mb-3">Selected Companies ({selectedCompanies.size})</h3>
+                <div className="space-y-2 max-h-80 overflow-auto">
+                  {filteredCompanies
+                    .filter(company => selectedCompanies.has(company.id))
+                    .map((company) => (
+                      <div 
+                        key={company.id} 
+                        className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors bg-primary/5"
+                        onClick={() => handleCompanyToggle(company.id)}
+                      >
+                        <div className="font-medium text-sm">{company.company_name}</div>
+                        <div className="text-xs text-muted-foreground">{company.company_type}</div>
+                        {company.phone_number && (
+                          <div className="text-xs text-muted-foreground">{company.phone_number}</div>
+                        )}
+                      </div>
+                    ))}
+                  {selectedCompanies.size === 0 && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      Click companies on the left to select them
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
