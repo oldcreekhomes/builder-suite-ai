@@ -38,6 +38,52 @@ interface POEmailRequest {
   files?: any[];
 }
 
+const generateFileDownloadLinks = (files: any[]) => {
+  if (!files || files.length === 0) return 'No files attached';
+  
+  const fileLinks = files.map(file => {
+    // Extract filename for display
+    let fileName = file.name || file.id || file;
+    
+    // If filename contains UUID and timestamp pattern, extract the original filename
+    // Pattern: purchase-orders_[uuid]_[timestamp]_[originalfilename]
+    const parts = fileName.split('_');
+    if (parts.length >= 4 && (parts[0] === 'purchase-orders' || parts[0] === 'bidding')) {
+      // Take everything after the third underscore
+      const originalFilenameParts = parts.slice(3);
+      fileName = originalFilenameParts.join('_');
+    }
+    
+    // Also handle timestamp-hyphen prefix pattern: [timestamp]-[originalfilename]
+    const timestampMatch = fileName.match(/^\d{13}-(.+)$/);
+    if (timestampMatch) {
+      fileName = timestampMatch[1];
+    }
+    
+    // Build proper download URL
+    let downloadUrl = file.url;
+    if (!downloadUrl) {
+      // Construct URL for purchase order files
+      const fileId = file.id || file.name || file;
+      downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${file.projectId || data.projectId}/${fileId}`;
+    }
+    
+    console.log('🔗 Generating PO file link:', { originalFile: file, fileName, downloadUrl });
+    
+    return `<div style="line-height: 20px; margin: 2px 0;">
+      <a href="${downloadUrl}" style="color: #000000; text-decoration: none; display: inline-block;" target="_blank">
+        ${fileName}
+      </a>
+      <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+        APPROVED
+      </span>
+    </div>`;
+  }).join('');
+  
+  // Return vertical list container
+  return `<div style="display: inline-block; vertical-align: top;">${fileLinks}</div>`;
+};
+
 const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: string) => {
   const projectAddress = data.projectAddress || 'Project Address Not Available';
   const companyName = data.companyName || 'Company Name Not Available';
@@ -52,7 +98,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
     : data.costCode?.name || 'Cost Code';
   const totalAmount = data.totalAmount;
   const files = data.files || [];
-  const firstFile = files.length > 0 ? files[0] : null;
+  const fileLinks = generateFileDownloadLinks(files);
   const customMessage = data.customMessage;
   const contractFiles = data.contractFiles || [];
 
@@ -168,18 +214,11 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                              </td>
                                                          </tr>
                                                          ` : ''}
-                                                          ${firstFile ? `
+                                                          ${files.length > 0 ? `
                                                           <tr>
                                                               <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved File:</span>
-                                                                  <span style="display: inline-block; vertical-align: top;">
-                                                                       <a href="${firstFile.url || `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${data.projectId}/${firstFile.id || firstFile.name || firstFile}`}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block;" target="_blank">
-                                                                           ${getSimpleFilename(firstFile.name || firstFile.id || firstFile)}
-                                                                       </a>
-                                                                      <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                          APPROVED
-                                                                      </span>
-                                                                  </span>
+                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Approved Files:</span>
+                                                                  <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top;">${fileLinks}</span>
                                                               </td>
                                                           </tr>
                                                            ` : ''}
@@ -570,6 +609,8 @@ const handler = async (req: Request): Promise<Response> => {
       finalFilesCount: finalFiles.length,
       firstFileName: finalFiles.length > 0 ? finalFiles[0]?.name || 'unknown' : 'none'
     });
+
+    console.log('👤 Project manager data being passed to template:', projectManager);
 
     // Generate email HTML with confirmation buttons (including for test emails)
     const emailHTML = generatePOEmailHTML({
