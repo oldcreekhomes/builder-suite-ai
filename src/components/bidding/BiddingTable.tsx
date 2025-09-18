@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { X, XCircle } from 'lucide-react';
 import { AddBiddingModal } from './AddBiddingModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
 import { BiddingGroupHeader } from './BiddingGroupHeader';
@@ -37,7 +40,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     removeGroupFromExpanded
   } = useBudgetGroups(groupedBiddingItems);
   
-  const { deletingGroups, deletingItems, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
 
   const onDeleteGroup = (group: string) => {
@@ -114,6 +117,58 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           onBulkDelete={onBulkDelete}
           isDeleting={isDeletingSelected}
         />
+      )}
+
+      {/* Upload Progress */}
+      {uploadingFiles.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Uploading Files</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2 max-h-32 overflow-auto">
+              {uploadingFiles.map((upload) => (
+                <div key={upload.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                  <div className="flex-1 min-w-0 mr-3">
+                    <p className="text-sm font-medium truncate">{upload.file.name}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Progress value={upload.progress} className="flex-1 h-2" />
+                      <span className="text-xs text-muted-foreground min-w-0">
+                        {upload.progress}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    {upload.uploading ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => cancelUpload(upload.id)}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        title="Cancel upload"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeUpload(upload.id)}
+                        className="h-6 w-6 p-0"
+                        title="Remove from list"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Maximum file size: 50MB
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <div className="border rounded-lg overflow-hidden">
