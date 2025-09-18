@@ -116,9 +116,9 @@ export function AddCompaniesToBidPackageModal({
               <span className="ml-2">Loading available companies...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 h-64">
+            <div className="grid grid-cols-2 gap-3 h-64">
               {/* Available Companies */}
-              <div className="p-3">
+              <div className="p-2">
                 <h3 className="font-medium mb-2">Available Companies</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
                   {filteredCompanies
@@ -144,7 +144,7 @@ export function AddCompaniesToBidPackageModal({
               </div>
 
               {/* Selected Companies */}
-              <div className="p-3">
+              <div className="p-2">
                 <h3 className="font-medium mb-2">Selected Companies ({selectedCompanies.size})</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
                   {filteredCompanies
@@ -183,7 +183,7 @@ export function AddCompaniesToBidPackageModal({
                 disabled={selectedCompanies.size === 0 || addCompanyToBidPackage.isPending}
               >
                 {addCompanyToBidPackage.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Add Selected Companies
+                Add Companies
               </Button>
             </div>
           </div>
