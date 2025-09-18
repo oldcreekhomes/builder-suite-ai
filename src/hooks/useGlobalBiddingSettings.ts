@@ -93,14 +93,16 @@ export function useGlobalBiddingSettings(projectId: string) {
       return { updatedCount: draftPackages.length, uploadedFiles };
     },
     onSuccess: (result) => {
-      setProgress(0); // Reset progress
-      toast({
-        title: "Global Settings Applied",
-        description: `Updated ${result.updatedCount} draft bid packages successfully.`,
-      });
-      
-      // Invalidate relevant queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['bidding-data', projectId] });
+      setTimeout(() => {
+        setProgress(0); // Reset progress after a brief delay
+        toast({
+          title: "Global Settings Applied",
+          description: `Updated ${result.updatedCount} draft bid packages successfully.`,
+        });
+        
+        // Invalidate relevant queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      }, 500);
     },
     onError: (error: any) => {
       setProgress(0); // Reset progress

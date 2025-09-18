@@ -148,7 +148,7 @@ export function GlobalBiddingSettingsModal({
     
     onApplySettings(settings);
     setShowWarningDialog(false);
-    handleCancel();
+    // Don't close modal immediately - wait for completion
   };
 
   const handleCancel = () => {
@@ -261,7 +261,12 @@ export function GlobalBiddingSettingsModal({
           {isLoading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Applying global settings...</span>
+                <span className="text-sm font-medium">
+                  {progress < 30 ? 'Finding draft bid packages...' :
+                   progress < 70 ? 'Uploading files...' :
+                   progress < 90 ? 'Updating bid packages...' :
+                   'Finishing up...'}
+                </span>
                 <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="w-full" />

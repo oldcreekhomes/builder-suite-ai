@@ -154,7 +154,17 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Loading overlay during global settings update */}
+      {isApplying && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-background p-6 rounded-lg shadow-lg border flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+            <span className="font-medium">Updating all draft bid packages...</span>
+          </div>
+        </div>
+      )}
+
       {status === 'draft' && (
         <div className="flex items-center justify-end space-x-2">
           <Button 
@@ -316,8 +326,21 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           <GlobalBiddingSettingsModal
             projectId={projectId}
             open={showGlobalSettingsModal}
-            onOpenChange={setShowGlobalSettingsModal}
-            onApplySettings={applyGlobalSettings}
+            onOpenChange={(open) => {
+              // Only allow closing if not currently applying settings
+              if (!isApplying) {
+                setShowGlobalSettingsModal(open);
+              }
+            }}
+            onApplySettings={(settings) => {
+              applyGlobalSettings(settings);
+              // Close modal after successful completion
+              setTimeout(() => {
+                if (!isApplying) {
+                  setShowGlobalSettingsModal(false);
+                }
+              }, 1000);
+            }}
             isLoading={isApplying}
             progress={progress}
           />
