@@ -118,22 +118,18 @@ export function AddCompaniesToBidPackageModal({
           ) : (
             <div className="grid grid-cols-2 gap-4 h-96">
               {/* Available Companies */}
-              <div className="border rounded-lg p-4">
+              <div className="p-4">
                 <h3 className="font-medium mb-3">Available Companies</h3>
-                <div className="space-y-2 max-h-80 overflow-auto">
+                <div className="space-y-1 max-h-80 overflow-auto">
                   {filteredCompanies
                     .filter(company => !selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
                         key={company.id} 
-                        className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                        className="p-2 cursor-pointer hover:bg-muted transition-colors text-sm"
                         onClick={() => handleCompanyToggle(company.id)}
                       >
-                        <div className="font-medium text-sm">{company.company_name}</div>
-                        <div className="text-xs text-muted-foreground">{company.company_type}</div>
-                        {company.phone_number && (
-                          <div className="text-xs text-muted-foreground">{company.phone_number}</div>
-                        )}
+                        {company.company_name}
                       </div>
                     ))}
                   {filteredCompanies.filter(company => !selectedCompanies.has(company.id)).length === 0 && (
@@ -148,22 +144,18 @@ export function AddCompaniesToBidPackageModal({
               </div>
 
               {/* Selected Companies */}
-              <div className="border rounded-lg p-4">
+              <div className="p-4">
                 <h3 className="font-medium mb-3">Selected Companies ({selectedCompanies.size})</h3>
-                <div className="space-y-2 max-h-80 overflow-auto">
+                <div className="space-y-1 max-h-80 overflow-auto">
                   {filteredCompanies
                     .filter(company => selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
                         key={company.id} 
-                        className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors bg-primary/5"
+                        className="p-2 cursor-pointer hover:bg-muted transition-colors bg-primary/5 text-sm"
                         onClick={() => handleCompanyToggle(company.id)}
                       >
-                        <div className="font-medium text-sm">{company.company_name}</div>
-                        <div className="text-xs text-muted-foreground">{company.company_type}</div>
-                        {company.phone_number && (
-                          <div className="text-xs text-muted-foreground">{company.phone_number}</div>
-                        )}
+                        {company.company_name}
                       </div>
                     ))}
                   {selectedCompanies.size === 0 && (
