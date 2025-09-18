@@ -41,24 +41,19 @@ interface POEmailRequest {
 const generateFileDownloadLinks = (files: any[]) => {
   if (!files || files.length === 0) return 'No files attached';
   
-  const fileLinks = files.map(file => {
-    // Extract filename for display
-    let fileName = file.name || file.id || file;
+  const fileLinks = files.map((file, index) => {
+    // Extract original filename to get the extension
+    let originalFileName = file.name || file.id || file;
     
-    // If filename contains UUID and timestamp pattern, extract the original filename
-    // Pattern: purchase-orders_[uuid]_[timestamp]_[originalfilename]
-    const parts = fileName.split('_');
-    if (parts.length >= 4 && (parts[0] === 'purchase-orders' || parts[0] === 'bidding')) {
-      // Take everything after the third underscore
-      const originalFilenameParts = parts.slice(3);
-      fileName = originalFilenameParts.join('_');
+    // Get file extension from original filename
+    let fileExtension = '.pdf'; // default
+    const extensionMatch = originalFileName.match(/\.([a-zA-Z0-9]+)$/);
+    if (extensionMatch) {
+      fileExtension = '.' + extensionMatch[1];
     }
     
-    // Also handle timestamp-hyphen prefix pattern: [timestamp]-[originalfilename]
-    const timestampMatch = fileName.match(/^\d{13}-(.+)$/);
-    if (timestampMatch) {
-      fileName = timestampMatch[1];
-    }
+    // Create simple generic filename
+    const displayName = `File ${index + 1}${fileExtension}`;
     
     // Build proper download URL
     let downloadUrl = file.url;
@@ -68,11 +63,11 @@ const generateFileDownloadLinks = (files: any[]) => {
       downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${file.projectId || data.projectId}/${fileId}`;
     }
     
-    console.log('🔗 Generating PO file link:', { originalFile: file, fileName, downloadUrl });
+    console.log('🔗 Generating PO file link:', { originalFile: file, displayName, downloadUrl });
     
-    return `<div style="line-height: 20px; margin: 2px 0;">
+    return `<div style="line-height: 20px; margin: 2px 0; display: flex; align-items: center;">
       <a href="${downloadUrl}" style="color: #000000; text-decoration: none; display: inline-block;" target="_blank">
-        ${fileName}
+        ${displayName}
       </a>
       <span style="background-color: #10B981; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
         APPROVED
