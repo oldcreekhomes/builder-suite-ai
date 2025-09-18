@@ -69,11 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch bid package details with project and cost code info
     const { data: bidPackage, error: bidError } = await supabase
       .from('project_bid_packages')
-      .select(`
-        id, due_date, project_id, cost_code_id,
-        cost_codes (name, code),
-        projects (address, owner_id)
-      `)
+      .select('id, due_date, project_id, cost_code_id')
       .eq('id', bidPackageId)
       .single();
 
@@ -82,19 +78,41 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Bid package not found');
     }
 
-    // Fetch the sender company information
-    const { data: senderUser, error: senderError } = await supabase
-      .from('users')
-      .select('company_name')
-      .eq('id', bidPackage.projects.owner_id)
-      .single();
-
-    if (senderError || !senderUser) {
-      console.error('Error fetching sender company:', senderError);
-      throw new Error('Sender company not found');
+    // Get project details if not provided
+    let projectInfo = null;
+    if (!projectAddress) {
+      const { data: project } = await supabase
+        .from('projects')
+        .select('address, owner_id')
+        .eq('id', bidPackage.project_id)
+        .single();
+      projectInfo = project;
     }
 
-    const senderCompanyName = senderUser.company_name;
+    // Get cost code details if not provided  
+    let costCodeInfo = null;
+    if (!costCodeName) {
+      const { data: costCode } = await supabase
+        .from('cost_codes')
+        .select('name, code')
+        .eq('id', bidPackage.cost_code_id)
+        .single();
+      costCodeInfo = costCode;
+    }
+
+    // Fetch the sender company information (use provided or get from project owner)
+    let senderCompanyName = 'BuilderSuite AI';
+    if (projectInfo?.owner_id) {
+      const { data: senderUser } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', projectInfo.owner_id)
+        .single();
+      
+      if (senderUser?.company_name) {
+        senderCompanyName = senderUser.company_name;
+      }
+    }
 
     // Create the bid submission URL
     const bidSubmissionUrl = `https://buildersuiteai.com/submit-bid?bid_package_id=${bidPackageId}&company_id=${companyId}`;
@@ -114,7 +132,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (isHomeBuilderNotification) {
       // HOME BUILDER NOTIFICATION EMAIL
-      subject = `Bid Confirmation Received - ${projectAddress || bidPackage.projects?.address}`;
+      const displayAddress = projectAddress || projectInfo?.address || '';
+      subject = `Bid Confirmation Received - ${displayAddress}`;
       
       htmlContent = `
 <!DOCTYPE html>
@@ -123,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Bid Confirmation Received - ${projectAddress || bidPackage.projects?.address}</title>
+    <title>Bid Confirmation Received - ${projectAddress || projectInfo?.address || ''}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -137,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #10B981; margin: 0;">
                             <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Confirmation Received</h1>
-                            <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || bidPackage.projects?.address}</p>
+                            <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || projectInfo?.address || ''}</p>
                         </td>
                     </tr>
                     
@@ -164,13 +183,13 @@ const handler = async (req: Request): Promise<Response> => {
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || bidPackage.projects?.address}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || projectInfo?.address || ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || bidPackage.cost_codes?.name}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || costCodeInfo?.name || ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
@@ -218,7 +237,8 @@ const handler = async (req: Request): Promise<Response> => {
       
     } else {
       // COMPANY BID SUBMISSION EMAIL (existing functionality)
-      subject = `Submit Your Bid - ${projectAddress || bidPackage.projects?.address || ''}`;
+      const displayAddress = projectAddress || projectInfo?.address || '';
+      subject = `Submit Your Bid - ${displayAddress}`;
       
       htmlContent = `
 <!DOCTYPE html>
@@ -227,7 +247,7 @@ const handler = async (req: Request): Promise<Response> => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Submit Your Bid - ${projectAddress || bidPackage.projects?.address || ''}</title>
+    <title>Submit Your Bid - ${projectAddress || projectInfo?.address || ''}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segue UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
@@ -265,13 +285,13 @@ const handler = async (req: Request): Promise<Response> => {
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || bidPackage.projects?.address || ''}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress || projectInfo?.address || ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Type:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || bidPackage.cost_codes?.name || ''}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || costCodeInfo?.name || ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
