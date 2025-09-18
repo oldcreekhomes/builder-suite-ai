@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { BiddingCompanyRow } from './components/BiddingCompanyRow';
 
 interface Company {
@@ -31,6 +32,9 @@ interface BiddingCompanyListProps {
   projectAddress?: string;
   projectId: string;
   costCodeId: string;
+  selectedCompanies?: Set<string>;
+  onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
+  onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
 }
 
 export function BiddingCompanyList({ 
@@ -45,7 +49,10 @@ export function BiddingCompanyList({
   isReadOnly = false,
   projectAddress,
   projectId,
-  costCodeId
+  costCodeId,
+  selectedCompanies = new Set(),
+  onCompanyCheckboxChange,
+  onSelectAllCompanies
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
 
@@ -96,6 +103,16 @@ export function BiddingCompanyList({
     }
   };
 
+  // Calculate if all companies are selected
+  const allCompaniesSelected = companies.length > 0 && companies.every(company => selectedCompanies.has(company.id));
+  const someCompaniesSelected = companies.some(company => selectedCompanies.has(company.id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (onSelectAllCompanies) {
+      onSelectAllCompanies(biddingItemId, checked);
+    }
+  };
+
   if (companies.length === 0) {
     return (
       <TableRow>
@@ -110,7 +127,15 @@ export function BiddingCompanyList({
     <>
       {/* Company header row */}
       <TableRow className="bg-gray-100">
-        <TableCell className="w-12 py-2"></TableCell>
+        <TableCell className="w-12 py-2">
+          {!isReadOnly && onSelectAllCompanies && (
+            <Checkbox
+              checked={allCompaniesSelected}
+              onCheckedChange={handleSelectAll}
+              className={someCompaniesSelected && !allCompaniesSelected ? 'data-[state=checked]:bg-primary data-[state=unchecked]:border-primary' : ''}
+            />
+          )}
+        </TableCell>
         <TableCell className="font-bold py-2 text-sm pl-8">Company</TableCell>
         <TableCell className="font-bold py-2 text-sm">Will Bid</TableCell>
         <TableCell className="font-bold py-2 text-sm">Price</TableCell>
@@ -137,6 +162,8 @@ export function BiddingCompanyList({
           projectAddress={projectAddress || ''}
           projectId={projectId}
           costCodeId={costCodeId}
+          isSelected={selectedCompanies.has(biddingCompany.id)}
+          onCheckboxChange={onCompanyCheckboxChange}
         />
       ))}
     </>

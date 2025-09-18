@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
@@ -40,6 +41,8 @@ interface BiddingCompanyRowProps {
   projectAddress: string;
   projectId: string;
   costCodeId: string;
+  isSelected?: boolean;
+  onCheckboxChange?: (companyId: string, checked: boolean) => void;
 }
 
 export function BiddingCompanyRow({
@@ -57,7 +60,9 @@ export function BiddingCompanyRow({
   bidPackageId,
   projectAddress,
   projectId,
-  costCodeId
+  costCodeId,
+  isSelected = false,
+  onCheckboxChange
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
@@ -68,7 +73,14 @@ export function BiddingCompanyRow({
   };
   return (
     <TableRow className="bg-gray-50/50">
-      <TableCell className="w-12 py-1"></TableCell>
+      <TableCell className="w-12 py-1">
+        {!isReadOnly && onCheckboxChange && (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onCheckboxChange(biddingCompany.id, !!checked)}
+          />
+        )}
+      </TableCell>
         <TableCell className="py-1 text-sm">
         <div className="font-medium text-sm whitespace-nowrap ml-8">
           {biddingCompany.companies.company_name}
