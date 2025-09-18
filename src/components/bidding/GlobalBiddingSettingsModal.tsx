@@ -272,7 +272,12 @@ export function GlobalBiddingSettingsModal({
             <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
               Cancel
             </Button>
-            <Button onClick={handleApply} disabled={isLoading} className="bg-black hover:bg-black/90 text-white">
+            <Button 
+              onClick={handleApply} 
+              disabled={isLoading} 
+              style={{ backgroundColor: '#000000', color: '#ffffff' }}
+              className="hover:opacity-90"
+            >
               Apply Global Settings
             </Button>
           </DialogFooter>
