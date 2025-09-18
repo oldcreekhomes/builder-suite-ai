@@ -2,14 +2,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GlobalBiddingSettings } from '@/components/bidding/GlobalBiddingSettingsModal';
+import { useState } from 'react';
 
 export function useGlobalBiddingSettings(projectId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [progress, setProgress] = useState(0);
 
   const applyGlobalSettings = useMutation({
     mutationFn: async (settings: GlobalBiddingSettings) => {
       console.log('Applying global bidding settings:', settings);
+      setProgress(10);
 
       // First, get all draft bid packages for this project
       const { data: draftPackages, error: fetchError } = await supabase
@@ -27,10 +30,14 @@ export function useGlobalBiddingSettings(projectId: string) {
         throw new Error('No draft bid packages found to update');
       }
 
+      setProgress(30);
+
       // Handle file uploads if any files are provided
       let uploadedFiles: string[] = [];
       if (settings.files.length > 0) {
-        for (const file of settings.files) {
+        const totalFiles = settings.files.length;
+        for (let i = 0; i < settings.files.length; i++) {
+          const file = settings.files[i];
           const fileName = `${Date.now()}-${file.name}`;
           const filePath = `bidding/${projectId}/${fileName}`;
           
@@ -44,7 +51,13 @@ export function useGlobalBiddingSettings(projectId: string) {
           }
 
           uploadedFiles.push(filePath);
+          
+          // Update progress for file uploads (30% to 70%)
+          const fileProgress = ((i + 1) / totalFiles) * 40;
+          setProgress(30 + fileProgress);
         }
+      } else {
+        setProgress(70);
       }
 
       // Prepare the update data
@@ -62,6 +75,8 @@ export function useGlobalBiddingSettings(projectId: string) {
         updateData.files = uploadedFiles;
       }
 
+      setProgress(80);
+
       // Update all draft bid packages
       const { error: updateError } = await supabase
         .from('project_bid_packages')
@@ -74,9 +89,11 @@ export function useGlobalBiddingSettings(projectId: string) {
         throw updateError;
       }
 
+      setProgress(100);
       return { updatedCount: draftPackages.length, uploadedFiles };
     },
     onSuccess: (result) => {
+      setProgress(0); // Reset progress
       toast({
         title: "Global Settings Applied",
         description: `Updated ${result.updatedCount} draft bid packages successfully.`,
@@ -86,6 +103,7 @@ export function useGlobalBiddingSettings(projectId: string) {
       queryClient.invalidateQueries({ queryKey: ['bidding-data', projectId] });
     },
     onError: (error: any) => {
+      setProgress(0); // Reset progress
       console.error('Error applying global settings:', error);
       toast({
         title: "Error Applying Settings",
@@ -98,5 +116,6 @@ export function useGlobalBiddingSettings(projectId: string) {
   return {
     applyGlobalSettings: applyGlobalSettings.mutate,
     isApplying: applyGlobalSettings.isPending,
+    progress,
   };
 }

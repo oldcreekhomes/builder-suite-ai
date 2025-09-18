@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Upload, X } from 'lucide-react';
@@ -15,6 +16,7 @@ interface GlobalBiddingSettingsModalProps {
   projectId: string;
   onApplySettings: (settings: GlobalBiddingSettings) => void;
   isLoading?: boolean;
+  progress?: number;
 }
 
 export interface GlobalBiddingSettings {
@@ -28,7 +30,8 @@ export function GlobalBiddingSettingsModal({
   onOpenChange,
   projectId,
   onApplySettings,
-  isLoading = false
+  isLoading = false,
+  progress = 0
 }: GlobalBiddingSettingsModalProps) {
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [reminderDate, setReminderDate] = useState<Date | null>(null);
@@ -201,7 +204,9 @@ export function GlobalBiddingSettingsModal({
                 <div className="mt-2 space-y-1 max-h-32 overflow-auto">
                   {files.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                      <span className="truncate flex-1">{file.name}</span>
+                      <span className="truncate flex-1" title={file.name}>
+                        file {index + 1}.{file.name.split('.').pop() || 'pdf'}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -216,6 +221,17 @@ export function GlobalBiddingSettingsModal({
               )}
             </div>
           </div>
+
+          {/* Progress Bar when applying settings */}
+          {isLoading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Applying global settings...</span>
+                <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="w-full" />
+            </div>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={handleCancel} disabled={isLoading}>

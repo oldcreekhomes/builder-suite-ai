@@ -46,7 +46,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   
   const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
-  const { applyGlobalSettings, isApplying } = useGlobalBiddingSettings(projectId);
+  const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
 
   // Company selection handlers
   const handleCompanyCheckboxChange = (companyId: string, checked: boolean) => {
@@ -319,6 +319,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
             onOpenChange={setShowGlobalSettingsModal}
             onApplySettings={applyGlobalSettings}
             isLoading={isApplying}
+            progress={progress}
           />
         </>
       )}
