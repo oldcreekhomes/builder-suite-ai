@@ -75,11 +75,7 @@ const formatSpecifications = (specifications: string | undefined) => {
     const trimmed = line.trim();
     if (!trimmed) return '';
     
-    // Check if line starts with bullet point markers
-    if (trimmed.match(/^[•·-]\s*/) || trimmed.match(/^\d+\.\s*/)) {
-      return `<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0 5px 20px;">${trimmed}</p>`;
-    }
-    
+    // Use consistent margin for all lines to align with other fields
     return `<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${trimmed}</p>`;
   });
   
@@ -89,25 +85,32 @@ const formatSpecifications = (specifications: string | undefined) => {
 const generateFileDownloadLinks = (files: string[]) => {
   if (!files || files.length === 0) return 'No files attached';
   
-  const fileLinks = files.map(file => {
-    // Extract filename for display - get just the original filename
-    let fileName = file.split('/').pop() || file;
+  const fileLinks = files.map((file, index) => {
+    // Extract original filename to get file extension
+    let originalFileName = file.split('/').pop() || file;
     
     // If filename contains UUID and timestamp pattern, extract the original filename
     // Pattern: bidding_[uuid]_[timestamp]_[originalfilename]
-    const parts = fileName.split('_');
+    const parts = originalFileName.split('_');
     if (parts.length >= 4 && parts[0] === 'bidding') {
       // Take everything after the third underscore
       const originalFilenameParts = parts.slice(3);
-      fileName = originalFilenameParts.join('_');
+      originalFileName = originalFilenameParts.join('_');
     }
     
     // Also handle timestamp-hyphen prefix pattern: [timestamp]-[originalfilename]
     // Pattern: 1751840477323-new.xlsx
-    const timestampMatch = fileName.match(/^\d{13}-(.+)$/);
+    const timestampMatch = originalFileName.match(/^\d{13}-(.+)$/);
     if (timestampMatch) {
-      fileName = timestampMatch[1];
+      originalFileName = timestampMatch[1];
     }
+    
+    // Extract file extension from original filename
+    const lastDotIndex = originalFileName.lastIndexOf('.');
+    const fileExtension = lastDotIndex !== -1 ? originalFileName.substring(lastDotIndex) : '.pdf';
+    
+    // Create numbered filename like PO emails: File 1.pdf, File 2.pdf, etc.
+    const displayFileName = `File ${index + 1}${fileExtension}`;
     
     // Normalize path: remove any prefixes and ensure proper specifications path
     let normalizedPath = file;
@@ -122,9 +125,9 @@ const generateFileDownloadLinks = (files: string[]) => {
     // Build proper public URL with correct encoding
     const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURI(normalizedPath)}`;
     
-    console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName, downloadUrl });
+    console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName: displayFileName, downloadUrl });
     
-    return `<div style="line-height: 20px; margin: 2px 0;"><a href="${downloadUrl}" style="color: #000000; text-decoration: underline;" target="_blank" download>📎 ${fileName}</a></div>`;
+    return `<div style="line-height: 20px; margin: 2px 0;"><a href="${downloadUrl}" style="color: #000000; text-decoration: underline;" target="_blank" download>📎 ${displayFileName}</a></div>`;
   }).join('');
   
   // Return vertical list container
