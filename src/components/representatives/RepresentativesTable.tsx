@@ -308,7 +308,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       value={rep.title || ''} 
                       onValueChange={(value) => handleTitleChange(rep.id, value)}
                     >
-                      <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0">
+                      <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
                         <SelectValue placeholder="Select type" className="text-xs" />
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
