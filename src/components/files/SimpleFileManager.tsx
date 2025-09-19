@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
+import { useProjectFolders } from '@/hooks/useProjectFolders';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
@@ -40,6 +41,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const { user } = useAuth();
   const { toast: useToastHook } = useToast();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
+  const { data: folderRows = [], refetch: refetchFolders } = useProjectFolders(projectId);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -49,8 +51,9 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   React.useEffect(() => {
     if (refreshKey) {
       refetch();
+      refetchFolders();
     }
-  }, [refreshKey, refetch]);
+  }, [refreshKey, refetch, refetchFolders]);
 
   // Get files and folders for current path (filter out folderkeeper files)
   const getCurrentItems = () => {
@@ -125,6 +128,22 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       }
     });
 
+    // Include folders from project_folders (authoritative)
+    if (folderRows && folderRows.length > 0) {
+      folderRows.forEach((fr: any) => {
+        const frParent = normalizePath(fr.parent_path || '');
+        if (!normalizedCurrentPath) {
+          if (!fr.parent_path || frParent === '') {
+            if (fr.folder_name) folders.add(fr.folder_name);
+          }
+        } else {
+          if (frParent === normalizedCurrentPath) {
+            if (fr.folder_name) folders.add(fr.folder_name);
+          }
+        }
+      });
+    }
+
     // Sort folders alphabetically (case-insensitive)
     const sortedFolders = Array.from(folders)
       .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
@@ -162,6 +181,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
   const handleUploadSuccess = () => {
     refetch();
+    refetchFolders();
     if (onUploadSuccess) {
       onUploadSuccess();
     }
@@ -590,6 +610,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
         console.log('✅ Auto-heal successful');
         refetch();
+        refetchFolders();
         toast.success('Folder created successfully');
         setShowNewFolderModal(false);
         
@@ -654,9 +675,10 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
             return;
           }
 
-          console.log('✅ Auto-heal successful after storage conflict');
-          refetch();
-          toast.success('Folder created successfully');
+           console.log('✅ Auto-heal successful after storage conflict');
+           refetch();
+           refetchFolders();
+           toast.success('Folder created successfully');
           setShowNewFolderModal(false);
           
           if (onUploadSuccess) {
@@ -693,6 +715,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
       console.log('✅ Folder created successfully');
       refetch();
+      refetchFolders();
       toast.success('Folder created successfully');
       setShowNewFolderModal(false);
       
