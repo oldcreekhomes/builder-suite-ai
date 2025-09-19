@@ -271,18 +271,12 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
                     {rep.email && (
-                      <div className="flex items-center space-x-1">
-                        <Mail className="h-2.5 w-2.5 text-gray-400" />
-                        <span className="text-xs">{rep.email}</span>
-                      </div>
+                      <span className="text-xs">{rep.email}</span>
                     )}
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
                     {rep.phone_number && (
-                      <div className="flex items-center space-x-1">
-                        <Phone className="h-2.5 w-2.5 text-gray-400" />
-                        <span className="text-xs">{rep.phone_number}</span>
-                      </div>
+                      <span className="text-xs">{rep.phone_number}</span>
                     )}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-center align-middle">
