@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -80,6 +81,29 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
     },
   });
 
+  // Update notification preferences mutation
+  const updateNotificationMutation = useMutation({
+    mutationFn: async ({ repId, field, value }: { repId: string; field: string; value: boolean }) => {
+      const { error } = await supabase
+        .from('company_representatives')
+        .update({ [field]: value })
+        .eq('id', repId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update notification preference",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete representative mutation
   const deleteRepMutation = useMutation({
     mutationFn: async (repId: string) => {
@@ -125,6 +149,10 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
     setEditDialogOpen(true);
   };
 
+  const handleNotificationToggle = (repId: string, field: string, currentValue: boolean) => {
+    updateNotificationMutation.mutate({ repId, field, value: !currentValue });
+  };
+
   // Filter representatives based on search query
   const filteredRepresentatives = representatives.filter(rep => {
     if (!searchQuery.trim()) return true;
@@ -155,19 +183,22 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notif</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notif</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notif</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRepresentatives.length === 0 && searchQuery ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={9} className="text-center py-4 text-xs text-gray-500">
                   No representatives found matching "{searchQuery}".
                 </TableCell>
               </TableRow>
             ) : representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={9} className="text-center py-4 text-xs text-gray-500">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
@@ -200,6 +231,27 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                         <span className="text-xs">{rep.phone_number}</span>
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-center">
+                    <Checkbox
+                      checked={rep.receive_bid_notifications || false}
+                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_bid_notifications', rep.receive_bid_notifications || false)}
+                      className="h-4 w-4"
+                    />
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-center">
+                    <Checkbox
+                      checked={rep.receive_schedule_notifications || false}
+                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_schedule_notifications', rep.receive_schedule_notifications || false)}
+                      className="h-4 w-4"
+                    />
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-center">
+                    <Checkbox
+                      checked={rep.receive_po_notifications || false}
+                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_po_notifications', rep.receive_po_notifications || false)}
+                      className="h-4 w-4"
+                    />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-right">
                     <div className="flex justify-end space-x-1">
