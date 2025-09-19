@@ -182,7 +182,6 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
   };
 
   const representativeTypes = [
-    { value: '', label: 'Select Type' },
     { value: 'estimator', label: 'Estimator' },
     { value: 'project manager', label: 'Project Manager' },
     { value: 'foreman', label: 'Foreman' },
