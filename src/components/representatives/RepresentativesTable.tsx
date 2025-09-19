@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,6 +129,52 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
     },
   });
 
+  // Update email mutation
+  const updateEmailMutation = useMutation({
+    mutationFn: async ({ repId, email }: { repId: string; email: string }) => {
+      const { error } = await supabase
+        .from('company_representatives')
+        .update({ email: email || null })
+        .eq('id', repId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update email",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update phone mutation
+  const updatePhoneMutation = useMutation({
+    mutationFn: async ({ repId, phone }: { repId: string; phone: string }) => {
+      const { error } = await supabase
+        .from('company_representatives')
+        .update({ phone_number: phone || null })
+        .eq('id', repId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update phone number",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete representative mutation
   const deleteRepMutation = useMutation({
     mutationFn: async (repId: string) => {
@@ -179,6 +226,14 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
 
   const handleTitleChange = (repId: string, title: string) => {
     updateTitleMutation.mutate({ repId, title });
+  };
+
+  const handleEmailChange = (repId: string, email: string) => {
+    updateEmailMutation.mutate({ repId, email });
+  };
+
+  const handlePhoneChange = (repId: string, phone: string) => {
+    updatePhoneMutation.mutate({ repId, phone });
   };
 
   const representativeTypes = [
@@ -270,14 +325,23 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     </Select>
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    {rep.email && (
-                      <span className="text-xs">{rep.email}</span>
-                    )}
+                    <Input
+                      value={rep.email || ''}
+                      onChange={(e) => handleEmailChange(rep.id, e.target.value)}
+                      onBlur={(e) => handleEmailChange(rep.id, e.target.value)}
+                      placeholder="Enter email"
+                      className="h-auto w-full p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 focus:bg-accent/50"
+                      type="email"
+                    />
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    {rep.phone_number && (
-                      <span className="text-xs">{rep.phone_number}</span>
-                    )}
+                    <Input
+                      value={rep.phone_number || ''}
+                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      placeholder="Enter phone"
+                      className="h-auto w-full p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 focus:bg-accent/50"
+                    />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-center align-middle">
                     <div className="flex justify-center">
