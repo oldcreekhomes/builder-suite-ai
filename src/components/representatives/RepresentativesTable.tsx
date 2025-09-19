@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Mail, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -104,6 +105,29 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
     },
   });
 
+  // Update title mutation
+  const updateTitleMutation = useMutation({
+    mutationFn: async ({ repId, title }: { repId: string; title: string }) => {
+      const { error } = await supabase
+        .from('company_representatives')
+        .update({ title })
+        .eq('id', repId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update representative title",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete representative mutation
   const deleteRepMutation = useMutation({
     mutationFn: async (repId: string) => {
@@ -152,6 +176,22 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
   const handleNotificationToggle = (repId: string, field: string, currentValue: boolean) => {
     updateNotificationMutation.mutate({ repId, field, value: !currentValue });
   };
+
+  const handleTitleChange = (repId: string, title: string) => {
+    updateTitleMutation.mutate({ repId, title });
+  };
+
+  const representativeTypes = [
+    { value: '', label: 'Select Type' },
+    { value: 'estimator', label: 'Estimator' },
+    { value: 'project manager', label: 'Project Manager' },
+    { value: 'foreman', label: 'Foreman' },
+    { value: 'superintendent', label: 'Superintendent' },
+    { value: 'sales representative', label: 'Sales Rep' },
+    { value: 'owner', label: 'Owner' },
+    { value: 'office manager', label: 'Office Manager' },
+    { value: 'accountant', label: 'Accountant' },
+  ];
 
   // Filter representatives based on search query
   const filteredRepresentatives = representatives.filter(rep => {
@@ -210,11 +250,25 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">{rep.companies?.company_name}</TableCell>
                   <TableCell className="px-2 py-1">
-                    {rep.title && (
-                      <Badge className={`${getTypeColor(rep.title.toLowerCase())} text-[10px] px-1 py-0`}>
-                        {rep.title}
-                      </Badge>
-                    )}
+                    <Select 
+                      value={rep.title || ''} 
+                      onValueChange={(value) => handleTitleChange(rep.id, value)}
+                    >
+                      <SelectTrigger className="h-6 w-28 text-xs bg-background border-input">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border shadow-lg z-50">
+                        {representativeTypes.map((type) => (
+                          <SelectItem 
+                            key={type.value} 
+                            value={type.value}
+                            className="text-xs hover:bg-accent"
+                          >
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {rep.email && (
