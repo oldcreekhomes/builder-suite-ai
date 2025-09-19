@@ -275,7 +275,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[320px] pr-4">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
@@ -324,7 +324,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
+                  <TableCell className="px-2 py-1 align-middle min-w-[320px] pr-4">
                     <input
                       value={rep.email || ''}
                       onChange={(e) => handleEmailChange(rep.id, e.target.value)}
