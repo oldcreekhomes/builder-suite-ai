@@ -244,16 +244,16 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
             ) : (
               filteredRepresentatives.map((rep) => (
                 <TableRow key={rep.id} className="h-10">
-                  <TableCell className="px-2 py-1 text-xs font-medium">
+                  <TableCell className="px-2 py-1 text-xs font-medium align-middle">
                     {rep.first_name} {rep.last_name}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">{rep.companies?.company_name}</TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-2 py-1 text-xs align-middle">{rep.companies?.company_name}</TableCell>
+                  <TableCell className="px-2 py-1 align-middle">
                     <Select 
                       value={rep.title || ''} 
                       onValueChange={(value) => handleTitleChange(rep.id, value)}
                     >
-                      <SelectTrigger className="h-6 w-28 text-xs bg-background border-input">
+                      <SelectTrigger className="h-8 w-28 text-xs bg-background border-input">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -269,7 +269,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-2 py-1 align-middle">
                     {rep.email && (
                       <div className="flex items-center space-x-1">
                         <Mail className="h-2.5 w-2.5 text-gray-400" />
@@ -277,7 +277,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-2 py-1 align-middle">
                     {rep.phone_number && (
                       <div className="flex items-center space-x-1">
                         <Phone className="h-2.5 w-2.5 text-gray-400" />
@@ -285,43 +285,51 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center">
-                    <Checkbox
-                      checked={rep.receive_bid_notifications || false}
-                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_bid_notifications', rep.receive_bid_notifications || false)}
-                      className="h-4 w-4"
-                    />
+                  <TableCell className="px-2 py-1 text-center align-middle">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={rep.receive_bid_notifications || false}
+                        onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_bid_notifications', rep.receive_bid_notifications || false)}
+                        className="h-4 w-4"
+                      />
+                    </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center">
-                    <Checkbox
-                      checked={rep.receive_schedule_notifications || false}
-                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_schedule_notifications', rep.receive_schedule_notifications || false)}
-                      className="h-4 w-4"
-                    />
+                  <TableCell className="px-2 py-1 text-center align-middle">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={rep.receive_schedule_notifications || false}
+                        onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_schedule_notifications', rep.receive_schedule_notifications || false)}
+                        className="h-4 w-4"
+                      />
+                    </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center">
-                    <Checkbox
-                      checked={rep.receive_po_notifications || false}
-                      onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_po_notifications', rep.receive_po_notifications || false)}
-                      className="h-4 w-4"
-                    />
+                  <TableCell className="px-2 py-1 text-center align-middle">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={rep.receive_po_notifications || false}
+                        onCheckedChange={() => handleNotificationToggle(rep.id, 'receive_po_notifications', rep.receive_po_notifications || false)}
+                        className="h-4 w-4"
+                      />
+                    </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-right">
-                    <div className="flex justify-end space-x-1">
+                  <TableCell className="px-2 py-1 text-right align-middle">
+                    <div className="flex justify-end items-center space-x-1">
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleEditClick(rep)}
-                        className="h-6 w-6 p-0"
+                        className="h-8 w-8 p-0 flex items-center justify-center"
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <DeleteButton
-                        onDelete={() => deleteRepMutation.mutate(rep.id)}
-                        title="Delete Representative"
-                        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
-                        isLoading={deleteRepMutation.isPending}
-                      />
+                      <div className="flex items-center">
+                        <DeleteButton
+                          onDelete={() => deleteRepMutation.mutate(rep.id)}
+                          title="Delete Representative"
+                          description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
+                          isLoading={deleteRepMutation.isPending}
+                        />
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
