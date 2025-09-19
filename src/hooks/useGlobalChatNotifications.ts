@@ -40,6 +40,7 @@ export const useGlobalChatNotifications = (
 
         // Create stable channel name without timestamp to prevent multiple subscriptions
         const channelName = `global_chat_notifications_${user.id}`;
+        console.log('📡 Creating channel:', channelName);
         
         channelRef.current = supabase
           .channel(channelName)
@@ -130,12 +131,25 @@ export const useGlobalChatNotifications = (
                     notificationShown = true;
                   }
 
-                  // Play sound notification if enabled
+                  // Play sound notification if enabled (with retry logic)
                   if (preferences?.sound_notifications_enabled) {
-                    console.log('📡 Playing notification sound');
-                    const soundPlayed = await audioManager.playNotificationSound();
-                    if (!soundPlayed) {
-                      console.warn('📡 Failed to play notification sound');
+                    console.log('📡 Playing notification sound for:', senderName);
+                    
+                    try {
+                      const soundPlayed = await audioManager.playNotificationSound();
+                      if (soundPlayed) {
+                        console.log('📡 ✅ Notification sound played successfully');
+                      } else {
+                        console.warn('📡 ❌ Failed to play notification sound - will retry once');
+                        
+                        // Immediate retry
+                        setTimeout(async () => {
+                          const retryResult = await audioManager.playNotificationSound();
+                          console.log('📡 🔄 Sound retry result:', retryResult);
+                        }, 100);
+                      }
+                    } catch (error) {
+                      console.error('📡 ❌ Error playing notification sound:', error);
                     }
                   }
 

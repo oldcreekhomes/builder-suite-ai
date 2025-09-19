@@ -45,8 +45,8 @@ const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
   
-  // Set up global notifications with floating chat integration
-  useGlobalChatNotifications(null, openFloatingChat);
+  // Note: Global chat notifications are now handled only by FloatingChatManager
+  // to prevent duplicate Supabase subscriptions and race conditions
 
   // Register Syncfusion license at application startup
   useEffect(() => {
