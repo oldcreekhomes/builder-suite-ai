@@ -325,22 +325,22 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     </Select>
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    <Input
+                    <input
                       value={rep.email || ''}
                       onChange={(e) => handleEmailChange(rep.id, e.target.value)}
                       onBlur={(e) => handleEmailChange(rep.id, e.target.value)}
                       placeholder="Enter email"
-                      className="h-auto w-full p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 focus:bg-accent/50"
+                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
                       type="email"
                     />
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    <Input
+                    <input
                       value={rep.phone_number || ''}
                       onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
                       onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
                       placeholder="Enter phone"
-                      className="h-auto w-full p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 focus:bg-accent/50"
+                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
                     />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-center align-middle">
