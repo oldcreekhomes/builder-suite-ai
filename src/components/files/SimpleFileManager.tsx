@@ -54,50 +54,73 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
   // Get files and folders for current path (filter out folderkeeper files)
   const getCurrentItems = () => {
+    // Helper to normalize any path variations (slashes, spaces, duplicates)
+    const normalizePath = (p?: string) => {
+      if (!p) return '';
+      return p
+        .replace(/\\/g, '/') // windows to unix
+        .replace(/\s+\/\s+/g, '/') // trim spaces around slashes
+        .replace(/\/+/g, '/') // collapse multiple slashes
+        .replace(/^\//, '') // remove leading slash
+        .replace(/\/$/, '') // remove trailing slash
+        .trim();
+    };
+
+    const normalizedCurrentPath = normalizePath(currentPath);
+
     const folders = new Set<string>();
     const files: any[] = [];
 
+    // Debug snapshot
+    console.groupCollapsed('[FileManager] getCurrentItems');
+    console.log('currentPath (raw):', currentPath);
+    console.log('currentPath (normalized):', normalizedCurrentPath);
+    console.log('total files loaded:', allFiles.length);
+
     allFiles.forEach(file => {
-      const filePath = file.original_filename;
-      
-      if (currentPath) {
+      // Prefer original_filename for virtual pathing
+      let filePath = normalizePath(file.original_filename);
+
+      if (!filePath) return; // safety
+
+      if (normalizedCurrentPath) {
         // We're in a subfolder
-        if (!filePath.startsWith(currentPath + '/')) return;
-        
-        const remainingPath = filePath.substring(currentPath.length + 1);
+        if (!(filePath + '/').startsWith(normalizedCurrentPath + '/')) return;
+
+        const remainingPath = filePath.substring(normalizedCurrentPath.length + 1);
         const nextSlash = remainingPath.indexOf('/');
-        
+
         if (nextSlash === -1) {
           // It's a file in current folder (skip folderkeeper files)
           if (file.file_type !== 'folderkeeper') {
-            files.push({ 
-              ...file, 
+            files.push({
+              ...file,
               displayName: remainingPath,
-              original_filename: file.original_filename 
+              original_filename: file.original_filename
             });
           }
         } else {
-          // It's a subfolder or folderkeeper file
+          // It's a direct child folder
           const folderName = remainingPath.substring(0, nextSlash);
-          folders.add(folderName);
+          if (folderName) folders.add(folderName);
         }
       } else {
         // We're at root
         const firstSlash = filePath.indexOf('/');
-        
+
         if (firstSlash === -1) {
           // Root level file (skip folderkeeper files)
           if (file.file_type !== 'folderkeeper') {
-            files.push({ 
-              ...file, 
+            files.push({
+              ...file,
               displayName: filePath,
-              original_filename: file.original_filename 
+              original_filename: file.original_filename
             });
           }
         } else {
-          // Root level folder or folderkeeper file
+          // Root level folder
           const folderName = filePath.substring(0, firstSlash);
-          folders.add(folderName);
+          if (folderName) folders.add(folderName);
         }
       }
     });
@@ -107,13 +130,17 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
       .map(name => ({
         name,
-        path: currentPath ? `${currentPath}/${name}` : name
+        path: normalizedCurrentPath ? `${normalizedCurrentPath}/${name}` : name
       }));
 
     // Sort files alphabetically by display name (case-insensitive)
-    const sortedFiles = files.sort((a, b) => 
+    const sortedFiles = files.sort((a, b) =>
       a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase())
     );
+
+    console.log('folders found:', sortedFolders.map(f => f.path));
+    console.log('files found:', sortedFiles.map(f => f.displayName).slice(0, 25));
+    console.groupEnd();
 
     return {
       folders: sortedFolders,
@@ -124,10 +151,12 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const { folders, files } = getCurrentItems();
 
   const handleFolderClick = (folderPath: string) => {
+    console.info('[FileManager] navigate ->', folderPath);
     setCurrentPath(folderPath);
   };
 
   const handleBreadcrumbClick = (path: string) => {
+    console.info('[FileManager] breadcrumb ->', path || '(root)');
     setCurrentPath(path);
   };
 

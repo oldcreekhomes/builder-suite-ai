@@ -65,6 +65,16 @@ export const useProjectFiles = (projectId: string) => {
         uploaded_by_profile: uploaderMap.get(file.uploaded_by) || { email: 'Unknown' }
       }));
 
+      // Debug: snapshot of files
+      try {
+        console.groupCollapsed('[useProjectFiles] fetched files');
+        console.log('projectId:', projectId);
+        console.log('user:', user?.id);
+        console.log('count:', filesWithUploaders.length);
+        console.log('sample original_filenames:', filesWithUploaders.slice(0, 25).map(f => f.original_filename));
+        console.groupEnd();
+      } catch {}
+
       return filesWithUploaders as (ProjectFile & { uploaded_by_profile: { email: string } })[];
     },
     enabled: !!user && !!projectId,
