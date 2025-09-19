@@ -276,10 +276,10 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notifications</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -308,7 +308,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       value={rep.title || ''} 
                       onValueChange={(value) => handleTitleChange(rep.id, value)}
                     >
-                      <SelectTrigger className="h-auto w-auto p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:h-0 [&>svg]:w-0">
+                      <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0">
                         <SelectValue placeholder="Select type" className="text-xs" />
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -332,15 +332,6 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       placeholder="Enter email"
                       className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
                       type="email"
-                    />
-                  </TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
-                    <input
-                      value={rep.phone_number || ''}
-                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
-                      onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
-                      placeholder="Enter phone"
-                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
                     />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-center align-middle">
@@ -369,6 +360,15 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                         className="h-4 w-4"
                       />
                     </div>
+                  </TableCell>
+                  <TableCell className="px-2 py-1 align-middle">
+                    <input
+                      value={rep.phone_number || ''}
+                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      placeholder="Enter phone"
+                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
+                    />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-right align-middle">
                     <div className="flex justify-end items-center space-x-1">
