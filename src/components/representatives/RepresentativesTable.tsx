@@ -222,9 +222,9 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notif</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notif</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notif</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
