@@ -24,7 +24,7 @@ export const useFileOperations = (onRefresh: () => void) => {
 
       if (uploadError) throw uploadError;
 
-      // Save file metadata to database
+      // Save file metadata to database - CRITICAL: Explicitly set is_deleted to false
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
@@ -36,6 +36,7 @@ export const useFileOperations = (onRefresh: () => void) => {
           mime_type: file.type,
           storage_path: uploadData.path,
           uploaded_by: user.id,
+          is_deleted: false,
         });
 
       if (dbError) throw dbError;
@@ -150,13 +151,15 @@ export const useFileOperations = (onRefresh: () => void) => {
   };
 
   const handleFolderDelete = async (folderPath: string) => {
+    const projectId = window.location.pathname.split('/')[2];
     try {
       setIsDeleting(true);
       
-      // Delete all files in the folder (including nested folders)
+      // Delete all files in the folder (including nested folders) - CRITICAL: Scope by project_id
       const { error } = await supabase
         .from('project_files')
         .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .eq('project_id', projectId)
         .like('original_filename', `${folderPath}%`);
 
       if (error) throw error;
@@ -199,12 +202,14 @@ export const useFileOperations = (onRefresh: () => void) => {
         if (filesError) throw filesError;
       }
 
-      // Delete selected folders and their contents
+      // Delete selected folders and their contents - CRITICAL: Scope by project_id
+      const projectId = window.location.pathname.split('/')[2];
       for (const folderPath of selectedFolders) {
         if (folderPath !== 'Root') { // Don't allow deleting Root folder
           const { error: folderError } = await supabase
             .from('project_files')
             .update({ is_deleted: true, updated_at: new Date().toISOString() })
+            .eq('project_id', projectId)
             .like('original_filename', `${folderPath}%`);
 
           if (folderError) throw folderError;

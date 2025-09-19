@@ -146,10 +146,11 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         renameFolder.path.substring(0, renameFolder.path.lastIndexOf('/')) : '';
       const newFolderPath = parentPath ? `${parentPath}/${newFolderName}` : newFolderName;
 
-      // Get all files in this folder first
+      // Get all files in this folder first - CRITICAL: Scope by project_id to prevent cross-project updates
       const { data: filesToUpdate, error: fetchError } = await supabase
         .from('project_files')
         .select('id, original_filename')
+        .eq('project_id', projectId)
         .like('original_filename', `${oldFolderPath}/%`)
         .eq('is_deleted', false);
 
@@ -257,10 +258,11 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     if (!deleteFolder) return;
 
     try {
-      // Mark all files in the folder as deleted
+      // Mark all files in the folder as deleted - CRITICAL: Scope by project_id to prevent cross-project deletion
       const { error: filesError } = await supabase
         .from('project_files')
         .update({ is_deleted: true })
+        .eq('project_id', projectId)
         .like('original_filename', `${deleteFolder.path}/%`);
 
       if (filesError) throw filesError;
@@ -395,12 +397,13 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         deletedCount += selectedFiles.size;
       }
 
-      // Delete selected folders and their contents
+      // Delete selected folders and their contents - CRITICAL: Scope by project_id to prevent cross-project deletion
       if (selectedFolders.size > 0) {
         for (const folderPath of selectedFolders) {
           const { error } = await supabase
             .from('project_files')
             .update({ is_deleted: true })
+            .eq('project_id', projectId)
             .like('original_filename', `${folderPath}/%`);
 
           if (error) throw error;
