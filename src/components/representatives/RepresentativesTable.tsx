@@ -276,10 +276,10 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notifications</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -334,6 +334,15 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       type="email"
                     />
                   </TableCell>
+                  <TableCell className="px-2 py-1 align-middle">
+                    <input
+                      value={rep.phone_number || ''}
+                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      placeholder="Enter phone"
+                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
+                    />
+                  </TableCell>
                   <TableCell className="px-2 py-1 text-center align-middle">
                     <div className="flex justify-center">
                       <Checkbox
@@ -360,15 +369,6 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                         className="h-4 w-4"
                       />
                     </div>
-                  </TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
-                    <input
-                      value={rep.phone_number || ''}
-                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
-                      onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
-                      placeholder="Enter phone"
-                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
-                    />
                   </TableCell>
                   <TableCell className="px-2 py-1 text-right align-middle">
                     <div className="flex justify-end items-center space-x-1">
