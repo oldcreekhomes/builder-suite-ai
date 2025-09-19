@@ -218,8 +218,13 @@ export function AddMarketplaceRepresentativeDialog({ open, onOpenChange }: AddMa
                     </FormControl>
                       <SelectContent>
                         <SelectItem value="Estimator">Estimator</SelectItem>
-                        <SelectItem value="Foreman">Foreman</SelectItem>
                         <SelectItem value="Project Manager">Project Manager</SelectItem>
+                        <SelectItem value="Foreman">Foreman</SelectItem>
+                        <SelectItem value="Superintendent">Superintendent</SelectItem>
+                        <SelectItem value="Sales Rep">Sales Rep</SelectItem>
+                        <SelectItem value="Owner">Owner</SelectItem>
+                        <SelectItem value="Office Manager">Office Manager</SelectItem>
+                        <SelectItem value="Accountant">Accountant</SelectItem>
                       </SelectContent>
                   </Select>
                   <FormMessage />
