@@ -91,15 +91,15 @@ export const openSpecificationFile = (filePath: string, fileName?: string) => {
 export function getProjectFileStoragePath(fileRef: string): string {
   console.log('🔧 getProjectFileStoragePath input:', fileRef);
   
-  // If it already has the specifications/ prefix, use as-is
-  if (fileRef.startsWith('specifications/')) {
-    console.log('🔧 Already prefixed with specifications/', fileRef);
+  // If it already has a folder prefix (like specifications/, bidding/, etc.), use as-is
+  if (fileRef.includes('/')) {
+    console.log('🔧 File already has path, using as-is:', fileRef);
     return fileRef;
   }
   
-  // If it's a file name without path, add specifications prefix
+  // If it's just a filename without path, add specifications prefix (manual uploads)
   const storagePath = `specifications/${fileRef}`;
-  console.log('🔧 Generated storage path:', storagePath);
+  console.log('🔧 Generated storage path for manual upload:', storagePath);
   
   return storagePath;
 }
