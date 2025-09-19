@@ -17,9 +17,7 @@ import {
   List, 
   ListOrdered, 
   Indent, 
-  Outdent,
-  Eye,
-  Edit3
+  Outdent
 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -45,7 +43,6 @@ export function EditSpecificationDescriptionDialog({
 }: EditSpecificationDescriptionDialogProps) {
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
@@ -176,125 +173,100 @@ export function EditSpecificationDescriptionDialog({
           </div>
           
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="description">Description</Label>
-              <div className="flex items-center space-x-2">
+            <Label htmlFor="description">Description</Label>
+            
+            {/* Formatting Toolbar */}
+            <div className="flex items-center space-x-1 p-2 border rounded-t-md bg-gray-50">
+              <div className="flex items-center space-x-1">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="flex items-center space-x-1"
+                  onClick={() => insertText('**', '**', 'bold text')}
+                  title="Bold"
                 >
-                  {showPreview ? <Edit3 className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  <span>{showPreview ? 'Edit' : 'Preview'}</span>
+                  <Bold className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertText('*', '*', 'italic text')}
+                  title="Italic"
+                >
+                  <Italic className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertText('__', '__', 'underlined text')}
+                  title="Underline"
+                >
+                  <Underline className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <Separator orientation="vertical" className="h-6" />
+              
+              <div className="flex items-center space-x-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertAtLineStart('• ')}
+                  title="Bullet Point"
+                >
+                  <List className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertAtLineStart('1. ')}
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <Separator orientation="vertical" className="h-6" />
+              
+              <div className="flex items-center space-x-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleIndent}
+                  title="Indent"
+                >
+                  <Indent className="h-3 w-3" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleOutdent}
+                  title="Outdent"
+                >
+                  <Outdent className="h-3 w-3" />
                 </Button>
               </div>
             </div>
             
-            {!showPreview && (
-              <>
-                {/* Formatting Toolbar */}
-                <div className="flex items-center space-x-1 p-2 border rounded-t-md bg-gray-50">
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertText('**', '**', 'bold text')}
-                      title="Bold"
-                    >
-                      <Bold className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertText('*', '*', 'italic text')}
-                      title="Italic"
-                    >
-                      <Italic className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertText('__', '__', 'underlined text')}
-                      title="Underline"
-                    >
-                      <Underline className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  
-                  <Separator orientation="vertical" className="h-6" />
-                  
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertAtLineStart('• ')}
-                      title="Bullet Point"
-                    >
-                      <List className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => insertAtLineStart('1. ')}
-                      title="Numbered List"
-                    >
-                      <ListOrdered className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  
-                  <Separator orientation="vertical" className="h-6" />
-                  
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleIndent}
-                      title="Indent"
-                    >
-                      <Indent className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleOutdent}
-                      title="Outdent"
-                    >
-                      <Outdent className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <Textarea
-                  ref={textareaRef}
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter specification description..."
-                  rows={8}
-                  className="rounded-t-none font-mono text-sm"
-                />
-                
-                <div className="text-xs text-gray-500 mt-1">
-                  Tip: Use **bold**, *italic*, __underline__, • bullets, 1. numbers, and indenting
-                </div>
-              </>
-            )}
+            <Textarea
+              ref={textareaRef}
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter specification description..."
+              rows={8}
+              className="rounded-t-none font-mono text-sm"
+            />
             
-            {showPreview && (
-              <div 
-                className="border rounded-md p-3 min-h-[200px] bg-white"
-                dangerouslySetInnerHTML={{ __html: formatText(description) }}
-              />
-            )}
+            <div className="text-xs text-gray-500 mt-1">
+              Tip: Use **bold**, *italic*, __underline__, • bullets, 1. numbers, and indenting
+            </div>
           </div>
         </div>
         <DialogFooter>
