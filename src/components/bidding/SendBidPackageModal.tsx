@@ -378,14 +378,10 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
 
                   return (
                     <div key={company.id} className="border rounded-lg p-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3 w-3 text-muted-foreground" />
-                        <h5 className="font-medium text-sm">{company.companies?.company_name}</h5>
-                      </div>
-                      
-                      {company.companies?.address && (
-                        <p className="text-xs text-muted-foreground pl-5">{company.companies.address}</p>
-                      )}
+                       <div className="flex items-center gap-2">
+                         <Building2 className="h-3 w-3 text-muted-foreground" />
+                         <h5 className="font-medium text-sm">{company.companies?.company_name}</h5>
+                       </div>
 
                        <div className="space-y-1">
                          <div className="flex items-center gap-2">
