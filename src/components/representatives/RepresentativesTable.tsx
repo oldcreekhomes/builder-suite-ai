@@ -304,13 +304,25 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs align-middle">{rep.companies?.company_name}</TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    <input
-                      value={rep.title || ''}
-                      onChange={(e) => handleTitleChange(rep.id, e.target.value)}
-                      onBlur={(e) => handleTitleChange(rep.id, e.target.value)}
-                      placeholder="Enter type"
-                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
-                    />
+                    <Select 
+                      value={rep.title || ''} 
+                      onValueChange={(value) => handleTitleChange(rep.id, value)}
+                    >
+                      <SelectTrigger className="h-auto w-auto p-0 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:h-0 [&>svg]:w-0">
+                        <SelectValue placeholder="Select type" className="text-xs" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border shadow-lg z-50">
+                        {representativeTypes.map((type) => (
+                          <SelectItem 
+                            key={type.value} 
+                            value={type.value}
+                            className="text-xs hover:bg-accent"
+                          >
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
                     <input
