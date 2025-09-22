@@ -276,6 +276,15 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
       if (keeperError) throw keeperError;
 
+      // Remove the folder entry from project_folders (and any subfolders)
+      const { error: pfError } = await supabase
+        .from('project_folders')
+        .delete()
+        .eq('project_id', projectId)
+        .or(`folder_path.eq.${deleteFolder.path},folder_path.like.${deleteFolder.path}/%`);
+
+      if (pfError) throw pfError;
+
       toast.success('Folder deleted successfully');
       setDeleteFolder(null);
       onRefresh();
