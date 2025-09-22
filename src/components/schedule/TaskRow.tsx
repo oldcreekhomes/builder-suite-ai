@@ -344,7 +344,7 @@ export function TaskRow({
                   return "—";
                 }
               }}
-              readOnly={hasChildren}
+              readOnly={true}
             />
           </TableCell>
 
