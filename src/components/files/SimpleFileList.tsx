@@ -267,6 +267,15 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
       if (filesError) throw filesError;
 
+      // Also delete the .folderkeeper file for this exact folder
+      const { error: keeperError } = await supabase
+        .from('project_files')
+        .update({ is_deleted: true })
+        .eq('project_id', projectId)
+        .eq('original_filename', `${deleteFolder.path}/.folderkeeper`);
+
+      if (keeperError) throw keeperError;
+
       toast.success('Folder deleted successfully');
       setDeleteFolder(null);
       onRefresh();
@@ -400,13 +409,24 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       // Delete selected folders and their contents - CRITICAL: Scope by project_id to prevent cross-project deletion
       if (selectedFolders.size > 0) {
         for (const folderPath of selectedFolders) {
-          const { error } = await supabase
+          // Delete all files in the folder
+          const { error: filesError } = await supabase
             .from('project_files')
             .update({ is_deleted: true })
             .eq('project_id', projectId)
             .like('original_filename', `${folderPath}/%`);
 
-          if (error) throw error;
+          if (filesError) throw filesError;
+
+          // Also delete the .folderkeeper file for this exact folder
+          const { error: keeperError } = await supabase
+            .from('project_files')
+            .update({ is_deleted: true })
+            .eq('project_id', projectId)
+            .eq('original_filename', `${folderPath}/.folderkeeper`);
+
+          if (keeperError) throw keeperError;
+          
           deletedCount += 1; // Count folder as 1 item for user feedback
         }
       }
