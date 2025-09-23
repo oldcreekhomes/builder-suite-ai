@@ -46,6 +46,7 @@ const AppContent = () => {
   const { registerChatManager, openFloatingChat } = useFloatingChat();
   
   // Initialize browser title with unread counts (must be after QueryClientProvider)
+  console.log('🔄 Browser title hook initialized inside QueryClientProvider');
   useBrowserTitle();
   
   // Note: Global chat notifications are now handled only by FloatingChatManager
