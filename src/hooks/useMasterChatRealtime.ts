@@ -308,24 +308,15 @@ export const useMasterChatRealtime = (
       console.log('🚀 Cleaning up master chat realtime');
       isCleanedUp = true;
       if (channelRef.current) {
-        setTimeout(async () => {
-          try {
-            if (channelRef.current) {
-              await supabase.removeChannel(channelRef.current);
-            }
-          } catch (error) {
-            console.warn('🚀 Error removing channel:', error);
-          }
-        }, 0);
-        channelRef.current = null;
+        try {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        } catch (error) {
+          console.warn('🚀 Error removing channel:', error);
+        }
       }
     };
-  }, [
-    user?.id, 
-    preferences?.toast_notifications_enabled, 
-    preferences?.sound_notifications_enabled,
-    activeConversationUserId // Include this back in deps for proper filtering
-  ]);
+  }, [user?.id]); // Minimize dependencies to prevent unnecessary re-runs
 
   return {
     unreadCounts,
