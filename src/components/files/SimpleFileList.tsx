@@ -276,6 +276,11 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
       if (keeperError) throw keeperError;
 
+      // Remove the .folderkeeper object in storage to prevent auto-heal recreating the folder
+      await supabase.storage
+        .from('project-files')
+        .remove([`${projectId}/${deleteFolder.path}/.folderkeeper`]);
+
       // Remove the folder entry from project_folders (and any subfolders)
       const { error: pfError } = await supabase
         .from('project_folders')
@@ -435,6 +440,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             .eq('original_filename', `${folderPath}/.folderkeeper`);
 
           if (keeperError) throw keeperError;
+
+          // Remove the .folderkeeper object in storage to prevent auto-heal recreating the folder
+          await supabase.storage
+            .from('project-files')
+            .remove([`${projectId}/${folderPath}/.folderkeeper`]);
+          
+          // Remove folder entries from project_folders (this folder and any subfolders)
+          const { error: pfError } = await supabase
+            .from('project_folders')
+            .delete()
+            .eq('project_id', projectId)
+            .or(`folder_path.eq.${folderPath},folder_path.like.${folderPath}/%`);
+
+          if (pfError) throw pfError;
           
           deletedCount += 1; // Count folder as 1 item for user feedback
         }

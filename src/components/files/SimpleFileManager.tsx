@@ -864,7 +864,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
           folders={folders}
           files={files}
           onFolderClick={handleFolderClick}
-          onRefresh={refetch}
+          onRefresh={() => { refetch(); refetchFolders(); }}
           projectId={projectId}
           currentPath={currentPath}
           onCreateFolder={handleCreateFolder}
