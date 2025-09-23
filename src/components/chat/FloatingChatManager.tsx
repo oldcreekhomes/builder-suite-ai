@@ -32,13 +32,13 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
     });
   }, []);
 
-  // Set up master real-time notifications (notifications will be disabled for active conversations)
+  // Set up master real-time notifications (always enabled to ensure notifications work)
   useMasterChatRealtime(activeConversationUserId, {
     onNotificationTrigger: (sender, message) => {
       console.log('💬 FloatingChatManager: Opening chat from notification for user:', sender.id);
       openChat(sender);
     }
-  });
+  }, { enableNotifications: true, notifyWhileActive: true });
 
   const closeChat = useCallback((userId: string) => {
     console.log('💬 FloatingChatManager: Closing chat for user:', userId);

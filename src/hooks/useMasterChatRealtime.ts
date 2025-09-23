@@ -16,10 +16,17 @@ export interface MasterChatCallbacks {
   onNotificationTrigger?: (sender: User, message: any) => void;
 }
 
+export interface MasterChatOptions {
+  enableNotifications?: boolean;
+  notifyWhileActive?: boolean;
+}
+
 export const useMasterChatRealtime = (
   activeConversationUserId: string | null,
-  callbacks: MasterChatCallbacks = {}
+  callbacks: MasterChatCallbacks = {},
+  options: MasterChatOptions = {}
 ) => {
+  const { enableNotifications = true, notifyWhileActive = true } = options;
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   const [isLoading, setIsLoading] = useState(false);
   
@@ -174,8 +181,8 @@ export const useMasterChatRealtime = (
                     callbacksRef.current.onNewMessage(formattedMessage, true);
                   }
 
-                  // Show notifications only if NOT actively viewing the conversation
-                  if (!isActiveConversation) {
+                  // Show notifications based on options
+                  if (enableNotifications && (notifyWhileActive || !isActiveConversation)) {
                     // Get sender information for notifications
                     const { data: senderData } = await supabase
                       .from('users')

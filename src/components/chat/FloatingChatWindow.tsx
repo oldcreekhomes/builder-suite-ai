@@ -32,14 +32,14 @@ export function FloatingChatWindow({
   const { user: currentUser } = useAuth();
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Set up real-time subscription using master hook
+  // Set up real-time subscription using master hook (notifications disabled to prevent duplicates)
   useMasterChatRealtime(user.id, {
     onNewMessage: (message, isActiveConversation) => {
       if (isActiveConversation) {
         addMessage(message);
       }
     }
-  });
+  }, { enableNotifications: false });
 
   // Initialize chat when opened - use useEffect with stable dependencies
   useEffect(() => {
