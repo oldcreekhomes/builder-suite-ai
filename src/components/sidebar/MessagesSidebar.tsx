@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
-import { UnreadCounts } from "@/hooks/useUnreadCounts";
+import { UnreadCounts } from "@/hooks/useMasterChatRealtime";
 interface MessagesSidebarProps {
   selectedUser: CompanyUser | null;
   onUserSelect: (user: CompanyUser) => void;

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
-import { UnreadCounts } from "@/hooks/useUnreadCounts";
+import { UnreadCounts } from "@/hooks/useMasterChatRealtime";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import {
   SidebarContent,

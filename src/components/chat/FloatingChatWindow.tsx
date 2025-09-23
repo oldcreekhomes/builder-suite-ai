@@ -8,7 +8,7 @@ import { SimpleMessagesList } from '@/components/messages/SimpleMessagesList';
 import { SimpleMessageInput } from '@/components/messages/SimpleMessageInput';
 import { useMessages } from '@/hooks/useMessages';
 import { useSendMessage } from '@/hooks/useSendMessage';
-import { useRealtime } from '@/hooks/useRealtime';
+import { useMasterChatRealtime } from '@/hooks/useMasterChatRealtime';
 import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/hooks/useCompanyUsers';
 
@@ -32,8 +32,14 @@ export function FloatingChatWindow({
   const { user: currentUser } = useAuth();
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Set up real-time subscription
-  useRealtime(user, addMessage);
+  // Set up real-time subscription using master hook
+  useMasterChatRealtime(user.id, {
+    onNewMessage: (message, isActiveConversation) => {
+      if (isActiveConversation) {
+        addMessage(message);
+      }
+    }
+  });
 
   // Initialize chat when opened - use useEffect with stable dependencies
   useEffect(() => {

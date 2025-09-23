@@ -11,7 +11,7 @@ import { MessagesSidebar } from "./sidebar/MessagesSidebar";
 import { AccountingSidebar } from "./sidebar/AccountingSidebar";
 import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
-import { useUnreadCounts } from "@/hooks/useUnreadCounts";
+import { useUnreadCountsSimplified } from "@/hooks/useUnreadCountsSimplified";
 
 interface AppSidebarProps {
   selectedUser?: any;
@@ -36,7 +36,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
 
   // Get user IDs for unread count tracking (excluding current user)
   const userIds = users?.filter(user => user.id !== currentUserId).map(user => user.id) || [];
-  const { unreadCounts, markConversationAsRead } = useUnreadCounts(userIds);
+  const { unreadCounts, markConversationAsRead } = useUnreadCountsSimplified(userIds);
 
   // Calculate total unread count for Messages tab badge
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);

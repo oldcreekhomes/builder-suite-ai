@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { FloatingChatWindow } from './FloatingChatWindow';
 import { User } from '@/hooks/useCompanyUsers';
-import { useGlobalChatNotifications } from '@/hooks/useGlobalChatNotifications';
+import { useMasterChatRealtime } from '@/hooks/useMasterChatRealtime';
 
 interface ChatWindow {
   user: User;
@@ -32,8 +32,13 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
     });
   }, []);
 
-  // Set up global notifications (notifications will be disabled for active conversations)
-  useGlobalChatNotifications(activeConversationUserId, openChat);
+  // Set up master real-time notifications (notifications will be disabled for active conversations)
+  useMasterChatRealtime(activeConversationUserId, {
+    onNotificationTrigger: (sender, message) => {
+      console.log('💬 FloatingChatManager: Opening chat from notification for user:', sender.id);
+      openChat(sender);
+    }
+  });
 
   const closeChat = useCallback((userId: string) => {
     console.log('💬 FloatingChatManager: Closing chat for user:', userId);

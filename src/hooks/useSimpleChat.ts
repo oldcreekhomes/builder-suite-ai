@@ -3,8 +3,7 @@ import { useCompanyUsers, User } from './useCompanyUsers';
 import { useMessages, ChatMessage } from './useMessages';
 import { useSendMessage } from './useSendMessage';
 import { useChatRooms } from './useChatRooms';
-import { useRealtime } from './useRealtime';
-import { useGlobalChatNotifications } from './useGlobalChatNotifications';
+import { useMasterChatRealtime } from './useMasterChatRealtime';
 
 // Re-export interfaces for backwards compatibility
 export type { User, ChatMessage };
@@ -21,11 +20,14 @@ export const useSimpleChat = () => {
     markConversationAsRead 
   } = useChatRooms();
 
-  // Set up real-time subscription for chat messages
-  useRealtime(selectedUser, addMessage);
-  
-  // Note: Global chat notifications are handled by FloatingChatManager, not here
-  // This prevents duplicate subscriptions
+  // Set up master real-time subscription for chat messages
+  useMasterChatRealtime(selectedUser?.id || null, {
+    onNewMessage: (message, isActiveConversation) => {
+      if (isActiveConversation) {
+        addMessage(message);
+      }
+    }
+  });
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {

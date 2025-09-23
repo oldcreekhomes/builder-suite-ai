@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
-import { useGlobalChatNotifications } from "@/hooks/useGlobalChatNotifications";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -81,7 +80,7 @@ const AppContent = () => {
     registerSyncfusionLicense();
   }, []);
 
-  // Note: Global chat notifications are handled by useBrowserTitle -> useUnreadCounts
+  // Note: Global chat notifications are now handled by FloatingChatManager using the master hook
   // to prevent duplicate Supabase subscriptions
 
   // Show loading while license is being registered
