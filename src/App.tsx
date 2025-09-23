@@ -37,12 +37,16 @@ import FileRedirect from "./pages/FileRedirect";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
+import { useBrowserTitle } from "@/hooks/useBrowserTitle";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  
+  // Initialize browser title with unread counts (must be after QueryClientProvider)
+  useBrowserTitle();
   
   // Note: Global chat notifications are now handled only by FloatingChatManager
   // to prevent duplicate Supabase subscriptions and race conditions
