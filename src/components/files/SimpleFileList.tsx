@@ -254,16 +254,22 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     setDeleteFolder(folder);
   };
 
+  // Escape % and _ for SQL LIKE
+  const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
+
   const confirmFolderDelete = async () => {
     if (!deleteFolder) return;
 
     try {
-      // Mark all files in the folder as deleted - CRITICAL: Scope by project_id to prevent cross-project deletion
+      const escaped = escapeLike(deleteFolder.path);
+      const likePrefix = `${escaped}/%`;
+
+      // Mark all files in the folder (descendants) - scoped by project
       const { error: filesError } = await supabase
         .from('project_files')
         .update({ is_deleted: true })
         .eq('project_id', projectId)
-        .like('original_filename', `${deleteFolder.path}/%`);
+        .like('original_filename', likePrefix);
 
       if (filesError) throw filesError;
 
@@ -281,14 +287,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         .from('project-files')
         .remove([`${projectId}/${deleteFolder.path}/.folderkeeper`]);
 
-      // Remove the folder entry from project_folders (and any subfolders)
-      const { error: pfError } = await supabase
+      // Remove the exact folder entry
+      const { error: pfError1 } = await supabase
+        .from('project_folders')
+        .delete()
+        .match({ project_id: projectId, folder_path: deleteFolder.path });
+      if (pfError1) throw pfError1;
+
+      // Remove any subfolders
+      const { error: pfError2 } = await supabase
         .from('project_folders')
         .delete()
         .eq('project_id', projectId)
-        .or(`folder_path.eq.${deleteFolder.path},folder_path.like.${deleteFolder.path}/%`);
-
-      if (pfError) throw pfError;
+        .like('folder_path', likePrefix);
+      if (pfError2) throw pfError2;
 
       toast.success('Folder deleted successfully');
       setDeleteFolder(null);
@@ -423,12 +435,15 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       // Delete selected folders and their contents - CRITICAL: Scope by project_id to prevent cross-project deletion
       if (selectedFolders.size > 0) {
         for (const folderPath of selectedFolders) {
-          // Delete all files in the folder
+          const escaped = escapeLike(folderPath);
+          const likePrefix = `${escaped}/%`;
+
+          // Delete all files in the folder (descendants)
           const { error: filesError } = await supabase
             .from('project_files')
             .update({ is_deleted: true })
             .eq('project_id', projectId)
-            .like('original_filename', `${folderPath}/%`);
+            .like('original_filename', likePrefix);
 
           if (filesError) throw filesError;
 
@@ -446,14 +461,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             .from('project-files')
             .remove([`${projectId}/${folderPath}/.folderkeeper`]);
           
-          // Remove folder entries from project_folders (this folder and any subfolders)
-          const { error: pfError } = await supabase
+          // Remove the exact folder entry
+          const { error: pfError1 } = await supabase
+            .from('project_folders')
+            .delete()
+            .match({ project_id: projectId, folder_path: folderPath });
+          if (pfError1) throw pfError1;
+
+          // Remove subfolder entries
+          const { error: pfError2 } = await supabase
             .from('project_folders')
             .delete()
             .eq('project_id', projectId)
-            .or(`folder_path.eq.${folderPath},folder_path.like.${folderPath}/%`);
-
-          if (pfError) throw pfError;
+            .like('folder_path', likePrefix);
+          if (pfError2) throw pfError2;
           
           deletedCount += 1; // Count folder as 1 item for user feedback
         }
