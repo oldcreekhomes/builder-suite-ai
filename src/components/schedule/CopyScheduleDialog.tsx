@@ -41,8 +41,30 @@ export function CopyScheduleDialog({
   const { data: projects } = useProjects();
   const { data: sourceTasks } = useProjectTasks(sourceProjectId);
 
-  // Filter out current project from selection
-  const availableProjects = projects?.filter(p => p.id !== currentProjectId) || [];
+  // Filter out current project from selection and sort numerically by address
+  const availableProjects = (projects?.filter(p => p.id !== currentProjectId) || [])
+    .sort((a, b) => {
+      // Extract leading numbers from addresses
+      const getLeadingNumber = (address: string) => {
+        const match = address.match(/^\d+/);
+        return match ? parseInt(match[0], 10) : Infinity;
+      };
+      
+      const numA = getLeadingNumber(a.address);
+      const numB = getLeadingNumber(b.address);
+      
+      // If both have numbers, sort by number
+      if (numA !== Infinity && numB !== Infinity) {
+        return numA - numB;
+      }
+      
+      // If only one has a number, prioritize the numbered one
+      if (numA !== Infinity) return -1;
+      if (numB !== Infinity) return 1;
+      
+      // If neither has numbers, sort alphabetically
+      return a.address.localeCompare(b.address);
+    });
 
   const handleCopy = async () => {
     if (!sourceProjectId || (!projectStartDate && !restartAllStartDates)) return;
