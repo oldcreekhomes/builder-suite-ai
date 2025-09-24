@@ -281,6 +281,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
+  const [collapseAllTasks, setCollapseAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
 
@@ -444,6 +445,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       setExpandAllTasks(false);
     }
   }, [expandAllTasks, tasks]);
+
+  // Effect to collapse all tasks when collapseAllTasks becomes true
+  useEffect(() => {
+    if (collapseAllTasks) {
+      setExpandedTasks(new Set());
+      setCollapseAllTasks(false); // Reset flag after collapsing
+    }
+  }, [collapseAllTasks]);
 
   const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
     if (direction === 'up') {
@@ -1521,6 +1530,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     setDayWidth(prev => Math.max(prev - 10, minWidth)); // Min zoom: fit entire timeline or 5px minimum
   };
 
+  // Expand/Collapse handlers
+  const handleExpandAll = () => {
+    setExpandAllTasks(true);
+  };
+
+  const handleCollapseAll = () => {
+    setCollapseAllTasks(true);
+  };
+
   if (isLoading) {
     return (
       <div className="bg-card text-card-foreground rounded-lg border p-6">
@@ -1549,6 +1567,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
+          onExpandAll={handleExpandAll}
+          onCollapseAll={handleCollapseAll}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
         />
