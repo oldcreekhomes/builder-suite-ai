@@ -146,14 +146,14 @@ export function CopyScheduleDialog({
           </div>
 
           <div className="flex flex-col space-y-2">
-            <Label htmlFor="remove-resources">Remove All Resources</Label>
+            <Label htmlFor="copy-resources">Resources</Label>
             <Select value={removeAllResources.toString()} onValueChange={(value) => setRemoveAllResources(value === "true")}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="false">No - Keep resources from source</SelectItem>
-                <SelectItem value="true">Yes - Remove all resources</SelectItem>
+                <SelectItem value="false">Yes, copy all resources</SelectItem>
+                <SelectItem value="true">No, don't copy resources</SelectItem>
               </SelectContent>
             </Select>
           </div>
