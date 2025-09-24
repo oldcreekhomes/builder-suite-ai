@@ -75,18 +75,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
   };
 
   const handleSave = async () => {
-    console.log('🚀 AddIssueRow handleSave called', { title: title.trim(), category, priority });
-    
-    if (!title.trim()) {
-      console.log('❌ Save blocked: No title provided');
-      return;
-    }
-
-    console.log('📝 Creating issue with data:', {
-      title: title.trim(),
-      category,
-      priority,
-    });
+    if (!title.trim()) return;
 
     createIssue.mutate({
       title: title.trim(),
@@ -94,20 +83,10 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       priority,
     }, {
       onSuccess: async (newIssue: any) => {
-        console.log('✅ Issue created successfully:', newIssue);
         if (selectedFiles.length > 0) {
-          console.log('📁 Uploading files...', selectedFiles.length);
           await uploadFilesToIssue(newIssue.id);
         }
         onSuccess();
-      },
-      onError: (error: any) => {
-        console.error('❌ Error creating issue:', error);
-        toast({
-          title: "Error",
-          description: "Failed to create issue. Please try again.",
-          variant: "destructive",
-        });
       }
     });
   };
