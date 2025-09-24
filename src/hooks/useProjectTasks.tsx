@@ -111,13 +111,8 @@ export const useProjectTasks = (projectId: string) => {
             return;
           }
           
-          // Longer delay to allow Syncfusion operations to complete
-          setTimeout(() => {
-            console.log('🔄 Processing real-time update after delay');
-            queryClient.invalidateQueries({
-              queryKey: ['project-tasks', projectId, user.id]
-            });
-          }, 500);
+          // Skip realtime updates - handled by optimized realtime hook
+          console.log('🚫 Skipping legacy realtime update - using optimized system');
         }
       )
       .subscribe((status) => {

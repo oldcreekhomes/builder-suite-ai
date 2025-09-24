@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
+import { useOptimizedTaskCalculations } from "@/hooks/useOptimizedTaskCalculations";
+import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -284,6 +286,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [collapseAllTasks, setCollapseAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
+  
+  // Performance optimization states
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
+
+  // Use optimized hooks for performance
+  const { triggerParentRecalculation, clearCalculationCache } = useOptimizedTaskCalculations(projectId);
+  useOptimizedRealtime(projectId);
 
   // Helper function to calculate end date from start date + duration
 

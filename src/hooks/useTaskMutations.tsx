@@ -83,8 +83,8 @@ export const useTaskMutations = (projectId: string) => {
       
       // Skip parent recalculation if batch operation is in progress
       if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
-        console.log('🔄 Task created, triggering parent recalculation for:', data.hierarchy_number);
-        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+        console.log('🔄 Task created, triggering optimized parent recalculation for:', data.hierarchy_number);
+        window.dispatchEvent(new CustomEvent('optimized-recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
         }));
       }
@@ -206,35 +206,43 @@ export const useTaskMutations = (projectId: string) => {
       if (shouldCascade) {
         console.log('🔄 Scheduling async cascade for task:', data.id);
         
-        // Schedule cascade asynchronously to not block the UI
-        setTimeout(async () => {
-          try {
-            // Fetch all tasks for cascade calculations
-            const { data: allTasks } = await supabase
-              .from('project_schedule_tasks')
-              .select('*')
-              .eq('project_id', projectId);
-              
-            if (allTasks) {
-              await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
-              
-              // Refresh cache after cascade completes
-              console.log('✅ Cascade complete - refreshing cache');
-              queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-              
-              // Fire cascade complete event for any listeners
-              window.dispatchEvent(new CustomEvent('cascade-complete'));
+        // Schedule cascade using background processing
+        const scheduleBackgroundCascade = () => {
+          const callback = async () => {
+            try {
+              // Fetch all tasks for cascade calculations
+              const { data: allTasks } = await supabase
+                .from('project_schedule_tasks')
+                .select('*')
+                .eq('project_id', projectId);
+                
+              if (allTasks) {
+                await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
+                
+                // Fire cascade complete event for any listeners
+                window.dispatchEvent(new CustomEvent('cascade-complete'));
+                console.log('✅ Background cascade complete');
+              }
+            } catch (error) {
+              console.error('❌ Background cascade failed:', error);
             }
-          } catch (error) {
-            console.error('❌ Cascade failed:', error);
+          };
+
+          // Use requestIdleCallback if available, otherwise setTimeout
+          if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(callback, { timeout: 2000 });
+          } else {
+            setTimeout(callback, 100);
           }
-        }, 0);
+        };
+
+        scheduleBackgroundCascade();
       }
       
       // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
       if (data.hierarchy_number && dateFieldsChanged && !variables.suppressInvalidate && !(window as any).__batchOperationInProgress) {
-        console.log('🔄 Task dates/duration updated, triggering parent recalculation for:', data.hierarchy_number);
-        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+        console.log('🔄 Task dates/duration updated, triggering optimized parent recalculation for:', data.hierarchy_number);
+        window.dispatchEvent(new CustomEvent('optimized-recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
         }));
       }
@@ -268,8 +276,8 @@ export const useTaskMutations = (projectId: string) => {
       
       // Skip parent recalculation if batch operation is in progress
       if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
-        console.log('🔄 Task deleted, triggering parent recalculation for:', data.hierarchy_number);
-        window.dispatchEvent(new CustomEvent('recalculate-parents', { 
+        console.log('🔄 Task deleted, triggering optimized parent recalculation for:', data.hierarchy_number);
+        window.dispatchEvent(new CustomEvent('optimized-recalculate-parents', { 
           detail: { hierarchyNumber: data.hierarchy_number } 
         }));
       }
