@@ -17,7 +17,7 @@ export function useCopySchedule() {
 
   return useMutation({
     mutationFn: async ({ targetProjectId, options, sourceTasks }: CopyScheduleParams) => {
-      const { sourceProjectId, projectStartDate, removeAllResources, restartAllStartDates } = options;
+      const { sourceProjectId, projectStartDate, removeAllResources } = options;
 
       // Delete existing tasks first (always replace mode now)
       const { error: deleteError } = await supabase
@@ -27,17 +27,9 @@ export function useCopySchedule() {
 
       if (deleteError) throw deleteError;
 
-      // Calculate date shift based on options
+      // Calculate date shift based on project start date
       let shiftDays = 0;
-      let targetDate: Date;
-
-      if (restartAllStartDates) {
-        // Use January 1st of current year
-        targetDate = new Date(new Date().getFullYear(), 0, 1);
-      } else {
-        // Use the selected project start date
-        targetDate = projectStartDate;
-      }
+      const targetDate = projectStartDate;
 
       if (sourceTasks.length > 0) {
         // Find the earliest start date in source tasks
@@ -57,23 +49,13 @@ export function useCopySchedule() {
         let newStartDate = task.start_date;
         let newEndDate = task.end_date;
 
-        if (restartAllStartDates) {
-          // Set ALL tasks to start on 01/01/current year - no logic, just set the date
-          const restartDate = new Date(Date.UTC(new Date().getFullYear(), 0, 1)); // 01/01/current year at UTC midnight
-          const duration = task.duration || 1;
-          const endDate = new Date(restartDate.getTime() + (duration * 24 * 60 * 60 * 1000));
-          
-          newStartDate = restartDate.toISOString();
-          newEndDate = endDate.toISOString();
-        } else {
-          // Apply date shift based on project start date
-          if (shiftDays !== 0) {
-            // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
-            const startDateStr = task.start_date.split('T')[0];
-            const endDateStr = task.end_date.split('T')[0];
-            newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
-            newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
-          }
+        // Apply date shift based on project start date
+        if (shiftDays !== 0) {
+          // Convert ISO dates to YYYY-MM-DD format for dateOnly utils
+          const startDateStr = task.start_date.split('T')[0];
+          const endDateStr = task.end_date.split('T')[0];
+          newStartDate = new Date(addDays(startDateStr, shiftDays)).toISOString();
+          newEndDate = new Date(addDays(endDateStr, shiftDays)).toISOString();
         }
 
         return {

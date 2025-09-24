@@ -23,7 +23,6 @@ export interface CopyScheduleOptions {
   sourceProjectId: string;
   projectStartDate: Date;
   removeAllResources: boolean;
-  restartAllStartDates: boolean;
 }
 
 export function CopyScheduleDialog({ 
@@ -35,7 +34,6 @@ export function CopyScheduleDialog({
   const [sourceProjectId, setSourceProjectId] = useState<string>("");
   const [projectStartDate, setProjectStartDate] = useState<Date>();
   const [removeAllResources, setRemoveAllResources] = useState(false);
-  const [restartAllStartDates, setRestartAllStartDates] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: projects } = useProjects();
@@ -67,15 +65,14 @@ export function CopyScheduleDialog({
     });
 
   const handleCopy = async () => {
-    if (!sourceProjectId || (!projectStartDate && !restartAllStartDates)) return;
+    if (!sourceProjectId || !projectStartDate) return;
     
     setIsLoading(true);
     try {
       await onCopySchedule({
         sourceProjectId,
-        projectStartDate: projectStartDate || new Date(), // fallback date when restarting
-        removeAllResources,
-        restartAllStartDates
+        projectStartDate,
+        removeAllResources
       });
       onClose();
     } catch (error) {
@@ -89,7 +86,6 @@ export function CopyScheduleDialog({
     setSourceProjectId("");
     setProjectStartDate(undefined);
     setRemoveAllResources(false);
-    setRestartAllStartDates(false);
     onClose();
   };
 
@@ -158,26 +154,13 @@ export function CopyScheduleDialog({
             </Select>
           </div>
 
-          <div className="flex flex-col space-y-2">
-            <Label htmlFor="restart-dates">Restart All Start Dates</Label>
-            <Select value={restartAllStartDates.toString()} onValueChange={(value) => setRestartAllStartDates(value === "true")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="false">No - Use project start date</SelectItem>
-                <SelectItem value="true">Yes - Restart to 01/01/2025</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex gap-2 pt-4">
             <Button variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
             <Button 
               onClick={handleCopy}
-              disabled={!sourceProjectId || (!projectStartDate && !restartAllStartDates) || isLoading}
+              disabled={!sourceProjectId || !projectStartDate || isLoading}
               className="flex-1"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
