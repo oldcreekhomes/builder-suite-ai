@@ -27,6 +27,9 @@ export function useIssueMutations() {
 
   const createIssue = useMutation({
     mutationFn: async (data: CreateIssueData) => {
+      console.log('🚀 useIssueMutations createIssue called with:', data);
+      console.log('👤 Current user:', user?.id);
+      
       // Get current user's company
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -34,20 +37,37 @@ export function useIssueMutations() {
         .eq('id', user?.id)
         .single();
 
-      if (userError) throw userError;
-      if (!userData?.company_name) throw new Error('User company not found');
+      console.log('🏢 User company data:', userData, 'Error:', userError);
+
+      if (userError) {
+        console.error('❌ User error:', userError);
+        throw userError;
+      }
+      if (!userData?.company_name) {
+        console.error('❌ No company name found for user');
+        throw new Error('User company not found');
+      }
+
+      const insertData = {
+        ...data,
+        company_name: userData.company_name,
+        created_by: user?.id,
+      };
+      
+      console.log('📝 Inserting issue data:', insertData);
 
       const { data: result, error } = await supabase
         .from('company_issues')
-        .insert({
-          ...data,
-          company_name: userData.company_name,
-          created_by: user?.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('📊 Insert result:', result, 'Error:', error);
+
+      if (error) {
+        console.error('❌ Insert error:', error);
+        throw error;
+      }
       return result;
     },
     onSuccess: (_, variables) => {
