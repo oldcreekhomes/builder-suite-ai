@@ -18,7 +18,8 @@ const Issues = () => {
     "Photos",
     "Budget",
     "Bidding",
-    "Schedule"
+    "Schedule",
+    "Authentication"
   ];
 
   return (
@@ -30,7 +31,7 @@ const Issues = () => {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Tabs defaultValue="Messages" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-7">
                 {categories.map((category) => (
                   <TabsTrigger key={category} value={category} className="relative">
                     <span>{category}</span>
