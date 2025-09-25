@@ -16,49 +16,83 @@ const PasswordReset = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for Supabase recovery parameters
-    const type = searchParams.get('type');
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    
-    console.log("Password reset page loaded with params:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
-    
-    if (type !== 'recovery' || !accessToken || !refreshToken) {
-      console.log("Invalid recovery parameters, redirecting to auth");
+    const handleAuthState = async () => {
+      // Check for various possible URL parameter formats from Supabase
+      const urlParams = new URLSearchParams(window.location.search);
+      const fragment = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check URL params first (standard format)
+      let type = searchParams.get('type');
+      let accessToken = searchParams.get('access_token');
+      let refreshToken = searchParams.get('refresh_token');
+      
+      // Check fragment params (alternative format)
+      if (!accessToken && !refreshToken) {
+        type = fragment.get('type') || type;
+        accessToken = fragment.get('access_token');
+        refreshToken = fragment.get('refresh_token');
+      }
+      
+      console.log("Password reset page loaded with params:", { 
+        type, 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken,
+        searchParams: Object.fromEntries(searchParams.entries()),
+        fragmentParams: Object.fromEntries(fragment.entries())
+      });
+      
+      // If we have tokens, try to set the session
+      if (accessToken && refreshToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          console.log("Session set successfully from recovery tokens");
+          return;
+        } catch (error) {
+          console.error("Error setting session from recovery tokens:", error);
+          toast({
+            title: "Error",
+            description: "Invalid recovery session. Please request a new password reset.",
+            variant: "destructive",
+          });
+          navigate('/auth');
+          return;
+        }
+      }
+      
+      // If no tokens but we have a type=recovery, check current session
+      if (type === 'recovery') {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) throw error;
+          
+          if (session) {
+            console.log("Using existing session for password reset");
+            return;
+          }
+        } catch (error) {
+          console.error("Error getting session:", error);
+        }
+      }
+      
+      // If we get here, show error
+      console.log("No valid recovery session found");
       toast({
         title: "Error",
         description: "Invalid or expired reset link. Please request a new password reset.",
         variant: "destructive",
       });
       navigate('/auth');
-      return;
-    }
-
-    // Set the session from the recovery tokens
-    const setSessionFromTokens = async () => {
-      try {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        
-        if (error) {
-          throw error;
-        }
-        
-        console.log("Session set successfully from recovery tokens");
-      } catch (error) {
-        console.error("Error setting session from recovery tokens:", error);
-        toast({
-          title: "Error",
-          description: "Invalid recovery session. Please request a new password reset.",
-          variant: "destructive",
-        });
-        navigate('/auth');
-      }
     };
 
-    setSessionFromTokens();
+    handleAuthState();
   }, [searchParams, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
