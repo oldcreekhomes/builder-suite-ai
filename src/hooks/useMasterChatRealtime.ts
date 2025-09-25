@@ -160,13 +160,14 @@ export const useMasterChatRealtime = (
               const isIncomingMessage = recipientId === currentUserRef.current && senderId !== currentUserRef.current;
               const isActiveConversation = activeConversationRef.current === senderId;
 
-              console.log('🚀 New message processed:', {
+                console.log('🚀 New message processed:', {
                 senderId,
                 recipientId,
                 currentUserId: currentUserRef.current,
                 isIncomingMessage,
                 isActiveConversation,
-                preferencesLoaded: !preferencesLoading
+                preferencesLoaded: !preferencesLoading,
+                preferences: preferences ? 'loaded' : 'not loaded'
               });
 
               if (isIncomingMessage) {
@@ -205,8 +206,8 @@ export const useMasterChatRealtime = (
                   callbacksRef.current.onNewMessage(formattedMessage, true);
                 }
 
-                // Show notifications - wait for preferences to load and ensure enabled
-                if (enableNotifications && !preferencesLoading && (notifyWhileActive || !isActiveConversation)) {
+                // Show notifications - ensure enabled and either preferences loaded or use defaults
+                if (enableNotifications && (notifyWhileActive || !isActiveConversation)) {
                   // Get sender information for notifications
                   const { data: senderData } = await supabase
                     .from('users')

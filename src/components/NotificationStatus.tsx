@@ -11,26 +11,36 @@ export const NotificationStatus = ({ connectionState }: NotificationStatusProps)
   const [audioEnabled, setAudioEnabled] = useState(false);
 
   useEffect(() => {
-    // Initialize audio on first user interaction
+    // Initialize audio immediately when component mounts
     const initAudio = async () => {
-      const enabled = await audioManager.initWithUserGesture();
-      setAudioEnabled(enabled);
-    };
-
-    const handleClick = () => {
-      initAudio();
-      // Remove listener after first successful init
-      if (audioEnabled) {
-        document.removeEventListener('click', handleClick);
+      try {
+        const enabled = await audioManager.initWithUserGesture();
+        setAudioEnabled(enabled);
+        console.log('🚀 Audio manager initialized:', enabled);
+      } catch (error) {
+        console.error('🚀 Error initializing audio:', error);
+        setAudioEnabled(false);
       }
     };
 
-    if (!audioEnabled) {
-      document.addEventListener('click', handleClick);
-    }
+    // Try to initialize immediately (in case user already interacted)
+    initAudio();
+
+    const handleClick = () => {
+      if (!audioEnabled) {
+        initAudio();
+      }
+    };
+
+    // Listen for any user interaction to enable audio
+    document.addEventListener('click', handleClick);
+    document.addEventListener('keydown', handleClick);
+    document.addEventListener('touchstart', handleClick);
 
     return () => {
       document.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
     };
   }, [audioEnabled]);
 
@@ -69,8 +79,9 @@ export const NotificationStatus = ({ connectionState }: NotificationStatusProps)
     }
   };
 
+  // Always show when there are connection issues or audio is disabled
   if (connectionState === 'connected' && audioEnabled) {
-    // Hide when everything is working
+    // Hide when everything is working perfectly
     return null;
   }
 
