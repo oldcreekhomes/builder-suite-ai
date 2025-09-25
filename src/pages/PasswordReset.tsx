@@ -14,14 +14,59 @@ const PasswordReset = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [resetData, setResetData] = useState<{
+    email: string;
+    resetToken: string;
+    isCustomToken: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const handleAuthState = async () => {
-      // Check for various possible URL parameter formats from Supabase
+      // Check for custom token first (from email links)
+      const customToken = searchParams.get('token');
+      
+      if (customToken) {
+        try {
+          // Decode the custom token
+          const decodedToken = JSON.parse(atob(customToken));
+          const { email, expires, token } = decodedToken;
+          
+          // Check if token is expired
+          if (Date.now() > expires) {
+            toast({
+              title: "Error",
+              description: "Reset link has expired. Please request a new password reset.",
+              variant: "destructive",
+            });
+            navigate('/auth');
+            return;
+          }
+          
+          // Store reset data for later use
+          setResetData({
+            email,
+            resetToken: customToken,
+            isCustomToken: true
+          });
+          
+          console.log("Custom token validated for email:", email);
+          return;
+        } catch (error) {
+          console.error("Error parsing custom token:", error);
+          toast({
+            title: "Error",
+            description: "Invalid reset link format. Please request a new password reset.",
+            variant: "destructive",
+          });
+          navigate('/auth');
+          return;
+        }
+      }
+      
+      // Check for Supabase recovery tokens (existing logic)
       const urlParams = new URLSearchParams(window.location.search);
       const fragment = new URLSearchParams(window.location.hash.substring(1));
       
-      // Check URL params first (standard format)
       let type = searchParams.get('type');
       let accessToken = searchParams.get('access_token');
       let refreshToken = searchParams.get('refresh_token');
@@ -41,7 +86,7 @@ const PasswordReset = () => {
         fragmentParams: Object.fromEntries(fragment.entries())
       });
       
-      // If we have tokens, try to set the session
+      // If we have Supabase tokens, try to set the session
       if (accessToken && refreshToken) {
         try {
           const { error } = await supabase.auth.setSession({
@@ -54,6 +99,11 @@ const PasswordReset = () => {
           }
           
           console.log("Session set successfully from recovery tokens");
+          setResetData({
+            email: "",
+            resetToken: "",
+            isCustomToken: false
+          });
           return;
         } catch (error) {
           console.error("Error setting session from recovery tokens:", error);
@@ -75,6 +125,11 @@ const PasswordReset = () => {
           
           if (session) {
             console.log("Using existing session for password reset");
+            setResetData({
+              email: "",
+              resetToken: "",
+              isCustomToken: false
+            });
             return;
           }
         } catch (error) {
@@ -82,8 +137,8 @@ const PasswordReset = () => {
         }
       }
       
-      // If we get here, show error
-      console.log("No valid recovery session found");
+      // If we get here and have no reset data, show error
+      console.log("No valid recovery session or token found");
       toast({
         title: "Error",
         description: "Invalid or expired reset link. Please request a new password reset.",
@@ -128,25 +183,51 @@ const PasswordReset = () => {
     setIsLoading(true);
 
     try {
-      console.log("Updating password with Supabase auth");
-      
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
+      if (resetData?.isCustomToken) {
+        // Use custom reset function for email-generated tokens
+        console.log("Using custom reset function for token");
+        
+        const { data, error } = await supabase.functions.invoke('reset-user-password', {
+          body: {
+            email: resetData.email,
+            newPassword: password,
+            resetToken: resetData.resetToken
+          }
+        });
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw new Error(error.message || 'Failed to reset password');
+        }
+
+        toast({
+          title: "Success",
+          description: "Your password has been updated successfully! Please sign in with your new password.",
+        });
+        
+        // Redirect to auth page for login
+        navigate("/auth");
+      } else {
+        // Use Supabase auth for recovery tokens
+        console.log("Updating password with Supabase auth");
+        
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Success",
+          description: isEmployeeInvitation 
+            ? "Your account has been set up successfully! Welcome to BuilderSuite AI." 
+            : "Your password has been updated successfully! Redirecting to dashboard...",
+        });
+        
+        // User is now authenticated with the new password, redirect to main app
+        navigate("/");
       }
-
-      toast({
-        title: "Success",
-        description: isEmployeeInvitation 
-          ? "Your account has been set up successfully! Welcome to BuilderSuite AI." 
-          : "Your password has been updated successfully! Redirecting to dashboard...",
-      });
-      
-      // User is now authenticated with the new password, redirect to main app
-      navigate("/");
     } catch (error: any) {
       console.error("Password update error:", error);
       toast({
