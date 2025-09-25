@@ -12,7 +12,7 @@ import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
 import { BiddingTableFooter } from './BiddingTableFooter';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
-import { useBiddingData } from '@/hooks/useBiddingData';
+import { useBiddingData, useAllBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBiddingMutations } from '@/hooks/useBiddingMutations';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
@@ -30,7 +30,14 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   
-  const { biddingItems, groupedBiddingItems, existingCostCodeIds } = useBiddingData(projectId, status);
+  const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
+  const { data: allBiddingData } = useAllBiddingData(projectId);
+  
+  // Get ALL existing cost code IDs across all statuses to prevent duplicates in modal
+  const allExistingCostCodeIds = React.useMemo(() => {
+    if (!allBiddingData) return new Set<string>();
+    return new Set<string>(allBiddingData.map(item => item.cost_code_id).filter(Boolean));
+  }, [allBiddingData]);
   
   const {
     expandedGroups,
@@ -321,7 +328,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
             projectId={projectId}
             open={showAddBiddingModal}
             onOpenChange={setShowAddBiddingModal}
-            existingCostCodeIds={Array.from(existingCostCodeIds)}
+            existingCostCodeIds={Array.from(allExistingCostCodeIds)}
           />
           <GlobalBiddingSettingsModal
             projectId={projectId}
