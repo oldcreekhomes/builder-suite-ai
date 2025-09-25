@@ -137,7 +137,9 @@ export function AddressAutocomplete({
         const place = autocompleteRef.current?.getPlace();
         if (place && place.formatted_address) {
           console.log('AddressAutocomplete: Selected address via place_changed:', place.formatted_address);
-          onChange(place.formatted_address);
+          // Fix spacing issues in formatted address
+          const fixedAddress = place.formatted_address.replace(/([a-zA-Z])([A-Z][a-z])/g, '$1 $2');
+          onChange(fixedAddress);
           // Close the Google suggestions after selection
           closeSuggestions();
         }
@@ -160,7 +162,9 @@ export function AddressAutocomplete({
             const place = autocompleteRef.current?.getPlace();
             if (place && place.formatted_address) {
               console.log('AddressAutocomplete: Selected address via selection:', place.formatted_address);
-              onChange(place.formatted_address);
+              // Fix spacing issues in formatted address
+              const fixedAddress = place.formatted_address.replace(/([a-zA-Z])([A-Z][a-z])/g, '$1 $2');
+              onChange(fixedAddress);
               // Close the Google suggestions after selection
               closeSuggestions();
             } else {
@@ -169,7 +173,9 @@ export function AddressAutocomplete({
               const addressText = pacItem.textContent?.trim();
               if (addressText) {
                 console.log('AddressAutocomplete: Using PAC item full text:', addressText);
-                onChange(addressText);
+                // Fix spacing issues in address text
+                const fixedAddress = addressText.replace(/([a-zA-Z])([A-Z][a-z])/g, '$1 $2');
+                onChange(fixedAddress);
                 // Close the Google suggestions after selection
                 closeSuggestions();
               }
