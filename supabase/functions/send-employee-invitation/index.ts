@@ -182,11 +182,15 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate password reset link directly
     console.log("🔑 Generating password reset link for user:", userId);
     
+    // Use the origin from the request headers, or fallback to production URL
+    const origin = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://buildersuiteai.com';
+    const redirectUrl = `${origin}/reset-password`;
+    
     const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: 'https://buildersuiteai.com/reset-password'
+        redirectTo: redirectUrl
       }
     });
 
