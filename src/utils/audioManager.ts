@@ -10,17 +10,62 @@ class AudioManager {
       if (!this.audioContext) {
         this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         this.isInitialized = true;
+        console.log('🔊 AudioManager: Created new AudioContext, state:', this.audioContext.state);
       }
 
       // Handle suspended state (browser audio policy)
       if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
+        console.log('🔊 AudioManager: AudioContext suspended, attempting to resume...');
+        try {
+          await this.audioContext.resume();
+          console.log('🔊 AudioManager: AudioContext resumed successfully, state:', this.audioContext.state);
+        } catch (resumeError) {
+          console.warn('🔊 AudioManager: Failed to resume AudioContext:', resumeError);
+          // Create a new context if resume fails
+          try {
+            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            console.log('🔊 AudioManager: Created new AudioContext after resume failure, state:', this.audioContext.state);
+          } catch (newContextError) {
+            console.error('🔊 AudioManager: Failed to create new AudioContext:', newContextError);
+            return null;
+          }
+        }
       }
 
       return this.audioContext;
     } catch (error) {
       console.warn('🔊 AudioManager: Failed to create/resume AudioContext:', error);
       return null;
+    }
+  }
+
+  // Initialize audio context with user interaction
+  async initWithUserGesture(): Promise<boolean> {
+    try {
+      const context = await this.getAudioContext();
+      if (!context) return false;
+
+      // Play a silent sound to unlock audio context
+      if (context.state !== 'running') {
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        gainNode.gain.setValueAtTime(0, context.currentTime);
+        oscillator.frequency.setValueAtTime(440, context.currentTime);
+        
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + 0.01);
+        
+        console.log('🔊 AudioManager: Unlocked audio context with user gesture');
+      }
+
+      return context.state === 'running';
+    } catch (error) {
+      console.warn('🔊 AudioManager: Failed to initialize with user gesture:', error);
+      return false;
     }
   }
 

@@ -8,6 +8,8 @@ import { ChatHeader } from "@/components/messages/ChatHeader";
 import { SimpleMessagesList } from "@/components/messages/SimpleMessagesList";
 import { SimpleMessageInput } from "@/components/messages/SimpleMessageInput";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { NotificationStatus } from "@/components/NotificationStatus";
+import { useMasterChatRealtime } from "@/hooks/useMasterChatRealtime";
 
 export default function Messages() {
   const location = useLocation();
@@ -22,6 +24,14 @@ export default function Messages() {
   } = useSimpleChat();
   
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  
+  // Set up master chat realtime for notifications
+  const { connectionState } = useMasterChatRealtime(selectedRoom?.id || null, {
+    onNotificationTrigger: (user) => {
+      console.log('🚀 Opening floating chat from notification for:', user.id);
+      // This will be handled by the floating chat manager
+    }
+  });
   
   // Debug the floating chat function
   console.log('Messages: openFloatingChat function:', openFloatingChat);
@@ -85,6 +95,9 @@ export default function Messages() {
           </div>
         </div>
       </div>
+      
+      {/* Connection Status Indicator */}
+      <NotificationStatus connectionState={connectionState} />
     </SidebarProvider>
   );
 }
