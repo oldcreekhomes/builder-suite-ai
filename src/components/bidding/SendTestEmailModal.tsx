@@ -181,23 +181,8 @@ export function SendTestEmailModal({
       return;
     }
 
-    if (!companyData) {
-      toast({
-        title: "Loading Data",
-        description: "Company data is still loading. Please wait a moment and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!companyData.companies) {
-      toast({
-        title: "Missing Information",
-        description: "Company information is not available for this bid package.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // For test emails, we don't need real company data
+    // We'll create mock data if none exists
 
     setIsSending(true);
     try {
@@ -248,10 +233,10 @@ export function SendTestEmailModal({
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
         companies: [{
-          id: companyData.companies.id,
-          company_name: `${companyData.companies.company_name} (TEST EMAIL)`,
-          address: companyData.companies.address,
-          phone_number: companyData.companies.phone_number,
+          id: companyData?.companies?.id || 'mock-company-id',
+          company_name: companyData?.companies?.company_name ? `${companyData.companies.company_name} (TEST EMAIL)` : 'Sample Company (TEST EMAIL)',
+          address: companyData?.companies?.address || 'Sample Address',
+          phone_number: companyData?.companies?.phone_number || 'Sample Phone',
           representatives: [testRepresentative]
         }]
       };
@@ -416,25 +401,31 @@ export function SendTestEmailModal({
           )}
 
           {/* Company Information */}
-          {companyData && (
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-3 w-3" />
+              <h4 className="font-medium text-sm">Sample Company (for test email)</h4>
+            </div>
+            
+            <div className="border rounded-lg p-3 space-y-2">
               <div className="flex items-center gap-2">
-                <Building2 className="h-3 w-3" />
-                <h4 className="font-medium text-sm">Sample Company (for test email)</h4>
+                <Building2 className="h-3 w-3 text-muted-foreground" />
+                <h5 className="font-medium text-sm">
+                  {companyData?.companies?.company_name || 'Sample Company'}
+                </h5>
               </div>
               
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-3 w-3 text-muted-foreground" />
-                  <h5 className="font-medium text-sm">{companyData.companies?.company_name}</h5>
-                </div>
-                
-                {companyData.companies?.address && (
-                  <p className="text-xs text-muted-foreground pl-5">{companyData.companies.address}</p>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground pl-5">
+                {companyData?.companies?.address || 'Sample Address'}
+              </p>
+              
+              {!companyData?.companies && (
+                <p className="text-xs text-orange-600 pl-5">
+                  No companies assigned - using mock data for test
+                </p>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         <DialogFooter>
@@ -443,7 +434,7 @@ export function SendTestEmailModal({
           </Button>
           <Button 
             onClick={handleSendTestEmail}
-            disabled={isSending || !testEmail?.trim() || isLoadingCompanyData || !companyData?.companies}
+            disabled={isSending || !testEmail?.trim() || isLoadingCompanyData}
             className="flex items-center gap-2"
           >
             {isSending ? (
