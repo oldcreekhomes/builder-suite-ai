@@ -36,7 +36,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       // Get current user's profile to get company name
       const { data: currentUser, error: userError } = await supabase
         .from('users')
-        .select('company_name, role, email')
+        .select('company_name, role, email, home_builder_id')
         .eq('id', user.id)
         .single();
 
@@ -46,8 +46,27 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       }
 
       // Allow both owners and confirmed employees to add new employees
+      let homeBuilderEmail = currentUser.email;
+      let companyName = currentUser.company_name;
 
-      console.log("✅ User verified as owner, calling edge function");
+      // If current user is an employee, get the owner's email
+      if (currentUser.role === 'employee' && currentUser.home_builder_id) {
+        const { data: owner, error: ownerError } = await supabase
+          .from('users')
+          .select('email, company_name')
+          .eq('id', currentUser.home_builder_id)
+          .single();
+
+        if (ownerError || !owner) {
+          console.error("❌ Failed to fetch owner profile:", ownerError);
+          throw new Error('Unable to fetch owner profile');
+        }
+
+        homeBuilderEmail = owner.email;
+        companyName = owner.company_name;
+      }
+
+      console.log("✅ User verified, calling edge function with owner email:", homeBuilderEmail);
 
       // Call the edge function to send invitation
       const { data, error } = await supabase.functions.invoke('send-employee-invitation', {
@@ -57,8 +76,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
           email: employeeData.email,
           phoneNumber: employeeData.phoneNumber,
           role: employeeData.role,
-          homeBuilderEmail: currentUser.email,
-          companyName: currentUser.company_name,
+          homeBuilderEmail: homeBuilderEmail,
+          companyName: companyName,
         },
       });
 
