@@ -443,7 +443,7 @@ export function SendTestEmailModal({
           </Button>
           <Button 
             onClick={handleSendTestEmail}
-            disabled={isSending || !testEmail?.trim() || isLoadingCompanyData || !companyData}
+            disabled={isSending || !testEmail?.trim() || isLoadingCompanyData || !companyData?.companies}
             className="flex items-center gap-2"
           >
             {isSending ? (
