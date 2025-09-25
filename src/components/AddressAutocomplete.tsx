@@ -86,11 +86,13 @@ export function AddressAutocomplete({
         const style = document.createElement('style');
         style.textContent = `
           .pac-container {
-            z-index: 9999 !important;
+            z-index: 2147483647 !important;
+            position: fixed !important;
             border-radius: 8px !important;
             border: 1px solid hsl(var(--border)) !important;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
             background-color: hsl(var(--background)) !important;
+            pointer-events: auto !important;
           }
           .pac-item {
             border-bottom: 1px solid hsl(var(--border)) !important;
@@ -98,6 +100,8 @@ export function AddressAutocomplete({
             color: hsl(var(--foreground)) !important;
             padding: 8px 12px !important;
             cursor: pointer !important;
+            pointer-events: auto !important;
+            z-index: 2147483647 !important;
           }
           .pac-item:hover {
             background-color: hsl(var(--muted)) !important;
@@ -128,26 +132,26 @@ export function AddressAutocomplete({
         }
       });
 
-      // Add click handler for PAC items (Google Places suggestions)
-      const handlePacItemClick = (event: Event) => {
+      // Add click and mousedown handlers for PAC items (Google Places suggestions)
+      const handlePacItemSelection = (event: Event) => {
         const target = event.target as HTMLElement;
         const pacItem = target.closest('.pac-item');
         
         if (pacItem) {
-          console.log('AddressAutocomplete: PAC item clicked');
+          console.log('AddressAutocomplete: PAC item selected');
           
           // Small delay to allow Google's internal processing
           setTimeout(() => {
             const place = autocompleteRef.current?.getPlace();
             if (place && place.formatted_address) {
-              console.log('AddressAutocomplete: Selected address via click:', place.formatted_address);
+              console.log('AddressAutocomplete: Selected address via selection:', place.formatted_address);
               onChange(place.formatted_address);
             } else {
-              console.log('AddressAutocomplete: No place data after click, trying to extract from PAC item');
-              // Fallback: try to get address from the PAC item text
-              const addressText = pacItem.querySelector('.pac-item-query')?.textContent;
+              console.log('AddressAutocomplete: No place data after selection, trying to extract from PAC item');
+              // Fallback: try to get address from the PAC item text (full text content)
+              const addressText = pacItem.textContent?.trim();
               if (addressText) {
-                console.log('AddressAutocomplete: Using PAC item text:', addressText);
+                console.log('AddressAutocomplete: Using PAC item full text:', addressText);
                 onChange(addressText);
               }
             }
@@ -155,12 +159,14 @@ export function AddressAutocomplete({
         }
       };
 
-      // Add event listener to document for PAC item clicks
-      document.addEventListener('click', handlePacItemClick, true);
+      // Add event listeners to document for PAC item selection (both mousedown and click for better capture)
+      document.addEventListener('mousedown', handlePacItemSelection, true);
+      document.addEventListener('click', handlePacItemSelection, true);
 
       // Store the cleanup function
       const cleanup = () => {
-        document.removeEventListener('click', handlePacItemClick, true);
+        document.removeEventListener('mousedown', handlePacItemSelection, true);
+        document.removeEventListener('click', handlePacItemSelection, true);
         if (autocompleteRef.current) {
           window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
