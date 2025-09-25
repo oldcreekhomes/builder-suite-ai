@@ -32,6 +32,16 @@ export function AddressAutocomplete({
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
 
+  const closeSuggestions = () => {
+    if (inputRef.current) {
+      // Close Google PAC dropdown by blurring then refocusing
+      inputRef.current.blur();
+      // Extra safety: send ESC to ensure PAC closes
+      const esc = new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, which: 27, bubbles: true });
+      inputRef.current.dispatchEvent(esc);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  };
   useEffect(() => {
     const getApiKey = async () => {
       try {
@@ -129,6 +139,8 @@ export function AddressAutocomplete({
         if (place && place.formatted_address) {
           console.log('AddressAutocomplete: Selected address via place_changed:', place.formatted_address);
           onChange(place.formatted_address);
+          // Close the Google suggestions after selection
+          closeSuggestions();
         }
       });
 
@@ -150,6 +162,8 @@ export function AddressAutocomplete({
             if (place && place.formatted_address) {
               console.log('AddressAutocomplete: Selected address via selection:', place.formatted_address);
               onChange(place.formatted_address);
+              // Close the Google suggestions after selection
+              closeSuggestions();
             } else {
               console.log('AddressAutocomplete: No place data after selection, trying to extract from PAC item');
               // Fallback: try to get address from the PAC item text (full text content)
@@ -157,6 +171,8 @@ export function AddressAutocomplete({
               if (addressText) {
                 console.log('AddressAutocomplete: Using PAC item full text:', addressText);
                 onChange(addressText);
+                // Close the Google suggestions after selection
+                closeSuggestions();
               }
             }
           }, 100);
