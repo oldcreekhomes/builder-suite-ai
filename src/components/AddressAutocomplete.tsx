@@ -33,13 +33,16 @@ export function AddressAutocomplete({
   const [apiKey, setApiKey] = useState<string | null>(null);
 
   const closeSuggestions = () => {
-    if (inputRef.current) {
-      // Close Google PAC dropdown by blurring then refocusing
-      inputRef.current.blur();
-      // Extra safety: send ESC to ensure PAC closes
-      const esc = new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, which: 27, bubbles: true });
-      inputRef.current.dispatchEvent(esc);
-      setTimeout(() => inputRef.current?.focus(), 0);
+    // Hide the Google PAC dropdown by finding and hiding the container
+    const pacContainer = document.querySelector('.pac-container') as HTMLElement;
+    if (pacContainer) {
+      pacContainer.style.display = 'none';
+      // Show it again on next input
+      setTimeout(() => {
+        if (pacContainer) {
+          pacContainer.style.display = '';
+        }
+      }, 100);
     }
   };
   useEffect(() => {
