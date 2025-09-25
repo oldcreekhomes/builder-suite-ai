@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.send-employee-invitation]
 verify_jwt = false
 
+[functions.send-employee-approval-email]
+verify_jwt = false
+
+[functions.send-employee-approved-email]
+verify_jwt = false
+
 [functions.send-password-reset]
 verify_jwt = false
 
