@@ -20,26 +20,31 @@ const SignupForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string}) => {
+  const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string, email?: string}) => {
     try {
-      // Get home builder email from unified users table
-      const { data: homeBuilderProfile, error } = await supabase
-        .from('users')
-        .select('email')
-        .eq('id', homeBuilderData.id)
-        .eq('role', 'owner')
-        .single();
+      // Use the email from homeBuilderData if available, otherwise query for it
+      let homeBuilderEmail = homeBuilderData.email;
+      
+      if (!homeBuilderEmail) {
+        const { data: homeBuilderProfile, error } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', homeBuilderData.id)
+          .eq('role', 'owner')
+          .single();
 
-      if (error || !homeBuilderProfile) {
-        console.error("Error fetching home builder profile:", error);
-        return;
+        if (error || !homeBuilderProfile) {
+          console.error("Error fetching home builder profile:", error);
+          return;
+        }
+        homeBuilderEmail = homeBuilderProfile.email;
       }
 
       const response = await supabase.functions.invoke('send-employee-approval-email', {
         body: {
           employeeId,
           employeeEmail: email,
-          homeBuilderEmail: homeBuilderProfile.email,
+          homeBuilderEmail: homeBuilderEmail,
           companyName: homeBuilderData.company_name,
         }
       });
