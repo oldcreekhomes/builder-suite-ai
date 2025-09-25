@@ -27,10 +27,20 @@ export default function Messages() {
   
   // Set up master chat realtime for notifications
   const { connectionState } = useMasterChatRealtime(selectedRoom?.id || null, {
+    onNewMessage: (message, isActiveConversation) => {
+      // Update messages if this is the active conversation
+      if (isActiveConversation) {
+        console.log('🚀 Adding new message to active conversation');
+        // This should be handled by useSimpleChat
+      }
+    },
     onNotificationTrigger: (user) => {
       console.log('🚀 Opening floating chat from notification for:', user.id);
-      // This will be handled by the floating chat manager
+      openFloatingChat(user);
     }
+  }, {
+    enableNotifications: true,
+    notifyWhileActive: false // Don't notify when already viewing the conversation
   });
   
   // Debug the floating chat function

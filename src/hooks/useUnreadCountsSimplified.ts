@@ -6,8 +6,33 @@ import { useMasterChatRealtime, UnreadCounts } from './useMasterChatRealtime';
  */
 export const useUnreadCountsSimplified = (userIds: string[]) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   
-  const { unreadCounts, fetchUnreadCounts, markConversationAsRead } = useMasterChatRealtime(null, {});
+  const { unreadCounts: masterUnreadCounts, fetchUnreadCounts, markConversationAsRead } = useMasterChatRealtime(null, {}, {
+    enableNotifications: false // Don't duplicate notifications - let the main Messages component handle them
+  });
+
+  // Update local state when master counts change
+  useEffect(() => {
+    setUnreadCounts(masterUnreadCounts);
+  }, [masterUnreadCounts]);
+
+  // Listen for unread count changes from custom events
+  useEffect(() => {
+    const handleUnreadCountChange = (event: CustomEvent) => {
+      const { userId, count } = event.detail;
+      setUnreadCounts(prev => ({
+        ...prev,
+        [userId]: count
+      }));
+    };
+
+    window.addEventListener('unread-count-changed', handleUnreadCountChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('unread-count-changed', handleUnreadCountChange as EventListener);
+    };
+  }, []);
 
   // Fetch initial unread counts when userIds change
   useEffect(() => {

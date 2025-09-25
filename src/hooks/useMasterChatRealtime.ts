@@ -21,6 +21,10 @@ export interface MasterChatOptions {
   notifyWhileActive?: boolean;
 }
 
+// Global channel management to prevent multiple instances
+let globalChannel: any = null;
+let globalChannelUsers = new Set<string>();
+
 export const useMasterChatRealtime = (
   activeConversationUserId: string | null,
   callbacks: MasterChatCallbacks = {},
@@ -37,6 +41,7 @@ export const useMasterChatRealtime = (
   const callbacksRef = useRef(callbacks);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const instanceId = useRef(Math.random().toString(36).substr(2, 9));
   const { user } = useAuth();
   const { preferences, isLoading: preferencesLoading } = useNotificationPreferences();
 
@@ -120,25 +125,35 @@ export const useMasterChatRealtime = (
       if (!authUser) return;
 
       currentUserRef.current = authUser.id;
-      console.log('🚀 Setting up MASTER chat realtime for user:', authUser.id);
+      globalChannelUsers.add(instanceId.current);
+      
+      console.log('🚀 Setting up MASTER chat realtime for user:', authUser.id, 'instance:', instanceId.current);
       setConnectionState('connecting');
 
+      // Use global channel if it exists and is connected, otherwise create new one
+      if (globalChannel && globalChannel.state === 'joined') {
+        console.log('🚀 Reusing existing global channel');
+        channelRef.current = globalChannel;
+        setConnectionState('connected');
+        return;
+      }
+
       // Clean up existing channel
-      if (channelRef.current) {
-        console.log('🚀 Cleaning up existing channel');
+      if (globalChannel) {
+        console.log('🚀 Cleaning up existing global channel');
         try {
-          await supabase.removeChannel(channelRef.current);
+          await supabase.removeChannel(globalChannel);
         } catch (error) {
           console.warn('🚀 Error removing existing channel:', error);
         }
-        channelRef.current = null;
+        globalChannel = null;
       }
 
       // Create single stable channel for this user
-      const channelName = `master_chat_${authUser.id}_${Date.now()}`;
+      const channelName = `master_chat_${authUser.id}`;
       console.log('🚀 Creating master channel:', channelName);
       
-      channelRef.current = supabase
+      globalChannel = supabase
         .channel(channelName)
         .on(
           'postgres_changes',
@@ -167,15 +182,27 @@ export const useMasterChatRealtime = (
                 isIncomingMessage,
                 isActiveConversation,
                 preferencesLoaded: !preferencesLoading,
-                preferences: preferences ? 'loaded' : 'not loaded'
+                preferences: preferences ? 'loaded' : 'not loaded',
+                instanceId: instanceId.current
               });
 
               if (isIncomingMessage) {
-                // Update unread count
-                setUnreadCounts(prev => ({
-                  ...prev,
-                  [senderId]: (prev[senderId] || 0) + 1
-                }));
+                // Update unread count for ALL instances
+                setUnreadCounts(prev => {
+                  const newCounts = {
+                    ...prev,
+                    [senderId]: (prev[senderId] || 0) + 1
+                  };
+                  
+                  // Notify all components about the change
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('unread-count-changed', {
+                      detail: { userId: senderId, count: newCounts[senderId] }
+                    }));
+                  }, 0);
+                  
+                  return newCounts;
+                });
 
                 // Trigger unread count callback
                 if (callbacksRef.current.onUnreadCountChange) {
@@ -245,6 +272,7 @@ export const useMasterChatRealtime = (
                     try {
                       toast(`${senderName}`, {
                         description: messagePreview,
+                        duration: 5000,
                         action: {
                           label: 'Reply',
                           onClick: () => {
@@ -330,10 +358,10 @@ export const useMasterChatRealtime = (
           }
         )
         .subscribe((status) => {
-          console.log('🚀 Master chat subscription status:', status);
+          console.log('🚀 Master chat subscription status:', status, 'instance:', instanceId.current);
           
           if (status === 'SUBSCRIBED') {
-            console.log('🚀 ✅ Master chat realtime is now active!');
+            console.log('🚀 ✅ Master chat realtime is now active!', 'instance:', instanceId.current);
             setConnectionState('connected');
             reconnectAttemptsRef.current = 0; // Reset on successful connection
             
@@ -343,17 +371,18 @@ export const useMasterChatRealtime = (
               reconnectTimeoutRef.current = null;
             }
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn('🚀 Channel error detected, will attempt reconnection');
+            console.warn('🚀 Channel error detected, will attempt reconnection', 'instance:', instanceId.current);
             setConnectionState('error');
             reconnectChannel();
           } else if (status === 'CLOSED') {
-            console.warn('🚀 Channel closed, will attempt reconnection');
+            console.warn('🚀 Channel closed, will attempt reconnection', 'instance:', instanceId.current);
             setConnectionState('error');
             reconnectChannel();
           }
         });
 
-      console.log('🚀 Master realtime setup complete');
+      channelRef.current = globalChannel;
+      console.log('🚀 Master realtime setup complete', 'instance:', instanceId.current);
     } catch (error) {
       console.error('🚀 Error setting up master realtime:', error);
       setConnectionState('error');
@@ -369,8 +398,11 @@ export const useMasterChatRealtime = (
     }
 
     return () => {
-      console.log('🚀 Cleaning up master chat realtime');
+      console.log('🚀 Cleaning up master chat realtime', 'instance:', instanceId.current);
       isCleanedUp = true;
+      
+      // Remove this instance from global users
+      globalChannelUsers.delete(instanceId.current);
       
       // Clear reconnection timeout
       if (reconnectTimeoutRef.current) {
@@ -382,14 +414,18 @@ export const useMasterChatRealtime = (
       reconnectAttemptsRef.current = 0;
       setConnectionState('disconnected');
       
-      if (channelRef.current) {
+      // Only remove global channel if no other instances are using it
+      if (globalChannelUsers.size === 0 && globalChannel) {
+        console.log('🚀 Removing global channel - no more instances');
         try {
-          supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
+          supabase.removeChannel(globalChannel);
+          globalChannel = null;
         } catch (error) {
-          console.warn('🚀 Error removing channel:', error);
+          console.warn('🚀 Error removing global channel:', error);
         }
       }
+      
+      channelRef.current = null;
     };
   }, [setupMasterRealtime]);
 
