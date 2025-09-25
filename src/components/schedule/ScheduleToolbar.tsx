@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronDown, ChevronUp } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -10,7 +10,6 @@ interface ScheduleToolbarProps {
   onAddTask: () => void;
   onPublish: () => void;
   onCopySchedule: () => void;
-  onClearAll: () => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
   onZoomIn: () => void;
@@ -24,7 +23,6 @@ export function ScheduleToolbar({
   onAddTask,
   onPublish,
   onCopySchedule,
-  onClearAll,
   onExpandAll,
   onCollapseAll,
   onZoomIn,
@@ -49,16 +47,6 @@ export function ScheduleToolbar({
       >
         <Copy className="h-4 w-4 text-white" />
         <span className="text-white">Copy</span>
-      </Button>
-
-      <Button
-        onClick={onClearAll}
-        size="sm"
-        variant="destructive"
-        className="flex items-center gap-2"
-      >
-        <Trash2 className="h-4 w-4" />
-        <span>Reset</span>
       </Button>
 
       <Button
