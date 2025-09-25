@@ -186,7 +186,7 @@ const handler = async (req: Request): Promise<Response> => {
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: 'https://buildersuiteai.com/auth'
+        redirectTo: 'https://buildersuiteai.com/reset-password'
       }
     });
 

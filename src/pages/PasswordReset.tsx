@@ -106,7 +106,9 @@ const PasswordReset = () => {
 
       toast({
         title: "Success",
-        description: "Your password has been updated successfully! Redirecting to dashboard...",
+        description: isEmployeeInvitation 
+          ? "Your account has been set up successfully! Welcome to BuilderSuite AI." 
+          : "Your password has been updated successfully! Redirecting to dashboard...",
       });
       
       // User is now authenticated with the new password, redirect to main app
@@ -123,6 +125,9 @@ const PasswordReset = () => {
     }
   };
 
+  // Check if this is an employee invitation flow
+  const isEmployeeInvitation = searchParams.get('type') === 'recovery';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -131,15 +136,15 @@ const PasswordReset = () => {
             Welcome to BuilderSuite AI
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Reset your password to access your account
+            {isEmployeeInvitation ? "Set up your password to access your account" : "Reset your password to access your account"}
           </p>
         </div>
         
         <Card>
           <CardHeader>
-            <CardTitle>Reset Password</CardTitle>
+            <CardTitle>{isEmployeeInvitation ? "Set Your Password" : "Reset Password"}</CardTitle>
             <CardDescription>
-              Enter your new password below
+              {isEmployeeInvitation ? "Create your password to complete your account setup" : "Enter your new password below"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,7 +176,7 @@ const PasswordReset = () => {
               </div>
               
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Updating Password..." : "Update Password"}
+                {isLoading ? (isEmployeeInvitation ? "Setting Up Account..." : "Updating Password...") : (isEmployeeInvitation ? "Set Password & Continue" : "Update Password")}
               </Button>
             </form>
           </CardContent>
