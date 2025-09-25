@@ -138,6 +138,10 @@ export function AddressAutocomplete({
         const pacItem = target.closest('.pac-item');
         
         if (pacItem) {
+          // Stop event propagation to prevent dialog from closing
+          event.stopPropagation();
+          event.preventDefault();
+          
           console.log('AddressAutocomplete: PAC item selected');
           
           // Small delay to allow Google's internal processing
