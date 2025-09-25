@@ -31,19 +31,15 @@ export function AddressAutocomplete({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const suggestionsHiddenRef = useRef(false);
 
   const closeSuggestions = () => {
-    // Hide the Google PAC dropdown by finding and hiding the container
-    const pacContainer = document.querySelector('.pac-container') as HTMLElement;
-    if (pacContainer) {
-      pacContainer.style.display = 'none';
-      // Show it again on next input
-      setTimeout(() => {
-        if (pacContainer) {
-          pacContainer.style.display = '';
-        }
-      }, 100);
-    }
+    // Hide all Google PAC dropdown containers and mark as hidden until next user input
+    const pacContainers = document.querySelectorAll('.pac-container');
+    pacContainers.forEach((el) => {
+      (el as HTMLElement).style.display = 'none';
+    });
+    suggestionsHiddenRef.current = true;
   };
   useEffect(() => {
     const getApiKey = async () => {
@@ -206,7 +202,16 @@ export function AddressAutocomplete({
       ref={inputRef}
       id={id}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => {
+        // If suggestions were hidden programmatically, re-enable them on user typing
+        if (suggestionsHiddenRef.current) {
+          document.querySelectorAll('.pac-container').forEach((el) => {
+            (el as HTMLElement).style.display = '';
+          });
+          suggestionsHiddenRef.current = false;
+        }
+        onChange(e.target.value);
+      }}
       placeholder={placeholder}
       disabled={disabled}
       className={className}
