@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface HomeBuilder {
   id: string;
   company_name: string;
+  email: string;
 }
 
 interface HomeBuilderSelectProps {

@@ -15,30 +15,15 @@ const SignupForm = () => {
   const [userType, setUserType] = useState<"home_builder" | "employee">("home_builder");
   const [companyName, setCompanyName] = useState("");
   const [selectedHomeBuilderId, setSelectedHomeBuilderId] = useState("");
-  const [selectedHomeBuilderData, setSelectedHomeBuilderData] = useState<{id: string, company_name: string} | null>(null);
+  const [selectedHomeBuilderData, setSelectedHomeBuilderData] = useState<{id: string, company_name: string, email: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string, email?: string}) => {
+  const sendEmployeeApprovalEmails = async (employeeId: string, homeBuilderData: {id: string, company_name: string, email: string}) => {
     try {
-      // Use the email from homeBuilderData if available, otherwise query for it
-      let homeBuilderEmail = homeBuilderData.email;
-      
-      if (!homeBuilderEmail) {
-        const { data: homeBuilderProfile, error } = await supabase
-          .from('users')
-          .select('email')
-          .eq('id', homeBuilderData.id)
-          .eq('role', 'owner')
-          .single();
-
-        if (error || !homeBuilderProfile) {
-          console.error("Error fetching home builder profile:", error);
-          return;
-        }
-        homeBuilderEmail = homeBuilderProfile.email;
-      }
+      // Use the email from homeBuilderData since it's now always included
+      const homeBuilderEmail = homeBuilderData.email;
 
       const response = await supabase.functions.invoke('send-employee-approval-email', {
         body: {
@@ -102,7 +87,7 @@ const SignupForm = () => {
             description: "Please check your email to confirm your account.",
           });
         } else if (userType === "employee" && selectedHomeBuilderData) {
-          // Send approval emails for employee
+          // Send approval emails for employee - now includes email in the data
           await sendEmployeeApprovalEmails(data.user.id, selectedHomeBuilderData);
           
           toast({

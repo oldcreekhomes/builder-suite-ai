@@ -1427,6 +1427,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           company_name: string
+          email: string
           id: string
         }[]
       }
