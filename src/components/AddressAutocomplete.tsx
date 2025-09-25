@@ -81,21 +81,95 @@ export function AddressAutocomplete({
         }
       );
 
+      // Add custom styling for better visibility and z-index
+      const addCustomStyles = () => {
+        const style = document.createElement('style');
+        style.textContent = `
+          .pac-container {
+            z-index: 9999 !important;
+            border-radius: 8px !important;
+            border: 1px solid hsl(var(--border)) !important;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+            background-color: hsl(var(--background)) !important;
+          }
+          .pac-item {
+            border-bottom: 1px solid hsl(var(--border)) !important;
+            background-color: hsl(var(--background)) !important;
+            color: hsl(var(--foreground)) !important;
+            padding: 8px 12px !important;
+            cursor: pointer !important;
+          }
+          .pac-item:hover {
+            background-color: hsl(var(--muted)) !important;
+          }
+          .pac-item-selected {
+            background-color: hsl(var(--accent)) !important;
+          }
+          .pac-matched {
+            font-weight: 600 !important;
+            color: hsl(var(--primary)) !important;
+          }
+        `;
+        if (!document.querySelector('[data-address-autocomplete-styles]')) {
+          style.setAttribute('data-address-autocomplete-styles', 'true');
+          document.head.appendChild(style);
+        }
+      };
+
+      addCustomStyles();
+
+      // Standard place_changed event
       autocompleteRef.current.addListener('place_changed', () => {
+        console.log('AddressAutocomplete: place_changed event fired');
         const place = autocompleteRef.current?.getPlace();
         if (place && place.formatted_address) {
+          console.log('AddressAutocomplete: Selected address via place_changed:', place.formatted_address);
           onChange(place.formatted_address);
         }
       });
+
+      // Add click handler for PAC items (Google Places suggestions)
+      const handlePacItemClick = (event: Event) => {
+        const target = event.target as HTMLElement;
+        const pacItem = target.closest('.pac-item');
+        
+        if (pacItem) {
+          console.log('AddressAutocomplete: PAC item clicked');
+          
+          // Small delay to allow Google's internal processing
+          setTimeout(() => {
+            const place = autocompleteRef.current?.getPlace();
+            if (place && place.formatted_address) {
+              console.log('AddressAutocomplete: Selected address via click:', place.formatted_address);
+              onChange(place.formatted_address);
+            } else {
+              console.log('AddressAutocomplete: No place data after click, trying to extract from PAC item');
+              // Fallback: try to get address from the PAC item text
+              const addressText = pacItem.querySelector('.pac-item-query')?.textContent;
+              if (addressText) {
+                console.log('AddressAutocomplete: Using PAC item text:', addressText);
+                onChange(addressText);
+              }
+            }
+          }, 100);
+        }
+      };
+
+      // Add event listener to document for PAC item clicks
+      document.addEventListener('click', handlePacItemClick, true);
+
+      // Store the cleanup function
+      const cleanup = () => {
+        document.removeEventListener('click', handlePacItemClick, true);
+        if (autocompleteRef.current) {
+          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
+      };
+
+      return cleanup;
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
     }
-
-    return () => {
-      if (autocompleteRef.current) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-    };
   }, [isLoaded, onChange]);
 
   return (
