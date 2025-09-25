@@ -16,6 +16,7 @@ import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { ScheduleToolbar } from "./ScheduleToolbar";
 import { CopyScheduleDialog } from "./CopyScheduleDialog";
 import { useCopySchedule } from "@/hooks/useCopySchedule";
+import { useClearSchedule } from "@/hooks/useClearSchedule";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import { ProjectTask } from "@/hooks/useProjectTasks";
@@ -34,6 +35,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
   const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
   const copyScheduleMutation = useCopySchedule();
+  const clearScheduleMutation = useClearSchedule();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   
@@ -274,6 +276,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
   
   // Zoom state for timeline
   const [dayWidth, setDayWidth] = useState(40); // pixels per day
@@ -854,6 +857,25 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   const handleCopySchedule = () => {
     setShowCopyScheduleDialog(true);
+  };
+
+  const handleClearAll = () => {
+    setShowClearDialog(true);
+  };
+
+  const handleClearConfirm = async () => {
+    try {
+      // Optimistically clear visible tasks for immediate UI response
+      const queryKey = ['project-tasks', projectId, user?.id];
+      queryClient.setQueryData(queryKey, []);
+      
+      await clearScheduleMutation.mutateAsync(projectId);
+      setShowClearDialog(false);
+    } catch (error) {
+      console.error('Failed to clear schedule:', error);
+      // Re-fetch to restore data on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+    }
   };
 
   const handleCopyScheduleSubmit = async (options: any) => {
@@ -1577,6 +1599,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
+          onClearAll={handleClearAll}
           onExpandAll={handleExpandAll}
           onCollapseAll={handleCollapseAll}
           onZoomIn={handleZoomIn}
@@ -1672,6 +1695,30 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         currentProjectId={projectId}
         onCopySchedule={handleCopyScheduleSubmit}
       />
+
+      {/* Clear Schedule Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Tasks</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all tasks for this project? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearScheduleMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearConfirm}
+              disabled={clearScheduleMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {clearScheduleMutation.isPending ? "Deleting..." : "Delete All Tasks"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
