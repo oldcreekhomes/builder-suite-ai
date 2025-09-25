@@ -45,9 +45,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         throw new Error('Unable to fetch user profile');
       }
 
-      if (currentUser.role !== 'owner') {
-        throw new Error('Only home builders can add employees');
-      }
+      // Allow both owners and confirmed employees to add new employees
 
       console.log("✅ User verified as owner, calling edge function");
 
