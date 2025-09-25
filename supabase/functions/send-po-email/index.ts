@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
 console.log('🔧 PO Email Edge function starting...');
@@ -60,7 +60,7 @@ const generateFileDownloadLinks = (files: any[]) => {
     if (!downloadUrl) {
       // Construct URL for purchase order files
       const fileId = file.id || file.name || file;
-      downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${file.projectId || data.projectId}/${fileId}`;
+      downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/purchase-orders/${file.projectId || file.projectId}/${fileId}`;
     }
     
     console.log('🔗 Generating PO file link:', { originalFile: file, displayName, downloadUrl });
@@ -186,7 +186,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                              <td style="margin: 0; padding: 0 0 8px 0;">
                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contract:</span>
                                                                  <span style="display: inline-block; vertical-align: top;">
-                                                                     ${contractFiles.map(file => `
+                                                                     ${contractFiles.map((file: any) => `
                                                                           <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
                                                                               ${getSimpleFilename(file.name)}
                                                                           </a>
@@ -503,7 +503,7 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error('Bidding company not found');
       }
 
-      notificationRecipients = biddingCompany.companies.company_representatives?.filter(
+      notificationRecipients = biddingCompany.companies?.[0]?.company_representatives?.filter(
         (rep: any) => rep.receive_po_notifications && rep.email
       ) || [];
     }

@@ -273,7 +273,7 @@ serve(async (req) => {
 
     return createResponse(response);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('=== CRITICAL ERROR in weather function ===');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);

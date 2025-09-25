@@ -213,7 +213,7 @@ const handler = async (req: Request): Promise<Response> => {
             console.log('🏢 Company data:', companyData);
             
             // Get home builder contact info (use construction_manager if available, otherwise owner)
-            const homeBuilderContactId = bidPackageData.projects.construction_manager || bidPackageData.projects.owner_id;
+            const homeBuilderContactId = bidPackageData.projects?.[0]?.construction_manager || bidPackageData.projects?.[0]?.owner_id;
             
             const { data: homeBuilderData, error: homeBuilderError } = await supabase
               .from('users')
@@ -236,8 +236,8 @@ const handler = async (req: Request): Promise<Response> => {
                   recipientEmail: homeBuilderData.email,
                   recipientName: `${homeBuilderData.first_name} ${homeBuilderData.last_name}`,
                   isHomeBuilderNotification: true, // Flag to distinguish this from company confirmation
-                  projectAddress: bidPackageData.projects.address,
-                  costCodeName: `${bidPackageData.cost_codes.code}: ${bidPackageData.cost_codes.name}`,
+                  projectAddress: bidPackageData.projects?.[0]?.address,
+                  costCodeName: `${bidPackageData.cost_codes?.[0]?.code}: ${bidPackageData.cost_codes?.[0]?.name}`,
                   companyName: companyData.company_name
                 }
               });

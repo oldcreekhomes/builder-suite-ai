@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Failed to process IFF file'
+        error: (error as any)?.message || 'Failed to process IFF file'
       }),
       {
         status: 400,
