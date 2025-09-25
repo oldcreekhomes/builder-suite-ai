@@ -61,7 +61,7 @@ export function SendTestEmailModal({
   }, [currentUser, testEmail]);
 
   // Fetch company data (either specific company or first company)
-  const { data: companyData } = useQuery({
+  const { data: companyData, isLoading: isLoadingCompanyData, error: companyDataError } = useQuery({
     queryKey: ['test-email-company', bidPackage?.id, companyId],
     queryFn: async () => {
       if (!bidPackage?.id) return null;
@@ -162,10 +162,38 @@ export function SendTestEmailModal({
   });
 
   const handleSendTestEmail = async () => {
-    if (!bidPackage || !companyData || !testEmail) {
+    // Specific validation with detailed error messages
+    if (!bidPackage) {
       toast({
         title: "Missing Information",
+        description: "Bid package data is not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!testEmail?.trim()) {
+      toast({
+        title: "Missing Information", 
         description: "Please enter a test email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!companyData) {
+      toast({
+        title: "Loading Data",
+        description: "Company data is still loading. Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!companyData.companies) {
+      toast({
+        title: "Missing Information",
+        description: "Company information is not available for this bid package.",
         variant: "destructive",
       });
       return;
@@ -415,11 +443,13 @@ export function SendTestEmailModal({
           </Button>
           <Button 
             onClick={handleSendTestEmail}
-            disabled={isSending || !testEmail}
+            disabled={isSending || !testEmail?.trim() || isLoadingCompanyData || !companyData}
             className="flex items-center gap-2"
           >
             {isSending ? (
               <>Sending Test...</>
+            ) : isLoadingCompanyData ? (
+              <>Loading...</>
             ) : (
               <>
                 <TestTube className="h-4 w-4" />
