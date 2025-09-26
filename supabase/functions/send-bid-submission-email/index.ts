@@ -359,7 +359,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
       to: [recipientEmail],
       subject,
       html: htmlContent
