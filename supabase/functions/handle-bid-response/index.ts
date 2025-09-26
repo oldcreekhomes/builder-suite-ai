@@ -110,6 +110,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Bid status updated successfully:', updateData);
 
+    // Get bid package due date for confirmation page
+    const { data: bidPackageData, error: bidPackageError } = await supabase
+      .from('project_bid_packages')
+      .select('due_date')
+      .eq('id', bidPackageId)
+      .single();
+
+    const dueDate = bidPackageData?.due_date;
+    console.log('Bid package due date:', dueDate);
+
     // If they will bid, send the submission email
     if (response === 'will_bid') {
       console.log('🎯 User responded "will_bid", attempting to send submission email...');
@@ -262,6 +272,9 @@ const handler = async (req: Request): Promise<Response> => {
     const confirmationUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('status', 'success');
+    if (dueDate) {
+      confirmationUrl.searchParams.set('due_date', dueDate);
+    }
 
     console.log('Redirecting to:', confirmationUrl.toString());
 

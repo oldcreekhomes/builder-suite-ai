@@ -76,7 +76,7 @@ export default function BidResponseConfirmation() {
             <div className="text-center">
               <p className="text-gray-600 mb-6">
                 {willBid
-                  ? "Thank you. You will receive a 2nd email to submit your bid in a few minutes."
+                  ? `Thank you. Please submit your bid by ${searchParams.get("due_date") ? new Date(searchParams.get("due_date")!).toLocaleDateString() : "the due date"}.`
                   : "We have recorded that you declined this bid. The project manager will be notified."}
               </p>
             </div>
