@@ -253,20 +253,21 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                 <!-- Combined Headers Row -->
                 <tr>
-                    <td width="50%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; border-right: 2px solid #ffffff;">
+                    <td width="48%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
                         Bid Response
                     </td>
-                    <td width="50%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                    <td width="4%" style="padding: 0; margin: 0;">&nbsp;</td>
+                    <td width="48%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
                         Submit Your Bid
                     </td>
                 </tr>
                 <!-- Combined Content Row -->
                 <tr>
                     <!-- Left Column - Bid Response -->
-                    <td width="50%" style="padding: 0; margin: 0; vertical-align: top; border-right: 2px solid #e5e5e5;">
-                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5; border-right: none;">
+                    <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 20px 15px; text-align: center; margin: 0;">
+                                <td style="padding: 20px 15px 60px 15px; text-align: center; margin: 0;">
                                     <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
                                     
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
@@ -290,9 +291,12 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                         </table>
                     </td>
                     
+                    <!-- Spacer Column -->
+                    <td width="4%" style="padding: 0; margin: 0;">&nbsp;</td>
+                    
                     <!-- Right Column - Submit Your Bid -->
-                    <td width="50%" style="padding: 0; margin: 0; vertical-align: top;">
-                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5; border-left: none;">
+                    <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
                                 <td style="padding: 20px 15px 60px 15px; text-align: center; margin: 0;">
                                     <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Ready to submit your bid?</h3>
