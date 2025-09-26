@@ -267,8 +267,8 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 8px 15px; text-align: center; margin: 0; vertical-align: top;">
-                                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
+                <td height="132" style="height: 132px; padding: 8px 15px; text-align: center; margin: 0; vertical-align: top;">
+                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
                                     
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                                         <tr>
@@ -298,25 +298,21 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 8px 15px; text-align: center; margin: 0; vertical-align: top;">
-                                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Ready to submit your bid?</h3>
-                                    
-                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
-                                        <tr>
-                                            <td style="padding-bottom: 4px;">
-                                                <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
-                                                    Submit Your Bid
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <a href="#" aria-hidden="true" tabindex="-1" style="visibility: hidden; display: block; height: 36px; padding: 0; border: 0; width: 140px;">
-                                                    No, I will not bid
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </table>
+                <td height="132" style="height: 132px; padding: 8px 15px; text-align: center; margin: 0; vertical-align: top;">
+                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 8px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Ready to submit your bid?</h3>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding-bottom: 4px;">
+                                <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
+                                    Submit Your Bid
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td height="40" style="height: 40px; line-height: 0; font-size: 0;">&nbsp;</td>
+                        </tr>
+                    </table>
                                 </td>
                             </tr>
                         </table>
