@@ -267,7 +267,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 20px 15px 60px 15px; text-align: center; margin: 0;">
+                                <td style="padding: 35px 15px 45px 15px; text-align: center; margin: 0;">
                                     <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
                                     
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
