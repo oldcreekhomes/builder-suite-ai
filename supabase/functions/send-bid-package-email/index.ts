@@ -267,12 +267,12 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 20px 15px 60px 15px; text-align: center; margin: 0;">
+                                <td style="padding: 20px 15px; text-align: center; margin: 0; height: 200px; vertical-align: top;">
                                     <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
                                     
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                                         <tr>
-                                            <td colspan="2" style="padding-bottom: 10px;">
+                                            <td colspan="2" style="padding-bottom: 8px;">
                                                 <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
                                                      Yes, I will bid
                                                  </a>
@@ -298,10 +298,10 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <td width="48%" style="padding: 0; margin: 0; vertical-align: top;">
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                             <tr>
-                                <td style="padding: 20px 15px 60px 15px; text-align: center; margin: 0;">
+                                <td style="padding: 20px 15px; text-align: center; margin: 0; height: 200px; vertical-align: top;">
                                     <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Ready to submit your bid?</h3>
                                     
-                                    <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                    <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
                                         Submit Your Bid
                                     </a>
                                 </td>
