@@ -311,7 +311,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                         </tr>
                                         <tr>
                                             <td>
-                                                <a href="#" aria-hidden="true" tabindex="-1" style="visibility: hidden; background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;">
+                                                <a href="#" aria-hidden="true" tabindex="-1" style="visibility: hidden; display: block; height: 36px; padding: 0; border: 0; width: 140px;">
                                                     No, I will not bid
                                                 </a>
                                             </td>
