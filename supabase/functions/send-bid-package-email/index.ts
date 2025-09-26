@@ -208,6 +208,12 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${data.bidPackage.costCode?.code} - ${data.bidPackage.costCode?.name}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contact:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; line-height: 1.4;">${managerName}${managerPhone ? `<br>${managerPhone}` : ''}${managerEmail ? `<br>${managerEmail}` : ''}</span>
                                                             </td>
