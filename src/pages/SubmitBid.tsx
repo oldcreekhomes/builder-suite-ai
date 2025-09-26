@@ -131,13 +131,21 @@ export default function SubmitBid() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Handle due date passed error specifically
+        if (errorData.error === 'due_date_passed') {
+          window.location.href = `/bid-declined?due_date=${encodeURIComponent(errorData.due_date || '')}`;
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to submit bid');
       }
 
       const result = await response.json();
       
-      // Redirect to confirmation page
-      window.location.href = '/bid-submission-confirmation?status=success';
+      // Redirect to confirmation page with due date
+      const dueDateParam = bidPackage?.due_date ? `&due_date=${encodeURIComponent(bidPackage.due_date)}` : '';
+      window.location.href = `/bid-submission-confirmation?status=success${dueDateParam}`;
       
     } catch (error) {
       console.error('Error submitting bid:', error);

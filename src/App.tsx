@@ -32,6 +32,7 @@ import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import POResponseConfirmation from "./pages/POResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
+import BidDeclined from "./pages/BidDeclined";
 import SubmitBid from "./pages/SubmitBid";
 import FileRedirect from "./pages/FileRedirect";
 
@@ -184,6 +185,9 @@ const AppContent = () => {
           
           {/* Bid Submission Confirmation - no auth required */}
           <Route path="/bid-submission-confirmation" element={<BidSubmissionConfirmation />} />
+          
+          {/* Bid Declined - no auth required */}
+          <Route path="/bid-declined" element={<BidDeclined />} />
           
           {/* Protected routes */}
           {navItems.map(({ to, page }) => (

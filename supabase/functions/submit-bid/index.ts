@@ -48,6 +48,52 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check bid package due date before processing
+    console.log('Checking bid package due date...');
+    const { data: bidPackageData, error: bidPackageError } = await supabase
+      .from('project_bid_packages')
+      .select('due_date')
+      .eq('id', bidPackageId)
+      .single();
+
+    if (bidPackageError) {
+      console.error('Error fetching bid package:', bidPackageError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid bid package' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Validate due date
+    if (bidPackageData?.due_date) {
+      const dueDate = new Date(bidPackageData.due_date);
+      const now = new Date();
+      
+      console.log('Due date check:', {
+        dueDate: dueDate.toISOString(),
+        now: now.toISOString(),
+        isPastDue: now > dueDate
+      });
+
+      if (now > dueDate) {
+        console.log('❌ Bid submission rejected - past due date');
+        return new Response(
+          JSON.stringify({ 
+            error: 'due_date_passed',
+            due_date: bidPackageData.due_date,
+            message: 'The due date has passed for this bid package'
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    }
+
     // Process uploaded files
     const files = formData.getAll('files') as File[];
     const uploadedFileNames: string[] = [];
