@@ -25,6 +25,23 @@ interface BidSubmissionEmailRequest {
   companyName?: string;
 }
 
+const formatSpecifications = (specifications: string | undefined) => {
+  if (!specifications) return 'See attached specifications';
+  
+  // Split by line breaks and process bullet points and numbered lists
+  const lines = specifications.split(/\r?\n/);
+  const formattedLines = lines.map((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+    
+    // Use consistent margin for all lines, remove top margin from first line to align properly
+    const marginTop = index === 0 ? '0' : '5px';
+    return `<div style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: ${marginTop} 0 5px 0;">${trimmed}</div>`;
+  });
+  
+  return formattedLines.filter(line => line).join('');
+};
+
 const generateFileDownloadLinks = (files: string[]) => {
   if (!files || files.length === 0) return 'No files attached';
   
@@ -121,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch bid package details with project and cost code info
     const { data: bidPackage, error: bidError } = await supabase
       .from('project_bid_packages')
-      .select('id, due_date, project_id, cost_code_id, files')
+      .select('id, due_date, project_id, cost_code_id, files, specifications')
       .eq('id', bidPackageId)
       .single();
 
@@ -132,13 +149,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get project details if not provided
     let projectInfo = null;
+    let managerInfo = null;
     if (!projectAddress) {
       const { data: project } = await supabase
         .from('projects')
-        .select('address, owner_id')
+        .select('address, owner_id, construction_manager')
         .eq('id', bidPackage.project_id)
         .single();
       projectInfo = project;
+      
+      // Get manager details
+      if (project?.construction_manager) {
+        const { data: manager } = await supabase
+          .from('users')
+          .select('first_name, last_name, email, phone_number')
+          .eq('id', project.construction_manager)
+          .single();
+        managerInfo = manager;
+      }
     }
 
     // Get cost code details if not provided  
@@ -323,11 +351,13 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <!-- Project Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <!-- Project Header -->
                                 <tr>
                                     <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Project Summary
+                                        You have been invited to bid on the following project:
                                     </td>
                                 </tr>
+                                <!-- Project Content -->
                                 <tr>
                                     <td style="padding: 0; margin: 0;">
                                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
@@ -342,14 +372,30 @@ const handler = async (req: Request): Promise<Response> => {
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Type:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeInfo?.code} - ${costCodeInfo?.name || costCodeName || ''}</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeInfo?.code} - ${costCodeInfo?.name}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Due Date:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contact:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; line-height: 1.4;">${managerInfo ? `${managerInfo.first_name} ${managerInfo.last_name}${managerInfo.phone_number ? `<br>${managerInfo.phone_number}` : ''}${managerInfo.email ? `<br>${managerInfo.email}` : ''}` : 'Project Manager'}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Due Date:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${dueDateFormatted}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                                    <tr>
+                                                                        <td style="color: #666666; font-weight: 500; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">Scope of Work:</td>
+                                                                        <td style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">${formatSpecifications(bidPackage.specifications)}</td>
+                                                                    </tr>
+                                                                </table>
                                                             </td>
                                                         </tr>
                                                         <tr>
