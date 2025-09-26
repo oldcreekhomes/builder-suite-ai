@@ -249,42 +249,66 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                             </table>
                             
 
-                            <!-- Bid Response Section -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
-                                <!-- Response Header -->
-                                <tr>
-                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Bid Response
-                                    </td>
-                                </tr>
-                                <!-- Response Content -->
-                                <tr>
-                                    <td style="padding: 0; margin: 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
-                                            <tr>
-                                                <td style="padding: 30px 20px; text-align: center; margin: 0;">
-                                                    <h3 style="color: #000000; font-size: 18px; font-weight: 600; margin: 0 0 20px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
-                                                    
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
-                                                        <tr>
-                                                            <td style="padding-right: 15px;">
-                                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
-                                                                     Yes, I will bid
-                                                                 </a>
-                                                             </td>
-                                                             <td style="padding-left: 15px;">
-                                                                 <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_not_bid" style="background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
-                                                                     No, I will not bid
-                                                                 </a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
+            <!-- Combined Bid Response & Submit Section -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                <!-- Combined Headers Row -->
+                <tr>
+                    <td width="50%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; border-right: 2px solid #ffffff;">
+                        Bid Response
+                    </td>
+                    <td width="50%" style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                        Submit Your Bid
+                    </td>
+                </tr>
+                <!-- Combined Content Row -->
+                <tr>
+                    <!-- Left Column - Bid Response -->
+                    <td width="50%" style="padding: 0; margin: 0; vertical-align: top; border-right: 2px solid #e5e5e5;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5; border-right: none;">
+                            <tr>
+                                <td style="padding: 20px 15px; text-align: center; margin: 0;">
+                                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Will you bid on this project?</h3>
+                                    
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
+                                        <tr>
+                                            <td colspan="2" style="padding-bottom: 10px;">
+                                                <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_bid" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
+                                                     Yes, I will bid
+                                                 </a>
+                                             </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                 <a href="https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/handle-bid-response?bid_package_id=${data.bidPackage.id}&company_id=${companyId}&response=will_not_bid" style="background-color: #DC2626; border: 2px solid #DC2626; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segue UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
+                                                     No, I will not bid
+                                                 </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    
+                    <!-- Right Column - Submit Your Bid -->
+                    <td width="50%" style="padding: 0; margin: 0; vertical-align: top;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5; border-left: none;">
+                            <tr>
+                                <td style="padding: 20px 15px; text-align: center; margin: 0;">
+                                    <h3 style="color: #000000; font-size: 16px; font-weight: 600; margin: 0 0 15px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Ready to submit your bid?</h3>
+                                    <p style="color: #666666; font-size: 14px; margin: 0 0 20px 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Click below to submit your pricing and proposal files.
+                                    </p>
+                                    
+                                    <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1; padding: 12px 24px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none;" target="_blank">
+                                        Submit Your Bid
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
                             
                         </td>
                     </tr>
