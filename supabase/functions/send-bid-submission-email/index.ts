@@ -25,6 +25,58 @@ interface BidSubmissionEmailRequest {
   companyName?: string;
 }
 
+const generateFileDownloadLinks = (files: string[]) => {
+  if (!files || files.length === 0) return 'No files attached';
+  
+  const fileLinks = files.map((file, index) => {
+    // Extract original filename to get file extension
+    let originalFileName = file.split('/').pop() || file;
+    
+    // If filename contains UUID and timestamp pattern, extract the original filename
+    // Pattern: bidding_[uuid]_[timestamp]_[originalfilename]
+    const parts = originalFileName.split('_');
+    if (parts.length >= 4 && parts[0] === 'bidding') {
+      // Take everything after the third underscore
+      const originalFilenameParts = parts.slice(3);
+      originalFileName = originalFilenameParts.join('_');
+    }
+    
+    // Also handle timestamp-hyphen prefix pattern: [timestamp]-[originalfilename]
+    // Pattern: 1751840477323-new.xlsx
+    const timestampMatch = originalFileName.match(/^\d{13}-(.+)$/);
+    if (timestampMatch) {
+      originalFileName = timestampMatch[1];
+    }
+    
+    // Extract file extension from original filename
+    const lastDotIndex = originalFileName.lastIndexOf('.');
+    const fileExtension = lastDotIndex !== -1 ? originalFileName.substring(lastDotIndex) : '.pdf';
+    
+    // Create numbered filename like PO emails: File 1.pdf, File 2.pdf, etc.
+    const displayFileName = `File ${index + 1}${fileExtension}`;
+    
+    // Normalize path: remove any prefixes and ensure proper specifications path
+    let normalizedPath = file;
+    if (normalizedPath.startsWith('project-files/specifications/')) {
+      normalizedPath = normalizedPath.replace('project-files/specifications/', '');
+    } else if (normalizedPath.startsWith('project-files/')) {
+      normalizedPath = normalizedPath.replace('project-files/', '');
+    } else if (normalizedPath.startsWith('specifications/')) {
+      normalizedPath = normalizedPath.replace('specifications/', '');
+    }
+    
+    // Build proper public URL with correct encoding
+    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURI(normalizedPath)}`;
+    
+    console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName: displayFileName, downloadUrl });
+    
+    return `<div style="line-height: 20px; margin: 2px 0;"><a href="${downloadUrl}" style="color: #000000; text-decoration: underline;" target="_blank" download>📎 ${displayFileName}</a></div>`;
+  }).join('');
+  
+  // Return vertical list container
+  return `<div style="display: inline-block; vertical-align: top;">${fileLinks}</div>`;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -69,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch bid package details with project and cost code info
     const { data: bidPackage, error: bidError } = await supabase
       .from('project_bid_packages')
-      .select('id, due_date, project_id, cost_code_id')
+      .select('id, due_date, project_id, cost_code_id, files')
       .eq('id', bidPackageId)
       .single();
 
@@ -291,13 +343,19 @@ const handler = async (req: Request): Promise<Response> => {
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Type:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName || costCodeInfo?.name || ''}</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeInfo?.code} - ${costCodeInfo?.name || costCodeName || ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Due Date:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${dueDateFormatted}</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
+                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${generateFileDownloadLinks(bidPackage.files || [])}</span>
                                                             </td>
                                                         </tr>
                                                     </table>
