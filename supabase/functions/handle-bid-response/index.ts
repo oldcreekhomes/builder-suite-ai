@@ -120,67 +120,9 @@ const handler = async (req: Request): Promise<Response> => {
     const dueDate = bidPackageData?.due_date;
     console.log('Bid package due date:', dueDate);
 
-    // If they will bid, send the submission email
+    // If they will bid, notify the home builder about the bid confirmation
     if (response === 'will_bid') {
-      console.log('🎯 User responded "will_bid", attempting to send submission email...');
-      try {
-        // Get all company representatives who want bid notifications
-        console.log('📋 Fetching company representatives for company:', companyId);
-        const { data: companyReps, error: repError } = await supabase
-          .from('company_representatives')
-          .select('email, first_name, last_name')
-          .eq('company_id', companyId)
-          .eq('receive_bid_notifications', true);
-
-        if (repError) {
-          console.error('❌ Error fetching company representatives:', repError);
-        } else if (companyReps && companyReps.length > 0) {
-          console.log(`📧 Sending bid submission emails to ${companyReps.length} recipients`);
-          console.log('Recipients:', companyReps.map(r => ({ email: r.email, name: `${r.first_name} ${r.last_name}` })));
-          
-          // Send emails to all representatives who want bid notifications
-          const emailPromises = companyReps.map(async (rep) => {
-            if (rep.email) {
-              console.log('📩 Sending bid submission email to:', rep.email);
-              
-              const { data: emailData, error: emailError } = await supabase.functions.invoke('send-bid-submission-email', {
-                body: {
-                  bidPackageId,
-                  companyId,
-                  recipientEmail: rep.email,
-                  recipientName: `${rep.first_name} ${rep.last_name}`
-                }
-              });
-
-              if (emailError) {
-                console.error(`❌ Error sending bid submission email to ${rep.email}:`, emailError);
-                return { success: false, email: rep.email, error: emailError };
-              } else {
-                console.log(`✅ Bid submission email sent successfully to ${rep.email}:`, emailData);
-                return { success: true, email: rep.email, data: emailData };
-              }
-            }
-            console.log('⚠️ No email address for rep:', rep);
-            return { success: false, email: rep.email, error: 'No email address' };
-          });
-
-          // Wait for all emails to complete
-          const emailResults = await Promise.allSettled(emailPromises);
-          const successCount = emailResults.filter(result => 
-            result.status === 'fulfilled' && result.value.success
-          ).length;
-          
-          console.log(`📊 Bid submission emails: ${successCount}/${companyReps.length} sent successfully`);
-          console.log('Email results:', emailResults.map(r => r.status === 'fulfilled' ? r.value : r.reason));
-        } else {
-          console.log('⚠️ No company representatives with bid notifications enabled found for company:', companyId);
-        }
-      } catch (emailError) {
-        console.error('❌ Error in email sending process:', emailError);
-        // Continue with redirect even if email fails
-      }
-
-      // SECOND EMAIL: Notify the home builder about the bid confirmation
+      // Notify the home builder about the bid confirmation
       console.log('📬 Now sending notification to home builder about bid confirmation...');
       try {
         // Get bid package and project info to find the home builder
