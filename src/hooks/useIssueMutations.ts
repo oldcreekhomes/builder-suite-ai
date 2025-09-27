@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 interface CreateIssueData {
   title: string;
@@ -116,9 +117,10 @@ export function useIssueMutations() {
 
       if (authorError) throw authorError;
 
-      // Send closure email
+      // Send closure email (non-blocking)
       try {
-        await supabase.functions.invoke('send-issue-closure-email', {
+        console.log('📨 Invoking send-issue-closure-email function...');
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-issue-closure-email', {
           body: {
             authorEmail: author.email,
             authorName: `${author.first_name || ''} ${author.last_name || ''}`.trim() || author.email,
@@ -128,9 +130,20 @@ export function useIssueMutations() {
             companyName: issue.company_name,
           },
         });
+        console.log('📬 send-issue-closure-email result:', { emailResult, emailError });
+        if (emailError) {
+          console.error('❌ send-issue-closure-email error:', emailError);
+          toast({ title: 'Issue closed, email not sent', description: 'We could not send the closure email.' });
+        } else if (!emailResult?.success) {
+          console.warn('⚠️ send-issue-closure-email returned unsuccessful:', emailResult);
+          toast({ title: 'Issue closed, email status unknown', description: 'Email provider did not confirm sending.' });
+        } else {
+          toast({ title: 'Issue closed', description: `A confirmation email was sent to ${author.email}.` });
+        }
       } catch (emailError) {
         console.error('Failed to send closure email:', emailError);
         // Don't fail the deletion if email fails
+        toast({ title: 'Issue closed, email failed', description: 'Email could not be sent.' });
       }
 
       // Delete the issue

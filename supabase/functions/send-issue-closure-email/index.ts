@@ -1,7 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+console.log("📨 send-issue-closure-email starting...");
+const resendApiKey = Deno.env.get("RESEND_API_KEY");
+console.log("🔑 RESEND_API_KEY present:", !!resendApiKey);
+if (!resendApiKey) {
+  console.error("❌ RESEND_API_KEY is not set for send-issue-closure-email");
+}
+
+const resend = new Resend(resendApiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
