@@ -333,6 +333,7 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          location: string | null
           priority: string
           solution: string | null
           solution_files: string[] | null
@@ -347,6 +348,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          location?: string | null
           priority?: string
           solution?: string | null
           solution_files?: string[] | null
@@ -361,6 +363,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          location?: string | null
           priority?: string
           solution?: string | null
           solution_files?: string[] | null

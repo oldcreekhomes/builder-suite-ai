@@ -8,6 +8,7 @@ interface CreateIssueData {
   description?: string | null;
   category: string;
   priority: 'Normal' | 'High';
+  location?: string;
 }
 
 interface UpdateIssueData {

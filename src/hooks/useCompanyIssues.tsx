@@ -9,6 +9,7 @@ export interface CompanyIssue {
   category: string;
   status: 'Open' | 'Resolved';
   priority: 'Normal' | 'High';
+  location?: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

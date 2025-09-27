@@ -162,6 +162,12 @@ export function IssuesTableRow({
         />
       </TableCell>
 
+      <TableCell className="py-2 w-24">
+        <div className="text-xs text-muted-foreground capitalize">
+          {issue.location || '-'}
+        </div>
+      </TableCell>
+
       <TableCell className="py-2 min-w-48">
         <SolutionFileUpload
           issueId={issue.id}
