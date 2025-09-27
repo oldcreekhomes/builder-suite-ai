@@ -52,49 +52,51 @@ export function CompanyRepresentativesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-2 border-gray-200 shadow-lg">
+      <DialogContent className="max-w-md shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-sm font-medium border-b border-gray-200 pb-3 mb-4">
+          <DialogTitle className="text-sm font-medium">
             {company?.company_name} Representatives
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {isLoading ? (
-            <div className="text-xs text-gray-500 p-4 text-center">
-              Loading representatives...
-            </div>
-          ) : representatives.length === 0 ? (
-            <div className="text-xs text-gray-500 p-4 text-center">
-              No representatives found for this company.
-            </div>
-          ) : (
-            representatives.map((rep) => (
-              <div
-                key={rep.id}
-                className="bg-gray-50 rounded-lg p-3 space-y-1"
-              >
-                <div className="text-xs font-medium text-gray-900">
-                  {rep.first_name} {rep.last_name || ''}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {rep.title}
-                </div>
-                {rep.email && (
-                  <div className="flex items-center space-x-1">
-                    <Mail className="h-3 w-3 text-gray-400" />
-                    <span className="text-xs text-gray-600">{rep.email}</span>
-                  </div>
-                )}
-                {rep.phone_number && (
-                  <div className="flex items-center space-x-1">
-                    <Phone className="h-3 w-3 text-gray-400" />
-                    <span className="text-xs text-gray-600">{rep.phone_number}</span>
-                  </div>
-                )}
+        <div className="border rounded-lg">
+          <div className="space-y-3 max-h-96 overflow-y-auto p-4">
+            {isLoading ? (
+              <div className="text-xs text-gray-500 text-center">
+                Loading representatives...
               </div>
-            ))
-          )}
+            ) : representatives.length === 0 ? (
+              <div className="text-xs text-gray-500 text-center">
+                No representatives found for this company.
+              </div>
+            ) : (
+              representatives.map((rep) => (
+                <div
+                  key={rep.id}
+                  className="bg-gray-50 rounded-lg p-3 space-y-1"
+                >
+                  <div className="text-xs font-medium text-gray-900">
+                    {rep.first_name} {rep.last_name || ''}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {rep.title}
+                  </div>
+                  {rep.email && (
+                    <div className="flex items-center space-x-1">
+                      <Mail className="h-3 w-3 text-gray-400" />
+                      <span className="text-xs text-gray-600">{rep.email}</span>
+                    </div>
+                  )}
+                  {rep.phone_number && (
+                    <div className="flex items-center space-x-1">
+                      <Phone className="h-3 w-3 text-gray-400" />
+                      <span className="text-xs text-gray-600">{rep.phone_number}</span>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
