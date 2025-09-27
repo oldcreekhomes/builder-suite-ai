@@ -14,29 +14,11 @@ export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
 
   const getTabLabel = (status: string, count: number | undefined) => {
     if (isLoading) {
-      switch (status) {
-        case 'draft':
-          return "Draft Packages";
-        case 'sent':
-          return "Sent for Bidding";
-        case 'closed':
-          return "Bidding Complete";
-        default:
-          return status;
-      }
+      return "Packages";
     }
 
     const displayCount = count || 0;
-    switch (status) {
-      case 'draft':
-        return `Draft Packages (${displayCount})`;
-      case 'sent':
-        return `Sent for Bidding (${displayCount})`;
-      case 'closed':
-        return `Bidding Complete (${displayCount})`;
-      default:
-        return `${status} (${displayCount})`;
-    }
+    return `Packages (${displayCount})`;
   };
 
   return (
