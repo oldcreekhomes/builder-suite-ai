@@ -14,6 +14,13 @@ interface Company {
   id: string;
   company_name: string;
   company_type: string;
+  address?: string;
+}
+
+interface DistanceResult {
+  companyId: string;
+  distance: number | null;
+  error?: string;
 }
 
 interface BiddingCompany {
@@ -43,6 +50,7 @@ interface BiddingCompanyRowProps {
   costCodeId: string;
   isSelected?: boolean;
   onCheckboxChange?: (companyId: string, checked: boolean) => void;
+  distanceInfo?: DistanceResult | null;
 }
 
 export function BiddingCompanyRow({
@@ -62,7 +70,8 @@ export function BiddingCompanyRow({
   projectId,
   costCodeId,
   isSelected = false,
-  onCheckboxChange
+  onCheckboxChange,
+  distanceInfo
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
@@ -82,8 +91,23 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
         <TableCell className="py-1 text-sm">
-        <div className="font-medium text-sm whitespace-nowrap ml-8">
-          {biddingCompany.companies.company_name}
+        <div className="ml-8">
+          <div className="font-medium text-sm whitespace-nowrap">
+            {biddingCompany.companies.company_name}
+          </div>
+          {distanceInfo && (
+            <div className="text-xs text-gray-500 mt-1">
+              {distanceInfo.distance !== null ? (
+                <span className="inline-flex items-center gap-1">
+                  <span>{distanceInfo.distance} miles</span>
+                </span>
+              ) : (
+                <span className="text-amber-600">
+                  {distanceInfo.error || 'Distance unknown'}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell className="py-1">

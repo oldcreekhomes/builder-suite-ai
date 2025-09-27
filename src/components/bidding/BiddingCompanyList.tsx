@@ -16,7 +16,13 @@ interface BiddingCompany {
   bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
-  companies: Company;
+  companies: Company & { address?: string };
+}
+
+interface DistanceResult {
+  companyId: string;
+  distance: number | null;
+  error?: string;
 }
 
 interface BiddingCompanyListProps {
@@ -35,6 +41,7 @@ interface BiddingCompanyListProps {
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
+  getDistanceForCompany?: (companyId: string) => DistanceResult | null;
 }
 
 export function BiddingCompanyList({ 
@@ -52,7 +59,8 @@ export function BiddingCompanyList({
   costCodeId,
   selectedCompanies = new Set(),
   onCompanyCheckboxChange,
-  onSelectAllCompanies
+  onSelectAllCompanies,
+  getDistanceForCompany
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
 
@@ -164,6 +172,7 @@ export function BiddingCompanyList({
           costCodeId={costCodeId}
           isSelected={selectedCompanies.has(biddingCompany.id)}
           onCheckboxChange={onCompanyCheckboxChange}
+          distanceInfo={getDistanceForCompany?.(biddingCompany.id)}
         />
       ))}
     </>

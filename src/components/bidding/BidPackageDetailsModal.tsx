@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +10,8 @@ import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { useDistanceFilter } from '@/hooks/useDistanceFilter';
+import { DistanceFilterBar } from './components/DistanceFilterBar';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -77,6 +79,16 @@ export function BidPackageDetailsModal({
   onBulkDeleteCompanies,
   isDeletingCompanies = false
 }: BidPackageDetailsModalProps) {
+  const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(false);
+  const [distanceRadius, setDistanceRadius] = useState(20);
+
+  const distanceFilter = useDistanceFilter({
+    enabled: distanceFilterEnabled,
+    radiusMiles: distanceRadius,
+    projectAddress: projectAddress || '',
+    companies: item.project_bids || []
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
@@ -188,6 +200,18 @@ export function BidPackageDetailsModal({
             </table>
           </div>
 
+          {/* Distance Filter Bar */}
+          <DistanceFilterBar
+            enabled={distanceFilterEnabled}
+            onEnabledChange={setDistanceFilterEnabled}
+            radiusMiles={distanceRadius}
+            onRadiusChange={setDistanceRadius}
+            projectAddress={projectAddress}
+            companies={item.project_bids || []}
+            isCalculating={distanceFilter.isCalculating}
+            stats={distanceFilter.stats}
+          />
+
           {/* Bulk Action Bar for Selected Companies */}
           {selectedCompanies && selectedCompanies.size > 0 && (
             <BulkActionBar
@@ -204,7 +228,7 @@ export function BidPackageDetailsModal({
               <tbody>
                 <BiddingCompanyList
                   biddingItemId={item.id}
-                  companies={item.project_bids || []}
+                  companies={distanceFilter.filteredCompanies}
                   onToggleBidStatus={onToggleBidStatus}
                   onUpdatePrice={onUpdatePrice}
                   onUploadProposal={onUploadProposal}
@@ -218,6 +242,7 @@ export function BidPackageDetailsModal({
                   selectedCompanies={selectedCompanies}
                   onCompanyCheckboxChange={onCompanyCheckboxChange}
                   onSelectAllCompanies={onSelectAllCompanies}
+                  getDistanceForCompany={distanceFilter.getDistanceForCompany}
                 />
               </tbody>
             </table>
