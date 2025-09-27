@@ -95,19 +95,6 @@ export function BiddingCompanyRow({
           <div className="font-medium text-sm whitespace-nowrap">
             {biddingCompany.companies.company_name}
           </div>
-          {distanceInfo && (
-            <div className="text-xs text-gray-500 mt-1">
-              {distanceInfo.distance !== null ? (
-                <span className="inline-flex items-center gap-1">
-                  <span>{distanceInfo.distance} miles</span>
-                </span>
-              ) : (
-                <span className="text-amber-600">
-                  {distanceInfo.error || 'Distance unknown'}
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </TableCell>
       <TableCell className="py-1">

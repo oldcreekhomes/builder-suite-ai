@@ -22,12 +22,6 @@ interface DistanceFilterBarProps {
   projectAddress?: string;
   companies: BiddingCompany[];
   isCalculating: boolean;
-  stats: {
-    total: number;
-    withAddresses: number;
-    inRange: number;
-    filtered: number;
-  };
 }
 
 export function DistanceFilterBar({
@@ -37,8 +31,7 @@ export function DistanceFilterBar({
   onRadiusChange,
   projectAddress,
   companies,
-  isCalculating,
-  stats
+  isCalculating
 }: DistanceFilterBarProps) {
   const hasProjectAddress = projectAddress && projectAddress.trim();
   const canEnableFilter = hasProjectAddress && companies.length > 0;
@@ -88,24 +81,9 @@ export function DistanceFilterBar({
               <span>Calculating...</span>
             </div>
           )}
-          
-          {enabled && !isCalculating && (
-            <Badge variant="secondary" className="text-xs">
-              Showing {stats.filtered} of {stats.total} companies
-            </Badge>
-          )}
         </div>
       </div>
 
-      {/* Status information */}
-      {enabled && (
-        <div className="text-xs text-gray-500 space-x-4">
-          <span>{stats.withAddresses} companies with addresses</span>
-          {!isCalculating && stats.withAddresses > 0 && (
-            <span>{stats.inRange} within {radiusMiles} miles</span>
-          )}
-        </div>
-      )}
 
       {!hasProjectAddress && (
         <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">

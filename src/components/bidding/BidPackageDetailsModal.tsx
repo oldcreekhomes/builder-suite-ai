@@ -209,7 +209,6 @@ export function BidPackageDetailsModal({
             projectAddress={projectAddress}
             companies={item.project_bids || []}
             isCalculating={distanceFilter.isCalculating}
-            stats={distanceFilter.stats}
           />
 
           {/* Bulk Action Bar for Selected Companies */}
