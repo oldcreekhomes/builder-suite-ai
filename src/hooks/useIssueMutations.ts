@@ -98,6 +98,42 @@ export function useIssueMutations() {
 
   const deleteIssue = useMutation({
     mutationFn: async (id: string) => {
+      // First, get the issue details and author information
+      const { data: issue, error: issueError } = await supabase
+        .from('company_issues')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (issueError) throw issueError;
+
+      // Get author details
+      const { data: author, error: authorError } = await supabase
+        .from('users')
+        .select('email, first_name, last_name')
+        .eq('id', issue.created_by)
+        .single();
+
+      if (authorError) throw authorError;
+
+      // Send closure email
+      try {
+        await supabase.functions.invoke('send-issue-closure-email', {
+          body: {
+            authorEmail: author.email,
+            authorName: `${author.first_name || ''} ${author.last_name || ''}`.trim() || author.email,
+            issueTitle: issue.title,
+            issueDescription: issue.description,
+            issueCategory: issue.category,
+            companyName: issue.company_name,
+          },
+        });
+      } catch (emailError) {
+        console.error('Failed to send closure email:', emailError);
+        // Don't fail the deletion if email fails
+      }
+
+      // Delete the issue
       const { error } = await supabase
         .from('company_issues')
         .delete()
