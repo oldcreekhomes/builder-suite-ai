@@ -9,8 +9,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Globe, MapPin, Users } from "lucide-react";
+import { Edit, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -117,21 +116,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     },
   });
 
-  const getCompanyTypeColor = (type: string) => {
-    switch (type) {
-      case 'Subcontractor':
-        return 'bg-blue-100 text-blue-800';
-      case 'Vendor':
-        return 'bg-green-100 text-green-800';
-      case 'Municipality':
-        return 'bg-purple-100 text-purple-800';
-      case 'Consultant':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (isLoading) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
@@ -142,8 +126,8 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-auto">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
@@ -166,23 +150,18 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               .map((company) => (
                 <TableRow key={company.id} className="h-10">
                   <TableCell className="px-2 py-1">
+                    <span className="text-xs">{company.company_type}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
                     <div className="text-xs font-medium">
                       {company.company_name}
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] w-fit px-1 py-0`}>
-                      {company.company_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
                     {company.address ? (
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                          {company.address}
-                        </span>
-                      </div>
+                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                        {company.address}
+                      </span>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
@@ -193,10 +172,9 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                         href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                        className="text-xs text-gray-600"
                       >
-                        <Globe className="h-3 w-3" />
-                        <span className="text-xs">Website</span>
+                        Website
                       </a>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
@@ -210,15 +188,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setViewingCompany(company)}
-                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
-                        title="View company"
-                      >
-                        <Users className="h-3 w-3" />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
