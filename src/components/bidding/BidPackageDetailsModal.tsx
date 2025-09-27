@@ -60,9 +60,6 @@ export function BidPackageDetailsModal({
               <span className="text-xl font-semibold">
                 {costCode?.code} - {costCode?.name}
               </span>
-              <Badge className={`ml-3 ${getStatusColor(item.status || 'draft')}`}>
-                {item.status || 'draft'}
-              </Badge>
             </div>
           </DialogTitle>
           <div className="flex gap-6 text-sm text-muted-foreground mt-2">
