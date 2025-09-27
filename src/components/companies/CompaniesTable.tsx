@@ -130,7 +130,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-64">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
