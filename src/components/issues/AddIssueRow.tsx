@@ -103,29 +103,29 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
   };
 
   return (
-    <TableRow className="h-12 bg-muted/30">
-      <TableCell className="py-2 text-sm font-medium text-muted-foreground">
+    <TableRow className="h-10 bg-muted/30">
+      <TableCell className="px-2 py-1 text-xs font-medium text-muted-foreground">
         New
       </TableCell>
       
-      <TableCell className="py-2 text-sm font-medium text-muted-foreground">
+      <TableCell className="px-2 py-1 text-xs font-medium text-muted-foreground">
         You
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Enter issue title..."
-          className="h-8 text-sm"
+          className="h-6 text-xs"
           autoFocus
         />
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         <Select value={priority} onValueChange={(value) => setPriority(value as 'Normal' | 'High')}>
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className="h-6 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
@@ -135,53 +135,21 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Select>
       </TableCell>
 
-      <TableCell className="py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Add Files Button */}
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={uploading}
-            className="h-8 px-2 text-xs"
-            onClick={() => document.getElementById('add-issue-file-input')?.click()}
-          >
-            {uploading ? 'Uploading...' : 'Add Files'}
-          </Button>
-          
-          <Input
-            id="add-issue-file-input"
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          
-          {/* Selected Files */}
-          {selectedFiles.map((file, index) => (
-            <div 
-              key={index}
-              className="flex items-center gap-1 bg-muted/20 rounded px-2 py-1"
-            >
-              <FileText className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs max-w-[100px] truncate" title={file.name}>
-                {file.name}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleFileRemove(index)}
-                className="h-4 w-4 p-0 hover:bg-destructive/10"
-              >
-                <Trash2 className="h-3 w-3 text-destructive" />
-              </Button>
-            </div>
-          ))}
-        </div>
+      <TableCell className="px-2 py-1">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          className="h-6 text-xs px-2"
+          onClick={() => document.getElementById(`add-issue-file-input-${Math.random()}`)?.click()}
+        >
+          {uploading ? 'Uploading...' : 'Add Files'}
+        </Button>
       </TableCell>
 
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         <Select value={location} onValueChange={setLocation}>
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className="h-6 text-xs">
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
@@ -196,28 +164,28 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Select>
       </TableCell>
 
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         {/* Empty cell for solution files */}
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         <div className="flex gap-1">
           <Button
             size="sm"
             variant="ghost"
             onClick={handleSave}
             disabled={!title.trim() || createIssue.isPending}
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 p-0"
           >
-            <Check className="h-4 w-4" />
+            <Check className="h-3 w-3" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={onCancel}
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 p-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </Button>
         </div>
       </TableCell>

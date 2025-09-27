@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DeleteButton } from '@/components/ui/delete-button';
 import { Badge } from '@/components/ui/badge';
-import { IssueFileUpload } from './IssueFileUpload';
-import { SolutionFileUpload } from './SolutionFileUpload';
-import { supabase } from '@/integrations/supabase/client';
-import type { CompanyIssue } from '@/hooks/useCompanyIssues';
+import { Edit, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { IssueFilesCell } from './IssueFilesCell';
+import { SolutionFilesCell } from './SolutionFilesCell';
+import { DeleteButton } from '@/components/ui/delete-button';
+import type { CompanyIssue } from '@/hooks/useCompanyIssues';
 
 interface IssueFile {
   id: string;
@@ -112,28 +114,28 @@ export function IssuesTableRow({
   };
 
   return (
-    <TableRow className="min-h-12">
-      <TableCell className="py-2 text-sm font-medium w-12">
+    <TableRow className="h-10">
+      <TableCell className="px-2 py-1 text-xs font-medium w-12">
         {issueNumber}
       </TableCell>
       
-      <TableCell className="py-2 text-sm w-20">
+      <TableCell className="px-2 py-1 text-xs w-20">
         {getAuthorInitials()}
       </TableCell>
       
-      <TableCell className="py-2">
+      <TableCell className="px-2 py-1">
         {isEditingTitle ? (
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleTitleBlur}
             onKeyDown={handleTitleKeyDown}
-            className="h-8 text-sm"
+            className="h-6 text-xs"
             autoFocus
           />
         ) : (
           <div 
-            className="min-h-8 px-2 py-1 text-sm cursor-pointer hover:bg-muted/50 rounded border border-transparent hover:border-border flex items-center break-words"
+            className="min-h-6 px-1 text-xs cursor-pointer hover:bg-muted/50 rounded border border-transparent hover:border-border flex items-center break-words"
             onClick={() => setIsEditingTitle(true)}
             title={title}
           >
@@ -142,9 +144,9 @@ export function IssuesTableRow({
         )}
       </TableCell>
       
-      <TableCell className="py-2 w-20">
+      <TableCell className="px-2 py-1 w-20">
         <Select value={issue.priority} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="h-8 text-sm w-20">
+          <SelectTrigger className="h-6 text-xs w-20">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
@@ -154,40 +156,92 @@ export function IssuesTableRow({
         </Select>
       </TableCell>
 
-      <TableCell className="py-2 w-28">
-        <IssueFileUpload 
-          issueId={issue.id}
-          files={files}
-          onFilesChange={setFiles}
-        />
-      </TableCell>
+      <IssueFilesCell 
+        issueId={issue.id}
+        files={files}
+        onFilesChange={setFiles}
+        isUploading={false}
+        onFileUpload={async (uploadFiles) => {
+          // Handle file upload logic here
+          try {
+            const uploadedFiles = [];
+            for (const file of uploadFiles) {
+              const fileExt = file.name.split('.').pop();
+              const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+              const filePath = `${issue.id}/${fileName}`;
 
-      <TableCell className="py-2 w-24">
+              const { error: uploadError } = await supabase.storage
+                .from('issue-files')
+                .upload(filePath, file);
+
+              if (uploadError) throw uploadError;
+
+              const { data: fileData, error: dbError } = await supabase
+                .from('issue_files')
+                .insert({
+                  issue_id: issue.id,
+                  file_name: file.name,
+                  file_path: filePath,
+                  file_size: file.size,
+                  file_type: fileExt,
+                })
+                .select()
+                .single();
+
+              if (dbError) throw dbError;
+              uploadedFiles.push(fileData);
+            }
+            setFiles([...files, ...uploadedFiles]);
+          } catch (error) {
+            console.error('Upload error:', error);
+          }
+        }}
+        onFileDelete={async (fileId, filePath) => {
+          try {
+            const { error } = await supabase.storage
+              .from('issue-files')
+              .remove([filePath]);
+
+            if (error) throw error;
+
+            await supabase
+              .from('issue_files')
+              .delete()
+              .eq('id', fileId);
+
+            setFiles(files.filter(f => f.id !== fileId));
+          } catch (error) {
+            console.error('Delete error:', error);
+          }
+        }}
+      />
+
+      <TableCell className="px-2 py-1 w-24">
         <div className="text-xs text-muted-foreground capitalize">
           {issue.location || '-'}
         </div>
       </TableCell>
 
-      <TableCell className="py-2 min-w-48">
-        <SolutionFileUpload
-          issueId={issue.id}
-          solution={issue.solution}
-          solutionFiles={issue.solution_files}
-          onSolutionChange={handleSolutionChange}
-        />
-      </TableCell>
+      <SolutionFilesCell
+        issueId={issue.id}
+        solution={issue.solution}
+        solutionFiles={issue.solution_files}
+        onSolutionChange={handleSolutionChange}
+      />
       
-      <TableCell className="py-2 w-16">
-        <DeleteButton
-          onDelete={() => onDelete(issue.id)}
-          title="Delete Issue"
-          description="Are you sure you want to delete the issue? This action cannot be undone."
-          size="sm"
-          variant="ghost"
-          isLoading={isDeleting}
-          showIcon={true}
-          className="h-8"
-        />
+      <TableCell className="px-2 py-1 w-16">
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(issue.id)}
+            disabled={isDeleting}
+            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+            title="Delete issue"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );

@@ -61,10 +61,10 @@ export function IssuesTable({ category }: IssuesTableProps) {
             
             {(!issues || issues.length === 0) && !showAddRow ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
                   No {category.toLowerCase()} issues found.
                   <br />
-                  <span className="text-sm">Click "Add Issue" to create the first one.</span>
+                  <span className="text-xs">Click "Add Issue" to create the first one.</span>
                 </TableCell>
               </TableRow>
             ) : (
