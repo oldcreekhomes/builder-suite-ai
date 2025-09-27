@@ -156,7 +156,7 @@ export function IssuesTableRow({
         <DeleteButton
           onDelete={() => onDelete(issue.id)}
           title="Delete Issue"
-          description={`Are you sure you want to delete the issue "${issue.title}"? This action cannot be undone.`}
+          description={`Are you sure you want to delete the issue ${issue.title}? This action cannot be undone.`}
           size="sm"
           variant="ghost"
           isLoading={isDeleting}
