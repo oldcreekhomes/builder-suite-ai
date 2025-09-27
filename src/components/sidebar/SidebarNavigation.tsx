@@ -202,7 +202,15 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs p-4">
-                        <p>Estimating AI is a paid feature for Home Builders. Step #1: Build your database of costs. Step #2: Add your drawings. Step #3: Let Estimating do a take off of your drawings and build a budget in 15-30 seconds. Something that used to take days now takes seconds.</p>
+                        <div className="space-y-2">
+                          <p>Estimating AI is a paid feature for Home Builders.</p>
+                          <div className="space-y-1">
+                            <p>Step #1: Build your database of costs.</p>
+                            <p>Step #2: Add your drawings.</p>
+                            <p>Step #3: Let Estimating AI do a take off and build a budget in 15-30 seconds.</p>
+                          </div>
+                          <p>Something that used to take days now takes seconds.</p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -210,7 +218,15 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         <HelpCircle className="h-4 w-4 text-black cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs p-4">
-                        <p>Estimating AI is a paid feature for Home Builders. Step #1: Build your database of costs. Step #2: Add your drawings. Step #3: Let Estimating do a take off of your drawings and build a budget in 15-30 seconds. Something that used to take days now takes seconds.</p>
+                        <div className="space-y-2">
+                          <p>Estimating AI is a paid feature for Home Builders.</p>
+                          <div className="space-y-1">
+                            <p>Step #1: Build your database of costs.</p>
+                            <p>Step #2: Add your drawings.</p>
+                            <p>Step #3: Let Estimating AI do a take off and build a budget in 15-30 seconds.</p>
+                          </div>
+                          <p>Something that used to take days now takes seconds.</p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </div>
