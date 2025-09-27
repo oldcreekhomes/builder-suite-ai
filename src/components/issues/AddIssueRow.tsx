@@ -20,6 +20,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
   const [priority, setPriority] = useState<'Normal' | 'High'>('Normal');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [location, setLocation] = useState<string>('');
   
   const { createIssue } = useIssueMutations();
 
@@ -81,6 +82,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       title: title.trim(),
       category,
       priority,
+      location,
     }, {
       onSuccess: async (newIssue: any) => {
         if (selectedFiles.length > 0) {
@@ -143,7 +145,6 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
             className="h-8 px-2 text-xs"
             onClick={() => document.getElementById('add-issue-file-input')?.click()}
           >
-            <Upload className="h-3 w-3 mr-1" />
             {uploading ? 'Uploading...' : 'Add Files'}
           </Button>
           
@@ -178,10 +179,25 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </div>
       </TableCell>
 
-      <TableCell className="py-2 min-w-48">
-        <div className="text-xs text-muted-foreground">
-          Solution will be added after creation
-        </div>
+      <TableCell className="py-2">
+        <Select value={location} onValueChange={setLocation}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder="Select location" />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            <SelectItem value="messages">Messages</SelectItem>
+            <SelectItem value="files">Files</SelectItem>
+            <SelectItem value="photos">Photos</SelectItem>
+            <SelectItem value="budget">Budget</SelectItem>
+            <SelectItem value="bidding">Bidding</SelectItem>
+            <SelectItem value="schedule">Schedule</SelectItem>
+            <SelectItem value="authentication">Authentication</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+
+      <TableCell className="py-2">
+        {/* Empty cell for solution files */}
       </TableCell>
       
       <TableCell className="py-2">
