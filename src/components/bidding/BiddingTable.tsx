@@ -11,6 +11,7 @@ import { BiddingTableHeader } from './BiddingTableHeader';
 import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
 import { BiddingTableFooter } from './BiddingTableFooter';
+
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { useBiddingData, useAllBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
@@ -28,7 +29,7 @@ interface BiddingTableProps {
 export function BiddingTable({ projectId, projectAddress, status }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
-  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
   const { data: allBiddingData } = useAllBiddingData(projectId);
@@ -55,52 +56,6 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
   const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
 
-  // Company selection handlers
-  const handleCompanyCheckboxChange = (companyId: string, checked: boolean) => {
-    setSelectedCompanies(prev => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(companyId);
-      } else {
-        newSet.delete(companyId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAllCompanies = (biddingItemId: string, checked: boolean) => {
-    const item = biddingItems.find(i => i.id === biddingItemId);
-    if (!item) return;
-
-    setSelectedCompanies(prev => {
-      const newSet = new Set(prev);
-      const companyIds = (item.project_bids || []).map((bid: any) => bid.id);
-      
-      if (checked) {
-        companyIds.forEach(id => newSet.add(id));
-      } else {
-        companyIds.forEach(id => newSet.delete(id));
-      }
-      return newSet;
-    });
-  };
-
-  const onBulkDeleteCompanies = () => {
-    // Delete each selected company
-    selectedCompanies.forEach(companyId => {
-      // Find the bidding item and company for this companyId
-      for (const item of biddingItems) {
-        const company = (item.project_bids || []).find((bid: any) => bid.id === companyId);
-        if (company) {
-          deleteCompany(item.id, companyId);
-          break;
-        }
-      }
-    });
-    
-    // Clear selections after deletion
-    setSelectedCompanies(new Set());
-  };
 
   const onDeleteGroup = (group: string) => {
     const groupItems = groupedBiddingItems[group] || [];
@@ -157,7 +112,6 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const isReadOnly = status === 'closed';
 
   const selectedCount = selectedItems.size;
-  const selectedCompaniesCount = selectedCompanies.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
   return (
@@ -194,15 +148,6 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
           selectedFolderCount={0}
           onBulkDelete={onBulkDelete}
           isDeleting={isDeletingSelected}
-        />
-      )}
-
-      {selectedCompaniesCount > 0 && status === 'draft' && (
-        <BulkActionBar
-          selectedCount={selectedCompaniesCount}
-          selectedFolderCount={0}
-          onBulkDelete={onBulkDeleteCompanies}
-          isDeleting={false}
         />
       )}
 
@@ -308,9 +253,6 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                       projectAddress={projectAddress}
                       onFileUpload={handleFileUpload}
                       onDeleteIndividualFile={handleDeleteIndividualFile}
-                      selectedCompanies={selectedCompanies}
-                      onCompanyCheckboxChange={handleCompanyCheckboxChange}
-                      onSelectAllCompanies={handleSelectAllCompanies}
                     />
                   )) : [])
                 ]).flat()}
