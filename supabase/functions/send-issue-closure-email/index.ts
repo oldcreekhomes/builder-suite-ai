@@ -47,15 +47,18 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate solution files HTML with download links formatted like bid invitation
     const solutionFilesHtml = solutionFiles.length > 0 
       ? solutionFiles.map((filePath, index) => {
-          const fileName = filePath.split('/').pop() || `File${index + 1}`;
+          const simpleFileName = `File${index + 1}`;
           const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/issue-files/${filePath}`;
           return `
             <div style="margin-bottom: 8px; display: flex; align-items: center;">
               <span style="margin-right: 8px; font-size: 16px;">📄</span>
-              <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</a>
+              <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${simpleFileName}</a>
             </div>`;
         }).join('')
       : 'No solution files attached';
+    
+    // Dynamic text based on number of files
+    const fileText = solutionFiles.length === 1 ? 'file' : 'files';
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
@@ -92,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${firstName},</p>
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Please see the solution file below. If you do not find the answer acceptable, please reopen an issue in Builder Suite. Thank you for your help!</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Please see the solution ${fileText} below. If you do not find the answer acceptable, please reopen an issue in Builder Suite. Thank you for your help!</p>
                             
                             <!-- Issue Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
