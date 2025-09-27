@@ -126,10 +126,10 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-auto">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
             </TableRow>
@@ -150,21 +150,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               .map((company) => (
                 <TableRow key={company.id} className="h-10">
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{company.company_type}</span>
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
                     <div className="text-xs font-medium">
                       {company.company_name}
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    {company.address ? (
-                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                        {company.address}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
+                    <span className="text-xs">{company.company_type}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {company.website ? (
@@ -176,6 +167,15 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                       >
                         Website
                       </a>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    {company.address ? (
+                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                        {company.address}
+                      </span>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
