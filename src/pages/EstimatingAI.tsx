@@ -96,31 +96,6 @@ export default function EstimatingAI() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Main Content Area */}
-              <Card className="min-h-96">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
-                    AI Estimation Workspace
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                    <div className="text-center space-y-4">
-                      <Sparkles className="h-12 w-12 mx-auto opacity-50" />
-                      <div>
-                        <p className="text-lg font-medium">AI Estimating Features Coming Soon</p>
-                        <p className="text-sm">Advanced machine learning capabilities for construction estimation</p>
-                      </div>
-                      <Button>
-                        <Brain className="h-4 w-4 mr-2" />
-                        Learn More About AI Features
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </main>
         </div>
