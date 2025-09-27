@@ -3,7 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, MapPin, HelpCircle } from 'lucide-react';
+import { Loader2, MapPin, HelpCircle, Store } from 'lucide-react';
 
 interface BiddingCompany {
   id: string;
@@ -106,8 +106,11 @@ export function DistanceFilterBar({
         {/* MarketPlace Box */}
         <div className="flex-1 bg-gray-50/50 border rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">MarketPlace</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Store className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium">MarketPlace</span>
+              </div>
             </div>
           </div>
         </div>
