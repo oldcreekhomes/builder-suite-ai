@@ -41,7 +41,12 @@ export function SolutionFilesCell({
       
       for (const file of acceptedFiles) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${file.name}`;
+        // Sanitize filename: replace spaces and special characters with safe alternatives
+        const sanitizedName = file.name
+          .replace(/\s+/g, '_')  // Replace spaces with underscores
+          .replace(/[^\w.-]/g, '_')  // Replace special characters with underscores
+          .replace(/_+/g, '_');  // Replace multiple underscores with single underscore
+        const fileName = `${Date.now()}-${sanitizedName}`;
         const filePath = `issue-solutions/${issueId}/${fileName}`;
         
         const { error: uploadError } = await supabase.storage
