@@ -220,6 +220,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
 
       // Invalidate bidding queries to refresh the table
       queryClient.invalidateQueries({ queryKey: ['project-bidding'] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', bidPackage.project_id] });
 
       toast({
         title: "Bid Package Sent",
