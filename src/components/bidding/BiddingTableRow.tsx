@@ -122,6 +122,18 @@ export function BiddingTableRow({
         onOpenChange={setShowBidPackageModal}
         item={item}
         costCode={costCode}
+        // Bid package operations
+        onUpdateStatus={onUpdateStatus}
+        onUpdateDueDate={onUpdateDueDate}
+        onUpdateReminderDate={onUpdateReminderDate}
+        onUpdateSpecifications={onUpdateSpecifications}
+        onDelete={onDelete}
+        onFileUpload={onFileUpload}
+        onDeleteIndividualFile={onDeleteIndividualFile}
+        onSendClick={() => setShowSendModal(true)}
+        onTestEmailClick={() => setShowTestEmailModal(true)}
+        onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
+        // Company operations
         onToggleBidStatus={onToggleBidStatus}
         onUpdatePrice={onUpdatePrice}
         onUploadProposal={onUploadProposal}

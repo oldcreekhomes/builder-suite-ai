@@ -1,6 +1,12 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { BiddingCompanyList } from './BiddingCompanyList';
+import { BiddingDatePicker } from './components/BiddingDatePicker';
+import { BiddingTableRowSpecs } from './components/BiddingTableRowSpecs';
+import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
+import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -12,6 +18,18 @@ interface BidPackageDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   item: any; // Project bidding item with cost_codes relation and companies
   costCode: CostCode;
+  // Bid package operations
+  onUpdateStatus?: (itemId: string, status: string) => void;
+  onUpdateDueDate?: (itemId: string, dueDate: string | null) => void;
+  onUpdateReminderDate?: (itemId: string, reminderDate: string | null) => void;
+  onUpdateSpecifications?: (itemId: string, specifications: string) => void;
+  onDelete?: (itemId: string) => void;
+  onFileUpload?: (itemId: string, files: File[]) => void;
+  onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onSendClick?: () => void;
+  onTestEmailClick?: () => void;
+  onAddCompaniesClick?: () => void;
+  // Company operations
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
@@ -30,6 +48,18 @@ export function BidPackageDetailsModal({
   onOpenChange,
   item,
   costCode,
+  // Bid package operations
+  onUpdateStatus,
+  onUpdateDueDate,
+  onUpdateReminderDate,
+  onUpdateSpecifications,
+  onDelete,
+  onFileUpload,
+  onDeleteIndividualFile,
+  onSendClick,
+  onTestEmailClick,
+  onAddCompaniesClick,
+  // Company operations
   onToggleBidStatus,
   onUpdatePrice,
   onUploadProposal,
@@ -79,28 +109,119 @@ export function BidPackageDetailsModal({
         </DialogHeader>
         
         <div className="flex-1 overflow-auto">
-          <div className="border rounded-lg">
-            <table className="w-full">
-              <tbody>
-                <BiddingCompanyList
+          {/* Bid Package Management Section */}
+          <div className="bg-muted/30 p-4 rounded-lg mb-4">
+            <h3 className="text-sm font-medium text-foreground mb-3">Bid Package Management</h3>
+            <div className="grid grid-cols-12 gap-4 items-center">
+              {/* Status */}
+              <div className="col-span-2">
+                <Select
+                  value={item.status || 'draft'}
+                  onValueChange={(value) => onUpdateStatus?.(item.id, value)}
+                  disabled={isReadOnly}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Due Date */}
+              <div className="col-span-2">
+                <BiddingDatePicker
+                  value={item.due_date}
+                  onChange={(date) => onUpdateDueDate?.(item.id, date)}
+                  placeholder="Due Date"
+                  disabled={isReadOnly}
+                  companyId=""
                   biddingItemId={item.id}
-                  companies={item.project_bids || []}
-                  onToggleBidStatus={onToggleBidStatus}
-                  onUpdatePrice={onUpdatePrice}
-                  onUploadProposal={onUploadProposal}
-                  onDeleteAllProposals={onDeleteAllProposals}
-                  onDeleteCompany={onDeleteCompany}
-                  onSendEmail={onSendEmail}
-                  isReadOnly={isReadOnly}
-                  projectAddress={projectAddress}
-                  projectId={item.project_id}
-                  costCodeId={item.cost_code_id}
-                  selectedCompanies={selectedCompanies}
-                  onCompanyCheckboxChange={onCompanyCheckboxChange}
-                  onSelectAllCompanies={onSelectAllCompanies}
+                  field="due_date"
                 />
-              </tbody>
-            </table>
+              </div>
+
+              {/* Reminder Date */}
+              <div className="col-span-2">
+                <BiddingDatePicker
+                  value={item.reminder_date}
+                  onChange={(date) => onUpdateReminderDate?.(item.id, date)}
+                  placeholder="Reminder"
+                  disabled={isReadOnly}
+                  companyId=""
+                  biddingItemId={item.id}
+                  field="reminder_date"
+                  dueDate={item.due_date}
+                />
+              </div>
+
+              {/* Specifications */}
+              <div className="col-span-2">
+                <BiddingTableRowSpecs
+                  item={item}
+                  costCode={costCode}
+                  onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
+                  isReadOnly={isReadOnly}
+                />
+              </div>
+
+              {/* Files */}
+              <div className="col-span-2">
+                <BiddingTableRowFiles
+                  item={item}
+                  onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
+                  onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                  isReadOnly={isReadOnly}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="col-span-2">
+                <BiddingTableRowActions
+                  item={item}
+                  costCode={costCode}
+                  onDelete={(itemId) => onDelete?.(itemId)}
+                  onSendClick={() => onSendClick?.()}
+                  onTestEmailClick={() => onTestEmailClick?.()}
+                  onAddCompaniesClick={() => onAddCompaniesClick?.()}
+                  isDeleting={false}
+                  isReadOnly={isReadOnly}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Companies Section */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3">Companies</h3>
+            <div className="border rounded-lg">
+              <table className="w-full">
+                <tbody>
+                  <BiddingCompanyList
+                    biddingItemId={item.id}
+                    companies={item.project_bids || []}
+                    onToggleBidStatus={onToggleBidStatus}
+                    onUpdatePrice={onUpdatePrice}
+                    onUploadProposal={onUploadProposal}
+                    onDeleteAllProposals={onDeleteAllProposals}
+                    onDeleteCompany={onDeleteCompany}
+                    onSendEmail={onSendEmail}
+                    isReadOnly={isReadOnly}
+                    projectAddress={projectAddress}
+                    projectId={item.project_id}
+                    costCodeId={item.cost_code_id}
+                    selectedCompanies={selectedCompanies}
+                    onCompanyCheckboxChange={onCompanyCheckboxChange}
+                    onSelectAllCompanies={onSelectAllCompanies}
+                  />
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </DialogContent>
