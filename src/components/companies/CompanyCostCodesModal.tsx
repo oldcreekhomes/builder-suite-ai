@@ -74,27 +74,17 @@ export function CompanyCostCodesModal({
               costCodes.map((costCode) => (
                 <div
                   key={costCode.id}
-                  className="bg-gray-50 rounded-lg p-3 space-y-1"
+                  className="bg-gray-50 rounded-lg p-3"
                 >
                   <div className="flex items-center space-x-2">
                     <Hash className="h-3 w-3 text-gray-400" />
                     <span className="text-xs font-medium text-gray-900">
                       {costCode.code}
                     </span>
+                    <span className="text-xs text-gray-600">
+                      {costCode.name}
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-600 font-medium">
-                    {costCode.name}
-                  </div>
-                  {costCode.category && (
-                    <div className="text-xs text-gray-500">
-                      Category: {costCode.category}
-                    </div>
-                  )}
-                  {costCode.unit_of_measure && (
-                    <div className="text-xs text-gray-500">
-                      Unit: {costCode.unit_of_measure}
-                    </div>
-                  )}
                 </div>
               ))
             )}
