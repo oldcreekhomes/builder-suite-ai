@@ -1,5 +1,8 @@
 project_id = "nlmnwlvmmkngrgatnzkj"
 
+[functions.calculate-distances]
+verify_jwt = true
+
 [functions.delete-employee]
 verify_jwt = false
 
