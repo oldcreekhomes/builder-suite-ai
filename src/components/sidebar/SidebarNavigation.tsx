@@ -192,20 +192,47 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
           <div>
             {filteredItems.map((item) => (
               <div key={item.title}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a 
-                      href={item.url} 
-                      className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.title}</span>
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{item.title}</p>
-                  </TooltipContent>
-                </Tooltip>
+                {item.title === "Estimating AI" ? (
+                  <div className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a 
+                          href={item.url} 
+                          className="flex items-center space-x-2 flex-1"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{item.title}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-black cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs p-4">
+                        <p>Estimating AI uses artificial intelligence to provide intelligent cost estimation, material optimization, and automated project analysis for construction projects.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a 
+                        href={item.url} 
+                        className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="flex-1">{item.title}</span>
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{item.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             ))}
           </div>
