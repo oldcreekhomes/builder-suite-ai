@@ -4,6 +4,7 @@ import { useProject } from './useProject';
 
 interface ProjectContextData {
   projectId: string;
+  projectPath: string; // Store the full project path (e.g., /project/123/files)
   projectName?: string;
   projectAddress?: string;
   timestamp: number;
@@ -21,9 +22,10 @@ export const useProjectContext = () => {
     if (pathParts[1] === 'project' && pathParts[2]) {
       const currentProjectId = pathParts[2];
       
-      // Store this project as the last visited
+      // Store this project path as the last visited
       const contextData: ProjectContextData = {
         projectId: currentProjectId,
+        projectPath: location.pathname, // Store the full path
         timestamp: Date.now()
       };
       
@@ -52,8 +54,8 @@ export const useProjectContext = () => {
   };
 
   const goBackToProject = () => {
-    if (projectContext?.projectId) {
-      window.location.href = `/project/${projectContext.projectId}`;
+    if (projectContext?.projectPath) {
+      window.location.href = projectContext.projectPath;
     }
   };
 
