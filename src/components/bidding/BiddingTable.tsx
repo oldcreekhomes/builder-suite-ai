@@ -29,6 +29,7 @@ interface BiddingTableProps {
 export function BiddingTable({ projectId, projectAddress, status }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
+  const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
@@ -55,6 +56,53 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteIndividualFile, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
   const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
+
+  // Company selection handlers for modal use
+  const handleCompanyCheckboxChange = (companyId: string, checked: boolean) => {
+    setSelectedCompanies(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(companyId);
+      } else {
+        newSet.delete(companyId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllCompanies = (biddingItemId: string, checked: boolean) => {
+    const item = biddingItems.find(i => i.id === biddingItemId);
+    if (!item) return;
+
+    setSelectedCompanies(prev => {
+      const newSet = new Set(prev);
+      const companyIds = (item.project_bids || []).map((bid: any) => bid.id);
+      
+      if (checked) {
+        companyIds.forEach(id => newSet.add(id));
+      } else {
+        companyIds.forEach(id => newSet.delete(id));
+      }
+      return newSet;
+    });
+  };
+
+  const onBulkDeleteCompanies = () => {
+    // Delete each selected company
+    selectedCompanies.forEach(companyId => {
+      // Find the bidding item and company for this companyId
+      for (const item of biddingItems) {
+        const company = (item.project_bids || []).find((bid: any) => bid.id === companyId);
+        if (company) {
+          deleteCompany(item.id, companyId);
+          break;
+        }
+      }
+    });
+    
+    // Clear selections after deletion
+    setSelectedCompanies(new Set());
+  };
 
 
   const onDeleteGroup = (group: string) => {
@@ -231,29 +279,34 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                   />,
                   
                   ...(expandedGroups.has(group) ? items.map((item) => (
-                    <BiddingTableRow
-                      key={item.id}
-                      item={item}
-                      onDelete={onDeleteItem}
-                      onUpdateStatus={handleUpdateStatus}
-                      onUpdateDueDate={handleUpdateDueDate}
-                      onUpdateReminderDate={handleUpdateReminderDate}
-                      onUpdateSpecifications={handleUpdateSpecifications}
-                      onToggleBidStatus={toggleBidStatus}
-                      onUpdatePrice={updatePrice}
-                      onUploadProposal={uploadProposal}
-                      onDeleteAllProposals={deleteAllProposals}
-                      onDeleteCompany={deleteCompany}
-                      formatUnitOfMeasure={formatUnitOfMeasure}
-                      isSelected={selectedItems.has(item.id)}
-                      onCheckboxChange={handleItemCheckboxChange}
-                      isDeleting={deletingItems.has(item.id)}
-                      isReadOnly={isReadOnly}
-                      isCompanyReadOnly={status === 'closed'}
-                      projectAddress={projectAddress}
-                      onFileUpload={handleFileUpload}
-                      onDeleteIndividualFile={handleDeleteIndividualFile}
-                    />
+                     <BiddingTableRow
+                       key={item.id}
+                       item={item}
+                       onDelete={onDeleteItem}
+                       onUpdateStatus={handleUpdateStatus}
+                       onUpdateDueDate={handleUpdateDueDate}
+                       onUpdateReminderDate={handleUpdateReminderDate}
+                       onUpdateSpecifications={handleUpdateSpecifications}
+                       onToggleBidStatus={toggleBidStatus}
+                       onUpdatePrice={updatePrice}
+                       onUploadProposal={uploadProposal}
+                       onDeleteAllProposals={deleteAllProposals}
+                       onDeleteCompany={deleteCompany}
+                       formatUnitOfMeasure={formatUnitOfMeasure}
+                       isSelected={selectedItems.has(item.id)}
+                       onCheckboxChange={handleItemCheckboxChange}
+                       isDeleting={deletingItems.has(item.id)}
+                       isReadOnly={isReadOnly}
+                       isCompanyReadOnly={status === 'closed'}
+                       projectAddress={projectAddress}
+                       onFileUpload={handleFileUpload}
+                       onDeleteIndividualFile={handleDeleteIndividualFile}
+                       selectedCompanies={selectedCompanies}
+                       onCompanyCheckboxChange={handleCompanyCheckboxChange}
+                       onSelectAllCompanies={handleSelectAllCompanies}
+                       onBulkDeleteCompanies={onBulkDeleteCompanies}
+                       isDeletingCompanies={false}
+                     />
                   )) : [])
                 ]).flat()}
               </>
