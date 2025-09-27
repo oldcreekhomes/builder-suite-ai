@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -41,102 +40,72 @@ export function EditBiddingSpecificationsModal({
   onUpdateSpecifications,
   isReadOnly = false
 }: EditBiddingSpecificationsModalProps) {
-  const [description, setDescription] = useState(specifications || '');
   const [isLoading, setIsLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(isReadOnly);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    setDescription(specifications || '');
+  useEffect(() => {
+    if (specifications && editorRef.current) {
+      // Convert markdown to HTML for display
+      const htmlContent = convertMarkdownToHtml(specifications || '');
+      editorRef.current.innerHTML = htmlContent;
+    }
   }, [specifications]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isReadOnly) {
       setShowPreview(true);
     }
   }, [isReadOnly]);
 
-  const insertText = (before: string, after: string = '', placeholder: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = description.substring(start, end);
-    const textToInsert = selectedText || placeholder;
-    
-    const newText = description.substring(0, start) + before + textToInsert + after + description.substring(end);
-    setDescription(newText);
-    
-    // Focus and set cursor position
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = start + before.length + textToInsert.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
+  const convertMarkdownToHtml = (markdown: string) => {
+    return markdown
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/__(.*?)__/g, '<u>$1</u>')
+      .replace(/^• (.+)$/gm, '<ul><li>$1</li></ul>')
+      .replace(/^\d+\. (.+)$/gm, '<ol><li>$1</li></ol>')
+      .replace(/^    (.+)$/gm, '<div style="margin-left: 20px;">$1</div>')
+      .replace(/\n/g, '<br>');
   };
 
-  const insertAtLineStart = (prefix: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const beforeCursor = description.substring(0, start);
-    const afterCursor = description.substring(start);
+  const convertHtmlToMarkdown = (html: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
     
-    // Find the start of the current line
-    const lastNewline = beforeCursor.lastIndexOf('\n');
-    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-    const currentLine = description.substring(lineStart, start);
+    // Convert back to markdown-style formatting for storage
+    let text = div.innerHTML
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<u>(.*?)<\/u>/g, '__$1__')
+      .replace(/<li>(.*?)<\/li>/g, '• $1')
+      .replace(/<ul>|<\/ul>|<ol>|<\/ol>/g, '')
+      .replace(/<div style="margin-left: 20px;">(.*?)<\/div>/g, '    $1')
+      .replace(/<br>/g, '\n')
+      .replace(/<[^>]*>/g, ''); // Remove any remaining HTML tags
     
-    // Check if line already has the prefix
-    if (currentLine.startsWith(prefix)) {
-      // Remove prefix
-      const newText = description.substring(0, lineStart) + 
-                     currentLine.substring(prefix.length) + 
-                     description.substring(start);
-      setDescription(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start - prefix.length, start - prefix.length);
-      }, 0);
-    } else {
-      // Add prefix
-      const newText = description.substring(0, lineStart) + 
-                     prefix + currentLine + 
-                     description.substring(start);
-      setDescription(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length);
-      }, 0);
-    }
+    return text;
   };
 
-  const handleIndent = () => {
-    insertAtLineStart('    '); // 4 spaces for indent
+  const execCommand = (command: string, value: string = '') => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
   };
 
-  const handleOutdent = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const beforeCursor = description.substring(0, start);
-    const lastNewline = beforeCursor.lastIndexOf('\n');
-    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
-    const currentLine = description.substring(lineStart);
-    
-    if (currentLine.startsWith('    ')) {
-      const newText = description.substring(0, lineStart) + 
-                     currentLine.substring(4);
-      setDescription(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(Math.max(start - 4, lineStart), Math.max(start - 4, lineStart));
-      }, 0);
-    }
+  const handleBold = () => execCommand('bold');
+  const handleItalic = () => execCommand('italic');
+  const handleUnderline = () => execCommand('underline');
+  
+  const handleBulletList = () => {
+    execCommand('insertUnorderedList');
   };
+  
+  const handleNumberedList = () => {
+    execCommand('insertOrderedList');
+  };
+
+  const handleIndent = () => execCommand('indent');
+  const handleOutdent = () => execCommand('outdent');
 
   const formatText = (text: string) => {
     return text
@@ -150,9 +119,13 @@ export function EditBiddingSpecificationsModal({
   };
 
   const handleSave = async () => {
+    if (!editorRef.current) return;
+    
     setIsLoading(true);
     try {
-      await onUpdateSpecifications(description);
+      const htmlContent = editorRef.current.innerHTML;
+      const markdownContent = convertHtmlToMarkdown(htmlContent);
+      await onUpdateSpecifications(markdownContent);
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating specifications:', error);
@@ -203,7 +176,7 @@ export function EditBiddingSpecificationsModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => insertText('**', '**', 'bold text')}
+                      onClick={handleBold}
                       title="Bold"
                     >
                       <Bold className="h-3 w-3" />
@@ -212,7 +185,7 @@ export function EditBiddingSpecificationsModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => insertText('*', '*', 'italic text')}
+                      onClick={handleItalic}
                       title="Italic"
                     >
                       <Italic className="h-3 w-3" />
@@ -221,7 +194,7 @@ export function EditBiddingSpecificationsModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => insertText('__', '__', 'underlined text')}
+                      onClick={handleUnderline}
                       title="Underline"
                     >
                       <Underline className="h-3 w-3" />
@@ -235,7 +208,7 @@ export function EditBiddingSpecificationsModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => insertAtLineStart('• ')}
+                      onClick={handleBulletList}
                       title="Bullet Point"
                     >
                       <List className="h-3 w-3" />
@@ -244,7 +217,7 @@ export function EditBiddingSpecificationsModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => insertAtLineStart('1. ')}
+                      onClick={handleNumberedList}
                       title="Numbered List"
                     >
                       <ListOrdered className="h-3 w-3" />
@@ -275,26 +248,24 @@ export function EditBiddingSpecificationsModal({
                   </div>
                 </div>
                 
-                <Textarea
-                  ref={textareaRef}
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter bid package specifications..."
-                  rows={8}
-                  className="rounded-t-none font-mono text-sm"
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  className="min-h-[200px] w-full rounded-b-md border border-t-0 border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  style={{ maxHeight: '300px', overflowY: 'auto' }}
+                  suppressContentEditableWarning={true}
                 />
                 
                 <div className="text-xs text-gray-500 mt-1">
-                  Tip: Use **bold**, *italic*, __underline__, • bullets, 1. numbers, and indenting
+                  Use the toolbar buttons to format your text. Text will appear formatted as you type.
                 </div>
               </>
             )}
             
             {showPreview && (
               <div className="border rounded-md p-3 min-h-[200px] bg-white">
-                {description.trim() ? (
-                  <div dangerouslySetInnerHTML={{ __html: formatText(description) }} />
+                {specifications?.trim() ? (
+                  <div dangerouslySetInnerHTML={{ __html: formatText(specifications) }} />
                 ) : (
                   <div className="text-gray-500 text-center py-8">
                     {isReadOnly ? 'No specifications added yet.' : 'No content to preview. Start typing to see a preview.'}
