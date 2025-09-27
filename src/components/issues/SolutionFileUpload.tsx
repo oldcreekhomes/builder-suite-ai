@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Upload, FileText, Download } from 'lucide-react';
+import { X, Upload, FileText, Download, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -152,11 +152,91 @@ export function SolutionFileUpload({
     }
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      onDrop(files);
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
   return (
-    <div className="space-y-2">
-      {/* Solution Text */}
-      <div className="space-y-1">
-        {isEditingText ? (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Add Solution Text Button */}
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={isEditingText}
+        className="h-8 px-2 text-xs"
+        onClick={() => setIsEditingText(true)}
+      >
+        <Edit3 className="h-3 w-3 mr-1" />
+        {localSolution ? 'Edit' : 'Add Text'}
+      </Button>
+
+      {/* Add Files Button */}
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={isUploading}
+        className="h-8 px-2 text-xs"
+        onClick={() => document.getElementById(`solution-file-input-${issueId}`)?.click()}
+      >
+        <Upload className="h-3 w-3 mr-1" />
+        {isUploading ? 'Uploading...' : 'Add Files'}
+      </Button>
+      
+      <input
+        id={`solution-file-input-${issueId}`}
+        type="file"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* Solution Text Indicator */}
+      {localSolution && !isEditingText && (
+        <div className="flex items-center gap-1 bg-muted/20 rounded px-2 py-1">
+          <Edit3 className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs max-w-[100px] truncate" title={localSolution}>
+            Solution text
+          </span>
+        </div>
+      )}
+      
+      {/* Solution Files */}
+      {localFiles.map((file, index) => (
+        <div 
+          key={index}
+          className="flex items-center gap-1 bg-muted/20 rounded px-2 py-1"
+        >
+          <FileText className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs max-w-[100px] truncate" title={file.name}>
+            {file.name}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDownloadFile(file.path, file.name)}
+            className="h-4 w-4 p-0 hover:bg-primary/10"
+          >
+            <Download className="h-3 w-3 text-primary" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleRemoveFile(file.path)}
+            className="h-4 w-4 p-0 hover:bg-destructive/10"
+          >
+            <X className="h-3 w-3 text-destructive" />
+          </Button>
+        </div>
+      ))}
+
+      {/* Inline Text Editor */}
+      {isEditingText && (
+        <div className="w-full mt-2">
           <Textarea
             value={localSolution}
             onChange={(e) => setLocalSolution(e.target.value)}
@@ -166,68 +246,8 @@ export function SolutionFileUpload({
             className="min-h-16 text-sm resize-none"
             autoFocus
           />
-        ) : (
-          <div 
-            className="min-h-8 px-2 py-1 text-sm cursor-pointer hover:bg-muted/50 rounded border border-transparent hover:border-border flex items-center break-words"
-            onClick={() => setIsEditingText(true)}
-            title={localSolution || "Click to add solution"}
-          >
-            {localSolution || <span className="text-muted-foreground">Click to add solution...</span>}
-          </div>
-        )}
-      </div>
-
-      {/* File Upload Area */}
-      <div className="space-y-2">
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-xs ${
-            isDragActive 
-              ? 'border-primary bg-primary/5' 
-              : 'border-gray-300 hover:border-gray-400'
-          } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <input {...getInputProps()} />
-          <Upload className="mx-auto h-4 w-4 text-gray-500 mb-1" />
-          <p className="text-gray-600">
-            {isDragActive ? 'Drop files here' : 'Drop or click to upload'}
-          </p>
         </div>
-
-        {/* File List */}
-        {localFiles.length > 0 && (
-          <div className="space-y-1">
-            {localFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between p-1 bg-gray-50 rounded text-xs">
-                <div className="flex items-center space-x-1 min-w-0 flex-1">
-                  <FileText className="h-3 w-3 flex-shrink-0 text-gray-500" />
-                  <span className="truncate text-gray-700">{file.name}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 p-0"
-                    onClick={() => handleDownloadFile(file.path, file.name)}
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 w-5 p-0 text-red-500 hover:text-red-600"
-                    onClick={() => handleRemoveFile(file.path)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
