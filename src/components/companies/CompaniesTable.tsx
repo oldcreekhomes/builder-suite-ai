@@ -9,12 +9,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Users } from "lucide-react";
+import { Edit, Trash2, Users, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
+import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
 
 type CostCode = {
   id: string;
@@ -44,6 +45,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [showingReps, setShowingReps] = useState<Company | null>(null);
+  const [showingCostCodes, setShowingCostCodes] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -168,16 +170,14 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {company.cost_codes && company.cost_codes.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        <span className="text-xs text-gray-600">
-                          {company.cost_codes[0].code}
-                        </span>
-                        {company.cost_codes.length > 1 && (
-                          <span className="text-xs text-gray-500">
-                            +{company.cost_codes.length - 1} more
-                          </span>
-                        )}
-                      </div>
+                      <button
+                        onClick={() => setShowingCostCodes(company)}
+                        className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                        title="View cost codes"
+                      >
+                        <Hash className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs">{company.cost_codes.length}</span>
+                      </button>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
@@ -279,6 +279,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         company={showingReps}
         open={!!showingReps}
         onOpenChange={(open) => !open && setShowingReps(null)}
+      />
+
+      <CompanyCostCodesModal
+        company={showingCostCodes}
+        open={!!showingCostCodes}
+        onOpenChange={(open) => !open && setShowingCostCodes(null)}
       />
     </>
   );
