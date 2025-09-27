@@ -104,20 +104,6 @@ export function BidPackageDetailsModal({
               </span>
             </div>
           </DialogTitle>
-          <div className="flex gap-6 text-sm text-muted-foreground mt-2">
-            {item.due_date && (
-              <div>
-                <span className="font-medium">Due Date:</span>{' '}
-                {format(new Date(item.due_date), 'MMM dd, yyyy')}
-              </div>
-            )}
-            {item.reminder_date && (
-              <div>
-                <span className="font-medium">Reminder:</span>{' '}
-                {format(new Date(item.reminder_date), 'MMM dd, yyyy')}
-              </div>
-            )}
-          </div>
         </DialogHeader>
         
         <div className="flex-1 overflow-auto space-y-4">
