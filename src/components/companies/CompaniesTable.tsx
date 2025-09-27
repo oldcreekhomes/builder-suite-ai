@@ -127,9 +127,10 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
             </TableRow>
@@ -155,6 +156,31 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-1">
+                    {company.address ? (
+                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                        {company.address.replace(/, United States$/, '')}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    {company.cost_codes && company.cost_codes.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs text-gray-600">
+                          {company.cost_codes[0].code}
+                        </span>
+                        {company.cost_codes.length > 1 && (
+                          <span className="text-xs text-gray-500">
+                            +{company.cost_codes.length - 1} more
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
                     <span className="text-xs">{company.company_type}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
@@ -167,15 +193,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                       >
                         Website
                       </a>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.address ? (
-                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                        {company.address}
-                      </span>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
@@ -223,7 +240,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               );
             }).length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -231,7 +248,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>
