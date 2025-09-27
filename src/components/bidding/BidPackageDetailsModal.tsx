@@ -7,6 +7,7 @@ import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { BiddingTableRowSpecs } from './components/BiddingTableRowSpecs';
 import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
 import { BiddingTableRowActions } from './components/BiddingTableRowActions';
+import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -41,6 +42,8 @@ interface BidPackageDetailsModalProps {
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
+  onBulkDeleteCompanies?: (biddingItemId: string, companyIds: string[]) => void;
+  isDeletingCompanies?: boolean;
 }
 
 export function BidPackageDetailsModal({
@@ -70,7 +73,9 @@ export function BidPackageDetailsModal({
   projectAddress,
   selectedCompanies,
   onCompanyCheckboxChange,
-  onSelectAllCompanies
+  onSelectAllCompanies,
+  onBulkDeleteCompanies,
+  isDeletingCompanies = false
 }: BidPackageDetailsModalProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,6 +83,13 @@ export function BidPackageDetailsModal({
       case 'sent': return 'bg-blue-100 text-blue-800';
       case 'closed': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (onBulkDeleteCompanies && selectedCompanies) {
+      const selectedIds = Array.from(selectedCompanies);
+      onBulkDeleteCompanies(item.id, selectedIds);
     }
   };
 
@@ -191,6 +203,16 @@ export function BidPackageDetailsModal({
           </div>
 
           <Separator />
+
+          {/* Bulk Action Bar for Selected Companies */}
+          {selectedCompanies && selectedCompanies.size > 0 && (
+            <BulkActionBar
+              selectedCount={selectedCompanies.size}
+              selectedFolderCount={0}
+              onBulkDelete={handleBulkDelete}
+              isDeleting={isDeletingCompanies}
+            />
+          )}
 
           {/* Companies Section */}
           <div className="border rounded-lg">
