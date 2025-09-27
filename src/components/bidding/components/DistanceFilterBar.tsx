@@ -78,7 +78,7 @@ export function DistanceFilterBar({
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-5 w-5 text-black cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent className="max-w-xs p-4">
                       <p>Filter companies based on their distance from the project location</p>
                     </TooltipContent>
                   </Tooltip>
