@@ -6,8 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BiddingTable } from "@/components/bidding/BiddingTable";
+import { BiddingTabs } from "@/components/bidding/BiddingTabs";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBidding() {
@@ -51,37 +50,10 @@ export default function ProjectBidding() {
           />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <Tabs defaultValue="draft" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="draft">Draft</TabsTrigger>
-                <TabsTrigger value="sent">Sent</TabsTrigger>
-                <TabsTrigger value="closed">Closed</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="draft" className="mt-6">
-                <BiddingTable 
-                  projectId={projectId} 
-                  projectAddress={project?.address}
-                  status="draft"
-                />
-              </TabsContent>
-              
-              <TabsContent value="sent" className="mt-6">
-                <BiddingTable 
-                  projectId={projectId} 
-                  projectAddress={project?.address}
-                  status="sent"
-                />
-              </TabsContent>
-              
-              <TabsContent value="closed" className="mt-6">
-                <BiddingTable 
-                  projectId={projectId} 
-                  projectAddress={project?.address}
-                  status="closed"
-                />
-              </TabsContent>
-            </Tabs>
+            <BiddingTabs 
+              projectId={projectId} 
+              projectAddress={project?.address}
+            />
           </div>
         </SidebarInset>
       </div>
