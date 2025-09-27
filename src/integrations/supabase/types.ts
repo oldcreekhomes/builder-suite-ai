@@ -368,11 +368,11 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
-          email: string | null
+          email: string
           first_name: string
           home_builder_id: string
           id: string
-          last_name: string
+          last_name: string | null
           phone_number: string | null
           receive_bid_notifications: boolean | null
           receive_po_notifications: boolean | null
@@ -383,11 +383,11 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
-          email?: string | null
+          email: string
           first_name: string
           home_builder_id: string
           id?: string
-          last_name: string
+          last_name?: string | null
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null
@@ -398,11 +398,11 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
-          email?: string | null
+          email?: string
           first_name?: string
           home_builder_id?: string
           id?: string
-          last_name?: string
+          last_name?: string | null
           phone_number?: string | null
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null

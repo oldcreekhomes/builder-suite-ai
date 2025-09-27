@@ -35,8 +35,8 @@ import { Search } from "lucide-react";
 
 const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  last_name: z.string().optional(),
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone_number: z.string().optional(),
   company_name: z.string().min(1, "Company is required"),
   title: z.string().optional(),
@@ -113,8 +113,8 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
 
       const representativeData = {
         first_name: data.first_name,
-        last_name: data.last_name,
-        email: data.email || null,
+        last_name: data.last_name || null,
+        email: data.email,
         phone_number: data.phone_number || null,
         company_id: selectedCompany.id,
         title: data.title || null,
