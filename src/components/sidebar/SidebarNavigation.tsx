@@ -11,7 +11,8 @@ import {
   Clock,
   AlertTriangle,
   ShoppingCart,
-  Calculator
+  Calculator,
+  Brain
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -75,6 +76,12 @@ const navigationItems = [
     title: "Schedule",
     url: "/schedule",
     icon: Clock,
+    enabled: true,
+  },
+  {
+    title: "Estimating AI",
+    url: "/estimating-ai",
+    icon: Brain,
     enabled: true,
   },
   {

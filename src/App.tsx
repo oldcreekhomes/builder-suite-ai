@@ -16,6 +16,7 @@ import ProjectBudget from "./pages/ProjectBudget";
 import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
 import ProjectPurchaseOrders from "./pages/ProjectPurchaseOrders";
+import EstimatingAI from "./pages/EstimatingAI";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
@@ -119,6 +120,9 @@ const AppContent = () => {
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
           <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           
+          {/* Estimating AI route */}
+          <Route path="/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
+          
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
@@ -150,6 +154,9 @@ const AppContent = () => {
           
           {/* Project Schedule route */}
           <Route path="/project/:projectId/schedule" element={<ProtectedRoute><ProjectSchedule /></ProtectedRoute>} />
+          
+          {/* Project Estimating AI route */}
+          <Route path="/project/:projectId/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
           
           {/* Project Accounting routes */}
           <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
