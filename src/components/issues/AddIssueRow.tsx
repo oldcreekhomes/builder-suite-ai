@@ -177,6 +177,12 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
           ))}
         </div>
       </TableCell>
+
+      <TableCell className="py-2 min-w-48">
+        <div className="text-xs text-muted-foreground">
+          Solution will be added after creation
+        </div>
+      </TableCell>
       
       <TableCell className="py-2">
         <div className="flex gap-1">

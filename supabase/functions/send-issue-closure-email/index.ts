@@ -72,9 +72,9 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td style="padding: 30px; margin: 0;">
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Dear ${authorName},</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Dear ${authorName.split(' ')[0]},</p>
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Thank you for helping us make Builder Suite a better tool for everyone. If you have found the answer to this problem as not helpful, then please reopen an issue.</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Thank you for helping us make Builder Suite a better tool for everyone.</p>
                             
                             <!-- Issue Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
@@ -98,6 +98,10 @@ const handler = async (req: Request): Promise<Response> => {
                                                         <tr>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Category:</td>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueCategory}</td>
+                                                        </tr>
+                                                        <tr style="background-color: #f5f5f5;">
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Files:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">See attached solution files</td>
                                                         </tr>
                                                         ${issueDescription ? `
                                                         <tr style="background-color: #f5f5f5;">

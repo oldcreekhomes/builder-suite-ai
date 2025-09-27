@@ -15,6 +15,8 @@ interface UpdateIssueData {
   title?: string;
   description?: string | null;
   priority?: 'Normal' | 'High';
+  solution?: string;
+  solution_files?: string[];
 }
 
 interface UpdateIssueStatusData {

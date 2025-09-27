@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Badge } from '@/components/ui/badge';
 import { IssueFileUpload } from './IssueFileUpload';
+import { SolutionFileUpload } from './SolutionFileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import type { CompanyIssue } from '@/hooks/useCompanyIssues';
 import { useQuery } from '@tanstack/react-query';
@@ -20,7 +21,12 @@ interface IssueFile {
 interface IssuesTableRowProps {
   issue: CompanyIssue;
   issueNumber: number;
-  onUpdate: (id: string, updates: { title?: string; priority?: 'Normal' | 'High' }) => void;
+  onUpdate: (id: string, updates: { 
+    title?: string; 
+    priority?: 'Normal' | 'High';
+    solution?: string;
+    solution_files?: string[];
+  }) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 }
@@ -88,6 +94,10 @@ export function IssuesTableRow({
     onUpdate(issue.id, { priority });
   };
 
+  const handleSolutionChange = (solution: string, solutionFiles: string[]) => {
+    onUpdate(issue.id, { solution, solution_files: solutionFiles });
+  };
+
   const getPriorityBadge = (priority: string) => {
     return priority === 'High' ? (
       <Badge variant="destructive" className="text-xs">High</Badge>
@@ -149,6 +159,15 @@ export function IssuesTableRow({
           issueId={issue.id}
           files={files}
           onFilesChange={setFiles}
+        />
+      </TableCell>
+
+      <TableCell className="py-2 min-w-48">
+        <SolutionFileUpload
+          issueId={issue.id}
+          solution={issue.solution}
+          solutionFiles={issue.solution_files}
+          onSolutionChange={handleSolutionChange}
         />
       </TableCell>
       

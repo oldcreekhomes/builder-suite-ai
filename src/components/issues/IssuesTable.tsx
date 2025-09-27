@@ -17,7 +17,12 @@ export function IssuesTable({ category }: IssuesTableProps) {
   const { data: issues, isLoading } = useCompanyIssues(category);
   const { updateIssue, updateIssueStatus, deleteIssue } = useIssueMutations();
 
-  const handleUpdateIssue = (id: string, updates: { title?: string; priority?: 'Normal' | 'High' }) => {
+  const handleUpdateIssue = (id: string, updates: { 
+    title?: string; 
+    priority?: 'Normal' | 'High';
+    solution?: string;
+    solution_files?: string[];
+  }) => {
     updateIssue.mutate({ id, ...updates });
   };
 
@@ -56,7 +61,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
             
             {(!issues || issues.length === 0) && !showAddRow ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No {category.toLowerCase()} issues found.
                   <br />
                   <span className="text-sm">Click "Add Issue" to create the first one.</span>

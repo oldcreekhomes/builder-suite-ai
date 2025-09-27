@@ -12,6 +12,8 @@ export interface CompanyIssue {
   created_by: string;
   created_at: string;
   updated_at: string;
+  solution?: string | null;
+  solution_files?: string[];
 }
 
 export function useCompanyIssues(category: string) {

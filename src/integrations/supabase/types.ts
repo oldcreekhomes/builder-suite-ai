@@ -334,6 +334,8 @@ export type Database = {
           description: string | null
           id: string
           priority: string
+          solution: string | null
+          solution_files: string[] | null
           status: string
           title: string
           updated_at: string
@@ -346,6 +348,8 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: string
+          solution?: string | null
+          solution_files?: string[] | null
           status?: string
           title: string
           updated_at?: string
@@ -358,6 +362,8 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: string
+          solution?: string | null
+          solution_files?: string[] | null
           status?: string
           title?: string
           updated_at?: string
