@@ -58,87 +58,29 @@ export function useDistanceFilter({
     const results: Record<string, DistanceResult> = {};
 
     try {
-      // Get Google Maps API key
-      const { data: keyData, error: keyError } = await supabase.functions.invoke('get-google-maps-key');
-      
-      if (keyError || !keyData?.apiKey) {
-        throw new Error('Failed to get Google Maps API key');
-      }
+      // Prepare company data for the edge function
+      const companyData = companies.map(company => ({
+        id: company.id,
+        address: company.companies.address || ''
+      }));
 
-      // Filter companies that have addresses
-      const companiesWithAddresses = companies.filter(
-        company => company.companies.address && company.companies.address.trim()
-      );
-
-      if (companiesWithAddresses.length === 0) {
-        setIsCalculating(false);
-        setHasCalculated(true);
-        return;
-      }
-
-      // Batch companies for API efficiency (max 25 destinations per request)
-      const batches = [];
-      const batchSize = 25;
-      
-      for (let i = 0; i < companiesWithAddresses.length; i += batchSize) {
-        batches.push(companiesWithAddresses.slice(i, i + batchSize));
-      }
-
-      // Process each batch
-      for (const batch of batches) {
-        const destinations = batch.map(company => company.companies.address).join('|');
-        
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/distancematrix/json?` +
-          `origins=${encodeURIComponent(projectAddress)}&` +
-          `destinations=${encodeURIComponent(destinations)}&` +
-          `units=imperial&` +
-          `mode=driving&` +
-          `key=${keyData.apiKey}`
-        );
-
-        if (!response.ok) {
-          throw new Error('Distance Matrix API request failed');
-        }
-
-        const data = await response.json();
-        
-        if (data.status !== 'OK') {
-          throw new Error(`Distance Matrix API error: ${data.status}`);
-        }
-
-        // Process results for this batch
-        data.rows[0]?.elements?.forEach((element: any, index: number) => {
-          const company = batch[index];
-          const companyId = company.id;
-
-          if (element.status === 'OK' && element.distance && element.distance.value) {
-            // Convert meters to miles
-            const distanceInMiles = element.distance.value * 0.000621371;
-            results[companyId] = {
-              companyId,
-              distance: Math.round(distanceInMiles * 10) / 10 // Round to 1 decimal
-            };
-          } else {
-            results[companyId] = {
-              companyId,
-              distance: null,
-              error: element.status === 'ZERO_RESULTS' ? 'No route found' : 'Unknown error'
-            };
-          }
-        });
-      }
-
-      // Handle companies without addresses
-      companies.forEach(company => {
-        if (!company.companies.address || !company.companies.address.trim()) {
-          results[company.id] = {
-            companyId: company.id,
-            distance: null,
-            error: 'No address available'
-          };
+      // Call the edge function to calculate distances
+      const { data, error } = await supabase.functions.invoke('calculate-distances', {
+        body: {
+          projectAddress,
+          companies: companyData
         }
       });
+
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+
+      if (data?.results) {
+        Object.assign(results, data.results);
+      } else {
+        throw new Error('Invalid response from distance calculation service');
+      }
 
     } catch (error) {
       console.error('Error calculating distances:', error);
@@ -162,7 +104,7 @@ export function useDistanceFilter({
     ? companies.filter(company => {
         const result = distances[company.id];
         if (!result) return true; // Include while calculating
-        if (result.distance === null) return true; // Include companies with no distance data
+        if (result.distance === null) return false; // EXCLUDE companies with no distance data
         return result.distance <= radiusMiles;
       })
     : companies;
