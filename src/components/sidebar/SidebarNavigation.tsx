@@ -12,12 +12,14 @@ import {
   AlertTriangle,
   ShoppingCart,
   Calculator,
-  Brain
+  Brain,
+  ArrowLeft
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { UnreadCounts } from "@/hooks/useMasterChatRealtime";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
+import { useProjectContextWithData } from "@/hooks/useProjectContext";
 import {
   SidebarContent,
   SidebarGroup,
@@ -103,6 +105,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   // const userIds = users?.map(user => user.id) || [];
   // const { unreadCounts } = useUnreadCounts(userIds);
   const { data: issueCounts } = useIssueCounts();
+  const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
   // Calculate total unread count
   const totalUnread = Object.values(unreadCounts).reduce((sum: number, count: number) => sum + count, 0);
@@ -129,10 +132,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
   const projectId = getProjectId();
 
-  // Check if we're on the Company Dashboard, Messages page, or Issues page
+  // Check if we're on the Company Dashboard, Messages page, Issues page, or global pages
   const isCompanyDashboard = location.pathname === '/';
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isIssuesPage = location.pathname === '/issues';
+  const isGlobalPage = location.pathname === '/settings' || 
+                      location.pathname === '/companies' || 
+                      location.pathname === '/employees';
   
   // Create navigation items with dynamic URLs for project pages
   const getNavigationItems = () => {
@@ -189,6 +195,24 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     <TooltipProvider>
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 py-1">
+          {/* Show recent project section on global pages */}
+          {isGlobalPage && hasProjectContext && projectContext && (
+            <div className="mb-3 pb-3 border-b border-gray-200">
+              <button
+                onClick={goBackToProject}
+                className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Back to Project</div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {projectContext.projectName}
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+          
           <div>
             {filteredItems.map((item) => (
               <div key={item.title}>
