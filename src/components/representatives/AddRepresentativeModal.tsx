@@ -39,7 +39,7 @@ const representativeSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   phone_number: z.string().optional(),
   company_name: z.string().min(1, "Company is required"),
-  title: z.string().optional(),
+  title: z.string().min(1, "Title is required"),
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
   receive_po_notifications: z.boolean().default(false),
@@ -117,7 +117,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         email: data.email,
         phone_number: data.phone_number || null,
         company_id: selectedCompany.id,
-        title: data.title || null,
+        title: data.title,
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
         receive_po_notifications: data.receive_po_notifications,
@@ -255,7 +255,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select title" />
+                            <SelectValue placeholder="Select title *" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

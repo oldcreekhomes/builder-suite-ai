@@ -377,7 +377,7 @@ export type Database = {
           receive_bid_notifications: boolean | null
           receive_po_notifications: boolean | null
           receive_schedule_notifications: boolean | null
-          title: string | null
+          title: string
           updated_at: string
         }
         Insert: {
@@ -392,7 +392,7 @@ export type Database = {
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
-          title?: string | null
+          title: string
           updated_at?: string
         }
         Update: {
@@ -407,7 +407,7 @@ export type Database = {
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
-          title?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: [
