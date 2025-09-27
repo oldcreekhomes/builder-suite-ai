@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Table, 
@@ -10,15 +10,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Globe, MapPin, Users, ChevronDown, ChevronRight } from "lucide-react";
+import { Edit, Trash2, Globe, MapPin, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
-import { useCostCodeGrouping } from "@/hooks/useCostCodeGrouping";
-import type { Tables } from '@/integrations/supabase/types';
 
-type CostCode = Tables<'cost_codes'>;
+type CostCode = {
+  id: string;
+  code: string;
+  name: string;
+};
 
 interface Company {
   id: string;
@@ -41,8 +43,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [collapsedCostCodes, setCollapsedCostCodes] = useState<Set<string>>(new Set());
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -91,162 +91,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     refetchOnWindowFocus: true,
   });
 
-  // Get all unique cost codes from all companies
-  const allCostCodes = useMemo(() => {
-    const costCodes = companies.flatMap(company => company.cost_codes || []);
-    return Array.from(new Map(costCodes.map(cc => [cc.id, cc])).values());
-  }, [companies]);
-
-  // Use the cost code grouping hook at the top level
-  const { groupedCostCodes, parentCodes } = useCostCodeGrouping(allCostCodes);
-
-  // Update collapsed groups when grouped cost codes change
-  useEffect(() => {
-    const newCollapsedGroups = new Set<string>();
-    const newCollapsedCostCodes = new Set<string>();
-    
-    Object.keys(groupedCostCodes).forEach(groupKey => {
-      if (groupKey !== 'ungrouped') {
-        newCollapsedGroups.add(groupKey);
-      }
-    });
-    
-    // Also collapse all individual cost codes by default
-    Object.values(groupedCostCodes).flat().forEach(costCode => {
-      if (!parentCodes.has(costCode.code)) {
-        newCollapsedCostCodes.add(costCode.id);
-      }
-    });
-    
-    setCollapsedGroups(newCollapsedGroups);
-    setCollapsedCostCodes(newCollapsedCostCodes);
-  }, [groupedCostCodes, parentCodes]);
-
-  // Group companies by cost codes - restructure to match settings hierarchy
-  const costCodeToCompaniesMap = useMemo(() => {
-    // Filter companies based on search query first
-    const filteredCompanies = companies.filter(company => {
-      if (!searchQuery.trim()) return true;
-      
-      const query = searchQuery.toLowerCase();
-      return (
-        (company.company_name && company.company_name.toLowerCase().includes(query)) ||
-        (company.company_type && company.company_type.toLowerCase().includes(query)) ||
-        (company.address && company.address.toLowerCase().includes(query))
-      );
-    });
-
-    // Create a map from cost code ID to companies that have that cost code
-    const costCodeCompanyMap = new Map<string, Company[]>();
-    
-    filteredCompanies.forEach(company => {
-      company.cost_codes?.forEach(costCode => {
-        if (!costCodeCompanyMap.has(costCode.id)) {
-          costCodeCompanyMap.set(costCode.id, []);
-        }
-        costCodeCompanyMap.get(costCode.id)!.push(company);
-      });
-    });
-
-    // Create table rows in hierarchical structure like settings
-    const tableRows: Array<{
-      id: string;
-      type: 'parent' | 'child' | 'company';
-      costCode?: CostCode;
-      company?: Company;
-      groupKey: string;
-      level: number;
-      parentCode?: string;
-    }> = [];
-
-    // Process grouped cost codes to create hierarchical structure
-    Object.entries(groupedCostCodes)
-      .filter(([groupKey, codes]) => {
-        if (groupKey === 'ungrouped') return codes.length > 0;
-        const childCodes = codes.filter(code => !parentCodes.has(code.code));
-        return childCodes.length > 0;
-      })
-      .sort(([a], [b]) => {
-        if (a === 'ungrouped') return 1;
-        if (b === 'ungrouped') return -1;
-        return a.localeCompare(b);
-      })
-      .forEach(([groupKey, codes]) => {
-        // Check if this group has any companies after filtering
-        const childCodes = codes.filter(code => !parentCodes.has(code.code));
-        const hasFilteredCompanies = childCodes.some(costCode => 
-          costCodeCompanyMap.has(costCode.id) && costCodeCompanyMap.get(costCode.id)!.length > 0
-        );
-        
-        if (!hasFilteredCompanies) return;
-
-        // Add parent group row
-        if (groupKey !== 'ungrouped') {
-          tableRows.push({
-            id: `parent-${groupKey}`,
-            type: 'parent',
-            groupKey,
-            level: 0
-          });
-        }
-
-        // Add child cost codes and their companies
-        childCodes.sort((a, b) => a.code.localeCompare(b.code)).forEach(costCode => {
-          const companiesForCostCode = costCodeCompanyMap.get(costCode.id) || [];
-          if (companiesForCostCode.length === 0) return;
-
-          // Add cost code row
-          tableRows.push({
-            id: `child-${costCode.id}`,
-            type: 'child',
-            costCode,
-            groupKey,
-            level: groupKey !== 'ungrouped' ? 1 : 0,
-            parentCode: groupKey !== 'ungrouped' ? groupKey : undefined
-          });
-
-          // Add company rows under this cost code
-          companiesForCostCode.forEach(company => {
-            tableRows.push({
-              id: `company-${costCode.id}-${company.id}`,
-              type: 'company',
-              costCode,
-              company,
-              groupKey,
-              level: groupKey !== 'ungrouped' ? 2 : 1,
-              parentCode: groupKey !== 'ungrouped' ? groupKey : undefined
-            });
-          });
-        });
-      });
-
-    return { tableRows, filteredCompanies };
-  }, [companies, groupedCostCodes, parentCodes, searchQuery]);
-
-  const toggleGroupCollapse = (groupKey: string) => {
-    setCollapsedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(groupKey)) {
-        newSet.delete(groupKey);
-      } else {
-        newSet.add(groupKey);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleCostCodeCollapse = (costCodeId: string) => {
-    setCollapsedCostCodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(costCodeId)) {
-        newSet.delete(costCodeId);
-      } else {
-        newSet.add(costCodeId);
-      }
-      return newSet;
-    });
-  };
-
   // Delete company mutation
   const deleteCompanyMutation = useMutation({
     mutationFn: async (companyId: string) => {
@@ -292,15 +136,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
 
-  const { tableRows, filteredCompanies } = costCodeToCompaniesMap;
-
   return (
     <>      
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
@@ -310,181 +151,110 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableRows
-              .filter((row) => {
-                // Always show parent rows
-                if (row.type === 'parent') return true;
+            {companies
+              .filter(company => {
+                if (!searchQuery.trim()) return true;
                 
-                // For child cost code rows: show only if parent is expanded
-                if (row.type === 'child') {
-                  if (row.parentCode && collapsedGroups.has(row.parentCode)) {
-                    return false;
-                  }
-                  return true;
-                }
-                
-                // For company rows: show only if both parent is expanded AND cost code is expanded
-                if (row.type === 'company') {
-                  if (row.parentCode && collapsedGroups.has(row.parentCode)) {
-                    return false;
-                  }
-                  if (row.costCode && collapsedCostCodes.has(row.costCode.id)) {
-                    return false;
-                  }
-                  return true;
-                }
-                
-                return true;
+                const query = searchQuery.toLowerCase();
+                return (
+                  (company.company_name && company.company_name.toLowerCase().includes(query)) ||
+                  (company.company_type && company.company_type.toLowerCase().includes(query)) ||
+                  (company.address && company.address.toLowerCase().includes(query))
+                );
               })
-              .map((row) => {
-                // Parent row styling to match SpecificationGroupRow
-                if (row.type === 'parent') {
-                  return (
-                    <TableRow key={row.id} className="h-10 bg-gray-50 border-b-2 border-gray-200 font-medium">
-                      <TableCell className="px-2 py-1 pl-4">
-                        <button
-                          onClick={() => toggleGroupCollapse(row.groupKey)}
-                          className="hover:bg-gray-100 rounded p-1 -ml-1"
-                        >
-                          {collapsedGroups.has(row.groupKey) ? (
-                            <ChevronRight className="h-3 w-3" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" />
-                          )}
-                        </button>
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-left">
-                        <span className="text-xs font-medium">{row.groupKey}</span>
-                      </TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                    </TableRow>
-                  );
-                }
+              .sort((a, b) => a.company_name.localeCompare(b.company_name))
+              .map((company) => (
+                <TableRow key={company.id} className="h-10">
+                  <TableCell className="px-2 py-1">
+                    <div className="text-xs font-medium">
+                      {company.company_name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] w-fit px-1 py-0`}>
+                      {company.company_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    {company.address ? (
+                      <div className="flex items-center space-x-1">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                          {company.address}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    {company.website ? (
+                      <a 
+                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <Globe className="h-3 w-3" />
+                        <span className="text-xs">Website</span>
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <div className="flex items-center space-x-1">
+                      <Users className="h-3 w-3 text-gray-400" />
+                      <span className="text-xs">{company.representatives_count || 0}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewingCompany(company)}
+                        className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                        title="View company"
+                      >
+                        <Users className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingCompany(company)}
+                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+                        title="Edit company"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteCompanyMutation.mutate(company.id)}
+                        disabled={deleteCompanyMutation.isPending}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        title="Delete company"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
 
-                // Child cost code row styling to match SpecificationTableRow  
-                if (row.type === 'child' && row.costCode) {
-                  return (
-                    <TableRow key={row.id} className="h-10">
-                      <TableCell className="px-2 py-1 text-left">
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => toggleCostCodeCollapse(row.costCode.id)}
-                            className="hover:bg-gray-100 rounded p-1 mr-2"
-                          >
-                            {collapsedCostCodes.has(row.costCode.id) ? (
-                              <ChevronRight className="h-3 w-3" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3" />
-                            )}
-                          </button>
-                          <span className="text-xs font-medium">{row.costCode.code}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <div className="text-xs font-medium">{row.costCode.name}</div>
-                      </TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                      <TableCell className="px-2 py-1"></TableCell>
-                    </TableRow>
-                  );
-                }
-
-                // Company row styling to match SpecificationTableRow
-                if (row.type === 'company' && row.company) {
-                  return (
-                    <TableRow key={row.id} className="h-10">
-                      <TableCell className="px-2 py-1 text-left ml-8">
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <div className="text-xs font-medium">{row.company.company_name}</div>
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <Badge className={`${getCompanyTypeColor(row.company.company_type)} text-[10px] w-fit px-1 py-0`}>
-                          {row.company.company_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        {row.company.address ? (
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                              {row.company.address}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        {row.company.website ? (
-                          <a 
-                            href={row.company.website.startsWith('http') ? row.company.website : `https://${row.company.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                          >
-                            <Globe className="h-3 w-3" />
-                            <span className="text-xs">Website</span>
-                          </a>
-                        ) : (
-                          <span className="text-gray-400 text-xs">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <div className="flex items-center space-x-1">
-                          <Users className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs">{row.company.representatives_count || 0}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <div className="flex items-center space-x-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewingCompany(row.company)}
-                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
-                            title="View company"
-                          >
-                            <Users className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingCompany(row.company)}
-                            className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
-                            title="Edit company"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteCompanyMutation.mutate(row.company.id)}
-                            disabled={deleteCompanyMutation.isPending}
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                            title="Delete company"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-
-                return null;
-              })}
-
-            {filteredCompanies.length === 0 && searchQuery && (
+            {companies.filter(company => {
+              if (!searchQuery.trim()) return true;
+              
+              const query = searchQuery.toLowerCase();
+              return (
+                (company.company_name && company.company_name.toLowerCase().includes(query)) ||
+                (company.company_type && company.company_type.toLowerCase().includes(query)) ||
+                (company.address && company.address.toLowerCase().includes(query))
+              );
+            }).length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -492,7 +262,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>
