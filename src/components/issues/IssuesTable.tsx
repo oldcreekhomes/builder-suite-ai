@@ -22,6 +22,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
     priority?: 'Normal' | 'High';
     solution?: string;
     solution_files?: string[];
+    location?: string;
   }) => {
     updateIssue.mutate({ id, ...updates });
   };

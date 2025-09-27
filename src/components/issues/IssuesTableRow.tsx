@@ -28,6 +28,7 @@ interface IssuesTableRowProps {
     priority?: 'Normal' | 'High';
     solution?: string;
     solution_files?: string[];
+    location?: string;
   }) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
@@ -146,12 +147,12 @@ export function IssuesTableRow({
       
       <TableCell className="px-2 py-1 w-20">
         <Select value={issue.priority} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="h-6 text-xs w-20">
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            <SelectItem value="Normal">Normal</SelectItem>
-            <SelectItem value="High">High</SelectItem>
+          <SelectContent className="bg-background border-border shadow-lg z-50">
+            <SelectItem value="Normal" className="text-xs hover:bg-accent">Normal</SelectItem>
+            <SelectItem value="High" className="text-xs hover:bg-accent">High</SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
@@ -217,9 +218,23 @@ export function IssuesTableRow({
       />
 
       <TableCell className="px-2 py-1 w-24">
-        <div className="text-xs text-muted-foreground capitalize">
-          {issue.location || '-'}
-        </div>
+        <Select value={issue.location || ''} onValueChange={(value) => {
+          // Handle location update here
+          onUpdate(issue.id, { location: value });
+        }}>
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
+            <SelectValue placeholder="Select location" />
+          </SelectTrigger>
+          <SelectContent className="bg-background border-border shadow-lg z-50">
+            <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
+            <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
+            <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
+            <SelectItem value="budget" className="text-xs hover:bg-accent">Budget</SelectItem>
+            <SelectItem value="bidding" className="text-xs hover:bg-accent">Bidding</SelectItem>
+            <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
+            <SelectItem value="authentication" className="text-xs hover:bg-accent">Authentication</SelectItem>
+          </SelectContent>
+        </Select>
       </TableCell>
 
       <SolutionFilesCell

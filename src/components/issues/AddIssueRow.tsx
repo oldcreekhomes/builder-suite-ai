@@ -125,12 +125,12 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       
       <TableCell className="px-2 py-1">
         <Select value={priority} onValueChange={(value) => setPriority(value as 'Normal' | 'High')}>
-          <SelectTrigger className="h-6 text-xs">
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            <SelectItem value="Normal">Normal</SelectItem>
-            <SelectItem value="High">High</SelectItem>
+          <SelectContent className="bg-background border-border shadow-lg z-50">
+            <SelectItem value="Normal" className="text-xs hover:bg-accent">Normal</SelectItem>
+            <SelectItem value="High" className="text-xs hover:bg-accent">High</SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
@@ -149,17 +149,17 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
 
       <TableCell className="px-2 py-1">
         <Select value={location} onValueChange={setLocation}>
-          <SelectTrigger className="h-6 text-xs">
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
-          <SelectContent className="bg-background z-50">
-            <SelectItem value="messages">Messages</SelectItem>
-            <SelectItem value="files">Files</SelectItem>
-            <SelectItem value="photos">Photos</SelectItem>
-            <SelectItem value="budget">Budget</SelectItem>
-            <SelectItem value="bidding">Bidding</SelectItem>
-            <SelectItem value="schedule">Schedule</SelectItem>
-            <SelectItem value="authentication">Authentication</SelectItem>
+          <SelectContent className="bg-background border-border shadow-lg z-50">
+            <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
+            <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
+            <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
+            <SelectItem value="budget" className="text-xs hover:bg-accent">Budget</SelectItem>
+            <SelectItem value="bidding" className="text-xs hover:bg-accent">Bidding</SelectItem>
+            <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
+            <SelectItem value="authentication" className="text-xs hover:bg-accent">Authentication</SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
