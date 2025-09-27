@@ -42,39 +42,91 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [authorEmail],
-      subject: `Issue Closed - ${issueTitle} - ${issueCategory}`,
-      html: `
-        <h1>Issue Closed</h1>
-        <p>Dear ${authorName},</p>
-        <p>Thank you for reporting an issue to <strong>${companyName}</strong>. We're pleased to inform you that your issue has been resolved and closed.</p>
-        
-        <h2>Issue Details:</h2>
-        <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
-          <tr style="background-color: #f5f5f5;">
-            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Title:</td>
-            <td style="padding: 10px; border: 1px solid #ddd;">${issueTitle}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Category:</td>
-            <td style="padding: 10px; border: 1px solid #ddd;">${issueCategory}</td>
-          </tr>
-          ${issueDescription ? `
-          <tr style="background-color: #f5f5f5;">
-            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Description:</td>
-            <td style="padding: 10px; border: 1px solid #ddd;">${issueDescription}</td>
-          </tr>` : ''}
-          <tr>
-            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Date Closed:</td>
-            <td style="padding: 10px; border: 1px solid #ddd;">${new Date().toLocaleDateString()}</td>
-          </tr>
-        </table>
-        
-        <p>We appreciate your contribution in helping us improve BuildCore. Your feedback is valuable and helps us maintain the quality of our platform.</p>
-        <p>If you have any questions or need further assistance, please don't hesitate to contact your company administrator.</p>
-        
-        <p>Best regards,<br>The BuildCore Team</p>
-        <p><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
-      `,
+      subject: "Issue Closed on Builder Suite",
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Issue Closed on Builder Suite</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+    <!-- Wrapper Table -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
+                
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Issue Closed</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px; margin: 0;">
+                            
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Dear ${authorName},</p>
+                            
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Thank you for helping us make Builder Suite a better tool for everyone. If you have found the answer to this problem as not helpful, then please reopen an issue.</p>
+                            
+                            <!-- Issue Information Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                                <!-- Issue Header -->
+                                <tr>
+                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                        Issue Details:
+                                    </td>
+                                </tr>
+                                <!-- Issue Content -->
+                                <tr>
+                                    <td style="padding: 0; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                            <tr>
+                                                <td style="padding: 20px; margin: 0;">
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                        <tr style="background-color: #f5f5f5;">
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Title:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueTitle}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Category:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueCategory}</td>
+                                                        </tr>
+                                                        ${issueDescription ? `
+                                                        <tr style="background-color: #f5f5f5;">
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Description:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueDescription}</td>
+                                                        </tr>` : ''}
+                                                        <tr>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Closed:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${new Date().toLocaleDateString()}</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>The Builder Suite Team</p>
+                            
+                            <p style="color: #666666; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`,
     });
 
     console.log("Issue closure email sent successfully:", emailResponse);
