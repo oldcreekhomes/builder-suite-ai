@@ -79,8 +79,8 @@ export function BidPackageDetailsModal({
   onBulkDeleteCompanies,
   isDeletingCompanies = false
 }: BidPackageDetailsModalProps) {
-  const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(false);
-  const [distanceRadius, setDistanceRadius] = useState(20);
+  const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(true);
+  const [distanceRadius, setDistanceRadius] = useState(50);
 
   const distanceFilter = useDistanceFilter({
     enabled: distanceFilterEnabled,
