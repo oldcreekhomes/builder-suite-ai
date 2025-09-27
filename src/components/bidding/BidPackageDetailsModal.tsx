@@ -188,8 +188,6 @@ export function BidPackageDetailsModal({
             </table>
           </div>
 
-          <Separator />
-
           {/* Bulk Action Bar for Selected Companies */}
           {selectedCompanies && selectedCompanies.size > 0 && (
             <BulkActionBar
