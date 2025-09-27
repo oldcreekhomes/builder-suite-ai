@@ -22,6 +22,7 @@ interface IssueClosureEmailRequest {
   issueDescription?: string;
   issueCategory: string;
   companyName: string;
+  solutionFiles?: string[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -36,11 +37,21 @@ const handler = async (req: Request): Promise<Response> => {
       issueTitle, 
       issueDescription, 
       issueCategory, 
-      companyName 
+      companyName,
+      solutionFiles = []
     }: IssueClosureEmailRequest = await req.json();
 
     const closureDate = new Date().toLocaleDateString();
     const firstName = authorName.split(' ')[0];
+    
+    // Generate solution files HTML with download links
+    const solutionFilesHtml = solutionFiles.length > 0 
+      ? solutionFiles.map((filePath, index) => {
+          const fileName = filePath.split('/').pop() || `File${index + 1}`;
+          const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/issue-files/${filePath}`;
+          return `<a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; margin-right: 10px;">${fileName}</a>`;
+        }).join('')
+      : 'File1, File2, File3';
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
@@ -77,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${firstName},</p>
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Please see solution file below. If you do not find the answer acceptable, please reopen an issue in Builder Suite. Thank you for your help making this the most user-friendly software.</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Please see the solution file below. If you do not find the answer acceptable, please reopen an issue in Builder Suite. Thank you for your help!</p>
                             
                             <!-- Issue Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
@@ -103,8 +114,8 @@ const handler = async (req: Request): Promise<Response> => {
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueCategory}</td>
                                                         </tr>
                                                         <tr style="background-color: #f5f5f5;">
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Solution Files:</td>
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">File1, File2, File3</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #dc2626;">Solution Files:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${solutionFilesHtml}</td>
                                                         </tr>
                                                         <tr>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Closed:</td>
