@@ -39,6 +39,9 @@ const handler = async (req: Request): Promise<Response> => {
       companyName 
     }: IssueClosureEmailRequest = await req.json();
 
+    const closureDate = new Date().toLocaleDateString();
+    const firstName = authorName.split(' ')[0];
+
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [authorEmail],
@@ -72,9 +75,9 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td style="padding: 30px; margin: 0;">
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Dear ${authorName.split(' ')[0]},</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 20px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${firstName},</p>
                             
-                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Thank you for helping us make Builder Suite a better tool for everyone.</p>
+                            <p style="color: #000000; font-size: 16px; margin: 0 0 30px 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Please see solution file below. If you do not find the answer acceptable, please reopen an issue in Builder Suite. Thank you for your help making this the most user-friendly software.</p>
                             
                             <!-- Issue Information Section -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
@@ -100,17 +103,12 @@ const handler = async (req: Request): Promise<Response> => {
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueCategory}</td>
                                                         </tr>
                                                         <tr style="background-color: #f5f5f5;">
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Files:</td>
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">See attached solution files</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Solution Files:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">File1, File2, File3</td>
                                                         </tr>
-                                                        ${issueDescription ? `
-                                                        <tr style="background-color: #f5f5f5;">
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Description:</td>
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueDescription}</td>
-                                                        </tr>` : ''}
                                                         <tr>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Closed:</td>
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${new Date().toLocaleDateString()}</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${closureDate}</td>
                                                         </tr>
                                                     </table>
                                                 </td>
@@ -120,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
                                 </tr>
                             </table>
                             
-                            <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>The Builder Suite Team</p>
+                            <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>Builder Suite</p>
                             
                             <p style="color: #666666; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
                         </td>
