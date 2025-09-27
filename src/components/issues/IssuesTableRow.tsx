@@ -3,7 +3,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -246,16 +246,14 @@ export function IssuesTableRow({
       
       <TableCell className="px-2 py-1 w-16">
         <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(issue.id)}
-            disabled={isDeleting}
-            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-            title="Delete issue"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <DeleteButton
+            onDelete={() => onDelete(issue.id)}
+            title="Delete Issue"
+            description={`Are you sure you want to delete "${issue.title}"? This action cannot be undone.`}
+            isLoading={isDeleting}
+            className="h-6 w-6 p-0"
+            showIcon={true}
+          />
         </div>
       </TableCell>
     </TableRow>
