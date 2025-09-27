@@ -111,7 +111,17 @@ export function DistanceFilterBar({
                 <Store className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium">MarketPlace</span>
               </div>
-              <span className="text-sm text-gray-600">What is MarketPlace?</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">What is MarketPlace?</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-5 w-5 text-black cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs p-4">
+                    <p>MarketPlace is a paid feature that gives Home Builders unlimited access to the best subcontractors, suppliers, attorneys and vendors in the market.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
           </div>
         </div>
