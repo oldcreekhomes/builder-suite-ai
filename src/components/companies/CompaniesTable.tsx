@@ -130,7 +130,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-64">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-fit whitespace-nowrap">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
@@ -154,7 +154,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               .sort((a, b) => a.company_name.localeCompare(b.company_name))
               .map((company) => (
                 <TableRow key={company.id} className="h-10">
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-2 py-1 whitespace-nowrap">
                     <div className="text-xs font-medium">
                       {company.company_name}
                     </div>
