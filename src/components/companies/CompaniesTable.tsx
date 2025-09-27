@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
+import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
 
 type CostCode = {
   id: string;
@@ -42,6 +43,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
+  const [showingReps, setShowingReps] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -198,10 +200,14 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     )}
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setShowingReps(company)}
+                      className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                      title="View representatives"
+                    >
                       <Users className="h-3 w-3 text-gray-400" />
                       <span className="text-xs">{company.representatives_count || 0}</span>
-                    </div>
+                    </button>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <div className="flex items-center space-x-1">
@@ -267,6 +273,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         company={viewingCompany}
         open={!!viewingCompany}
         onOpenChange={(open) => !open && setViewingCompany(null)}
+      />
+
+      <CompanyRepresentativesModal
+        company={showingReps}
+        open={!!showingReps}
+        onOpenChange={(open) => !open && setShowingReps(null)}
       />
     </>
   );
