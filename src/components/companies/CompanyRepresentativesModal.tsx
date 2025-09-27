@@ -52,9 +52,9 @@ export function CompanyRepresentativesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md border-2 border-gray-200 shadow-lg">
         <DialogHeader>
-          <DialogTitle className="text-sm font-medium">
+          <DialogTitle className="text-sm font-medium border-b border-gray-200 pb-3 mb-4">
             {company?.company_name} Representatives
           </DialogTitle>
         </DialogHeader>
