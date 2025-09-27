@@ -109,7 +109,7 @@ export function DistanceFilterBar({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Store className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium">MarketPlace</span>
+                <span className="text-sm font-medium">Access MarketPlace</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">What is MarketPlace?</span>
