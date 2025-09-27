@@ -10,7 +10,7 @@ export function IssuesTableHeader() {
         <TableHead className="font-bold py-2 text-sm">Title</TableHead>
         <TableHead className="font-bold py-2 text-sm w-20">Priority</TableHead>
         <TableHead className="font-bold py-2 text-sm w-28">Issue Files</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Solution</TableHead>
+        <TableHead className="font-bold py-2 text-sm">Solution Files</TableHead>
         <TableHead className="font-bold py-2 text-sm w-16">Actions</TableHead>
       </TableRow>
     </TableHeader>
