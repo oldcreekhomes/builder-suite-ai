@@ -106,7 +106,7 @@ export function EditBiddingSpecificationsModal({
 
           <div className="space-y-2">
             <Label>Specifications</Label>
-            <div className="rounded-md border">
+            <div className="rounded-md">
               <ReactQuill
                 theme="snow"
                 value={html}

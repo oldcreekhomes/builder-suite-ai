@@ -113,7 +113,7 @@ export function EditSpecificationDescriptionDialog({
 
           <div className="space-y-2">
             <Label>Description</Label>
-            <div className="rounded-md border">
+            <div className="rounded-md">
               <ReactQuill
                 theme="snow"
                 value={html}
