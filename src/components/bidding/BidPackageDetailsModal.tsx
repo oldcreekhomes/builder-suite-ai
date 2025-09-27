@@ -155,7 +155,7 @@ export function BidPackageDetailsModal({
                   <td className="p-3">
                     <BiddingDatePicker
                       value={item.due_date}
-                      onChange={(date) => onUpdateDueDate?.(item.id, date)}
+                      onChange={(biddingItemId, companyId, date) => onUpdateDueDate?.(biddingItemId, date)}
                       placeholder="Due Date"
                       disabled={isReadOnly}
                       companyId=""
@@ -166,7 +166,7 @@ export function BidPackageDetailsModal({
                   <td className="p-3">
                     <BiddingDatePicker
                       value={item.reminder_date}
-                      onChange={(date) => onUpdateReminderDate?.(item.id, date)}
+                      onChange={(biddingItemId, companyId, date) => onUpdateReminderDate?.(biddingItemId, date)}
                       placeholder="Reminder"
                       disabled={isReadOnly}
                       companyId=""
