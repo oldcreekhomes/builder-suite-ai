@@ -3,7 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Loader2, MapPin, Info } from 'lucide-react';
+import { Loader2, MapPin, HelpCircle } from 'lucide-react';
 
 interface BiddingCompany {
   id: string;
@@ -74,7 +74,7 @@ export function DistanceFilterBar({
                 <span className="text-sm text-gray-600">miles</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-5 w-5 text-black cursor-help" />
+                    <HelpCircle className="h-5 w-5 text-black cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Filter companies based on their distance from the project location</p>
