@@ -44,14 +44,18 @@ const handler = async (req: Request): Promise<Response> => {
     const closureDate = new Date().toLocaleDateString();
     const firstName = authorName.split(' ')[0];
     
-    // Generate solution files HTML with download links
+    // Generate solution files HTML with download links formatted like bid invitation
     const solutionFilesHtml = solutionFiles.length > 0 
       ? solutionFiles.map((filePath, index) => {
           const fileName = filePath.split('/').pop() || `File${index + 1}`;
           const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/issue-files/${filePath}`;
-          return `<a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; margin-right: 10px;">${fileName}</a>`;
+          return `
+            <div style="margin-bottom: 8px; display: flex; align-items: center;">
+              <span style="margin-right: 8px; font-size: 16px;">📄</span>
+              <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileName}</a>
+            </div>`;
         }).join('')
-      : 'File1, File2, File3';
+      : 'No solution files attached';
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
