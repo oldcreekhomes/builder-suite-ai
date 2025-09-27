@@ -131,7 +131,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-fit whitespace-nowrap">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-80">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
@@ -215,7 +215,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setEditingCompany(company)}
-                        className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+                        className="h-6 w-6 p-0"
                         title="Edit company"
                       >
                         <Edit className="h-3 w-3" />
