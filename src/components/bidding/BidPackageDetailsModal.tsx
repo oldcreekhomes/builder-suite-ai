@@ -108,120 +108,113 @@ export function BidPackageDetailsModal({
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto space-y-4">
           {/* Bid Package Management Section */}
-          <div className="bg-muted/30 p-4 rounded-lg mb-4">
-            <h3 className="text-sm font-medium text-foreground mb-3">Bid Package Management</h3>
-            <div className="grid grid-cols-12 gap-4 items-center">
-              {/* Status */}
-              <div className="col-span-2">
-                <Select
-                  value={item.status || 'draft'}
-                  onValueChange={(value) => onUpdateStatus?.(item.id, value)}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Due Date */}
-              <div className="col-span-2">
-                <BiddingDatePicker
-                  value={item.due_date}
-                  onChange={(date) => onUpdateDueDate?.(item.id, date)}
-                  placeholder="Due Date"
-                  disabled={isReadOnly}
-                  companyId=""
-                  biddingItemId={item.id}
-                  field="due_date"
-                />
-              </div>
-
-              {/* Reminder Date */}
-              <div className="col-span-2">
-                <BiddingDatePicker
-                  value={item.reminder_date}
-                  onChange={(date) => onUpdateReminderDate?.(item.id, date)}
-                  placeholder="Reminder"
-                  disabled={isReadOnly}
-                  companyId=""
-                  biddingItemId={item.id}
-                  field="reminder_date"
-                  dueDate={item.due_date}
-                />
-              </div>
-
-              {/* Specifications */}
-              <div className="col-span-2">
-                <BiddingTableRowSpecs
-                  item={item}
-                  costCode={costCode}
-                  onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
-                  isReadOnly={isReadOnly}
-                />
-              </div>
-
-              {/* Files */}
-              <div className="col-span-2">
-                <BiddingTableRowFiles
-                  item={item}
-                  onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
-                  onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
-                  isReadOnly={isReadOnly}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="col-span-2">
-                <BiddingTableRowActions
-                  item={item}
-                  costCode={costCode}
-                  onDelete={(itemId) => onDelete?.(itemId)}
-                  onSendClick={() => onSendClick?.()}
-                  onTestEmailClick={() => onTestEmailClick?.()}
-                  onAddCompaniesClick={() => onAddCompaniesClick?.()}
-                  isDeleting={false}
-                  isReadOnly={isReadOnly}
-                />
-              </div>
-            </div>
+          <div className="border rounded-lg">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 text-sm font-medium">Status</th>
+                  <th className="text-left p-3 text-sm font-medium">Due Date</th>
+                  <th className="text-left p-3 text-sm font-medium">Reminder</th>
+                  <th className="text-left p-3 text-sm font-medium">Specifications</th>
+                  <th className="text-left p-3 text-sm font-medium">Files</th>
+                  <th className="text-left p-3 text-sm font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-3">
+                    <Select
+                      value={item.status || 'draft'}
+                      onValueChange={(value) => onUpdateStatus?.(item.id, value)}
+                      disabled={isReadOnly}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="sent">Sent</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3">
+                    <BiddingDatePicker
+                      value={item.due_date}
+                      onChange={(date) => onUpdateDueDate?.(item.id, date)}
+                      placeholder="Due Date"
+                      disabled={isReadOnly}
+                      companyId=""
+                      biddingItemId={item.id}
+                      field="due_date"
+                    />
+                  </td>
+                  <td className="p-3">
+                    <BiddingDatePicker
+                      value={item.reminder_date}
+                      onChange={(date) => onUpdateReminderDate?.(item.id, date)}
+                      placeholder="Reminder"
+                      disabled={isReadOnly}
+                      companyId=""
+                      biddingItemId={item.id}
+                      field="reminder_date"
+                      dueDate={item.due_date}
+                    />
+                  </td>
+                  <BiddingTableRowSpecs
+                    item={item}
+                    costCode={costCode}
+                    onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
+                    isReadOnly={isReadOnly}
+                  />
+                  <BiddingTableRowFiles
+                    item={item}
+                    onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
+                    onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                    isReadOnly={isReadOnly}
+                  />
+                  <BiddingTableRowActions
+                    item={item}
+                    costCode={costCode}
+                    onDelete={(itemId) => onDelete?.(itemId)}
+                    onSendClick={() => onSendClick?.()}
+                    onTestEmailClick={() => onTestEmailClick?.()}
+                    onAddCompaniesClick={() => onAddCompaniesClick?.()}
+                    isDeleting={false}
+                    isReadOnly={isReadOnly}
+                  />
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <Separator className="my-4" />
+          <Separator />
 
           {/* Companies Section */}
-          <div>
-            <h3 className="text-sm font-medium text-foreground mb-3">Companies</h3>
-            <div className="border rounded-lg">
-              <table className="w-full">
-                <tbody>
-                  <BiddingCompanyList
-                    biddingItemId={item.id}
-                    companies={item.project_bids || []}
-                    onToggleBidStatus={onToggleBidStatus}
-                    onUpdatePrice={onUpdatePrice}
-                    onUploadProposal={onUploadProposal}
-                    onDeleteAllProposals={onDeleteAllProposals}
-                    onDeleteCompany={onDeleteCompany}
-                    onSendEmail={onSendEmail}
-                    isReadOnly={isReadOnly}
-                    projectAddress={projectAddress}
-                    projectId={item.project_id}
-                    costCodeId={item.cost_code_id}
-                    selectedCompanies={selectedCompanies}
-                    onCompanyCheckboxChange={onCompanyCheckboxChange}
-                    onSelectAllCompanies={onSelectAllCompanies}
-                  />
-                </tbody>
-              </table>
-            </div>
+          <div className="border rounded-lg">
+            <table className="w-full">
+              <tbody>
+                <BiddingCompanyList
+                  biddingItemId={item.id}
+                  companies={item.project_bids || []}
+                  onToggleBidStatus={onToggleBidStatus}
+                  onUpdatePrice={onUpdatePrice}
+                  onUploadProposal={onUploadProposal}
+                  onDeleteAllProposals={onDeleteAllProposals}
+                  onDeleteCompany={onDeleteCompany}
+                  onSendEmail={onSendEmail}
+                  isReadOnly={isReadOnly}
+                  projectAddress={projectAddress}
+                  projectId={item.project_id}
+                  costCodeId={item.cost_code_id}
+                  selectedCompanies={selectedCompanies}
+                  onCompanyCheckboxChange={onCompanyCheckboxChange}
+                  onSelectAllCompanies={onSelectAllCompanies}
+                />
+              </tbody>
+            </table>
           </div>
         </div>
       </DialogContent>
