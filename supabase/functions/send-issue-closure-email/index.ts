@@ -60,7 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [authorEmail],
-      subject: "Issue Closed on Builder Suite",
+      subject: "Issue Closed on BuilderSuite AI",
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
