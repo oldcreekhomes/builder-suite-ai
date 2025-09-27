@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 
@@ -12,6 +13,7 @@ interface BiddingTableRowFilesProps {
 }
 
 export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteIndividualFile }: BiddingTableRowFilesProps) {
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
   const handleFileUpload = () => {
     console.log('File upload clicked, onFileUpload function:', !!onFileUpload);
@@ -32,9 +34,10 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     input.click();
   };
 
-  const handleDeleteFile = (fileName: string) => {
-    if (onDeleteIndividualFile) {
-      onDeleteIndividualFile(item.id, fileName);
+  const confirmDelete = () => {
+    if (fileToDelete && onDeleteIndividualFile) {
+      onDeleteIndividualFile(item.id, fileToDelete);
+      setFileToDelete(null);
     }
   };
 
@@ -68,7 +71,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteFile(fileName);
+                        setFileToDelete(fileName);
                       }}
                       className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
                       title="Delete file"
@@ -95,6 +98,14 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
           </Button>
         )}
       </div>
+
+      <DeleteConfirmationDialog
+        open={!!fileToDelete}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete File"
+        description={`Are you sure you want to delete "${fileToDelete?.split('/').pop() || fileToDelete}"? This action cannot be undone.`}
+      />
     </TableCell>
   );
 }
