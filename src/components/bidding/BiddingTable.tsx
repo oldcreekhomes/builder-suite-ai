@@ -51,7 +51,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     removeGroupFromExpanded
   } = useBudgetGroups(groupedBiddingItems);
   
-  const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteFiles, cancelUpload, removeUpload } = useBiddingMutations(projectId);
+  const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteIndividualFile, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
   const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
 
@@ -307,7 +307,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                       isCompanyReadOnly={status === 'closed'}
                       projectAddress={projectAddress}
                       onFileUpload={handleFileUpload}
-                      onDeleteFiles={handleDeleteFiles}
+                      onDeleteIndividualFile={handleDeleteIndividualFile}
                       selectedCompanies={selectedCompanies}
                       onCompanyCheckboxChange={handleCompanyCheckboxChange}
                       onSelectAllCompanies={handleSelectAllCompanies}

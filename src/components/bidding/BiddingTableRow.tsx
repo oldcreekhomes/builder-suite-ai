@@ -30,7 +30,7 @@ interface BiddingTableRowProps {
   isCompanyReadOnly?: boolean;
   projectAddress?: string;
   onFileUpload?: (itemId: string, files: File[]) => void;
-  onDeleteFiles?: (itemId: string) => void;
+  onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
@@ -56,7 +56,7 @@ export function BiddingTableRow({
   isCompanyReadOnly = false,
   projectAddress,
   onFileUpload,
-  onDeleteFiles,
+  onDeleteIndividualFile,
   selectedCompanies,
   onCompanyCheckboxChange,
   onSelectAllCompanies
@@ -95,7 +95,7 @@ export function BiddingTableRow({
         onTestEmailClick={() => setShowTestEmailModal(true)}
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         onFileUpload={onFileUpload}
-        onDeleteFiles={onDeleteFiles}
+        onDeleteIndividualFile={onDeleteIndividualFile}
       />
       
       {isExpanded && (

@@ -1,7 +1,6 @@
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DeleteButton } from '@/components/ui/delete-button';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 
@@ -9,10 +8,10 @@ interface BiddingTableRowFilesProps {
   item: any;
   isReadOnly?: boolean;
   onFileUpload?: (itemId: string, files: File[]) => void;
-  onDeleteFiles?: (itemId: string) => void;
+  onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
 }
 
-export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteFiles }: BiddingTableRowFilesProps) {
+export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteIndividualFile }: BiddingTableRowFilesProps) {
 
   const handleFileUpload = () => {
     console.log('File upload clicked, onFileUpload function:', !!onFileUpload);
@@ -33,9 +32,9 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     input.click();
   };
 
-  const handleDeleteFiles = () => {
-    if (onDeleteFiles) {
-      onDeleteFiles(item.id);
+  const handleDeleteFile = (fileName: string) => {
+    if (onDeleteIndividualFile) {
+      onDeleteIndividualFile(item.id, fileName);
     }
   };
 
@@ -56,15 +55,29 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
               return (
-                <button
-                  key={index}
-                  onClick={() => handleFilePreview(fileName)}
-                  className={`${iconColorClass} transition-colors p-1`}
-                  title={fileName}
-                  type="button"
-                >
-                  <IconComponent className="h-4 w-4" />
-                </button>
+                <div key={index} className="relative group">
+                  <button
+                    onClick={() => handleFilePreview(fileName)}
+                    className={`${iconColorClass} transition-colors p-1`}
+                    title={fileName}
+                    type="button"
+                  >
+                    <IconComponent className="h-4 w-4" />
+                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFile(fileName);
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete file"
+                      type="button"
+                    >
+                      <span className="text-xs font-bold leading-none">×</span>
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -80,18 +93,6 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
           >
             Add Files
           </Button>
-        )}
-        
-        {/* Show delete button when files exist and not read-only */}
-        {item.files && item.files.length > 0 && !isReadOnly && (
-          <DeleteButton
-            onDelete={handleDeleteFiles}
-            title="Delete All Files"
-            description="Are you sure you want to delete all files? This action cannot be undone."
-            size="sm"
-            variant="ghost"
-            showIcon={true}
-          />
         )}
       </div>
     </TableCell>

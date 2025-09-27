@@ -413,10 +413,10 @@ export const useBiddingMutations = (projectId: string) => {
     }
   };
 
-  // Delete all files from bidding package
-  const deleteBiddingFiles = useMutation({
-    mutationFn: async (itemId: string) => {
-      // Get current files to delete from storage
+  // Delete individual file from bidding package
+  const deleteIndividualBiddingFile = useMutation({
+    mutationFn: async ({ itemId, fileName }: { itemId: string; fileName: string }) => {
+      // Get current files
       const { data: currentData, error: fetchError } = await supabase
         .from('project_bid_packages')
         .select('files')
@@ -427,20 +427,19 @@ export const useBiddingMutations = (projectId: string) => {
       
       const currentFiles = currentData?.files || [];
       
-      // Delete files from storage
-      if (currentFiles.length > 0) {
-        const filePaths = currentFiles.map((fileName: string) => `specifications/${fileName}`);
-        const { error: deleteError } = await supabase.storage
-          .from('project-files')
-          .remove(filePaths);
-          
-        if (deleteError) console.error('Error deleting files from storage:', deleteError);
-      }
+      // Remove file from storage
+      const filePath = `specifications/${fileName}`;
+      const { error: deleteError } = await supabase.storage
+        .from('project-files')
+        .remove([filePath]);
+        
+      if (deleteError) console.error('Error deleting file from storage:', deleteError);
       
-      // Clear files array in database
+      // Update database to remove file from array
+      const updatedFiles = currentFiles.filter((file: string) => file !== fileName);
       const { error } = await supabase
         .from('project_bid_packages')
-        .update({ files: [] })
+        .update({ files: updatedFiles })
         .eq('id', itemId);
 
       if (error) throw error;
@@ -449,14 +448,14 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       toast({
         title: "Success",
-        description: "Files deleted successfully",
+        description: "File deleted successfully",
       });
     },
     onError: (error) => {
-      console.error('Error deleting files:', error);
+      console.error('Error deleting file:', error);
       toast({
         title: "Error",
-        description: "Failed to delete files",
+        description: "Failed to delete file",
         variant: "destructive",
       });
     },
@@ -524,8 +523,8 @@ export const useBiddingMutations = (projectId: string) => {
     setUploadingFiles(prev => prev.filter(item => item.id !== uploadId));
   };
 
-  const handleDeleteFiles = (itemId: string) => {
-    deleteBiddingFiles.mutate(itemId);
+  const handleDeleteIndividualFile = async (itemId: string, fileName: string) => {
+    deleteIndividualBiddingFile.mutate({ itemId, fileName });
   };
 
   // Add companies to bid package mutation
@@ -576,9 +575,9 @@ export const useBiddingMutations = (projectId: string) => {
     handleUpdateReminderDate,
     handleUpdateSpecifications,
     handleFileUpload,
-    handleDeleteFiles,
-    handleAddCompaniesToBidPackage,
+    handleDeleteIndividualFile,
     cancelUpload,
     removeUpload,
+    handleAddCompaniesToBidPackage,
   };
 };

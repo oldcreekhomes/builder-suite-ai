@@ -30,7 +30,7 @@ interface BiddingTableRowContentProps {
   onTestEmailClick?: () => void;
   onAddCompaniesClick?: () => void;
   onFileUpload?: (itemId: string, files: File[]) => void;
-  onDeleteFiles?: (itemId: string) => void;
+  onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
 }
 
 export function BiddingTableRowContent({
@@ -51,7 +51,7 @@ export function BiddingTableRowContent({
   onTestEmailClick,
   onAddCompaniesClick,
   onFileUpload,
-  onDeleteFiles
+  onDeleteIndividualFile
 }: BiddingTableRowContentProps) {
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
@@ -125,7 +125,7 @@ export function BiddingTableRowContent({
         item={item}
         isReadOnly={isReadOnly}
         onFileUpload={onFileUpload}
-        onDeleteFiles={onDeleteFiles}
+        onDeleteIndividualFile={onDeleteIndividualFile}
       />
       <BiddingTableRowActions
         item={item}
