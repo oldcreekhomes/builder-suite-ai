@@ -42,18 +42,10 @@ export function DistanceFilterBar({
       <div className="bg-gray-50/50 border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 cursor-help">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium">Filter by Distance</span>
-                  <Info className="h-3 w-3 text-gray-400" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filter companies based on their distance from the project location</p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium">Filter by Distance</span>
+            </div>
             
             <Switch
               checked={enabled}
@@ -80,6 +72,14 @@ export function DistanceFilterBar({
                   </SelectContent>
                 </Select>
                 <span className="text-sm text-gray-600">miles</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-5 w-5 text-black cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Filter companies based on their distance from the project location</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             )}
           </div>
