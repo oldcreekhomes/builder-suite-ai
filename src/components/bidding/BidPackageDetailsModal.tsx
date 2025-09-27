@@ -78,10 +78,6 @@ export function BidPackageDetailsModal({
                 {format(new Date(item.reminder_date), 'MMM dd, yyyy')}
               </div>
             )}
-            <div>
-              <span className="font-medium">Companies:</span>{' '}
-              {item.project_bids?.length || 0}
-            </div>
           </div>
         </DialogHeader>
         
