@@ -248,8 +248,8 @@ export function IssuesTableRow({
         <div className="flex items-center space-x-1">
           <DeleteButton
             onDelete={() => onDelete(issue.id)}
-            title="Delete Issue"
-            description={`Are you sure you want to delete "${issue.title}"? This action cannot be undone.`}
+            title=""
+            description="Are you sure you want to delete this issue? This action cannot be undone."
             isLoading={isDeleting}
             className="h-6 w-6 p-0"
             showIcon={true}
