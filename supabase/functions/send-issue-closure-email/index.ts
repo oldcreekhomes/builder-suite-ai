@@ -49,11 +49,7 @@ const handler = async (req: Request): Promise<Response> => {
       ? solutionFiles.map((filePath, index) => {
           const simpleFileName = `File${index + 1}`;
           const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/issue-files/${filePath}`;
-          return `
-            <div style="margin-bottom: 8px; display: flex; align-items: center;">
-              <span style="margin-right: 8px; font-size: 16px;">📄</span>
-              <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${simpleFileName}</a>
-            </div>`;
+          return `<span style="margin-right: 15px; display: inline-block;"><span style="margin-right: 5px; font-size: 16px;">📄</span><a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${simpleFileName}</a></span>`;
         }).join('')
       : 'No solution files attached';
     
