@@ -289,7 +289,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   };
 
   if (isLoading) {
-    return <div className="p-4 text-sm">Loading companies...</div>;
+    return <div className="p-4 text-xs">Loading companies...</div>;
   }
 
   const { tableRows, filteredCompanies } = costCodeToCompaniesMap;
@@ -299,14 +299,14 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="h-10">
-              <TableHead className="font-bold py-2 text-sm">Cost Code</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Company Name</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Type</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Address</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Website</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Representatives</TableHead>
-              <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Address</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -340,27 +340,27 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                 // Parent row styling to match SpecificationGroupRow
                 if (row.type === 'parent') {
                   return (
-                    <TableRow key={row.id} className="bg-gray-50 border-b-2 border-gray-200 font-medium">
-                      <TableCell className="py-2 pl-4">
+                    <TableRow key={row.id} className="h-10 bg-gray-50 border-b-2 border-gray-200 font-medium">
+                      <TableCell className="px-2 py-1 pl-4">
                         <button
                           onClick={() => toggleGroupCollapse(row.groupKey)}
                           className="hover:bg-gray-100 rounded p-1 -ml-1"
                         >
                           {collapsedGroups.has(row.groupKey) ? (
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-3 w-3" />
                           ) : (
-                            <ChevronDown className="h-4 w-4" />
+                            <ChevronDown className="h-3 w-3" />
                           )}
                         </button>
                       </TableCell>
-                      <TableCell className="py-2 text-left">
-                        <span className="font-semibold">{row.groupKey}</span>
+                      <TableCell className="px-2 py-1 text-left">
+                        <span className="text-xs font-medium">{row.groupKey}</span>
                       </TableCell>
-                      <TableCell className="py-2"></TableCell>
-                      <TableCell className="py-2"></TableCell>
-                      <TableCell className="py-2"></TableCell>
-                      <TableCell className="py-2"></TableCell>
-                      <TableCell className="py-2"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
                     </TableRow>
                   );
                 }
@@ -368,28 +368,30 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                 // Child cost code row styling to match SpecificationTableRow  
                 if (row.type === 'child' && row.costCode) {
                   return (
-                    <TableRow key={row.id} className="h-8">
-                      <TableCell className="py-1 text-sm text-left">
+                    <TableRow key={row.id} className="h-10">
+                      <TableCell className="px-2 py-1 text-left">
                         <div className="flex items-center">
                           <button
                             onClick={() => toggleCostCodeCollapse(row.costCode.id)}
                             className="hover:bg-gray-100 rounded p-1 mr-2"
                           >
                             {collapsedCostCodes.has(row.costCode.id) ? (
-                              <ChevronRight className="h-4 w-4" />
+                              <ChevronRight className="h-3 w-3" />
                             ) : (
-                              <ChevronDown className="h-4 w-4" />
+                              <ChevronDown className="h-3 w-3" />
                             )}
                           </button>
-                          <span>{row.costCode.code}</span>
+                          <span className="text-xs font-medium">{row.costCode.code}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-1 text-sm">{row.costCode.name}</TableCell>
-                      <TableCell className="py-1"></TableCell>
-                      <TableCell className="py-1"></TableCell>
-                      <TableCell className="py-1"></TableCell>
-                      <TableCell className="py-1"></TableCell>
-                      <TableCell className="py-1"></TableCell>
+                      <TableCell className="px-2 py-1">
+                        <div className="text-xs font-medium">{row.costCode.name}</div>
+                      </TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
+                      <TableCell className="px-2 py-1"></TableCell>
                     </TableRow>
                   );
                 }
@@ -397,16 +399,18 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                 // Company row styling to match SpecificationTableRow
                 if (row.type === 'company' && row.company) {
                   return (
-                    <TableRow key={row.id} className="h-8">
-                      <TableCell className="py-1 text-sm text-left ml-8">
+                    <TableRow key={row.id} className="h-10">
+                      <TableCell className="px-2 py-1 text-left ml-8">
                       </TableCell>
-                      <TableCell className="py-1 text-sm">{row.company.company_name}</TableCell>
-                      <TableCell className="py-1 text-sm">
-                        <Badge className={`${getCompanyTypeColor(row.company.company_type)} text-[10px] px-1 py-0`}>
+                      <TableCell className="px-2 py-1">
+                        <div className="text-xs font-medium">{row.company.company_name}</div>
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <Badge className={`${getCompanyTypeColor(row.company.company_type)} text-[10px] w-fit px-1 py-0`}>
                           {row.company.company_type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-1 text-sm">
+                      <TableCell className="px-2 py-1">
                         {row.company.address ? (
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-3 w-3 text-gray-400" />
@@ -418,7 +422,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                           <span className="text-gray-400 text-xs">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1 text-sm">
+                      <TableCell className="px-2 py-1">
                         {row.company.website ? (
                           <a 
                             href={row.company.website.startsWith('http') ? row.company.website : `https://${row.company.website}`}
@@ -433,19 +437,19 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                           <span className="text-gray-400 text-xs">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-1 text-sm">
+                      <TableCell className="px-2 py-1">
                         <div className="flex items-center space-x-1">
                           <Users className="h-3 w-3 text-gray-400" />
                           <span className="text-xs">{row.company.representatives_count || 0}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-1">
+                      <TableCell className="px-2 py-1">
                         <div className="flex items-center space-x-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingCompany(row.company)}
-                            className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700"
+                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
                             title="View company"
                           >
                             <Users className="h-3 w-3" />
@@ -454,7 +458,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => setEditingCompany(row.company)}
-                            className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700"
+                            className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
                             title="Edit company"
                           >
                             <Edit className="h-3 w-3" />
@@ -463,7 +467,8 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteCompanyMutation.mutate(row.company.id)}
-                            className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+                            disabled={deleteCompanyMutation.isPending}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                             title="Delete company"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -479,15 +484,15 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {filteredCompanies.length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  <p className="text-gray-500">No companies found matching "{searchQuery}"</p>
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                  No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
             )}
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>
