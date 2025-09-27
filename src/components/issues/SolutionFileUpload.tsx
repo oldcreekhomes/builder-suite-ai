@@ -163,18 +163,6 @@ export function SolutionFileUpload({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Add Solution Text Button */}
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={isEditingText}
-        className="h-8 px-2 text-xs"
-        onClick={() => setIsEditingText(true)}
-      >
-        <Edit3 className="h-3 w-3 mr-1" />
-        {localSolution ? 'Edit' : 'Add Text'}
-      </Button>
-
       {/* Add Files Button */}
       <Button
         size="sm"
@@ -182,8 +170,7 @@ export function SolutionFileUpload({
         disabled={isUploading}
         className="h-8 px-2 text-xs"
         onClick={() => document.getElementById(`solution-file-input-${issueId}`)?.click()}
-      >
-        <Upload className="h-3 w-3 mr-1" />
+        >
         {isUploading ? 'Uploading...' : 'Add Files'}
       </Button>
       
