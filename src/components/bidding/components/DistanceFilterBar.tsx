@@ -104,7 +104,7 @@ export function DistanceFilterBar({
         </div>
 
         {/* MarketPlace Box */}
-        <div className="flex-1 bg-gray-50/50 border rounded-lg p-4 space-y-3">
+        <div className="flex-1 bg-gray-50/50 border rounded-lg p-4 flex items-center">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
