@@ -37,6 +37,7 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       // Invalidate purchase orders since deleting bid packages also deletes linked POs
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       toast({
@@ -68,6 +69,7 @@ export const useBiddingMutations = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['cost-codes-for-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       // Invalidate purchase orders since deleting bid packages also deletes linked POs
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       toast({
@@ -124,6 +126,7 @@ export const useBiddingMutations = (projectId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       toast({
         title: "Success",
         description: "Bidding status updated successfully",
