@@ -114,6 +114,10 @@ export function EditBiddingSpecificationsModal({
                 modules={modules as any}
                 formats={formats as any}
                 readOnly={isReadOnly}
+                style={{ 
+                  height: '300px',
+                  marginBottom: '50px'
+                }}
               />
             </div>
           </div>

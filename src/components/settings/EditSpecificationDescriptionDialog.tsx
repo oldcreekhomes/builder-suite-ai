@@ -120,6 +120,10 @@ export function EditSpecificationDescriptionDialog({
                 onChange={setHtml}
                 modules={modules as any}
                 formats={formats as any}
+                style={{ 
+                  height: '300px',
+                  marginBottom: '50px'
+                }}
               />
             </div>
           </div>
