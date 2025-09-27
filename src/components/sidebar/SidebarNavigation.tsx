@@ -215,20 +215,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                     </Tooltip>
                   </div>
                 ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <a 
-                        href={item.url} 
-                        className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{item.title}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <a 
+                    href={item.url} 
+                    className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span className="flex-1">{item.title}</span>
+                  </a>
                 )}
               </div>
             ))}
