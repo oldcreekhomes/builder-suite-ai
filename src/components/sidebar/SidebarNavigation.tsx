@@ -196,16 +196,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                   <div className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <a 
-                          href={item.url} 
-                          className="flex items-center space-x-2 flex-1"
-                        >
+                        <div className="flex items-center space-x-2 flex-1 cursor-pointer">
                           <item.icon className="h-4 w-4" />
                           <span className="flex-1">{item.title}</span>
-                        </a>
+                        </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>{item.title}</p>
+                      <TooltipContent className="max-w-xs p-4">
+                        <p>Estimating AI is a paid feature for Home Builders. Step #1: Build your database of costs. Step #2: Add your drawings. Step #3: Let Estimating do a take off of your drawings and build a budget in 15-30 seconds. Something that used to take days now takes seconds.</p>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -213,7 +210,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         <HelpCircle className="h-4 w-4 text-black cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs p-4">
-                        <p>Estimating AI uses artificial intelligence to provide intelligent cost estimation, material optimization, and automated project analysis for construction projects.</p>
+                        <p>Estimating AI is a paid feature for Home Builders. Step #1: Build your database of costs. Step #2: Add your drawings. Step #3: Let Estimating do a take off of your drawings and build a budget in 15-30 seconds. Something that used to take days now takes seconds.</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
