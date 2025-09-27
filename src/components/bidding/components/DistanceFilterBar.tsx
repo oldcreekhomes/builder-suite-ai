@@ -111,6 +111,7 @@ export function DistanceFilterBar({
                 <Store className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium">MarketPlace</span>
               </div>
+              <span className="text-sm text-gray-600">What is MarketPlace?</span>
             </div>
           </div>
         </div>
