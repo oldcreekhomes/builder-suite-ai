@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BiddingCompanyList } from './BiddingCompanyList';
+import { BidPackageDetailsModal } from './BidPackageDetailsModal';
 import { SendBidPackageModal } from './SendBidPackageModal';
 import { SendSingleCompanyEmailModal } from './SendSingleCompanyEmailModal';
 import { SendTestEmailModal } from './SendTestEmailModal';
@@ -61,11 +61,11 @@ export function BiddingTableRow({
   onCompanyCheckboxChange,
   onSelectAllCompanies
 }: BiddingTableRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSingleCompanyModal, setShowSingleCompanyModal] = useState(false);
   const [showTestEmailModal, setShowTestEmailModal] = useState(false);
   const [showAddCompaniesModal, setShowAddCompaniesModal] = useState(false);
+  const [showBidPackageModal, setShowBidPackageModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const costCode = item.cost_codes as CostCode;
 
@@ -80,11 +80,10 @@ export function BiddingTableRow({
       <BiddingTableRowContent
         item={item}
         costCode={costCode}
-        isExpanded={isExpanded}
         isSelected={isSelected}
         isDeleting={isDeleting}
         isReadOnly={isReadOnly}
-        onToggleExpanded={() => setIsExpanded(!isExpanded)}
+        onRowClick={() => setShowBidPackageModal(true)}
         onCheckboxChange={onCheckboxChange}
         onUpdateStatus={onUpdateStatus}
         onUpdateDueDate={onUpdateDueDate}
@@ -97,26 +96,6 @@ export function BiddingTableRow({
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
       />
-      
-      {isExpanded && (
-        <BiddingCompanyList
-          biddingItemId={item.id}
-          companies={item.project_bids || []}
-          onToggleBidStatus={onToggleBidStatus}
-          onUpdatePrice={onUpdatePrice}
-          onUploadProposal={onUploadProposal}
-          onDeleteAllProposals={onDeleteAllProposals}
-          onDeleteCompany={onDeleteCompany}
-          onSendEmail={handleSendEmailToCompany}
-          isReadOnly={isCompanyReadOnly}
-          projectAddress={projectAddress}
-          projectId={item.project_id}
-          costCodeId={item.cost_code_id}
-          selectedCompanies={selectedCompanies}
-          onCompanyCheckboxChange={onCompanyCheckboxChange}
-          onSelectAllCompanies={onSelectAllCompanies}
-        />
-      )}
       
       <SendBidPackageModal
         open={showSendModal}
@@ -136,6 +115,24 @@ export function BiddingTableRow({
         onOpenChange={setShowTestEmailModal}
         bidPackage={item}
         companyId={selectedCompanyId}
+      />
+
+      <BidPackageDetailsModal
+        open={showBidPackageModal}
+        onOpenChange={setShowBidPackageModal}
+        item={item}
+        costCode={costCode}
+        onToggleBidStatus={onToggleBidStatus}
+        onUpdatePrice={onUpdatePrice}
+        onUploadProposal={onUploadProposal}
+        onDeleteAllProposals={onDeleteAllProposals}
+        onDeleteCompany={onDeleteCompany}
+        onSendEmail={handleSendEmailToCompany}
+        isReadOnly={isCompanyReadOnly}
+        projectAddress={projectAddress}
+        selectedCompanies={selectedCompanies}
+        onCompanyCheckboxChange={onCompanyCheckboxChange}
+        onSelectAllCompanies={onSelectAllCompanies}
       />
       
       <AddCompaniesToBidPackageModal

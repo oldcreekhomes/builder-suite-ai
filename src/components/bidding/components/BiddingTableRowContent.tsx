@@ -3,7 +3,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { BiddingDatePicker } from './BiddingDatePicker';
 import { BiddingTableRowSpecs } from './BiddingTableRowSpecs';
 import { BiddingTableRowFiles } from './BiddingTableRowFiles';
@@ -15,11 +15,10 @@ type CostCode = Tables<'cost_codes'>;
 interface BiddingTableRowContentProps {
   item: any;
   costCode: CostCode;
-  isExpanded: boolean;
   isSelected: boolean;
   isDeleting?: boolean;
   isReadOnly?: boolean;
-  onToggleExpanded: () => void;
+  onRowClick: () => void;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   onUpdateStatus: (itemId: string, status: string) => void;
   onUpdateDueDate: (itemId: string, dueDate: string | null) => void;
@@ -36,11 +35,10 @@ interface BiddingTableRowContentProps {
 export function BiddingTableRowContent({
   item,
   costCode,
-  isExpanded,
   isSelected,
   isDeleting = false,
   isReadOnly = false,
-  onToggleExpanded,
+  onRowClick,
   onCheckboxChange,
   onUpdateStatus,
   onUpdateDueDate,
@@ -62,18 +60,21 @@ export function BiddingTableRowContent({
         />
       </TableCell>
       <TableCell className="font-medium py-1 text-sm">
-        <div className="flex items-center">
-          <button
-            onClick={onToggleExpanded}
-            className="hover:bg-gray-100 rounded mr-2"
+        <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center cursor-pointer hover:text-primary flex-1"
+            onClick={onRowClick}
           >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </button>
-          {costCode?.code} - {costCode?.name}
+            {costCode?.code} - {costCode?.name}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRowClick}
+            className="h-6 w-6 p-0 hover:bg-primary/10"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
         </div>
       </TableCell>
       <TableCell className="py-1">
