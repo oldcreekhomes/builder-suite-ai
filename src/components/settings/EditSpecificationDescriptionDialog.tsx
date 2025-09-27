@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -16,7 +17,9 @@ import {
   List, 
   ListOrdered, 
   Indent, 
-  Outdent
+  Outdent,
+  Eye,
+  Edit
 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -40,14 +43,13 @@ export function EditSpecificationDescriptionDialog({
   onOpenChange,
   onUpdateDescription
 }: EditSpecificationDescriptionDialogProps) {
+  const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
-    if (specification && editorRef.current) {
-      // Convert markdown to HTML for display
-      const htmlContent = convertMarkdownToHtml(specification.description || '');
-      editorRef.current.innerHTML = htmlContent;
+    if (specification) {
+      setDescription(specification.description || '');
     }
   }, [specification]);
 
@@ -56,58 +58,69 @@ export function EditSpecificationDescriptionDialog({
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/__(.*?)__/g, '<u>$1</u>')
-      .replace(/^• (.+)$/gm, '<ul><li>$1</li></ul>')
-      .replace(/^\d+\. (.+)$/gm, '<ol><li>$1</li></ol>')
+      .replace(/^• (.+)$/gm, '• $1')
+      .replace(/^\d+\. (.+)$/gm, '$1')
       .replace(/^    (.+)$/gm, '<div style="margin-left: 20px;">$1</div>')
       .replace(/\n/g, '<br>');
   };
 
-  const convertHtmlToMarkdown = (html: string) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
+  const insertText = (before: string, after: string = '', placeholder: string = '') => {
+    const textarea = document.getElementById('description-input') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = description.substring(start, end);
+    const textToInsert = selectedText || placeholder;
     
-    // Convert back to markdown-style formatting for storage
-    let text = div.innerHTML
-      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-      .replace(/<em>(.*?)<\/em>/g, '*$1*')
-      .replace(/<u>(.*?)<\/u>/g, '__$1__')
-      .replace(/<li>(.*?)<\/li>/g, '• $1')
-      .replace(/<ul>|<\/ul>|<ol>|<\/ol>/g, '')
-      .replace(/<div style="margin-left: 20px;">(.*?)<\/div>/g, '    $1')
-      .replace(/<br>/g, '\n')
-      .replace(/<[^>]*>/g, ''); // Remove any remaining HTML tags
+    const newText = description.substring(0, start) + before + textToInsert + after + description.substring(end);
+    setDescription(newText);
     
-    return text;
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + before.length + textToInsert.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
   };
 
-  const execCommand = (command: string, value: string = '') => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  };
+  const insertAtLineStart = (prefix: string) => {
+    const textarea = document.getElementById('description-input') as HTMLTextAreaElement;
+    if (!textarea) return;
 
-  const handleBold = () => execCommand('bold');
-  const handleItalic = () => execCommand('italic');
-  const handleUnderline = () => execCommand('underline');
-  
-  const handleBulletList = () => {
-    execCommand('insertUnorderedList');
+    const start = textarea.selectionStart;
+    const beforeCursor = description.substring(0, start);
+    
+    const lastNewline = beforeCursor.lastIndexOf('\n');
+    const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+    const currentLine = description.substring(lineStart, start);
+    
+    if (currentLine.startsWith(prefix)) {
+      const newText = description.substring(0, lineStart) + 
+                     currentLine.substring(prefix.length) + 
+                     description.substring(start);
+      setDescription(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+      }, 0);
+    } else {
+      const newText = description.substring(0, lineStart) + 
+                     prefix + currentLine + 
+                     description.substring(start);
+      setDescription(newText);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+      }, 0);
+    }
   };
-  
-  const handleNumberedList = () => {
-    execCommand('insertOrderedList');
-  };
-
-  const handleIndent = () => execCommand('indent');
-  const handleOutdent = () => execCommand('outdent');
 
   const handleSave = async () => {
-    if (!specification || !editorRef.current) return;
+    if (!specification) return;
     
     setIsLoading(true);
     try {
-      const htmlContent = editorRef.current.innerHTML;
-      const markdownContent = convertHtmlToMarkdown(htmlContent);
-      await onUpdateDescription(specification.id, markdownContent);
+      await onUpdateDescription(specification.id, description);
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating description:', error);
@@ -131,98 +144,145 @@ export function EditSpecificationDescriptionDialog({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            
-            {/* Formatting Toolbar */}
-            <div className="flex items-center space-x-1 p-2 border rounded-t-md bg-gray-50">
-              <div className="flex items-center space-x-1">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="description">Description</Label>
+              <div className="flex items-center space-x-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={handleBold}
-                  title="Bold"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="flex items-center space-x-1"
                 >
-                  <Bold className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleItalic}
-                  title="Italic"
-                >
-                  <Italic className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUnderline}
-                  title="Underline"
-                >
-                  <Underline className="h-3 w-3" />
-                </Button>
-              </div>
-              
-              <Separator orientation="vertical" className="h-6" />
-              
-              <div className="flex items-center space-x-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBulletList}
-                  title="Bullet Point"
-                >
-                  <List className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNumberedList}
-                  title="Numbered List"
-                >
-                  <ListOrdered className="h-3 w-3" />
-                </Button>
-              </div>
-              
-              <Separator orientation="vertical" className="h-6" />
-              
-              <div className="flex items-center space-x-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleIndent}
-                  title="Indent"
-                >
-                  <Indent className="h-3 w-3" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleOutdent}
-                  title="Outdent"
-                >
-                  <Outdent className="h-3 w-3" />
+                  {showPreview ? <Edit className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  <span>{showPreview ? 'Edit' : 'Preview'}</span>
                 </Button>
               </div>
             </div>
             
-            <div
-              ref={editorRef}
-              contentEditable
-              className="min-h-[200px] w-full rounded-b-md border border-t-0 border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              style={{ maxHeight: '300px', overflowY: 'auto' }}
-              suppressContentEditableWarning={true}
-            />
+            {!showPreview && (
+              <>
+                {/* Formatting Toolbar */}
+                <div className="flex items-center space-x-1 p-2 border rounded-t-md bg-gray-50">
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertText('**', '**', 'bold text')}
+                      title="Bold"
+                    >
+                      <Bold className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertText('*', '*', 'italic text')}
+                      title="Italic"
+                    >
+                      <Italic className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertText('__', '__', 'underlined text')}
+                      title="Underline"
+                    >
+                      <Underline className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
+                  <Separator orientation="vertical" className="h-6" />
+                  
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertAtLineStart('• ')}
+                      title="Bullet Point"
+                    >
+                      <List className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertAtLineStart('1. ')}
+                      title="Numbered List"
+                    >
+                      <ListOrdered className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  
+                  <Separator orientation="vertical" className="h-6" />
+                  
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => insertAtLineStart('    ')}
+                      title="Indent"
+                    >
+                      <Indent className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const textarea = document.getElementById('description-input') as HTMLTextAreaElement;
+                        if (!textarea) return;
+                        const start = textarea.selectionStart;
+                        const beforeCursor = description.substring(0, start);
+                        const lastNewline = beforeCursor.lastIndexOf('\n');
+                        const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+                        const currentLine = description.substring(lineStart);
+                        if (currentLine.startsWith('    ')) {
+                          const newText = description.substring(0, lineStart) + currentLine.substring(4);
+                          setDescription(newText);
+                          setTimeout(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(Math.max(start - 4, lineStart), Math.max(start - 4, lineStart));
+                          }, 0);
+                        }
+                      }}
+                      title="Outdent"
+                    >
+                      <Outdent className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <Textarea
+                  id="description-input"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter specification description..."
+                  rows={8}
+                  className="rounded-t-none font-mono text-sm"
+                />
+                
+                <div className="text-xs text-gray-500 mt-1">
+                  Tip: Use **bold**, *italic*, __underline__, • bullets, 1. numbers, and indenting
+                </div>
+              </>
+            )}
             
-            <div className="text-xs text-gray-500 mt-1">
-              Use the toolbar buttons to format your text. Text will appear formatted as you type.
-            </div>
+            {showPreview && (
+              <div className="border rounded-md p-3 min-h-[200px] bg-white">
+                {description.trim() ? (
+                  <div dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(description) }} />
+                ) : (
+                  <div className="text-gray-500 text-center py-8">
+                    No content to preview. Start typing to see a preview.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
