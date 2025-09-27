@@ -194,25 +194,10 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               <div key={item.title}>
                 {item.title === "Estimating AI" ? (
                   <div className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center space-x-2 flex-1 cursor-pointer">
-                          <item.icon className="h-4 w-4" />
-                          <span className="flex-1">{item.title}</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs p-4">
-                        <div className="space-y-2">
-                          <p>Estimating AI is a paid feature for Home Builders.</p>
-                          <div className="space-y-1">
-                            <p>Step 1: Build your database of costs.</p>
-                            <p>Step 2: Add your drawings.</p>
-                            <p>Step 3: Let Estimating AI do a take off and build a budget in 15-30 seconds.</p>
-                          </div>
-                          <p>Something that used to take days now takes seconds.</p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
+                    <div className="flex items-center space-x-2 flex-1 cursor-pointer">
+                      <item.icon className="h-4 w-4" />
+                      <span className="flex-1">{item.title}</span>
+                    </div>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <HelpCircle className="h-4 w-4 text-black cursor-help" />
