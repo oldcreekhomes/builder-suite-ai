@@ -173,14 +173,24 @@ function parseIFFFile(content: string): IFFAccount[] {
     // Skip if not in account section
     if (!isInAccountSection) continue;
     
-    // Parse account lines - IFF format typically uses tab-separated values
+    // Parse account lines - IFF format uses tab-separated values
     const fields = line.split('\t');
     
-    if (fields.length < 3) continue; // Need at least account number, name, and type
+    if (fields.length < 8) continue; // Need at least 8 fields for proper IFF format
     
-    const accountNumber = fields[0]?.trim();
-    const accountName = fields[1]?.trim();
-    const accountTypeRaw = fields[2]?.trim();
+    // Skip if this is not an account record (should start with ACCNT)
+    if (fields[0]?.trim() !== 'ACCNT') continue;
+    
+    // Correct IFF field mapping based on format:
+    // fields[0] = ACCNT (record type)
+    // fields[1] = NAME
+    // fields[4] = ACCNTTYPE  
+    // fields[6] = DESC
+    // fields[7] = ACCNUM (this is the actual account number/code)
+    const accountNumber = fields[7]?.trim(); // ACCNUM field
+    const accountName = fields[1]?.trim(); // NAME field
+    const accountTypeRaw = fields[4]?.trim(); // ACCNTTYPE field
+    const description = fields[6]?.trim(); // DESC field
     
     if (!accountNumber || !accountName || !accountTypeRaw) continue;
     
@@ -192,7 +202,7 @@ function parseIFFFile(content: string): IFFAccount[] {
         code: accountNumber,
         name: accountName,
         type: accountType,
-        description: fields[3]?.trim() || undefined
+        description: description || undefined
       });
       
       console.log(`Parsed account: ${accountNumber} - ${accountName} (${accountType})`);
