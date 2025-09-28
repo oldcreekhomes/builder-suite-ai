@@ -296,17 +296,6 @@ export default function BalanceSheet() {
                 </div>
               </div>
             )}
-
-            {balanceSheetData && !isLoading && (
-              <Card className="mt-6">
-                <CardContent className="p-4">
-                  <div className="text-xs text-muted-foreground">
-                    Balance Check: Assets = Liabilities + Equity<br />
-                    {formatCurrency(balanceSheetData.totalAssets)} = {formatCurrency(Math.abs(balanceSheetData.totalLiabilities) + Math.abs(balanceSheetData.totalEquity))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </SidebarInset>
       </div>
