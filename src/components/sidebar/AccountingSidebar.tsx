@@ -1,6 +1,8 @@
-import { Calculator, Home, FileText, AlertTriangle, BarChart3 } from "lucide-react";
+import { Calculator, Home, FileText, AlertTriangle, BarChart3, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { SidebarBranding } from "./SidebarBranding";
 import { SidebarUserDropdown } from "./SidebarUserDropdown";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
@@ -10,6 +12,9 @@ interface AccountingSidebarProps {
 }
 
 export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
+  const [billsExpanded, setBillsExpanded] = useState(true);
+  const [reportsExpanded, setReportsExpanded] = useState(false);
+  
   const baseUrl = projectId ? `/project/${projectId}` : "";
   
   const items = [
@@ -59,44 +64,54 @@ export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
                 </div>
               ))}
               
-              {/* Bills Section */}
+              {/* Bills Section - Collapsible */}
               <div className="mt-2">
-                <div className="flex items-center space-x-2 px-2 py-2 text-gray-700 text-sm">
-                  <FileText className="h-4 w-4" />
-                  <span className="flex-1">Bills</span>
-                </div>
-                <div className="ml-6">
-                  {billsSubItems.map((subItem) => (
-                    <div key={subItem.title}>
-                      <a 
-                        href={subItem.url} 
-                        className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-                      >
-                        <span className="flex-1">{subItem.title}</span>
-                      </a>
+                <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
+                  <CollapsibleTrigger className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span className="flex-1">Bills</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="ml-6">
+                      {billsSubItems.map((subItem) => (
+                        <div key={subItem.title}>
+                          <a 
+                            href={subItem.url} 
+                            className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                          >
+                            <span className="flex-1">{subItem.title}</span>
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
               
-              {/* Reports Section */}
+              {/* Reports Section - Collapsible */}
               <div className="mt-2">
-                <div className="flex items-center space-x-2 px-2 py-2 text-gray-700 text-sm">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="flex-1">Reports</span>
-                </div>
-                <div className="ml-6">
-                  {reportsSubItems.map((subItem) => (
-                    <div key={subItem.title}>
-                      <a 
-                        href={subItem.url} 
-                        className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-                      >
-                        <span className="flex-1">{subItem.title}</span>
-                      </a>
+                <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
+                  <CollapsibleTrigger className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="flex-1">Reports</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="ml-6">
+                      {reportsSubItems.map((subItem) => (
+                        <div key={subItem.title}>
+                          <a 
+                            href={subItem.url} 
+                            className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                          >
+                            <span className="flex-1">{subItem.title}</span>
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </div>
 
