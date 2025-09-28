@@ -22,17 +22,36 @@ export default function Accounting() {
     queryFn: async () => {
       if (!projectId) return null;
 
-      const { data: bills, error } = await supabase
+      // Get bills directly assigned to project
+      const { data: directBills, error: directError } = await supabase
         .from('bills')
         .select('id, status, total_amount, due_date')
         .eq('project_id', projectId);
 
-      if (error) throw error;
+      if (directError) throw directError;
+
+      // Get bills with line items assigned to project but bill header has no project
+      const { data: indirectBills, error: indirectError } = await supabase
+        .from('bills')
+        .select(`
+          id, status, total_amount, due_date,
+          bill_lines!inner(project_id)
+        `)
+        .is('project_id', null)
+        .eq('bill_lines.project_id', projectId);
+
+      if (indirectError) throw indirectError;
+
+      // Combine and deduplicate bills
+      const allBills = [...(directBills || []), ...(indirectBills || [])];
+      const uniqueBills = allBills.filter((bill, index, array) => 
+        array.findIndex(b => b.id === bill.id) === index
+      );
 
       const today = new Date().toISOString().split('T')[0];
       
-      const pendingBills = bills?.filter(bill => bill.status === 'draft') || [];
-      const postedBills = bills?.filter(bill => bill.status === 'posted') || [];
+      const pendingBills = uniqueBills?.filter(bill => bill.status === 'draft') || [];
+      const postedBills = uniqueBills?.filter(bill => bill.status === 'posted') || [];
       const overdueBills = postedBills.filter(bill => 
         bill.due_date && bill.due_date < today
       ) || [];

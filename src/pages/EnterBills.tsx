@@ -163,16 +163,6 @@ export default function EnterBills() {
       return;
     }
 
-    const billData: BillData = {
-      vendor_id: vendor,
-      project_id: projectId || undefined,
-      bill_date: billDate.toISOString().split('T')[0],
-      due_date: billDueDate?.toISOString().split('T')[0],
-      terms,
-      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
-      notes: undefined
-    };
-
     const billLines: BillLineData[] = [
       ...jobCostRows
         .filter(row => row.accountId || row.amount)
@@ -206,6 +196,25 @@ export default function EnterBills() {
       });
       return;
     }
+
+    // Derive project_id from line items if bill has no project but all line items share same project
+    let derivedProjectId = projectId;
+    if (!projectId) {
+      const lineProjectIds = billLines.map(line => line.project_id).filter(Boolean);
+      if (lineProjectIds.length > 0 && lineProjectIds.every(id => id === lineProjectIds[0])) {
+        derivedProjectId = lineProjectIds[0];
+      }
+    }
+
+    const billData: BillData = {
+      vendor_id: vendor,
+      project_id: derivedProjectId || undefined,
+      bill_date: billDate.toISOString().split('T')[0],
+      due_date: billDueDate?.toISOString().split('T')[0],
+      terms,
+      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
+      notes: undefined
+    };
 
     try {
       const bill = await createBill.mutateAsync({ billData, billLines });
@@ -230,16 +239,6 @@ export default function EnterBills() {
       return;
     }
 
-    const billData: BillData = {
-      vendor_id: vendor,
-      project_id: projectId || undefined,
-      bill_date: billDate.toISOString().split('T')[0],
-      due_date: billDueDate?.toISOString().split('T')[0],
-      terms,
-      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
-      notes: undefined
-    };
-
     const billLines: BillLineData[] = [
       ...jobCostRows
         .filter(row => row.accountId || row.amount)
@@ -273,6 +272,25 @@ export default function EnterBills() {
       });
       return;
     }
+
+    // Derive project_id from line items if bill has no project but all line items share same project
+    let derivedProjectId = projectId;
+    if (!projectId) {
+      const lineProjectIds = billLines.map(line => line.project_id).filter(Boolean);
+      if (lineProjectIds.length > 0 && lineProjectIds.every(id => id === lineProjectIds[0])) {
+        derivedProjectId = lineProjectIds[0];
+      }
+    }
+
+    const billData: BillData = {
+      vendor_id: vendor,
+      project_id: derivedProjectId || undefined,
+      bill_date: billDate.toISOString().split('T')[0],
+      due_date: billDueDate?.toISOString().split('T')[0],
+      terms,
+      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
+      notes: undefined
+    };
 
     try {
       await createBill.mutateAsync({ billData, billLines });
