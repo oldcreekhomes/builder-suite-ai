@@ -276,6 +276,18 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
+                  
+                  <div className="mt-0.5">
+                    <a href={`/project/${projectId}/accounting/banking/write-checks`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      <span>Banking</span>
+                    </a>
+                    <div className="ml-6 space-y-0.5">
+                      <a href={`/project/${projectId}/accounting/banking/write-checks`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                        <span>Write Checks</span>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
