@@ -338,7 +338,8 @@ export const useBills = () => {
           debit: bill.total_amount,
           credit: 0,
           memo: `Payment - ${bill.reference_number || 'Bill'}`,
-          owner_id: bill.owner_id
+          owner_id: bill.owner_id,
+          project_id: bill.project_id || null,
         },
         // Credit payment method account
         {
@@ -348,7 +349,8 @@ export const useBills = () => {
           debit: 0,
           credit: bill.total_amount,
           memo: memo || `Payment for bill ${bill.reference_number || ''}`,
-          owner_id: bill.owner_id
+          owner_id: bill.owner_id,
+          project_id: bill.project_id || null,
         }
       ];
 
