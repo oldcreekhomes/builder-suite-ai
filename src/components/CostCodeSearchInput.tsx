@@ -26,17 +26,17 @@ export function CostCodeSearchInput({
     setSearchQuery(value);
   }, [value]);
 
-  const filteredCostCodes = searchQuery.length >= 3 ? searchCostCodes(searchQuery) : [];
+  const filteredCostCodes = searchQuery.trim().length >= 1 ? searchCostCodes(searchQuery) : [];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
     onChange(newValue);
-    setShowResults(newValue.length >= 3);
+    setShowResults(newValue.trim().length >= 1);
   };
 
   const handleInputFocus = () => {
-    if (searchQuery.length >= 3) {
+    if (searchQuery.trim().length >= 1) {
       setShowResults(true);
     }
   };
