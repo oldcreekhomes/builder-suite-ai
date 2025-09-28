@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProject } from "@/hooks/useProject";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -32,12 +35,14 @@ interface BalanceSheetData {
 }
 
 export default function BalanceSheet() {
+  const { projectId } = useParams<{ projectId: string }>();
   const { user, session, loading: authLoading } = useAuth();
+  const { data: project } = useProject(projectId || '');
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
-    queryKey: ['balance-sheet', user?.id],
+    queryKey: ['balance-sheet', user?.id, projectId],
     queryFn: async (): Promise<BalanceSheetData> => {
-      console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "session:", !!session);
+      console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
       // Get all accounts
       const { data: accounts, error: accountsError } = await supabase
         .from('accounts')
@@ -49,8 +54,8 @@ export default function BalanceSheet() {
         throw accountsError;
       }
 
-      // Get journal entry line balances - only for Old Creek Homes (bills with project_id IS NULL)
-      const { data: journalLines, error: journalError } = await supabase
+      // Get journal entry line balances based on context
+      let journalLinesQuery = supabase
         .from('journal_entry_lines')
         .select(`
           account_id, 
@@ -62,8 +67,18 @@ export default function BalanceSheet() {
             bills!inner(project_id)
           )
         `)
-        .eq('journal_entries.source_type', 'bill')
-        .is('journal_entries.bills.project_id', null);
+        .eq('journal_entries.source_type', 'bill');
+
+      // Filter based on context: project-specific or Old Creek Homes
+      if (projectId) {
+        // Project context: show bills for this specific project
+        journalLinesQuery = journalLinesQuery.eq('journal_entries.bills.project_id', projectId);
+      } else {
+        // Global context: show Old Creek Homes bills (project_id IS NULL)
+        journalLinesQuery = journalLinesQuery.is('journal_entries.bills.project_id', null);
+      }
+
+      const { data: journalLines, error: journalError } = await journalLinesQuery;
 
       if (journalError) {
         console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
@@ -213,10 +228,19 @@ export default function BalanceSheet() {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <CompanyDashboardHeader />
+            {projectId ? (
+              <DashboardHeader 
+                title="Balance Sheet" 
+                projectId={projectId}
+              />
+            ) : (
+              <CompanyDashboardHeader />
+            )}
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
               <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+                </h2>
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <Card>
@@ -258,10 +282,19 @@ export default function BalanceSheet() {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <CompanyDashboardHeader />
+            {projectId ? (
+              <DashboardHeader 
+                title="Balance Sheet" 
+                projectId={projectId}
+              />
+            ) : (
+              <CompanyDashboardHeader />
+            )}
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
               <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+                </h2>
               </div>
                 <Card>
                   <CardContent className="p-6">
@@ -289,10 +322,19 @@ export default function BalanceSheet() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <CompanyDashboardHeader />
+          {projectId ? (
+            <DashboardHeader 
+              title="Balance Sheet" 
+              projectId={projectId}
+            />
+          ) : (
+            <CompanyDashboardHeader />
+          )}
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
-              <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+              <h2 className="text-3xl font-bold tracking-tight">
+                {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+              </h2>
               <div className="text-sm text-muted-foreground">
                 As of {new Date().toLocaleDateString()}
               </div>
