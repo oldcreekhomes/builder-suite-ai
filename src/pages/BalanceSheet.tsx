@@ -49,7 +49,7 @@ export default function BalanceSheet() {
 
       if (journalError) throw journalError;
 
-      // Calculate account balances
+      // Calculate account balances with proper sign conventions
       const accountBalances: Record<string, number> = {};
       
       journalLines?.forEach((line) => {
@@ -59,40 +59,103 @@ export default function BalanceSheet() {
         accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
       });
 
-      // Categorize accounts
+      // Categorize accounts with proper balance sheet presentation
       const assets: { current: AccountBalance[], fixed: AccountBalance[] } = { current: [], fixed: [] };
       const liabilities: { current: AccountBalance[], longTerm: AccountBalance[] } = { current: [], longTerm: [] };
       const equity: AccountBalance[] = [];
 
-      accounts?.forEach((account) => {
-        const balance = accountBalances[account.id] || 0;
-        const accountBalance: AccountBalance = {
-          id: account.id,
-          code: account.code,
-          name: account.name,
-          type: account.type,
-          balance: balance
-        };
+      // Track revenue and expense for retained earnings calculation
+      let revenueBalance = 0;
+      let expenseBalance = 0;
 
+      accounts?.forEach((account) => {
+        const rawBalance = accountBalances[account.id] || 0;
+        
+        // Apply proper accounting sign conventions for balance sheet presentation
+        let displayBalance = rawBalance;
+        
         switch (account.type) {
           case 'asset':
-            // For now, categorize all assets as current
-            // In a real implementation, you'd have subcategories
-            assets.current.push(accountBalance);
+            // Assets: Debit balances are positive (normal)
+            displayBalance = rawBalance;
+            const assetBalance: AccountBalance = {
+              id: account.id,
+              code: account.code,
+              name: account.name,
+              type: account.type,
+              balance: displayBalance
+            };
+            assets.current.push(assetBalance);
             break;
+            
           case 'liability':
-            // For now, categorize all liabilities as current
-            liabilities.current.push(accountBalance);
+            // Liabilities: Credit balances are positive for balance sheet presentation
+            displayBalance = -rawBalance;
+            const liabilityBalance: AccountBalance = {
+              id: account.id,
+              code: account.code,
+              name: account.name,
+              type: account.type,
+              balance: displayBalance
+            };
+            liabilities.current.push(liabilityBalance);
             break;
+            
           case 'equity':
-            equity.push(accountBalance);
+            // Equity: Credit balances are positive for balance sheet presentation
+            displayBalance = -rawBalance;
+            const equityBalance: AccountBalance = {
+              id: account.id,
+              code: account.code,
+              name: account.name,
+              type: account.type,
+              balance: displayBalance
+            };
+            equity.push(equityBalance);
+            break;
+            
+          case 'revenue':
+            // Revenue accounts (credit normal) - accumulate for retained earnings
+            revenueBalance += -rawBalance; // Convert to positive for revenue
+            break;
+            
+          case 'expense':
+            // Expense accounts (debit normal) - accumulate for retained earnings
+            expenseBalance += rawBalance;
             break;
         }
       });
 
+      // Calculate net income and add to retained earnings
+      const netIncome = revenueBalance - expenseBalance;
+      if (netIncome !== 0) {
+        equity.push({
+          id: 'retained-earnings-current',
+          code: 'RE-CY',
+          name: 'Current Year Earnings',
+          type: 'equity',
+          balance: netIncome
+        });
+      }
+
       const totalAssets = [...assets.current, ...assets.fixed].reduce((sum, acc) => sum + acc.balance, 0);
       const totalLiabilities = [...liabilities.current, ...liabilities.longTerm].reduce((sum, acc) => sum + acc.balance, 0);
       const totalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
+
+      // Add balance sheet balancing check
+      const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+      const difference = totalAssets - totalLiabilitiesAndEquity;
+      
+      // If there's still an imbalance, add a balancing entry to highlight the issue
+      if (Math.abs(difference) > 0.01) { // Allow for small rounding differences
+        equity.push({
+          id: 'balance-sheet-difference',
+          code: 'DIFF',
+          name: 'Balance Sheet Difference (Investigation Required)',
+          type: 'equity',
+          balance: difference
+        });
+      }
 
       return {
         assets,
@@ -241,7 +304,7 @@ export default function BalanceSheet() {
                             {balanceSheetData.liabilities.current.map((account) => (
                               <div key={account.id} className="flex justify-between items-center text-sm">
                                 <span>{account.code} - {account.name}</span>
-                                <span>{formatCurrency(Math.abs(account.balance))}</span>
+                                <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
                           </div>
@@ -256,7 +319,7 @@ export default function BalanceSheet() {
                             {balanceSheetData.liabilities.longTerm.map((account) => (
                               <div key={account.id} className="flex justify-between items-center text-sm">
                                 <span>{account.code} - {account.name}</span>
-                                <span>{formatCurrency(Math.abs(account.balance))}</span>
+                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
                           </div>
@@ -266,7 +329,7 @@ export default function BalanceSheet() {
                       <div className="border-t pt-3 mb-6">
                         <div className="flex justify-between items-center font-semibold text-sm">
                           <span>Total Liabilities</span>
-                          <span>{formatCurrency(Math.abs(balanceSheetData?.totalLiabilities || 0))}</span>
+                          <span>{formatCurrency(balanceSheetData?.totalLiabilities || 0)}</span>
                         </div>
                       </div>
 
@@ -278,19 +341,35 @@ export default function BalanceSheet() {
                             {balanceSheetData.equity.map((account) => (
                               <div key={account.id} className="flex justify-between items-center text-sm">
                                 <span>{account.code} - {account.name}</span>
-                                <span>{formatCurrency(Math.abs(account.balance))}</span>
+                                <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      <div className="border-t pt-3">
-                        <div className="flex justify-between items-center font-semibold">
-                          <span>Total Liabilities & Equity</span>
-                          <span>{formatCurrency(Math.abs(balanceSheetData?.totalLiabilities || 0) + Math.abs(balanceSheetData?.totalEquity || 0))}</span>
-                        </div>
-                      </div>
+                       <div className="border-t pt-3">
+                         <div className="flex justify-between items-center font-semibold">
+                           <span>Total Liabilities & Equity</span>
+                           <span>{formatCurrency((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))}</span>
+                         </div>
+                       </div>
+
+                       {/* Balance Check */}
+                       <div className="border-t-2 border-primary pt-3 mt-4">
+                         <div className="flex justify-between items-center font-semibold text-primary">
+                           <span>Balance Check</span>
+                           <span>
+                             {Math.abs((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))) < 0.01 
+                               ? "✓ Balanced" 
+                               : `⚠ Difference: ${formatCurrency((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0)))}`
+                             }
+                           </span>
+                         </div>
+                         <div className="text-xs text-muted-foreground mt-1">
+                           Assets should equal Liabilities + Equity
+                         </div>
+                       </div>
                     </CardContent>
                   </Card>
                 </div>
