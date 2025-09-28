@@ -23,7 +23,7 @@ export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
 
   const billsSubItems = [
     { title: "Approval Status", url: `${baseUrl}/accounting/bills/approval-status` },
-    { title: "Manually Enter Bills", url: `${baseUrl}/accounting/bills/enter` },
+    { title: "Enter Bills", url: `${baseUrl}/accounting/bills/enter` },
     { title: "Approve Bills", url: `${baseUrl}/accounting/bills/approve` },
     { title: "Pay Bills", url: `${baseUrl}/accounting/bills/pay` },
   ];
