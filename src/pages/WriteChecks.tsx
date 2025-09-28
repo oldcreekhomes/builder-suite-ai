@@ -514,7 +514,10 @@ export default function WriteChecks() {
                               <CostCodeSearchInput
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, "account", value)}
-                                onCostCodeSelect={(costCode) => updateJobCostRow(row.id, "accountId", costCode.id)}
+                                onCostCodeSelect={(costCode) => {
+                                  updateJobCostRow(row.id, "accountId", costCode.id);
+                                  updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                                }}
                                 placeholder="Select cost code..."
                               />
                             </div>
