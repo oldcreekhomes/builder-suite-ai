@@ -1,70 +1,86 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Upload, File, Trash2, Eye, AlertCircle, FileText } from 'lucide-react';
+import { Upload, FileText, Trash2, Download, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-interface BillAttachment {
-  id: string;
+export interface BillAttachment {
+  id?: string;
   file_name: string;
   file_path: string;
   file_size: number;
   content_type: string;
-  uploaded_at: string;
+  file?: File;
 }
 
 interface BillPDFUploadProps {
+  attachments: BillAttachment[];
+  onAttachmentsChange: (attachments: BillAttachment[]) => void;
   billId?: string;
-  onFilesChange: (files: BillAttachment[]) => void;
-  uploadedFiles: BillAttachment[];
   disabled?: boolean;
 }
 
-export function BillPDFUpload({ billId, onFilesChange, uploadedFiles, disabled }: BillPDFUploadProps) {
+export function BillPDFUpload({ 
+  attachments, 
+  onAttachmentsChange, 
+  billId,
+  disabled = false 
+}: BillPDFUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const { user } = useAuth();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!user || disabled) return;
-
-    setIsUploading(true);
+    if (disabled) return;
     
-    try {
-      const newFiles: BillAttachment[] = [];
-      
-      for (const file of acceptedFiles) {
-        // Generate unique file path
-        const timestamp = Date.now();
-        const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filePath = billId 
-          ? `${billId}/${timestamp}_${fileName}`
-          : `temp/${timestamp}_${fileName}`;
+    setIsUploading(true);
+    const newAttachments: BillAttachment[] = [];
 
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('bill-attachments')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+    for (const file of acceptedFiles) {
+      // Validate file type
+      if (file.type !== 'application/pdf') {
+        toast({
+          title: "Invalid File Type",
+          description: `${file.name} is not a PDF file. Only PDF files are allowed.`,
+          variant: "destructive",
+        });
+        continue;
+      }
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          toast({
-            title: "Upload Failed",
-            description: `Failed to upload ${file.name}: ${uploadError.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
+      // Validate file size (20MB limit)
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: `${file.name} is larger than 20MB. Please choose a smaller file.`,
+          variant: "destructive",
+        });
+        continue;
+      }
 
-        // Create attachment record if we have a bill ID
-        if (billId) {
-          const { data: attachmentData, error: attachmentError } = await supabase
+      // If we have a billId, upload to storage immediately
+      if (billId) {
+        try {
+          const timestamp = Date.now();
+          const fileName = `${timestamp}_${file.name}`;
+          const filePath = `${billId}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('bill-attachments')
+            .upload(filePath, file);
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            toast({
+              title: "Upload Failed",
+              description: `Failed to upload ${file.name}. Please try again.`,
+              variant: "destructive",
+            });
+            continue;
+          }
+
+          // Save attachment metadata to database
+          const { data: attachment, error: dbError } = await supabase
             .from('bill_attachments')
             .insert({
               bill_id: billId,
@@ -72,140 +88,156 @@ export function BillPDFUpload({ billId, onFilesChange, uploadedFiles, disabled }
               file_path: filePath,
               file_size: file.size,
               content_type: file.type,
-              uploaded_by: user.id
+              uploaded_by: (await supabase.auth.getUser()).data.user?.id
             })
             .select()
             .single();
 
-          if (attachmentError) {
-            console.error('Attachment record error:', attachmentError);
+          if (dbError) {
+            console.error('Database error:', dbError);
             // Clean up uploaded file
             await supabase.storage.from('bill-attachments').remove([filePath]);
             toast({
               title: "Database Error",
-              description: `Failed to create attachment record for ${file.name}`,
+              description: `Failed to save ${file.name} metadata. Please try again.`,
               variant: "destructive",
             });
             continue;
           }
 
-          newFiles.push(attachmentData);
-        } else {
-          // Temporary file for unsaved bills
-          newFiles.push({
-            id: `temp-${timestamp}`,
-            file_name: file.name,
-            file_path: filePath,
-            file_size: file.size,
-            content_type: file.type,
-            uploaded_at: new Date().toISOString()
+          newAttachments.push({
+            id: attachment.id,
+            file_name: attachment.file_name,
+            file_path: attachment.file_path,
+            file_size: attachment.file_size,
+            content_type: attachment.content_type
+          });
+        } catch (error) {
+          console.error('Unexpected error:', error);
+          toast({
+            title: "Upload Failed",
+            description: `An unexpected error occurred while uploading ${file.name}.`,
+            variant: "destructive",
           });
         }
+      } else {
+        // If no billId yet, just store the file temporarily
+        const tempAttachment: BillAttachment = {
+          file_name: file.name,
+          file_path: `temp_${Date.now()}_${file.name}`,
+          file_size: file.size,
+          content_type: file.type,
+          file
+        };
+        newAttachments.push(tempAttachment);
       }
-
-      if (newFiles.length > 0) {
-        onFilesChange([...uploadedFiles, ...newFiles]);
-        toast({
-          title: "Upload Successful",
-          description: `Uploaded ${newFiles.length} file(s)`,
-        });
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload Error",
-        description: "An unexpected error occurred during upload",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
     }
-  }, [user, billId, uploadedFiles, onFilesChange, disabled]);
+
+    if (newAttachments.length > 0) {
+      onAttachmentsChange([...attachments, ...newAttachments]);
+      toast({
+        title: "Files Added",
+        description: `${newAttachments.length} PDF file(s) added successfully.`,
+      });
+    }
+
+    setIsUploading(false);
+  }, [attachments, onAttachmentsChange, billId, disabled]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf']
     },
-    maxSize: 20 * 1024 * 1024, // 20MB
     multiple: true,
-    disabled: isUploading || disabled
+    disabled: disabled || isUploading
   });
 
-  const handleDeleteFile = async (file: BillAttachment) => {
+  const handleRemoveAttachment = async (index: number) => {
     if (disabled) return;
 
-    try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('bill-attachments')
-        .remove([file.file_path]);
+    const attachment = attachments[index];
+    
+    // If attachment has an ID, it's saved in the database
+    if (attachment.id && billId) {
+      try {
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('bill_attachments')
+          .delete()
+          .eq('id', attachment.id);
 
-      if (storageError) {
-        console.error('Storage deletion error:', storageError);
+        if (dbError) {
+          console.error('Database delete error:', dbError);
+          toast({
+            title: "Delete Failed",
+            description: "Failed to remove attachment from database.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('bill-attachments')
+          .remove([attachment.file_path]);
+
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+          // Don't show error to user as database record is already deleted
+        }
+      } catch (error) {
+        console.error('Unexpected error during deletion:', error);
         toast({
-          title: "Deletion Failed",
-          description: `Failed to delete ${file.file_name} from storage`,
+          title: "Delete Failed",
+          description: "An unexpected error occurred while removing the attachment.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const updatedAttachments = attachments.filter((_, i) => i !== index);
+    onAttachmentsChange(updatedAttachments);
+    
+    toast({
+      title: "Attachment Removed",
+      description: `${attachment.file_name} has been removed.`,
+    });
+  };
+
+  const handleDownloadAttachment = async (attachment: BillAttachment) => {
+    if (!attachment.id || !billId) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('bill-attachments')
+        .download(attachment.file_path);
+
+      if (error) {
+        console.error('Download error:', error);
+        toast({
+          title: "Download Failed",
+          description: "Failed to download the file. Please try again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Delete from database if it's not a temporary file
-      if (!file.id.startsWith('temp-')) {
-        const { error: dbError } = await supabase
-          .from('bill_attachments')
-          .delete()
-          .eq('id', file.id);
-
-        if (dbError) {
-          console.error('Database deletion error:', dbError);
-          toast({
-            title: "Database Error",
-            description: `Failed to delete ${file.file_name} from database`,
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Update local state
-      onFilesChange(uploadedFiles.filter(f => f.id !== file.id));
-      
-      toast({
-        title: "File Deleted",
-        description: `${file.file_name} has been deleted`,
-      });
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('Unexpected download error:', error);
       toast({
-        title: "Deletion Error",
-        description: "An unexpected error occurred during deletion",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleViewFile = async (file: BillAttachment) => {
-    try {
-      const { data } = await supabase.storage
-        .from('bill-attachments')
-        .createSignedUrl(file.file_path, 3600); // 1 hour
-
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
-      } else {
-        toast({
-          title: "View Error",
-          description: "Failed to generate download link",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('View error:', error);
-      toast({
-        title: "View Error", 
-        description: "An error occurred while viewing the file",
+        title: "Download Failed",
+        description: "An unexpected error occurred while downloading the file.",
         variant: "destructive",
       });
     }
@@ -222,95 +254,83 @@ export function BillPDFUpload({ billId, onFilesChange, uploadedFiles, disabled }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg font-medium flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
           Bill Attachments
         </CardTitle>
-        <CardDescription>
-          Upload PDF files related to this bill (Max 20MB per file)
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Upload Area */}
         <div
           {...getRootProps()}
-          className={`
-            border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-            ${isUploading || disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary hover:bg-primary/5'}
-          `}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+            isDragActive && "border-primary bg-primary/5",
+            !isDragActive && "border-muted-foreground/25 hover:border-muted-foreground/50",
+            (disabled || isUploading) && "opacity-50 cursor-not-allowed"
+          )}
         >
           <input {...getInputProps()} />
           <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          {isDragActive ? (
-            <p className="text-primary font-medium">Drop PDF files here...</p>
+          {isUploading ? (
+            <p className="text-sm text-muted-foreground">Uploading...</p>
+          ) : isDragActive ? (
+            <p className="text-sm text-muted-foreground">Drop PDF files here...</p>
           ) : (
             <div>
-              <p className="font-medium mb-1">
-                {isUploading ? 'Uploading...' : 'Click or drag PDF files here'}
+              <p className="text-sm text-muted-foreground mb-1">
+                Drag & drop PDF files here, or click to select
               </p>
-              <p className="text-sm text-muted-foreground">
-                Supports PDF files up to 20MB each
+              <p className="text-xs text-muted-foreground">
+                PDF files only, max 20MB each
               </p>
             </div>
           )}
         </div>
 
-        {/* File List */}
-        {uploadedFiles.length > 0 && (
+        {/* Attached Files List */}
+        {attachments.length > 0 && (
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Uploaded Files ({uploadedFiles.length})</h4>
-            <div className="space-y-2">
-              {uploadedFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <File className="h-5 w-5 text-red-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate" title={file.file_name}>
-                        {file.file_name}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{formatFileSize(file.file_size)}</span>
-                        <span>•</span>
-                        <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-                        {file.id.startsWith('temp-') && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary" className="text-xs">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Temporary
-                            </Badge>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewFile(file)}
-                      disabled={disabled}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteFile(file)}
-                      disabled={disabled}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+            <h4 className="text-sm font-medium">Attached Files</h4>
+            {attachments.map((attachment, index) => (
+              <div
+                key={`${attachment.file_path}-${index}`}
+                className="flex items-center justify-between p-3 border rounded-lg bg-muted/25"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {attachment.file_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(attachment.file_size)}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center gap-1">
+                  {attachment.id && billId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownloadAttachment(attachment)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveAttachment(index)}
+                    disabled={disabled}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
