@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useProject } from "@/hooks/useProject";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { BillsApprovalTabs } from "@/components/bills/BillsApprovalTabs";
 
@@ -12,7 +12,7 @@ export default function ApproveBills() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AccountingSidebar projectId={projectId} />
+        <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
             title={`Bills - Approve Bills${project?.address ? ` - ${project.address}` : ''}`} 

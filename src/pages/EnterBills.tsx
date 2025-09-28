@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -322,7 +322,7 @@ export default function EnterBills() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AccountingSidebar projectId={projectId} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title={`Bills - Enter Bills${project?.address ? ` - ${project.address}` : ''}`} 

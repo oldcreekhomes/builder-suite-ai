@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -71,7 +71,7 @@ export default function BillsApprovalStatus() {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <AccountingSidebar projectId={projectId} />
+          <AppSidebar />
           <SidebarInset className="flex-1">
             <DashboardHeader 
               title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
@@ -104,7 +104,7 @@ export default function BillsApprovalStatus() {
       return (
         <SidebarProvider>
           <div className="min-h-screen flex w-full">
-            <AccountingSidebar projectId={projectId} />
+            <AppSidebar />
             <SidebarInset className="flex-1">
               <DashboardHeader 
                 title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
@@ -124,7 +124,7 @@ export default function BillsApprovalStatus() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AccountingSidebar projectId={projectId} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 

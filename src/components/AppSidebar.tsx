@@ -8,7 +8,6 @@ import { SidebarBranding } from "./sidebar/SidebarBranding";
 import { SidebarNavigation } from "./sidebar/SidebarNavigation";
 import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
-import { AccountingSidebar } from "./sidebar/AccountingSidebar";
 import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useUnreadCountsSimplified } from "@/hooks/useUnreadCountsSimplified";
@@ -41,61 +40,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   // Calculate total unread count for Messages tab badge
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
 
-  const isAccountingPage = location.pathname === '/accounting' || location.pathname.includes('/accounting');
   const isCompanyDashboardPage = location.pathname === '/';
-
-  // For accounting pages, show the specialized accounting sidebar with tabs
-  if (isAccountingPage) {
-    return (
-      <Sidebar className="border-r border-border overflow-hidden">
-        <SidebarBranding />
-        
-        {/* Tab Navigation */}
-        <div className="px-3">
-          <div className="flex border-b border-border">
-            <Button
-              variant={activeTab === 'menus' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('menus')}
-              className="flex-1 rounded-none border-0 justify-center"
-            >
-              <Menu className="h-4 w-4 mr-2" />
-              Menus
-            </Button>
-            <Button
-              variant={activeTab === 'messages' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('messages')}
-              className="flex-1 rounded-none border-0 justify-center relative"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Messages
-              {totalUnreadCount > 0 && (
-                <UnreadBadge count={totalUnreadCount} className="ml-1" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
-          {activeTab === 'menus' ? (
-            <AccountingSidebar />
-          ) : (
-            <MessagesSidebar
-              selectedUser={selectedUser || null}
-              onUserSelect={onUserSelect}
-              onStartChat={onStartChat}
-              unreadCounts={unreadCounts}
-              markConversationAsRead={markConversationAsRead}
-            />
-          )}
-        </div>
-        
-        <SidebarUserDropdown />
-      </Sidebar>
-    );
-  }
 
   // For company dashboard page, show the specialized company dashboard sidebar with tabs
   if (isCompanyDashboardPage) {

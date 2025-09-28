@@ -16,7 +16,7 @@ import { useBills } from "@/hooks/useBills";
 import { useProject } from "@/hooks/useProject";
 import { format } from "date-fns";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface BillForPayment {
@@ -95,7 +95,7 @@ export default function PayBills() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AccountingSidebar projectId={projectId} />
+        <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
             title={`Bills - Pay Bills${project?.address ? ` - ${project.address}` : ''}`} 

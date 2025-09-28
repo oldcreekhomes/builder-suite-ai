@@ -1,7 +1,7 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,7 +118,7 @@ export default function Accounting() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AccountingSidebar projectId={projectId} />
+        <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
           <DashboardHeader 
             title={projectId 
