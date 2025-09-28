@@ -499,7 +499,7 @@ export default function WriteChecks() {
                         </Button>
                       </div>
 
-                      <div className="border rounded-lg overflow-hidden">
+                        <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
                           <div className="col-span-2">Project</div>
@@ -572,7 +572,7 @@ export default function WriteChecks() {
                         </Button>
                       </div>
 
-                      <div className="border rounded-lg overflow-hidden">
+                      <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
                           <div className="col-span-2">Project</div>
