@@ -448,7 +448,9 @@ export default function EnterBills() {
                               </div>
                             </div>
                             <div className="col-span-1 flex items-center">
-                              <span className="text-sm font-medium">$0.00</span>
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
+                              </span>
                             </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
@@ -467,7 +469,13 @@ export default function EnterBills() {
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
                             <div className="col-span-9 font-medium">Total:</div>
-                            <div className="col-span-1 font-medium">$0.00</div>
+                            <div className="col-span-1 font-medium">
+                              ${jobCostRows.reduce((total, row) => {
+                                const q = parseFloat(row.quantity) || 0;
+                                const c = parseFloat(row.amount) || 0;
+                                return total + q * c;
+                              }, 0).toFixed(2)}
+                            </div>
                             <div className="col-span-2"></div>
                           </div>
                         </div>
@@ -547,7 +555,9 @@ export default function EnterBills() {
                               </div>
                             </div>
                             <div className="col-span-1 flex items-center">
-                              <span className="text-sm font-medium">$0.00</span>
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
+                              </span>
                             </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
@@ -566,7 +576,13 @@ export default function EnterBills() {
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
                             <div className="col-span-9 font-medium">Total:</div>
-                            <div className="col-span-1 font-medium">$0.00</div>
+                            <div className="col-span-1 font-medium">
+                              ${expenseRows.reduce((total, row) => {
+                                const q = parseFloat(row.quantity) || 0;
+                                const c = parseFloat(row.amount) || 0;
+                                return total + q * c;
+                              }, 0).toFixed(2)}
+                            </div>
                             <div className="col-span-2"></div>
                           </div>
                         </div>
