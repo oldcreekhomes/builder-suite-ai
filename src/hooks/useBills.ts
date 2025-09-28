@@ -228,6 +228,7 @@ export const useBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast({
         title: "Success",
         description: "Bill approved and posted to General Ledger successfully",
@@ -262,6 +263,7 @@ export const useBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast({
         title: "Success",
         description: "Bill rejected successfully",
