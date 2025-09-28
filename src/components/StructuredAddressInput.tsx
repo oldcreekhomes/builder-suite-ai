@@ -227,11 +227,6 @@ export function StructuredAddressInput({
           disabled={disabled}
           autoComplete="street-address"
         />
-        {isLoaded && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Search powered by Google Places - start typing to see suggestions
-          </p>
-        )}
       </div>
 
       <div>

@@ -216,7 +216,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
         <DialogHeader className="pr-8">
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>
