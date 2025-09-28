@@ -192,7 +192,7 @@ export const ChartOfAccountsTab = () => {
               ) : (
                 accounts.map((account) => (
                   <TableRow key={account.id} className="h-10">
-                    <TableCell className="px-2 py-1 text-xs font-mono align-middle">
+                    <TableCell className="px-2 py-1 text-xs align-middle">
                       {account.code}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-xs font-medium align-middle">
