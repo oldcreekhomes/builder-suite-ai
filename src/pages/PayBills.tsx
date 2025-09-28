@@ -84,28 +84,6 @@ export default function PayBills() {
     }).format(amount);
   };
 
-  const getDaysUntilDue = (dueDate: string) => {
-    const today = new Date();
-    const due = new Date(dueDate);
-    const diffTime = due.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const getDueDateBadge = (dueDate?: string) => {
-    if (!dueDate) return null;
-    
-    const daysUntilDue = getDaysUntilDue(dueDate);
-    
-    if (daysUntilDue < 0) {
-      return <Badge variant="destructive" className="text-xs">Overdue</Badge>;
-    } else if (daysUntilDue <= 7) {
-      return <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">Due Soon</Badge>;
-    } else {
-      return <Badge variant="outline" className="text-xs">On Time</Badge>;
-    }
-  };
-
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills for payment...</div>;
   }
@@ -156,12 +134,7 @@ export default function PayBills() {
                         {format(new Date(bill.bill_date), 'MMM dd, yyyy')}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span>
-                            {bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : '-'}
-                          </span>
-                          {getDueDateBadge(bill.due_date)}
-                        </div>
+                        {bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : '-'}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs font-medium">
                         {formatCurrency(bill.total_amount)}
@@ -173,8 +146,8 @@ export default function PayBills() {
                         {bill.terms || '-'}
                       </TableCell>
                       <TableCell className="px-2 py-1">
-                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                          Approved
+                        <Badge variant="secondary" className="text-xs">
+                          {bill.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-2 py-1 text-right">
