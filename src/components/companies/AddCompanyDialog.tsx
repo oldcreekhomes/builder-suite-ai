@@ -29,13 +29,17 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Municipality", "Consultant"]),
-  address: z.string().min(1, "Address is required"),
+  address_line_1: z.string().optional(),
+  address_line_2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip_code: z.string().optional(),
   phone_number: z.string().min(1, "Phone number is required"),
   website: z.string().optional(),
 });
@@ -58,7 +62,11 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     defaultValues: {
       company_name: "",
       company_type: "Subcontractor",
-      address: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      zip_code: "",
       phone_number: "",
       website: "",
     },
@@ -95,7 +103,19 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       const insertData = {
         company_name: data.company_name,
         company_type: data.company_type,
-        address: data.address || null,
+        address_line_1: data.address_line_1 || null,
+        address_line_2: data.address_line_2 || null,
+        city: data.city || null,
+        state: data.state || null,
+        zip_code: data.zip_code || null,
+        // Build legacy address field for compatibility
+        address: [
+          data.address_line_1,
+          data.address_line_2,
+          data.city,
+          data.state,
+          data.zip_code
+        ].filter(Boolean).join(', ') || null,
         phone_number: data.phone_number || null,
         website: data.website || null,
         home_builder_id: homeBuilderIdToUse,
@@ -226,23 +246,36 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <AddressAutocomplete
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        placeholder="Enter company address"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="address_line_1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <StructuredAddressInput
+                          value={{
+                            address_line_1: field.value || "",
+                            address_line_2: form.watch("address_line_2") || "",
+                            city: form.watch("city") || "",
+                            state: form.watch("state") || "",
+                            zip_code: form.watch("zip_code") || "",
+                          }}
+                          onChange={(addressData) => {
+                            form.setValue("address_line_1", addressData.address_line_1);
+                            form.setValue("address_line_2", addressData.address_line_2);
+                            form.setValue("city", addressData.city);
+                            form.setValue("state", addressData.state);
+                            form.setValue("zip_code", addressData.zip_code);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField

@@ -296,36 +296,51 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
           company_name: string
           company_type: string
           created_at: string
           home_builder_id: string
           id: string
           phone_number: string | null
+          state: string | null
           updated_at: string
           website: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
           company_name: string
           company_type: string
           created_at?: string
           home_builder_id: string
           id?: string
           phone_number?: string | null
+          state?: string | null
           updated_at?: string
           website?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
           company_name?: string
           company_type?: string
           created_at?: string
           home_builder_id?: string
           id?: string
           phone_number?: string | null
+          state?: string | null
           updated_at?: string
           website?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }

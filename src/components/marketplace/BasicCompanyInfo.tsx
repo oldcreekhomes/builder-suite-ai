@@ -3,14 +3,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 
 interface BasicCompanyInfoProps {
   companyName: string;
   setCompanyName: (value: string) => void;
   companyType: string;
   setCompanyType: (value: string) => void;
-  address: string;
-  setAddress: (value: string) => void;
+  addressData: {
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  };
+  setAddressData: (value: {
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  }) => void;
   website: string;
   setWebsite: (value: string) => void;
   phoneNumber: string;
@@ -35,8 +48,8 @@ export function BasicCompanyInfo({
   setCompanyName,
   companyType,
   setCompanyType,
-  address,
-  setAddress,
+  addressData,
+  setAddressData,
   website,
   setWebsite,
   phoneNumber,
@@ -95,12 +108,11 @@ export function BasicCompanyInfo({
       </div>
 
       <div>
-        <Label htmlFor="address">Address</Label>
-        <Input
-          id="address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Enter company address"
+        <Label>Company Address</Label>
+        <StructuredAddressInput
+          value={addressData}
+          onChange={setAddressData}
+          disabled={isLoadingGoogleData}
         />
       </div>
 

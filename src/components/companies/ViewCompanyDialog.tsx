@@ -30,6 +30,11 @@ interface Company {
   company_name: string;
   company_type: string;
   address?: string;
+  address_line_1?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
   website?: string;
 }
 
@@ -159,10 +164,26 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
           <div className="space-y-6">
             {/* Company Details */}
             <div className="space-y-3">
-              {company.address && (
+              {(company.address_line_1 || company.address) && (
                 <div className="flex items-center space-x-2">
                   <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm">{company.address}</span>
+                  <div className="text-sm">
+                    {company.address_line_1 ? (
+                      <div className="space-y-1">
+                        <div>{company.address_line_1}</div>
+                        {company.address_line_2 && (
+                          <div>{company.address_line_2}</div>
+                        )}
+                        {(company.city || company.state || company.zip_code) && (
+                          <div>
+                            {[company.city, company.state, company.zip_code].filter(Boolean).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span>{company.address}</span>
+                    )}
+                  </div>
                 </div>
               )}
               

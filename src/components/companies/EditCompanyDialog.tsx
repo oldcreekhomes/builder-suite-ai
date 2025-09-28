@@ -29,14 +29,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeSelector } from "./RepresentativeSelector";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Municipality", "Consultant"]),
-  address: z.string().optional(),
+  address_line_1: z.string().optional(),
+  address_line_2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip_code: z.string().optional(),
   phone_number: z.string().optional(),
   website: z.string().optional(),
 });
@@ -48,6 +52,11 @@ interface Company {
   company_name: string;
   company_type: string;
   address?: string;
+  address_line_1?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
   phone_number?: string;
   website?: string;
 }
@@ -88,7 +97,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     defaultValues: {
       company_name: "",
       company_type: "Subcontractor",
-      address: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      zip_code: "",
       phone_number: "",
       website: "",
     },
@@ -102,7 +115,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       form.reset({
         company_name: company.company_name,
         company_type: company.company_type as any,
-        address: company.address || "",
+        address_line_1: company.address_line_1 || "",
+        address_line_2: company.address_line_2 || "",
+        city: company.city || "",
+        state: company.state || "",
+        zip_code: company.zip_code || "",
         phone_number: company.phone_number || "",
         website: company.website || "",
       });
@@ -183,9 +200,21 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     mutationFn: async (data: CompanyFormData) => {
       if (!company) return;
 
+      const updateData = {
+        ...data,
+        // Build legacy address field for compatibility
+        address: [
+          data.address_line_1,
+          data.address_line_2,
+          data.city,
+          data.state,
+          data.zip_code
+        ].filter(Boolean).join(', ') || null,
+      };
+
       const { error: companyError } = await supabase
         .from('companies')
-        .update(data)
+        .update(updateData)
         .eq('id', company.id);
       
       if (companyError) throw companyError;
@@ -273,23 +302,36 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <AddressAutocomplete
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      placeholder="Enter company address"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="address_line_1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <StructuredAddressInput
+                        value={{
+                          address_line_1: field.value || "",
+                          address_line_2: form.watch("address_line_2") || "",
+                          city: form.watch("city") || "",
+                          state: form.watch("state") || "",
+                          zip_code: form.watch("zip_code") || "",
+                        }}
+                        onChange={(addressData) => {
+                          form.setValue("address_line_1", addressData.address_line_1);
+                          form.setValue("address_line_2", addressData.address_line_2);
+                          form.setValue("city", addressData.city);
+                          form.setValue("state", addressData.state);
+                          form.setValue("zip_code", addressData.zip_code);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

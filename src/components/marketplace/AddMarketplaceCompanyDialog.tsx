@@ -18,7 +18,13 @@ interface AddMarketplaceCompanyDialogProps {
 export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketplaceCompanyDialogProps) {
   const [companyName, setCompanyName] = useState("");
   const [companyType, setCompanyType] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressData, setAddressData] = useState({
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    zip_code: ""
+  });
   const [website, setWebsite] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [description, setDescription] = useState("");
@@ -39,7 +45,41 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
     console.log('handlePlaceSelected called with:', place);
     const formData = createFormDataFromPlace(place);
     setCompanyName(formData.companyName);
-    setAddress(formData.address);
+    
+    // Parse the address into structured format if available
+    if (place.address_components) {
+      const newAddressData = {
+        address_line_1: "",
+        address_line_2: addressData.address_line_2, // Keep existing suite
+        city: "",
+        state: "",
+        zip_code: ""
+      };
+
+      place.address_components.forEach((component: any) => {
+        const types = component.types;
+        if (types.includes('street_number')) {
+          newAddressData.address_line_1 = component.long_name + ' ';
+        } else if (types.includes('route')) {
+          newAddressData.address_line_1 += component.long_name;
+        } else if (types.includes('locality')) {
+          newAddressData.city = component.long_name;
+        } else if (types.includes('administrative_area_level_1')) {
+          newAddressData.state = component.short_name;
+        } else if (types.includes('postal_code')) {
+          newAddressData.zip_code = component.long_name;
+        }
+      });
+      
+      setAddressData(newAddressData);
+    } else {
+      // Fallback: put full address in address_line_1
+      setAddressData({
+        ...addressData,
+        address_line_1: formData.address
+      });
+    }
+    
     setPhoneNumber(formData.phoneNumber);
     setWebsite(formData.website);
     setRating(formData.rating);
@@ -90,7 +130,13 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   const resetForm = () => {
     setCompanyName("");
     setCompanyType("");
-    setAddress("");
+    setAddressData({
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      zip_code: ""
+    });
     setWebsite("");
     setPhoneNumber("");
     setDescription("");
@@ -120,12 +166,21 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
     setIsSubmitting(true);
 
     try {
+      // Build full address for legacy compatibility
+      const fullAddress = [
+        addressData.address_line_1,
+        addressData.address_line_2,
+        addressData.city,
+        addressData.state,
+        addressData.zip_code
+      ].filter(Boolean).join(', ');
+
       const { error } = await supabase
         .from('marketplace_companies')
         .insert({
           company_name: companyName.trim(),
           company_type: companyType,
-          address: address.trim() || null,
+          address: fullAddress || null,
           website: website.trim() || null,
           phone_number: phoneNumber.trim() || null,
           description: description.trim() || null,
@@ -172,8 +227,8 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
             setCompanyName={setCompanyName}
             companyType={companyType}
             setCompanyType={setCompanyType}
-            address={address}
-            setAddress={setAddress}
+            addressData={addressData}
+            setAddressData={setAddressData}
             website={website}
             setWebsite={setWebsite}
             phoneNumber={phoneNumber}
