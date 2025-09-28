@@ -116,7 +116,7 @@ export function PayBillDialog({
 
         <div className="space-y-6">
           {/* Bill Summary */}
-          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+          <div className="border bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
               <span>Vendor:</span>
               <span>{bill.companies?.company_name || 'Unknown Vendor'}</span>
