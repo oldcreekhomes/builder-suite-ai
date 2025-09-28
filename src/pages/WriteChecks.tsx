@@ -21,6 +21,7 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectSearch } from "@/hooks/useProjectSearch";
+import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { toast } from "@/hooks/use-toast";
 
 interface CheckRow {
@@ -65,6 +66,7 @@ export default function WriteChecks() {
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const { projects } = useProjectSearch();
+  const { createCheck } = useChecks();
 
   const addJobCostRow = () => {
     const newRow: CheckRow = {
@@ -164,13 +166,51 @@ export default function WriteChecks() {
       return;
     }
 
-    // TODO: Implement check creation logic
-    toast({
-      title: "Check Saved",
-      description: "Check has been saved successfully",
-    });
-    
-    navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+    // Prepare check lines
+    const checkLines: CheckLineData[] = [
+      ...jobCostRows
+        .filter(row => row.accountId && row.amount)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        })),
+      ...expenseRows
+        .filter(row => row.accountId && row.amount)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        }))
+    ];
+
+    const totalAmount = parseFloat(getDisplayAmount());
+
+    const checkData: CheckData = {
+      check_number: checkNumber || undefined,
+      check_date: checkDate.toISOString().split('T')[0],
+      pay_to: payTo,
+      bank_account_id: bankAccount,
+      project_id: projectId || undefined,
+      amount: totalAmount,
+      company_name: companyName,
+      company_address: companyAddress,
+      company_city_state: companyCityState,
+      bank_name: bankName,
+      routing_number: routingNumber,
+      account_number: accountNumber
+    };
+
+    try {
+      await createCheck.mutateAsync({ checkData, checkLines });
+      navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+    } catch (error) {
+      console.error('Error creating check:', error);
+    }
   };
 
   const handleSaveAndNew = async () => {
@@ -203,13 +243,51 @@ export default function WriteChecks() {
       return;
     }
 
-    // TODO: Implement check creation logic
-    toast({
-      title: "Check Saved",
-      description: "Check has been saved successfully",
-    });
-    
-    handleClear();
+    // Prepare check lines
+    const checkLines: CheckLineData[] = [
+      ...jobCostRows
+        .filter(row => row.accountId && row.amount)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        })),
+      ...expenseRows
+        .filter(row => row.accountId && row.amount)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        }))
+    ];
+
+    const totalAmount = parseFloat(getDisplayAmount());
+
+    const checkData: CheckData = {
+      check_number: checkNumber || undefined,
+      check_date: checkDate.toISOString().split('T')[0],
+      pay_to: payTo,
+      bank_account_id: bankAccount,
+      project_id: projectId || undefined,
+      amount: totalAmount,
+      company_name: companyName,
+      company_address: companyAddress,
+      company_city_state: companyCityState,
+      bank_name: bankName,
+      routing_number: routingNumber,
+      account_number: accountNumber
+    };
+
+    try {
+      await createCheck.mutateAsync({ checkData, checkLines });
+      handleClear();
+    } catch (error) {
+      console.error('Error creating check:', error);
+    }
   };
 
   const handleClear = () => {

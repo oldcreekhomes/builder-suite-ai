@@ -293,6 +293,125 @@ export type Database = {
           },
         ]
       }
+      check_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          check_id: string
+          cost_code_id: string | null
+          created_at: string
+          id: string
+          line_number: number
+          line_type: string
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          check_id: string
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type: string
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          check_id?: string
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type?: string
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_lines_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checks: {
+        Row: {
+          account_number: string | null
+          amount: number
+          bank_account_id: string
+          bank_name: string | null
+          check_date: string
+          check_number: string | null
+          company_address: string | null
+          company_city_state: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string
+          id: string
+          memo: string | null
+          owner_id: string
+          pay_to: string
+          project_id: string | null
+          routing_number: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount?: number
+          bank_account_id: string
+          bank_name?: string | null
+          check_date?: string
+          check_number?: string | null
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          memo?: string | null
+          owner_id: string
+          pay_to: string
+          project_id?: string | null
+          routing_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          bank_account_id?: string
+          bank_name?: string | null
+          check_date?: string
+          check_number?: string | null
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          memo?: string | null
+          owner_id?: string
+          pay_to?: string
+          project_id?: string | null
+          routing_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
