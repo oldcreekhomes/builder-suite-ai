@@ -414,6 +414,7 @@ export default function EnterBills() {
                                 value={row.projectId || ""}
                                 onChange={(projectId) => {
                                   updateJobCostRow(row.id, 'projectId', projectId);
+                                  // Update display text - this will be handled by the JobSearchInput component
                                 }}
                                 placeholder="Select project"
                                 className="h-8"
@@ -512,6 +513,7 @@ export default function EnterBills() {
                                 value={row.projectId || ""}
                                 onChange={(projectId) => {
                                   updateExpenseRow(row.id, 'projectId', projectId);
+                                  // Update display text - this will be handled by the JobSearchInput component
                                 }}
                                 placeholder="Select project"
                                 className="h-8"
