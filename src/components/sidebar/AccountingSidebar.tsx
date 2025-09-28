@@ -67,9 +67,11 @@ export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
               {/* Bills Section - Collapsible */}
               <div className="mt-2">
                 <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
-                  <CollapsibleTrigger className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <FileText className="h-4 w-4" />
-                    <span className="flex-1">Bills</span>
+                  <CollapsibleTrigger className="flex items-center justify-between px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4" />
+                      <span>Bills</span>
+                    </div>
                     <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -92,9 +94,11 @@ export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
               {/* Reports Section - Collapsible */}
               <div className="mt-2">
                 <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
-                  <CollapsibleTrigger className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <BarChart3 className="h-4 w-4" />
-                    <span className="flex-1">Reports</span>
+                  <CollapsibleTrigger className="flex items-center justify-between px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <div className="flex items-center space-x-2">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Reports</span>
+                    </div>
                     <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
