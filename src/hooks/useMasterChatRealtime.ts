@@ -42,6 +42,8 @@ export const useMasterChatRealtime = (
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const instanceId = useRef(Math.random().toString(36).substr(2, 9));
+  const isSetupInProgress = useRef(false);
+  
   const { user } = useAuth();
   const { preferences, isLoading: preferencesLoading } = useNotificationPreferences();
 
@@ -100,29 +102,23 @@ export const useMasterChatRealtime = (
     }
   }, []);
 
-  // Auto-reconnect function
-  const reconnectChannel = useCallback(async () => {
-    if (reconnectAttemptsRef.current >= 5) {
-      console.log('🚀 Max reconnection attempts reached, giving up');
-      setConnectionState('error');
+  // Setup realtime connection
+  const setupMasterRealtime = useCallback(async () => {
+    // Prevent multiple simultaneous setups
+    if (isSetupInProgress.current || connectionState === 'connecting') {
+      console.log('🚀 Setup already in progress, skipping');
       return;
     }
 
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
-    console.log(`🚀 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
-    
-    reconnectTimeoutRef.current = setTimeout(async () => {
-      reconnectAttemptsRef.current++;
-      setConnectionState('connecting');
-      await setupMasterRealtime();
-    }, delay);
-  }, []);
-
-  const setupMasterRealtime = useCallback(async () => {
     try {
+      isSetupInProgress.current = true;
+      
       // Get current user
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) return;
+      if (!authUser) {
+        isSetupInProgress.current = false;
+        return;
+      }
 
       currentUserRef.current = authUser.id;
       globalChannelUsers.add(instanceId.current);
@@ -130,17 +126,18 @@ export const useMasterChatRealtime = (
       console.log('🚀 Setting up MASTER chat realtime for user:', authUser.id, 'instance:', instanceId.current);
       setConnectionState('connecting');
 
-      // Use global channel if it exists and is connected, otherwise create new one
-      if (globalChannel && globalChannel.state === 'joined') {
-        console.log('🚀 Reusing existing global channel');
+      // If global channel already exists and is healthy, reuse it
+      if (globalChannel && (globalChannel.state === 'joined' || globalChannel.state === 'joining')) {
+        console.log('🚀 Reusing existing healthy global channel');
         channelRef.current = globalChannel;
         setConnectionState('connected');
+        isSetupInProgress.current = false;
         return;
       }
 
-      // Clean up existing channel
+      // Clean up existing unhealthy channel
       if (globalChannel) {
-        console.log('🚀 Cleaning up existing global channel');
+        console.log('🚀 Cleaning up unhealthy global channel');
         try {
           await supabase.removeChannel(globalChannel);
         } catch (error) {
@@ -149,221 +146,123 @@ export const useMasterChatRealtime = (
         globalChannel = null;
       }
 
-      // Create single stable channel for this user
+      // Create new channel
       const channelName = `master_chat_${authUser.id}`;
       console.log('🚀 Creating master channel:', channelName);
-      
-      globalChannel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'user_chat_messages'
+
+      const newChannel = supabase.channel(channelName, {
+        config: {
+          presence: {
+            key: authUser.id,
           },
-          async (payload) => {
-            try {
-              const messageData = payload.new;
-              
-              if (!messageData || !currentUserRef.current) return;
+        },
+      });
 
-              const senderId = messageData.sender_id;
-              const recipientId = messageData.recipient_id;
+      // Handle realtime message updates
+      newChannel
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_chat_messages',
+          filter: `recipient_id=eq.${authUser.id}`
+        }, async (payload) => {
+          console.log('🚀 New message received:', payload);
+          setConnectionState('connected');
+          reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful message
 
-              // Check if this is an incoming message for the current user
-              const isIncomingMessage = recipientId === currentUserRef.current && senderId !== currentUserRef.current;
-              const isActiveConversation = activeConversationRef.current === senderId;
+          const messageData = payload.new;
+          const senderId = messageData.sender_id;
+          const isActiveConversation = activeConversationRef.current === senderId;
 
-                console.log('🚀 New message processed:', {
-                senderId,
-                recipientId,
-                currentUserId: currentUserRef.current,
-                isIncomingMessage,
-                isActiveConversation,
-                preferencesLoaded: !preferencesLoading,
-                preferences: preferences ? 'loaded' : 'not loaded',
-                instanceId: instanceId.current
-              });
+          // Update unread count
+          if (!isActiveConversation) {
+            setUnreadCounts(prev => ({
+              ...prev,
+              [senderId]: (prev[senderId] || 0) + 1
+            }));
 
-              if (isIncomingMessage) {
-                // Update unread count for ALL instances
-                setUnreadCounts(prev => {
-                  const newCounts = {
-                    ...prev,
-                    [senderId]: (prev[senderId] || 0) + 1
-                  };
-                  
-                  // Notify all components about the change
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('unread-count-changed', {
-                      detail: { userId: senderId, count: newCounts[senderId] }
-                    }));
-                  }, 0);
-                  
-                  return newCounts;
-                });
+            if (callbacksRef.current.onUnreadCountChange) {
+              callbacksRef.current.onUnreadCountChange(senderId, (unreadCounts[senderId] || 0) + 1);
+            }
+          }
 
-                // Trigger unread count callback
-                if (callbacksRef.current.onUnreadCountChange) {
-                  callbacksRef.current.onUnreadCountChange(senderId, (unreadCounts[senderId] || 0) + 1);
-                }
+          // Trigger callback for new message
+          if (callbacksRef.current.onNewMessage) {
+            callbacksRef.current.onNewMessage(messageData, isActiveConversation);
+          }
 
-                // If user is actively viewing this conversation, add message to UI
-                if (isActiveConversation && callbacksRef.current.onNewMessage) {
-                  // Get sender info for message display
-                  const { data: senderData } = await supabase
-                    .from('users')
-                    .select('first_name, last_name, avatar_url')
-                    .eq('id', senderId)
-                    .single();
+          // Handle notifications
+          if (enableNotifications && (!isActiveConversation || notifyWhileActive)) {
+            console.log('🚀 Processing notification for message from:', senderId);
+            
+            // Get sender information
+            const { data: senderData } = await supabase
+              .from('users')
+              .select('first_name, last_name, company_name')
+              .eq('id', senderId)
+              .single();
 
-                  const formattedMessage = {
-                    id: messageData.id,
-                    message_text: messageData.message_text,
-                    file_urls: messageData.file_urls,
-                    created_at: messageData.created_at,
-                    sender_id: senderId,
-                    sender_name: senderData 
-                      ? `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim()
-                      : 'Someone',
-                    sender_avatar: senderData?.avatar_url || null
-                  };
+            if (senderData) {
+              const sender: User = {
+                id: senderId,
+                first_name: senderData.first_name || '',
+                last_name: senderData.last_name || '',
+                email: '',
+                role: 'employee',
+                company_name: senderData.company_name || ''
+              };
 
-                  callbacksRef.current.onNewMessage(formattedMessage, true);
-                }
+              const senderName = `${sender.first_name} ${sender.last_name}`.trim() || sender.company_name || 'Unknown User';
+              const messagePreview = messageData.message_text || 'New message';
 
-                // Show notifications - ensure enabled and either preferences loaded or use defaults
-                if (enableNotifications && (notifyWhileActive || !isActiveConversation)) {
-                  // Get sender information for notifications
-                  const { data: senderData } = await supabase
-                    .from('users')
-                    .select('first_name, last_name, avatar_url')
-                    .eq('id', senderId)
-                    .single();
-
-                  const senderName = senderData 
-                    ? `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim() || 'Someone'
-                    : 'Someone';
-                  
-                  const messagePreview = messageData.message_text 
-                    ? (messageData.message_text.length > 50 
-                        ? `${messageData.message_text.substring(0, 50)}...` 
-                        : messageData.message_text)
-                    : messageData.file_urls?.length 
-                      ? '📎 Sent an attachment' 
-                      : 'New message';
-
-                  // Show toast notification if enabled (with fallback to true if preferences not loaded)
-                  const shouldShowToast = preferences?.toast_notifications_enabled ?? true;
-                  if (shouldShowToast) {
-                    const sender: User = {
-                      id: senderId,
-                      first_name: senderData?.first_name || '',
-                      last_name: senderData?.last_name || '',
-                      avatar_url: senderData?.avatar_url || '',
-                      email: '',
-                      role: undefined,
-                      phone_number: undefined
-                    };
-
-                    console.log('🚀 Showing toast notification for:', senderName);
-                    
-                    try {
-                      toast(`${senderName}`, {
-                        description: messagePreview,
-                        duration: 5000,
-                        action: {
-                          label: 'Reply',
-                          onClick: () => {
-                            console.log('🚀 Reply button clicked for:', sender.id);
-                            if (callbacksRef.current.onNotificationTrigger) {
-                              callbacksRef.current.onNotificationTrigger(sender, messageData);
-                            }
-                          }
+              // Show toast notification if preferences allow (with fallback to true if preferences not loaded)
+              const shouldShowToast = preferences?.toast_notifications_enabled ?? true;
+              if (shouldShowToast) {
+                console.log('🚀 Showing toast notification for:', senderName);
+                
+                try {
+                  toast(`${senderName}`, {
+                    description: messagePreview,
+                    duration: 5000,
+                    action: {
+                      label: 'Reply',
+                      onClick: () => {
+                        console.log('🚀 Reply button clicked for:', sender.id);
+                        if (callbacksRef.current.onNotificationTrigger) {
+                          callbacksRef.current.onNotificationTrigger(sender, messageData);
                         }
-                      });
-                    } catch (toastError) {
-                      console.error('🚀 Error showing toast:', toastError);
-                    }
-                  }
-
-                  // Play sound notification if enabled (with fallback to true if preferences not loaded)
-                  const shouldPlaySound = preferences?.sound_notifications_enabled ?? true;
-                  if (shouldPlaySound) {
-                    console.log('🚀 Playing notification sound for:', senderName);
-                    
-                    try {
-                      // Ensure audio context is ready for user interaction
-                      await audioManager.getAudioContext();
-                      
-                      const soundPlayed = await audioManager.playNotificationSound();
-                      if (soundPlayed) {
-                        console.log('🚀 ✅ Notification sound played successfully');
-                      } else {
-                        console.warn('🚀 ❌ Failed to play notification sound - will retry once');
-                        
-                        setTimeout(async () => {
-                          try {
-                            const retryResult = await audioManager.playNotificationSound();
-                            console.log('🚀 🔄 Sound retry result:', retryResult);
-                          } catch (retryError) {
-                            console.error('🚀 🔄 Sound retry failed:', retryError);
-                          }
-                        }, 500);
                       }
-                    } catch (error) {
-                      console.error('🚀 ❌ Error playing notification sound:', error);
                     }
-                  }
+                  });
+                } catch (toastError) {
+                  console.error('🚀 Error showing toast:', toastError);
                 }
               }
-            } catch (error) {
-              console.error('🚀 Error processing message:', error);
-            }
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'user_chat_messages'
-          },
-          (payload) => {
-            const messageData = payload.new;
-            if (!messageData || !currentUserRef.current) return;
 
-            const senderId = messageData.sender_id;
-            const recipientId = messageData.recipient_id;
-
-            // If a message was read (read_at changed), update unread count
-            if (recipientId === currentUserRef.current) {
-              // Refresh unread count for this sender
-              setTimeout(async () => {
+              // Play sound notification if enabled (with fallback to true if preferences not loaded)
+              const shouldPlaySound = preferences?.sound_notifications_enabled ?? true;
+              if (shouldPlaySound) {
+                console.log('🚀 Playing notification sound for:', senderName);
+                
                 try {
-                  const { data } = await supabase.rpc('get_conversation_unread_count', {
-                    other_user_id_param: senderId
-                  });
-                  
-                  setUnreadCounts(prev => ({
-                    ...prev,
-                    [senderId]: data || 0
-                  }));
-                } catch (error) {
-                  console.error('🚀 Error updating unread count:', error);
+                  await audioManager.getAudioContext();
+                  const soundPlayed = await audioManager.playNotificationSound();
+                  if (!soundPlayed) {
+                    console.log('🚀 Could not play notification sound - user interaction required');
+                  }
+                } catch (soundError) {
+                  console.error('🚀 Error playing notification sound:', soundError);
                 }
-              }, 200);
+              }
             }
           }
-        )
+        })
         .subscribe((status) => {
           console.log('🚀 Master chat subscription status:', status, 'instance:', instanceId.current);
           
           if (status === 'SUBSCRIBED') {
-            console.log('🚀 ✅ Master chat realtime is now active!', 'instance:', instanceId.current);
             setConnectionState('connected');
-            reconnectAttemptsRef.current = 0; // Reset on successful connection
+            reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
             
             // Clear any pending reconnection attempts
             if (reconnectTimeoutRef.current) {
@@ -371,24 +270,49 @@ export const useMasterChatRealtime = (
               reconnectTimeoutRef.current = null;
             }
           } else if (status === 'CHANNEL_ERROR') {
-            console.warn('🚀 Channel error detected, will attempt reconnection', 'instance:', instanceId.current);
+            console.warn('🚀 Channel error detected', 'instance:', instanceId.current);
             setConnectionState('error');
-            reconnectChannel();
+            // Don't auto-reconnect on channel errors to prevent loops
           } else if (status === 'CLOSED') {
-            console.warn('🚀 Channel closed, will attempt reconnection', 'instance:', instanceId.current);
-            setConnectionState('error');
-            reconnectChannel();
+            console.warn('🚀 Channel closed', 'instance:', instanceId.current);
+            setConnectionState('disconnected');
+            // Don't auto-reconnect on close to prevent loops - let user action trigger reconnect
           }
         });
 
-      channelRef.current = globalChannel;
+      channelRef.current = newChannel;
+      globalChannel = newChannel;
       console.log('🚀 Master realtime setup complete', 'instance:', instanceId.current);
     } catch (error) {
       console.error('🚀 Error setting up master realtime:', error);
       setConnectionState('error');
-      reconnectChannel();
+    } finally {
+      isSetupInProgress.current = false;
     }
-  }, [user?.id, preferences, preferencesLoading, enableNotifications, notifyWhileActive, reconnectChannel]);
+  }, [user?.id, preferences, preferencesLoading, enableNotifications, notifyWhileActive]);
+
+  // Manual reconnect function (no auto-reconnect to prevent loops)
+  const reconnectChannel = useCallback(() => {
+    if (reconnectAttemptsRef.current >= 3) {
+      console.log('🚀 Max reconnection attempts reached');
+      setConnectionState('error');
+      return;
+    }
+
+    reconnectAttemptsRef.current++;
+    console.log(`🚀 Manual reconnect attempt ${reconnectAttemptsRef.current}`);
+    
+    // Clear existing timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    // Setup after short delay
+    reconnectTimeoutRef.current = setTimeout(() => {
+      setupMasterRealtime();
+    }, 1000);
+  }, [setupMasterRealtime]);
 
   useEffect(() => {
     let isCleanedUp = false;
@@ -434,6 +358,7 @@ export const useMasterChatRealtime = (
     isLoading,
     connectionState,
     fetchUnreadCounts,
-    markConversationAsRead
+    markConversationAsRead,
+    reconnectChannel
   };
 };

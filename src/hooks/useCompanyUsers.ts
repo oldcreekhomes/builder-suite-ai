@@ -9,6 +9,8 @@ export interface User {
   avatar_url?: string;
   email: string;
   phone_number?: string;
+  company_name?: string;
+  confirmed?: boolean;
 }
 
 export const useCompanyUsers = () => {
