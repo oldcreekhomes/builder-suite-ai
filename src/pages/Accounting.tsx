@@ -128,23 +128,35 @@ export default function Accounting() {
           />
           
           {/* Secondary Navigation Bar */}
-          <div className="border-b bg-background px-6 py-3">
-            <nav className="flex space-x-6">
+          <div className="border-b bg-muted/30 px-6 py-4">
+            <nav className="flex space-x-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-1">
-                    <span>Bills</span>
-                    <ChevronDown className="h-4 w-4" />
+                  <Button variant="outline" className="h-9 px-4 py-2 bg-background hover:bg-accent hover:text-accent-foreground border-border">
+                    <span className="font-medium">Bills</span>
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={handlePendingBillsClick}>
+                <DropdownMenuContent align="start" className="w-48 bg-background border-border shadow-lg">
+                  <DropdownMenuItem 
+                    onClick={handlePendingBillsClick}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Approve Bills
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleTotalOutstandingClick}>
+                  <DropdownMenuItem 
+                    onClick={handleTotalOutstandingClick}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <DollarSign className="mr-2 h-4 w-4" />
                     Pay Bills
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/bills/enter` : '/bills/enter')}>
+                  <DropdownMenuItem 
+                    onClick={() => navigate(projectId ? `/project/${projectId}/bills/enter` : '/bills/enter')}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Enter Bills
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -152,19 +164,31 @@ export default function Accounting() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-1">
-                    <span>Reports</span>
-                    <ChevronDown className="h-4 w-4" />
+                  <Button variant="outline" className="h-9 px-4 py-2 bg-background hover:bg-accent hover:text-accent-foreground border-border">
+                    <span className="font-medium">Reports</span>
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/balance-sheet` : '/accounting/reports/balance-sheet')}>
+                <DropdownMenuContent align="start" className="w-48 bg-background border-border shadow-lg">
+                  <DropdownMenuItem 
+                    onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/balance-sheet` : '/accounting/reports/balance-sheet')}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Balance Sheet
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/profit-loss` : '/accounting/reports/profit-loss')}>
+                  <DropdownMenuItem 
+                    onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/profit-loss` : '/accounting/reports/profit-loss')}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Profit & Loss
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/cash-flow` : '/accounting/reports/cash-flow')}>
+                  <DropdownMenuItem 
+                    onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/cash-flow` : '/accounting/reports/cash-flow')}
+                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground py-2.5"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
                     Cash Flow
                   </DropdownMenuItem>
                 </DropdownMenuContent>
