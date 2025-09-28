@@ -216,29 +216,31 @@ export function StructuredAddressInput({
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label htmlFor="address_line_1">Street Address *</Label>
-        <Input
-          ref={inputRef}
-          id="address_line_1"
-          value={value.address_line_1}
-          onChange={(e) => handleFieldChange('address_line_1', e.target.value)}
-          placeholder={isLoaded ? "Start typing address..." : "Enter street address"}
-          disabled={disabled}
-          autoComplete="street-address"
-        />
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2">
+          <Label htmlFor="address_line_1">Street Address *</Label>
+          <Input
+            ref={inputRef}
+            id="address_line_1"
+            value={value.address_line_1}
+            onChange={(e) => handleFieldChange('address_line_1', e.target.value)}
+            placeholder={isLoaded ? "Start typing address..." : "Enter street address"}
+            disabled={disabled}
+            autoComplete="street-address"
+          />
+        </div>
 
-      <div>
-        <Label htmlFor="address_line_2">Suite/Unit/Floor</Label>
-        <Input
-          id="address_line_2"
-          value={value.address_line_2}
-          onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
-          placeholder="Suite 100, Unit A, Floor 5, etc."
-          disabled={disabled}
-          autoComplete="address-line2"
-        />
+        <div>
+          <Label htmlFor="address_line_2">Suite/Unit/Floor</Label>
+          <Input
+            id="address_line_2"
+            value={value.address_line_2}
+            onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
+            placeholder="Suite 100, Unit A, etc."
+            disabled={disabled}
+            autoComplete="address-line2"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
