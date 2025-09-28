@@ -381,17 +381,18 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-13 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-3">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
+                          <div className="col-span-1">Total</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-13 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <CostCodeSearchInput 
                                 value={row.account}
@@ -446,6 +447,9 @@ export default function EnterBills() {
                                 />
                               </div>
                             </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">$0.00</span>
+                            </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
                                 onClick={() => removeJobCostRow(row.id)}
@@ -461,15 +465,10 @@ export default function EnterBills() {
                         ))}
 
                         <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-4 font-medium">Total:</div>
-                            <div className="col-span-2 font-medium">
-                              ${jobCostRows.reduce((total, row) => {
-                                const amount = parseFloat(row.amount) || 0;
-                                return total + amount;
-                              }, 0).toFixed(2)}
-                            </div>
-                            <div className="col-span-6"></div>
+                          <div className="grid grid-cols-13 gap-2">
+                            <div className="col-span-9 font-medium">Total:</div>
+                            <div className="col-span-1 font-medium">$0.00</div>
+                            <div className="col-span-3"></div>
                           </div>
                         </div>
                       </div>
@@ -484,17 +483,18 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-13 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-3">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
+                          <div className="col-span-1">Total</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {expenseRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-13 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
@@ -546,6 +546,9 @@ export default function EnterBills() {
                                 />
                               </div>
                             </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">$0.00</span>
+                            </div>
                             <div className="col-span-1 flex justify-center">
                               <Button
                                 onClick={() => removeExpenseRow(row.id)}
@@ -561,15 +564,10 @@ export default function EnterBills() {
                         ))}
 
                         <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-4 font-medium">Total:</div>
-                            <div className="col-span-2 font-medium">
-                              ${expenseRows.reduce((total, row) => {
-                                const amount = parseFloat(row.amount) || 0;
-                                return total + amount;
-                              }, 0).toFixed(2)}
-                            </div>
-                            <div className="col-span-6"></div>
+                          <div className="grid grid-cols-13 gap-2">
+                            <div className="col-span-9 font-medium">Total:</div>
+                            <div className="col-span-1 font-medium">$0.00</div>
+                            <div className="col-span-3"></div>
                           </div>
                         </div>
                       </div>
