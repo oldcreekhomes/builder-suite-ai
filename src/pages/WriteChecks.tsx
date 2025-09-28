@@ -215,64 +215,99 @@ export default function WriteChecks() {
           <div className="flex-1 p-6 space-y-6">
             <Card>
               <CardContent className="space-y-6 pt-6">
-                {/* Check Header Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="payTo">Pay To</Label>
-                    <VendorSearchInput
-                      value={payTo}
-                      onChange={setPayTo}
-                      placeholder="Search vendors..."
-                      className="h-8"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !checkDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={checkDate}
-                          onSelect={setCheckDate}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
+                {/* Check Header Information - Styled like a real check */}
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-6 space-y-4">
+                  {/* Check header with date and check number */}
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-gray-600">Your Company Name</div>
+                      <div className="text-xs text-gray-500">123 Business Street</div>
+                      <div className="text-xs text-gray-500">City, State 12345</div>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-600">DATE</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-32 justify-start text-left font-normal border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent",
+                                !checkDate && "text-muted-foreground"
+                              )}
+                            >
+                              {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={checkDate}
+                              onSelect={setCheckDate}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-gray-600">CHECK #</Label>
+                        <Input 
+                          value={checkNumber}
+                          onChange={(e) => setCheckNumber(e.target.value)}
+                          placeholder="001"
+                          className="w-20 text-center border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono"
                         />
-                      </PopoverContent>
-                    </Popover>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* Pay to line */}
                   <div className="space-y-2">
-                    <Label htmlFor="checkNumber">Check No.</Label>
-                    <Input 
-                      id="checkNumber" 
-                      value={checkNumber}
-                      onChange={(e) => setCheckNumber(e.target.value)}
-                      placeholder="Enter check number" 
-                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">PAY TO THE ORDER OF</span>
+                      <div className="flex-1 border-b-2 border-gray-400">
+                        <VendorSearchInput
+                          value={payTo}
+                          onChange={setPayTo}
+                          placeholder="Enter payee name..."
+                          className="border-0 bg-transparent h-8 text-lg font-medium"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="bankAccount">Bank Account</Label>
-                    <AccountSearchInput
-                      value={bankAccount}
-                      onChange={setBankAccount}
-                      placeholder="Select bank account..."
-                      className="h-8"
-                      accountType="asset"
-                    />
+                  {/* Amount line */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 flex items-center">
+                      <span className="text-sm font-medium mr-2">$</span>
+                      <div className="flex-1 border-b-2 border-gray-400 pr-4">
+                        <span className="text-lg font-medium">{calculateTotal()}</span>
+                        <span className="text-sm text-gray-500 ml-2">DOLLARS</span>
+                      </div>
+                    </div>
+                    <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right">
+                      <span className="text-sm text-gray-600">$</span>
+                      <span className="text-xl font-bold ml-1">{calculateTotal()}</span>
+                    </div>
+                  </div>
+
+                  {/* Bank account and memo line */}
+                  <div className="flex items-end justify-between pt-4">
+                    <div className="space-y-2 flex-1 max-w-xs">
+                      <Label className="text-xs text-gray-600">BANK ACCOUNT</Label>
+                      <AccountSearchInput
+                        value={bankAccount}
+                        onChange={setBankAccount}
+                        placeholder="Select bank account..."
+                        className="border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent"
+                        accountType="asset"
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 text-right">
+                      <div>⚍123456789⚍ ⚊1234567890⚊ {checkNumber || "001"}</div>
+                      <div className="mt-1">Your Bank • Routing: 123456789</div>
+                    </div>
                   </div>
                 </div>
 
