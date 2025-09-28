@@ -68,7 +68,8 @@ export default function ApproveBills() {
   const { data: bills = [], isLoading } = useQuery({
     queryKey: ['bills-for-approval'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get bills with direct project assignment
+      const { data: directBills, error: directError } = await supabase
         .from('bills')
         .select(`
           id,
@@ -89,10 +90,52 @@ export default function ApproveBills() {
           )
         `)
         .eq('status', 'draft')
-        .order('bill_date', { ascending: false });
+        .not('project_id', 'is', null);
+
+      if (directError) throw directError;
+
+      // Get bills without direct project but with project in line items
+      const { data: indirectBills, error: indirectError } = await supabase
+        .from('bills')
+        .select(`
+          id,
+          vendor_id,
+          project_id,
+          bill_date,
+          due_date,
+          total_amount,
+          reference_number,
+          terms,
+          notes,
+          status,
+          companies:vendor_id (
+            company_name
+          ),
+          bill_lines!inner(
+            project_id,
+            projects!inner(
+              address
+            )
+          )
+        `)
+        .eq('status', 'draft')
+        .is('project_id', null);
+
+      if (indirectError) throw indirectError;
+
+      // Transform indirect bills to match expected structure
+      const transformedIndirectBills = indirectBills?.map(bill => ({
+        ...bill,
+        projects: bill.bill_lines?.[0]?.projects ? {
+          address: bill.bill_lines[0].projects.address
+        } : undefined
+      })) || [];
+
+      // Combine both result sets
+      const allBills = [...(directBills || []), ...transformedIndirectBills];
       
-      if (error) throw error;
-      return data as BillForApproval[];
+      return allBills
+        .sort((a, b) => new Date(b.bill_date).getTime() - new Date(a.bill_date).getTime()) as BillForApproval[];
     },
   });
 
