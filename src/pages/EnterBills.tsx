@@ -318,6 +318,42 @@ export default function EnterBills() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="job">Job</Label>
+                    <JobSearchInput
+                      value={job}
+                      onChange={setJob}
+                      placeholder="Search jobs..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Bill Due Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !billDueDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {billDueDate ? format(billDueDate, "MM/dd/yyyy") : "Select due date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={billDueDate}
+                          onSelect={setBillDueDate}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
                 {/* Expenses Section with Tabs */}
