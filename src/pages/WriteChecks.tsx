@@ -652,11 +652,18 @@ export default function WriteChecks() {
                     <Button variant="outline" onClick={handleClear}>
                       Clear
                     </Button>
-                    <Button variant="outline" onClick={handleSaveAndNew}>
-                      Save & New
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSaveAndNew}
+                      disabled={createCheck.isPending}
+                    >
+                      {createCheck.isPending ? "Saving..." : "Save & New"}
                     </Button>
-                    <Button onClick={handleSaveAndClose}>
-                      Save & Close
+                    <Button 
+                      onClick={handleSaveAndClose}
+                      disabled={createCheck.isPending}
+                    >
+                      {createCheck.isPending ? "Saving..." : "Save & Close"}
                     </Button>
                   </div>
                 </div>
