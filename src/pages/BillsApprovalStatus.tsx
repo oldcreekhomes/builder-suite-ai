@@ -10,13 +10,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useProjectManagers } from "@/hooks/useProjectManagers";
-import { useProject } from "@/hooks/useProject";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BillsApprovalStatus() {
   const { projectId } = useParams();
   const { data: projectManagersData, isLoading } = useProjectManagers();
-  const { data: project } = useProject(projectId || "");
   const [selectedManagerId, setSelectedManagerId] = useState<string>('');
   const [jobApprovals, setJobApprovals] = useState<Record<string, boolean>>({});
 
@@ -74,7 +72,7 @@ export default function BillsApprovalStatus() {
           <AppSidebar />
           <SidebarInset className="flex-1">
             <DashboardHeader 
-              title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+              title="Bills - Approval Status" 
               projectId={projectId}
             />
             <div className="flex-1 p-6 space-y-6">
@@ -107,7 +105,7 @@ export default function BillsApprovalStatus() {
             <AppSidebar />
             <SidebarInset className="flex-1">
               <DashboardHeader 
-                title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+                title="Bills - Approval Status" 
                 projectId={projectId}
               />
               <div className="flex-1 p-6 space-y-6">
@@ -127,7 +125,7 @@ export default function BillsApprovalStatus() {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+            title="Bills - Approval Status" 
             projectId={projectId}
           />
           <div className="flex-1 p-6 space-y-6">

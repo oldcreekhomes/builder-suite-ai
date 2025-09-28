@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
-import { useProject } from "@/hooks/useProject";
 import { format } from "date-fns";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -41,7 +40,6 @@ interface BillForPayment {
 export default function PayBills() {
   const { projectId } = useParams();
   const { payBill } = useBills();
-  const { data: project } = useProject(projectId || "");
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
@@ -98,7 +96,7 @@ export default function PayBills() {
         <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
-            title={`Bills - Pay Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            title="Bills - Pay Bills" 
             projectId={projectId}
           />
           <div className="container mx-auto p-6">

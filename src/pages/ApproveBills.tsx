@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { useProject } from "@/hooks/useProject";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -7,7 +6,6 @@ import { BillsApprovalTabs } from "@/components/bills/BillsApprovalTabs";
 
 export default function ApproveBills() {
   const { projectId } = useParams();
-  const { data: project } = useProject(projectId || "");
 
   return (
     <SidebarProvider>
@@ -15,7 +13,7 @@ export default function ApproveBills() {
         <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
-            title={`Bills - Approve Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            title="Bills - Approve Bills" 
             projectId={projectId}
           />
           <div className="container mx-auto p-6">

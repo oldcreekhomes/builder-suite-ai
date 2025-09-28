@@ -17,13 +17,13 @@ export const useProject = (projectId: string) => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['project', projectId, user?.id],
+    queryKey: ['project', projectId],
     queryFn: async () => {
       if (!user || !projectId) return null;
 
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, address')
         .eq('id', projectId)
         .maybeSingle();
 
@@ -32,7 +32,7 @@ export const useProject = (projectId: string) => {
         throw error;
       }
 
-      return data as Project;
+      return data as Pick<Project, 'id' | 'address'>;
     },
     enabled: !!user && !!projectId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

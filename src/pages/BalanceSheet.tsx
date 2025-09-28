@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useProject } from "@/hooks/useProject";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -37,7 +36,6 @@ interface BalanceSheetData {
 export default function BalanceSheet() {
   const { projectId } = useParams<{ projectId: string }>();
   const { user, session, loading: authLoading } = useAuth();
-  const { data: project } = useProject(projectId || '');
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
     queryKey: ['balance-sheet', user?.id, projectId],

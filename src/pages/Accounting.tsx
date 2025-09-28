@@ -7,7 +7,6 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, Clock } from "lucide-react";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
-import { useProject } from "@/hooks/useProject";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,7 +14,6 @@ export default function Accounting() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { openFloatingChat } = useFloatingChat();
-  const { data: project } = useProject(projectId || "");
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({
