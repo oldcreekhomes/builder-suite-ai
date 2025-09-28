@@ -149,7 +149,7 @@ export const useBills = () => {
             account_id: settings.wip_account_id,
             debit: line.amount,
             credit: 0,
-            project_id: line.project_id,
+            project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
             owner_id: bill.owner_id
@@ -166,7 +166,7 @@ export const useBills = () => {
             account_id: line.account_id,
             debit: line.amount,
             credit: 0,
-            project_id: line.project_id,
+            project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
             owner_id: bill.owner_id
@@ -207,6 +207,7 @@ export const useBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       toast({
         title: "Success",
         description: "Bill posted to General Ledger successfully",
