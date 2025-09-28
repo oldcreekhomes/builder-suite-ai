@@ -121,7 +121,10 @@ export default function Accounting() {
         <AccountingSidebar projectId={projectId} />
         <SidebarInset className="flex-1 flex flex-col">
           <DashboardHeader 
-            title={`Accounting Dashboard${project?.address ? ` - ${project.address}` : ''}`} 
+            title={projectId 
+              ? `Accounting Dashboard${project?.address ? ` - ${project.address}` : ''}`
+              : 'Company Accounting Dashboard'
+            } 
             projectId={projectId}
           />
           <div className="flex-1 p-6 space-y-6">
