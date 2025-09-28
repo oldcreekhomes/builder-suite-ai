@@ -177,7 +177,9 @@ export default function PayBills() {
               <TableHeader>
                 <TableRow className="h-8">
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+                  {!projectId && (
+                    <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+                  )}
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
@@ -189,7 +191,7 @@ export default function PayBills() {
               <TableBody>
                 {bills.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={!projectId ? 8 : 7} className="text-center py-8 text-muted-foreground">
                       No approved bills found for payment.
                     </TableCell>
                   </TableRow>
@@ -199,9 +201,11 @@ export default function PayBills() {
                       <TableCell className="px-2 py-1 text-xs font-medium">
                         {bill.companies?.company_name || 'Unknown Vendor'}
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        {bill.projects?.address || '-'}
-                      </TableCell>
+                      {!projectId && (
+                        <TableCell className="px-2 py-1 text-xs">
+                          {bill.projects?.address || '-'}
+                        </TableCell>
+                      )}
                       <TableCell className="px-2 py-1 text-xs">
                         {format(new Date(bill.bill_date), 'MMM dd, yyyy')}
                       </TableCell>
