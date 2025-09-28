@@ -141,11 +141,40 @@ export const useAccounts = () => {
     }
   });
 
+  const deleteAccount = useMutation({
+    mutationFn: async (accountId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { error } = await supabase
+        .from('accounts')
+        .delete()
+        .eq('id', accountId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      toast({
+        title: "Success",
+        description: "Account deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete account",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     accounts,
     accountingSettings,
     isLoading,
     createAccount,
-    updateAccountingSettings
+    updateAccountingSettings,
+    deleteAccount
   };
 };

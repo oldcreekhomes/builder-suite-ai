@@ -11,7 +11,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
 
 export const ChartOfAccountsTab = () => {
-  const { accounts, isLoading, createAccount, accountingSettings } = useAccounts();
+  const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
   const [isImporting, setIsImporting] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
 
@@ -218,13 +218,10 @@ export const ChartOfAccountsTab = () => {
                           <Edit className="h-3 w-3" />
                         </Button>
                         <DeleteButton
-                          onDelete={() => {
-                            // TODO: Implement delete functionality
-                            console.log('Delete account:', account.id);
-                          }}
+                          onDelete={() => deleteAccount.mutate(account.id)}
                           title="Delete Account"
                           description={`Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`}
-                          isLoading={false}
+                          isLoading={deleteAccount.isPending}
                         />
                       </div>
                     </TableCell>
