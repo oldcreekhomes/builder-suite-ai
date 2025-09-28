@@ -45,7 +45,7 @@ export default function ProjectBidding() {
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title="Project Bidding" 
+            title="Bidding" 
             projectId={projectId}
           />
           

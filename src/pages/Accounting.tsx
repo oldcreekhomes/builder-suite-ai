@@ -121,7 +121,7 @@ export default function Accounting() {
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
           <DashboardHeader 
-            title={projectId ? "Project Accounting" : "Company Accounting Dashboard"}
+            title="Accounting"
             projectId={projectId}
           />
           <div className="flex-1 p-6 space-y-6">
