@@ -40,6 +40,8 @@ interface BillForPayment {
 export default function PayBills() {
   const { projectId } = useParams();
   const { payBill } = useBills();
+  const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
@@ -140,10 +142,21 @@ export default function PayBills() {
     },
   });
 
-  const handleActionChange = (billId: string, action: string) => {
-    if (action === 'pay') {
-      payBill.mutate(billId);
-    }
+  const handlePayBill = (bill: BillForPayment) => {
+    setSelectedBill(bill);
+    setDialogOpen(true);
+  };
+
+  const handleConfirmPayment = (billId: string, paymentAccountId: string, paymentDate: string, memo?: string) => {
+    payBill.mutate(
+      { billId, paymentAccountId, paymentDate, memo },
+      {
+        onSuccess: () => {
+          setDialogOpen(false);
+          setSelectedBill(null);
+        }
+      }
+    );
   };
 
   const formatCurrency = (amount: number) => {

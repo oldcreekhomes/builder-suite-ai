@@ -280,36 +280,109 @@ export const useBills = () => {
   });
 
   const payBill = useMutation({
-    mutationFn: async (billId: string) => {
+    mutationFn: async ({ 
+      billId, 
+      paymentAccountId, 
+      paymentDate, 
+      memo 
+    }: { 
+      billId: string; 
+      paymentAccountId: string; 
+      paymentDate: string; 
+      memo?: string; 
+    }) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Mark bill as paid by updating status to void with a paid indicator
-      // Note: In a real system, this might create a payment record
-      const { error } = await supabase
+      // Get bill details for journal entry
+      const { data: bill, error: billError } = await supabase
+        .from('bills')
+        .select('*')
+        .eq('id', billId)
+        .single();
+
+      if (billError) throw billError;
+
+      // Get accounting settings for AP account
+      const { data: settings } = await supabase
+        .from('accounting_settings')
+        .select('ap_account_id')
+        .eq('owner_id', bill.owner_id)
+        .single();
+
+      if (!settings?.ap_account_id) {
+        throw new Error("Accounts Payable account not configured in Accounting Settings");
+      }
+
+      // Create journal entry for payment
+      const { data: journalEntry, error: jeError } = await supabase
+        .from('journal_entries')
+        .insert({
+          owner_id: bill.owner_id,
+          source_type: 'bill_payment',
+          source_id: bill.id,
+          entry_date: paymentDate,
+          description: `Payment for bill - Ref: ${bill.reference_number || 'N/A'}${memo ? ` - ${memo}` : ''}`
+        })
+        .select()
+        .single();
+
+      if (jeError) throw jeError;
+
+      // Create journal entry lines for payment
+      const journalLines = [
+        // Debit AP (reduces liability)
+        {
+          journal_entry_id: journalEntry.id,
+          line_number: 1,
+          account_id: settings.ap_account_id,
+          debit: bill.total_amount,
+          credit: 0,
+          memo: `Payment - ${bill.reference_number || 'Bill'}`
+        },
+        // Credit payment method account
+        {
+          journal_entry_id: journalEntry.id,
+          line_number: 2,
+          account_id: paymentAccountId,
+          debit: 0,
+          credit: bill.total_amount,
+          memo: memo || `Payment for bill ${bill.reference_number || ''}`
+        }
+      ];
+
+      const { error: linesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(journalLines);
+
+      if (linesError) throw linesError;
+
+      // Update bill status to paid
+      const { error: updateError } = await supabase
         .from('bills')
         .update({ 
-          status: 'void', // Using 'void' to indicate paid/closed
-          notes: 'Paid',
+          status: 'paid',
+          notes: memo ? `Paid - ${memo}` : 'Paid',
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
 
-      if (error) throw error;
-      return billId;
+      if (updateError) throw updateError;
+
+      return bill;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       toast({
         title: "Success",
-        description: "Bill marked as paid successfully",
+        description: "Bill payment recorded and posted to General Ledger",
       });
     },
     onError: (error) => {
       console.error('Error paying bill:', error);
       toast({
         title: "Error",
-        description: "Failed to mark bill as paid",
+        description: error.message || "Failed to record bill payment",
         variant: "destructive",
       });
     }
