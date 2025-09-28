@@ -5,8 +5,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, DollarSign, Clock } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { FileText, DollarSign, Clock, ChevronDown } from "lucide-react";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { useProject } from "@/hooks/useProject";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,6 +126,52 @@ export default function Accounting() {
             title="Accounting"
             projectId={projectId}
           />
+          
+          {/* Secondary Navigation Bar */}
+          <div className="border-b bg-background px-6 py-3">
+            <nav className="flex space-x-6">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-1">
+                    <span>Bills</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={handlePendingBillsClick}>
+                    Approve Bills
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleTotalOutstandingClick}>
+                    Pay Bills
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/bills/enter` : '/bills/enter')}>
+                    Enter Bills
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-1">
+                    <span>Reports</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/balance-sheet` : '/accounting/reports/balance-sheet')}>
+                    Balance Sheet
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/profit-loss` : '/accounting/reports/profit-loss')}>
+                    Profit & Loss
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(projectId ? `/project/${projectId}/accounting/reports/cash-flow` : '/accounting/reports/cash-flow')}>
+                    Cash Flow
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </nav>
+          </div>
+          
           <div className="flex-1 p-6 space-y-6">
             {/* Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -189,34 +236,6 @@ export default function Accounting() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Accounting Navigation Tabs */}
-            <Tabs defaultValue="bills" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="bills">Bills</TabsTrigger>
-                <TabsTrigger value="reports">Reports</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="bills" className="mt-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Bills Management</h3>
-                  <p className="text-muted-foreground">
-                    Manage bills, approvals, and payments for {projectId ? 'this project' : 'your company'}.
-                  </p>
-                  {/* Bills content will go here */}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="reports" className="mt-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Financial Reports</h3>
-                  <p className="text-muted-foreground">
-                    View and generate financial reports for {projectId ? 'this project' : 'your company'}.
-                  </p>
-                  {/* Reports content will go here */}
-                </div>
-              </TabsContent>
-            </Tabs>
 
           </div>
         </SidebarInset>
