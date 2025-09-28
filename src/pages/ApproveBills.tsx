@@ -8,6 +8,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +48,17 @@ interface BillForApproval {
 
 export default function ApproveBills() {
   const { approveBill, rejectBill } = useBills();
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    action: string;
+    billId: string;
+    billInfo?: BillForApproval;
+  }>({
+    open: false,
+    action: '',
+    billId: '',
+    billInfo: undefined,
+  });
 
   // Fetch bills that need approval (status = 'draft')
   const { data: bills = [], isLoading } = useQuery({
@@ -72,11 +93,26 @@ export default function ApproveBills() {
   });
 
   const handleActionChange = (billId: string, action: string) => {
-    if (action === 'approve') {
-      approveBill.mutate(billId);
-    } else if (action === 'reject') {
-      rejectBill.mutate(billId);
+    const bill = bills.find(b => b.id === billId);
+    setConfirmDialog({
+      open: true,
+      action,
+      billId,
+      billInfo: bill,
+    });
+  };
+
+  const handleConfirmedAction = () => {
+    if (confirmDialog.action === 'approve') {
+      approveBill.mutate(confirmDialog.billId);
+    } else if (confirmDialog.action === 'reject') {
+      rejectBill.mutate(confirmDialog.billId);
     }
+    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined });
+  };
+
+  const handleCancelAction = () => {
+    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined });
   };
 
   const formatCurrency = (amount: number) => {
@@ -172,6 +208,31 @@ export default function ApproveBills() {
           </div>
         </div>
       </SidebarInset>
+
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelAction()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmDialog.action === 'approve' ? 'Confirm Bill Approval' : 'Confirm Bill Rejection'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {confirmDialog.action} this bill from{' '}
+              <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
+              <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>?
+              {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmedAction}
+              className={confirmDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {confirmDialog.action === 'approve' ? 'Approve Bill' : 'Reject Bill'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
