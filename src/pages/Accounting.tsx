@@ -127,41 +127,6 @@ export default function Accounting() {
               </Card>
             </div>
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>
-                  Common accounting tasks and workflows
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                  <h3 className="font-medium mb-2">Review Pending Bills</h3>
-                  <p className="text-sm text-muted-foreground">
-                    View and approve bills awaiting authorization
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                  <h3 className="font-medium mb-2">Enter New Bills</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Add new bills to the system for processing
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                  <h3 className="font-medium mb-2">Payment Reports</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Generate reports for accounting periods
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                  <h3 className="font-medium mb-2">Vendor Management</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage vendor information and payment terms
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
 
           </div>
         </SidebarInset>
