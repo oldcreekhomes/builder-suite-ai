@@ -1,4 +1,5 @@
 import { Home, Calculator, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 const items = [
@@ -39,7 +40,7 @@ export function CompanyDashboardNav() {
         {/* Software Issues Section with separator */}
         <div className="mt-3 pt-3 border-t border-gray-200">
           <div>
-            <a href="/issues" className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+            <Link to="/issues" className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
               <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
               <span className="whitespace-nowrap">Software Issues</span>
               <div className="flex items-center gap-1 ml-auto">
@@ -54,7 +55,7 @@ export function CompanyDashboardNav() {
                   </span>
                 )}
               </div>
-            </a>
+            </Link>
           </div>
         </div>
       </div>
