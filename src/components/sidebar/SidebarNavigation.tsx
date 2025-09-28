@@ -99,7 +99,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
   // State for collapsible sections
-  const [accountingExpanded, setAccountingExpanded] = useState(false);
   const [billsExpanded, setBillsExpanded] = useState(false);
   const [reportsExpanded, setReportsExpanded] = useState(false);
   
@@ -222,70 +221,62 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               </div>
             ))}
             
-            {/* Accounting Section - Collapsible (only show for project pages) */}
+            {/* Accounting Section - Direct navigation (only show for project pages) */}
             {projectId && (
               <div>
-                <Collapsible open={accountingExpanded} onOpenChange={setAccountingExpanded}>
-                  <CollapsibleTrigger className="flex items-center justify-between px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <div className="flex items-center space-x-2">
-                      <Calculator className="h-4 w-4" />
-                      <span>Accounting</span>
-                    </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${accountingExpanded ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="ml-6">
-                      {/* Bills Section */}
-                      <div className="mt-1">
-                        <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
-                          <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                            <div className="flex items-center space-x-2">
-                              <FileText className="h-4 w-4" />
-                              <span>Bills</span>
-                            </div>
-                            <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="ml-6">
-                              <a href={`/project/${projectId}/accounting/bills/approval-status`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                                <span>Approval Status</span>
-                              </a>
-                              <a href={`/project/${projectId}/accounting/bills/enter`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                                <span>Enter Bills</span>
-                              </a>
-                              <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                                <span>Approve Bills</span>
-                              </a>
-                              <a href={`/project/${projectId}/accounting/bills/pay`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                                <span>Pay Bills</span>
-                              </a>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                <a 
+                  href={`/project/${projectId}/accounting`}
+                  className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                >
+                  <Calculator className="h-4 w-4" />
+                  <span className="flex-1">Accounting</span>
+                </a>
+                
+                {/* Bills and Reports submenu items */}
+                <div className="ml-6 mt-1 space-y-1">
+                  <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
+                    <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4" />
+                        <span>Bills</span>
                       </div>
-                      
-                      {/* Reports Section */}
-                      <div className="mt-1">
-                        <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
-                          <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                            <div className="flex items-center space-x-2">
-                              <BarChart3 className="h-4 w-4" />
-                              <span>Reports</span>
-                            </div>
-                            <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="ml-6">
-                              <a href={`/project/${projectId}/accounting/reports/balance-sheet`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                                <span>Balance Sheet</span>
-                              </a>
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-6 space-y-1">
+                        <a href={`/project/${projectId}/accounting/bills/approval-status`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Approval Status</span>
+                        </a>
+                        <a href={`/project/${projectId}/accounting/bills/enter`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Enter Bills</span>
+                        </a>
+                        <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Approve Bills</span>
+                        </a>
+                        <a href={`/project/${projectId}/accounting/bills/pay`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Pay Bills</span>
+                        </a>
                       </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    </CollapsibleContent>
+                  </Collapsible>
+                  
+                  <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
+                    <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <div className="flex items-center space-x-2">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Reports</span>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-6">
+                        <a href={`/project/${projectId}/accounting/reports/balance-sheet`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Balance Sheet</span>
+                        </a>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
               </div>
             )}
           </div>
