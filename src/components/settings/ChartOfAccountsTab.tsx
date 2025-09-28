@@ -195,7 +195,7 @@ export const ChartOfAccountsTab = () => {
                     <TableCell className="px-2 py-1 text-xs align-middle">
                       {account.code}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-xs font-medium align-middle">
+                    <TableCell className="px-2 py-1 text-xs align-middle">
                       {account.name}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-xs align-middle">
