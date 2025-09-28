@@ -218,8 +218,69 @@ export const useBills = () => {
     }
   });
 
+  const approveBill = useMutation({
+    mutationFn: async (billId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Approve a bill by posting it to the general ledger
+      return await postBill.mutateAsync(billId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      toast({
+        title: "Success",
+        description: "Bill approved and posted to General Ledger successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error approving bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve bill",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectBill = useMutation({
+    mutationFn: async (billId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Update bill status to void (rejected)
+      const { error } = await supabase
+        .from('bills')
+        .update({ 
+          status: 'void',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+
+      if (error) throw error;
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      toast({
+        title: "Success",
+        description: "Bill rejected successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error rejecting bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject bill",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     createBill,
-    postBill
+    postBill,
+    approveBill,
+    rejectBill
   };
 };

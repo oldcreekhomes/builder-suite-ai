@@ -8,6 +8,7 @@ const items = [
 const billsSubItems = [
   { title: "Approval Status", url: "/accounting/bills/approval-status" },
   { title: "Manually Enter Bills", url: "/accounting/bills/enter" },
+  { title: "Approve Bills", url: "/accounting/bills/approve" },
 ];
 
 export function AccountingSidebar() {

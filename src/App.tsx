@@ -30,6 +30,7 @@ import Accounting from "./pages/Accounting";
 import BillsApprovalStatus from "./pages/BillsApprovalStatus";
 
 import EnterBills from "./pages/EnterBills";
+import ApproveBills from "./pages/ApproveBills";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import POResponseConfirmation from "./pages/POResponseConfirmation";
@@ -119,8 +120,8 @@ const AppContent = () => {
           {/* Accounting routes */}
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
-          
           <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
+          <Route path="/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           
           {/* Estimating AI route */}
           <Route path="/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
@@ -163,8 +164,8 @@ const AppContent = () => {
           {/* Project Accounting routes */}
           <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
-          
           <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           
           
           {/* Messages route - TEMPORARILY DISABLED
