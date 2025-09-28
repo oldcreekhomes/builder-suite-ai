@@ -1,27 +1,18 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Plus, FileText } from "lucide-react";
+import { Upload, Plus, FileText, Edit } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { DeleteButton } from "@/components/ui/delete-button";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings } = useAccounts();
-  const [showAddForm, setShowAddForm] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  
-  const [newAccount, setNewAccount] = useState({
-    code: "",
-    name: "",
-    type: "asset" as const,
-    description: ""
-  });
 
   const handleImportIFF = async (files: File[]) => {
     if (files.length === 0) return;
@@ -100,25 +91,6 @@ export const ChartOfAccountsTab = () => {
     multiple: false
   });
 
-  const handleAddAccount = async () => {
-    if (!newAccount.code || !newAccount.name) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter both account code and name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await createAccount.mutateAsync(newAccount);
-      setNewAccount({ code: "", name: "", type: "asset", description: "" });
-      setShowAddForm(false);
-    } catch (error) {
-      console.error('Error creating account:', error);
-    }
-  };
-
   const getAccountTypeColor = (type: string) => {
     switch (type) {
       case 'asset': return 'bg-blue-100 text-blue-800';
@@ -131,12 +103,7 @@ export const ChartOfAccountsTab = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-        <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
-      </div>
-    );
+    return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
   }
 
   return (
@@ -201,133 +168,87 @@ export const ChartOfAccountsTab = () => {
         </Card>
       )}
 
-      {/* Chart of Accounts Table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      {/* Chart of Accounts Table - Matching uniform design */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Chart of Accounts</CardTitle>
-            <CardDescription>
+            <h3 className="text-lg font-semibold">Chart of Accounts</h3>
+            <p className="text-sm text-gray-600">
               Manage your chart of accounts ({accounts.length} accounts)
-            </CardDescription>
+            </p>
           </div>
-          <Button 
-            onClick={() => setShowAddForm(!showAddForm)}
-            size="sm"
-          >
+          <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
             Add Account
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {showAddForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Add New Account</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="code">Account Code</Label>
-                    <Input
-                      id="code"
-                      value={newAccount.code}
-                      onChange={(e) => setNewAccount({ ...newAccount, code: e.target.value })}
-                      placeholder="e.g., 1000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Account Name</Label>
-                    <Input
-                      id="name"
-                      value={newAccount.name}
-                      onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                      placeholder="e.g., Cash in Bank"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Account Type</Label>
-                    <select
-                      id="type"
-                      value={newAccount.type}
-                      onChange={(e) => setNewAccount({ ...newAccount, type: e.target.value as any })}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="asset">Asset</option>
-                      <option value="liability">Liability</option>
-                      <option value="equity">Equity</option>
-                      <option value="revenue">Revenue</option>
-                      <option value="expense">Expense</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <Input
-                      id="description"
-                      value={newAccount.description}
-                      onChange={(e) => setNewAccount({ ...newAccount, description: e.target.value })}
-                      placeholder="Account description"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleAddAccount}
-                    disabled={createAccount.isPending}
-                  >
-                    {createAccount.isPending ? 'Adding...' : 'Add Account'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowAddForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        </div>
 
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow className="h-8">
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Code</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Account Name</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Description</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {accounts.length === 0 ? (
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Account Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableCell colSpan={5} className="text-center py-4 text-xs text-gray-500">
+                    No accounts found. Import from QuickBooks or add accounts manually.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accounts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      No accounts found. Import from QuickBooks or add accounts manually.
+              ) : (
+                accounts.map((account) => (
+                  <TableRow key={account.id} className="h-10">
+                    <TableCell className="px-2 py-1 text-xs font-mono align-middle">
+                      {account.code}
+                    </TableCell>
+                    <TableCell className="px-2 py-1 text-xs font-medium align-middle">
+                      {account.name}
+                    </TableCell>
+                    <TableCell className="px-2 py-1 align-middle">
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${getAccountTypeColor(account.type)}`}
+                      >
+                        {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-2 py-1 text-xs text-muted-foreground align-middle">
+                      {account.description || '—'}
+                    </TableCell>
+                    <TableCell className="px-2 py-1 text-right align-middle">
+                      <div className="flex justify-end items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          title="Edit account"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <DeleteButton
+                          onDelete={() => {
+                            // TODO: Implement delete functionality
+                            console.log('Delete account:', account.id);
+                          }}
+                          title="Delete Account"
+                          description={`Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`}
+                          isLoading={false}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  accounts.map((account) => (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-mono">{account.code}</TableCell>
-                      <TableCell className="font-medium">{account.name}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="secondary" 
-                          className={getAccountTypeColor(account.type)}
-                        >
-                          {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {account.description || '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 };
