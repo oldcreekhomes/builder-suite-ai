@@ -151,7 +151,8 @@ export const useBills = () => {
             credit: 0,
             project_id: line.project_id,
             cost_code_id: line.cost_code_id,
-            memo: line.memo
+            memo: line.memo,
+            owner_id: bill.owner_id
           });
         } else {
           // Expense: Debit Expense Account, Credit AP
@@ -167,7 +168,8 @@ export const useBills = () => {
             credit: 0,
             project_id: line.project_id,
             cost_code_id: line.cost_code_id,
-            memo: line.memo
+            memo: line.memo,
+            owner_id: bill.owner_id
           });
         }
       }
@@ -179,7 +181,9 @@ export const useBills = () => {
         account_id: settings.ap_account_id,
         debit: 0,
         credit: bill.total_amount,
-        memo: `AP - ${bill.reference_number || 'Bill'}`
+        memo: `AP - ${bill.reference_number || 'Bill'}`,
+        owner_id: bill.owner_id,
+        project_id: bill.project_id || null
       });
 
       const { error: linesError } = await supabase
@@ -377,6 +381,7 @@ export const useBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       toast({
         title: "Success",
         description: "Bill payment recorded and posted to General Ledger",
