@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { CreditCard } from "lucide-react";
 
 interface BillForPayment {
   id: string;
@@ -71,10 +72,8 @@ export default function PayBills() {
     },
   });
 
-  const handleActionChange = (billId: string, action: string) => {
-    if (action === 'pay') {
-      payBill.mutate(billId);
-    }
+  const handlePayBill = (billId: string) => {
+    payBill.mutate(billId);
   };
 
   const formatCurrency = (amount: number) => {
@@ -145,17 +144,16 @@ export default function PayBills() {
                         {bill.terms || '-'}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-right">
-                        <Select
-                          onValueChange={(value) => handleActionChange(bill.id, value)}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePayBill(bill.id)}
                           disabled={payBill.isPending}
+                          className="h-6 w-6 p-0"
+                          title="Mark as Paid"
                         >
-                          <SelectTrigger className="h-8 w-24 text-xs">
-                            <SelectValue placeholder="Nothing" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pay">Mark as Paid</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <CreditCard className="h-3 w-3" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
