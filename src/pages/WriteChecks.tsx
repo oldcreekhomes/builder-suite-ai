@@ -178,7 +178,7 @@ export default function WriteChecks() {
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: (parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0),
+          amount: (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0),
           memo: row.memo || undefined
         })),
       ...expenseRows
@@ -187,7 +187,7 @@ export default function WriteChecks() {
           line_type: 'expense' as const,
           account_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: (parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0),
+          amount: (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0),
           memo: row.memo || undefined
         }))
     ];
@@ -307,8 +307,8 @@ export default function WriteChecks() {
     setRoutingNumber("123456789");
     setAccountNumber("1234567890");
     setBankName("Your Bank Name");
-    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
-    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
+    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
   };
 
   return (
@@ -515,7 +515,7 @@ export default function WriteChecks() {
                         </div>
 
                         {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <CostCodeSearchInput
                                 value={row.account}
@@ -525,6 +525,7 @@ export default function WriteChecks() {
                                   updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
                                 }}
                                 placeholder="Select cost code..."
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-2">
@@ -537,36 +538,71 @@ export default function WriteChecks() {
                                   updateJobCostRow(row.id, "project", project?.address || "");
                                 }}
                                 placeholder="Select project..."
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-4">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
-                                placeholder="Enter memo..."
+                                placeholder="Job cost memo"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-1">
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={row.amount}
-                                onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
-                                placeholder="0.00"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
-                            <div className="col-span-1 flex justify-center">
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center">
                               <Button
-                                variant="ghost"
-                                size="sm"
                                 onClick={() => removeJobCostRow(row.id)}
+                                size="sm"
+                                variant="destructive"
                                 disabled={jobCostRows.length === 1}
+                                className="h-8 w-8 p-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
                         ))}
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-8 font-medium">Total:</div>
+                            <div className="col-span-1 font-medium">
+                              ${jobCostRows.reduce((total, row) => {
+                                const q = parseFloat(row.quantity || "0") || 0;
+                                const c = parseFloat(row.amount || "0") || 0;
+                                return total + q * c;
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="col-span-3"></div>
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
                     
@@ -579,16 +615,18 @@ export default function WriteChecks() {
                       </div>
 
                       <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-4">Memo</div>
-                          <div className="col-span-1">Amount</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
                           <div className="col-span-1 text-center">Action</div>
                         </div>
 
                         {expenseRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
@@ -598,8 +636,9 @@ export default function WriteChecks() {
                                   const account = accounts?.find(a => a.id === accountId);
                                   updateExpenseRow(row.id, "account", account ? `${account.code} - ${account.name}` : "");
                                 }}
-                                placeholder="Select account..."
+                                placeholder="Select account"
                                 accountType="expense"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-2">
@@ -611,31 +650,53 @@ export default function WriteChecks() {
                                   const project = projects?.find(p => p.id === projectId);
                                   updateExpenseRow(row.id, "project", project?.address || "");
                                 }}
-                                placeholder="Select project..."
+                                placeholder="Select project"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-4">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
-                                placeholder="Enter memo..."
+                                placeholder="Expense memo"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-1">
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={row.amount}
-                                onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
-                                placeholder="0.00"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
-                            <div className="col-span-1 flex justify-center">
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center">
                               <Button
-                                variant="ghost"
-                                size="sm"
                                 onClick={() => removeExpenseRow(row.id)}
+                                size="sm"
+                                variant="destructive"
                                 disabled={expenseRows.length === 1}
+                                className="h-8 w-8 p-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -654,6 +715,19 @@ export default function WriteChecks() {
                     {useManualAmount && (
                       <div className="text-sm text-gray-500">
                         (Check Amount: ${getDisplayAmount()})
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-8 font-medium">Total:</div>
+                            <div className="col-span-1 font-medium">
+                              ${expenseRows.reduce((total, row) => {
+                                const q = parseFloat(row.quantity || "0") || 0;
+                                const c = parseFloat(row.amount || "0") || 0;
+                                return total + q * c;
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="col-span-3"></div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
