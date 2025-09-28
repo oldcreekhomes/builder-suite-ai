@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -38,6 +38,7 @@ interface ExpenseRow {
 
 export default function EnterBills() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
@@ -51,7 +52,7 @@ export default function EnterBills() {
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
 
-  const { createBill, postBill } = useBills();
+  const { createBill } = useBills();
   const { accountingSettings } = useAccounts();
   const { data: project } = useProject(projectId || "");
 
@@ -209,30 +210,79 @@ export default function EnterBills() {
     try {
       const bill = await createBill.mutateAsync({ billData, billLines });
       setSavedBillId(bill.id);
+      toast({
+        title: "Bill Saved",
+        description: "Bill has been saved as draft",
+      });
+      navigate(`/project/${projectId}/accounting`);
     } catch (error) {
       console.error('Error saving bill:', error);
     }
   };
 
-  const handlePost = async () => {
-    if (!savedBillId) {
-      await handleSaveAndClose();
+  const handleSaveAndNew = async () => {
+    if (!vendor) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a vendor",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (!accountingSettings?.ap_account_id) {
+    const billData: BillData = {
+      vendor_id: vendor,
+      project_id: projectId || undefined,
+      bill_date: billDate.toISOString().split('T')[0],
+      due_date: billDueDate?.toISOString().split('T')[0],
+      terms,
+      reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
+      notes: undefined
+    };
+
+    const billLines: BillLineData[] = [
+      ...jobCostRows
+        .filter(row => row.accountId || row.amount)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.accountId || undefined,
+          project_id: row.projectId || projectId || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        })),
+      ...expenseRows
+        .filter(row => row.accountId || row.amount)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.accountId || undefined,
+          project_id: row.projectId || projectId || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || undefined
+        }))
+    ];
+
+    if (billLines.length === 0) {
       toast({
-        title: "Setup Required",
-        description: "Please configure Accounts Payable account in Accounting Settings",
+        title: "Validation Error",
+        description: "Please add at least one line item",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      await postBill.mutateAsync(savedBillId);
+      await createBill.mutateAsync({ billData, billLines });
+      toast({
+        title: "Bill Saved",
+        description: "Bill has been saved as draft",
+      });
+      handleClear();
     } catch (error) {
-      console.error('Error posting bill:', error);
+      console.error('Error saving bill:', error);
     }
   };
 
@@ -358,7 +408,7 @@ export default function EnterBills() {
                       attachments={attachments}
                       onAttachmentsChange={setAttachments}
                       billId={savedBillId || undefined}
-                      disabled={createBill.isPending || postBill.isPending}
+                      disabled={createBill.isPending}
                     />
                   </div>
                 </div>
@@ -606,19 +656,12 @@ export default function EnterBills() {
                     type="button" 
                     variant="outline" 
                     className="flex-1"
-                    onClick={handlePost}
-                    disabled={postBill.isPending || (!savedBillId && createBill.isPending)}
+                    onClick={handleSaveAndNew}
+                    disabled={createBill.isPending}
                   >
-                    {postBill.isPending ? "Posting..." : "Save & Post"}
+                    {createBill.isPending ? "Saving..." : "Save & New"}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                     onClick={handleClear}
-                   >
-                     Clear
-                   </Button>
-                 </div>
+                </div>
                </CardContent>
              </Card>
            </div>
