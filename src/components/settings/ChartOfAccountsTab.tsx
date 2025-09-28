@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Upload, Plus, FileText, Edit } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useDropzone } from "react-dropzone";
@@ -90,17 +89,6 @@ export const ChartOfAccountsTab = () => {
     maxFiles: 1,
     multiple: false
   });
-
-  const getAccountTypeColor = (type: string) => {
-    switch (type) {
-      case 'asset': return 'bg-blue-100 text-blue-800';
-      case 'liability': return 'bg-red-100 text-red-800';
-      case 'equity': return 'bg-purple-100 text-purple-800';
-      case 'revenue': return 'bg-green-100 text-green-800';
-      case 'expense': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
@@ -210,13 +198,8 @@ export const ChartOfAccountsTab = () => {
                     <TableCell className="px-2 py-1 text-xs font-medium align-middle">
                       {account.name}
                     </TableCell>
-                    <TableCell className="px-2 py-1 align-middle">
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs ${getAccountTypeColor(account.type)}`}
-                      >
-                        {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
-                      </Badge>
+                    <TableCell className="px-2 py-1 text-xs align-middle">
+                      {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-xs text-muted-foreground align-middle">
                       {account.description || '—'}
