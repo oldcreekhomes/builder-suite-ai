@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -31,23 +32,32 @@ interface BalanceSheetData {
 }
 
 export default function BalanceSheet() {
+  const { user, session, loading: authLoading } = useAuth();
+  
   const { data: balanceSheetData, isLoading, error } = useQuery({
-    queryKey: ['balance-sheet'],
+    queryKey: ['balance-sheet', user?.id],
     queryFn: async (): Promise<BalanceSheetData> => {
+      console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "session:", !!session);
       // Get all accounts
       const { data: accounts, error: accountsError } = await supabase
         .from('accounts')
         .select('*')
         .eq('is_active', true);
 
-      if (accountsError) throw accountsError;
+      if (accountsError) {
+        console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
+        throw accountsError;
+      }
 
       // Get journal entry line balances
       const { data: journalLines, error: journalError } = await supabase
         .from('journal_entry_lines')
         .select('account_id, debit, credit');
 
-      if (journalError) throw journalError;
+      if (journalError) {
+        console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
+        throw journalError;
+      }
 
       // Calculate account balances with proper sign conventions
       const accountBalances: Record<string, number> = {};
@@ -165,6 +175,15 @@ export default function BalanceSheet() {
         totalLiabilities,
         totalEquity
       };
+    },
+    enabled: !!user && !!session && !authLoading, // Only run when authenticated
+    retry: (failureCount, error: any) => {
+      // Don't retry RLS policy violations (usually means auth issue)
+      if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
+        console.error("🔍 Balance Sheet: RLS policy violation, user needs to re-authenticate");
+        return false;
+      }
+      return failureCount < 3;
     }
   });
 
@@ -176,7 +195,8 @@ export default function BalanceSheet() {
     }).format(amount);
   };
 
-  if (error) {
+  // Show loading while auth is initializing
+  if (authLoading) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
@@ -187,11 +207,65 @@ export default function BalanceSheet() {
               <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
               </div>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-destructive">Error loading balance sheet data.</p>
-                </CardContent>
-              </Card>
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-20" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-32" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  if (error) {
+    console.error("🔍 Balance Sheet: Query error:", error);
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <CompanyDashboardHeader />
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+              <div className="flex items-center justify-between space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+              </div>
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-destructive">Error loading balance sheet data.</p>
+                    {error?.code === 'PGRST301' || error?.message?.includes('row-level security') ? (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Authentication issue detected. Please refresh the page and try again.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {error?.message || 'An unexpected error occurred'}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
             </div>
           </SidebarInset>
         </div>
