@@ -27,6 +27,7 @@ import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/com
 interface ExpenseRow {
   id: string;
   account: string;
+  accountId?: string; // For storing cost code/account UUID
   quantity: string;
   amount: string;
   memo: string;
@@ -39,10 +40,10 @@ export default function EnterBills() {
   const [terms, setTerms] = useState<string>("net-30");
   const [job, setJob] = useState<string>("");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
@@ -84,6 +85,7 @@ export default function EnterBills() {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
       account: "",
+      accountId: "",
       quantity: "",
       amount: "",
       memo: ""
@@ -108,6 +110,7 @@ export default function EnterBills() {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
       account: "",
+      accountId: "",
       quantity: "",
       amount: "",
       memo: ""
@@ -163,10 +166,10 @@ export default function EnterBills() {
 
     const billLines: BillLineData[] = [
       ...jobCostRows
-        .filter(row => row.account || row.amount)
+        .filter(row => row.accountId || row.amount)
         .map(row => ({
           line_type: 'job_cost' as const,
-          cost_code_id: row.account || undefined,
+          cost_code_id: row.accountId || undefined,
           project_id: job || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
@@ -174,10 +177,10 @@ export default function EnterBills() {
           memo: row.memo || undefined
         })),
       ...expenseRows
-        .filter(row => row.account || row.amount)
+        .filter(row => row.accountId || row.amount)
         .map(row => ({
           line_type: 'expense' as const,
-          account_id: row.account || undefined,
+          account_id: row.accountId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
           amount: parseFloat(row.amount) || 0,
@@ -230,8 +233,8 @@ export default function EnterBills() {
     setVendor("");
     setTerms("net-30");
     setJob("");
-    setJobCostRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
-    setExpenseRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
+    setJobCostRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
     setAttachments([]);
     
@@ -394,6 +397,10 @@ export default function EnterBills() {
                               <CostCodeSearchInput 
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, 'account', value)}
+                                onCostCodeSelect={(costCode) => {
+                                  updateJobCostRow(row.id, 'accountId', costCode.id);
+                                  updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
+                                }}
                                 placeholder="Cost Code"
                                 className="h-8"
                               />
@@ -479,8 +486,8 @@ export default function EnterBills() {
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
                               <AccountSearchInput
-                                value={row.account}
-                                onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                                value={row.accountId || ""}
+                                onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
                                 placeholder="Select account"
                                 accountType="expense"
                                 className="h-8"
