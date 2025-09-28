@@ -30,7 +30,8 @@ interface CheckRow {
   accountId?: string; // For storing cost code/account UUID
   project: string;
   projectId?: string; // For storing project UUID
-  amount: string;
+  quantity?: string;
+  amount: string; // unit cost
   memo: string;
 }
 
@@ -57,10 +58,10 @@ export default function WriteChecks() {
   const [bankName, setBankName] = useState<string>("Your Bank Name");
   
   const [jobCostRows, setJobCostRows] = useState<CheckRow[]>([
-    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<CheckRow[]>([
-    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
   ]);
 
   const { data: project } = useProject(projectId || "");
@@ -75,6 +76,7 @@ export default function WriteChecks() {
       accountId: "",
       project: "",
       projectId: projectId || "",
+      quantity: "1",
       amount: "",
       memo: ""
     };
@@ -100,12 +102,12 @@ export default function WriteChecks() {
       accountId: "",
       project: "",
       projectId: projectId || "",
+      quantity: "1",
       amount: "",
       memo: ""
     };
     setExpenseRows([...expenseRows, newRow]);
   };
-
   const removeExpenseRow = (id: string) => {
     if (expenseRows.length > 1) {
       setExpenseRows(expenseRows.filter(row => row.id !== id));
@@ -120,13 +122,15 @@ export default function WriteChecks() {
 
   const calculateTotal = () => {
     const jobCostTotal = jobCostRows.reduce((total, row) => {
-      const amount = parseFloat(row.amount) || 0;
-      return total + amount;
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return total + q * c;
     }, 0);
     
     const expenseTotal = expenseRows.reduce((total, row) => {
-      const amount = parseFloat(row.amount) || 0;
-      return total + amount;
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return total + q * c;
     }, 0);
     
     return (jobCostTotal + expenseTotal).toFixed(2);
@@ -169,21 +173,21 @@ export default function WriteChecks() {
     // Prepare check lines
     const checkLines: CheckLineData[] = [
       ...jobCostRows
-        .filter(row => row.accountId && row.amount)
+        .filter(row => row.accountId && (row.amount || row.quantity))
         .map(row => ({
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0),
           memo: row.memo || undefined
         })),
       ...expenseRows
-        .filter(row => row.accountId && row.amount)
+        .filter(row => row.accountId && (row.amount || row.quantity))
         .map(row => ({
           line_type: 'expense' as const,
           account_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0),
           memo: row.memo || undefined
         }))
     ];
@@ -500,11 +504,13 @@ export default function WriteChecks() {
                       </div>
 
                         <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-4">Memo</div>
-                          <div className="col-span-1">Amount</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
                           <div className="col-span-1 text-center">Action</div>
                         </div>
 
