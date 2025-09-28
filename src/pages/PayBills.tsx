@@ -43,33 +43,100 @@ export default function PayBills() {
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-payment'],
+    queryKey: ['bills-for-payment', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bills')
-        .select(`
-          id,
-          vendor_id,
-          project_id,
-          bill_date,
-          due_date,
-          total_amount,
-          reference_number,
-          terms,
-          notes,
-          status,
-          companies:vendor_id (
-            company_name
-          ),
-          projects:project_id (
-            address
-          )
-        `)
-        .eq('status', 'posted')
-        .order('due_date', { ascending: true, nullsFirst: false });
-      
-      if (error) throw error;
-      return data as BillForPayment[];
+      if (projectId) {
+        // Project-specific bills - get bills directly assigned to project
+        const { data: directBills, error: directError } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            vendor_id,
+            project_id,
+            bill_date,
+            due_date,
+            total_amount,
+            reference_number,
+            terms,
+            notes,
+            status,
+            companies:vendor_id (
+              company_name
+            ),
+            projects:project_id (
+              address
+            )
+          `)
+          .eq('status', 'posted')
+          .eq('project_id', projectId)
+          .order('due_date', { ascending: true, nullsFirst: false });
+
+        if (directError) throw directError;
+
+        // Get bills with line items assigned to project but bill header has no project
+        const { data: indirectBills, error: indirectError } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            vendor_id,
+            project_id,
+            bill_date,
+            due_date,
+            total_amount,
+            reference_number,
+            terms,
+            notes,
+            status,
+            companies:vendor_id (
+              company_name
+            ),
+            projects:project_id (
+              address
+            ),
+            bill_lines!inner(project_id)
+          `)
+          .eq('status', 'posted')
+          .is('project_id', null)
+          .eq('bill_lines.project_id', projectId)
+          .order('due_date', { ascending: true, nullsFirst: false });
+
+        if (indirectError) throw indirectError;
+
+        // Combine and deduplicate bills
+        const allBills = [...(directBills || []), ...(indirectBills || [])];
+        const uniqueBills = allBills.filter((bill, index, array) => 
+          array.findIndex(b => b.id === bill.id) === index
+        );
+
+        return uniqueBills as BillForPayment[];
+      } else {
+        // Company-level bills - show all bills
+        const { data, error } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            vendor_id,
+            project_id,
+            bill_date,
+            due_date,
+            total_amount,
+            reference_number,
+            terms,
+            notes,
+            status,
+            companies:vendor_id (
+              company_name
+            ),
+            projects:project_id (
+              address
+            )
+          `)
+          .eq('status', 'posted')
+          .order('due_date', { ascending: true, nullsFirst: false });
+        
+        if (error) throw error;
+        return data as BillForPayment[];
+      }
     },
   });
 
