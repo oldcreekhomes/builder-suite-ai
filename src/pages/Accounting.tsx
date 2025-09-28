@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, DollarSign, Clock } from "lucide-react";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { useProject } from "@/hooks/useProject";
@@ -189,6 +190,33 @@ export default function Accounting() {
               </Card>
             </div>
 
+            {/* Accounting Navigation Tabs */}
+            <Tabs defaultValue="bills" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="bills">Bills</TabsTrigger>
+                <TabsTrigger value="reports">Reports</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="bills" className="mt-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Bills Management</h3>
+                  <p className="text-muted-foreground">
+                    Manage bills, approvals, and payments for {projectId ? 'this project' : 'your company'}.
+                  </p>
+                  {/* Bills content will go here */}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="reports" className="mt-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Financial Reports</h3>
+                  <p className="text-muted-foreground">
+                    View and generate financial reports for {projectId ? 'this project' : 'your company'}.
+                  </p>
+                  {/* Reports content will go here */}
+                </div>
+              </TabsContent>
+            </Tabs>
 
           </div>
         </SidebarInset>
