@@ -12,7 +12,7 @@ interface AccountingSidebarProps {
 }
 
 export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
-  const [billsExpanded, setBillsExpanded] = useState(true);
+  const [billsExpanded, setBillsExpanded] = useState(false);
   const [reportsExpanded, setReportsExpanded] = useState(false);
   
   const baseUrl = projectId ? `/project/${projectId}` : "";
