@@ -469,21 +469,18 @@ export default function BalanceSheet() {
                          </div>
                        </div>
 
-                       {/* Balance Check */}
-                       <div className="border-t-2 border-primary pt-3 mt-4">
-                         <div className="flex justify-between items-center font-semibold text-primary">
-                           <span>Balance Check</span>
-                           <span>
-                             {Math.abs((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))) < 0.01 
-                               ? "✓ Balanced" 
-                               : `⚠ Difference: ${formatCurrency((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0)))}`
-                             }
-                           </span>
-                         </div>
-                         <div className="text-xs text-muted-foreground mt-1">
-                           Assets should equal Liabilities + Equity
-                         </div>
-                       </div>
+                        {/* Balance Check */}
+                        <div className="border-t-2 border-primary pt-3 mt-4">
+                          <div className="flex justify-between items-center font-semibold text-primary">
+                            <span>Balance Check</span>
+                            <span>
+                              {Math.abs((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))) < 0.01 
+                                ? "✓ Balanced" 
+                                : `⚠ Difference: ${formatCurrency((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0)))}`
+                              }
+                            </span>
+                          </div>
+                        </div>
                     </CardContent>
                   </Card>
                 </div>
