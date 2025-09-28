@@ -80,6 +80,36 @@ export function StructuredAddressInput({
         }
       );
 
+      // Add custom styling for the Google Places dropdown
+      const style = document.createElement('style');
+      style.textContent = `
+        .pac-container {
+          z-index: 9999 !important;
+          background: white !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+          margin-top: 4px !important;
+        }
+        .pac-item {
+          padding: 12px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          cursor: pointer !important;
+          background: white !important;
+          pointer-events: auto !important;
+        }
+        .pac-item:hover {
+          background: #f8fafc !important;
+        }
+        .pac-item:last-child {
+          border-bottom: none !important;
+        }
+        .pac-matched {
+          font-weight: 600 !important;
+        }
+      `;
+      document.head.appendChild(style);
+
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
         if (place && place.address_components) {
@@ -111,6 +141,66 @@ export function StructuredAddressInput({
           onChange(addressData);
         }
       });
+
+      // Add event listeners to handle clicking on Google Places suggestions
+      const handleMouseDown = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.pac-item')) {
+          e.stopPropagation();
+        }
+      };
+
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const pacItem = target.closest('.pac-item');
+        if (pacItem) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Trigger the place selection
+          setTimeout(() => {
+            const place = autocompleteRef.current?.getPlace();
+            if (place && place.address_components) {
+              const addressData: StructuredAddressData = {
+                address_line_1: '',
+                address_line_2: value.address_line_2,
+                city: '',
+                state: '',
+                zip_code: ''
+              };
+
+              place.address_components.forEach((component) => {
+                const types = component.types;
+                
+                if (types.includes('street_number')) {
+                  addressData.address_line_1 = component.long_name + ' ';
+                } else if (types.includes('route')) {
+                  addressData.address_line_1 += component.long_name;
+                } else if (types.includes('locality')) {
+                  addressData.city = component.long_name;
+                } else if (types.includes('administrative_area_level_1')) {
+                  addressData.state = component.short_name;
+                } else if (types.includes('postal_code')) {
+                  addressData.zip_code = component.long_name;
+                }
+              });
+
+              onChange(addressData);
+            }
+          }, 0);
+        }
+      };
+
+      // Add event listeners
+      document.addEventListener('mousedown', handleMouseDown, true);
+      document.addEventListener('click', handleClick, true);
+
+      // Cleanup function
+      return () => {
+        document.removeEventListener('mousedown', handleMouseDown, true);
+        document.removeEventListener('click', handleClick, true);
+        document.head.removeChild(style);
+      };
 
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
