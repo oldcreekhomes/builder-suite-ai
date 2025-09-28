@@ -9,11 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 
 export const ChartOfAccountsTab = () => {
-  const { accounts, isLoading, createAccount, accountingSettings, deleteAccount, updateAccountingSettings } = useAccounts();
+  const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
   const [isImporting, setIsImporting] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
 
@@ -136,62 +134,6 @@ export const ChartOfAccountsTab = () => {
         </CardContent>
       </Card>
 
-      {/* Accounting Settings Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Accounting Settings</CardTitle>
-          <CardDescription>Configure which accounts to use for specific accounting functions</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ap-account">Accounts Payable Account</Label>
-              <Select
-                value={accountingSettings?.ap_account_id || ""}
-                onValueChange={(value) => 
-                  updateAccountingSettings.mutate({ ap_account_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select AP account..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts
-                    .filter(account => account.type === 'liability')
-                    .map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.code} - {account.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="wip-account">Work in Progress Account</Label>
-              <Select
-                value={accountingSettings?.wip_account_id || ""}
-                onValueChange={(value) => 
-                  updateAccountingSettings.mutate({ wip_account_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select WIP account..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts
-                    .filter(account => account.type === 'asset')
-                    .map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.code} - {account.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Chart of Accounts Table - Matching uniform design */}
       <div className="space-y-4">
