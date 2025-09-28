@@ -337,7 +337,8 @@ export const useBills = () => {
           account_id: settings.ap_account_id,
           debit: bill.total_amount,
           credit: 0,
-          memo: `Payment - ${bill.reference_number || 'Bill'}`
+          memo: `Payment - ${bill.reference_number || 'Bill'}`,
+          owner_id: bill.owner_id
         },
         // Credit payment method account
         {
@@ -346,7 +347,8 @@ export const useBills = () => {
           account_id: paymentAccountId,
           debit: 0,
           credit: bill.total_amount,
-          memo: memo || `Payment for bill ${bill.reference_number || ''}`
+          memo: memo || `Payment for bill ${bill.reference_number || ''}`,
+          owner_id: bill.owner_id
         }
       ];
 
@@ -360,7 +362,7 @@ export const useBills = () => {
       const { error: updateError } = await supabase
         .from('bills')
         .update({ 
-          status: 'paid',
+          status: 'paid' as any,
           notes: memo ? `Paid - ${memo}` : 'Paid',
           updated_at: new Date().toISOString()
         })

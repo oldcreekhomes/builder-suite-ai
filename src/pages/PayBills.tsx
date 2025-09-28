@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useBills } from "@/hooks/useBills";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { Button } from "@/components/ui/button";
+import { PayBillDialog } from "@/components/PayBillDialog";
 import {
   Table,
   TableBody,
@@ -9,24 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useBills } from "@/hooks/useBills";
-import { format } from "date-fns";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface BillForPayment {
   id: string;
   vendor_id: string;
   project_id?: string;
   bill_date: string;
-  due_date?: string;
+  due_date: string | null;
   total_amount: number;
-  reference_number?: string;
-  terms?: string;
+  reference_number: string | null;
+  terms: string | null;
   notes?: string;
   status: string;
   companies?: {
@@ -231,21 +231,16 @@ export default function PayBills() {
                       <TableCell className="px-2 py-1 text-xs">
                         {bill.reference_number || '-'}
                       </TableCell>
+                      <TableCell className="px-2 py-1 text-xs">{bill.terms || '-'}</TableCell>
                       <TableCell className="px-2 py-1 text-xs">
-                        {bill.terms || '-'}
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <Select
-                          onValueChange={(value) => handleActionChange(bill.id, value)}
+                        <Button
+                          size="sm"
+                          onClick={() => handlePayBill(bill)}
                           disabled={payBill.isPending}
+                          className="h-7 text-xs px-3"
                         >
-                          <SelectTrigger className="h-8 w-24 text-xs border-gray-200 hover:bg-gray-50">
-                            <SelectValue placeholder="Actions" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                            <SelectItem value="pay" className="text-xs hover:bg-gray-100">Mark as Paid</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          {payBill.isPending ? "Processing..." : "Pay Bill"}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -263,6 +258,14 @@ export default function PayBills() {
         </div>
       </SidebarInset>
     </div>
+    
+    <PayBillDialog
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+      bill={selectedBill}
+      onConfirm={handleConfirmPayment}
+      isLoading={payBill.isPending}
+    />
   </SidebarProvider>
 );
 }

@@ -1609,7 +1609,7 @@ export type Database = {
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
       bill_line_type: "job_cost" | "expense"
-      bill_status: "draft" | "posted" | "void"
+      bill_status: "draft" | "posted" | "void" | "paid"
       user_type: "home_builder" | "employee"
     }
     CompositeTypes: {
@@ -1740,7 +1740,7 @@ export const Constants = {
     Enums: {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
       bill_line_type: ["job_cost", "expense"],
-      bill_status: ["draft", "posted", "void"],
+      bill_status: ["draft", "posted", "void", "paid"],
       user_type: ["home_builder", "employee"],
     },
   },
