@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
@@ -16,7 +16,6 @@ import { format } from "date-fns";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
-import { CreditCard } from "lucide-react";
 
 interface BillForPayment {
   id: string;
@@ -72,8 +71,10 @@ export default function PayBills() {
     },
   });
 
-  const handlePayBill = (billId: string) => {
-    payBill.mutate(billId);
+  const handleActionChange = (billId: string, action: string) => {
+    if (action === 'pay') {
+      payBill.mutate(billId);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -109,7 +110,7 @@ export default function PayBills() {
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -143,17 +144,18 @@ export default function PayBills() {
                       <TableCell className="px-2 py-1 text-xs">
                         {bill.terms || '-'}
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePayBill(bill.id)}
+                      <TableCell className="px-2 py-1">
+                        <Select
+                          onValueChange={(value) => handleActionChange(bill.id, value)}
                           disabled={payBill.isPending}
-                          className="h-6 w-6 p-0"
-                          title="Mark as Paid"
                         >
-                          <CreditCard className="h-3 w-3" />
-                        </Button>
+                          <SelectTrigger className="h-8 w-24 text-xs border-gray-200 hover:bg-gray-50">
+                            <SelectValue placeholder="Actions" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                            <SelectItem value="pay" className="text-xs hover:bg-gray-100">Mark as Paid</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                     </TableRow>
                   ))
