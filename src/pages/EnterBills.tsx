@@ -293,32 +293,8 @@ export default function EnterBills() {
                   </div>
                 </div>
 
-                {/* Second row: Terms, Attachments, Job, Bill Due Date */}
+                {/* Second row: Job, Bill Due Date, Terms, Attachments */}
                 <div className="grid grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="terms">Terms</Label>
-                    <Select value={terms} onValueChange={setTerms}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select terms" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="net-15">Net 15</SelectItem>
-                        <SelectItem value="net-30">Net 30</SelectItem>
-                        <SelectItem value="net-60">Net 60</SelectItem>
-                        <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <BillAttachmentUpload 
-                      attachments={attachments}
-                      onAttachmentsChange={setAttachments}
-                      billId={savedBillId || undefined}
-                      disabled={createBill.isPending || postBill.isPending}
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="job">Job</Label>
                     <JobSearchInput
@@ -353,6 +329,30 @@ export default function EnterBills() {
                         />
                       </PopoverContent>
                     </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="terms">Terms</Label>
+                    <Select value={terms} onValueChange={setTerms}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select terms" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="net-15">Net 15</SelectItem>
+                        <SelectItem value="net-30">Net 30</SelectItem>
+                        <SelectItem value="net-60">Net 60</SelectItem>
+                        <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <BillAttachmentUpload 
+                      attachments={attachments}
+                      onAttachmentsChange={setAttachments}
+                      billId={savedBillId || undefined}
+                      disabled={createBill.isPending || postBill.isPending}
+                    />
                   </div>
                 </div>
 
