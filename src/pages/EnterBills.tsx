@@ -44,10 +44,10 @@ export default function EnterBills() {
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
@@ -92,7 +92,7 @@ export default function EnterBills() {
       account: "",
       accountId: "",
       project: "",
-      projectId: "",
+      projectId: projectId || "",
       quantity: "",
       amount: "",
       memo: ""
@@ -119,7 +119,7 @@ export default function EnterBills() {
       account: "",
       accountId: "",
       project: "",
-      projectId: "",
+      projectId: projectId || "",
       quantity: "",
       amount: "",
       memo: ""
@@ -309,8 +309,8 @@ export default function EnterBills() {
     setBillDueDate(undefined);
     setVendor("");
     setTerms("net-30");
-    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }]);
-    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }]);
+    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
     setAttachments([]);
     
