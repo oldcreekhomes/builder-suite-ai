@@ -19,7 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { format } from "date-fns";
@@ -166,16 +165,16 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     }).format(amount);
   };
 
-  const getStatusBadge = (billStatus: string) => {
+  const getStatusDisplay = (billStatus: string) => {
     switch (billStatus) {
       case 'draft':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Pending</Badge>;
+        return 'Pending';
       case 'void':
-        return <Badge variant="destructive">Rejected</Badge>;
+        return 'Rejected';
       case 'posted':
-        return <Badge variant="default" className="bg-green-600">Approved</Badge>;
+        return 'Approved';
       default:
-        return <Badge variant="outline">{billStatus}</Badge>;
+        return billStatus;
     }
   };
 
@@ -200,7 +199,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Status</TableHead>
               {canShowActions && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left">Actions</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -235,23 +234,29 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.terms || '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {getStatusBadge(bill.status)}
+                  <TableCell className="px-2 py-1">
+                    <Select disabled>
+                      <SelectTrigger className="h-8 w-24 text-xs border-gray-200 bg-white">
+                        <SelectValue>{getStatusDisplay(bill.status)}</SelectValue>
+                      </SelectTrigger>
+                    </Select>
                   </TableCell>
                   {canShowActions && (
-                    <TableCell className="px-2 py-1">
-                      <Select
-                        onValueChange={(value) => handleActionChange(bill.id, value)}
-                        disabled={approveBill.isPending || rejectBill.isPending}
-                      >
-                        <SelectTrigger className="h-8 w-24 text-xs border-gray-200 hover:bg-gray-50">
-                          <SelectValue placeholder="Actions" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                          <SelectItem value="approve" className="text-xs hover:bg-gray-100">Approve</SelectItem>
-                          <SelectItem value="reject" className="text-xs hover:bg-gray-100">Reject</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <TableCell className="px-2 py-1 text-left">
+                      <div className="flex justify-start">
+                        <Select
+                          onValueChange={(value) => handleActionChange(bill.id, value)}
+                          disabled={approveBill.isPending || rejectBill.isPending}
+                        >
+                          <SelectTrigger className="h-8 w-24 text-xs border-gray-200 bg-white hover:bg-gray-50">
+                            <SelectValue placeholder="Actions" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                            <SelectItem value="approve" className="text-xs hover:bg-gray-100 bg-white">Approve</SelectItem>
+                            <SelectItem value="reject" className="text-xs hover:bg-gray-100 bg-white">Reject</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
