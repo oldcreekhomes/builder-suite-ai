@@ -1,4 +1,4 @@
-import { Calculator, Home, FileText, AlertTriangle } from "lucide-react";
+import { Calculator, Home, FileText, AlertTriangle, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
@@ -11,6 +11,10 @@ const billsSubItems = [
   { title: "Manually Enter Bills", url: "/accounting/bills/enter" },
   { title: "Approve Bills", url: "/accounting/bills/approve" },
   { title: "Pay Bills", url: "/accounting/bills/pay" },
+];
+
+const reportsSubItems = [
+  // Reports sub-items will be added here
 ];
 
 export function AccountingSidebar() {
@@ -50,6 +54,26 @@ export function AccountingSidebar() {
             </div>
             <div className="ml-6">
               {billsSubItems.map((subItem) => (
+                <div key={subItem.title}>
+                  <a 
+                    href={subItem.url} 
+                    className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                  >
+                    <span className="flex-1">{subItem.title}</span>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Reports Section */}
+          <div className="mt-2">
+            <div className="flex items-center space-x-2 px-2 py-2 text-gray-700 text-sm">
+              <BarChart3 className="h-4 w-4" />
+              <span className="flex-1">Reports</span>
+            </div>
+            <div className="ml-6">
+              {reportsSubItems.map((subItem) => (
                 <div key={subItem.title}>
                   <a 
                     href={subItem.url} 
