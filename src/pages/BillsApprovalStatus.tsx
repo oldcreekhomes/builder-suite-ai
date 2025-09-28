@@ -69,32 +69,34 @@ export default function BillsApprovalStatus() {
 
   if (isLoading) {
     return (
-      <>
-        <AccountingSidebar projectId={projectId} />
-        <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
-            projectId={projectId}
-          />
-          <div className="flex-1 p-6 space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-4 text-center">
-                      <Skeleton className="h-8 w-16 mx-auto mb-2" />
-                      <Skeleton className="h-4 w-20 mx-auto" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <Card>
-                <div className="p-4">
-                  <Skeleton className="h-10 w-full" />
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AccountingSidebar projectId={projectId} />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+              projectId={projectId}
+            />
+            <div className="flex-1 p-6 space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                    <Card key={i}>
+                      <CardContent className="p-4 text-center">
+                        <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                        <Skeleton className="h-4 w-20 mx-auto" />
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </Card>
-            </div>
-          </SidebarInset>
-        </>
+                <Card>
+                  <div className="p-4">
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </Card>
+              </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
       );
     }
 
