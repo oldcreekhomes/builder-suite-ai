@@ -49,10 +49,21 @@ export default function BalanceSheet() {
         throw accountsError;
       }
 
-      // Get journal entry line balances
+      // Get journal entry line balances - only for Old Creek Homes (bills with project_id IS NULL)
       const { data: journalLines, error: journalError } = await supabase
         .from('journal_entry_lines')
-        .select('account_id, debit, credit');
+        .select(`
+          account_id, 
+          debit, 
+          credit,
+          journal_entries!inner(
+            source_type,
+            source_id,
+            bills!inner(project_id)
+          )
+        `)
+        .eq('journal_entries.source_type', 'bill')
+        .is('journal_entries.bills.project_id', null);
 
       if (journalError) {
         console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
