@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
+import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,8 @@ interface ExpenseRow {
   id: string;
   account: string;
   accountId?: string; // For storing cost code/account UUID
+  project: string;
+  projectId?: string; // For storing project UUID
   quantity: string;
   amount: string;
   memo: string;
@@ -40,10 +43,10 @@ export default function EnterBills() {
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }
   ]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([
-    { id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
@@ -87,6 +90,8 @@ export default function EnterBills() {
       id: Date.now().toString(),
       account: "",
       accountId: "",
+      project: "",
+      projectId: "",
       quantity: "",
       amount: "",
       memo: ""
@@ -112,6 +117,8 @@ export default function EnterBills() {
       id: Date.now().toString(),
       account: "",
       accountId: "",
+      project: "",
+      projectId: "",
       quantity: "",
       amount: "",
       memo: ""
@@ -171,7 +178,7 @@ export default function EnterBills() {
         .map(row => ({
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
-          project_id: projectId || undefined,
+          project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
           amount: parseFloat(row.amount) || 0,
@@ -182,6 +189,7 @@ export default function EnterBills() {
         .map(row => ({
           line_type: 'expense' as const,
           account_id: row.accountId || undefined,
+          project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
           amount: parseFloat(row.amount) || 0,
@@ -233,8 +241,8 @@ export default function EnterBills() {
     setBillDueDate(undefined);
     setVendor("");
     setTerms("net-30");
-    setJobCostRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
-    setExpenseRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
+    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
     setAttachments([]);
     
@@ -374,8 +382,9 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-4">Memo</div>
+                          <div className="col-span-2">Cost Code</div>
+                          <div className="col-span-2">Project</div>
+                          <div className="col-span-3">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
                           <div className="col-span-1">Action</div>
@@ -383,7 +392,7 @@ export default function EnterBills() {
 
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <CostCodeSearchInput 
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, 'account', value)}
@@ -395,7 +404,18 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-4">
+                            <div className="col-span-2">
+                              <JobSearchInput 
+                                value={row.projectId || ""}
+                                onChange={(projectId) => {
+                                  updateJobCostRow(row.id, 'projectId', projectId);
+                                  // Update display text - this will be handled by the JobSearchInput component
+                                }}
+                                placeholder="Select project"
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
                               <Input 
                                 placeholder="Job cost memo"
                                 value={row.memo}
@@ -442,14 +462,14 @@ export default function EnterBills() {
 
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-3 font-medium">Total:</div>
+                            <div className="col-span-4 font-medium">Total:</div>
                             <div className="col-span-2 font-medium">
                               ${jobCostRows.reduce((total, row) => {
                                 const amount = parseFloat(row.amount) || 0;
                                 return total + amount;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-7"></div>
+                            <div className="col-span-6"></div>
                           </div>
                         </div>
                       </div>
@@ -465,8 +485,9 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
-                          <div className="col-span-4">Memo</div>
+                          <div className="col-span-2">Account</div>
+                          <div className="col-span-2">Project</div>
+                          <div className="col-span-3">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
                           <div className="col-span-1">Action</div>
@@ -474,7 +495,7 @@ export default function EnterBills() {
 
                         {expenseRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
                                 onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
@@ -483,7 +504,18 @@ export default function EnterBills() {
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-4">
+                            <div className="col-span-2">
+                              <JobSearchInput 
+                                value={row.projectId || ""}
+                                onChange={(projectId) => {
+                                  updateExpenseRow(row.id, 'projectId', projectId);
+                                  // Update display text - this will be handled by the JobSearchInput component
+                                }}
+                                placeholder="Select project"
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-3">
                               <Input 
                                 placeholder="Expense memo"
                                 value={row.memo}
@@ -530,14 +562,14 @@ export default function EnterBills() {
 
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-3 font-medium">Total:</div>
+                            <div className="col-span-4 font-medium">Total:</div>
                             <div className="col-span-2 font-medium">
                               ${expenseRows.reduce((total, row) => {
                                 const amount = parseFloat(row.amount) || 0;
                                 return total + amount;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-7"></div>
+                            <div className="col-span-6"></div>
                           </div>
                         </div>
                       </div>
