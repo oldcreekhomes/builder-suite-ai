@@ -13,7 +13,7 @@ export default function ApproveBills() {
         <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
-            title="Bills - Approve Bills" 
+            title="Approve Bills" 
             projectId={projectId}
           />
           <div className="container mx-auto p-6">

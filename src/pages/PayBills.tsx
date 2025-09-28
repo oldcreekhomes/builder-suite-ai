@@ -176,7 +176,7 @@ export default function PayBills() {
         <AppSidebar />
         <SidebarInset>
           <DashboardHeader 
-            title="Bills - Pay Bills" 
+            title="Pay Bills" 
             projectId={projectId}
           />
           <div className="container mx-auto p-6">
