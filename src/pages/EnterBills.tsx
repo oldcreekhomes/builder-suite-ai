@@ -22,6 +22,7 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { useAccounts } from "@/hooks/useAccounts";
 import { toast } from "@/hooks/use-toast";
+import { BillPDFUpload } from "@/components/BillPDFUpload";
 
 interface ExpenseRow {
   id: string;
@@ -29,6 +30,15 @@ interface ExpenseRow {
   quantity: string;
   amount: string;
   memo: string;
+}
+
+interface BillAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  content_type: string;
+  uploaded_at: string;
 }
 
 export default function EnterBills() {
@@ -44,6 +54,7 @@ export default function EnterBills() {
     { id: "1", account: "", quantity: "", amount: "", memo: "" }
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<BillAttachment[]>([]);
 
   const { createBill, postBill } = useBills();
   const { accountingSettings } = useAccounts();
@@ -231,6 +242,7 @@ export default function EnterBills() {
     setJobCostRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
+    setUploadedFiles([]);
     
     // Clear reference number field
     const refNoInput = document.getElementById('refNo') as HTMLInputElement;
@@ -340,6 +352,14 @@ export default function EnterBills() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Bill Attachments Section */}
+                <BillPDFUpload
+                  billId={savedBillId || undefined}
+                  onFilesChange={setUploadedFiles}
+                  uploadedFiles={uploadedFiles}
+                  disabled={createBill.isPending || postBill.isPending}
+                />
 
                 {/* Expenses Section with Tabs */}
                 <div className="space-y-4">
