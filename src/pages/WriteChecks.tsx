@@ -367,6 +367,7 @@ export default function WriteChecks() {
                         placeholder="Select bank account..."
                         className="border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent"
                         accountType="asset"
+                        bankAccountsOnly={true}
                       />
                     </div>
                     <div className="text-xs text-gray-500 text-right space-y-1">

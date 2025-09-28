@@ -14,6 +14,7 @@ interface AccountSearchInputProps {
   placeholder?: string;
   className?: string;
   accountType?: 'expense' | 'asset' | 'liability' | 'equity' | 'revenue';
+  bankAccountsOnly?: boolean;
 }
 
 export const AccountSearchInput = ({ 
@@ -21,13 +22,30 @@ export const AccountSearchInput = ({
   onChange, 
   placeholder = "Search accounts...",
   className,
-  accountType
+  accountType,
+  bankAccountsOnly = false
 }: AccountSearchInputProps) => {
   const [open, setOpen] = useState(false);
   const { accounts } = useAccounts();
 
   const filteredAccounts = accounts.filter(account => {
     if (accountType && account.type !== accountType) return false;
+    
+    // If bankAccountsOnly is true, filter to show only actual bank accounts
+    if (bankAccountsOnly) {
+      // Filter for accounts that are likely bank accounts (checking, savings, etc.)
+      // This includes accounts with codes like 1010, 1030, or names containing "bank", "checking", "savings", "clearing"
+      const isBankAccount = 
+        account.code === '1010' || 
+        account.code === '1030' ||
+        account.name.toLowerCase().includes('bank') ||
+        account.name.toLowerCase().includes('checking') ||
+        account.name.toLowerCase().includes('savings') ||
+        account.name.toLowerCase().includes('clearing');
+      
+      return isBankAccount;
+    }
+    
     return true;
   });
 
@@ -44,7 +62,7 @@ export const AccountSearchInput = ({
         >
           {selectedAccount ? (
             <span className="truncate">
-              {selectedAccount.code} - {selectedAccount.name}
+              {selectedAccount.code} {selectedAccount.name}
             </span>
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
@@ -74,8 +92,7 @@ export const AccountSearchInput = ({
                     )}
                   />
                   <div className="flex flex-col">
-                    <span className="font-medium">{account.code}</span>
-                    <span className="text-sm text-muted-foreground">{account.name}</span>
+                    <span className="font-medium">{account.code} {account.name}</span>
                   </div>
                 </CommandItem>
               ))}
