@@ -40,6 +40,16 @@ export default function WriteChecks() {
   const [payTo, setPayTo] = useState<string>("");
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
+  
+  // Company information state
+  const [companyName, setCompanyName] = useState<string>("Your Company Name");
+  const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
+  const [companyCityState, setCompanyCityState] = useState<string>("City, State 12345");
+  
+  // Dollar amount state (can override calculated total)
+  const [manualAmount, setManualAmount] = useState<string>("");
+  const [useManualAmount, setUseManualAmount] = useState<boolean>(false);
+  
   const [jobCostRows, setJobCostRows] = useState<CheckRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
   ]);
@@ -113,6 +123,10 @@ export default function WriteChecks() {
     }, 0);
     
     return (jobCostTotal + expenseTotal).toFixed(2);
+  };
+
+  const getDisplayAmount = () => {
+    return useManualAmount && manualAmount ? parseFloat(manualAmount).toFixed(2) : calculateTotal();
   };
 
   const handleSaveAndClose = async () => {
@@ -198,6 +212,11 @@ export default function WriteChecks() {
     setPayTo("");
     setCheckNumber("");
     setBankAccount("");
+    setCompanyName("Your Company Name");
+    setCompanyAddress("123 Business Street");
+    setCompanyCityState("City, State 12345");
+    setManualAmount("");
+    setUseManualAmount(false);
     setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
   };
@@ -220,9 +239,24 @@ export default function WriteChecks() {
                   {/* Check header with date and check number */}
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <div className="text-sm font-medium text-gray-600">Your Company Name</div>
-                      <div className="text-xs text-gray-500">123 Business Street</div>
-                      <div className="text-xs text-gray-500">City, State 12345</div>
+                      <Input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="text-sm font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        placeholder="Your Company Name"
+                      />
+                      <Input
+                        value={companyAddress}
+                        onChange={(e) => setCompanyAddress(e.target.value)}
+                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        placeholder="123 Business Street"
+                      />
+                      <Input
+                        value={companyCityState}
+                        onChange={(e) => setCompanyCityState(e.target.value)}
+                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        placeholder="City, State 12345"
+                      />
                     </div>
                     <div className="flex gap-4 items-center">
                       <div className="space-y-2">
@@ -282,13 +316,36 @@ export default function WriteChecks() {
                     <div className="flex-1 flex items-center">
                       <span className="text-sm font-medium mr-2">$</span>
                       <div className="flex-1 border-b-2 border-gray-400 pr-4">
-                        <span className="text-lg font-medium">{calculateTotal()}</span>
+                        <span className="text-lg font-medium">{getDisplayAmount()}</span>
                         <span className="text-sm text-gray-500 ml-2">DOLLARS</span>
                       </div>
                     </div>
-                    <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right">
+                    <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right relative">
                       <span className="text-sm text-gray-600">$</span>
-                      <span className="text-xl font-bold ml-1">{calculateTotal()}</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={useManualAmount ? manualAmount : getDisplayAmount()}
+                        onChange={(e) => {
+                          setManualAmount(e.target.value);
+                          setUseManualAmount(true);
+                        }}
+                        onFocus={() => setUseManualAmount(true)}
+                        className="inline-block w-20 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
+                        placeholder="0.00"
+                      />
+                      {useManualAmount && (
+                        <button
+                          onClick={() => {
+                            setUseManualAmount(false);
+                            setManualAmount("");
+                          }}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center hover:bg-red-600"
+                          title="Reset to calculated amount"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -471,7 +528,12 @@ export default function WriteChecks() {
                 {/* Total and Action Buttons */}
                 <div className="flex justify-between items-center pt-4 border-t">
                   <div className="text-lg font-semibold">
-                    Total: ${calculateTotal()}
+                    Calculated Total: ${calculateTotal()}
+                    {useManualAmount && (
+                      <div className="text-sm text-gray-500">
+                        (Check Amount: ${getDisplayAmount()})
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleClear}>
