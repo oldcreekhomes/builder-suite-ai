@@ -118,20 +118,20 @@ export function PayBillDialog({
           {/* Bill Summary */}
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
-              <span className="font-medium">Vendor:</span>
+              <span>Vendor:</span>
               <span>{bill.companies?.company_name || 'Unknown Vendor'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium">Amount:</span>
-              <span className="font-semibold text-lg">{formatCurrency(bill.total_amount)}</span>
+              <span>Amount:</span>
+              <span>{formatCurrency(bill.total_amount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium">Due Date:</span>
+              <span>Due Date:</span>
               <span>{bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : 'Not set'}</span>
             </div>
             {bill.reference_number && (
               <div className="flex justify-between">
-                <span className="font-medium">Reference:</span>
+                <span>Reference:</span>
                 <span>{bill.reference_number}</span>
               </div>
             )}
