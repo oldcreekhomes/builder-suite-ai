@@ -147,10 +147,8 @@ export default function ApproveBills() {
                       <TableCell className="px-2 py-1 text-xs">
                         {bill.terms || '-'}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {bill.status}
-                        </Badge>
+                      <TableCell className="px-2 py-1 text-xs">
+                        {bill.status}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-right">
                         <Select
