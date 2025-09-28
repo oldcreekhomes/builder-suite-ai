@@ -451,7 +451,7 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Cost Code</div>
+                          <div className="col-span-2">Cost Code</div>
                           <div className="col-span-3">Project</div>
                           <div className="col-span-3">Memo</div>
                           <div className="col-span-1">Quantity</div>
@@ -462,7 +462,7 @@ export default function EnterBills() {
 
                         {jobCostRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <CostCodeSearchInput 
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, 'account', value)}
@@ -537,7 +537,7 @@ export default function EnterBills() {
 
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-9 font-medium">Total:</div>
+                            <div className="col-span-8 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${jobCostRows.reduce((total, row) => {
                                 const q = parseFloat(row.quantity) || 0;
@@ -545,7 +545,7 @@ export default function EnterBills() {
                                 return total + q * c;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-2"></div>
+                            <div className="col-span-3"></div>
                           </div>
                         </div>
                       </div>
@@ -561,7 +561,7 @@ export default function EnterBills() {
 
                       <div className="border rounded-lg overflow-hidden">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
+                          <div className="col-span-2">Account</div>
                           <div className="col-span-3">Project</div>
                           <div className="col-span-3">Memo</div>
                           <div className="col-span-1">Quantity</div>
@@ -572,7 +572,7 @@ export default function EnterBills() {
 
                         {expenseRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
                                 onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
@@ -644,7 +644,7 @@ export default function EnterBills() {
 
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-9 font-medium">Total:</div>
+                            <div className="col-span-8 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${expenseRows.reduce((total, row) => {
                                 const q = parseFloat(row.quantity) || 0;
@@ -652,7 +652,7 @@ export default function EnterBills() {
                                 return total + q * c;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-2"></div>
+                            <div className="col-span-3"></div>
                           </div>
                         </div>
                       </div>
