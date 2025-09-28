@@ -272,6 +272,7 @@ export default function EnterBills() {
                       value={vendor}
                       onChange={setVendor}
                       placeholder="Search vendors..."
+                      className="h-8"
                     />
                   </div>
 
