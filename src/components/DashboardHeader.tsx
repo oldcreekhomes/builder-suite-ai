@@ -18,7 +18,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const { profile } = useUserProfile();
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: project, isLoading: projectLoading } = useProject(projectId || '');
+  const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
 
   // Get company name - handle both home builders and employees
@@ -63,10 +63,9 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
               </Button>
               <div className="flex items-center space-x-4">
                 <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
-                {!projectLoading && project?.address && (
+                {project?.address ? (
                   <p className="text-sm text-gray-600">{project.address}</p>
-                )}
-                {projectLoading && (
+                ) : (
                   <p className="text-sm text-gray-400">Loading address...</p>
                 )}
               </div>
