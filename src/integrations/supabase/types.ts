@@ -1456,6 +1456,10 @@ export type Database = {
             }
         Returns: string
       }
+      delete_bill_with_journal_entries: {
+        Args: { bill_id_param: string }
+        Returns: boolean
+      }
       delete_project_task: {
         Args: { task_id_param: string }
         Returns: boolean

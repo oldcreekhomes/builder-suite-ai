@@ -313,11 +313,45 @@ export const useBills = () => {
     }
   });
 
+  const deleteBill = useMutation({
+    mutationFn: async (billId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Use the database function to delete bill and cascade to journal entries
+      const { data, error } = await supabase.rpc('delete_bill_with_journal_entries', {
+        bill_id_param: billId
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error("Bill could not be deleted");
+      
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      toast({
+        title: "Success",
+        description: "Bill and related journal entries deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete bill",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     createBill,
     postBill,
     approveBill,
     rejectBill,
-    payBill
+    payBill,
+    deleteBill
   };
 };
