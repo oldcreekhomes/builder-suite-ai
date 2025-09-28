@@ -112,9 +112,6 @@ export function PayBillDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Pay Bill</DialogTitle>
-          <DialogDescription>
-            Record payment for this bill. This will create the appropriate journal entries.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -140,43 +137,44 @@ export function PayBillDialog({
             )}
           </div>
 
-          {/* Payment Method Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="payment-method">Payment Method *</Label>
-            <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                {allPaymentMethods.length === 0 ? (
-                  <SelectItem value="" disabled>
-                    No payment accounts available
-                  </SelectItem>
-                ) : (
-                  allPaymentMethods.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.category === 'Credit Card' ? '💳' : '🏦'} {account.code} - {account.name}
+          {/* Payment Method and Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment-method">Payment Method *</Label>
+              <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allPaymentMethods.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      No payment accounts available
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {allPaymentMethods.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No payment accounts found. Please create Cash/Bank or Credit Card accounts first.
-              </p>
-            )}
-          </div>
+                  ) : (
+                    allPaymentMethods.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.category === 'Credit Card' ? '💳' : '🏦'} {account.code} - {account.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {allPaymentMethods.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No payment accounts found. Please create Cash/Bank or Credit Card accounts first.
+                </p>
+              )}
+            </div>
 
-          {/* Payment Date */}
-          <div className="space-y-2">
-            <Label htmlFor="payment-date">Payment Date *</Label>
-            <Input
-              id="payment-date"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="payment-date">Payment Date *</Label>
+              <Input
+                id="payment-date"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Payment Memo */}
