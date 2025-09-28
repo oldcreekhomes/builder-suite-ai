@@ -8,9 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { format } from "date-fns";
@@ -72,12 +71,12 @@ export default function ApproveBills() {
     },
   });
 
-  const handleApprove = (billId: string) => {
-    approveBill.mutate(billId);
-  };
-
-  const handleReject = (billId: string) => {
-    rejectBill.mutate(billId);
+  const handleActionChange = (billId: string, action: string) => {
+    if (action === 'approve') {
+      approveBill.mutate(billId);
+    } else if (action === 'reject') {
+      rejectBill.mutate(billId);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -152,28 +151,18 @@ export default function ApproveBills() {
                         {bill.status}
                       </TableCell>
                       <TableCell className="px-2 py-1">
-                        <div className="flex items-center justify-start space-x-0.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="Approve"
-                            onClick={() => handleApprove(bill.id)}
-                            disabled={approveBill.isPending || rejectBill.isPending}
-                          >
-                            <Check className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="Reject"
-                            onClick={() => handleReject(bill.id)}
-                            disabled={approveBill.isPending || rejectBill.isPending}
-                          >
-                            <X className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
+                        <Select
+                          onValueChange={(value) => handleActionChange(bill.id, value)}
+                          disabled={approveBill.isPending || rejectBill.isPending}
+                        >
+                          <SelectTrigger className="h-8 w-24 text-xs border-gray-200 hover:bg-gray-50">
+                            <SelectValue placeholder="Actions" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                            <SelectItem value="approve" className="text-xs hover:bg-gray-100">Approve</SelectItem>
+                            <SelectItem value="reject" className="text-xs hover:bg-gray-100">Reject</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                     </TableRow>
                   ))
