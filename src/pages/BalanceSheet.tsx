@@ -54,35 +54,42 @@ export default function BalanceSheet() {
         throw accountsError;
       }
 
-      // Get journal entry line balances based on context
-      let journalLinesQuery = supabase
-        .from('journal_entry_lines')
-        .select(`
-          account_id, 
-          debit, 
-          credit,
-          journal_entries!inner(
-            source_type,
-            source_id,
-            bills!inner(project_id)
-          )
-        `)
-        .eq('journal_entries.source_type', 'bill');
-
-      // Filter based on context: project-specific or Old Creek Homes
+      // Determine relevant bills for this context (project-specific or Old Creek Homes)
+      let billsQuery = supabase.from('bills').select('id');
       if (projectId) {
-        // Project context: show bills for this specific project
-        journalLinesQuery = journalLinesQuery.eq('journal_entries.bills.project_id', projectId);
+        billsQuery = billsQuery.eq('project_id', projectId);
       } else {
-        // Global context: show Old Creek Homes bills (project_id IS NULL)
-        journalLinesQuery = journalLinesQuery.is('journal_entries.bills.project_id', null);
+        billsQuery = billsQuery.is('project_id', null);
       }
+      const { data: billsList, error: billsError } = await billsQuery;
+      if (billsError) {
+        console.error("🔍 Balance Sheet: Bills query failed:", billsError);
+        throw billsError;
+      }
+      const billIds = (billsList || []).map((b: { id: string }) => b.id);
 
-      const { data: journalLines, error: journalError } = await journalLinesQuery;
+      // If no bills match the context, we can short-circuit with empty journal lines
+      let journalLines: Array<{ account_id: string; debit: number; credit: number }> = [];
+      if (billIds.length > 0) {
+        const { data, error } = await supabase
+          .from('journal_entry_lines')
+          .select(`
+            account_id,
+            debit,
+            credit,
+            journal_entries!inner(
+              source_type,
+              source_id
+            )
+          `)
+          .eq('journal_entries.source_type', 'bill')
+          .in('journal_entries.source_id', billIds);
 
-      if (journalError) {
-        console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
-        throw journalError;
+        if (error) {
+          console.error("🔍 Balance Sheet: Journal lines query failed:", error);
+          throw error;
+        }
+        journalLines = data || [];
       }
 
       // Calculate account balances with proper sign conventions
