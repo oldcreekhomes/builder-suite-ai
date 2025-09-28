@@ -1,11 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Trash2, Download, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 export interface BillAttachment {
   id?: string;
@@ -16,38 +14,31 @@ export interface BillAttachment {
   file?: File;
 }
 
-interface BillPDFUploadProps {
+interface BillAttachmentUploadProps {
   attachments: BillAttachment[];
   onAttachmentsChange: (attachments: BillAttachment[]) => void;
   billId?: string;
   disabled?: boolean;
 }
 
-export function BillPDFUpload({ 
+export function BillAttachmentUpload({ 
   attachments, 
   onAttachmentsChange, 
   billId,
   disabled = false 
-}: BillPDFUploadProps) {
+}: BillAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
     setIsUploading(true);
     const newAttachments: BillAttachment[] = [];
 
-    for (const file of acceptedFiles) {
-      // Validate file type
-      if (file.type !== 'application/pdf') {
-        toast({
-          title: "Invalid File Type",
-          description: `${file.name} is not a PDF file. Only PDF files are allowed.`,
-          variant: "destructive",
-        });
-        continue;
-      }
-
+    for (const file of files) {
       // Validate file size (20MB limit)
       if (file.size > 20 * 1024 * 1024) {
         toast({
@@ -62,7 +53,11 @@ export function BillPDFUpload({
       if (billId) {
         try {
           const timestamp = Date.now();
-          const fileName = `${timestamp}_${file.name}`;
+          const sanitizedName = file.name
+            .replace(/\s+/g, '_')
+            .replace(/[^\w.-]/g, '_')
+            .replace(/_+/g, '_');
+          const fileName = `${timestamp}_${sanitizedName}`;
           const filePath = `${billId}/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
@@ -137,21 +132,14 @@ export function BillPDFUpload({
       onAttachmentsChange([...attachments, ...newAttachments]);
       toast({
         title: "Files Added",
-        description: `${newAttachments.length} PDF file(s) added successfully.`,
+        description: `${newAttachments.length} file(s) added successfully.`,
       });
     }
 
     setIsUploading(false);
+    // Reset the input
+    event.target.value = '';
   }, [attachments, onAttachmentsChange, billId, disabled]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf']
-    },
-    multiple: true,
-    disabled: disabled || isUploading
-  });
 
   const handleRemoveAttachment = async (index: number) => {
     if (disabled) return;
@@ -199,11 +187,6 @@ export function BillPDFUpload({
 
     const updatedAttachments = attachments.filter((_, i) => i !== index);
     onAttachmentsChange(updatedAttachments);
-    
-    toast({
-      title: "Attachment Removed",
-      description: `${attachment.file_name} has been removed.`,
-    });
   };
 
   const handleDownloadAttachment = async (attachment: BillAttachment) => {
@@ -243,97 +226,58 @@ export function BillPDFUpload({
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Bill Attachments
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Upload Area */}
-        <div
-          {...getRootProps()}
-          className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-            isDragActive && "border-primary bg-primary/5",
-            !isDragActive && "border-muted-foreground/25 hover:border-muted-foreground/50",
-            (disabled || isUploading) && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          <input {...getInputProps()} />
-          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          {isUploading ? (
-            <p className="text-sm text-muted-foreground">Uploading...</p>
-          ) : isDragActive ? (
-            <p className="text-sm text-muted-foreground">Drop PDF files here...</p>
-          ) : (
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Drag & drop PDF files here, or click to select
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PDF files only, max 20MB each
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Attached Files List */}
-        {attachments.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Attached Files</h4>
-            {attachments.map((attachment, index) => (
-              <div
-                key={`${attachment.file_path}-${index}`}
-                className="flex items-center justify-between p-3 border rounded-lg bg-muted/25"
+    <div className="space-y-2">
+      <Label>Attachments</Label>
+      <div className="flex items-center space-x-2">
+        {/* Show existing files as small icons */}
+        {attachments.map((attachment, index) => {
+          const IconComponent = getFileIcon(attachment.file_name);
+          const iconColorClass = getFileIconColor(attachment.file_name);
+          return (
+            <div key={index} className="relative group">
+              <button
+                onClick={() => handleDownloadAttachment(attachment)}
+                className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                title={attachment.file_name}
+                type="button"
+                disabled={!attachment.id || !billId}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {attachment.file_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(attachment.file_size)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {attachment.id && billId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownloadAttachment(attachment)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveAttachment(index)}
-                    disabled={disabled}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                <IconComponent className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => handleRemoveAttachment(index)}
+                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                title="Remove attachment"
+                type="button"
+                disabled={disabled}
+              >
+                <span className="text-xs font-bold leading-none">×</span>
+              </button>
+            </div>
+          );
+        })}
+        
+        {/* Add Files button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById('bill-file-input')?.click()}
+          disabled={disabled || isUploading}
+          className="h-8 text-xs px-3"
+        >
+          {isUploading ? 'Uploading...' : 'Add Files'}
+        </Button>
+        
+        <input
+          id="bill-file-input"
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+        />
+      </div>
+    </div>
   );
 }

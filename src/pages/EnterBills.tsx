@@ -22,7 +22,7 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { useAccounts } from "@/hooks/useAccounts";
 import { toast } from "@/hooks/use-toast";
-import { BillPDFUpload, BillAttachment as BillPDFAttachment } from "@/components/BillPDFUpload";
+import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 
 interface ExpenseRow {
   id: string;
@@ -342,15 +342,16 @@ export default function EnterBills() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                {/* Bill Attachments Section */}
-                <BillPDFUpload 
-                  attachments={attachments}
-                  onAttachmentsChange={setAttachments}
-                  billId={savedBillId || undefined}
-                  disabled={createBill.isPending || postBill.isPending}
-                />
+                  <div className="space-y-2">
+                    <BillAttachmentUpload 
+                      attachments={attachments}
+                      onAttachmentsChange={setAttachments}
+                      billId={savedBillId || undefined}
+                      disabled={createBill.isPending || postBill.isPending}
+                    />
+                  </div>
+                </div>
 
                 {/* Expenses Section with Tabs */}
                 <div className="space-y-4">
