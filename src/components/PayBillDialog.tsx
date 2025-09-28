@@ -189,22 +189,6 @@ export function PayBillDialog({
             />
           </div>
 
-          {/* Journal Entry Preview */}
-          {paymentAccountId && (
-            <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-              <h4 className="font-medium text-sm">Journal Entry Preview:</h4>
-              <div className="text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span>Debit: Accounts Payable</span>
-                  <span>{formatCurrency(bill.total_amount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Credit: {allPaymentMethods.find(a => a.id === paymentAccountId)?.name}</span>
-                  <span>{formatCurrency(bill.total_amount)}</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
