@@ -13,30 +13,37 @@ interface JobSearchInputProps {
 export function JobSearchInput({ 
   value, 
   onChange, 
-  placeholder = "Job",
+  placeholder = "Search jobs...",
   className 
 }: JobSearchInputProps) {
-  const [searchQuery, setSearchQuery] = useState(value);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const { searchProjects, loading } = useProjectSearch();
+  const { projects, loading } = useProjectSearch();
 
   useEffect(() => {
-    setSearchQuery(value);
-  }, [value]);
+    // Find project address by ID for display
+    if (value) {
+      const project = projects.find(p => p.id === value);
+      if (project) {
+        setSearchQuery(project.address);
+      }
+    } else {
+      setSearchQuery("");
+    }
+  }, [value, projects]);
 
-  const filteredProjects = searchQuery.length >= 3 ? searchProjects(searchQuery) : [];
+  const filteredProjects = projects.filter(project =>
+    project.address.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
-    onChange(newValue);
-    setShowResults(newValue.length >= 3);
+    setShowResults(true);
   };
 
   const handleInputFocus = () => {
-    if (searchQuery.length >= 3) {
-      setShowResults(true);
-    }
+    setShowResults(true);
   };
 
   const handleInputBlur = () => {
@@ -44,10 +51,9 @@ export function JobSearchInput({
     setTimeout(() => setShowResults(false), 200);
   };
 
-  const handleSelectProject = (project: { address: string }) => {
-    const selectedValue = project.address;
-    setSearchQuery(selectedValue);
-    onChange(selectedValue);
+  const handleSelectProject = (project: { id: string; address: string }) => {
+    setSearchQuery(project.address);
+    onChange(project.id); // Pass project ID instead of address
     setShowResults(false);
   };
 
@@ -63,20 +69,29 @@ export function JobSearchInput({
         className={className}
       />
       
-      {showResults && filteredProjects.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-32 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredProjects.slice(0, 5).map((project) => (
-            <button
-              key={project.id}
-              type="button"
-              className="block w-full px-2 py-1 text-left text-xs hover:bg-muted"
-              onMouseDown={() => handleSelectProject(project)}
-            >
-              {project.address && (
-                <span className="text-foreground">{project.address}</span>
-              )}
-            </button>
-          ))}
+      {showResults && (
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+          {loading ? (
+            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+          ) : filteredProjects.length > 0 ? (
+            filteredProjects.slice(0, 8).map((project) => (
+              <button
+                key={project.id}
+                type="button"
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent cursor-pointer"
+                onMouseDown={() => handleSelectProject(project)}
+              >
+                <div className="font-medium">{project.address}</div>
+                {project.status && (
+                  <div className="text-xs text-muted-foreground">Status: {project.status}</div>
+                )}
+              </button>
+            ))
+          ) : searchQuery && (
+            <div className="p-3 text-sm text-muted-foreground">
+              No jobs found matching "{searchQuery}"
+            </div>
+          )}
         </div>
       )}
     </div>

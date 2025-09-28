@@ -15,30 +15,37 @@ export function VendorSearchInput({
   value, 
   onChange,
   onCompanySelect,
-  placeholder = "Vendor",
+  placeholder = "Search vendors...",
   className 
 }: VendorSearchInputProps) {
-  const [searchQuery, setSearchQuery] = useState(value);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
-  const { searchCompanies, loading } = useCompanySearch();
+  const { companies, loading } = useCompanySearch();
 
   useEffect(() => {
-    setSearchQuery(value);
-  }, [value]);
+    // Find company name by ID for display
+    if (value) {
+      const company = companies.find(c => c.id === value);
+      if (company) {
+        setSearchQuery(company.company_name);
+      }
+    } else {
+      setSearchQuery("");
+    }
+  }, [value, companies]);
 
-  const filteredCompanies = searchQuery.length >= 3 ? searchCompanies(searchQuery) : [];
+  const filteredCompanies = companies.filter(company =>
+    company.company_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
-    onChange(newValue);
-    setShowResults(newValue.length >= 3);
+    setShowResults(true);
   };
 
   const handleInputFocus = () => {
-    if (searchQuery.length >= 3) {
-      setShowResults(true);
-    }
+    setShowResults(true);
   };
 
   const handleInputBlur = () => {
@@ -46,10 +53,9 @@ export function VendorSearchInput({
     setTimeout(() => setShowResults(false), 200);
   };
 
-  const handleSelectCompany = (company: { company_name: string; company_type?: string; address?: string }) => {
-    const selectedValue = company.company_name;
-    setSearchQuery(selectedValue);
-    onChange(selectedValue);
+  const handleSelectCompany = (company: { id: string; company_name: string; company_type?: string; address?: string }) => {
+    setSearchQuery(company.company_name);
+    onChange(company.id); // Pass company ID instead of name
     setShowResults(false);
     
     // Call the onCompanySelect callback with company details including address
@@ -73,18 +79,29 @@ export function VendorSearchInput({
         className={className}
       />
       
-      {showResults && filteredCompanies.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-32 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredCompanies.slice(0, 5).map((company) => (
-            <button
-              key={company.id}
-              type="button"
-              className="block w-full px-2 py-1 text-left text-xs hover:bg-muted"
-              onMouseDown={() => handleSelectCompany(company)}
-            >
-              <span className="font-medium">{company.company_name}</span>
-            </button>
-          ))}
+      {showResults && (
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+          {loading ? (
+            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+          ) : filteredCompanies.length > 0 ? (
+            filteredCompanies.slice(0, 8).map((company) => (
+              <button
+                key={company.id}
+                type="button"
+                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent cursor-pointer"
+                onMouseDown={() => handleSelectCompany(company)}
+              >
+                <div className="font-medium">{company.company_name}</div>
+                {company.company_type && (
+                  <div className="text-xs text-muted-foreground">{company.company_type}</div>
+                )}
+              </button>
+            ))
+          ) : searchQuery && (
+            <div className="p-3 text-sm text-muted-foreground">
+              No vendors found matching "{searchQuery}"
+            </div>
+          )}
         </div>
       )}
     </div>
