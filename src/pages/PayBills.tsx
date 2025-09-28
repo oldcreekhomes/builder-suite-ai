@@ -110,14 +110,13 @@ export default function PayBills() {
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Status</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bills.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No approved bills found for payment.
                     </TableCell>
                   </TableRow>
@@ -144,11 +143,6 @@ export default function PayBills() {
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
                         {bill.terms || '-'}
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {bill.status}
-                        </Badge>
                       </TableCell>
                       <TableCell className="px-2 py-1 text-right">
                         <Select
