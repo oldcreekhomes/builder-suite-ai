@@ -189,13 +189,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   return (
     <TooltipProvider>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-3 py-1">
+        <div className="px-3 py-0">
           {/* Show recent project section on global pages */}
           {isGlobalPage && hasProjectContext && projectContext && (
-            <div className="mb-3 pb-3 border-b border-gray-200">
+            <div className="mb-2 pb-2 border-b border-gray-200">
               <button
                 onClick={goBackToProject}
-                className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <div className="flex-1 text-left">
@@ -208,12 +208,12 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
             </div>
           )}
           
-          <div>
+          <div className="space-y-0.5">
             {filteredItems.map((item) => (
               <div key={item.title}>
                 <a 
                   href={item.url} 
-                  className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                  className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
                 >
                   <item.icon className="h-4 w-4" />
                   <span className="flex-1">{item.title}</span>
@@ -226,14 +226,14 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               <div>
                 <a 
                   href={`/project/${projectId}/accounting`}
-                  className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+                  className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
                 >
                   <Calculator className="h-4 w-4" />
                   <span className="flex-1">Accounting</span>
                 </a>
                 
                 {/* Bills and Reports submenu items */}
-                <div className="ml-6 mt-1 space-y-1">
+                <div className="ml-6 mt-0.5 space-y-0.5">
                   <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
                     <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                       <div className="flex items-center space-x-2">
@@ -243,7 +243,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                       <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="ml-6 space-y-1">
+                      <div className="ml-6 space-y-0.5">
                         <a href={`/project/${projectId}/accounting/bills/approval-status`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                           <span>Approval Status</span>
                         </a>
@@ -269,7 +269,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                       <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="ml-6">
+                      <div className="ml-6 space-y-0.5">
                         <a href={`/project/${projectId}/accounting/reports/balance-sheet`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                           <span>Balance Sheet</span>
                         </a>
@@ -283,9 +283,9 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
           {/* Software Issues Section - Show on company dashboard and project pages */}
           {(isCompanyDashboard || (projectId && !isIssuesPage)) && (
-            <div className="pt-3 border-t border-gray-200">
+            <div className="pt-2 mt-2 border-t border-gray-200">
               <div>
-                <a href="/issues" className="flex items-center px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                <a href="/issues" className="flex items-center px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                   <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
                   <span className="whitespace-nowrap">Software Issues</span>
                   <div className="flex items-center gap-1 ml-auto">
