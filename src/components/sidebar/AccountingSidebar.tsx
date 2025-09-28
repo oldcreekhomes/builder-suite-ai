@@ -14,7 +14,7 @@ const billsSubItems = [
 ];
 
 const reportsSubItems = [
-  // Reports sub-items will be added here
+  { title: "Balance Sheet", url: "/accounting/reports/balance-sheet" },
 ];
 
 export function AccountingSidebar() {
