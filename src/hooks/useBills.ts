@@ -277,10 +277,47 @@ export const useBills = () => {
     }
   });
 
+  const payBill = useMutation({
+    mutationFn: async (billId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Mark bill as paid by updating status to void with a paid indicator
+      // Note: In a real system, this might create a payment record
+      const { error } = await supabase
+        .from('bills')
+        .update({ 
+          status: 'void', // Using 'void' to indicate paid/closed
+          notes: 'Paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+
+      if (error) throw error;
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      toast({
+        title: "Success",
+        description: "Bill marked as paid successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error paying bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark bill as paid",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     createBill,
     postBill,
     approveBill,
-    rejectBill
+    rejectBill,
+    payBill
   };
 };
