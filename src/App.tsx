@@ -28,6 +28,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
 import BillsApprovalStatus from "./pages/BillsApprovalStatus";
+import ImportBills from "./pages/ImportBills";
 import EnterBills from "./pages/EnterBills";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
@@ -118,6 +119,7 @@ const AppContent = () => {
           {/* Accounting routes */}
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
+          <Route path="/accounting/bills/import" element={<ProtectedRoute><ImportBills /></ProtectedRoute>} />
           <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           
           {/* Estimating AI route */}
@@ -161,6 +163,7 @@ const AppContent = () => {
           {/* Project Accounting routes */}
           <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/bills/import" element={<ProtectedRoute><ImportBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           
           
