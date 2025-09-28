@@ -221,7 +221,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
           <DialogTitle>Add Marketplace Company</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2 px-1">
           <BasicCompanyInfo
             companyName={companyName}
             setCompanyName={setCompanyName}

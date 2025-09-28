@@ -108,7 +108,6 @@ export function BasicCompanyInfo({
       </div>
 
       <div>
-        <Label>Company Address</Label>
         <StructuredAddressInput
           value={addressData}
           onChange={setAddressData}

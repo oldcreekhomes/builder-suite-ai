@@ -261,7 +261,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -308,7 +308,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 name="address_line_1"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Address</FormLabel>
                     <FormControl>
                       <StructuredAddressInput
                         value={{

@@ -203,9 +203,9 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
           <DialogTitle>Add New Company</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
+        <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -252,7 +252,6 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
                   name="address_line_1"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Address</FormLabel>
                       <FormControl>
                         <StructuredAddressInput
                           value={{
