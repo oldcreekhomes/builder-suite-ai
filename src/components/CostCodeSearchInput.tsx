@@ -77,8 +77,7 @@ export function CostCodeSearchInput({
               className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
               onMouseDown={() => handleSelectCostCode(costCode)}
             >
-              <div className="font-medium">{costCode.code}</div>
-              <div className="text-muted-foreground text-xs">{costCode.name}</div>
+              <div className="font-medium">{costCode.code} - {costCode.name}</div>
             </button>
           ))}
         </div>
