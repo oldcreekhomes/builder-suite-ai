@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -107,7 +108,7 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
-      <>
+      <SidebarProvider>
         <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
@@ -213,7 +214,7 @@ const AppContent = () => {
         </Routes>
         
         <FloatingChatManager onOpenChat={registerChatManager} />
-      </>
+      </SidebarProvider>
     </BrowserRouter>
   );
 };

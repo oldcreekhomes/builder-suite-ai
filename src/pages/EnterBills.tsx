@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
@@ -244,11 +243,10 @@ export default function EnterBills() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col">
-          <CompanyDashboardHeader title="Bills - Enter Bills" />
+    <>
+      <AppSidebar />
+      <SidebarInset className="flex-1 flex flex-col">
+        <CompanyDashboardHeader title="Bills - Enter Bills" />
           <div className="flex-1 p-6 space-y-6">
             <Card>
               <CardContent className="space-y-6 pt-6">
@@ -586,7 +584,6 @@ export default function EnterBills() {
             </Card>
           </div>
         </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
-}
+      </>
+    );
+  }

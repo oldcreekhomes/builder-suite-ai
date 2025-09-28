@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
@@ -66,14 +65,13 @@ export default function BillsApprovalStatus() {
 
   if (isLoading) {
     return (
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <SidebarInset className="flex-1 flex flex-col">
-            <CompanyDashboardHeader title="Bills - Approval Status" />
-            <div className="flex-1 p-6 space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
+      <>
+        <AppSidebar />
+        <SidebarInset className="flex-1 flex flex-col">
+          <CompanyDashboardHeader title="Bills - Approval Status" />
+          <div className="flex-1 p-6 space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
                   <Card key={i}>
                     <CardContent className="p-4 text-center">
                       <Skeleton className="h-8 w-16 mx-auto mb-2" />
@@ -89,15 +87,13 @@ export default function BillsApprovalStatus() {
               </Card>
             </div>
           </SidebarInset>
-        </div>
-      </SidebarProvider>
-    );
-  }
+        </>
+      );
+    }
 
-  if (!projectManagersData?.managers || projectManagersData.managers.length === 0) {
-    return (
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
+    if (!projectManagersData?.managers || projectManagersData.managers.length === 0) {
+      return (
+        <>
           <AppSidebar />
           <SidebarInset className="flex-1 flex flex-col">
             <CompanyDashboardHeader title="Bills - Approval Status" />
@@ -107,17 +103,15 @@ export default function BillsApprovalStatus() {
               </div>
             </div>
           </SidebarInset>
-        </div>
-      </SidebarProvider>
-    );
-  }
+        </>
+      );
+    }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col">
-          <CompanyDashboardHeader title="Bills - Approval Status" />
+    <>
+      <AppSidebar />
+      <SidebarInset className="flex-1 flex flex-col">
+        <CompanyDashboardHeader title="Bills - Approval Status" />
           <div className="flex-1 p-6 space-y-6">
             {/* Summary KPIs */}
             <div className="grid grid-cols-3 gap-4">
@@ -217,7 +211,6 @@ export default function BillsApprovalStatus() {
             </Card>
           </div>
         </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
-}
+      </>
+    );
+  }
