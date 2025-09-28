@@ -172,6 +172,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/pay" element={<ProtectedRoute><PayBills /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           
           
           {/* Messages route - TEMPORARILY DISABLED

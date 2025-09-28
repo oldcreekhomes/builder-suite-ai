@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -22,10 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
+import { useProject } from "@/hooks/useProject";
 import { format } from "date-fns";
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
-import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface BillForApproval {
   id: string;
@@ -47,7 +49,9 @@ interface BillForApproval {
 }
 
 export default function ApproveBills() {
+  const { projectId } = useParams();
   const { approveBill, rejectBill } = useBills();
+  const { data: project } = useProject(projectId || "");
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     action: string;
@@ -127,11 +131,15 @@ export default function ApproveBills() {
   }
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset>
-        <CompanyDashboardHeader />
-        <div className="container mx-auto p-6">
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AccountingSidebar projectId={projectId} />
+        <SidebarInset>
+          <DashboardHeader 
+            title={`Bills - Approve Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
+          <div className="container mx-auto p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Approve Bills</h1>
             <p className="text-muted-foreground">Review and approve or reject bills that require approval.</p>
@@ -205,34 +213,35 @@ export default function ApproveBills() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
-        </div>
-      </SidebarInset>
+        </SidebarInset>
 
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelAction()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmDialog.action === 'approve' ? 'Confirm Bill Approval' : 'Confirm Bill Rejection'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {confirmDialog.action} this bill from{' '}
-              <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
-              <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>?
-              {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmedAction}
-              className={confirmDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
-            >
-              {confirmDialog.action === 'approve' ? 'Approve Bill' : 'Reject Bill'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelAction()}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirmDialog.action === 'approve' ? 'Confirm Bill Approval' : 'Confirm Bill Rejection'}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to {confirmDialog.action} this bill from{' '}
+                <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
+                <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>?
+                {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmedAction}
+                className={confirmDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              >
+                {confirmDialog.action === 'approve' ? 'Approve Bill' : 'Reject Bill'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </SidebarProvider>
   );
 }

@@ -1,21 +1,27 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import { useParams } from "react-router-dom";
+import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, Clock, CheckCircle } from "lucide-react";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { useProject } from "@/hooks/useProject";
 
 export default function Accounting() {
+  const { projectId } = useParams();
   const { openFloatingChat } = useFloatingChat();
+  const { data: project } = useProject(projectId || "");
+  
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar 
-          onStartChat={openFloatingChat}
-        />
+        <AccountingSidebar projectId={projectId} />
         <SidebarInset className="flex-1 flex flex-col">
-          <CompanyDashboardHeader title="Accounting Dashboard" />
+          <DashboardHeader 
+            title={`Accounting Dashboard${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
           <div className="flex-1 p-6 space-y-6">
             {/* Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

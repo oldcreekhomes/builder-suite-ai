@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
-import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { useParams } from "react-router-dom";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
-import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProject } from "@/hooks/useProject";
 import { toast } from "@/hooks/use-toast";
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 
@@ -33,11 +34,11 @@ interface ExpenseRow {
 }
 
 export default function EnterBills() {
+  const { projectId } = useParams();
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
-  const [job, setJob] = useState<string>("");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }
   ]);
@@ -49,6 +50,7 @@ export default function EnterBills() {
 
   const { createBill, postBill } = useBills();
   const { accountingSettings } = useAccounts();
+  const { data: project } = useProject(projectId || "");
 
   // Calculate due date when bill date or terms change
   useEffect(() => {
@@ -155,7 +157,7 @@ export default function EnterBills() {
 
     const billData: BillData = {
       vendor_id: vendor,
-      project_id: job || undefined,
+      project_id: projectId || undefined,
       bill_date: billDate.toISOString().split('T')[0],
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,
@@ -169,7 +171,7 @@ export default function EnterBills() {
         .map(row => ({
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
-          project_id: job || undefined,
+          project_id: projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
           amount: parseFloat(row.amount) || 0,
@@ -231,7 +233,6 @@ export default function EnterBills() {
     setBillDueDate(undefined);
     setVendor("");
     setTerms("net-30");
-    setJob("");
     setJobCostRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
@@ -243,10 +244,15 @@ export default function EnterBills() {
   };
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset className="flex-1 flex flex-col">
-        <CompanyDashboardHeader title="Bills - Enter Bills" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AccountingSidebar projectId={projectId} />
+        <SidebarInset className="flex-1">
+          <DashboardHeader 
+            title={`Bills - Enter Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
+          
           <div className="flex-1 p-6 space-y-6">
             <Card>
               <CardContent className="space-y-6 pt-6">
@@ -294,17 +300,8 @@ export default function EnterBills() {
                   </div>
                 </div>
 
-                {/* Second row: Job, Bill Due Date, Terms+Attachments (50/50) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="job">Job</Label>
-                    <JobSearchInput
-                      value={job}
-                      onChange={setJob}
-                      placeholder="Search jobs..."
-                    />
-                  </div>
-
+                {/* Second row: Bill Due Date, Terms, Attachments - 3 columns */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Bill Due Date</Label>
                     <Popover>
@@ -332,33 +329,28 @@ export default function EnterBills() {
                     </Popover>
                   </div>
 
-                  {/* Column 3: split into Terms (50%) and Attachments (50%) */}
                   <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="terms">Terms</Label>
-                        <Select value={terms} onValueChange={setTerms}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select terms" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="net-15">Net 15</SelectItem>
-                            <SelectItem value="net-30">Net 30</SelectItem>
-                            <SelectItem value="net-60">Net 60</SelectItem>
-                            <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <Label htmlFor="terms">Terms</Label>
+                    <Select value={terms} onValueChange={setTerms}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select terms" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="net-15">Net 15</SelectItem>
+                        <SelectItem value="net-30">Net 30</SelectItem>
+                        <SelectItem value="net-60">Net 60</SelectItem>
+                        <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <div className="space-y-2">
-                        <BillAttachmentUpload 
-                          attachments={attachments}
-                          onAttachmentsChange={setAttachments}
-                          billId={savedBillId || undefined}
-                          disabled={createBill.isPending || postBill.isPending}
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <BillAttachmentUpload 
+                      attachments={attachments}
+                      onAttachmentsChange={setAttachments}
+                      billId={savedBillId || undefined}
+                      disabled={createBill.isPending || postBill.isPending}
+                    />
                   </div>
                 </div>
 
@@ -575,15 +567,16 @@ export default function EnterBills() {
                   <Button 
                     type="button" 
                     variant="outline"
-                    onClick={handleClear}
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </SidebarInset>
-      </>
-    );
-  }
+                     onClick={handleClear}
+                   >
+                     Clear
+                   </Button>
+                 </div>
+               </CardContent>
+             </Card>
+           </div>
+         </SidebarInset>
+       </div>
+     </SidebarProvider>
+   );
+ }

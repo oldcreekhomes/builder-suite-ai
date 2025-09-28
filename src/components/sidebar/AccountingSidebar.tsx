@@ -2,22 +2,27 @@ import { Calculator, Home, FileText, AlertTriangle, BarChart3 } from "lucide-rea
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
-const items = [
-  { title: "Company Dashboard", url: "/", icon: Home },
-];
+interface AccountingSidebarProps {
+  projectId?: string;
+}
 
-const billsSubItems = [
-  { title: "Approval Status", url: "/accounting/bills/approval-status" },
-  { title: "Manually Enter Bills", url: "/accounting/bills/enter" },
-  { title: "Approve Bills", url: "/accounting/bills/approve" },
-  { title: "Pay Bills", url: "/accounting/bills/pay" },
-];
+export function AccountingSidebar({ projectId }: AccountingSidebarProps) {
+  const baseUrl = projectId ? `/project/${projectId}` : "";
+  
+  const items = [
+    { title: "Company Dashboard", url: projectId ? `/project/${projectId}` : "/", icon: Home },
+  ];
 
-const reportsSubItems = [
-  { title: "Balance Sheet", url: "/accounting/reports/balance-sheet" },
-];
+  const billsSubItems = [
+    { title: "Approval Status", url: `${baseUrl}/accounting/bills/approval-status` },
+    { title: "Manually Enter Bills", url: `${baseUrl}/accounting/bills/enter` },
+    { title: "Approve Bills", url: `${baseUrl}/accounting/bills/approve` },
+    { title: "Pay Bills", url: `${baseUrl}/accounting/bills/pay` },
+  ];
 
-export function AccountingSidebar() {
+  const reportsSubItems = [
+    { title: "Balance Sheet", url: `${baseUrl}/accounting/reports/balance-sheet` },
+  ];
   const { data: issueCounts } = useIssueCounts();
   
   // Calculate total issue counts

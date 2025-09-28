@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
-import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useProjectManagers } from "@/hooks/useProjectManagers";
+import { useProject } from "@/hooks/useProject";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BillsApprovalStatus() {
+  const { projectId } = useParams();
   const { data: projectManagersData, isLoading } = useProjectManagers();
+  const { data: project } = useProject(projectId || "");
   const [selectedManagerId, setSelectedManagerId] = useState<string>('');
   const [jobApprovals, setJobApprovals] = useState<Record<string, boolean>>({});
 
@@ -66,9 +70,12 @@ export default function BillsApprovalStatus() {
   if (isLoading) {
     return (
       <>
-        <AppSidebar />
-        <SidebarInset className="flex-1 flex flex-col">
-          <CompanyDashboardHeader title="Bills - Approval Status" />
+        <AccountingSidebar projectId={projectId} />
+        <SidebarInset className="flex-1">
+          <DashboardHeader 
+            title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
           <div className="flex-1 p-6 space-y-6">
             <div className="grid grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
@@ -93,25 +100,34 @@ export default function BillsApprovalStatus() {
 
     if (!projectManagersData?.managers || projectManagersData.managers.length === 0) {
       return (
-        <>
-          <AppSidebar />
-          <SidebarInset className="flex-1 flex flex-col">
-            <CompanyDashboardHeader title="Bills - Approval Status" />
-            <div className="flex-1 p-6 space-y-6">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No project managers found. Assign managers to projects to use the invoice dashboard.</p>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full">
+            <AccountingSidebar projectId={projectId} />
+            <SidebarInset className="flex-1">
+              <DashboardHeader 
+                title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+                projectId={projectId}
+              />
+              <div className="flex-1 p-6 space-y-6">
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No project managers found. Assign managers to projects to use the invoice dashboard.</p>
+                </div>
               </div>
-            </div>
-          </SidebarInset>
-        </>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
       );
     }
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset className="flex-1 flex flex-col">
-        <CompanyDashboardHeader title="Bills - Approval Status" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AccountingSidebar projectId={projectId} />
+        <SidebarInset className="flex-1">
+          <DashboardHeader 
+            title={`Bills - Approval Status${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
           <div className="flex-1 p-6 space-y-6">
             {/* Summary KPIs */}
             <div className="grid grid-cols-3 gap-4">
@@ -211,6 +227,7 @@ export default function BillsApprovalStatus() {
             </Card>
           </div>
         </SidebarInset>
-      </>
-    );
-  }
+      </div>
+    </SidebarProvider>
+  );
+}

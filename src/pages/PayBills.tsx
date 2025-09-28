@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -12,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
+import { useProject } from "@/hooks/useProject";
 import { format } from "date-fns";
-import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
-import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AccountingSidebar } from "@/components/sidebar/AccountingSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 interface BillForPayment {
   id: string;
@@ -37,7 +39,9 @@ interface BillForPayment {
 }
 
 export default function PayBills() {
+  const { projectId } = useParams();
   const { payBill } = useBills();
+  const { data: project } = useProject(projectId || "");
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
@@ -89,11 +93,15 @@ export default function PayBills() {
   }
 
   return (
-    <>
-      <AppSidebar />
-      <SidebarInset>
-        <CompanyDashboardHeader />
-        <div className="container mx-auto p-6">
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AccountingSidebar projectId={projectId} />
+        <SidebarInset>
+          <DashboardHeader 
+            title={`Bills - Pay Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            projectId={projectId}
+          />
+          <div className="container mx-auto p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Pay Bills</h1>
             <p className="text-muted-foreground">Process payments for approved bills.</p>
@@ -172,6 +180,7 @@ export default function PayBills() {
           )}
         </div>
       </SidebarInset>
-    </>
-  );
+    </div>
+  </SidebarProvider>
+);
 }
