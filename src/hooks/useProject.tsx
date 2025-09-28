@@ -35,7 +35,7 @@ export const useProject = (projectId: string) => {
       return data as Project;
     },
     enabled: !!user && !!projectId,
-    staleTime: 0, // Always refetch to ensure fresh data
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on focus to prevent flicker
   });
 };
