@@ -8,10 +8,12 @@ import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { EditAccountDialog } from "./EditAccountDialog";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings } = useAccounts();
   const [isImporting, setIsImporting] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
 
   const handleImportIFF = async (files: File[]) => {
     if (files.length === 0) return;
@@ -211,6 +213,7 @@ export const ChartOfAccountsTab = () => {
                           size="sm"
                           className="h-6 w-6 p-0"
                           title="Edit account"
+                          onClick={() => setEditingAccount(account)}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -232,6 +235,12 @@ export const ChartOfAccountsTab = () => {
           </Table>
         </div>
       </div>
+
+      <EditAccountDialog
+        account={editingAccount}
+        open={!!editingAccount}
+        onOpenChange={(open) => !open && setEditingAccount(null)}
+      />
     </div>
   );
 };
