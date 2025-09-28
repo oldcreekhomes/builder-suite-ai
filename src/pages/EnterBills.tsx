@@ -85,6 +85,24 @@ export default function EnterBills() {
     setBillDueDate(addDays(today, 30)); // Default to Net 30
   }, []);
 
+  const calculateRowTotal = (row: ExpenseRow) => {
+    const quantity = parseFloat(row.quantity) || 1;
+    const unitCost = parseFloat(row.amount) || 0;
+    return quantity * unitCost;
+  };
+
+  const calculateTotal = () => {
+    const jobCostTotal = jobCostRows.reduce((total, row) => {
+      return total + calculateRowTotal(row);
+    }, 0);
+    
+    const expenseTotal = expenseRows.reduce((total, row) => {
+      return total + calculateRowTotal(row);
+    }, 0);
+    
+    return (jobCostTotal + expenseTotal).toFixed(2);
+  };
+
   const addJobCostRow = () => {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
@@ -138,20 +156,6 @@ export default function EnterBills() {
     ));
   };
 
-  const calculateTotal = () => {
-    const jobCostTotal = jobCostRows.reduce((total, row) => {
-      const amount = parseFloat(row.amount) || 0;
-      return total + amount;
-    }, 0);
-    
-    const expenseTotal = expenseRows.reduce((total, row) => {
-      const amount = parseFloat(row.amount) || 0;
-      return total + amount;
-    }, 0);
-    
-    return (jobCostTotal + expenseTotal).toFixed(2);
-  };
-
   const handleSaveAndClose = async () => {
     if (!vendor) {
       toast({
@@ -180,8 +184,8 @@ export default function EnterBills() {
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
-          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
-          amount: parseFloat(row.amount) || 0,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: calculateRowTotal(row),
           memo: row.memo || undefined
         })),
       ...expenseRows
@@ -191,8 +195,8 @@ export default function EnterBills() {
           account_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
-          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
-          amount: parseFloat(row.amount) || 0,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: calculateRowTotal(row),
           memo: row.memo || undefined
         }))
     ];
@@ -381,17 +385,18 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-13 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
                           <div className="col-span-2">Project</div>
-                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-2">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
+                          <div className="col-span-2">Total</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-13 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <CostCodeSearchInput 
                                 value={row.account}
@@ -409,13 +414,12 @@ export default function EnterBills() {
                                 value={row.projectId || ""}
                                 onChange={(projectId) => {
                                   updateJobCostRow(row.id, 'projectId', projectId);
-                                  // Update display text - this will be handled by the JobSearchInput component
                                 }}
                                 placeholder="Select project"
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Input 
                                 placeholder="Job cost memo"
                                 value={row.memo}
@@ -446,13 +450,18 @@ export default function EnterBills() {
                                 />
                               </div>
                             </div>
-                            <div className="col-span-1 flex justify-center">
+                            <div className="col-span-2">
+                              <div className="h-8 flex items-center px-3 bg-muted/50 rounded border text-sm font-medium">
+                                ${calculateRowTotal(row).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="col-span-1">
                               <Button
-                                onClick={() => removeJobCostRow(row.id)}
+                                variant="ghost"
                                 size="sm"
-                                variant="destructive"
-                                disabled={jobCostRows.length === 1}
+                                onClick={() => removeJobCostRow(row.id)}
                                 className="h-8 w-8 p-0"
+                                disabled={jobCostRows.length === 1}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -460,17 +469,10 @@ export default function EnterBills() {
                           </div>
                         ))}
 
-                        <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-4 font-medium">Total:</div>
-                            <div className="col-span-2 font-medium">
-                              ${jobCostRows.reduce((total, row) => {
-                                const amount = parseFloat(row.amount) || 0;
-                                return total + amount;
-                              }, 0).toFixed(2)}
-                            </div>
-                            <div className="col-span-6"></div>
-                          </div>
+                        <div className="grid grid-cols-13 gap-2 p-3 border-t bg-muted/30">
+                          <div className="col-span-10 text-right font-medium">Total:</div>
+                          <div className="col-span-2 font-bold">${jobCostRows.reduce((total, row) => total + calculateRowTotal(row), 0).toFixed(2)}</div>
+                          <div className="col-span-1"></div>
                         </div>
                       </div>
                     </TabsContent>
@@ -484,17 +486,18 @@ export default function EnterBills() {
                       </div>
 
                       <div className="border rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="grid grid-cols-13 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
                           <div className="col-span-2">Project</div>
-                          <div className="col-span-3">Memo</div>
+                          <div className="col-span-2">Memo</div>
                           <div className="col-span-2">Quantity</div>
                           <div className="col-span-2">Cost</div>
+                          <div className="col-span-2">Total</div>
                           <div className="col-span-1">Action</div>
                         </div>
 
                         {expenseRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div key={row.id} className="grid grid-cols-13 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
@@ -509,13 +512,12 @@ export default function EnterBills() {
                                 value={row.projectId || ""}
                                 onChange={(projectId) => {
                                   updateExpenseRow(row.id, 'projectId', projectId);
-                                  // Update display text - this will be handled by the JobSearchInput component
                                 }}
                                 placeholder="Select project"
                                 className="h-8"
                               />
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <Input 
                                 placeholder="Expense memo"
                                 value={row.memo}
@@ -546,13 +548,18 @@ export default function EnterBills() {
                                 />
                               </div>
                             </div>
-                            <div className="col-span-1 flex justify-center">
+                            <div className="col-span-2">
+                              <div className="h-8 flex items-center px-3 bg-muted/50 rounded border text-sm font-medium">
+                                ${calculateRowTotal(row).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="col-span-1">
                               <Button
-                                onClick={() => removeExpenseRow(row.id)}
+                                variant="ghost"
                                 size="sm"
-                                variant="destructive"
-                                disabled={expenseRows.length === 1}
+                                onClick={() => removeExpenseRow(row.id)}
                                 className="h-8 w-8 p-0"
+                                disabled={expenseRows.length === 1}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -560,17 +567,10 @@ export default function EnterBills() {
                           </div>
                         ))}
 
-                        <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-4 font-medium">Total:</div>
-                            <div className="col-span-2 font-medium">
-                              ${expenseRows.reduce((total, row) => {
-                                const amount = parseFloat(row.amount) || 0;
-                                return total + amount;
-                              }, 0).toFixed(2)}
-                            </div>
-                            <div className="col-span-6"></div>
-                          </div>
+                        <div className="grid grid-cols-13 gap-2 p-3 border-t bg-muted/30">
+                          <div className="col-span-10 text-right font-medium">Total:</div>
+                          <div className="col-span-2 font-bold">${expenseRows.reduce((total, row) => total + calculateRowTotal(row), 0).toFixed(2)}</div>
+                          <div className="col-span-1"></div>
                         </div>
                       </div>
                     </TabsContent>
