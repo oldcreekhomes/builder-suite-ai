@@ -42,7 +42,10 @@ export default function ProjectPurchaseOrders() {
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <div className="flex flex-col min-h-screen">
-            <DashboardHeader title={`${project.address} - Purchase Orders`} />
+            <DashboardHeader 
+              title="Project Purchase Orders"
+              projectId={projectId}
+            />
             
             <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
               {/* Header */}
