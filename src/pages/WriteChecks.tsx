@@ -50,6 +50,11 @@ export default function WriteChecks() {
   const [manualAmount, setManualAmount] = useState<string>("");
   const [useManualAmount, setUseManualAmount] = useState<boolean>(false);
   
+  // Bank details state
+  const [routingNumber, setRoutingNumber] = useState<string>("123456789");
+  const [accountNumber, setAccountNumber] = useState<string>("1234567890");
+  const [bankName, setBankName] = useState<string>("Your Bank Name");
+  
   const [jobCostRows, setJobCostRows] = useState<CheckRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
   ]);
@@ -217,6 +222,9 @@ export default function WriteChecks() {
     setCompanyCityState("City, State 12345");
     setManualAmount("");
     setUseManualAmount(false);
+    setRoutingNumber("123456789");
+    setAccountNumber("1234567890");
+    setBankName("Your Bank Name");
     setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }]);
   };
@@ -349,9 +357,9 @@ export default function WriteChecks() {
                     </div>
                   </div>
 
-                  {/* Bank account and memo line */}
+                  {/* Bank account and routing numbers like real check */}
                   <div className="flex items-end justify-between pt-4">
-                    <div className="space-y-2 flex-1 max-w-xs">
+                    <div className="space-y-2 flex-1 max-w-md">
                       <Label className="text-xs text-gray-600">BANK ACCOUNT</Label>
                       <AccountSearchInput
                         value={bankAccount}
@@ -361,9 +369,35 @@ export default function WriteChecks() {
                         accountType="asset"
                       />
                     </div>
-                    <div className="text-xs text-gray-500 text-right">
-                      <div>⚍123456789⚍ ⚊1234567890⚊ {checkNumber || "001"}</div>
-                      <div className="mt-1">Your Bank • Routing: 123456789</div>
+                    <div className="text-xs text-gray-500 text-right space-y-1">
+                      <div className="font-mono text-sm">
+                        <span className="mr-1">⚍</span>
+                        <Input
+                          value={routingNumber}
+                          onChange={(e) => setRoutingNumber(e.target.value)}
+                          className="inline-block w-20 text-center border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 font-mono"
+                          placeholder="123456789"
+                          maxLength={9}
+                        />
+                        <span className="mx-1">⚍ ⚊</span>
+                        <Input
+                          value={accountNumber}
+                          onChange={(e) => setAccountNumber(e.target.value)}
+                          className="inline-block w-24 text-center border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 font-mono"
+                          placeholder="1234567890"
+                          maxLength={12}
+                        />
+                        <span className="mx-1">⚊</span>
+                        <span className="ml-1">{checkNumber || "001"}</span>
+                      </div>
+                      <div className="mt-1 text-right">
+                        <Input
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
+                          className="text-xs border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right w-32"
+                          placeholder="Bank Name"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
