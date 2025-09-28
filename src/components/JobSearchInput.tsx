@@ -82,9 +82,6 @@ export function JobSearchInput({
                 onMouseDown={() => handleSelectProject(project)}
               >
                 <div className="font-medium">{project.address}</div>
-                {project.status && (
-                  <div className="text-xs text-muted-foreground">Status: {project.status}</div>
-                )}
               </button>
             ))
           ) : searchQuery && (
