@@ -159,16 +159,16 @@ export default function WriteChecks() {
       return;
     }
 
-    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId || row.amount);
+    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
     
-    if (allRows.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one line item",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (allRows.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please select an account/cost code and enter an amount for each line item",
+          variant: "destructive",
+        });
+        return;
+      }
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
@@ -236,16 +236,16 @@ export default function WriteChecks() {
       return;
     }
 
-    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId || row.amount);
+    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
     
-    if (allRows.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one line item",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (allRows.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please select an account/cost code and enter an amount for each line item",
+          variant: "destructive",
+        });
+        return;
+      }
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
