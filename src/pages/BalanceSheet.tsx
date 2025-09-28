@@ -231,7 +231,7 @@ export default function BalanceSheet() {
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
               <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                  {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+                  Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
                 </h2>
               </div>
               <div className="grid gap-6 md:grid-cols-2">
@@ -285,7 +285,7 @@ export default function BalanceSheet() {
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
               <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                  {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+                  Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
                 </h2>
               </div>
                 <Card>
@@ -323,13 +323,10 @@ export default function BalanceSheet() {
             <CompanyDashboardHeader />
           )}
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
+            <div className="flex items-center justify-between">
               <h2 className="text-3xl font-bold tracking-tight">
-                {projectId && project ? `Balance Sheet - ${project.address}` : 'Balance Sheet'}
+                Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
               </h2>
-              <div className="text-sm text-muted-foreground">
-                As of {new Date().toLocaleDateString()}
-              </div>
             </div>
 
             {isLoading ? (
