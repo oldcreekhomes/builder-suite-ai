@@ -223,7 +223,7 @@ export default function EnterBills() {
         title: "Bill Saved",
         description: "Bill has been saved as draft",
       });
-      navigate(`/project/${projectId}/accounting`);
+      navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
       console.error('Error saving bill:', error);
     }
