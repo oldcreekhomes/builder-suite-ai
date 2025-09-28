@@ -4,7 +4,7 @@ import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 const items = [
   { title: "Company Dashboard", url: "/", icon: Home },
-  { title: "Accounting", url: "/accounting", icon: Calculator },
+  { title: "Company Accounting", url: "/accounting", icon: Calculator },
 ];
 
 export function CompanyDashboardNav() {
