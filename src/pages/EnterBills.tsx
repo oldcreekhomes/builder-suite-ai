@@ -290,67 +290,32 @@ export default function EnterBills() {
                   <div className="space-y-2">
                     <Label htmlFor="refNo">Reference No.</Label>
                     <Input id="refNo" placeholder="Enter reference number" />
-                  </div>
+                    
+                    {/* Terms and Attachments split 50/50 below Reference Number */}
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="terms">Terms</Label>
+                        <Select value={terms} onValueChange={setTerms}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select terms" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="net-15">Net 15</SelectItem>
+                            <SelectItem value="net-30">Net 30</SelectItem>
+                            <SelectItem value="net-60">Net 60</SelectItem>
+                            <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="job">Job</Label>
-                    <JobSearchInput
-                      value={job}
-                      onChange={setJob}
-                      placeholder="Search jobs..."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Bill Due Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !billDueDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {billDueDate ? format(billDueDate, "MM/dd/yyyy") : "Select due date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={billDueDate}
-                          onSelect={setBillDueDate}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
+                      <div className="space-y-2">
+                        <BillAttachmentUpload 
+                          attachments={attachments}
+                          onAttachmentsChange={setAttachments}
+                          billId={savedBillId || undefined}
+                          disabled={createBill.isPending || postBill.isPending}
                         />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="col-span-2 grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="terms">Terms</Label>
-                      <Select value={terms} onValueChange={setTerms}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select terms" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="net-15">Net 15</SelectItem>
-                          <SelectItem value="net-30">Net 30</SelectItem>
-                          <SelectItem value="net-60">Net 60</SelectItem>
-                          <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <BillAttachmentUpload 
-                        attachments={attachments}
-                        onAttachmentsChange={setAttachments}
-                        billId={savedBillId || undefined}
-                        disabled={createBill.isPending || postBill.isPending}
-                      />
+                      </div>
                     </div>
                   </div>
                 </div>
