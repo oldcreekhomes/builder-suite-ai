@@ -325,7 +325,7 @@ export default function EnterBills() {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title={`Bills - Enter Bills${project?.address ? ` - ${project.address}` : ''}`} 
+            title="Bills - Enter Bills" 
             projectId={projectId}
           />
           
