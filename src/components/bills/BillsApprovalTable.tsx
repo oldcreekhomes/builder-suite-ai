@@ -145,31 +145,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     });
   };
 
-  const handleStatusChange = (billId: string, newStatus: string) => {
-    const bill = bills.find(b => b.id === billId);
-    const currentStatus = getStatusDisplay(bill?.status || '');
-    
-    // Don't trigger action if selecting the same status
-    if (newStatus === currentStatus) return;
-    
-    let action = '';
-    if (newStatus === 'Approved') {
-      action = 'approve';
-    } else if (newStatus === 'Rejected') {
-      action = 'reject';
-    } else {
-      // For Pending, we don't have a revert action yet
-      return;
-    }
-    
-    setConfirmDialog({
-      open: true,
-      action,
-      billId,
-      billInfo: bill,
-    });
-  };
-
   const handleConfirmedAction = () => {
     if (confirmDialog.action === 'approve') {
       approveBill.mutate(confirmDialog.billId);
@@ -188,19 +163,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
-  };
-
-  const getStatusDisplay = (billStatus: string) => {
-    switch (billStatus) {
-      case 'draft':
-        return 'Pending';
-      case 'void':
-        return 'Rejected';
-      case 'posted':
-        return 'Approved';
-      default:
-        return billStatus;
-    }
   };
 
   const canShowActions = status === 'draft';
@@ -222,7 +184,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Status</TableHead>
               {canShowActions && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left">Actions</TableHead>
               )}
@@ -231,7 +192,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 8 : 7} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -258,22 +219,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.terms || '-'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <Select 
-                      value={getStatusDisplay(bill.status)}
-                      onValueChange={(value) => handleStatusChange(bill.id, value)}
-                      disabled={approveBill.isPending || rejectBill.isPending}
-                    >
-                      <SelectTrigger className="h-8 w-24 text-xs border-gray-200 bg-white hover:bg-gray-50">
-                        <SelectValue>{getStatusDisplay(bill.status)}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                        <SelectItem value="Pending" className="text-xs hover:bg-gray-100 bg-white">Pending</SelectItem>
-                        <SelectItem value="Rejected" className="text-xs hover:bg-gray-100 bg-white">Rejected</SelectItem>
-                        <SelectItem value="Approved" className="text-xs hover:bg-gray-100 bg-white">Approved</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </TableCell>
                   {canShowActions && (
                     <TableCell className="px-2 py-1 text-left">
