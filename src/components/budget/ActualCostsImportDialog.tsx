@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,6 +34,11 @@ export function ActualCostsImportDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
 
   const downloadTemplate = () => {
     const templateData = [
@@ -196,18 +201,23 @@ export function ActualCostsImportDialog({
           <div className="border-2 border-dashed border-border rounded-lg p-6">
             <div className="text-center">
               <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <label className="cursor-pointer">
-                <span className="text-sm font-medium">
-                  Choose Excel file to upload
-                </span>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-              </label>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleFileSelect}
+                disabled={isProcessing}
+                className="text-sm font-medium hover:bg-transparent"
+              >
+                Choose Excel file to upload
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+                disabled={isProcessing}
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 Supports .xlsx and .xls files
               </p>
