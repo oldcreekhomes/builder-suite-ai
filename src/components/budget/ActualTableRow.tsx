@@ -57,43 +57,54 @@ export function ActualTableRow({
   };
 
   return (
-    <TableRow className="h-8 hover:bg-gray-50/50">
-      <TableCell className="h-8 px-1 py-0 w-12">
+    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
-          className="h-4 w-4"
+          className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="h-8 px-1 py-0 text-xs">
-        {costCode?.code || '-'}
+      <TableCell className="px-1 py-0" style={{ paddingLeft: '50px' }}>
+        <div className="text-xs font-medium">
+          {costCode?.code || '-'}
+        </div>
       </TableCell>
-      <TableCell className="h-8 px-1 py-0 text-xs">
-        {costCode?.name || '-'}
+      <TableCell className="px-1 py-0">
+        <div className="text-xs">
+          {costCode?.name || '-'}
+        </div>
       </TableCell>
-      <TableCell className="h-8 px-1 py-0 text-xs text-right">
-        {formatCurrency(budgetTotal)}
+      <TableCell className="px-1 py-0">
+        <div className="text-xs font-medium">
+          {formatCurrency(budgetTotal)}
+        </div>
       </TableCell>
-      <TableCell 
-        className="h-8 px-1 py-0 text-xs text-right cursor-pointer hover:bg-gray-100/50"
-        onClick={handleActualClick}
-      >
+      <TableCell className="px-1 py-0">
         {isEditingActual ? (
-          <Input
+          <input
             type="number"
             value={actualValue}
             onChange={(e) => setActualValue(e.target.value)}
             onBlur={handleActualBlur}
             onKeyDown={handleActualKeyDown}
-            className="h-6 border-none shadow-none bg-transparent text-xs p-0 text-right focus:ring-0"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
-          <span>{formatCurrency(actualAmount)}</span>
+          <span 
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            onClick={handleActualClick}
+          >
+            {formatCurrency(actualAmount)}
+          </span>
         )}
       </TableCell>
-      <TableCell className={`h-8 px-1 py-0 text-xs text-right ${getVarianceColor(variance)}`}>
-        {formatCurrency(variance)}
+      <TableCell className="px-1 py-0">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+          {formatCurrency(variance)}
+        </div>
       </TableCell>
     </TableRow>
   );

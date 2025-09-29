@@ -42,37 +42,47 @@ export function ActualGroupHeader({
   const variance = calculateVariance(groupBudgetTotal, groupActualTotal);
 
   return (
-    <TableRow className="bg-gray-100/50 hover:bg-gray-100/80 border-t-2 border-gray-200 h-10">
-      <TableCell className="h-10 px-1 py-0 w-12">
+    <TableRow className="bg-gray-50 h-8">
+      <TableCell className="px-1 py-0 w-12">
         <Checkbox
-          checked={isSelected || isPartiallySelected}
+          checked={isSelected}
+          ref={(el) => {
+            if (el && 'indeterminate' in el) {
+              (el as any).indeterminate = isPartiallySelected && !isSelected;
+            }
+          }}
           onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
-          className="h-4 w-4"
-          data-state={isPartiallySelected ? "indeterminate" : undefined}
+          className="h-3 w-3"
         />
       </TableCell>
       <TableCell 
-        className="h-10 px-1 py-0 font-semibold text-sm cursor-pointer select-none"
+        colSpan={2} 
+        className="px-1 py-0 cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
-        colSpan={2}
       >
-        <div className="flex items-center gap-1">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-          <span>{group}</span>
+        <div className="flex items-center text-xs font-medium">
+          <ChevronDown 
+            className={`h-3 w-3 mr-2 transition-transform ${
+              isExpanded ? 'rotate-0' : '-rotate-90'
+            }`} 
+          />
+          {group}
         </div>
       </TableCell>
-      <TableCell className="h-10 px-1 py-0 font-semibold text-sm text-right">
-        {formatCurrency(groupBudgetTotal)}
+      <TableCell className="px-1 py-0">
+        <div className="text-xs font-medium">
+          {formatCurrency(groupBudgetTotal)}
+        </div>
       </TableCell>
-      <TableCell className="h-10 px-1 py-0 font-semibold text-sm text-right">
-        {formatCurrency(groupActualTotal)}
+      <TableCell className="px-1 py-0">
+        <div className="text-xs font-medium">
+          {formatCurrency(groupActualTotal)}
+        </div>
       </TableCell>
-      <TableCell className={`h-10 px-1 py-0 font-semibold text-sm text-right ${getVarianceColor(variance)}`}>
-        {formatCurrency(variance)}
+      <TableCell className="px-1 py-0">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+          {formatCurrency(variance)}
+        </div>
       </TableCell>
     </TableRow>
   );
