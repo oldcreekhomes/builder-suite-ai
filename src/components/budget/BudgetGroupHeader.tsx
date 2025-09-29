@@ -48,7 +48,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={6} 
+        colSpan={5} 
         className="px-1 py-0 cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
