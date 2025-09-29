@@ -49,13 +49,12 @@ export function BudgetGroupTotalRow({
         {/* Empty checkbox cell */}
       </TableCell>
       <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '50px' }}>
-        <div className="text-xs font-medium flex flex-col leading-tight">
-          <span>{group.split(' ')[0]}</span>
-          <span className="text-[10px]">Total</span>
-        </div>
+        {/* Empty code cell */}
       </TableCell>
       <TableCell className="px-1 py-0 w-40">
-        {/* Empty name cell */}
+        <div className="text-xs">
+          Total
+        </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         {/* Empty price cell */}
