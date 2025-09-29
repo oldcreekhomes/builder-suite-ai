@@ -5,15 +5,15 @@ import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 export function BudgetTableHeader() {
   return (
     <TableHeader>
-      <TableRow className="h-10">
-        <TableHead className="font-bold w-12 py-2 text-sm"></TableHead>
-        <TableHead className="font-bold py-2 text-sm">Cost Code</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Name</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Price</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Unit</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Quantity</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Total</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
+      <TableRow className="h-8">
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium w-12"></TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Name</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Price</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Unit</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Quantity</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );

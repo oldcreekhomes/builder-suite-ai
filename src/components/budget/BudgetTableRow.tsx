@@ -149,21 +149,25 @@ export function BudgetTableRow({
   };
 
   return (
-    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="w-12 py-1">
+    <TableRow className={`h-10 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableCell className="px-2 py-1 w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
           tabIndex={-1}
         />
       </TableCell>
-      <TableCell className="font-medium py-1 text-sm" style={{ paddingLeft: '50px' }}>
-        {costCode?.code}
+      <TableCell className="px-2 py-1" style={{ paddingLeft: '50px' }}>
+        <div className="text-xs font-medium">
+          {costCode?.code}
+        </div>
       </TableCell>
-      <TableCell className="py-1 text-sm">
-        {costCode?.name}
+      <TableCell className="px-2 py-1">
+        <div className="text-xs">
+          {costCode?.name}
+        </div>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell className="px-2 py-1">
         {isEditingPrice ? (
           <Input
             type="number"
@@ -172,19 +176,19 @@ export function BudgetTableRow({
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
-            className="w-24 h-7 text-sm"
+            className="w-24 h-7 text-xs"
             autoFocus
           />
         ) : (
           <div 
-            className="w-24 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="w-24 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handlePriceClick}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
           </div>
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell className="px-2 py-1">
         {isEditingUnit ? (
           <Select 
             value={costCode?.unit_of_measure || ""} 
@@ -193,7 +197,7 @@ export function BudgetTableRow({
             open={true}
           >
             <SelectTrigger 
-              className="w-20 h-7 text-sm"
+              className="w-20 h-7 text-xs"
               onKeyDown={handleUnitKeyDown}
             >
               <SelectValue placeholder="-" />
@@ -208,14 +212,14 @@ export function BudgetTableRow({
           </Select>
         ) : (
           <div 
-            className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="w-20 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
           </div>
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell className="px-2 py-1">
         {isEditingQuantity ? (
           <Input
             type="number"
@@ -224,22 +228,24 @@ export function BudgetTableRow({
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
-            className="w-20 h-7 text-sm"
+            className="w-20 h-7 text-xs"
             autoFocus
           />
         ) : (
           <div 
-            className="w-20 h-7 px-3 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="w-20 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
             onClick={handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
           </div>
         )}
       </TableCell>
-      <TableCell className="font-medium py-1 text-sm">
-        {formatCurrency(total)}
+      <TableCell className="px-2 py-1">
+        <div className="text-xs font-medium">
+          {formatCurrency(total)}
+        </div>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell className="px-2 py-1">
         <div>
           <DeleteButton
             onDelete={() => onDelete(item.id)}
