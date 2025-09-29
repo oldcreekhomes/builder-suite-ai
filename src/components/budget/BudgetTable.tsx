@@ -122,13 +122,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
 
   return (
     <div className="space-y-4">
-      <BudgetPrintToolbar onPrint={handlePrint} />
-
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setShowAddBudgetModal(true)}>
-          Add Budget
-        </Button>
-      </div>
+      <BudgetPrintToolbar onPrint={handlePrint} onAddBudget={() => setShowAddBudgetModal(true)} />
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
