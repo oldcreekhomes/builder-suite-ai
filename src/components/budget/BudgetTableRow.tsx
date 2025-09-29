@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -35,9 +34,6 @@ export function BudgetTableRow({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
-  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
-  
-  const { data: historicalProjects = [] } = useHistoricalProjects();
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -251,23 +247,7 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-0">
-        {historicalProjects.length > 0 && (
-          <Select 
-            value={selectedHistoricalProject} 
-            onValueChange={setSelectedHistoricalProject}
-          >
-            <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted">
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              {historicalProjects.map((project) => (
-                <SelectItem key={project.id} value={project.id} className="text-xs">
-                  {project.address}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        {/* Historical data will be displayed here based on header selection */}
       </TableCell>
       <TableCell className="px-1 py-0">
         <div>
