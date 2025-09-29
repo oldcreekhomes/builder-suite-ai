@@ -170,23 +170,23 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-1 py-0">
         {isEditingPrice ? (
-          <Input
+          <input
             type="number"
-            step="0.01"
             value={unitPrice}
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
-            className="w-20 h-6 text-xs px-1"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
-          <div 
-            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
+          <span 
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handlePriceClick}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
-          </div>
+          </span>
         )}
       </TableCell>
       <TableCell className="px-1 py-0">
@@ -212,33 +212,33 @@ export function BudgetTableRow({
             </SelectContent>
           </Select>
         ) : (
-          <div 
-            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
+          <span 
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
-          </div>
+          </span>
         )}
       </TableCell>
       <TableCell className="px-1 py-0">
         {isEditingQuantity ? (
-          <Input
+          <input
             type="number"
-            step="0.01"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
-            className="w-16 h-6 text-xs px-1"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
-          <div 
-            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
+          <span 
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
-          </div>
+          </span>
         )}
       </TableCell>
       <TableCell className="px-1 py-0">
