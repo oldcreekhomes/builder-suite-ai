@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { ActualTableHeader } from './ActualTableHeader';
 import { ActualGroupHeader } from './ActualGroupHeader';
 import { ActualTableRow } from './ActualTableRow';
+import { ActualPrintToolbar } from './ActualPrintToolbar';
 import { ActualTableFooter } from './ActualTableFooter';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
@@ -45,8 +46,15 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     return groupItems.reduce((sum, item) => sum + ((item as any).actual_amount || 0), 0);
   };
 
+  const handlePrint = () => {
+    // Print logic for Actual table (similar to Budget)
+    console.log('Print Actual');
+  };
+
   return (
     <div className="space-y-4">
+      <ActualPrintToolbar onPrint={handlePrint} />
+
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <ActualTableHeader />
