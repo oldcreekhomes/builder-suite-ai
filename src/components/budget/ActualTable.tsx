@@ -53,7 +53,11 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
 
   return (
     <div className="space-y-4">
-      <ActualPrintToolbar onPrint={handlePrint} />
+      <ActualPrintToolbar 
+        onPrint={handlePrint} 
+        budgetItems={budgetItems}
+        onUpdateActual={handleUpdateActual}
+      />
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
