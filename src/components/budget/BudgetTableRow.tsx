@@ -55,8 +55,8 @@ export function BudgetTableRow({
   
   const getVarianceColor = (variance: number | null) => {
     if (variance === null) return 'text-gray-400';
-    if (variance > 0) return 'text-red-600'; // Over budget (historical cost more than budget)
-    if (variance < 0) return 'text-green-600'; // Under budget (historical cost less than budget)
+    if (variance > 0) return 'text-green-600'; // Budget under historical (good)
+    if (variance < 0) return 'text-red-600'; // Budget over historical (warning)
     return 'text-gray-600'; // On budget
   };
   
