@@ -25,10 +25,10 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-24">Quantity</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">Total</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
-          <div className="flex items-start">
+          <div className="flex items-start -ml-2">
             {historicalProjects.length > 0 && (
               <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
-                <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-full justify-start p-0">
+                <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-full justify-start p-0 -ml-1">
                   <SelectValue placeholder="Historical" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border shadow-lg z-50">
