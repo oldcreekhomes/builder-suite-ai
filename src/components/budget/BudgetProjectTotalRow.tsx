@@ -53,19 +53,25 @@ export function BudgetProjectTotalRow({
   };
 
   return (
-    <TableRow className="bg-primary/10 border-t-2 border-primary">
-      <TableCell colSpan={8} className="font-bold text-right">
+    <TableRow className="bg-gray-50 h-8 border-b border-gray-200">
+      <TableCell className="px-3 py-0 w-12"></TableCell>
+      <TableCell className="px-3 py-0 w-20"></TableCell>
+      <TableCell className="px-3 py-0 w-40 text-xs font-medium">
         Total Project Costs
       </TableCell>
-      <TableCell className="font-bold text-right">
+      <TableCell className="px-3 py-0 w-32"></TableCell>
+      <TableCell className="px-3 py-0 w-20"></TableCell>
+      <TableCell className="px-3 py-0 w-24"></TableCell>
+      <TableCell className="px-3 py-0 w-32 text-xs font-medium text-right">
         {formatCurrency(totalBudget)}
       </TableCell>
-      <TableCell className="font-bold text-right">
+      <TableCell className="px-3 py-0 w-48 text-xs font-medium text-right">
         {formatCurrency(totalHistorical)}
       </TableCell>
-      <TableCell className={`font-bold text-right ${getVarianceColor(variance)}`}>
+      <TableCell className={`px-3 py-0 w-32 text-xs font-medium text-right ${getVarianceColor(variance)}`}>
         {formatVariance(variance)}
       </TableCell>
+      <TableCell className="px-3 py-0 w-20"></TableCell>
     </TableRow>
   );
 }
