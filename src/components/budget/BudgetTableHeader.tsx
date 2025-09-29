@@ -24,7 +24,7 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-20">Unit</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-24">Quantity</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">Total</TableHead>
-        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
           <div className="flex items-start -ml-2">
             {historicalProjects.length > 0 && (
               <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
