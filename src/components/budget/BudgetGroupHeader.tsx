@@ -69,6 +69,9 @@ export function BudgetGroupHeader({
       <TableCell className="px-1 py-0 w-24">
         {/* Empty cell for Historical column in group header */}
       </TableCell>
+      <TableCell className="px-1 py-0 w-24">
+        {/* Empty cell for Variance column in group header */}
+      </TableCell>
       <TableCell className="px-1 py-0">
         <div className="flex gap-1">
           <DeleteButton

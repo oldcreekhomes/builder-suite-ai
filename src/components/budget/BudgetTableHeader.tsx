@@ -7,9 +7,11 @@ import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 interface BudgetTableHeaderProps {
   selectedHistoricalProject: string;
   onHistoricalProjectChange: (projectId: string) => void;
+  showVarianceAsPercentage: boolean;
+  onToggleVarianceMode: () => void;
 }
 
-export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProjectChange }: BudgetTableHeaderProps) {
+export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProjectChange, showVarianceAsPercentage, onToggleVarianceMode }: BudgetTableHeaderProps) {
   const { data: historicalProjects = [] } = useHistoricalProjects();
 
   return (
@@ -38,6 +40,14 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
             </Select>
           )}
           {historicalProjects.length === 0 && "Historical"}
+        </TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">
+          <button
+            onClick={onToggleVarianceMode}
+            className="text-xs font-medium hover:bg-muted rounded px-1 py-0.5"
+          >
+            Variance {showVarianceAsPercentage ? '%' : '$'}
+          </button>
         </TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Actions</TableHead>
       </TableRow>

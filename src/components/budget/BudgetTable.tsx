@@ -23,6 +23,7 @@ interface BudgetTableProps {
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
+  const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
   const { data: historicalActualCosts = {} } = useHistoricalActualCosts(selectedHistoricalProject || null);
@@ -132,11 +133,13 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <BudgetTableHeader 
             selectedHistoricalProject={selectedHistoricalProject}
             onHistoricalProjectChange={setSelectedHistoricalProject}
+            showVarianceAsPercentage={showVarianceAsPercentage}
+            onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
           />
           <TableBody>
             {budgetItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                   No budget items added yet.
                 </TableCell>
               </TableRow>
@@ -169,6 +172,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         onCheckboxChange={handleItemCheckboxChange}
                         isDeleting={deletingItems.has(item.id)}
                         historicalActualCosts={historicalActualCosts}
+                        showVarianceAsPercentage={showVarianceAsPercentage}
                       />
                     ))}
                   </React.Fragment>

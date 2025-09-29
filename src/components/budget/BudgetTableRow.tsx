@@ -18,6 +18,7 @@ interface BudgetTableRowProps {
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   isDeleting?: boolean;
   historicalActualCosts?: Record<string, number>;
+  showVarianceAsPercentage?: boolean;
 }
 
 export function BudgetTableRow({ 
@@ -29,7 +30,8 @@ export function BudgetTableRow({
   isSelected,
   onCheckboxChange,
   isDeleting = false,
-  historicalActualCosts = {}
+  historicalActualCosts = {},
+  showVarianceAsPercentage = false
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -40,6 +42,31 @@ export function BudgetTableRow({
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
   const historicalActual = historicalActualCosts[costCode?.id] || null;
+  
+  const calculateVariance = () => {
+    if (historicalActual === null || total === 0) return null;
+    if (showVarianceAsPercentage) {
+      return ((historicalActual - total) / total) * 100;
+    }
+    return historicalActual - total;
+  };
+  
+  const variance = calculateVariance();
+  
+  const getVarianceColor = (variance: number | null) => {
+    if (variance === null) return 'text-gray-400';
+    if (variance > 0) return 'text-red-600'; // Over budget
+    if (variance < 0) return 'text-green-600'; // Under budget
+    return 'text-gray-600'; // On budget
+  };
+  
+  const formatVariance = (variance: number | null) => {
+    if (variance === null) return '-';
+    if (showVarianceAsPercentage) {
+      return `${variance > 0 ? '+' : ''}${variance.toFixed(1)}%`;
+    }
+    return `${variance > 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`;
+  };
 
   const handleQuantityBlur = () => {
     const numQuantity = parseFloat(quantity) || 0;
@@ -252,6 +279,11 @@ export function BudgetTableRow({
       <TableCell className="px-1 py-0 w-24">
         <div className="text-xs">
           {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
+        </div>
+      </TableCell>
+      <TableCell className="px-1 py-0 w-24">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+          {formatVariance(variance)}
         </div>
       </TableCell>
       <TableCell className="px-1 py-0">
