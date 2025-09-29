@@ -206,13 +206,13 @@ export function BudgetTableRow({
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-right w-full"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handlePriceClick}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
@@ -243,7 +243,7 @@ export function BudgetTableRow({
           </Select>
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-center w-full"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
@@ -258,13 +258,13 @@ export function BudgetTableRow({
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-right w-full"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
             onClick={handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
@@ -272,17 +272,17 @@ export function BudgetTableRow({
         )}
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium text-right">
+        <div className="text-xs font-medium">
           {formatCurrency(total)}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs text-right">
+        <div className="text-xs">
           {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs font-medium text-right ${getVarianceColor(variance)}`}>
+        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
           {formatVariance(variance)}
         </div>
       </TableCell>
