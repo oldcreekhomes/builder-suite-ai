@@ -149,7 +149,7 @@ export function BudgetTableRow({
   };
 
   return (
-    <TableRow className={`h-10 ${isSelected ? 'bg-blue-50' : ''}`}>
+    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="px-2 py-1 w-12">
         <Checkbox
           checked={isSelected}
