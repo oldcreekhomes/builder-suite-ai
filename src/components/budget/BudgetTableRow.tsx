@@ -150,24 +150,25 @@ export function BudgetTableRow({
 
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="px-2 py-1 w-12">
+      <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
           tabIndex={-1}
+          className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="px-2 py-1" style={{ paddingLeft: '50px' }}>
+      <TableCell className="px-1 py-0" style={{ paddingLeft: '50px' }}>
         <div className="text-xs font-medium">
           {costCode?.code}
         </div>
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         <div className="text-xs">
           {costCode?.name}
         </div>
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         {isEditingPrice ? (
           <Input
             type="number"
@@ -188,7 +189,7 @@ export function BudgetTableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         {isEditingUnit ? (
           <Select 
             value={costCode?.unit_of_measure || ""} 
@@ -219,7 +220,7 @@ export function BudgetTableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         {isEditingQuantity ? (
           <Input
             type="number"
@@ -240,12 +241,12 @@ export function BudgetTableRow({
           </div>
         )}
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         <div className="text-xs font-medium">
           {formatCurrency(total)}
         </div>
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         <div>
           <DeleteButton
             onDelete={() => onDelete(item.id)}

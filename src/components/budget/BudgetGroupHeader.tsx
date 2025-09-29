@@ -35,7 +35,7 @@ export function BudgetGroupHeader({
 
   return (
     <TableRow className="bg-gray-50 h-8">
-      <TableCell className="px-2 py-1 w-12">
+      <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
           ref={(el) => {
@@ -44,11 +44,12 @@ export function BudgetGroupHeader({
             }
           }}
           onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+          className="h-3 w-3"
         />
       </TableCell>
       <TableCell 
         colSpan={5} 
-        className="px-2 py-1 cursor-pointer hover:bg-gray-100"
+        className="px-1 py-0 cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
         <div className="flex items-center text-xs font-medium">
@@ -60,12 +61,12 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         <div className="text-xs font-medium">
           {formatCurrency(groupTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-2 py-1">
+      <TableCell className="px-1 py-0">
         <div className="flex gap-1">
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}
