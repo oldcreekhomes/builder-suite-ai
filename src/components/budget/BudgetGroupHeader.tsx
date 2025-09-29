@@ -34,7 +34,7 @@ export function BudgetGroupHeader({
   };
 
   return (
-    <TableRow className="bg-gray-50 h-10">
+    <TableRow className="bg-gray-50 h-8">
       <TableCell className="px-2 py-1 w-12">
         <Checkbox
           checked={isSelected}
