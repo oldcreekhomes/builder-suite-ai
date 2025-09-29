@@ -19,7 +19,9 @@ export function BudgetTableHeader({ showVarianceAsPercentage, onToggleVarianceMo
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-20">Unit</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-24">Quantity</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">Total Budget</TableHead>
-        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">Historical Job Costs</TableHead>
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
+          <div className="-ml-3">Historical Job Costs</div>
+        </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button
             onClick={onToggleVarianceMode}
