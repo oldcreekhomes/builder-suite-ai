@@ -44,11 +44,16 @@ export function BudgetTableRow({
   const historicalActual = historicalActualCosts[costCode?.id] || null;
   
   const calculateVariance = () => {
-    if (historicalActual === null || total === 0) return null;
-    if (showVarianceAsPercentage) {
-      return ((historicalActual - total) / total) * 100;
+    // Only show no variance if BOTH are 0 or null
+    if ((historicalActual === null || historicalActual === 0) && total === 0) return null;
+    
+    // Treat null historical as 0 for calculation
+    const historical = historicalActual || 0;
+    
+    if (showVarianceAsPercentage && total !== 0) {
+      return ((historical - total) / total) * 100;
     }
-    return historicalActual - total;
+    return historical - total;
   };
   
   const variance = calculateVariance();

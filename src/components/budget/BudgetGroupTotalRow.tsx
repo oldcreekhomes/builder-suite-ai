@@ -19,11 +19,16 @@ export function BudgetGroupTotalRow({
   };
 
   const calculateVariance = () => {
-    if (historicalTotal === undefined || historicalTotal === null || groupTotal === 0) return null;
-    if (showVarianceAsPercentage) {
-      return ((historicalTotal - groupTotal) / groupTotal) * 100;
+    // Only show no variance if BOTH are 0 or null
+    if ((historicalTotal === undefined || historicalTotal === null || historicalTotal === 0) && groupTotal === 0) return null;
+    
+    // Treat null/undefined historical as 0 for calculation
+    const historical = historicalTotal || 0;
+    
+    if (showVarianceAsPercentage && groupTotal !== 0) {
+      return ((historical - groupTotal) / groupTotal) * 100;
     }
-    return historicalTotal - groupTotal;
+    return historical - groupTotal;
   };
 
   const variance = calculateVariance();
