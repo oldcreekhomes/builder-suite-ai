@@ -75,12 +75,12 @@ export function ActualTableRow({
           {costCode?.name || '-'}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 text-right">
         <div className="text-xs font-medium">
           {formatCurrency(budgetTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 text-right">
         {isEditingActual ? (
           <input
             type="number"
@@ -101,7 +101,7 @@ export function ActualTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 text-right">
         <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
           {formatCurrency(variance)}
         </div>
