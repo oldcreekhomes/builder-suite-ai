@@ -19,7 +19,7 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
       <TableRow className="h-8">
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-12"></TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Cost Code</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Name</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-40">Name</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Price</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Unit</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Quantity</TableHead>
