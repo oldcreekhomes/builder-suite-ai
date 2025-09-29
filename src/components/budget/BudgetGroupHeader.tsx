@@ -67,6 +67,9 @@ export function BudgetGroupHeader({
         </div>
       </TableCell>
       <TableCell className="px-1 py-0">
+        {/* Empty cell for Historical column in group header */}
+      </TableCell>
+      <TableCell className="px-1 py-0">
         <div className="flex gap-1">
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}

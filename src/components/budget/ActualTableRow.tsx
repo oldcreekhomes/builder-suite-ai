@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -23,9 +21,6 @@ export function ActualTableRow({
 }: ActualTableRowProps) {
   const [isEditingActual, setIsEditingActual] = useState(false);
   const [actualValue, setActualValue] = useState('');
-  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
-  
-  const { data: historicalProjects = [] } = useHistoricalProjects();
 
   const costCode = item.cost_codes as CostCode;
   const budgetTotal = (item.quantity || 0) * (item.unit_price || 0);
@@ -110,25 +105,6 @@ export function ActualTableRow({
         <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
           {formatCurrency(variance)}
         </div>
-      </TableCell>
-      <TableCell className="px-1 py-0">
-        {historicalProjects.length > 0 && (
-          <Select 
-            value={selectedHistoricalProject} 
-            onValueChange={setSelectedHistoricalProject}
-          >
-            <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted">
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              {historicalProjects.map((project) => (
-                <SelectItem key={project.id} value={project.id} className="text-xs">
-                  {project.address}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
       </TableCell>
     </TableRow>
   );

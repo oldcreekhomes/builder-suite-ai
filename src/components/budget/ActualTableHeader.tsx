@@ -11,7 +11,6 @@ export function ActualTableHeader() {
         <TableHead className="h-8 px-1 py-0 text-xs font-medium text-right">Budget</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium text-right">Actual</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium text-right">Variance</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Historical</TableHead>
       </TableRow>
     </TableHeader>
   );

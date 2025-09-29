@@ -13,6 +13,7 @@ export function BudgetTableHeader() {
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Unit</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Quantity</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Total</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Historical</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium">Actions</TableHead>
       </TableRow>
     </TableHeader>

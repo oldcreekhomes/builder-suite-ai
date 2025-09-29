@@ -130,7 +130,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <TableBody>
             {budgetItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   No budget items added yet.
                 </TableCell>
               </TableRow>
