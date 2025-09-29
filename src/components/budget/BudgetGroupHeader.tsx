@@ -48,7 +48,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={4} 
+        colSpan={6} 
         className="px-1 py-0 cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
@@ -61,7 +61,7 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-24">
         <div className="text-xs font-medium">
           {formatCurrency(groupTotal)}
         </div>
@@ -72,7 +72,7 @@ export function BudgetGroupHeader({
       <TableCell className="px-1 py-0 w-24">
         {/* Empty cell for Variance column in group header */}
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-20">
         <div className="flex gap-1">
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}

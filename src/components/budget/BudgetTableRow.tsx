@@ -188,7 +188,7 @@ export function BudgetTableRow({
           className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="px-1 py-0" style={{ paddingLeft: '50px' }}>
+      <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '50px' }}>
         <div className="text-xs font-medium">
           {costCode?.code}
         </div>
@@ -219,7 +219,7 @@ export function BudgetTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-16">
         {isEditingUnit ? (
           <Select 
             value={costCode?.unit_of_measure || ""} 
@@ -250,7 +250,7 @@ export function BudgetTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-20">
         {isEditingQuantity ? (
           <input
             type="number"
@@ -271,7 +271,7 @@ export function BudgetTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-24">
         <div className="text-xs font-medium">
           {formatCurrency(total)}
         </div>
@@ -286,7 +286,7 @@ export function BudgetTableRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-20">
         <div>
           <DeleteButton
             onDelete={() => onDelete(item.id)}

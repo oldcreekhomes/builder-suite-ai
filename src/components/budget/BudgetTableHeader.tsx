@@ -18,12 +18,12 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
     <TableHeader>
       <TableRow className="h-8">
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-12"></TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Cost Code</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Cost Code</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-40">Name</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Price</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Unit</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Quantity</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Total</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-16">Unit</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Quantity</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">Total</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">
           {historicalProjects.length > 0 && (
             <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
@@ -49,7 +49,7 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
             Variance {showVarianceAsPercentage ? '%' : '$'}
           </button>
         </TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium">Actions</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
