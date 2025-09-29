@@ -198,17 +198,17 @@ export function BudgetTableRow({
             open={true}
           >
             <SelectTrigger 
-              className="w-20 h-7 text-xs"
+              className="h-6 border-none shadow-none bg-transparent text-xs p-0 focus:ring-0"
               onKeyDown={handleUnitKeyDown}
             >
               <SelectValue placeholder="-" />
             </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="each">EA - (e)</SelectItem>
-              <SelectItem value="square-feet">SF - (s)</SelectItem>
-              <SelectItem value="linear-feet">LF - (l)</SelectItem>
-              <SelectItem value="square-yard">SY - (y)</SelectItem>
-              <SelectItem value="cubic-yard">CY - (c)</SelectItem>
+            <SelectContent className="bg-background border shadow-md z-50">
+              <SelectItem value="each">EA</SelectItem>
+              <SelectItem value="square-feet">SF</SelectItem>
+              <SelectItem value="linear-feet">LF</SelectItem>
+              <SelectItem value="square-yard">SY</SelectItem>
+              <SelectItem value="cubic-yard">CY</SelectItem>
             </SelectContent>
           </Select>
         ) : (
