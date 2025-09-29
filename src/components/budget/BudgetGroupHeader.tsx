@@ -62,9 +62,7 @@ export function BudgetGroupHeader({
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium">
-          {formatCurrency(groupTotal)}
-        </div>
+        {/* Total moved to group total row */}
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
         {/* Empty cell for Historical column in group header */}

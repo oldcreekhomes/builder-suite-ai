@@ -6,6 +6,7 @@ import { AddBudgetModal } from './AddBudgetModal';
 import { BudgetTableHeader } from './BudgetTableHeader';
 import { BudgetGroupHeader } from './BudgetGroupHeader';
 import { BudgetTableRow } from './BudgetTableRow';
+import { BudgetGroupTotalRow } from './BudgetGroupTotalRow';
 import { BudgetTableFooter } from './BudgetTableFooter';
 import { BudgetPrintToolbar } from './BudgetPrintToolbar';
 import { BudgetPrintView } from './BudgetPrintView';
@@ -160,21 +161,35 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       groupTotal={calculateGroupTotal(items)}
                     />
                     
-                    {expandedGroups.has(group) && items.map((item) => (
-                      <BudgetTableRow
-                        key={item.id}
-                        item={item}
-                        onUpdate={handleUpdateItem}
-                        onUpdateUnit={handleUpdateUnit}
-                        onDelete={onDeleteItem}
-                        formatUnitOfMeasure={formatUnitOfMeasure}
-                        isSelected={selectedItems.has(item.id)}
-                        onCheckboxChange={handleItemCheckboxChange}
-                        isDeleting={deletingItems.has(item.id)}
-                        historicalActualCosts={historicalActualCosts}
-                        showVarianceAsPercentage={showVarianceAsPercentage}
-                      />
-                    ))}
+                    {expandedGroups.has(group) && (
+                      <>
+                        {items.map((item) => (
+                          <BudgetTableRow
+                            key={item.id}
+                            item={item}
+                            onUpdate={handleUpdateItem}
+                            onUpdateUnit={handleUpdateUnit}
+                            onDelete={onDeleteItem}
+                            formatUnitOfMeasure={formatUnitOfMeasure}
+                            isSelected={selectedItems.has(item.id)}
+                            onCheckboxChange={handleItemCheckboxChange}
+                            isDeleting={deletingItems.has(item.id)}
+                            historicalActualCosts={historicalActualCosts}
+                            showVarianceAsPercentage={showVarianceAsPercentage}
+                          />
+                        ))}
+                        <BudgetGroupTotalRow
+                          group={group}
+                          groupTotal={calculateGroupTotal(items)}
+                          historicalTotal={items.reduce((sum, item) => {
+                            const costCode = item.cost_codes;
+                            const historicalActual = historicalActualCosts[costCode?.id] || 0;
+                            return sum + historicalActual;
+                          }, 0)}
+                          showVarianceAsPercentage={showVarianceAsPercentage}
+                        />
+                      </>
+                    )}
                   </React.Fragment>
                 ))}
               </>
