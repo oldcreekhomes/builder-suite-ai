@@ -7,6 +7,7 @@ import { BudgetTableHeader } from './BudgetTableHeader';
 import { BudgetGroupHeader } from './BudgetGroupHeader';
 import { BudgetTableRow } from './BudgetTableRow';
 import { BudgetGroupTotalRow } from './BudgetGroupTotalRow';
+import { BudgetProjectTotalRow } from './BudgetProjectTotalRow';
 import { BudgetTableFooter } from './BudgetTableFooter';
 import { BudgetPrintToolbar } from './BudgetPrintToolbar';
 import { BudgetPrintView } from './BudgetPrintView';
@@ -218,6 +219,15 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     )}
                   </React.Fragment>
                 ))}
+                <BudgetProjectTotalRow
+                  totalBudget={budgetItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
+                  totalHistorical={budgetItems.reduce((sum, item) => {
+                    const costCode = item.cost_codes;
+                    const historicalActual = historicalActualCosts[costCode?.id] || 0;
+                    return sum + historicalActual;
+                  }, 0)}
+                  showVarianceAsPercentage={showVarianceAsPercentage}
+                />
               </>
             )}
           </TableBody>
