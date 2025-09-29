@@ -17,6 +17,7 @@ interface BudgetTableRowProps {
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   isDeleting?: boolean;
+  historicalActualCosts?: Record<string, number>;
 }
 
 export function BudgetTableRow({ 
@@ -27,7 +28,8 @@ export function BudgetTableRow({
   formatUnitOfMeasure,
   isSelected,
   onCheckboxChange,
-  isDeleting = false
+  isDeleting = false,
+  historicalActualCosts = {}
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -37,6 +39,7 @@ export function BudgetTableRow({
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  const historicalActual = historicalActualCosts[costCode?.id] || null;
 
   const handleQuantityBlur = () => {
     const numQuantity = parseFloat(quantity) || 0;
@@ -247,7 +250,9 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-0">
-        {/* Historical data will be displayed here based on header selection */}
+        <div className="text-xs">
+          {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
+        </div>
       </TableCell>
       <TableCell className="px-1 py-0">
         <div>

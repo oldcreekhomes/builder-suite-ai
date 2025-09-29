@@ -12,6 +12,7 @@ import { BudgetPrintView } from './BudgetPrintView';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
+import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 
 interface BudgetTableProps {
@@ -21,8 +22,10 @@ interface BudgetTableProps {
 
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
+  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
+  const { data: historicalActualCosts = {} } = useHistoricalActualCosts(selectedHistoricalProject || null);
   
   const {
     expandedGroups,
@@ -126,7 +129,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
-          <BudgetTableHeader />
+          <BudgetTableHeader 
+            selectedHistoricalProject={selectedHistoricalProject}
+            onHistoricalProjectChange={setSelectedHistoricalProject}
+          />
           <TableBody>
             {budgetItems.length === 0 ? (
               <TableRow>
@@ -162,6 +168,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
                         isDeleting={deletingItems.has(item.id)}
+                        historicalActualCosts={historicalActualCosts}
                       />
                     ))}
                   </React.Fragment>
