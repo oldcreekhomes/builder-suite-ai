@@ -177,12 +177,12 @@ export function BudgetTableRow({
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
-            className="w-24 h-7 text-xs"
+            className="w-20 h-6 text-xs px-1"
             autoFocus
           />
         ) : (
           <div 
-            className="w-24 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
             onClick={handlePriceClick}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
@@ -213,7 +213,7 @@ export function BudgetTableRow({
           </Select>
         ) : (
           <div 
-            className="w-20 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
             onClick={handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
@@ -229,12 +229,12 @@ export function BudgetTableRow({
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
-            className="w-20 h-7 text-xs"
+            className="w-16 h-6 text-xs px-1"
             autoFocus
           />
         ) : (
           <div 
-            className="w-20 h-7 px-3 py-1 text-xs cursor-pointer hover:bg-gray-100 rounded border border-transparent hover:border-gray-300 flex items-center"
+            className="text-xs cursor-pointer hover:bg-gray-100 px-1 py-1 rounded"
             onClick={handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
