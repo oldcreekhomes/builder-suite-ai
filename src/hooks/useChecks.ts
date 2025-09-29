@@ -45,6 +45,19 @@ export const useChecks = () => {
       const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
       if (!owner_id) throw new Error("Unable to determine owner");
 
+      // Get accounting settings for WIP account
+      const { data: accountingSettings } = await supabase
+        .from('accounting_settings')
+        .select('wip_account_id')
+        .eq('owner_id', owner_id)
+        .single();
+
+      // Check if we have job cost lines but no WIP account configured
+      const hasJobCostLines = checkLines.some(line => line.line_type === 'job_cost');
+      if (hasJobCostLines && !accountingSettings?.wip_account_id) {
+        throw new Error("Work in Progress account not configured in Accounting Settings. Please configure it before posting job cost checks.");
+      }
+
       // Calculate total amount from lines if not provided
       const totalAmount = checkData.amount || checkLines.reduce((sum, line) => sum + line.amount, 0);
 
@@ -114,25 +127,50 @@ export const useChecks = () => {
       // Create journal entry lines
       const journalLines = [];
       
-      // Credit the bank account (reduces cash)
-      journalLines.push({
-        journal_entry_id: journalEntry.id,
-        owner_id,
-        line_number: 1,
-        account_id: checkData.bank_account_id,
-        credit: totalAmount,
-        debit: 0,
-        memo: `Check ${checkData.check_number || check.id} to ${checkData.pay_to}`
+      // Group check lines by project to handle multi-project checks
+      const projectGroups = new Map<string | undefined, CheckLineData[]>();
+      checkLines.forEach(line => {
+        const projectKey = line.project_id || 'no-project';
+        if (!projectGroups.has(projectKey)) {
+          projectGroups.set(projectKey, []);
+        }
+        projectGroups.get(projectKey)!.push(line);
       });
 
-      // Debit the expense accounts/cost codes (records what money was spent on)
-      checkLines.forEach((line, index) => {
+      let lineNumber = 1;
+
+      // Create bank credit lines (one per project group)
+      for (const [projectKey, lines] of projectGroups) {
+        const projectAmount = lines.reduce((sum, line) => sum + line.amount, 0);
+        const projectId = projectKey === 'no-project' ? undefined : projectKey;
+        
+        journalLines.push({
+          journal_entry_id: journalEntry.id,
+          owner_id,
+          line_number: lineNumber++,
+          account_id: checkData.bank_account_id,
+          project_id: projectId,
+          credit: projectAmount,
+          debit: 0,
+          memo: `Check ${checkData.check_number || check.id} to ${checkData.pay_to}${projectId ? ` (Project)` : ''}`
+        });
+      }
+
+      // Create debit lines for expenses/WIP
+      checkLines.forEach((line) => {
         if (line.amount > 0) {
+          let debitAccountId = line.account_id;
+          
+          // For job cost lines, use WIP account instead of the provided account_id
+          if (line.line_type === 'job_cost' && accountingSettings?.wip_account_id) {
+            debitAccountId = accountingSettings.wip_account_id;
+          }
+          
           journalLines.push({
             journal_entry_id: journalEntry.id,
             owner_id,
-            line_number: index + 2,
-            account_id: line.account_id,
+            line_number: lineNumber++,
+            account_id: debitAccountId,
             cost_code_id: line.cost_code_id,
             project_id: line.project_id,
             debit: line.amount,
@@ -154,7 +192,7 @@ export const useChecks = () => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['checks'] });
       queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
-      queryClient.invalidateQueries({ queryKey: ['balance_sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       
       toast({
         title: "Check Created",
