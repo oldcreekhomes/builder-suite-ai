@@ -15,6 +15,7 @@ import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
+import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 
 interface BudgetTableProps {
   projectId: string;
@@ -64,6 +65,19 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const onGroupCheckboxChange = (group: string, checked: boolean) => {
     const groupItems = groupedBudgetItems[group] || [];
     handleGroupCheckboxChange(group, checked, groupItems);
+  };
+
+  const onBulkDelete = () => {
+    // Get all selected items from the budget data
+    const selectedBudgetItems = budgetItems.filter(item => selectedItems.has(item.id));
+    
+    // Delete each selected item
+    selectedBudgetItems.forEach(item => {
+      handleDeleteItem(item.id);
+    });
+    
+    // Clean up UI state after deletion
+    removeDeletedItemsFromSelection(selectedBudgetItems);
   };
 
   const handlePrint = () => {
@@ -125,9 +139,21 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }
   };
 
+  const selectedCount = selectedItems.size;
+  const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
+
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar onPrint={handlePrint} onAddBudget={() => setShowAddBudgetModal(true)} />
+
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          selectedFolderCount={0}
+          onBulkDelete={onBulkDelete}
+          isDeleting={isDeletingSelected}
+        />
+      )}
 
       <div className="border rounded-lg overflow-hidden">
         <Table>

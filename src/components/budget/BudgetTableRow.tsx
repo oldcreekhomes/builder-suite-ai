@@ -287,20 +287,18 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-0 w-20">
-        {isSelected && (
-          <div>
-            <DeleteButton
-              onDelete={() => onDelete(item.id)}
-              title="Delete Budget Item"
-              description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-              size="sm"
-              variant="ghost"
-              isLoading={isDeleting}
-              showIcon={true}
-              className="tabindex-[-1]"
-            />
-          </div>
-        )}
+        <div>
+          <DeleteButton
+            onDelete={() => onDelete(item.id)}
+            title="Delete Budget Item"
+            description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+            size="sm"
+            variant="ghost"
+            isLoading={isDeleting}
+            showIcon={true}
+            className="tabindex-[-1]"
+          />
+        </div>
       </TableCell>
     </TableRow>
   );
