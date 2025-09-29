@@ -17,7 +17,7 @@ export function BudgetPrintToolbar({ onPrint, onAddBudget }: BudgetPrintToolbarP
       <div className="flex items-center gap-2">
         <Button onClick={onAddBudget} variant="outline" size="sm">
           <Plus className="h-4 w-4 mr-2" />
-          Add Budget
+          Budget
         </Button>
         <Button onClick={onPrint} variant="outline" size="sm">
           <Printer className="h-4 w-4 mr-2" />
