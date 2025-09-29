@@ -84,6 +84,9 @@ export function ActualGroupHeader({
           {formatCurrency(variance)}
         </div>
       </TableCell>
+      <TableCell className="px-1 py-0">
+        {/* Empty cell for Historical column in group header */}
+      </TableCell>
     </TableRow>
   );
 }
