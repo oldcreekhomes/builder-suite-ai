@@ -21,7 +21,7 @@ export function BudgetPrintToolbar({ onPrint, onAddBudget }: BudgetPrintToolbarP
         </Button>
         <Button onClick={onPrint} variant="outline" size="sm">
           <Printer className="h-4 w-4 mr-2" />
-          Print Budget
+          Print
         </Button>
       </div>
     </div>

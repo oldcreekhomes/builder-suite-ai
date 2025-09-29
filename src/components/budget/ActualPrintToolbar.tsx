@@ -15,7 +15,7 @@ export function ActualPrintToolbar({ onPrint }: ActualPrintToolbarProps) {
       <div className="flex items-center gap-2">
         <Button onClick={onPrint} variant="outline" size="sm">
           <Printer className="h-4 w-4 mr-2" />
-          Print Budget
+          Print
         </Button>
       </div>
     </div>
