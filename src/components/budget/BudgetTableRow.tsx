@@ -65,7 +65,7 @@ export function BudgetTableRow({
     if (showVarianceAsPercentage) {
       return `${variance > 0 ? '+' : ''}${variance.toFixed(1)}%`;
     }
-    return `${variance > 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`;
+    return `${variance > 0 ? '+' : '-'}${formatCurrency(Math.abs(variance))}`;
   };
 
   const handleQuantityBlur = () => {
