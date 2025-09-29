@@ -37,11 +37,12 @@ export function ActualCostsImportDialog({
 
   const downloadTemplate = () => {
     const templateData = [
-      { 'Cost Code': 'Example: 4010', 'Actual Amount': 1500.00, 'Description': 'Foundation Work' },
+      { 'Cost Code': '4010', 'Actual Amount': 1500.00 },
+      { 'Cost Code': '4020', 'Actual Amount': 2300.00 },
+      { 'Cost Code': '4030', 'Actual Amount': 800.00 },
       ...budgetItems.slice(0, 10).map(item => ({
         'Cost Code': item.cost_codes?.code || '',
-        'Actual Amount': 0,
-        'Description': item.cost_codes?.name || ''
+        'Actual Amount': 0
       }))
     ];
 
@@ -50,11 +51,9 @@ export function ActualCostsImportDialog({
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Actual Costs');
     
     // Auto-size columns
-    const maxWidth = templateData.reduce((w, r) => Math.max(w, r['Cost Code']?.length || 0), 10);
     worksheet['!cols'] = [
-      { wch: Math.max(maxWidth, 10) },
       { wch: 15 },
-      { wch: 30 }
+      { wch: 15 }
     ];
 
     XLSX.writeFile(workbook, 'actual_costs_template.xlsx');
@@ -116,10 +115,9 @@ export function ActualCostsImportDialog({
 
     for (const row of data) {
       try {
-        // Try different possible column names for cost code
+        // Get cost code and actual amount from row
         const costCode = row['Cost Code'] || row['Code'] || row['cost_code'] || row['code'];
-        // Try different possible column names for actual amount
-        const actualAmount = row['Actual Amount'] || row['Actual Cost'] || row['actual_amount'] || row['amount'];
+        const actualAmount = row['Actual Amount'] || row['Total'] || row['Amount'] || row['actual_amount'] || row['total'] || row['amount'];
 
         if (!costCode || actualAmount === undefined || actualAmount === null) {
           continue; // Skip rows without required data
@@ -177,11 +175,10 @@ export function ActualCostsImportDialog({
 
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-2">Expected Excel format:</p>
+            <p className="font-medium mb-2">Required Excel format:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li><strong>Cost Code</strong>: Must match existing budget cost codes</li>
-              <li><strong>Actual Amount</strong>: Numerical amount spent</li>
-              <li><strong>Description</strong>: Optional, for reference</li>
+              <li><strong>Actual Amount</strong>: Total amount spent for that cost code</li>
             </ul>
           </div>
 
