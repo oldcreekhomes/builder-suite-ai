@@ -249,7 +249,7 @@ export function BudgetTableRow({
           {formatCurrency(total)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-24">
         <div className="text-xs">
           {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
         </div>

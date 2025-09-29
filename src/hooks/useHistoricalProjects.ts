@@ -20,9 +20,13 @@ export function useHistoricalProjects() {
       const uniqueProjects = data.reduce((acc: any[], item) => {
         const existingProject = acc.find(p => p.id === item.project_id);
         if (!existingProject) {
+          // Parse address to get just street address (remove city, state, zip)
+          const fullAddress = item.projects.address;
+          const streetAddress = fullAddress.split(',')[0].trim(); // Take only the first part before comma
+          
           acc.push({
             id: item.project_id,
-            address: item.projects.address
+            address: streetAddress
           });
         }
         return acc;
