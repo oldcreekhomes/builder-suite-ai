@@ -277,7 +277,7 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
-        <div className="text-xs">
+        <div className="text-xs -ml-3">
           {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
         </div>
       </TableCell>
