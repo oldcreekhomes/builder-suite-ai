@@ -198,7 +198,7 @@ export function BudgetTableRow({
           {costCode?.name}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-20">
+      <TableCell className="px-3 py-0 w-32">
         {isEditingPrice ? (
           <input
             type="number"
@@ -206,20 +206,20 @@ export function BudgetTableRow({
             onChange={(e) => setUnitPrice(e.target.value)}
             onBlur={handleUnitPriceBlur}
             onKeyDown={handleUnitPriceKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-right w-full"
             onClick={handlePriceClick}
           >
             ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0 w-16">
+      <TableCell className="px-3 py-0 w-20">
         {isEditingUnit ? (
           <Select 
             value={costCode?.unit_of_measure || ""} 
@@ -243,14 +243,14 @@ export function BudgetTableRow({
           </Select>
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-center w-full"
             onClick={handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0 w-20">
+      <TableCell className="px-3 py-0 w-24">
         {isEditingQuantity ? (
           <input
             type="number"
@@ -258,31 +258,31 @@ export function BudgetTableRow({
             onChange={(e) => setQuantity(e.target.value)}
             onBlur={handleQuantityBlur}
             onKeyDown={handleQuantityKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
             autoFocus
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-right w-full"
             onClick={handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
           </span>
         )}
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
-        <div className="text-xs font-medium">
+      <TableCell className="px-3 py-0 w-32">
+        <div className="text-xs font-medium text-right">
           {formatCurrency(total)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
-        <div className="text-xs">
+      <TableCell className="px-3 py-0 w-32">
+        <div className="text-xs text-right">
           {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
-        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium text-right ${getVarianceColor(variance)}`}>
           {formatVariance(variance)}
         </div>
       </TableCell>

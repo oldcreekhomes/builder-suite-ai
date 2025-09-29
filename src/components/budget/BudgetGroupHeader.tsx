@@ -61,15 +61,15 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
-        <div className="text-xs font-medium">
+      <TableCell className="px-3 py-0 w-32">
+        <div className="text-xs font-medium text-right">
           {formatCurrency(groupTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
+      <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Historical column in group header */}
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
+      <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Variance column in group header */}
       </TableCell>
       <TableCell className="px-1 py-0 w-20">

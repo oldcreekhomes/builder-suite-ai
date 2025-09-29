@@ -20,11 +20,11 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-12"></TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Cost Code</TableHead>
         <TableHead className="h-8 px-1 py-0 text-xs font-medium w-40">Name</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Price</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-16">Unit</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20">Quantity</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">Total</TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32 text-right">Price</TableHead>
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-20 text-center">Unit</TableHead>
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-24 text-right">Quantity</TableHead>
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32 text-right">Total</TableHead>
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32 text-right">
           {historicalProjects.length > 0 && (
             <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
               <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-full justify-start">
@@ -41,7 +41,7 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
           )}
           {historicalProjects.length === 0 && "Historical"}
         </TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-24">
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32 text-right">
           <button
             onClick={onToggleVarianceMode}
             className="text-xs font-medium hover:bg-muted rounded px-1 py-0.5"
