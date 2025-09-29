@@ -4,6 +4,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 
 interface BudgetGroupHeaderProps {
   group: string;
@@ -16,6 +18,8 @@ interface BudgetGroupHeaderProps {
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
   groupTotal: number;
+  selectedHistoricalProject: string;
+  onHistoricalProjectChange: (projectId: string) => void;
 }
 
 export function BudgetGroupHeader({ 
@@ -27,8 +31,11 @@ export function BudgetGroupHeader({
   onCheckboxChange,
   onDeleteGroup,
   isDeleting = false,
-  groupTotal
+  groupTotal,
+  selectedHistoricalProject,
+  onHistoricalProjectChange
 }: BudgetGroupHeaderProps) {
+  const { data: historicalProjects = [] } = useHistoricalProjects();
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
@@ -65,7 +72,22 @@ export function BudgetGroupHeader({
         {/* Total moved to group total row */}
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
-        {/* Empty cell for Historical column in group header */}
+        <div className="flex items-center -ml-3">
+          {historicalProjects.length > 0 && (
+            <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
+              <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-gray-100 w-auto justify-start p-0 pl-1">
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border shadow-lg z-50">
+                {historicalProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id} className="text-xs">
+                    {project.address}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Variance column in group header */}

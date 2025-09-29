@@ -53,7 +53,7 @@ export function BudgetGroupTotalRow({
       </TableCell>
       <TableCell className="px-1 py-0 w-40">
         <div className="text-xs">
-          Total
+          Total Budget
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
