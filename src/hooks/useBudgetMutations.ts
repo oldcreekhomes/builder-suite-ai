@@ -154,12 +154,47 @@ export function useBudgetMutations(projectId: string) {
     deleteGroupMutation.mutate({ group, groupItems });
   };
 
+  // Update actual amount mutation
+  const updateActualMutation = useMutation({
+    mutationFn: async ({ id, actual_amount }: { id: string; actual_amount: number }) => {
+      const { data, error } = await supabase
+        .from('project_budgets')
+        .update({ actual_amount } as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      toast({
+        title: "Success",
+        description: "Actual amount updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating actual amount:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update actual amount",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateActual = (id: string, actual_amount: number) => {
+    updateActualMutation.mutate({ id, actual_amount });
+  };
+
   return {
     deletingGroups,
     deletingItems,
     handleUpdateItem,
     handleUpdateUnit,
     handleDeleteItem,
-    handleDeleteGroup
+    handleDeleteGroup,
+    handleUpdateActual
   };
 }

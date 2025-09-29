@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { BudgetTable } from "@/components/budget/BudgetTable";
+import { BudgetTabs } from "@/components/budget/BudgetTabs";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBudget() {
@@ -50,7 +50,7 @@ export default function ProjectBudget() {
           />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <BudgetTable 
+            <BudgetTabs 
               projectId={projectId} 
               projectAddress={project?.address}
             />
