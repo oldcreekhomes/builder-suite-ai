@@ -54,24 +54,44 @@ export function BudgetProjectTotalRow({
 
   return (
     <TableRow className="bg-gray-50 h-8 border-b border-gray-200">
-      <TableCell className="px-3 py-0 w-12"></TableCell>
-      <TableCell className="px-3 py-0 w-20"></TableCell>
-      <TableCell className="px-3 py-0 w-40 text-xs font-medium">
-        Total Project Costs
+      <TableCell className="px-1 py-0 w-12">
+        {/* Empty checkbox cell */}
       </TableCell>
-      <TableCell className="px-3 py-0 w-32"></TableCell>
-      <TableCell className="px-3 py-0 w-20"></TableCell>
-      <TableCell className="px-3 py-0 w-24"></TableCell>
-      <TableCell className="px-3 py-0 w-32 text-xs font-medium text-right">
-        {formatCurrency(totalBudget)}
+      <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '50px' }}>
+        {/* Empty code cell */}
       </TableCell>
-      <TableCell className="px-3 py-0 w-48 text-xs font-medium text-right">
-        {formatCurrency(totalHistorical)}
+      <TableCell className="px-1 py-0 w-40">
+        <div className="text-xs font-medium">
+          Total Project Costs
+        </div>
       </TableCell>
-      <TableCell className={`px-3 py-0 w-32 text-xs font-medium text-right ${getVarianceColor(variance)}`}>
-        {formatVariance(variance)}
+      <TableCell className="px-3 py-0 w-32">
+        {/* Empty price cell */}
       </TableCell>
-      <TableCell className="px-3 py-0 w-20"></TableCell>
+      <TableCell className="px-3 py-0 w-20">
+        {/* Empty unit cell */}
+      </TableCell>
+      <TableCell className="px-3 py-0 w-24">
+        {/* Empty quantity cell */}
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className="text-xs font-medium">
+          {formatCurrency(totalBudget)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-48">
+        <div className="text-xs -ml-3">
+          {formatCurrency(totalHistorical)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+          {formatVariance(variance)}
+        </div>
+      </TableCell>
+      <TableCell className="px-1 py-0 w-20">
+        {/* Empty actions cell */}
+      </TableCell>
     </TableRow>
   );
 }
