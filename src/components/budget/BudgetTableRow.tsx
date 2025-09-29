@@ -193,7 +193,7 @@ export function BudgetTableRow({
           {costCode?.code}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-20">
         <div className="text-xs">
           {costCode?.name}
         </div>
