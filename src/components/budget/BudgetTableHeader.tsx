@@ -25,21 +25,23 @@ export function BudgetTableHeader({ selectedHistoricalProject, onHistoricalProje
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-24">Quantity</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">Total</TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
-          {historicalProjects.length > 0 && (
-            <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
-              <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-full justify-start">
-                <SelectValue placeholder="Historical" />
-              </SelectTrigger>
-              <SelectContent>
-                {historicalProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id} className="text-xs">
-                    {project.address}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {historicalProjects.length === 0 && "Historical"}
+          <div className="flex items-start">
+            {historicalProjects.length > 0 && (
+              <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
+                <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-full justify-start p-0">
+                  <SelectValue placeholder="Historical" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border shadow-lg z-50">
+                  {historicalProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id} className="text-xs">
+                      {project.address}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {historicalProjects.length === 0 && "Historical"}
+          </div>
         </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button
