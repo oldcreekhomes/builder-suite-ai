@@ -21,10 +21,9 @@ interface Transaction {
   date: string;
   description: string;
   memo: string | null;
+  source_type: string;
   debit: number;
   credit: number;
-  project_name: string | null;
-  cost_code: string | null;
 }
 
 interface AccountDetailDialogProps {
@@ -59,15 +58,11 @@ export function AccountDetailDialog({
           memo,
           debit,
           credit,
-          project_id,
-          cost_code_id,
           journal_entries!inner(
             entry_date,
             description,
             source_type
-          ),
-          projects(address),
-          cost_codes(code, name)
+          )
         `)
         .eq('account_id', accountId);
 
@@ -83,10 +78,9 @@ export function AccountDetailDialog({
         date: line.journal_entries.entry_date,
         description: line.journal_entries.description || line.journal_entries.source_type,
         memo: line.memo,
+        source_type: line.journal_entries.source_type,
         debit: line.debit || 0,
         credit: line.credit || 0,
-        project_name: line.projects?.address || null,
-        cost_code: line.cost_codes ? `${line.cost_codes.code} - ${line.cost_codes.name}` : null,
       }));
 
       // Sort by date
@@ -154,8 +148,6 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Cost Code</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
@@ -169,17 +161,13 @@ export function AccountDetailDialog({
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{txn.description}</div>
+                        <div className="font-medium">
+                          {txn.description}
+                        </div>
                         {txn.memo && (
                           <div className="text-xs text-muted-foreground">{txn.memo}</div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {txn.project_name || '-'}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {txn.cost_code || '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}
