@@ -201,7 +201,7 @@ export function EditCostCodeDialog({
             {/* Row 5: Sub Categories with Buttons */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="has_subcategories">Sub Categories</Label>
+                <Label htmlFor="has_subcategories">Has Sub Categories</Label>
                 <Select value={formData.has_subcategories} onValueChange={(value) => handleInputChange("has_subcategories", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />

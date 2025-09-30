@@ -195,7 +195,7 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
             <div className="grid grid-cols-2 gap-4">
               {/* Sub Categories */}
               <div className="space-y-2">
-                <Label htmlFor="hasSubcategories">Sub Categories</Label>
+                <Label htmlFor="hasSubcategories">Has Sub Categories</Label>
                 <Select value={formData.hasSubcategories} onValueChange={(value) => handleInputChange("hasSubcategories", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />
