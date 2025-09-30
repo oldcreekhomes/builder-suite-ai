@@ -58,7 +58,7 @@ export const AccountSearchInput = ({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("justify-between", className)}
+          className={cn("justify-between cursor-pointer", className)}
         >
           {selectedAccount ? (
             <span className="truncate">
@@ -80,7 +80,12 @@ export const AccountSearchInput = ({
                 <CommandItem
                   key={account.id}
                   value={`${account.code} ${account.name}`}
+                  className="cursor-pointer"
                   onSelect={() => {
+                    onChange(account.id);
+                    setOpen(false);
+                  }}
+                  onClick={() => {
                     onChange(account.id);
                     setOpen(false);
                   }}

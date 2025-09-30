@@ -50,9 +50,8 @@ export default function WriteChecks() {
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
   const [companyCityState, setCompanyCityState] = useState<string>("City, State 12345");
   
-  // Dollar amount state (can override calculated total)
-  const [manualAmount, setManualAmount] = useState<string>("");
-  const [useManualAmount, setUseManualAmount] = useState<boolean>(false);
+  // Track validation errors for rows
+  const [rowErrors, setRowErrors] = useState<Record<string, boolean>>({});
   
   // Bank details state
   const [routingNumber, setRoutingNumber] = useState<string>("123456789");
@@ -118,6 +117,10 @@ export default function WriteChecks() {
     setJobCostRows(jobCostRows.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
+    // Clear error when user selects an account
+    if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   const addExpenseRow = () => {
@@ -143,6 +146,10 @@ export default function WriteChecks() {
     setExpenseRows(expenseRows.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
+    // Clear error when user selects an account
+    if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   const calculateTotal = () => {
@@ -162,8 +169,15 @@ export default function WriteChecks() {
   };
 
   const getDisplayAmount = () => {
-    const amount = useManualAmount && manualAmount ? parseFloat(manualAmount).toFixed(2) : calculateTotal();
+    const amount = calculateTotal();
     return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Validate a row has account/cost code selected if it has an amount
+  const validateRowSelection = (row: CheckRow) => {
+    const hasAmount = amountOfRow(row) > 0;
+    const hasSelection = !!row.accountId;
+    return !hasAmount || hasSelection;
   };
 
   const numberToWords = (num: number): string => {
@@ -289,6 +303,7 @@ export default function WriteChecks() {
   };
 
   const handleSaveAndClose = async () => {
+    // Validate required fields
     if (!payTo) {
       toast({
         title: "Validation Error",
@@ -311,22 +326,29 @@ export default function WriteChecks() {
     const resolvedJobCost = resolveRowsForSave(jobCostRows, 'job');
     const resolvedExpense = resolveRowsForSave(expenseRows, 'exp');
 
-    // Validate rows after resolution
-    const invalidJobCost = resolvedJobCost.filter(row => amountOfRow(row) > 0 && !row.accountId);
+    // Validate rows have proper selections
+    const invalidJobCost = resolvedJobCost.filter(row => !validateRowSelection(row));
+    const invalidExpense = resolvedExpense.filter(row => !validateRowSelection(row));
+
+    // Mark invalid rows
+    const errors: Record<string, boolean> = {};
+    invalidJobCost.forEach(row => errors[row.id] = true);
+    invalidExpense.forEach(row => errors[row.id] = true);
+    setRowErrors(errors);
+
     if (invalidJobCost.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please select a cost code from the dropdown for all job cost lines with an amount.",
+        description: "For every line with an amount, select a cost code (Job Cost) or an expense account (Expense).",
         variant: "destructive",
       });
       return;
     }
 
-    const invalidExpense = resolvedExpense.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidExpense.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please select an account from the dropdown for all expense lines with an amount.",
+        description: "For every line with an amount, select a cost code (Job Cost) or an expense account (Expense).",
         variant: "destructive",
       });
       return;
@@ -400,6 +422,7 @@ export default function WriteChecks() {
   };
 
   const handleSaveAndNew = async () => {
+    // Validate required fields
     if (!payTo) {
       toast({
         title: "Validation Error",
@@ -422,22 +445,29 @@ export default function WriteChecks() {
     const resolvedJobCost = resolveRowsForSave(jobCostRows, 'job');
     const resolvedExpense = resolveRowsForSave(expenseRows, 'exp');
 
-    // Validate rows after resolution
-    const invalidJobCost = resolvedJobCost.filter(row => amountOfRow(row) > 0 && !row.accountId);
+    // Validate rows have proper selections
+    const invalidJobCost = resolvedJobCost.filter(row => !validateRowSelection(row));
+    const invalidExpense = resolvedExpense.filter(row => !validateRowSelection(row));
+
+    // Mark invalid rows
+    const errors: Record<string, boolean> = {};
+    invalidJobCost.forEach(row => errors[row.id] = true);
+    invalidExpense.forEach(row => errors[row.id] = true);
+    setRowErrors(errors);
+
     if (invalidJobCost.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please select a cost code from the dropdown for all job cost lines with an amount.",
+        description: "For every line with an amount, select a cost code (Job Cost) or an expense account (Expense).",
         variant: "destructive",
       });
       return;
     }
 
-    const invalidExpense = resolvedExpense.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidExpense.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please select an account from the dropdown for all expense lines with an amount.",
+        description: "For every line with an amount, select a cost code (Job Cost) or an expense account (Expense).",
         variant: "destructive",
       });
       return;
@@ -522,8 +552,6 @@ export default function WriteChecks() {
     setCompanyName("Your Company Name");
     setCompanyAddress("123 Business Street");
     setCompanyCityState("City, State 12345");
-    setManualAmount("");
-    setUseManualAmount(false);
     setRoutingNumber("123456789");
     setAccountNumber("1234567890");
     setBankName("Your Bank Name");
@@ -629,34 +657,11 @@ export default function WriteChecks() {
                           />
                         </div>
                       </div>
-                      <div className="border-2 border-gray-400 px-3 py-1 min-w-[140px] text-right relative">
+                      <div className="border-2 border-gray-400 px-3 py-1 min-w-[140px] text-right">
                         <span className="text-sm text-gray-600">$</span>
-                        <Input
-                          type="text"
-                          value={useManualAmount ? manualAmount : getDisplayAmount()}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/,/g, '');
-                            if (!isNaN(Number(value)) || value === '') {
-                              setManualAmount(value);
-                              setUseManualAmount(true);
-                            }
-                          }}
-                          onFocus={() => setUseManualAmount(true)}
-                          className="inline-block w-24 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
-                          placeholder="0.00"
-                        />
-                        {useManualAmount && (
-                          <button
-                            onClick={() => {
-                              setUseManualAmount(false);
-                              setManualAmount("");
-                            }}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center hover:bg-red-600"
-                            title="Reset to calculated amount"
-                          >
-                            ×
-                          </button>
-                        )}
+                        <span className="inline-block w-24 text-xl font-bold ml-1">
+                          {getDisplayAmount()}
+                        </span>
                       </div>
                     </div>
 
@@ -742,8 +747,11 @@ export default function WriteChecks() {
                                   updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
                                 }}
                                 placeholder="Select cost code..."
-                                className="h-8"
+                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
                               />
+                              {rowErrors[row.id] && (
+                                <p className="text-xs text-red-500 mt-1">Select a cost code</p>
+                              )}
                             </div>
                             <div className="col-span-2">
                               <JobSearchInput
@@ -773,7 +781,8 @@ export default function WriteChecks() {
                                 value={row.quantity || "1"}
                                 onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={!row.accountId}
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                               />
                             </div>
                             <div className="col-span-1">
@@ -785,7 +794,8 @@ export default function WriteChecks() {
                                   value={row.amount}
                                   onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  disabled={!row.accountId}
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                                 />
                               </div>
                             </div>
@@ -855,8 +865,11 @@ export default function WriteChecks() {
                                 }}
                                 placeholder="Select account"
                                 accountType="expense"
-                                className="h-8"
+                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
                               />
+                              {rowErrors[row.id] && (
+                                <p className="text-xs text-red-500 mt-1">Select an expense account</p>
+                              )}
                             </div>
                             <div className="col-span-2">
                               <JobSearchInput
@@ -886,7 +899,8 @@ export default function WriteChecks() {
                                 value={row.quantity || "1"}
                                 onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={!row.accountId}
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                               />
                             </div>
                             <div className="col-span-1">
@@ -898,7 +912,8 @@ export default function WriteChecks() {
                                   value={row.amount}
                                   onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  disabled={!row.accountId}
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                                 />
                               </div>
                             </div>
@@ -928,25 +943,7 @@ export default function WriteChecks() {
                 {/* Total and Action Buttons */}
                 <div className="flex justify-between items-center pt-4 border-t">
                   <div className="text-lg font-semibold">
-                    Calculated Total: ${calculateTotal()}
-                    {useManualAmount && (
-                      <div className="text-sm text-gray-500">
-                        (Check Amount: ${getDisplayAmount()})
-                        <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-8 font-medium">Total:</div>
-                            <div className="col-span-1 font-medium">
-                              ${expenseRows.reduce((total, row) => {
-                                const q = parseFloat(row.quantity || "0") || 0;
-                                const c = parseFloat(row.amount || "0") || 0;
-                                return total + q * c;
-                              }, 0).toFixed(2)}
-                            </div>
-                            <div className="col-span-3"></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    Total: ${calculateTotal()}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleClear}>
