@@ -98,8 +98,8 @@ export function CostCodesTable({
                     return !costCode.parent_group || costCode.code === groupKey;
                   })
                   .map((costCode) => {
-                    // Always get children - let CostCodeTableRow determine if expandable
-                    const children = groupCostCodes.filter(cc => cc.parent_group === costCode.code);
+                    // Always get children from the full costCodes array, not just the group
+                    const children = costCodes.filter(cc => cc.parent_group === costCode.code);
                     
                     return (
                       <CostCodeTableRow
