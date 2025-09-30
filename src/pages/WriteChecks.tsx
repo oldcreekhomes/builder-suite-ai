@@ -703,7 +703,7 @@ export default function WriteChecks() {
                     </div>
 
                     {/* Bank account and signature aligned by bottom edge */}
-                    <div className="flex items-end justify-between pt-8 pb-6">
+                    <div className="flex items-end justify-between pt-8 pb-8">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">BANK ACCOUNT</span>
                         <div className="w-64 border-b-2 border-gray-400">
@@ -717,7 +717,7 @@ export default function WriteChecks() {
                           />
                         </div>
                       </div>
-                        <div className="w-80 text-center relative pb-6">
+                        <div className="w-80 text-center relative">
                           <div className="border-b-2 border-gray-400 h-8"></div>
                           <span className="absolute left-1/2 -translate-x-1/2 top-full mt-3 text-xs text-gray-600">Authorized Signature</span>
                         </div>
