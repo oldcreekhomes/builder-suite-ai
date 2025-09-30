@@ -10,25 +10,47 @@ export const useCostCodeHandlers = (
 ) => {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
-    // Initialize with all codes that have subcategories (collapsed by default)
+    // Initialize with all codes that have subcategories OR are referenced as parents
     const initialCollapsed = new Set<string>();
+    const referencedAsParent = new Set<string>();
+    
+    // Find all codes referenced as parent_group
     costCodes.forEach(cc => {
-      if (cc.has_subcategories) {
+      if (cc.parent_group) {
+        referencedAsParent.add(cc.parent_group);
+      }
+    });
+    
+    // Add codes that have subcategories OR are referenced as parents
+    costCodes.forEach(cc => {
+      if (cc.has_subcategories || referencedAsParent.has(cc.code)) {
         initialCollapsed.add(cc.code);
       }
     });
+    
     return initialCollapsed;
   });
 
-  // Update collapsed state when new cost codes with subcategories are added
+  // Update collapsed state when new cost codes with subcategories or parents are added
   useEffect(() => {
     setCollapsedGroups(prev => {
       const updated = new Set(prev);
+      const referencedAsParent = new Set<string>();
+      
+      // Find all codes referenced as parent_group
       costCodes.forEach(cc => {
-        if (cc.has_subcategories && !updated.has(cc.code)) {
+        if (cc.parent_group) {
+          referencedAsParent.add(cc.parent_group);
+        }
+      });
+      
+      // Add new parent codes to collapsed state
+      costCodes.forEach(cc => {
+        if ((cc.has_subcategories || referencedAsParent.has(cc.code)) && !updated.has(cc.code)) {
           updated.add(cc.code);
         }
       });
+      
       return updated;
     });
   }, [costCodes.length]);

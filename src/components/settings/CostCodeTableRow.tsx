@@ -37,7 +37,9 @@ export function CostCodeTableRow({
   onAddSubcategory,
   level = 0
 }: CostCodeTableRowProps) {
-  const hasSubcategories = costCode.has_subcategories;
+  // Determine if this row is expandable based on actual children OR has_subcategories flag
+  const hasChildren = childCodes.length > 0;
+  const isExpandable = hasChildren || costCode.has_subcategories;
   const indentLevel = isGrouped ? 1 : level;
   
   return (
@@ -51,7 +53,7 @@ export function CostCodeTableRow({
         </TableCell>
         <TableCell className="font-medium py-1 text-sm">
           <div className="flex items-center gap-1" style={{ paddingLeft: `${indentLevel * 24}px` }}>
-            {hasSubcategories && onToggleExpand && (
+            {isExpandable && onToggleExpand && (
               <button
                 onClick={() => onToggleExpand(costCode.code)}
                 className="p-0 hover:bg-accent rounded"
@@ -127,7 +129,7 @@ export function CostCodeTableRow({
       </TableRow>
 
       {/* Render child rows when expanded */}
-      {hasSubcategories && isExpanded && (
+      {isExpandable && isExpanded && (
         <>
           {childCodes.map((childCode) => (
             <CostCodeTableRow

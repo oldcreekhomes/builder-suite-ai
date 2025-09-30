@@ -96,10 +96,8 @@ export function CostCodesTable({
                     return !costCode.parent_group || costCode.code === groupKey;
                   })
                   .map((costCode) => {
-                    // Get children for this cost code if it has subcategories
-                    const children = costCode.has_subcategories 
-                      ? groupCostCodes.filter(cc => cc.parent_group === costCode.code)
-                      : [];
+                    // Always get children - let CostCodeTableRow determine if expandable
+                    const children = groupCostCodes.filter(cc => cc.parent_group === costCode.code);
                     
                     return (
                       <CostCodeTableRow
