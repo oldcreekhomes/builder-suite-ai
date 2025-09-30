@@ -9,7 +9,7 @@ type CostCode = Tables<'cost_codes'>;
 
 interface CostCodeInlineEditorProps {
   costCode: CostCode;
-  field: 'quantity' | 'price' | 'unit_of_measure' | 'has_specifications' | 'has_bidding';
+  field: 'quantity' | 'price' | 'unit_of_measure' | 'has_specifications' | 'has_bidding' | 'has_subcategories';
   onUpdate: (costCodeId: string, updates: any) => void;
 }
 
@@ -27,6 +27,8 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
         return costCode.has_specifications ? 'yes' : 'no';
       case 'has_bidding':
         return costCode.has_bidding ? 'yes' : 'no';
+      case 'has_subcategories':
+        return costCode.has_subcategories ? 'yes' : 'no';
       default:
         return '';
     }
@@ -65,6 +67,9 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       case 'has_bidding':
         updateData.has_bidding = value === 'yes';
         break;
+      case 'has_subcategories':
+        updateData.has_subcategories = value === 'yes';
+        break;
     }
     
     onUpdate(costCode.id, updateData);
@@ -89,6 +94,9 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       case 'has_bidding':
         setValue(costCode.has_bidding ? 'yes' : 'no');
         break;
+      case 'has_subcategories':
+        setValue(costCode.has_subcategories ? 'yes' : 'no');
+        break;
     }
     setIsEditing(false);
   };
@@ -105,6 +113,8 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
         return costCode.has_specifications ? "Yes" : "No";
       case 'has_bidding':
         return costCode.has_bidding ? "Yes" : "No";
+      case 'has_subcategories':
+        return costCode.has_subcategories ? "Yes" : "No";
       default:
         return "-";
     }
@@ -122,7 +132,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
     );
   }
 
-  if (field === 'has_specifications' || field === 'has_bidding') {
+  if (field === 'has_specifications' || field === 'has_bidding' || field === 'has_subcategories') {
     return (
       <Select 
         value={value} 

@@ -77,6 +77,13 @@ export function CostCodeTableRow({
         />
       </TableCell>
       <TableCell className="py-1">
+        <CostCodeInlineEditor
+          costCode={costCode}
+          field="has_subcategories"
+          onUpdate={onUpdate}
+        />
+      </TableCell>
+      <TableCell className="py-1">
         <div className="flex gap-1">
           <Button variant="ghost" size="sm" onClick={() => onEdit(costCode)}>
             <Edit className="h-4 w-4" />

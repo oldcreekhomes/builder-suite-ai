@@ -61,19 +61,20 @@ export function CostCodesTable({
             <TableHead className="font-bold py-2 text-sm">Unit</TableHead>
             <TableHead className="font-bold py-2 text-sm">Specifications</TableHead>
             <TableHead className="font-bold py-2 text-sm">Bidding</TableHead>
+            <TableHead className="font-bold py-2 text-sm">Sub Categories</TableHead>
             <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8">
+              <TableCell colSpan={10} className="text-center py-8">
                 Loading cost codes...
               </TableCell>
             </TableRow>
           ) : costCodes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                 No cost codes found. Add some or import from Excel.
               </TableCell>
             </TableRow>

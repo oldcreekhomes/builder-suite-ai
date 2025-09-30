@@ -107,6 +107,15 @@ export function CostCodeGroupRow({
       </TableCell>
       <TableCell className="py-1">
         {parentCostCode && (
+          <CostCodeInlineEditor
+            costCode={parentCostCode}
+            field="has_subcategories"
+            onUpdate={onUpdate}
+          />
+        )}
+      </TableCell>
+      <TableCell className="py-1">
+        {parentCostCode && (
           <div className="flex gap-1">
             <Button 
               variant="ghost" 
