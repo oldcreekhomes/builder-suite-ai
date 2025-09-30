@@ -397,41 +397,39 @@ export default function WriteChecks() {
                         />
                       </div>
                       <div className="space-y-3">
-                        <div className="flex items-center gap-8">
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-gray-600">DATE</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-32 justify-start text-left font-normal border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent",
-                                    !checkDate && "text-muted-foreground"
-                                  )}
-                                >
-                                  {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={checkDate}
-                                  onSelect={setCheckDate}
-                                  initialFocus
-                                  className="p-3 pointer-events-auto"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 justify-end">
-                          <Label className="text-xs text-gray-600">CHECK #</Label>
+                        <div className="flex items-center justify-end">
+                          <Label className="text-xs text-gray-600 mr-2">CHECK #</Label>
                           <Input 
                             value={checkNumber}
                             onChange={(e) => setCheckNumber(e.target.value)}
                             placeholder="001"
-                            className="w-20 text-center border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono"
+                            className="w-32 text-center border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono"
                           />
+                        </div>
+                        <div className="flex items-center justify-end">
+                          <Label className="text-xs text-gray-600 mr-2">DATE</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-32 justify-start text-left font-normal border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent",
+                                  !checkDate && "text-muted-foreground"
+                                )}
+                              >
+                                {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={checkDate}
+                                onSelect={setCheckDate}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
                     </div>
@@ -490,20 +488,20 @@ export default function WriteChecks() {
                       <span className="text-sm font-medium pr-2">DOLLARS</span>
                     </div>
 
-                    {/* Memo and signature on same line */}
-                    <div className="flex items-center justify-between pt-8">
+                    {/* Memo and signature aligned by bottom edge */}
+                    <div className="flex items-end justify-between pt-8">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">MEMO</span>
-                        <div className="w-64 border-b border-gray-400">
+                        <div className="w-64 border-b-2 border-gray-400 h-8">
                           <Input
                             placeholder="Optional memo..."
-                            className="border-0 bg-transparent h-7 text-sm"
+                            className="border-0 bg-transparent h-8 text-sm"
                           />
                         </div>
                       </div>
                       <div className="w-80 text-center">
-                        <div className="border-b-2 border-gray-400 mb-1 h-8"></div>
-                        <span className="text-xs text-gray-600">Authorized Signature</span>
+                        <div className="border-b-2 border-gray-400 h-8"></div>
+                        <span className="text-xs text-gray-600 mt-1 block">Authorized Signature</span>
                       </div>
                     </div>
                   </div>
