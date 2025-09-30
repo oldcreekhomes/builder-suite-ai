@@ -66,7 +66,7 @@ export default function WriteChecks() {
   ]);
 
   const { data: project } = useProject(projectId || "");
-  const { accounts, accountingSettings } = useAccounts();
+  const { accounts } = useAccounts();
   const { projects } = useProjectSearch();
   const { createCheck } = useChecks();
   const { 
@@ -259,7 +259,6 @@ export default function WriteChecks() {
         .filter(row => row.accountId && (row.amount || row.quantity))
         .map(row => ({
           line_type: 'job_cost' as const,
-          account_id: accountingSettings?.wip_account_id,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0),
@@ -337,7 +336,6 @@ export default function WriteChecks() {
         .filter(row => row.accountId && row.amount)
         .map(row => ({
           line_type: 'job_cost' as const,
-          account_id: accountingSettings?.wip_account_id,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: parseFloat(row.amount) || 0,
