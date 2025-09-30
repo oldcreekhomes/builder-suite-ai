@@ -805,7 +805,7 @@ export default function WriteChecks() {
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
-                                placeholder="description...."
+                                placeholder="Description..."
                                 className="h-8"
                               />
                             </div>
@@ -922,7 +922,7 @@ export default function WriteChecks() {
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
-                                placeholder="description...."
+                                placeholder="Description..."
                                 className="h-8"
                               />
                             </div>
