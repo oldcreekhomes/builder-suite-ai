@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
 
 interface AccountBalance {
   id: string;
@@ -36,6 +38,7 @@ interface BalanceSheetData {
 export default function BalanceSheet() {
   const { projectId } = useParams<{ projectId: string }>();
   const { user, session, loading: authLoading } = useAuth();
+  const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
     queryKey: ['balance-sheet', user?.id, projectId],
@@ -307,6 +310,10 @@ export default function BalanceSheet() {
     );
   }
 
+  const handleCloseDialog = () => {
+    setSelectedAccount(null);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -369,7 +376,11 @@ export default function BalanceSheet() {
                           <h4 className="font-semibold mb-3 text-sm">Current Assets</h4>
                           <div className="space-y-2">
                             {balanceSheetData.assets.current.map((account) => (
-                              <div key={account.id} className="flex justify-between items-center text-sm">
+                              <div 
+                                key={account.id} 
+                                className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                                onClick={() => setSelectedAccount(account)}
+                              >
                                 <span>{account.code} - {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
@@ -384,7 +395,11 @@ export default function BalanceSheet() {
                           <h4 className="font-semibold mb-3 text-sm">Fixed Assets</h4>
                           <div className="space-y-2">
                             {balanceSheetData.assets.fixed.map((account) => (
-                              <div key={account.id} className="flex justify-between items-center text-sm">
+                              <div 
+                                key={account.id} 
+                                className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                                onClick={() => setSelectedAccount(account)}
+                              >
                                 <span>{account.code} - {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
@@ -416,7 +431,11 @@ export default function BalanceSheet() {
                           <h4 className="font-semibold mb-3 text-sm">Current Liabilities</h4>
                           <div className="space-y-2">
                             {balanceSheetData.liabilities.current.map((account) => (
-                              <div key={account.id} className="flex justify-between items-center text-sm">
+                              <div 
+                                key={account.id} 
+                                className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                                onClick={() => setSelectedAccount(account)}
+                              >
                                 <span>{account.code} - {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
@@ -431,7 +450,11 @@ export default function BalanceSheet() {
                           <h4 className="font-semibold mb-3 text-sm">Long-term Liabilities</h4>
                           <div className="space-y-2">
                             {balanceSheetData.liabilities.longTerm.map((account) => (
-                              <div key={account.id} className="flex justify-between items-center text-sm">
+                              <div 
+                                key={account.id} 
+                                className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                                onClick={() => setSelectedAccount(account)}
+                              >
                                 <span>{account.code} - {account.name}</span>
                                  <span>{formatCurrency(account.balance)}</span>
                               </div>
@@ -453,7 +476,19 @@ export default function BalanceSheet() {
                           <h4 className="font-semibold mb-3 text-sm">Equity</h4>
                           <div className="space-y-2">
                             {balanceSheetData.equity.map((account) => (
-                              <div key={account.id} className="flex justify-between items-center text-sm">
+                              <div 
+                                key={account.id} 
+                                className={`flex justify-between items-center text-sm ${
+                                  account.id.startsWith('retained-earnings') || account.id === 'balance-sheet-difference' 
+                                    ? '' 
+                                    : 'cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors'
+                                }`}
+                                onClick={() => {
+                                  if (!account.id.startsWith('retained-earnings') && account.id !== 'balance-sheet-difference') {
+                                    setSelectedAccount(account);
+                                  }
+                                }}
+                              >
                                 <span>{account.code} - {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
@@ -489,6 +524,16 @@ export default function BalanceSheet() {
           </div>
         </SidebarInset>
       </div>
+
+      <AccountDetailDialog
+        accountId={selectedAccount?.id || null}
+        accountCode={selectedAccount?.code || ''}
+        accountName={selectedAccount?.name || ''}
+        accountType={selectedAccount?.type || 'asset'}
+        projectId={projectId}
+        open={!!selectedAccount}
+        onOpenChange={(open) => !open && handleCloseDialog()}
+      />
     </SidebarProvider>
   );
 }
