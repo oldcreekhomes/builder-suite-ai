@@ -146,7 +146,7 @@ export function CostCodeTableRow({
           ))}
           
           {/* Add Subcategory Button Row */}
-          {onAddSubcategory && (
+          {onAddSubcategory && costCode.has_subcategories && (
             <TableRow className="h-8 bg-muted/30">
               <TableCell className="py-1"></TableCell>
               <TableCell colSpan={9} className="py-1">

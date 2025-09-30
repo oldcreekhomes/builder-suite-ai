@@ -30,8 +30,8 @@ export const useCostCodeGrouping = (costCodes: CostCode[]) => {
     costCodes.forEach(costCode => {
       let groupKey = 'ungrouped';
       
-      // If this IS a parent code, it goes in its own group
-      if (parentCodes.has(costCode.code)) {
+      // If this IS a parent code AND has no parent itself, it goes in its own group
+      if (parentCodes.has(costCode.code) && (!costCode.parent_group || costCode.parent_group.trim() === '')) {
         groupKey = costCode.code;
       }
       // Otherwise, check if it has an explicit parent_group
