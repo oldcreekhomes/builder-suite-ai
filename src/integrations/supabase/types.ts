@@ -659,6 +659,7 @@ export type Database = {
           created_at: string
           has_bidding: boolean | null
           has_specifications: boolean | null
+          has_subcategories: boolean | null
           id: string
           name: string
           owner_id: string
@@ -674,6 +675,7 @@ export type Database = {
           created_at?: string
           has_bidding?: boolean | null
           has_specifications?: boolean | null
+          has_subcategories?: boolean | null
           id?: string
           name: string
           owner_id: string
@@ -689,6 +691,7 @@ export type Database = {
           created_at?: string
           has_bidding?: boolean | null
           has_specifications?: boolean | null
+          has_subcategories?: boolean | null
           id?: string
           name?: string
           owner_id?: string

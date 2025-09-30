@@ -5,12 +5,19 @@ import type { Tables } from '@/integrations/supabase/types';
 type CostCode = Tables<'cost_codes'>;
 
 export const useCostCodeGrouping = (costCodes: CostCode[]) => {
-  // Find all parent codes - these are codes that other codes reference as parent_group
+  // Find all parent codes - these are codes that:
+  // 1. Other codes reference as parent_group, OR
+  // 2. Have has_subcategories set to true
   const parentCodes = useMemo(() => {
     const parents = new Set<string>();
     costCodes.forEach(cc => {
+      // Add to parents if it's referenced as a parent_group
       if (cc.parent_group) {
         parents.add(cc.parent_group);
+      }
+      // Add to parents if it has has_subcategories enabled
+      if (cc.has_subcategories) {
+        parents.add(cc.code);
       }
     });
     return parents;

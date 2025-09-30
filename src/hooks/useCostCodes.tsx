@@ -56,6 +56,7 @@ export const useCostCodes = () => {
           unit_of_measure: costCodeData.unitOfMeasure || null,
           has_specifications: costCodeData.hasSpecifications === 'yes',
           has_bidding: costCodeData.hasBidding === 'yes',
+          has_subcategories: costCodeData.hasSubcategories === 'yes',
           owner_id: user.id,
         })
         .select()
@@ -93,6 +94,7 @@ export const useCostCodes = () => {
       if (updates.unit_of_measure !== undefined) updateData.unit_of_measure = updates.unit_of_measure;
       if (updates.has_specifications !== undefined) updateData.has_specifications = Boolean(updates.has_specifications);
       if (updates.has_bidding !== undefined) updateData.has_bidding = Boolean(updates.has_bidding);
+      if (updates.has_subcategories !== undefined) updateData.has_subcategories = updates.has_subcategories === 'yes';
       
       updateData.updated_at = new Date().toISOString();
 
@@ -169,6 +171,7 @@ export const useCostCodes = () => {
         unit_of_measure: code.unitOfMeasure || null,
         has_specifications: code.hasSpecifications === 'yes',
         has_bidding: code.hasBidding === 'yes',
+        has_subcategories: code.hasSubcategories === 'yes',
         owner_id: user.id,
       }));
 

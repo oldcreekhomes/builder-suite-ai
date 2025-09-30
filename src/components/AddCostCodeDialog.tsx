@@ -29,6 +29,7 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
     unitOfMeasure: "",
     hasSpecifications: "",
     hasBidding: "",
+    hasSubcategories: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,6 +48,7 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
       unitOfMeasure: "",
       hasSpecifications: "",
       hasBidding: "",
+      hasSubcategories: "",
     });
     setOpen(false);
   };
@@ -179,6 +181,22 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
               <div className="space-y-2">
                 <Label htmlFor="hasBidding">Has Bidding</Label>
                 <Select value={formData.hasBidding} onValueChange={(value) => handleInputChange("hasBidding", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Sub Categories */}
+              <div className="space-y-2">
+                <Label htmlFor="hasSubcategories">Sub Categories</Label>
+                <Select value={formData.hasSubcategories} onValueChange={(value) => handleInputChange("hasSubcategories", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />
                   </SelectTrigger>

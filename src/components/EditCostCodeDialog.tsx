@@ -39,6 +39,7 @@ export function EditCostCodeDialog({
     unit_of_measure: "",
     has_specifications: "",
     has_bidding: "",
+    has_subcategories: "",
   });
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function EditCostCodeDialog({
         unit_of_measure: costCode.unit_of_measure || "",
         has_specifications: costCode.has_specifications ? "yes" : "no",
         has_bidding: costCode.has_bidding ? "yes" : "no",
+        has_subcategories: costCode.has_subcategories ? "yes" : "no",
       });
     }
   }, [costCode]);
@@ -185,6 +187,22 @@ export function EditCostCodeDialog({
               <div className="space-y-2">
                 <Label htmlFor="has_bidding">Has Bidding</Label>
                 <Select value={formData.has_bidding} onValueChange={(value) => handleInputChange("has_bidding", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row 5 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="has_subcategories">Sub Categories</Label>
+                <Select value={formData.has_subcategories} onValueChange={(value) => handleInputChange("has_subcategories", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select option" />
                   </SelectTrigger>
