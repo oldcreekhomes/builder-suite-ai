@@ -192,7 +192,7 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
               </div>
             </div>
 
-            <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-end">
+            <div className="grid grid-cols-2 gap-4">
               {/* Sub Categories */}
               <div className="space-y-2">
                 <Label htmlFor="hasSubcategories">Sub Categories</Label>
@@ -208,10 +208,15 @@ export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostC
               </div>
               
               {/* Buttons */}
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Add Cost Code</Button>
+              <div className="space-y-2">
+                <Label className="invisible">Actions</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">Add Cost Code</Button>
+                </div>
+              </div>
             </div>
           </div>
         </form>

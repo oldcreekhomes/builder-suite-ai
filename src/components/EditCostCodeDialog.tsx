@@ -199,7 +199,7 @@ export function EditCostCodeDialog({
             </div>
 
             {/* Row 5: Sub Categories with Buttons */}
-            <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-end">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_subcategories">Sub Categories</Label>
                 <Select value={formData.has_subcategories} onValueChange={(value) => handleInputChange("has_subcategories", value)}>
@@ -214,10 +214,15 @@ export function EditCostCodeDialog({
               </div>
               
               {/* Buttons */}
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Update Cost Code</Button>
+              <div className="space-y-2">
+                <Label className="invisible">Actions</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">Update Cost Code</Button>
+                </div>
+              </div>
             </div>
           </div>
         </form>
