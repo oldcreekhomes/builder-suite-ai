@@ -21,6 +21,7 @@ interface Transaction {
   date: string;
   memo: string | null;
   vendor: string | null;
+  description: string | null;
   reference: string | null;
   source_type: string;
   debit: number;
@@ -130,14 +131,16 @@ export function AccountDetailDialog({
         let memo = line.memo;
         let vendor = null;
         let reference = null;
+        let description = line.memo; // Description from the check line
 
-        // If this is a check, get details from checks table
+        // If this is a check, get vendor details from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
             vendor = check.vendor_name;
             reference = check.check_number;
+            // Keep the line.memo as description (from check_lines)
           }
         }
 
@@ -145,6 +148,7 @@ export function AccountDetailDialog({
           date: line.journal_entries.entry_date,
           memo: memo,
           vendor: vendor,
+          description: description,
           reference: reference,
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
@@ -215,6 +219,7 @@ export function AccountDetailDialog({
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead>Vendor</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
                 </TableRow>
@@ -230,6 +235,9 @@ export function AccountDetailDialog({
                     </TableCell>
                     <TableCell>
                       {txn.vendor || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {txn.description || '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       {txn.credit > 0 
