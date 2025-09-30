@@ -22,6 +22,7 @@ interface CostCodesTableProps {
   onDeleteCostCode: (costCode: CostCode) => void;
   getParentCostCode: (parentGroupCode: string) => CostCode | undefined;
   onAddCostCode: (parentCode?: string) => void;
+  onAddSubcategory: (costCode: any) => void;
 }
 
 export function CostCodesTable({
@@ -38,7 +39,8 @@ export function CostCodesTable({
   onEditCostCode,
   onDeleteCostCode,
   getParentCostCode,
-  onAddCostCode
+  onAddCostCode,
+  onAddSubcategory
 }: CostCodesTableProps) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -112,7 +114,7 @@ export function CostCodesTable({
                         isExpanded={!collapsedGroups.has(costCode.code)}
                         onToggleExpand={onToggleGroupCollapse}
                         childCodes={children}
-                        onAddSubcategory={onAddCostCode}
+                        onAddSubcategory={onAddSubcategory}
                         isCodeExpanded={(code) => !collapsedGroups.has(code)}
                       />
                     );

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Edit, Trash2, ChevronRight, ChevronDown, Plus } from 'lucide-react';
 import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
+import { AddSubcategoryDialog } from '@/components/AddSubcategoryDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -19,7 +20,7 @@ interface CostCodeTableRowProps {
   isExpanded?: boolean;
   onToggleExpand?: (code: string) => void;
   childCodes?: CostCode[];
-  onAddSubcategory?: (parentCode: string) => void;
+  onAddSubcategory?: (costCode: any) => void;
   level?: number;
   isCodeExpanded?: (code: string) => boolean;
 }
@@ -39,6 +40,8 @@ export function CostCodeTableRow({
   level = 0,
   isCodeExpanded
 }: CostCodeTableRowProps) {
+  const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
+  
   // Determine if this row is expandable based on actual children OR has_subcategories flag
   const hasChildren = childCodes.length > 0;
   const isExpandable = hasChildren || costCode.has_subcategories;
@@ -46,6 +49,12 @@ export function CostCodeTableRow({
   
   // Use isCodeExpanded if provided, otherwise fall back to isExpanded
   const expanded = isCodeExpanded ? isCodeExpanded(costCode.code) : isExpanded;
+
+  const handleAddSubcategory = (newCostCode: any) => {
+    if (onAddSubcategory) {
+      onAddSubcategory(newCostCode);
+    }
+  };
   
   return (
     <>
@@ -161,7 +170,7 @@ export function CostCodeTableRow({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onAddSubcategory(costCode.code)}
+                  onClick={() => setShowSubcategoryDialog(true)}
                   className="h-6 text-xs"
                   style={{ marginLeft: `${(level + 1) * 24}px` }}
                 >
@@ -173,6 +182,14 @@ export function CostCodeTableRow({
           )}
         </>
       )}
+      
+      {/* Subcategory Dialog */}
+      <AddSubcategoryDialog
+        parentCode={costCode.code}
+        onAddCostCode={handleAddSubcategory}
+        open={showSubcategoryDialog}
+        onOpenChange={setShowSubcategoryDialog}
+      />
     </>
   );
 }

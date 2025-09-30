@@ -76,6 +76,7 @@ export function CostCodesTab({
         onDeleteCostCode={onDeleteCostCode}
         getParentCostCode={getParentCostCode}
         onAddCostCode={handleAddCostCode}
+        onAddSubcategory={onAddCostCode}
       />
     </div>
   );
