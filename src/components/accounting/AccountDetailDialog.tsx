@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Transaction {
   date: string;
   memo: string | null;
-  payee: string | null;
+  vendor: string | null;
   reference: string | null;
   source_type: string;
   debit: number;
@@ -81,30 +81,62 @@ export function AccountDetailDialog({
         .filter((line: any) => line.journal_entries.source_type === 'check')
         .map((line: any) => line.journal_entries.source_id);
 
-      // Fetch check details if we have any checks
+      // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
       if (checkIds.length > 0) {
         const { data: checksData } = await supabase
           .from('checks')
-          .select('id, memo, pay_to, check_number')
+          .select(`
+            id, 
+            memo, 
+            pay_to, 
+            check_number
+          `)
           .in('id', checkIds);
         
-        checksData?.forEach(check => {
-          checksMap.set(check.id, check);
+        // Get unique vendor IDs (UUIDs) to fetch company names
+        const vendorIds = (checksData || [])
+          .map(check => check.pay_to)
+          .filter(payTo => {
+            // Check if it's a UUID format
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payTo);
+          });
+
+        // Fetch company names for UUIDs
+        let companiesMap = new Map();
+        if (vendorIds.length > 0) {
+          const { data: companiesData } = await supabase
+            .from('companies')
+            .select('id, company_name')
+            .in('id', vendorIds);
+          
+          companiesData?.forEach(company => {
+            companiesMap.set(company.id, company.company_name);
+          });
+        }
+        
+        checksData?.forEach((check: any) => {
+          // If pay_to is a UUID, try to get company name; otherwise use pay_to as is
+          const vendorName = companiesMap.get(check.pay_to) || check.pay_to;
+          
+          checksMap.set(check.id, {
+            ...check,
+            vendor_name: vendorName
+          });
         });
       }
 
       const transactions: Transaction[] = (data || []).map((line: any) => {
         let memo = line.memo;
-        let payee = null;
+        let vendor = null;
         let reference = null;
 
-        // If this is a check, get memo, payee, and check number from checks table
+        // If this is a check, get details from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
-            payee = check.pay_to;
+            vendor = check.vendor_name;
             reference = check.check_number;
           }
         }
@@ -112,7 +144,7 @@ export function AccountDetailDialog({
         return {
           date: line.journal_entries.entry_date,
           memo: memo,
-          payee: payee,
+          vendor: vendor,
           reference: reference,
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
@@ -182,7 +214,7 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
-                  <TableHead>Memo</TableHead>
+                  <TableHead>Vendor</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
@@ -198,21 +230,7 @@ export function AccountDetailDialog({
                       {txn.reference || '-'}
                     </TableCell>
                     <TableCell>
-                      <div>
-                        {txn.payee && (
-                          <div className="font-medium">
-                            Check to {txn.payee}
-                          </div>
-                        )}
-                        {txn.memo && (
-                          <div className={txn.payee ? "text-xs text-muted-foreground" : "font-medium"}>
-                            {txn.memo}
-                          </div>
-                        )}
-                        {!txn.memo && !txn.payee && (
-                          <div className="text-muted-foreground">-</div>
-                        )}
-                      </div>
+                      {txn.vendor || '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}
