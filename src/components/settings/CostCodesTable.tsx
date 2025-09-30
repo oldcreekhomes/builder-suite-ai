@@ -89,60 +89,35 @@ export function CostCodesTable({
                 return a.localeCompare(b);
               })
               .flatMap(([groupKey, groupCostCodes]) => {
-                const rows: JSX.Element[] = [];
-                
-                // Add group header row if not ungrouped
-                if (groupKey !== 'ungrouped') {
-                  rows.push(
-                    <CostCodeGroupRow
-                      key={`group-${groupKey}`}
-                      groupKey={groupKey}
-                      parentCostCode={getParentCostCode(groupKey)}
-                      isCollapsed={collapsedGroups.has(groupKey)}
-                      isSelected={getParentCostCode(groupKey) ? selectedCostCodes.has(getParentCostCode(groupKey)!.id) : false}
-                      onToggleCollapse={onToggleGroupCollapse}
-                      onSelect={onCostCodeSelect}
-                      onEdit={onEditCostCode}
-                      onDelete={onDeleteCostCode}
-                      onUpdate={onUpdateCostCode}
-                    />
-                  );
-                }
-                
-                // Add child cost codes when group is expanded or ungrouped
-                if (groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) {
-                  const childRows = groupCostCodes
-                    .filter(costCode => {
-                      // Only show codes that don't have a parent_group (top-level codes within this group)
-                      return !costCode.parent_group || costCode.parent_group === groupKey;
-                    })
-                    .map((costCode) => {
-                      // Get children for this cost code if it has subcategories
-                      const children = costCode.has_subcategories 
-                        ? groupCostCodes.filter(cc => cc.parent_group === costCode.code)
-                        : [];
-                      
-                      return (
-                        <CostCodeTableRow
-                          key={`row-${costCode.id}`}
-                          costCode={costCode}
-                          isSelected={selectedCostCodes.has(costCode.id)}
-                          onSelect={onCostCodeSelect}
-                          onEdit={onEditCostCode}
-                          onDelete={onDeleteCostCode}
-                          onUpdate={onUpdateCostCode}
-                          isGrouped={groupKey !== 'ungrouped'}
-                          isExpanded={!collapsedGroups.has(costCode.code)}
-                          onToggleExpand={onToggleGroupCollapse}
-                          childCodes={children}
-                          onAddSubcategory={onAddCostCode}
-                        />
-                      );
-                    });
-                  rows.push(...childRows);
-                }
-                
-                return rows;
+                // Render top-level cost codes (those without a parent, or those that are the group parent)
+                return groupCostCodes
+                  .filter(costCode => {
+                    // Show codes that have no parent_group OR their code matches the groupKey
+                    return !costCode.parent_group || costCode.code === groupKey;
+                  })
+                  .map((costCode) => {
+                    // Get children for this cost code if it has subcategories
+                    const children = costCode.has_subcategories 
+                      ? groupCostCodes.filter(cc => cc.parent_group === costCode.code)
+                      : [];
+                    
+                    return (
+                      <CostCodeTableRow
+                        key={`row-${costCode.id}`}
+                        costCode={costCode}
+                        isSelected={selectedCostCodes.has(costCode.id)}
+                        onSelect={onCostCodeSelect}
+                        onEdit={onEditCostCode}
+                        onDelete={onDeleteCostCode}
+                        onUpdate={onUpdateCostCode}
+                        isGrouped={groupKey !== 'ungrouped'}
+                        isExpanded={!collapsedGroups.has(costCode.code)}
+                        onToggleExpand={onToggleGroupCollapse}
+                        childCodes={children}
+                        onAddSubcategory={onAddCostCode}
+                      />
+                    );
+                  });
               })
           )}
         </TableBody>
