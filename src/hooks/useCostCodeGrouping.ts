@@ -30,13 +30,17 @@ export const useCostCodeGrouping = (costCodes: CostCode[]) => {
     costCodes.forEach(costCode => {
       let groupKey = 'ungrouped';
       
-      // First, check if this cost code has an explicit parent_group
-      if (costCode.parent_group && costCode.parent_group.trim() !== '') {
+      // If this IS a parent code, it goes in its own group
+      if (parentCodes.has(costCode.code)) {
+        groupKey = costCode.code;
+      }
+      // Otherwise, check if it has an explicit parent_group
+      else if (costCode.parent_group && costCode.parent_group.trim() !== '') {
         groupKey = costCode.parent_group;
-      } else {
-        // If no explicit parent_group, try to find a matching parent by checking if the code starts with any parent code
+      } 
+      // If no explicit parent_group, try to find a matching parent by prefix
+      else {
         const matchingParent = Array.from(parentCodes).find(parentCode => {
-          // Check if this cost code starts with the parent code (e.g., "4070" starts with "4000")
           return costCode.code.startsWith(parentCode) && costCode.code !== parentCode;
         });
         
