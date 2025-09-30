@@ -84,6 +84,8 @@ export function AccountDetailDialog({
 
       // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
+      let checkLinesMap = new Map();
+      
       if (checkIds.length > 0) {
         const { data: checksData } = await supabase
           .from('checks')
@@ -94,6 +96,21 @@ export function AccountDetailDialog({
             check_number
           `)
           .in('id', checkIds);
+        
+        // Fetch check lines to get descriptions
+        const { data: checkLinesData } = await supabase
+          .from('check_lines')
+          .select('check_id, memo, line_number')
+          .in('check_id', checkIds)
+          .order('line_number', { ascending: true });
+        
+        // Group check lines by check_id
+        checkLinesData?.forEach((line: any) => {
+          if (!checkLinesMap.has(line.check_id)) {
+            checkLinesMap.set(line.check_id, []);
+          }
+          checkLinesMap.get(line.check_id).push(line.memo);
+        });
         
         // Get unique vendor IDs (UUIDs) to fetch company names
         const vendorIds = (checksData || [])
@@ -131,16 +148,22 @@ export function AccountDetailDialog({
         let memo = line.memo;
         let vendor = null;
         let reference = null;
-        let description = line.memo; // Description from the check line
+        let description = null;
 
-        // If this is a check, get vendor details from checks table
+        // If this is a check, get vendor details and descriptions from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
             vendor = check.vendor_name;
             reference = check.check_number;
-            // Keep the line.memo as description (from check_lines)
+            
+            // Get descriptions from check_lines
+            const checkLineMemos = checkLinesMap.get(line.journal_entries.source_id);
+            if (checkLineMemos && checkLineMemos.length > 0) {
+              // Join all line memos with semicolons if multiple lines
+              description = checkLineMemos.filter((m: string) => m).join('; ');
+            }
           }
         }
 
