@@ -137,7 +137,8 @@ export default function WriteChecks() {
   };
 
   const getDisplayAmount = () => {
-    return useManualAmount && manualAmount ? parseFloat(manualAmount).toFixed(2) : calculateTotal();
+    const amount = useManualAmount && manualAmount ? parseFloat(manualAmount).toFixed(2) : calculateTotal();
+    return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const numberToWords = (num: number): string => {
@@ -374,64 +375,64 @@ export default function WriteChecks() {
                  {/* Check Header Information - Styled like a real check */}
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-6 space-y-4">
                   {/* Check header with date and check number */}
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1 max-w-xl">
-                      <Input
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="text-sm font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                        placeholder="Your Company Name"
-                      />
-                      <Input
-                        value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
-                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                        placeholder="123 Business Street"
-                      />
-                      <Input
-                        value={companyCityState}
-                        onChange={(e) => setCompanyCityState(e.target.value)}
-                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                        placeholder="City, State 12345"
-                      />
-                    </div>
-                    <div className="flex gap-4 items-center">
-                      <div className="space-y-2">
-                        <Label className="text-xs text-gray-600">DATE</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-32 justify-start text-left font-normal border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent",
-                                !checkDate && "text-muted-foreground"
-                              )}
-                            >
-                              {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={checkDate}
-                              onSelect={setCheckDate}
-                              initialFocus
-                              className="p-3 pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-gray-600">CHECK #</Label>
-                        <Input 
-                          value={checkNumber}
-                          onChange={(e) => setCheckNumber(e.target.value)}
-                          placeholder="001"
-                          className="w-20 text-center border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono"
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1 max-w-xl">
+                        <Input
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          className="text-sm font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
+                          placeholder="Your Company Name"
+                        />
+                        <Input
+                          value={companyAddress}
+                          onChange={(e) => setCompanyAddress(e.target.value)}
+                          className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
+                          placeholder="123 Business Street"
+                        />
+                        <Input
+                          value={companyCityState}
+                          onChange={(e) => setCompanyCityState(e.target.value)}
+                          className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
+                          placeholder="City, State 12345"
                         />
                       </div>
+                      <div className="flex gap-6 items-center">
+                        <div className="space-y-2">
+                          <Label className="text-xs text-gray-600">DATE</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-32 justify-start text-left font-normal border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent",
+                                  !checkDate && "text-muted-foreground"
+                                )}
+                              >
+                                {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={checkDate}
+                                onSelect={setCheckDate}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs text-gray-600">CHECK #</Label>
+                          <Input 
+                            value={checkNumber}
+                            onChange={(e) => setCheckNumber(e.target.value)}
+                            placeholder="001"
+                            className="w-20 text-center border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
                   {/* Pay to line */}
                   <div className="space-y-3">
@@ -451,12 +452,14 @@ export default function WriteChecks() {
                       <div className="border-2 border-gray-400 px-3 py-1 min-w-[140px] text-right relative">
                         <span className="text-sm text-gray-600">$</span>
                         <Input
-                          type="number"
-                          step="0.01"
+                          type="text"
                           value={useManualAmount ? manualAmount : getDisplayAmount()}
                           onChange={(e) => {
-                            setManualAmount(e.target.value);
-                            setUseManualAmount(true);
+                            const value = e.target.value.replace(/,/g, '');
+                            if (!isNaN(Number(value)) || value === '') {
+                              setManualAmount(value);
+                              setUseManualAmount(true);
+                            }
                           }}
                           onFocus={() => setUseManualAmount(true)}
                           className="inline-block w-24 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
@@ -485,27 +488,25 @@ export default function WriteChecks() {
                       <span className="text-sm font-medium pr-2">DOLLARS</span>
                     </div>
 
-                    {/* Signature line */}
-                    <div className="flex items-end justify-end pt-8 pr-4">
-                      <div className="w-64 text-center">
+                    {/* Signature and memo line */}
+                    <div className="flex items-end justify-between pt-8">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">MEMO</span>
+                        <div className="w-64 border-b border-gray-400">
+                          <Input
+                            placeholder="Optional memo..."
+                            className="border-0 bg-transparent h-7 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="w-64 text-center pr-4">
                         <div className="border-b-2 border-gray-400 mb-1 h-8"></div>
                         <span className="text-xs text-gray-600">Authorized Signature</span>
                       </div>
                     </div>
-
-                    {/* MEMO line */}
-                    <div className="flex items-center gap-2 pt-4">
-                      <span className="text-sm font-medium">MEMO</span>
-                      <div className="flex-1 max-w-xs border-b border-gray-400">
-                        <Input
-                          placeholder="Optional memo..."
-                          className="border-0 bg-transparent h-7 text-sm"
-                        />
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Bank account and routing numbers like real check */}
+                  {/* Bank account */}
                   <div className="flex items-end justify-between pt-2">
                     <div className="space-y-2 flex-1 max-w-md">
                       <Label className="text-xs text-gray-600">BANK ACCOUNT</Label>
@@ -517,36 +518,6 @@ export default function WriteChecks() {
                         accountType="asset"
                         bankAccountsOnly={true}
                       />
-                    </div>
-                    <div className="text-xs text-gray-500 text-right space-y-1">
-                      <div className="font-mono text-sm">
-                        <span className="mr-1">⚍</span>
-                        <Input
-                          value={routingNumber}
-                          onChange={(e) => setRoutingNumber(e.target.value)}
-                          className="inline-block w-20 text-center border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 font-mono"
-                          placeholder="123456789"
-                          maxLength={9}
-                        />
-                        <span className="mx-1">⚍ ⚊</span>
-                        <Input
-                          value={accountNumber}
-                          onChange={(e) => setAccountNumber(e.target.value)}
-                          className="inline-block w-24 text-center border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 font-mono"
-                          placeholder="1234567890"
-                          maxLength={12}
-                        />
-                        <span className="mx-1">⚊</span>
-                        <span className="ml-1">{checkNumber || "001"}</span>
-                      </div>
-                      <div className="mt-1 text-right">
-                        <Input
-                          value={bankName}
-                          onChange={(e) => setBankName(e.target.value)}
-                          className="text-xs border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right w-32"
-                          placeholder="Bank Name"
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
