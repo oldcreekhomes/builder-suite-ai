@@ -747,8 +747,7 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
-                          <div className="col-span-2">Project</div>
-                          <div className="col-span-4">Memo</div>
+                          <div className="col-span-6">Memo</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Total</div>
@@ -772,20 +771,7 @@ export default function WriteChecks() {
                                 <p className="text-xs text-red-500 mt-1">Select a cost code</p>
                               )}
                             </div>
-                            <div className="col-span-2">
-                              <JobSearchInput
-                                value={row.projectId || ""}
-                                onChange={(projectId) => {
-                                  updateJobCostRow(row.id, "projectId", projectId);
-                                  // Find project address for display
-                                  const project = projects?.find(p => p.id === projectId);
-                                  updateJobCostRow(row.id, "project", project?.address || "");
-                                }}
-                                placeholder="Select project..."
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="col-span-4">
+                            <div className="col-span-6">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
@@ -838,7 +824,7 @@ export default function WriteChecks() {
                         ))}
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-8 font-medium">Total:</div>
+                            <div className="col-span-7 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${jobCostRows.reduce((total, row) => {
                                 const q = parseFloat(row.quantity || "0") || 0;
@@ -846,7 +832,7 @@ export default function WriteChecks() {
                                 return total + q * c;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-3"></div>
+                            <div className="col-span-4"></div>
                           </div>
                         </div>
                       </div>
@@ -863,8 +849,7 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
-                          <div className="col-span-2">Project</div>
-                          <div className="col-span-4">Memo</div>
+                          <div className="col-span-6">Memo</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Total</div>
@@ -890,20 +875,7 @@ export default function WriteChecks() {
                                 <p className="text-xs text-red-500 mt-1">Select an expense account</p>
                               )}
                             </div>
-                            <div className="col-span-2">
-                              <JobSearchInput
-                                value={row.projectId || ""}
-                                onChange={(projectId) => {
-                                  updateExpenseRow(row.id, "projectId", projectId);
-                                  // Find project address for display
-                                  const project = projects?.find(p => p.id === projectId);
-                                  updateExpenseRow(row.id, "project", project?.address || "");
-                                }}
-                                placeholder="Select project"
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="col-span-4">
+                            <div className="col-span-6">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
@@ -956,7 +928,7 @@ export default function WriteChecks() {
                         ))}
                         <div className="p-3 bg-muted border-t">
                           <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-8 font-medium">Total:</div>
+                            <div className="col-span-7 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${expenseRows.reduce((total, row) => {
                                 const q = parseFloat(row.quantity || "0") || 0;
@@ -964,7 +936,7 @@ export default function WriteChecks() {
                                 return total + q * c;
                               }, 0).toFixed(2)}
                             </div>
-                            <div className="col-span-3"></div>
+                            <div className="col-span-4"></div>
                           </div>
                         </div>
                       </div>
