@@ -37,62 +37,58 @@ export function ProposalCell({
 
   return (
     <div className="flex items-center justify-between w-full">
-      {proposals && proposals.length > 0 ? (
-        <>
-          <div className="flex items-center space-x-2">
-            {proposals.map((fileName, index) => {
-              const IconComponent = getFileIcon(fileName);
-              const iconColorClass = getFileIconColor(fileName);
-              return (
-                <div key={index} className="relative">
-                  <button
-                    onClick={() => handleFilePreview(fileName)}
-                    className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
-                    title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                  </button>
-                  {!isReadOnly && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFileToDelete(fileName);
-                      }}
-                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
-                      title="Delete file"
-                      type="button"
-                    >
-                      <span className="text-xs font-bold leading-none">×</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {!isReadOnly && (
-            <div className="flex items-center pr-2">
-              <DeleteButton
-                onDelete={() => onDeleteAllFiles(companyId)}
-                title="Delete All Proposals"
-                description="Are you sure you want to delete all proposal files? This action cannot be undone."
-                size="sm"
-                variant="ghost"
-                showIcon={true}
-              />
+      <div className="flex items-center space-x-2">
+        {proposals && proposals.length > 0 && proposals.map((fileName, index) => {
+          const IconComponent = getFileIcon(fileName);
+          const iconColorClass = getFileIconColor(fileName);
+          return (
+            <div key={index} className="relative">
+              <button
+                onClick={() => handleFilePreview(fileName)}
+                className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
+              >
+                <IconComponent className="h-4 w-4" />
+              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFileToDelete(fileName);
+                  }}
+                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                  title="Delete file"
+                  type="button"
+                >
+                  <span className="text-xs font-bold leading-none">×</span>
+                </button>
+              )}
             </div>
-          )}
-        </>
-      ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs"
-          disabled={isReadOnly}
-          onClick={() => onFileUpload(companyId)}
-        >
-          <Upload className="h-3 w-3 mr-1" />
-          Upload
-        </Button>
+          );
+        })}
+        {!isReadOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => onFileUpload(companyId)}
+          >
+            <Upload className="h-3 w-3 mr-1" />
+            Add Files
+          </Button>
+        )}
+      </div>
+      {proposals && proposals.length > 0 && !isReadOnly && (
+        <div className="flex items-center pr-2">
+          <DeleteButton
+            onDelete={() => onDeleteAllFiles(companyId)}
+            title="Delete All Proposals"
+            description="Are you sure you want to delete all proposal files? This action cannot be undone."
+            size="sm"
+            variant="ghost"
+            showIcon={true}
+          />
+        </div>
       )}
       
       <DeleteConfirmationDialog
