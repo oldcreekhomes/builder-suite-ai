@@ -434,24 +434,21 @@ export default function WriteChecks() {
                   </div>
 
                   {/* Pay to line */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">PAY TO THE ORDER OF</span>
-                      <div className="flex-1 border-b-2 border-gray-400">
-                        <VendorSearchInput
-                          value={payTo}
-                          onChange={setPayTo}
-                          placeholder="Enter payee name..."
-                          className="border-0 bg-transparent h-8 text-lg font-medium"
-                        />
+                  <div className="space-y-3">
+                    {/* PAY TO THE ORDER OF line with $ amount box on the same line */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm font-medium whitespace-nowrap">PAY TO THE ORDER OF</span>
+                        <div className="flex-1 border-b-2 border-gray-400">
+                          <VendorSearchInput
+                            value={payTo}
+                            onChange={setPayTo}
+                            placeholder="Enter payee name..."
+                            className="border-0 bg-transparent h-8 text-lg font-medium"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    {/* Written amount */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm italic text-gray-700 pl-4 flex-1">
-                        {numberToWords(parseFloat(getDisplayAmount()))}
-                      </span>
-                      <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right relative">
+                      <div className="border-2 border-gray-400 px-3 py-1 min-w-[140px] text-right relative">
                         <span className="text-sm text-gray-600">$</span>
                         <Input
                           type="number"
@@ -462,7 +459,7 @@ export default function WriteChecks() {
                             setUseManualAmount(true);
                           }}
                           onFocus={() => setUseManualAmount(true)}
-                          className="inline-block w-20 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
+                          className="inline-block w-24 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
                           placeholder="0.00"
                         />
                         {useManualAmount && (
@@ -479,10 +476,37 @@ export default function WriteChecks() {
                         )}
                       </div>
                     </div>
+
+                    {/* Written amount with DOLLARS label */}
+                    <div className="flex items-center justify-between gap-2 border-b-2 border-gray-400 pb-1">
+                      <span className="text-sm italic text-gray-700 pl-4 flex-1">
+                        {numberToWords(parseFloat(getDisplayAmount()))}
+                      </span>
+                      <span className="text-sm font-medium pr-2">DOLLARS</span>
+                    </div>
+
+                    {/* Signature line */}
+                    <div className="flex items-end justify-end pt-8 pr-4">
+                      <div className="w-64 text-center">
+                        <div className="border-b-2 border-gray-400 mb-1 h-8"></div>
+                        <span className="text-xs text-gray-600">Authorized Signature</span>
+                      </div>
+                    </div>
+
+                    {/* MEMO line */}
+                    <div className="flex items-center gap-2 pt-4">
+                      <span className="text-sm font-medium">MEMO</span>
+                      <div className="flex-1 max-w-xs border-b border-gray-400">
+                        <Input
+                          placeholder="Optional memo..."
+                          className="border-0 bg-transparent h-7 text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Bank account and routing numbers like real check */}
-                  <div className="flex items-end justify-between pt-4">
+                  <div className="flex items-end justify-between pt-2">
                     <div className="space-y-2 flex-1 max-w-md">
                       <Label className="text-xs text-gray-600">BANK ACCOUNT</Label>
                       <AccountSearchInput
