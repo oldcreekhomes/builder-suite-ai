@@ -13,37 +13,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface AddSubcategoryDialogProps {
   parentCode: string;
   parentName: string;
+  existingCostCodes: Array<{ code: string; parent_group: string | null }>;
   onAddCostCode: (costCode: any) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function AddSubcategoryDialog({ parentCode, parentName, onAddCostCode, open, onOpenChange }: AddSubcategoryDialogProps) {
+export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes, onAddCostCode, open, onOpenChange }: AddSubcategoryDialogProps) {
   const [formData, setFormData] = useState({
+    code: "",
     name: "",
     quantity: "",
     price: "",
     unitOfMeasure: "",
   });
 
+  // Calculate next available subcategory code
+  const calculateNextCode = () => {
+    const siblingCodes = existingCostCodes
+      .filter(cc => cc.parent_group === parentCode)
+      .map(cc => cc.code)
+      .filter(code => code.startsWith(parentCode + "."))
+      .map(code => {
+        const parts = code.split(".");
+        return parts.length > 1 ? parseInt(parts[1]) : 0;
+      })
+      .filter(num => !isNaN(num));
+    
+    const maxNumber = siblingCodes.length > 0 ? Math.max(...siblingCodes) : 0;
+    return `${parentCode}.${maxNumber + 1}`;
+  };
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setFormData({
+        code: calculateNextCode(),
         name: "",
         quantity: "",
         price: "",
         unitOfMeasure: "",
       });
     }
-  }, [open]);
+  }, [open, parentCode, existingCostCodes]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Auto-set parent_group, has_subcategories, and other defaults
     const submissionData = {
       ...formData,
-      code: "", // Will be auto-generated
       parentGroup: parentCode,
       hasSubcategories: "no", // Subcategories are always the lowest level
       hasSpecifications: "no",
@@ -65,6 +83,18 @@ export function AddSubcategoryDialog({ parentCode, parentName, onAddCostCode, op
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
+            {/* Cost Code */}
+            <div className="space-y-2">
+              <Label htmlFor="code">Cost Code *</Label>
+              <Input
+                id="code"
+                value={formData.code}
+                onChange={(e) => handleInputChange("code", e.target.value)}
+                placeholder="Enter cost code"
+                required
+              />
+            </div>
+
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>

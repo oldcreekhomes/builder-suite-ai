@@ -116,6 +116,7 @@ export function CostCodesTable({
                         childCodes={children}
                         onAddSubcategory={onAddSubcategory}
                         isCodeExpanded={(code) => !collapsedGroups.has(code)}
+                        allCostCodes={costCodes}
                       />
                     );
                   });

@@ -23,6 +23,7 @@ interface CostCodeTableRowProps {
   onAddSubcategory?: (costCode: any) => void;
   level?: number;
   isCodeExpanded?: (code: string) => boolean;
+  allCostCodes: CostCode[];
 }
 
 export function CostCodeTableRow({
@@ -38,7 +39,8 @@ export function CostCodeTableRow({
   childCodes = [],
   onAddSubcategory,
   level = 0,
-  isCodeExpanded
+  isCodeExpanded,
+  allCostCodes
 }: CostCodeTableRowProps) {
   const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
   
@@ -159,6 +161,7 @@ export function CostCodeTableRow({
               onToggleExpand={onToggleExpand}
               onAddSubcategory={onAddSubcategory}
               isCodeExpanded={isCodeExpanded}
+              allCostCodes={allCostCodes}
             />
           ))}
           
@@ -187,6 +190,7 @@ export function CostCodeTableRow({
       <AddSubcategoryDialog
         parentCode={costCode.code}
         parentName={costCode.name}
+        existingCostCodes={allCostCodes}
         onAddCostCode={handleAddSubcategory}
         open={showSubcategoryDialog}
         onOpenChange={setShowSubcategoryDialog}
