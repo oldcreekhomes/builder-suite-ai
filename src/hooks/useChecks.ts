@@ -145,7 +145,7 @@ export const useChecks = () => {
           source_type: 'check',
           source_id: check.id,
           entry_date: checkData.check_date,
-          description: `Check ${checkData.check_number || check.id} to ${checkData.pay_to}`,
+          description: checkData.memo || `Check ${checkData.check_number || check.id} to ${checkData.pay_to}`,
           posted_at: new Date().toISOString()
         })
         .select()
