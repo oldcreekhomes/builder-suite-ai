@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CostCode } from "@/types/settings";
 
 export const useCostCodeHandlers = (
@@ -9,7 +9,29 @@ export const useCostCodeHandlers = (
   importCostCodes: (importedCostCodes: any[]) => Promise<void>
 ) => {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    // Initialize with all codes that have subcategories (collapsed by default)
+    const initialCollapsed = new Set<string>();
+    costCodes.forEach(cc => {
+      if (cc.has_subcategories) {
+        initialCollapsed.add(cc.code);
+      }
+    });
+    return initialCollapsed;
+  });
+
+  // Update collapsed state when new cost codes with subcategories are added
+  useEffect(() => {
+    setCollapsedGroups(prev => {
+      const updated = new Set(prev);
+      costCodes.forEach(cc => {
+        if (cc.has_subcategories && !updated.has(cc.code)) {
+          updated.add(cc.code);
+        }
+      });
+      return updated;
+    });
+  }, [costCodes.length]);
 
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);

@@ -21,6 +21,7 @@ interface CostCodesTableProps {
   onEditCostCode: (costCode: CostCode) => void;
   onDeleteCostCode: (costCode: CostCode) => void;
   getParentCostCode: (parentGroupCode: string) => CostCode | undefined;
+  onAddCostCode: (parentCode?: string) => void;
 }
 
 export function CostCodesTable({
@@ -36,7 +37,8 @@ export function CostCodesTable({
   onUpdateCostCode,
   onEditCostCode,
   onDeleteCostCode,
-  getParentCostCode
+  getParentCostCode,
+  onAddCostCode
 }: CostCodesTableProps) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -111,21 +113,32 @@ export function CostCodesTable({
                 if (groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) {
                   const childRows = groupCostCodes
                     .filter(costCode => {
-                      // Only hide parent codes if they actually have children
-                      return !(parentCodes.has(costCode.code) && groupedCostCodes[costCode.code]?.length > 0);
+                      // Only show codes that don't have a parent_group (top-level codes within this group)
+                      return !costCode.parent_group || costCode.parent_group === groupKey;
                     })
-                    .map((costCode) => (
-                      <CostCodeTableRow
-                        key={`row-${costCode.id}`}
-                        costCode={costCode}
-                        isSelected={selectedCostCodes.has(costCode.id)}
-                        onSelect={onCostCodeSelect}
-                        onEdit={onEditCostCode}
-                        onDelete={onDeleteCostCode}
-                        onUpdate={onUpdateCostCode}
-                        isGrouped={groupKey !== 'ungrouped'}
-                      />
-                    ));
+                    .map((costCode) => {
+                      // Get children for this cost code if it has subcategories
+                      const children = costCode.has_subcategories 
+                        ? groupCostCodes.filter(cc => cc.parent_group === costCode.code)
+                        : [];
+                      
+                      return (
+                        <CostCodeTableRow
+                          key={`row-${costCode.id}`}
+                          costCode={costCode}
+                          isSelected={selectedCostCodes.has(costCode.id)}
+                          onSelect={onCostCodeSelect}
+                          onEdit={onEditCostCode}
+                          onDelete={onDeleteCostCode}
+                          onUpdate={onUpdateCostCode}
+                          isGrouped={groupKey !== 'ungrouped'}
+                          isExpanded={!collapsedGroups.has(costCode.code)}
+                          onToggleExpand={onToggleGroupCollapse}
+                          childCodes={children}
+                          onAddSubcategory={onAddCostCode}
+                        />
+                      );
+                    });
                   rows.push(...childRows);
                 }
                 

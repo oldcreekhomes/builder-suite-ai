@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,21 +16,43 @@ import { Plus } from "lucide-react";
 interface AddCostCodeDialogProps {
   existingCostCodes: Array<{ code: string; name: string; }>;
   onAddCostCode: (costCode: any) => void;
+  initialData?: { parent_group?: string };
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddCostCodeDialog({ existingCostCodes, onAddCostCode }: AddCostCodeDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddCostCodeDialog({ existingCostCodes, onAddCostCode, initialData, open: controlledOpen, onOpenChange }: AddCostCodeDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+  
   const [formData, setFormData] = useState({
     code: "",
     name: "",
-    parentGroup: "",
+    parentGroup: initialData?.parent_group || "",
     quantity: "",
     price: "",
     unitOfMeasure: "",
     hasSpecifications: "",
     hasBidding: "",
-    hasSubcategories: "",
+    hasSubcategories: "no", // Default to no for subcategories
   });
+
+  // Update form when initialData changes and dialog opens
+  useEffect(() => {
+    if (open && initialData?.parent_group) {
+      setFormData(prev => ({
+        ...prev,
+        parentGroup: initialData.parent_group,
+        hasSubcategories: "no" // Subcategories can't have subcategories
+      }));
+    } else if (open && !initialData?.parent_group) {
+      setFormData(prev => ({
+        ...prev,
+        parentGroup: "",
+      }));
+    }
+  }, [open, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

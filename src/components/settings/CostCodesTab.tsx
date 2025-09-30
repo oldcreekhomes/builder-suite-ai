@@ -39,6 +39,14 @@ export function CostCodesTab({
   onBulkDeleteCostCodes
 }: CostCodesTabProps) {
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(costCodes);
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
+
+  const handleAddCostCode = (parentCode?: string) => {
+    // Set initial data and open dialog
+    setAddDialogInitialData(parentCode ? { parent_group: parentCode } : undefined);
+    setAddDialogOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -48,6 +56,9 @@ export function CostCodesTab({
         onBulkDeleteCostCodes={onBulkDeleteCostCodes}
         onImportCostCodes={onImportCostCodes}
         onAddCostCode={onAddCostCode}
+        addDialogInitialData={addDialogInitialData}
+        addDialogOpen={addDialogOpen}
+        onAddDialogOpenChange={setAddDialogOpen}
       />
       
       <CostCodesTable
@@ -64,6 +75,7 @@ export function CostCodesTab({
         onEditCostCode={onEditCostCode}
         onDeleteCostCode={onDeleteCostCode}
         getParentCostCode={getParentCostCode}
+        onAddCostCode={handleAddCostCode}
       />
     </div>
   );

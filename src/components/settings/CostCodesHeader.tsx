@@ -13,6 +13,9 @@ interface CostCodesHeaderProps {
   onBulkDeleteCostCodes: () => void;
   onImportCostCodes: (importedCostCodes: any[]) => void;
   onAddCostCode: (newCostCode: any) => void;
+  addDialogInitialData?: { parent_group?: string };
+  addDialogOpen?: boolean;
+  onAddDialogOpenChange?: (open: boolean) => void;
 }
 
 export function CostCodesHeader({
@@ -20,7 +23,10 @@ export function CostCodesHeader({
   costCodes,
   onBulkDeleteCostCodes,
   onImportCostCodes,
-  onAddCostCode
+  onAddCostCode,
+  addDialogInitialData,
+  addDialogOpen,
+  onAddDialogOpenChange
 }: CostCodesHeaderProps) {
   return (
     <div className="flex justify-between items-center">
@@ -42,6 +48,9 @@ export function CostCodesHeader({
         <AddCostCodeDialog 
           existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
           onAddCostCode={onAddCostCode}
+          initialData={addDialogInitialData}
+          open={addDialogOpen}
+          onOpenChange={onAddDialogOpenChange}
         />
       </div>
     </div>
