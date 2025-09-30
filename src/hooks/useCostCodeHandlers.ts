@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { CostCode } from "@/types/settings";
 
 export const useCostCodeHandlers = (
@@ -10,10 +10,6 @@ export const useCostCodeHandlers = (
 ) => {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setCollapsedGroups(new Set());
-  }, [costCodes]);
 
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
