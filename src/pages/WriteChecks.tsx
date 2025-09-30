@@ -777,7 +777,7 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-5">Memo</div>
+                          <div className="col-span-5">Description</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Total</div>
@@ -805,7 +805,7 @@ export default function WriteChecks() {
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
-                                placeholder="Job cost memo"
+                                placeholder="description...."
                                 className="h-8"
                               />
                             </div>
@@ -893,7 +893,7 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
-                          <div className="col-span-5">Memo</div>
+                          <div className="col-span-5">Description</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
                           <div className="col-span-1">Total</div>
@@ -922,7 +922,7 @@ export default function WriteChecks() {
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
-                                placeholder="Expense memo"
+                                placeholder="description...."
                                 className="h-8"
                               />
                             </div>
