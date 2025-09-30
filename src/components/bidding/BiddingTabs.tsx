@@ -16,11 +16,11 @@ export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
     if (isLoading) {
       switch (status) {
         case 'draft':
-          return "Draft Packages";
+          return "Draft";
         case 'sent':
-          return "Sent for Bidding";
+          return "Bidding";
         case 'closed':
-          return "Bidding Complete";
+          return "Closed";
         default:
           return status;
       }
@@ -29,11 +29,11 @@ export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
     const displayCount = count || 0;
     switch (status) {
       case 'draft':
-        return `Draft Packages (${displayCount})`;
+        return `Draft (${displayCount})`;
       case 'sent':
-        return `Sent for Bidding (${displayCount})`;
+        return `Bidding (${displayCount})`;
       case 'closed':
-        return `Bidding Complete (${displayCount})`;
+        return `Closed (${displayCount})`;
       default:
         return `${status} (${displayCount})`;
     }
