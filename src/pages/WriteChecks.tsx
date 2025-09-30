@@ -275,7 +275,8 @@ export default function WriteChecks() {
         }))
     ];
 
-    const totalAmount = parseFloat(getDisplayAmount());
+    // Calculate total amount from line items
+    const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
 
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
@@ -297,6 +298,11 @@ export default function WriteChecks() {
       navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
       console.error('Error creating check:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save check",
+        variant: "destructive",
+      });
     }
   };
 
@@ -352,7 +358,8 @@ export default function WriteChecks() {
         }))
     ];
 
-    const totalAmount = parseFloat(getDisplayAmount());
+    // Calculate total amount from line items
+    const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
 
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
@@ -374,6 +381,11 @@ export default function WriteChecks() {
       handleClear();
     } catch (error) {
       console.error('Error creating check:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save check",
+        variant: "destructive",
+      });
     }
   };
 

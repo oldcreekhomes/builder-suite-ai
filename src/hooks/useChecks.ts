@@ -45,20 +45,45 @@ export const useChecks = () => {
       const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
       if (!owner_id) throw new Error("Unable to determine owner");
 
-      // Get WIP account (code 1430) for job cost lines
+      // Get or create WIP account (code 1430) for job cost lines
       let wipAccountId = null;
       const hasJobCostLines = checkLines.some(line => line.line_type === 'job_cost');
       if (hasJobCostLines) {
-        const { data: wipAccount } = await supabase
+        console.log('Looking for WIP account with owner_id:', owner_id);
+        
+        // Try to find existing WIP account
+        let { data: wipAccount } = await supabase
           .from('accounts')
           .select('id')
           .eq('owner_id', owner_id)
-          .eq('code', '1430')
-          .single();
+          .or('code.eq.1430,name.ilike.%wip%')
+          .maybeSingle();
         
+        // If no WIP account found, create one
         if (!wipAccount) {
-          throw new Error("WIP account (code 1430) not found. Please ensure the WIP account exists in your chart of accounts.");
+          console.log('No WIP account found, creating new one');
+          const { data: newWipAccount, error: createError } = await supabase
+            .from('accounts')
+            .insert({
+              owner_id,
+              code: '1430',
+              name: 'WIP - Work in Progress',
+              type: 'asset',
+              description: 'Work in Progress asset account for tracking job costs'
+            })
+            .select('id')
+            .single();
+          
+          if (createError) {
+            console.error('Error creating WIP account:', createError);
+            throw new Error(`Failed to create WIP account: ${createError.message}`);
+          }
+          wipAccount = newWipAccount;
+          console.log('Created new WIP account:', wipAccount.id);
+        } else {
+          console.log('Found existing WIP account:', wipAccount.id);
         }
+        
         wipAccountId = wipAccount.id;
       }
 
@@ -168,6 +193,9 @@ export const useChecks = () => {
           // For job cost lines, use WIP account (1430) instead of the provided account_id
           if (line.line_type === 'job_cost' && wipAccountId) {
             debitAccountId = wipAccountId;
+            console.log(`Using WIP account ${wipAccountId} for job cost line with amount ${line.amount}`);
+          } else {
+            console.log(`Using provided account ${debitAccountId} for ${line.line_type} line with amount ${line.amount}`);
           }
           
           journalLines.push({
@@ -207,7 +235,7 @@ export const useChecks = () => {
       console.error('Error creating check:', error);
       toast({
         title: "Error Creating Check",
-        description: "There was an error creating the check. Please try again.",
+        description: error.message || "There was an error creating the check. Please try again.",
         variant: "destructive",
       });
     },
