@@ -209,8 +209,6 @@ export default function WriteChecks() {
     return result;
   };
 
-  };
-
   // Save company settings
   const saveCompanySettings = async () => {
     try {
@@ -834,5 +832,3 @@ export default function WriteChecks() {
     </SidebarProvider>
   );
 }
-
-export default WriteChecks;
