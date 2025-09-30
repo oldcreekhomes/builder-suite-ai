@@ -755,7 +755,7 @@ export default function WriteChecks() {
                       </div>
 
                       <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-12 gap-2 p-2 bg-muted font-medium text-[10px]">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Cost Code</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-4">Memo</div>
@@ -766,7 +766,7 @@ export default function WriteChecks() {
                         </div>
 
                         {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-2 border-t text-xs">
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <CostCodeSearchInput
                                 value={row.account}
@@ -776,10 +776,10 @@ export default function WriteChecks() {
                                   updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
                                 }}
                                 placeholder="Select cost code..."
-                                className={cn("h-7 text-xs", rowErrors[row.id] && "border-red-500 border-2")}
+                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
                               />
                               {rowErrors[row.id] && (
-                                <p className="text-[10px] text-red-500 mt-0.5">Select a cost code</p>
+                                <p className="text-xs text-red-500 mt-1">Select a cost code</p>
                               )}
                             </div>
                             <div className="col-span-2">
@@ -792,7 +792,7 @@ export default function WriteChecks() {
                                   updateJobCostRow(row.id, "project", project?.address || "");
                                 }}
                                 placeholder="Select project..."
-                                className="h-7 text-xs"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-4">
@@ -800,7 +800,7 @@ export default function WriteChecks() {
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
                                 placeholder="Job cost memo"
-                                className="h-7 text-xs"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-1">
@@ -811,12 +811,12 @@ export default function WriteChecks() {
                                 onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
                                 disabled={!row.accountId}
-                                className="h-7 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                               />
                             </div>
                             <div className="col-span-1">
                               <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">$</span>
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -824,12 +824,12 @@ export default function WriteChecks() {
                                   onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
                                   disabled={!row.accountId}
-                                  className="h-7 pl-6 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                                 />
                               </div>
                             </div>
                             <div className="col-span-1 flex items-center">
-                              <span className="text-xs font-medium">
+                              <span className="text-sm font-medium">
                                 ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                               </span>
                             </div>
@@ -839,15 +839,15 @@ export default function WriteChecks() {
                                 size="sm"
                                 variant="destructive"
                                 disabled={jobCostRows.length === 1}
-                                className="h-6 w-6 p-0"
+                                className="h-8 w-8 p-0"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
                         ))}
-                        <div className="p-2 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2 text-xs">
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
                             <div className="col-span-8 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${jobCostRows.reduce((total, row) => {
@@ -862,16 +862,16 @@ export default function WriteChecks() {
                       </div>
                     </TabsContent>
                     
-                    <TabsContent value="expense" className="space-y-2">
+                    <TabsContent value="expense" className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Button onClick={addExpenseRow} size="sm" variant="outline" className="h-7 text-xs">
-                          <Plus className="h-3 w-3 mr-1" />
+                        <Button onClick={addExpenseRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
                           Add Row
                         </Button>
                       </div>
 
                       <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-12 gap-2 p-2 bg-muted font-medium text-[10px]">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-2">Account</div>
                           <div className="col-span-2">Project</div>
                           <div className="col-span-4">Memo</div>
@@ -882,7 +882,7 @@ export default function WriteChecks() {
                         </div>
 
                         {expenseRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-2 border-t text-xs">
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-2">
                               <AccountSearchInput
                                 value={row.accountId || ""}
@@ -894,10 +894,10 @@ export default function WriteChecks() {
                                 }}
                                 placeholder="Select account"
                                 accountType="expense"
-                                className={cn("h-7 text-xs", rowErrors[row.id] && "border-red-500 border-2")}
+                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
                               />
                               {rowErrors[row.id] && (
-                                <p className="text-[10px] text-red-500 mt-0.5">Select an expense account</p>
+                                <p className="text-xs text-red-500 mt-1">Select an expense account</p>
                               )}
                             </div>
                             <div className="col-span-2">
@@ -910,7 +910,7 @@ export default function WriteChecks() {
                                   updateExpenseRow(row.id, "project", project?.address || "");
                                 }}
                                 placeholder="Select project"
-                                className="h-7 text-xs"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-4">
@@ -918,7 +918,7 @@ export default function WriteChecks() {
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
                                 placeholder="Expense memo"
-                                className="h-7 text-xs"
+                                className="h-8"
                               />
                             </div>
                             <div className="col-span-1">
@@ -929,12 +929,12 @@ export default function WriteChecks() {
                                 onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
                                 disabled={!row.accountId}
-                                className="h-7 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                               />
                             </div>
                             <div className="col-span-1">
                               <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">$</span>
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -942,12 +942,12 @@ export default function WriteChecks() {
                                   onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
                                   disabled={!row.accountId}
-                                  className="h-7 pl-6 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
                                 />
                               </div>
                             </div>
                             <div className="col-span-1 flex items-center">
-                              <span className="text-xs font-medium">
+                              <span className="text-sm font-medium">
                                 ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                               </span>
                             </div>
@@ -957,15 +957,15 @@ export default function WriteChecks() {
                                 size="sm"
                                 variant="destructive"
                                 disabled={expenseRows.length === 1}
-                                className="h-6 w-6 p-0"
+                                className="h-8 w-8 p-0"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
                         ))}
-                        <div className="p-2 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2 text-xs">
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
                             <div className="col-span-8 font-medium">Total:</div>
                             <div className="col-span-1 font-medium">
                               ${expenseRows.reduce((total, row) => {
