@@ -21,6 +21,7 @@ interface Transaction {
   date: string;
   memo: string | null;
   payee: string | null;
+  reference: string | null;
   source_type: string;
   debit: number;
   credit: number;
@@ -85,7 +86,7 @@ export function AccountDetailDialog({
       if (checkIds.length > 0) {
         const { data: checksData } = await supabase
           .from('checks')
-          .select('id, memo, pay_to')
+          .select('id, memo, pay_to, check_number')
           .in('id', checkIds);
         
         checksData?.forEach(check => {
@@ -96,13 +97,15 @@ export function AccountDetailDialog({
       const transactions: Transaction[] = (data || []).map((line: any) => {
         let memo = line.memo;
         let payee = null;
+        let reference = null;
 
-        // If this is a check, get memo and payee from checks table
+        // If this is a check, get memo, payee, and check number from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
             payee = check.pay_to;
+            reference = check.check_number;
           }
         }
 
@@ -110,6 +113,7 @@ export function AccountDetailDialog({
           date: line.journal_entries.entry_date,
           memo: memo,
           payee: payee,
+          reference: reference,
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
           credit: line.credit || 0,
@@ -159,9 +163,6 @@ export function AccountDetailDialog({
           <DialogTitle>
             {accountCode} - {accountName}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Account Type: {accountType.charAt(0).toUpperCase() + accountType.slice(1)}
-          </p>
         </DialogHeader>
 
         <div className="mt-4">
@@ -180,6 +181,7 @@ export function AccountDetailDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Reference</TableHead>
                   <TableHead>Memo</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
@@ -191,6 +193,9 @@ export function AccountDetailDialog({
                   <TableRow key={index}>
                     <TableCell className="whitespace-nowrap">
                       {new Date(txn.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {txn.reference || '-'}
                     </TableCell>
                     <TableCell>
                       <div>
