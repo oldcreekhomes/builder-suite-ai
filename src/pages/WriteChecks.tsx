@@ -18,6 +18,7 @@ import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
+import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectSearch } from "@/hooks/useProjectSearch";
@@ -875,15 +876,14 @@ export default function WriteChecks() {
                         {expenseRows.map((row, index) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <AccountSearchInput
-                                value={row.accountId || ""}
-                                onChange={(accountId) => {
-                                  updateExpenseRow(row.id, "accountId", accountId);
-                                  // Find account name for display
-                                  const account = accounts?.find(a => a.id === accountId);
-                                  updateExpenseRow(row.id, "account", account ? `${account.code} - ${account.name}` : "");
+                              <AccountSearchInputInline
+                                value={row.account}
+                                onChange={(value) => updateExpenseRow(row.id, "account", value)}
+                                onAccountSelect={(account) => {
+                                  updateExpenseRow(row.id, "accountId", account.id);
+                                  updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
                                 }}
-                                placeholder="Select account"
+                                placeholder="Select account..."
                                 accountType="expense"
                                 className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
                               />
