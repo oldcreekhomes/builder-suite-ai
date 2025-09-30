@@ -787,8 +787,7 @@ export default function WriteChecks() {
                                 value={row.quantity || "1"}
                                 onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
-                                disabled={!row.accountId}
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                             <div className="col-span-1">
@@ -800,8 +799,7 @@ export default function WriteChecks() {
                                   value={row.amount}
                                   onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
-                                  disabled={!row.accountId}
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                               </div>
                             </div>
@@ -906,8 +904,7 @@ export default function WriteChecks() {
                                 value={row.quantity || "1"}
                                 onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
-                                disabled={!row.accountId}
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                             <div className="col-span-1">
@@ -919,8 +916,7 @@ export default function WriteChecks() {
                                   value={row.amount}
                                   onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
-                                  disabled={!row.accountId}
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                               </div>
                             </div>
