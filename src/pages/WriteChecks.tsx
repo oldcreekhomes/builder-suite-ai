@@ -777,9 +777,10 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-5">Description</div>
+                          <div className="col-span-4">Description</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
+                          <div className="col-span-1"></div>
                           <div className="col-span-1">Total</div>
                           <div className="col-span-1 text-center">Action</div>
                         </div>
@@ -801,7 +802,7 @@ export default function WriteChecks() {
                                 <p className="text-xs text-red-500 mt-1">Select a cost code</p>
                               )}
                             </div>
-                            <div className="col-span-5">
+                            <div className="col-span-4">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
@@ -832,6 +833,7 @@ export default function WriteChecks() {
                                 />
                               </div>
                             </div>
+                            <div className="col-span-1"></div>
                             <div className="col-span-1 flex items-center">
                               <span className="text-sm font-medium">
                                 ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
@@ -893,9 +895,10 @@ export default function WriteChecks() {
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
-                          <div className="col-span-5">Description</div>
+                          <div className="col-span-4">Description</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
+                          <div className="col-span-1"></div>
                           <div className="col-span-1">Total</div>
                           <div className="col-span-1 text-center">Action</div>
                         </div>
@@ -918,7 +921,7 @@ export default function WriteChecks() {
                                 <p className="text-xs text-red-500 mt-1">Select an expense account</p>
                               )}
                             </div>
-                            <div className="col-span-5">
+                            <div className="col-span-4">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
@@ -949,6 +952,7 @@ export default function WriteChecks() {
                                 />
                               </div>
                             </div>
+                            <div className="col-span-1"></div>
                             <div className="col-span-1 flex items-center">
                               <span className="text-sm font-medium">
                                 ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
