@@ -45,6 +45,11 @@
     --timeline-default: 0 70% 85%;
     --timeline-confirmed: 142 76% 36%;
     --timeline-unconfirmed: 0 84% 60%;
+    
+    /* Bidding tab colors */
+    --bidding-draft: 60 100% 50%;
+    --bidding-open: 120 100% 25%;
+    --bidding-closed: 240 100% 50%;
   }
 
   .dark {
@@ -87,6 +92,11 @@
     --timeline-default: 0 70% 85%;
     --timeline-confirmed: 142 76% 36%;
     --timeline-unconfirmed: 0 84% 60%;
+    
+    /* Bidding tab colors */
+    --bidding-draft: 60 100% 50%;
+    --bidding-open: 120 100% 25%;
+    --bidding-closed: 240 100% 50%;
   }
 }
 

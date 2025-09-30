@@ -70,6 +70,11 @@ export default {
 					default: 'hsl(var(--timeline-default))',
 					confirmed: 'hsl(var(--timeline-confirmed))',
 					unconfirmed: 'hsl(var(--timeline-unconfirmed))'
+				},
+				bidding: {
+					draft: 'hsl(var(--bidding-draft))',
+					open: 'hsl(var(--bidding-open))',
+					closed: 'hsl(var(--bidding-closed))'
 				}
 			},
 			borderRadius: {

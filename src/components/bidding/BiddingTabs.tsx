@@ -42,13 +42,13 @@ export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="draft" className="text-yellow-500 data-[state=active]:text-yellow-500">
+        <TabsTrigger value="draft" className="text-bidding-draft data-[state=active]:text-bidding-draft">
           {getTabLabel('draft', counts?.draftCount)}
         </TabsTrigger>
-        <TabsTrigger value="sent" className="text-green-600 data-[state=active]:text-green-600">
+        <TabsTrigger value="sent" className="text-bidding-open data-[state=active]:text-bidding-open">
           {getTabLabel('sent', counts?.sentCount)}
         </TabsTrigger>
-        <TabsTrigger value="closed" className="text-blue-900 data-[state=active]:text-blue-900">
+        <TabsTrigger value="closed" className="text-bidding-closed data-[state=active]:text-bidding-closed">
           {getTabLabel('closed', counts?.closedCount)}
         </TabsTrigger>
       </TabsList>
