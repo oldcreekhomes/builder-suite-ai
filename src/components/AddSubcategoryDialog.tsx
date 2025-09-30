@@ -12,44 +12,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface AddSubcategoryDialogProps {
   parentCode: string;
+  parentName: string;
   onAddCostCode: (costCode: any) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function AddSubcategoryDialog({ parentCode, onAddCostCode, open, onOpenChange }: AddSubcategoryDialogProps) {
+export function AddSubcategoryDialog({ parentCode, parentName, onAddCostCode, open, onOpenChange }: AddSubcategoryDialogProps) {
   const [formData, setFormData] = useState({
-    code: "",
     name: "",
     quantity: "",
     price: "",
     unitOfMeasure: "",
-    hasSpecifications: "",
-    hasBidding: "",
   });
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setFormData({
-        code: "",
         name: "",
         quantity: "",
         price: "",
         unitOfMeasure: "",
-        hasSpecifications: "",
-        hasBidding: "",
       });
     }
   }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Auto-set parent_group and has_subcategories
+    // Auto-set parent_group, has_subcategories, and other defaults
     const submissionData = {
       ...formData,
+      code: "", // Will be auto-generated
       parentGroup: parentCode,
       hasSubcategories: "no", // Subcategories are always the lowest level
+      hasSpecifications: "no",
+      hasBidding: "no",
     };
     onAddCostCode(submissionData);
     onOpenChange(false);
@@ -61,37 +59,22 @@ export function AddSubcategoryDialog({ parentCode, onAddCostCode, open, onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Subcategory to {parentCode}</DialogTitle>
+          <DialogTitle>Subcategory to {parentCode} {parentName}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Cost Code */}
-              <div className="space-y-2">
-                <Label htmlFor="code">Cost Code *</Label>
-                <Input
-                  id="code"
-                  type="number"
-                  value={formData.code}
-                  onChange={(e) => handleInputChange("code", e.target.value)}
-                  placeholder="Enter cost code number"
-                  required
-                />
-              </div>
-              
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Enter cost code name"
-                  required
-                />
-              </div>
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Enter subcategory name"
+                required
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -121,64 +104,29 @@ export function AddSubcategoryDialog({ parentCode, onAddCostCode, open, onOpenCh
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Unit of Measure */}
-              <div className="space-y-2">
-                <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
-                <Select value={formData.unitOfMeasure} onValueChange={(value) => handleInputChange("unitOfMeasure", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit of measure" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="each">Each</SelectItem>
-                    <SelectItem value="square-feet">Square Feet</SelectItem>
-                    <SelectItem value="linear-feet">Linear Feet</SelectItem>
-                    <SelectItem value="square-yard">Square Yard</SelectItem>
-                    <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Has Specifications */}
-              <div className="space-y-2">
-                <Label htmlFor="hasSpecifications">Has Specifications</Label>
-                <Select value={formData.hasSpecifications} onValueChange={(value) => handleInputChange("hasSpecifications", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Unit of Measure */}
+            <div className="space-y-2">
+              <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
+              <Select value={formData.unitOfMeasure} onValueChange={(value) => handleInputChange("unitOfMeasure", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit of measure" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="each">Each</SelectItem>
+                  <SelectItem value="square-feet">Square Feet</SelectItem>
+                  <SelectItem value="linear-feet">Linear Feet</SelectItem>
+                  <SelectItem value="square-yard">Square Yard</SelectItem>
+                  <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Has Bidding */}
-              <div className="space-y-2">
-                <Label htmlFor="hasBidding">Has Bidding</Label>
-                <Select value={formData.hasBidding} onValueChange={(value) => handleInputChange("hasBidding", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Buttons */}
-              <div className="space-y-2">
-                <Label className="invisible">Actions</Label>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="flex-1">Add Subcategory</Button>
-                </div>
-              </div>
+            {/* Buttons */}
+            <div className="flex gap-2 justify-end pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Add Subcategory</Button>
             </div>
           </div>
         </form>

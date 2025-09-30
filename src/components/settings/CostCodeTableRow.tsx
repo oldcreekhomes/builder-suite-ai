@@ -186,6 +186,7 @@ export function CostCodeTableRow({
       {/* Subcategory Dialog */}
       <AddSubcategoryDialog
         parentCode={costCode.code}
+        parentName={costCode.name}
         onAddCostCode={handleAddSubcategory}
         open={showSubcategoryDialog}
         onOpenChange={setShowSubcategoryDialog}
