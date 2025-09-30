@@ -45,17 +45,21 @@ export const useChecks = () => {
       const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
       if (!owner_id) throw new Error("Unable to determine owner");
 
-      // Get accounting settings for WIP account
-      const { data: accountingSettings } = await supabase
-        .from('accounting_settings')
-        .select('wip_account_id')
-        .eq('owner_id', owner_id)
-        .single();
-
-      // Check if we have job cost lines but no WIP account configured
+      // Get WIP account (code 1430) for job cost lines
+      let wipAccountId = null;
       const hasJobCostLines = checkLines.some(line => line.line_type === 'job_cost');
-      if (hasJobCostLines && !accountingSettings?.wip_account_id) {
-        throw new Error("Work in Progress account not configured in Accounting Settings. Please configure it before posting job cost checks.");
+      if (hasJobCostLines) {
+        const { data: wipAccount } = await supabase
+          .from('accounts')
+          .select('id')
+          .eq('owner_id', owner_id)
+          .eq('code', '1430')
+          .single();
+        
+        if (!wipAccount) {
+          throw new Error("WIP account (code 1430) not found. Please ensure the WIP account exists in your chart of accounts.");
+        }
+        wipAccountId = wipAccount.id;
       }
 
       // Calculate total amount from lines if not provided
@@ -161,9 +165,9 @@ export const useChecks = () => {
         if (line.amount > 0) {
           let debitAccountId = line.account_id;
           
-          // For job cost lines, use WIP account instead of the provided account_id
-          if (line.line_type === 'job_cost' && accountingSettings?.wip_account_id) {
-            debitAccountId = accountingSettings.wip_account_id;
+          // For job cost lines, use WIP account (1430) instead of the provided account_id
+          if (line.line_type === 'job_cost' && wipAccountId) {
+            debitAccountId = wipAccountId;
           }
           
           journalLines.push({
