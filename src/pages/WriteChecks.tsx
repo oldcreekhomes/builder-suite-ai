@@ -22,6 +22,7 @@ import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectSearch } from "@/hooks/useProjectSearch";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
+import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 
 interface CheckRow {
@@ -68,6 +69,28 @@ export default function WriteChecks() {
   const { accounts, accountingSettings } = useAccounts();
   const { projects } = useProjectSearch();
   const { createCheck } = useChecks();
+  const { 
+    settings, 
+    createOrUpdateSettings, 
+    getNextCheckNumber,
+    incrementCheckNumber 
+  } = useProjectCheckSettings(projectId);
+
+  // Load saved settings when available
+  useEffect(() => {
+    if (settings) {
+      if (settings.company_name) setCompanyName(settings.company_name);
+      if (settings.company_address) setCompanyAddress(settings.company_address);
+      if (settings.company_city_state) setCompanyCityState(settings.company_city_state);
+    }
+  }, [settings]);
+
+  // Set default check number when settings load
+  useEffect(() => {
+    if (settings && !checkNumber) {
+      setCheckNumber(getNextCheckNumber());
+    }
+  }, [settings, checkNumber, getNextCheckNumber]);
 
   const addJobCostRow = () => {
     const newRow: CheckRow = {
@@ -184,6 +207,22 @@ export default function WriteChecks() {
     result += " and " + cents.toString().padStart(2, "0") + "/100 Dollars";
     
     return result;
+  };
+
+  };
+
+  // Save company settings
+  const saveCompanySettings = async () => {
+    try {
+      await createOrUpdateSettings.mutateAsync({
+        company_name: companyName,
+        company_address: companyAddress,
+        company_city_state: companyCityState,
+        last_check_number: parseInt(checkNumber) || 0
+      });
+    } catch (error) {
+      console.error('Error saving company settings:', error);
+    }
   };
 
   const handleSaveAndClose = async () => {
@@ -345,7 +384,7 @@ export default function WriteChecks() {
   const handleClear = () => {
     setCheckDate(new Date());
     setPayTo("");
-    setCheckNumber("");
+    setCheckNumber(getNextCheckNumber());
     setBankAccount("");
     setCompanyName("Your Company Name");
     setCompanyAddress("123 Business Street");
@@ -483,7 +522,7 @@ export default function WriteChecks() {
                     {/* Written amount with DOLLARS label */}
                     <div className="flex items-center justify-between gap-2 border-b-2 border-gray-400 pb-1">
                       <span className="text-sm italic text-gray-700 pl-4 flex-1">
-                        {numberToWords(parseFloat(getDisplayAmount()))}
+                        {numberToWords(parseFloat(getDisplayAmount().replace(/,/g, '')))}
                       </span>
                       <span className="text-sm font-medium pr-2">DOLLARS</span>
                     </div>
@@ -795,3 +834,5 @@ export default function WriteChecks() {
     </SidebarProvider>
   );
 }
+
+export default WriteChecks;

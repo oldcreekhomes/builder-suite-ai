@@ -1111,6 +1111,50 @@ export type Database = {
           },
         ]
       }
+      project_check_settings: {
+        Row: {
+          company_address: string | null
+          company_city_state: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          last_check_number: number | null
+          owner_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          last_check_number?: number | null
+          owner_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          last_check_number?: number | null
+          owner_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_check_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_files: {
         Row: {
           description: string | null
