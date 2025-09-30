@@ -935,6 +935,19 @@ export default function WriteChecks() {
                             </div>
                           </div>
                         ))}
+                        <div className="p-3 bg-muted border-t">
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-8 font-medium">Total:</div>
+                            <div className="col-span-1 font-medium">
+                              ${expenseRows.reduce((total, row) => {
+                                const q = parseFloat(row.quantity || "0") || 0;
+                                const c = parseFloat(row.amount || "0") || 0;
+                                return total + q * c;
+                              }, 0).toFixed(2)}
+                            </div>
+                            <div className="col-span-3"></div>
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
                   </Tabs>
