@@ -170,7 +170,7 @@ export function EditCostCodeDialog({
             </div>
 
             {/* Row 4 */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_specifications">Has Specifications</Label>
                 <Select value={formData.has_specifications} onValueChange={(value) => handleInputChange("has_specifications", value)}>
@@ -196,10 +196,7 @@ export function EditCostCodeDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Row 5 */}
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_subcategories">Sub Categories</Label>
                 <Select value={formData.has_subcategories} onValueChange={(value) => handleInputChange("has_subcategories", value)}>

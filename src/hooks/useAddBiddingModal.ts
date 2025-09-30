@@ -13,6 +13,7 @@ interface CostCode {
   parent_group: string;
   has_bidding: boolean;
   has_specifications: boolean;
+  has_subcategories: boolean;
   owner_id: string;
   price: number;
   quantity: string;
@@ -57,7 +58,8 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
         parent_group: costCode.parent_group || 'General',
         price: costCode.price || 0,
         quantity: costCode.quantity || '',
-        has_specifications: costCode.has_specifications || false
+        has_specifications: costCode.has_specifications || false,
+        has_subcategories: costCode.has_subcategories || false
       }));
     },
     enabled: !!projectId,
