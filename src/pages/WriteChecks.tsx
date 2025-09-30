@@ -447,41 +447,37 @@ export default function WriteChecks() {
                       </div>
                     </div>
                     {/* Written amount */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm italic text-gray-700 pl-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm italic text-gray-700 pl-4 flex-1">
                         {numberToWords(parseFloat(getDisplayAmount()))}
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Amount line */}
-                  <div className="flex items-center justify-between">
-                    <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right relative">
-                      <span className="text-sm text-gray-600">$</span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={useManualAmount ? manualAmount : getDisplayAmount()}
-                        onChange={(e) => {
-                          setManualAmount(e.target.value);
-                          setUseManualAmount(true);
-                        }}
-                        onFocus={() => setUseManualAmount(true)}
-                        className="inline-block w-20 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
-                        placeholder="0.00"
-                      />
-                      {useManualAmount && (
-                        <button
-                          onClick={() => {
-                            setUseManualAmount(false);
-                            setManualAmount("");
+                      <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right relative">
+                        <span className="text-sm text-gray-600">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={useManualAmount ? manualAmount : getDisplayAmount()}
+                          onChange={(e) => {
+                            setManualAmount(e.target.value);
+                            setUseManualAmount(true);
                           }}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center hover:bg-red-600"
-                          title="Reset to calculated amount"
-                        >
-                          ×
-                        </button>
-                      )}
+                          onFocus={() => setUseManualAmount(true)}
+                          className="inline-block w-20 text-xl font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
+                          placeholder="0.00"
+                        />
+                        {useManualAmount && (
+                          <button
+                            onClick={() => {
+                              setUseManualAmount(false);
+                              setManualAmount("");
+                            }}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center hover:bg-red-600"
+                            title="Reset to calculated amount"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
