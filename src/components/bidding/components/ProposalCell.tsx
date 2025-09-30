@@ -44,7 +44,7 @@ export function ProposalCell({
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
               return (
-                <div key={index} className="relative group">
+                <div key={index} className="relative">
                   <button
                     onClick={() => handleFilePreview(fileName)}
                     className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
@@ -54,11 +54,15 @@ export function ProposalCell({
                   </button>
                   {!isReadOnly && (
                     <button
-                      onClick={() => setFileToDelete(fileName)}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      title="Delete this file"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFileToDelete(fileName);
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                      title="Delete file"
+                      type="button"
                     >
-                      <X className="h-2.5 w-2.5" />
+                      <span className="text-xs font-bold leading-none">×</span>
                     </button>
                   )}
                 </div>
@@ -95,7 +99,7 @@ export function ProposalCell({
         open={!!fileToDelete}
         onOpenChange={(open) => !open && setFileToDelete(null)}
         title="Delete Proposal File"
-        description={`Are you sure you want to delete "${fileToDelete}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${fileToDelete?.split('/').pop() || fileToDelete}"? This action cannot be undone.`}
         onConfirm={() => fileToDelete && confirmDelete(fileToDelete)}
       />
     </div>
