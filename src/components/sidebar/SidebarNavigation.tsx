@@ -274,6 +274,9 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         <a href={`/project/${projectId}/accounting/reports/balance-sheet`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                           <span>Balance Sheet</span>
                         </a>
+                        <a href={`/project/${projectId}/accounting/reports/income-statement`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                          <span>Income Statement</span>
+                        </a>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
