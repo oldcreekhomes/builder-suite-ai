@@ -113,6 +113,7 @@ export function CostCodesTable({
                         onToggleExpand={onToggleGroupCollapse}
                         childCodes={children}
                         onAddSubcategory={onAddCostCode}
+                        isCodeExpanded={(code) => !collapsedGroups.has(code)}
                       />
                     );
                   });

@@ -21,6 +21,7 @@ interface CostCodeTableRowProps {
   childCodes?: CostCode[];
   onAddSubcategory?: (parentCode: string) => void;
   level?: number;
+  isCodeExpanded?: (code: string) => boolean;
 }
 
 export function CostCodeTableRow({
@@ -35,12 +36,16 @@ export function CostCodeTableRow({
   onToggleExpand,
   childCodes = [],
   onAddSubcategory,
-  level = 0
+  level = 0,
+  isCodeExpanded
 }: CostCodeTableRowProps) {
   // Determine if this row is expandable based on actual children OR has_subcategories flag
   const hasChildren = childCodes.length > 0;
   const isExpandable = hasChildren || costCode.has_subcategories;
   const indentLevel = isGrouped ? 1 : level;
+  
+  // Use isCodeExpanded if provided, otherwise fall back to isExpanded
+  const expanded = isCodeExpanded ? isCodeExpanded(costCode.code) : isExpanded;
   
   return (
     <>
@@ -58,7 +63,7 @@ export function CostCodeTableRow({
                 onClick={() => onToggleExpand(costCode.code)}
                 className="p-0 hover:bg-accent rounded"
               >
-                {isExpanded ? (
+                {expanded ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
                   <ChevronRight className="h-4 w-4" />
@@ -129,7 +134,7 @@ export function CostCodeTableRow({
       </TableRow>
 
       {/* Render child rows when expanded */}
-      {isExpandable && isExpanded && (
+      {isExpandable && expanded && (
         <>
           {childCodes.map((childCode) => (
             <CostCodeTableRow
@@ -142,6 +147,9 @@ export function CostCodeTableRow({
               onUpdate={onUpdate}
               isGrouped={false}
               level={level + 1}
+              onToggleExpand={onToggleExpand}
+              onAddSubcategory={onAddSubcategory}
+              isCodeExpanded={isCodeExpanded}
             />
           ))}
           
