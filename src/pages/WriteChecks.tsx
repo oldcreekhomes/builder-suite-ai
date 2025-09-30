@@ -499,10 +499,10 @@ export default function WriteChecks() {
                           />
                         </div>
                       </div>
-                      <div className="w-80 text-center">
-                        <div className="border-b-2 border-gray-400 h-8"></div>
-                        <span className="text-xs text-gray-600 mt-1 block">Authorized Signature</span>
-                      </div>
+                        <div className="w-80 text-center relative">
+                          <div className="border-b-2 border-gray-400 h-8"></div>
+                          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 text-xs text-gray-600">Authorized Signature</span>
+                        </div>
                     </div>
                   </div>
 
