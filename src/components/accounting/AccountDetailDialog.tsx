@@ -19,8 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Transaction {
   date: string;
-  description: string;
   memo: string | null;
+  payee: string | null;
   source_type: string;
   debit: number;
   credit: number;
@@ -61,7 +61,8 @@ export function AccountDetailDialog({
           journal_entries!inner(
             entry_date,
             description,
-            source_type
+            source_type,
+            source_id
           )
         `)
         .eq('account_id', accountId);
@@ -74,14 +75,46 @@ export function AccountDetailDialog({
 
       if (error) throw error;
 
-      const transactions: Transaction[] = (data || []).map((line: any) => ({
-        date: line.journal_entries.entry_date,
-        description: line.journal_entries.description || line.journal_entries.source_type,
-        memo: line.memo,
-        source_type: line.journal_entries.source_type,
-        debit: line.debit || 0,
-        credit: line.credit || 0,
-      }));
+      // Get check IDs for check transactions
+      const checkIds = (data || [])
+        .filter((line: any) => line.journal_entries.source_type === 'check')
+        .map((line: any) => line.journal_entries.source_id);
+
+      // Fetch check details if we have any checks
+      let checksMap = new Map();
+      if (checkIds.length > 0) {
+        const { data: checksData } = await supabase
+          .from('checks')
+          .select('id, memo, pay_to')
+          .in('id', checkIds);
+        
+        checksData?.forEach(check => {
+          checksMap.set(check.id, check);
+        });
+      }
+
+      const transactions: Transaction[] = (data || []).map((line: any) => {
+        let memo = line.memo;
+        let payee = null;
+
+        // If this is a check, get memo and payee from checks table
+        if (line.journal_entries.source_type === 'check') {
+          const check = checksMap.get(line.journal_entries.source_id);
+          if (check) {
+            memo = check.memo;
+            payee = check.pay_to;
+          }
+        }
+
+        return {
+          date: line.journal_entries.entry_date,
+          memo: memo,
+          payee: payee,
+          source_type: line.journal_entries.source_type,
+          debit: line.debit || 0,
+          credit: line.credit || 0,
+        };
+      });
 
       // Sort by date
       transactions.sort((a, b) => {
@@ -147,7 +180,7 @@ export function AccountDetailDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Memo</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
@@ -161,11 +194,18 @@ export function AccountDetailDialog({
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">
-                          {txn.description}
-                        </div>
+                        {txn.payee && (
+                          <div className="font-medium">
+                            Check to {txn.payee}
+                          </div>
+                        )}
                         {txn.memo && (
-                          <div className="text-xs text-muted-foreground">{txn.memo}</div>
+                          <div className={txn.payee ? "text-xs text-muted-foreground" : "font-medium"}>
+                            {txn.memo}
+                          </div>
+                        )}
+                        {!txn.memo && !txn.payee && (
+                          <div className="text-muted-foreground">-</div>
                         )}
                       </div>
                     </TableCell>
