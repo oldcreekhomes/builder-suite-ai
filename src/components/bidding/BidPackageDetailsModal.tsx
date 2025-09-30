@@ -36,6 +36,7 @@ interface BidPackageDetailsModalProps {
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
+  onDeleteIndividualProposal: (biddingItemId: string, bidId: string, fileName: string) => void;
   onDeleteAllProposals: (biddingItemId: string, bidId: string) => void;
   onDeleteCompany: (biddingItemId: string, bidId: string) => void;
   onSendEmail: (biddingItemId: string, companyId: string) => void;
@@ -68,6 +69,7 @@ export function BidPackageDetailsModal({
   onToggleBidStatus,
   onUpdatePrice,
   onUploadProposal,
+  onDeleteIndividualProposal,
   onDeleteAllProposals,
   onDeleteCompany,
   onSendEmail,
@@ -231,6 +233,7 @@ export function BidPackageDetailsModal({
                   onToggleBidStatus={onToggleBidStatus}
                   onUpdatePrice={onUpdatePrice}
                   onUploadProposal={onUploadProposal}
+                  onDeleteIndividualProposal={onDeleteIndividualProposal}
                   onDeleteAllProposals={onDeleteAllProposals}
                   onDeleteCompany={onDeleteCompany}
                   onSendEmail={onSendEmail}

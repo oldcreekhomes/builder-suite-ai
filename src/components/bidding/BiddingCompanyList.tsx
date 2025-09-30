@@ -31,6 +31,7 @@ interface BiddingCompanyListProps {
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
+  onDeleteIndividualProposal: (biddingItemId: string, bidId: string, fileName: string) => void;
   onDeleteAllProposals: (biddingItemId: string, bidId: string) => void;
   onDeleteCompany: (biddingItemId: string, bidId: string) => void;
   onSendEmail?: (biddingItemId: string, companyId: string) => void;
@@ -50,6 +51,7 @@ export function BiddingCompanyList({
   onToggleBidStatus, 
   onUpdatePrice,
   onUploadProposal,
+  onDeleteIndividualProposal,
   onDeleteAllProposals,
   onDeleteCompany,
   onSendEmail,
@@ -89,6 +91,10 @@ export function BiddingCompanyList({
       }
     };
     input.click();
+  };
+
+  const handleDeleteIndividualFile = (bidId: string, fileName: string) => {
+    onDeleteIndividualProposal(biddingItemId, bidId, fileName);
   };
 
   const handleDeleteAllFiles = (bidId: string) => {
@@ -162,6 +168,7 @@ export function BiddingCompanyList({
           onPriceChange={handlePriceChange}
           onPriceBlur={handlePriceBlur}
           onFileUpload={handleFileUpload}
+          onDeleteIndividualFile={handleDeleteIndividualFile}
           onDeleteAllFiles={handleDeleteAllFiles}
           onDeleteCompany={onDeleteCompany}
           onSendEmail={onSendEmail ? (companyId) => onSendEmail(biddingItemId, companyId) : undefined}

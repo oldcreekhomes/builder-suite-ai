@@ -202,6 +202,59 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     },
   });
 
+  // Delete individual proposal mutation
+  const deleteIndividualProposalMutation = useMutation({
+    mutationFn: async ({ bidId, fileName }: { bidId: string; fileName: string }) => {
+      console.log('Deleting individual proposal:', { bidId, fileName });
+      
+      // Get current proposals
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_bids')
+        .select('proposals')
+        .eq('id', bidId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const currentProposals = currentData?.proposals || [];
+      
+      // Delete file from storage
+      const filePath = `proposals/${fileName}`;
+      const { error: deleteError } = await supabase.storage
+        .from('project-files')
+        .remove([filePath]);
+        
+      if (deleteError) console.error('Error deleting file from storage:', deleteError);
+      
+      // Remove from proposals array
+      const updatedProposals = currentProposals.filter((f: string) => f !== fileName);
+      
+      // Update database
+      const { error } = await supabase
+        .from('project_bids')
+        .update({ proposals: updatedProposals })
+        .eq('id', bidId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: "Proposal deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete proposal:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete proposal",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete all proposals mutation
   const deleteAllProposalsMutation = useMutation({
     mutationFn: async ({ bidId }: { bidId: string }) => {
@@ -300,6 +353,10 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     uploadProposalMutation.mutate({ bidId, files });
   };
 
+  const deleteIndividualProposal = (biddingItemId: string, bidId: string, fileName: string) => {
+    deleteIndividualProposalMutation.mutate({ bidId, fileName });
+  };
+
   const deleteAllProposals = (biddingItemId: string, bidId: string) => {
     deleteAllProposalsMutation.mutate({ bidId });
   };
@@ -314,6 +371,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     toggleBidStatus,
     updatePrice,
     uploadProposal,
+    deleteIndividualProposal,
     deleteAllProposals,
     deleteCompany,
     isLoading: addCompanyToBidPackage.isPending || 
@@ -321,6 +379,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
                toggleBidStatusMutation.isPending || 
                updatePriceMutation.isPending || 
                uploadProposalMutation.isPending || 
+               deleteIndividualProposalMutation.isPending ||
                deleteAllProposalsMutation.isPending || 
                deleteCompanyMutation.isPending,
   };

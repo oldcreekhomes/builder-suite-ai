@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
 import { openProposalFile } from '@/utils/fileOpenUtils';
 
@@ -9,6 +10,7 @@ interface ProposalCellProps {
   proposals: string[] | null;
   companyId: string;
   onFileUpload: (companyId: string) => void;
+  onDeleteIndividualFile: (companyId: string, fileName: string) => void;
   onDeleteAllFiles: (companyId: string) => void;
   isReadOnly?: boolean;
 }
@@ -17,13 +19,20 @@ export function ProposalCell({
   proposals, 
   companyId, 
   onFileUpload,
+  onDeleteIndividualFile,
   onDeleteAllFiles,
   isReadOnly = false 
 }: ProposalCellProps) {
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   
   const handleFilePreview = (fileName: string) => {
     console.log('PROPOSAL CELL: Opening file', fileName);
     openProposalFile(fileName);
+  };
+
+  const confirmDelete = (fileName: string) => {
+    onDeleteIndividualFile(companyId, fileName);
+    setFileToDelete(null);
   };
 
   return (
@@ -35,14 +44,24 @@ export function ProposalCell({
               const IconComponent = getFileIcon(fileName);
               const iconColorClass = getFileIconColor(fileName);
               return (
-                <button
-                  key={index}
-                  onClick={() => handleFilePreview(fileName)}
-                  className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
-                  title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
-                >
-                  <IconComponent className="h-4 w-4" />
-                </button>
+                <div key={index} className="relative group">
+                  <button
+                    onClick={() => handleFilePreview(fileName)}
+                    className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                    title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
+                  >
+                    <IconComponent className="h-4 w-4" />
+                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => setFileToDelete(fileName)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete this file"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -71,6 +90,14 @@ export function ProposalCell({
           Upload
         </Button>
       )}
+      
+      <DeleteConfirmationDialog
+        open={!!fileToDelete}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+        title="Delete Proposal File"
+        description={`Are you sure you want to delete "${fileToDelete}"? This action cannot be undone.`}
+        onConfirm={() => fileToDelete && confirmDelete(fileToDelete)}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ interface BiddingTableRowProps {
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
+  onDeleteIndividualProposal: (biddingItemId: string, bidId: string, fileName: string) => void;
   onDeleteAllProposals: (biddingItemId: string, bidId: string) => void;
   onDeleteCompany: (biddingItemId: string, bidId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
@@ -48,6 +49,7 @@ export function BiddingTableRow({
   onToggleBidStatus,
   onUpdatePrice,
   onUploadProposal,
+  onDeleteIndividualProposal,
   onDeleteAllProposals,
   onDeleteCompany,
   formatUnitOfMeasure,
@@ -141,6 +143,7 @@ export function BiddingTableRow({
         onToggleBidStatus={onToggleBidStatus}
         onUpdatePrice={onUpdatePrice}
         onUploadProposal={onUploadProposal}
+        onDeleteIndividualProposal={onDeleteIndividualProposal}
         onDeleteAllProposals={onDeleteAllProposals}
         onDeleteCompany={onDeleteCompany}
         onSendEmail={handleSendEmailToCompany}

@@ -54,7 +54,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   } = useBudgetGroups(groupedBiddingItems);
   
   const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteIndividualFile, cancelUpload, removeUpload } = useBiddingMutations(projectId);
-  const { toggleBidStatus, updatePrice, uploadProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
+  const { toggleBidStatus, updatePrice, uploadProposal, deleteIndividualProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
   const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
 
   // Company selection handlers for modal use
@@ -290,6 +290,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                        onToggleBidStatus={toggleBidStatus}
                        onUpdatePrice={updatePrice}
                        onUploadProposal={uploadProposal}
+                       onDeleteIndividualProposal={deleteIndividualProposal}
                        onDeleteAllProposals={deleteAllProposals}
                        onDeleteCompany={deleteCompany}
                        formatUnitOfMeasure={formatUnitOfMeasure}

@@ -40,6 +40,7 @@ interface BiddingCompanyRowProps {
   onPriceChange: (companyId: string, value: string) => void;
   onPriceBlur: (companyId: string, value: string) => void;
   onFileUpload: (companyId: string) => void;
+  onDeleteIndividualFile: (companyId: string, fileName: string) => void;
   onDeleteAllFiles: (companyId: string) => void;
   onDeleteCompany: (biddingItemId: string, companyId: string) => void;
   onSendEmail?: (companyId: string) => void;
@@ -61,6 +62,7 @@ export function BiddingCompanyRow({
   onPriceChange,
   onPriceBlur,
   onFileUpload,
+  onDeleteIndividualFile,
   onDeleteAllFiles,
   onDeleteCompany,
   onSendEmail,
@@ -129,6 +131,7 @@ export function BiddingCompanyRow({
           proposals={biddingCompany.proposals}
           companyId={biddingCompany.id}
           onFileUpload={onFileUpload}
+          onDeleteIndividualFile={onDeleteIndividualFile}
           onDeleteAllFiles={onDeleteAllFiles}
           isReadOnly={isReadOnly}
         />
