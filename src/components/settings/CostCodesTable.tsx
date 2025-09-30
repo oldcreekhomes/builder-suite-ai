@@ -98,8 +98,9 @@ export function CostCodesTable({
                     return !costCode.parent_group || costCode.code === groupKey;
                   })
                   .map((costCode) => {
-                    // Always get children from the full costCodes array, not just the group
-                    const children = costCodes.filter(cc => cc.parent_group === costCode.code);
+                    // Always get children from the full costCodes array, not just the group (normalize strings)
+                    const parentCode = String(costCode.code ?? '').trim();
+                    const children = costCodes.filter(cc => String(cc.parent_group ?? '').trim() === parentCode);
                     
                     return (
                       <CostCodeTableRow
