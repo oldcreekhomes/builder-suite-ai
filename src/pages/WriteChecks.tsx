@@ -705,11 +705,15 @@ export default function WriteChecks() {
                     {/* Memo and signature aligned by bottom edge */}
                     <div className="flex items-end justify-between pt-8">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">MEMO</span>
-                        <div className="w-64 border-b-2 border-gray-400 h-8">
-                          <Input
-                            placeholder="Optional memo..."
+                        <span className="text-sm font-medium">BANK ACCOUNT</span>
+                        <div className="w-64 border-b-2 border-gray-400">
+                          <AccountSearchInput
+                            value={bankAccount}
+                            onChange={setBankAccount}
+                            placeholder="Select bank account..."
                             className="border-0 bg-transparent h-8 text-sm"
+                            accountType="asset"
+                            bankAccountsOnly={true}
                           />
                         </div>
                       </div>
@@ -720,20 +724,6 @@ export default function WriteChecks() {
                     </div>
                   </div>
 
-                  {/* Bank account */}
-                  <div className="flex items-end justify-between pt-2">
-                    <div className="space-y-2 flex-1 max-w-md">
-                      <Label className="text-xs text-gray-600">BANK ACCOUNT</Label>
-                      <AccountSearchInput
-                        value={bankAccount}
-                        onChange={setBankAccount}
-                        placeholder="Select bank account..."
-                        className="border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent"
-                        accountType="asset"
-                        bankAccountsOnly={true}
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Expenses Section with Tabs */}
