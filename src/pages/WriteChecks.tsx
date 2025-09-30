@@ -178,6 +178,15 @@ export default function WriteChecks() {
     return parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const validateCheckAmountMatchesLineItems = (): boolean => {
+    const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
+    const lineItemsTotal = parseFloat(calculateTotal());
+    
+    // Allow for small floating-point differences (0.01)
+    const difference = Math.abs(checkAmount - lineItemsTotal);
+    return difference < 0.01;
+  };
+
   // Validate a row has account/cost code selected if it has an amount
   const validateRowSelection = (row: CheckRow) => {
     const hasAmount = amountOfRow(row) > 0;
@@ -308,6 +317,16 @@ export default function WriteChecks() {
   };
 
   const handleSaveAndClose = async () => {
+    // Validate check amount matches line items total
+    if (!validateCheckAmountMatchesLineItems()) {
+      toast({
+        title: "Validation Error",
+        description: "Check amount must equal the total of all line items",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate required fields
     if (!payTo) {
       toast({
@@ -392,8 +411,8 @@ export default function WriteChecks() {
         }))
     ];
 
-    // Calculate total amount from line items
-    const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
+    // Use the check amount (manual or calculated)
+    const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
 
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
@@ -401,7 +420,7 @@ export default function WriteChecks() {
       pay_to: payTo,
       bank_account_id: bankAccount,
       project_id: projectId || undefined,
-      amount: totalAmount,
+      amount: checkAmount,
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
@@ -427,6 +446,16 @@ export default function WriteChecks() {
   };
 
   const handleSaveAndNew = async () => {
+    // Validate check amount matches line items total
+    if (!validateCheckAmountMatchesLineItems()) {
+      toast({
+        title: "Validation Error",
+        description: "Check amount must equal the total of all line items",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate required fields
     if (!payTo) {
       toast({
@@ -511,8 +540,8 @@ export default function WriteChecks() {
         }))
     ];
 
-    // Calculate total amount from line items
-    const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
+    // Use the check amount (manual or calculated)
+    const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
 
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
@@ -520,7 +549,7 @@ export default function WriteChecks() {
       pay_to: payTo,
       bank_account_id: bankAccount,
       project_id: projectId || undefined,
-      amount: totalAmount,
+      amount: checkAmount,
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
