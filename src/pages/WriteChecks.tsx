@@ -242,16 +242,44 @@ export default function WriteChecks() {
       return;
     }
 
+    // Check for Job Cost rows with amount but no selected cost code
+    const invalidJobCost = jobCostRows.filter(row => {
+      const amt = (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0);
+      return amt > 0 && !row.accountId;
+    });
+    if (invalidJobCost.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a cost code from the dropdown for all job cost lines with an amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for Expense rows with amount but no selected account
+    const invalidExpense = expenseRows.filter(row => {
+      const amt = (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0);
+      return amt > 0 && !row.accountId;
+    });
+    if (invalidExpense.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an account from the dropdown for all expense lines with an amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
     
-      if (allRows.length === 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please select an account/cost code and enter an amount for each line item",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (allRows.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one line item with a cost code/account and amount.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
@@ -292,6 +320,9 @@ export default function WriteChecks() {
       routing_number: routingNumber,
       account_number: accountNumber
     };
+
+    console.debug('Saving Check - Data:', checkData);
+    console.debug('Saving Check - Lines:', checkLines);
 
     try {
       await createCheck.mutateAsync({ checkData, checkLines });
@@ -325,16 +356,44 @@ export default function WriteChecks() {
       return;
     }
 
+    // Check for Job Cost rows with amount but no selected cost code
+    const invalidJobCost = jobCostRows.filter(row => {
+      const amt = parseFloat(row.amount || "0") || 0;
+      return amt > 0 && !row.accountId;
+    });
+    if (invalidJobCost.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a cost code from the dropdown for all job cost lines with an amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for Expense rows with amount but no selected account
+    const invalidExpense = expenseRows.filter(row => {
+      const amt = parseFloat(row.amount || "0") || 0;
+      return amt > 0 && !row.accountId;
+    });
+    if (invalidExpense.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an account from the dropdown for all expense lines with an amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
     
-      if (allRows.length === 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please select an account/cost code and enter an amount for each line item",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (allRows.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one line item with a cost code/account and amount.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
@@ -376,8 +435,15 @@ export default function WriteChecks() {
       account_number: accountNumber
     };
 
+    console.debug('Saving Check - Data:', checkData);
+    console.debug('Saving Check - Lines:', checkLines);
+
     try {
       await createCheck.mutateAsync({ checkData, checkLines });
+      toast({
+        title: "Success",
+        description: "Check saved successfully",
+      });
       handleClear();
     } catch (error) {
       console.error('Error creating check:', error);
