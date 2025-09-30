@@ -44,8 +44,18 @@ export function CostCodeTableRow({
 }: CostCodeTableRowProps) {
   const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
   
+  // Compute children dynamically based on parent_group matching this cost code's code
+  const parentCode = String(costCode.code ?? '').trim();
+  const computedChildren = allCostCodes.filter(cc => {
+    const ccParentGroup = String(cc.parent_group ?? '').trim();
+    return ccParentGroup === parentCode;
+  });
+  
+  // Use computed children if childCodes is empty, otherwise use passed childCodes
+  const childrenToRender = childCodes.length > 0 ? childCodes : computedChildren;
+  
   // Determine if this row is expandable based on actual children OR has_subcategories flag
-  const hasChildren = childCodes.length > 0;
+  const hasChildren = childrenToRender.length > 0;
   const isExpandable = hasChildren || costCode.has_subcategories;
   const indentLevel = isGrouped ? 1 : level;
   
@@ -147,7 +157,7 @@ export function CostCodeTableRow({
       {/* Render child rows when expanded */}
       {isExpandable && expanded && (
         <>
-          {childCodes.map((childCode) => (
+          {childrenToRender.map((childCode) => (
             <CostCodeTableRow
               key={childCode.id}
               costCode={childCode}
