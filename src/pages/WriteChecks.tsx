@@ -823,16 +823,32 @@ export default function WriteChecks() {
                           </div>
                         ))}
                         <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-7 font-medium text-right">Total:</div>
-                            <div className="col-span-1 font-medium">
-                              ${jobCostRows.reduce((total, row) => {
-                                const q = parseFloat(row.quantity || "0") || 0;
-                                const c = parseFloat(row.amount || "0") || 0;
-                                return total + q * c;
-                              }, 0).toFixed(2)}
+                          <div className="flex justify-between items-center">
+                            <div className="text-base font-semibold">
+                              Total: ${calculateTotal()}
                             </div>
-                            <div className="col-span-4"></div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                                Clear
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={handleSaveAndNew}
+                                disabled={createCheck.isPending || !canSave()}
+                              >
+                                {createCheck.isPending ? "Saving..." : "Save & New"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-8"
+                                onClick={handleSaveAndClose}
+                                disabled={createCheck.isPending || !canSave()}
+                              >
+                                {createCheck.isPending ? "Saving..." : "Save & Close"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -927,16 +943,32 @@ export default function WriteChecks() {
                           </div>
                         ))}
                         <div className="p-3 bg-muted border-t">
-                          <div className="grid grid-cols-12 gap-2">
-                            <div className="col-span-7 font-medium text-right">Total:</div>
-                            <div className="col-span-1 font-medium">
-                              ${expenseRows.reduce((total, row) => {
-                                const q = parseFloat(row.quantity || "0") || 0;
-                                const c = parseFloat(row.amount || "0") || 0;
-                                return total + q * c;
-                              }, 0).toFixed(2)}
+                          <div className="flex justify-between items-center">
+                            <div className="text-base font-semibold">
+                              Total: ${calculateTotal()}
                             </div>
-                            <div className="col-span-4"></div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                                Clear
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={handleSaveAndNew}
+                                disabled={createCheck.isPending || !canSave()}
+                              >
+                                {createCheck.isPending ? "Saving..." : "Save & New"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-8"
+                                onClick={handleSaveAndClose}
+                                disabled={createCheck.isPending || !canSave()}
+                              >
+                                {createCheck.isPending ? "Saving..." : "Save & Close"}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -944,34 +976,6 @@ export default function WriteChecks() {
                   </Tabs>
                 </div>
 
-                {/* Total and Action Buttons */}
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <div className="text-base font-semibold">
-                    Total: ${calculateTotal()}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
-                      Clear
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                      onClick={handleSaveAndNew}
-                      disabled={createCheck.isPending || !canSave()}
-                    >
-                      {createCheck.isPending ? "Saving..." : "Save & New"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-8"
-                      onClick={handleSaveAndClose}
-                      disabled={createCheck.isPending || !canSave()}
-                    >
-                      {createCheck.isPending ? "Saving..." : "Save & Close"}
-                    </Button>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
