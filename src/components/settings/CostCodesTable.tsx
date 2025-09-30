@@ -111,8 +111,8 @@ export function CostCodesTable({
                 if (groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) {
                   const childRows = groupCostCodes
                     .filter(costCode => {
-                      // Only show child codes (not the parent code itself in the child list)
-                      return !parentCodes.has(costCode.code);
+                      // Only hide parent codes if they actually have children
+                      return !(parentCodes.has(costCode.code) && groupedCostCodes[costCode.code]?.length > 0);
                     })
                     .map((costCode) => (
                       <CostCodeTableRow

@@ -82,6 +82,9 @@ export const useCostCodes = () => {
   // Update cost code - improved to prevent UI flickering
   const updateCostCode = async (id: string, updates: any) => {
     try {
+      // Helper to normalize boolean values from 'yes'/'no' strings or actual booleans
+      const toBool = (v: any) => typeof v === 'string' ? v === 'yes' : Boolean(v);
+      
       // Prepare the update data with proper type handling
       const updateData: any = {};
       
@@ -92,9 +95,9 @@ export const useCostCodes = () => {
       if (updates.quantity !== undefined) updateData.quantity = updates.quantity;
       if (updates.price !== undefined) updateData.price = updates.price ? parseFloat(updates.price.toString()) : null;
       if (updates.unit_of_measure !== undefined) updateData.unit_of_measure = updates.unit_of_measure;
-      if (updates.has_specifications !== undefined) updateData.has_specifications = Boolean(updates.has_specifications);
-      if (updates.has_bidding !== undefined) updateData.has_bidding = Boolean(updates.has_bidding);
-      if (updates.has_subcategories !== undefined) updateData.has_subcategories = updates.has_subcategories === 'yes';
+      if (updates.has_specifications !== undefined) updateData.has_specifications = toBool(updates.has_specifications);
+      if (updates.has_bidding !== undefined) updateData.has_bidding = toBool(updates.has_bidding);
+      if (updates.has_subcategories !== undefined) updateData.has_subcategories = toBool(updates.has_subcategories);
       
       updateData.updated_at = new Date().toISOString();
 
