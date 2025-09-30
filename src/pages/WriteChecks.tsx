@@ -140,6 +140,51 @@ export default function WriteChecks() {
     return useManualAmount && manualAmount ? parseFloat(manualAmount).toFixed(2) : calculateTotal();
   };
 
+  const numberToWords = (num: number): string => {
+    if (num === 0) return "Zero";
+    
+    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+    const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const thousands = ["", "Thousand", "Million", "Billion"];
+
+    const convertChunk = (n: number): string => {
+      if (n === 0) return "";
+      if (n < 10) return ones[n];
+      if (n < 20) return teens[n - 10];
+      if (n < 100) {
+        const tensDigit = Math.floor(n / 10);
+        const onesDigit = n % 10;
+        return tens[tensDigit] + (onesDigit ? " " + ones[onesDigit] : "");
+      }
+      const hundredsDigit = Math.floor(n / 100);
+      const remainder = n % 100;
+      return ones[hundredsDigit] + " Hundred" + (remainder ? " " + convertChunk(remainder) : "");
+    };
+
+    const dollars = Math.floor(num);
+    const cents = Math.round((num - dollars) * 100);
+
+    let result = "";
+    let chunkIndex = 0;
+    let tempDollars = dollars;
+
+    while (tempDollars > 0) {
+      const chunk = tempDollars % 1000;
+      if (chunk !== 0) {
+        const chunkWords = convertChunk(chunk);
+        result = chunkWords + (thousands[chunkIndex] ? " " + thousands[chunkIndex] : "") + (result ? " " + result : "");
+      }
+      tempDollars = Math.floor(tempDollars / 1000);
+      chunkIndex++;
+    }
+
+    result = result || "Zero";
+    result += " and " + cents.toString().padStart(2, "0") + "/100 Dollars";
+    
+    return result;
+  };
+
   const handleSaveAndClose = async () => {
     if (!payTo) {
       toast({
@@ -326,27 +371,27 @@ export default function WriteChecks() {
           <div className="flex-1 p-6 space-y-6">
             <Card>
               <CardContent className="space-y-6 pt-6">
-                {/* Check Header Information - Styled like a real check */}
+                 {/* Check Header Information - Styled like a real check */}
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-6 space-y-4">
                   {/* Check header with date and check number */}
                   <div className="flex justify-between items-start">
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-w-xl">
                       <Input
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="text-sm font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        className="text-sm font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
                         placeholder="Your Company Name"
                       />
                       <Input
                         value={companyAddress}
                         onChange={(e) => setCompanyAddress(e.target.value)}
-                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
                         placeholder="123 Business Street"
                       />
                       <Input
                         value={companyCityState}
                         onChange={(e) => setCompanyCityState(e.target.value)}
-                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0"
+                        className="text-xs text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
                         placeholder="City, State 12345"
                       />
                     </div>
@@ -401,17 +446,16 @@ export default function WriteChecks() {
                         />
                       </div>
                     </div>
+                    {/* Written amount */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm italic text-gray-700 pl-4">
+                        {numberToWords(parseFloat(getDisplayAmount()))}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Amount line */}
                   <div className="flex items-center justify-between">
-                    <div className="flex-1 flex items-center">
-                      <span className="text-sm font-medium mr-2">$</span>
-                      <div className="flex-1 border-b-2 border-gray-400 pr-4">
-                        <span className="text-lg font-medium">{getDisplayAmount()}</span>
-                        <span className="text-sm text-gray-500 ml-2">DOLLARS</span>
-                      </div>
-                    </div>
                     <div className="ml-4 border-2 border-gray-400 px-3 py-1 min-w-[120px] text-right relative">
                       <span className="text-sm text-gray-600">$</span>
                       <Input
