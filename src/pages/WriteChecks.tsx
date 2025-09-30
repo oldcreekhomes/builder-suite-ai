@@ -24,6 +24,7 @@ import { useProjectSearch } from "@/hooks/useProjectSearch";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
+import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 
 interface CheckRow {
   id: string;
@@ -69,6 +70,7 @@ export default function WriteChecks() {
   const { accounts } = useAccounts();
   const { projects } = useProjectSearch();
   const { createCheck } = useChecks();
+  const { costCodes } = useCostCodeSearch();
   const { 
     settings, 
     createOrUpdateSettings, 
@@ -208,6 +210,69 @@ export default function WriteChecks() {
     
     return result;
   };
+  // Helpers to resolve typed inputs to IDs and ensure project assignment
+  const normalize = (s: string) => s.trim().toLowerCase();
+
+  const extractLeadingCode = (text: string): string | null => {
+    if (!text) return null;
+    const trimmed = text.trim();
+    // Prefer code before a dash (e.g., "2100 - Framing")
+    const dashIdx = trimmed.indexOf("-");
+    if (dashIdx > 0) {
+      const left = trimmed.slice(0, dashIdx).trim();
+      if (/^\d+[A-Za-z0-9.]*$/.test(left)) return left;
+    }
+    // Otherwise take leading alphanumerics (allow dots)
+    const match = trimmed.match(/^[A-Za-z0-9.]+/);
+    return match ? match[0] : null;
+  };
+
+  const findCostCodeIdFromText = (text: string | undefined): string | undefined => {
+    if (!text) return undefined;
+    const leading = extractLeadingCode(text);
+    // First try exact code match
+    if (leading) {
+      const exact = costCodes.find(cc => cc.code.toLowerCase() === leading.toLowerCase());
+      if (exact) return exact.id;
+    }
+    // Fallback: unique fuzzy match on code or name
+    const q = normalize(text);
+    const matches = costCodes.filter(cc =>
+      cc.code.toLowerCase().includes(q) || cc.name.toLowerCase().includes(q)
+    );
+    return matches.length === 1 ? matches[0].id : undefined;
+  };
+
+  const findAccountIdFromText = (text: string | undefined): string | undefined => {
+    if (!text) return undefined;
+    const leading = extractLeadingCode(text);
+    if (leading) {
+      const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
+      if (exact) return String(exact.id);
+    }
+    const q = normalize(text);
+    const matches = (accounts as any[]).filter(acc =>
+      String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
+    );
+    return matches.length === 1 ? String(matches[0].id) : undefined;
+  };
+
+  const amountOfRow = (row: CheckRow) => ((parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0));
+
+  const resolveRowsForSave = (rows: CheckRow[], kind: 'job' | 'exp'): CheckRow[] => {
+    return rows.map(row => {
+      const amt = amountOfRow(row);
+      let resolvedAccountId = row.accountId;
+      if (amt > 0 && !resolvedAccountId) {
+        resolvedAccountId = kind === 'job' ? findCostCodeIdFromText(row.account) : findAccountIdFromText(row.account);
+      }
+      return {
+        ...row,
+        accountId: resolvedAccountId,
+        projectId: row.projectId || (projectId || ""),
+      };
+    });
+  };
 
   // Save company settings
   const saveCompanySettings = async () => {
@@ -242,11 +307,12 @@ export default function WriteChecks() {
       return;
     }
 
-    // Check for Job Cost rows with amount but no selected cost code
-    const invalidJobCost = jobCostRows.filter(row => {
-      const amt = (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0);
-      return amt > 0 && !row.accountId;
-    });
+    // Auto-resolve typed selections and ensure project assignment
+    const resolvedJobCost = resolveRowsForSave(jobCostRows, 'job');
+    const resolvedExpense = resolveRowsForSave(expenseRows, 'exp');
+
+    // Validate rows after resolution
+    const invalidJobCost = resolvedJobCost.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidJobCost.length > 0) {
       toast({
         title: "Validation Error",
@@ -256,11 +322,7 @@ export default function WriteChecks() {
       return;
     }
 
-    // Check for Expense rows with amount but no selected account
-    const invalidExpense = expenseRows.filter(row => {
-      const amt = (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0);
-      return amt > 0 && !row.accountId;
-    });
+    const invalidExpense = resolvedExpense.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidExpense.length > 0) {
       toast({
         title: "Validation Error",
@@ -270,7 +332,7 @@ export default function WriteChecks() {
       return;
     }
 
-    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
+    const allRows = [...resolvedJobCost, ...resolvedExpense].filter(row => row.accountId && amountOfRow(row) > 0);
     
     if (allRows.length === 0) {
       toast({
@@ -283,22 +345,22 @@ export default function WriteChecks() {
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
-      ...jobCostRows
-        .filter(row => row.accountId && (row.amount || row.quantity))
+      ...resolvedJobCost
+        .filter(row => row.accountId && amountOfRow(row) > 0)
         .map(row => ({
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0),
+          amount: amountOfRow(row),
           memo: row.memo || undefined
         })),
-      ...expenseRows
-        .filter(row => row.accountId && (row.amount || row.quantity))
+      ...resolvedExpense
+        .filter(row => row.accountId && amountOfRow(row) > 0)
         .map(row => ({
           line_type: 'expense' as const,
           account_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: (parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0),
+          amount: amountOfRow(row),
           memo: row.memo || undefined
         }))
     ];
@@ -356,11 +418,12 @@ export default function WriteChecks() {
       return;
     }
 
-    // Check for Job Cost rows with amount but no selected cost code
-    const invalidJobCost = jobCostRows.filter(row => {
-      const amt = parseFloat(row.amount || "0") || 0;
-      return amt > 0 && !row.accountId;
-    });
+    // Auto-resolve typed selections and ensure project assignment
+    const resolvedJobCost = resolveRowsForSave(jobCostRows, 'job');
+    const resolvedExpense = resolveRowsForSave(expenseRows, 'exp');
+
+    // Validate rows after resolution
+    const invalidJobCost = resolvedJobCost.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidJobCost.length > 0) {
       toast({
         title: "Validation Error",
@@ -370,11 +433,7 @@ export default function WriteChecks() {
       return;
     }
 
-    // Check for Expense rows with amount but no selected account
-    const invalidExpense = expenseRows.filter(row => {
-      const amt = parseFloat(row.amount || "0") || 0;
-      return amt > 0 && !row.accountId;
-    });
+    const invalidExpense = resolvedExpense.filter(row => amountOfRow(row) > 0 && !row.accountId);
     if (invalidExpense.length > 0) {
       toast({
         title: "Validation Error",
@@ -384,7 +443,7 @@ export default function WriteChecks() {
       return;
     }
 
-    const allRows = [...jobCostRows, ...expenseRows].filter(row => row.accountId && (row.amount || row.quantity));
+    const allRows = [...resolvedJobCost, ...resolvedExpense].filter(row => row.accountId && amountOfRow(row) > 0);
     
     if (allRows.length === 0) {
       toast({
@@ -397,22 +456,22 @@ export default function WriteChecks() {
 
     // Prepare check lines
     const checkLines: CheckLineData[] = [
-      ...jobCostRows
-        .filter(row => row.accountId && row.amount)
+      ...resolvedJobCost
+        .filter(row => row.accountId && amountOfRow(row) > 0)
         .map(row => ({
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: parseFloat(row.amount) || 0,
+          amount: amountOfRow(row),
           memo: row.memo || undefined
         })),
-      ...expenseRows
-        .filter(row => row.accountId && row.amount)
+      ...resolvedExpense
+        .filter(row => row.accountId && amountOfRow(row) > 0)
         .map(row => ({
           line_type: 'expense' as const,
           account_id: row.accountId,
           project_id: row.projectId || undefined,
-          amount: parseFloat(row.amount) || 0,
+          amount: amountOfRow(row),
           memo: row.memo || undefined
         }))
     ];
@@ -470,6 +529,14 @@ export default function WriteChecks() {
     setBankName("Your Bank Name");
     setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+  };
+
+  // Computed form validity to enable/disable save actions
+  const canSave = () => {
+    const resolvedJob = resolveRowsForSave(jobCostRows, 'job');
+    const resolvedExp = resolveRowsForSave(expenseRows, 'exp');
+    const hasValidLine = [...resolvedJob, ...resolvedExp].some(r => r.accountId && amountOfRow(r) > 0);
+    return Boolean(payTo) && Boolean(bankAccount) && hasValidLine;
   };
 
   return (
@@ -888,13 +955,13 @@ export default function WriteChecks() {
                     <Button 
                       variant="outline" 
                       onClick={handleSaveAndNew}
-                      disabled={createCheck.isPending}
+                      disabled={createCheck.isPending || !canSave()}
                     >
                       {createCheck.isPending ? "Saving..." : "Save & New"}
                     </Button>
                     <Button 
                       onClick={handleSaveAndClose}
-                      disabled={createCheck.isPending}
+                      disabled={createCheck.isPending || !canSave()}
                     >
                       {createCheck.isPending ? "Saving..." : "Save & Close"}
                     </Button>
