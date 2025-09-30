@@ -215,8 +215,7 @@ export function AccountDetailDialog({
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead>Vendor</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
                 </TableRow>
               </TableHeader>
@@ -233,10 +232,11 @@ export function AccountDetailDialog({
                       {txn.vendor || '-'}
                     </TableCell>
                     <TableCell className="text-right">
-                      {txn.debit > 0 ? formatCurrency(txn.debit) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {txn.credit > 0 ? formatCurrency(txn.credit) : '-'}
+                      {txn.credit > 0 
+                        ? `(${formatCurrency(txn.credit)})` 
+                        : txn.debit > 0 
+                        ? formatCurrency(txn.debit) 
+                        : '-'}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(balances[index])}
