@@ -73,7 +73,7 @@ export function ViewBudgetDetailsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
+          <DialogTitle className="text-base font-semibold">
             {costCode.code} - {costCode.name}
           </DialogTitle>
         </DialogHeader>
@@ -84,18 +84,18 @@ export function ViewBudgetDetailsModal({
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="p-3 text-left text-sm font-medium">Cost</th>
-                    <th className="p-3 text-left text-sm font-medium">Unit</th>
-                    <th className="p-3 text-left text-sm font-medium">Quantity</th>
-                    <th className="p-3 text-right text-sm font-medium">Total Budget</th>
+                    <th className="py-1 px-2 text-left text-xs font-medium">Cost</th>
+                    <th className="py-1 px-2 text-left text-xs font-medium">Unit</th>
+                    <th className="py-1 px-2 text-left text-xs font-medium">Quantity</th>
+                    <th className="py-1 px-2 text-right text-xs font-medium">Total Budget</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="p-3">{formatCurrency(budgetItem.unit_price)}</td>
-                    <td className="p-3">{truncateUnit(costCode.unit_of_measure)}</td>
-                    <td className="p-3">{budgetItem.quantity || 1}</td>
-                    <td className="p-3 text-right font-medium">
+                    <td className="py-1 px-2 text-xs">{formatCurrency(budgetItem.unit_price)}</td>
+                    <td className="py-1 px-2 text-xs">{truncateUnit(costCode.unit_of_measure)}</td>
+                    <td className="py-1 px-2 text-xs">{budgetItem.quantity || 1}</td>
+                    <td className="py-1 px-2 text-right font-medium text-xs">
                       {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
                     </td>
                   </tr>
@@ -108,25 +108,25 @@ export function ViewBudgetDetailsModal({
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="p-3 text-left w-12 text-sm font-medium"></th>
-                      <th className="p-3 text-left text-sm font-medium">Code</th>
-                      <th className="p-3 text-left text-sm font-medium">Name</th>
-                      <th className="p-3 text-right text-sm font-medium">Cost</th>
-                      <th className="p-3 text-center text-sm font-medium">Unit</th>
-                      <th className="p-3 text-right text-sm font-medium">Quantity</th>
-                      <th className="p-3 text-right text-sm font-medium">Subtotal</th>
+                      <th className="py-1 px-2 text-left w-8 text-xs font-medium"></th>
+                      <th className="py-1 px-2 text-left text-xs font-medium">Code</th>
+                      <th className="py-1 px-2 text-left text-xs font-medium">Name</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Cost</th>
+                      <th className="py-1 px-2 text-center text-xs font-medium">Unit</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Quantity</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                        <td colSpan={7} className="py-2 px-2 text-center text-muted-foreground text-xs">
                           Loading subcategories...
                         </td>
                       </tr>
                     ) : subcategories.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                        <td colSpan={7} className="py-2 px-2 text-center text-muted-foreground text-xs">
                           No subcategories found
                         </td>
                       </tr>
@@ -138,17 +138,18 @@ export function ViewBudgetDetailsModal({
                         
                         return (
                           <tr key={sub.id} className="border-b last:border-0">
-                            <td className="p-3">
+                            <td className="py-1 px-2">
                               <Checkbox
                                 checked={isSelected}
                                 onCheckedChange={() => toggleSubcategory(sub.cost_codes.id, !isSelected)}
+                                className="h-3 w-3"
                               />
                             </td>
-                            <td className="p-3">{sub.cost_codes.code}</td>
-                            <td className="p-3">{sub.cost_codes.name}</td>
-                            <td className="p-3 text-right">{formatCurrency(sub.unit_price)}</td>
-                            <td className="p-3 text-center">{truncateUnit(sub.cost_codes.unit_of_measure)}</td>
-                            <td className="p-3 text-right">
+                            <td className="py-1 px-2 text-xs">{sub.cost_codes.code}</td>
+                            <td className="py-1 px-2 text-xs">{sub.cost_codes.name}</td>
+                            <td className="py-1 px-2 text-right text-xs">{formatCurrency(sub.unit_price)}</td>
+                            <td className="py-1 px-2 text-center text-xs">{truncateUnit(sub.cost_codes.unit_of_measure)}</td>
+                            <td className="py-1 px-2 text-right">
                               {isEditing ? (
                                 <Input
                                   type="number"
@@ -157,19 +158,19 @@ export function ViewBudgetDetailsModal({
                                   onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                   onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
-                                  className="w-20 h-8 text-right"
+                                  className="w-16 h-6 text-right text-xs"
                                   autoFocus
                                 />
                               ) : (
                                 <span
                                   onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
-                                  className="cursor-pointer hover:bg-accent rounded px-2 py-1 inline-block"
+                                  className="cursor-pointer hover:bg-accent rounded px-1 py-0.5 inline-block text-xs"
                                 >
                                   {sub.quantity || 1}
                                 </span>
                               )}
                             </td>
-                            <td className="p-3 text-right font-medium">{formatCurrency(subtotal)}</td>
+                            <td className="py-1 px-2 text-right font-medium text-xs">{formatCurrency(subtotal)}</td>
                           </tr>
                         );
                       })
@@ -179,8 +180,8 @@ export function ViewBudgetDetailsModal({
               </div>
 
               <div className="flex justify-end items-center gap-2 pt-2 border-t">
-                <span className="text-sm font-medium text-muted-foreground">Total Budget:</span>
-                <span className="text-lg font-semibold">{formatCurrency(calculatedTotal)}</span>
+                <span className="text-xs font-medium text-muted-foreground">Total Budget:</span>
+                <span className="text-base font-semibold">{formatCurrency(calculatedTotal)}</span>
               </div>
             </div>
           )}
