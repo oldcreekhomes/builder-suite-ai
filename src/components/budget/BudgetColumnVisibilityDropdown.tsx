@@ -32,7 +32,7 @@ export function BudgetColumnVisibilityDropdown({
     { key: 'quantity', label: 'Quantity' },
     { key: 'totalBudget', label: 'Total Budget' },
     { key: 'historicalCosts', label: 'Historical Job Costs' },
-    { key: 'variance', label: 'Variance' },
+    { key: 'variance', label: 'Historical Variance' },
   ];
 
   return (
