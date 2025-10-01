@@ -4,6 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
+import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
+import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -38,6 +41,7 @@ export function BudgetTableRow({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
   const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
@@ -184,7 +188,8 @@ export function BudgetTableRow({
   };
 
   return (
-    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
+    <>
+      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
@@ -292,7 +297,15 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-1 py-0 w-20">
-        <div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDetailsModal(true)}
+            className="h-6 w-6 p-0"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
           <DeleteButton
             onDelete={() => onDelete(item.id)}
             title="Delete Budget Item"
@@ -306,5 +319,15 @@ export function BudgetTableRow({
         </div>
       </TableCell>
     </TableRow>
+    
+    {showDetailsModal && costCode && (
+      <ViewBudgetDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        budgetItem={item}
+        projectId={item.project_id}
+      />
+    )}
+    </>
   );
 }

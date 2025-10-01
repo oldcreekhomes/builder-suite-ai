@@ -293,6 +293,48 @@ export type Database = {
           },
         ]
       }
+      budget_subcategory_selections: {
+        Row: {
+          cost_code_id: string
+          created_at: string
+          id: string
+          included: boolean
+          project_budget_id: string
+          updated_at: string
+        }
+        Insert: {
+          cost_code_id: string
+          created_at?: string
+          id?: string
+          included?: boolean
+          project_budget_id: string
+          updated_at?: string
+        }
+        Update: {
+          cost_code_id?: string
+          created_at?: string
+          id?: string
+          included?: boolean
+          project_budget_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_subcategory_selections_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_subcategory_selections_project_budget_id_fkey"
+            columns: ["project_budget_id"]
+            isOneToOne: false
+            referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       check_lines: {
         Row: {
           account_id: string | null
