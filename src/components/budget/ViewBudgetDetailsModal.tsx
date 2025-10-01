@@ -101,7 +101,7 @@ export function ViewBudgetDetailsModal({
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
+                    <tr className="border-b last:border-0">
                       <td className="py-1 px-2 text-xs">{costCode.code}</td>
                       <td className="py-1 px-2 text-xs">{costCode.name}</td>
                       <td className="py-1 px-2 text-right text-xs">{formatCurrency(budgetItem.unit_price)}</td>
