@@ -46,7 +46,10 @@ export function BudgetColumnVisibilityDropdown({
         {columns.map((column) => (
           <DropdownMenuItem
             key={column.key}
-            onClick={() => onToggleColumn(column.key)}
+            onSelect={(e) => {
+              e.preventDefault();
+              onToggleColumn(column.key);
+            }}
             className="flex items-center justify-between cursor-pointer"
           >
             <span>{column.label}</span>
