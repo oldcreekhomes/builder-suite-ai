@@ -292,7 +292,7 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className={`px-1 py-0 w-20 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
-        <div className="flex items-center gap-1">
+        <div className={`flex items-center ${isSelected ? 'gap-1' : 'justify-center'}`}>
           <Button
             variant="ghost"
             size="sm"
@@ -301,16 +301,18 @@ export function BudgetTableRow({
           >
             <Eye className="h-icon-sm w-icon-sm" />
           </Button>
-          <DeleteButton
-            onDelete={() => onDelete(item.id)}
-            title="Delete Budget Item"
-            description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-            className="tabindex-[-1]"
-          />
+          {isSelected && (
+            <DeleteButton
+              onDelete={() => onDelete(item.id)}
+              title="Delete Budget Item"
+              description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+              size="sm"
+              variant="ghost"
+              isLoading={isDeleting}
+              showIcon={true}
+              className="tabindex-[-1]"
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>

@@ -97,7 +97,7 @@ export function BudgetGroupTotalRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-white z-20 border-l">
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-white z-20">
         {/* Empty actions cell */}
       </TableCell>
     </TableRow>
