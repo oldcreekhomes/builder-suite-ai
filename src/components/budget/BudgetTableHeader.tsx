@@ -2,14 +2,26 @@
 import React from 'react';
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronDown } from 'lucide-react';
+import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 
 interface BudgetTableHeaderProps {
   showVarianceAsPercentage: boolean;
   onToggleVarianceMode: () => void;
   visibleColumns: VisibleColumns;
+  selectedHistoricalProject: string;
+  onHistoricalProjectChange: (projectId: string) => void;
 }
 
-export function BudgetTableHeader({ showVarianceAsPercentage, onToggleVarianceMode, visibleColumns }: BudgetTableHeaderProps) {
+export function BudgetTableHeader({ 
+  showVarianceAsPercentage, 
+  onToggleVarianceMode, 
+  visibleColumns,
+  selectedHistoricalProject,
+  onHistoricalProjectChange 
+}: BudgetTableHeaderProps) {
+  const { data: historicalProjects = [] } = useHistoricalProjects();
 
   return (
     <TableHeader>
@@ -30,7 +42,25 @@ export function BudgetTableHeader({ showVarianceAsPercentage, onToggleVarianceMo
           <span className={visibleColumns.totalBudget ? '' : 'opacity-0'}>Total Budget</span>
         </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
-          <div className={`-ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>Historical Job Costs</div>
+          <div className={`-ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
+            {historicalProjects.length > 0 ? (
+              <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
+                <SelectTrigger className="h-6 text-xs font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">
+                  <span>Historical Job Costs</span>
+                  <ChevronDown className="h-3 w-3" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {historicalProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id} className="text-xs">
+                      {project.address}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span>Historical Job Costs</span>
+            )}
+          </div>
         </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button

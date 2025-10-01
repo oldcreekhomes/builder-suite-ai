@@ -183,6 +183,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
             visibleColumns={visibleColumns}
+            selectedHistoricalProject={selectedHistoricalProject}
+            onHistoricalProjectChange={setSelectedHistoricalProject}
           />
           <TableBody>
             {budgetItems.length === 0 ? (
@@ -206,8 +208,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       onDeleteGroup={onDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
                       groupTotal={calculateGroupTotal(items)}
-                      selectedHistoricalProject={selectedHistoricalProject}
-                      onHistoricalProjectChange={setSelectedHistoricalProject}
                       visibleColumns={visibleColumns}
                     />
                     
