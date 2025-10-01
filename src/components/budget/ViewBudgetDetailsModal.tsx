@@ -39,47 +39,36 @@ export function ViewBudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Budget Details</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            {costCode.code} - {costCode.name}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="border-b pb-4">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="text-sm text-muted-foreground">Cost Code:</span>
-                <p className="font-medium">{costCode.code}</p>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Name:</span>
-                <p className="font-medium">{costCode.name}</p>
-              </div>
-            </div>
-          </div>
-
+        <div className="flex-1 overflow-auto space-y-4">
           {!hasSubcategories ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <span className="text-sm text-muted-foreground">Cost:</span>
-                  <p className="font-medium">{formatCurrency(budgetItem.unit_price)}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Unit:</span>
-                  <p className="font-medium">{costCode.unit_of_measure || 'EA'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Quantity:</span>
-                  <p className="font-medium">{budgetItem.quantity || 1}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Total Budget:</span>
-                  <p className="font-medium">
-                    {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
-                  </p>
-                </div>
-              </div>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="p-3 text-left text-sm font-medium">Cost</th>
+                    <th className="p-3 text-left text-sm font-medium">Unit</th>
+                    <th className="p-3 text-left text-sm font-medium">Quantity</th>
+                    <th className="p-3 text-right text-sm font-medium">Total Budget</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="p-3">{formatCurrency(budgetItem.unit_price)}</td>
+                    <td className="p-3">{costCode.unit_of_measure || 'EA'}</td>
+                    <td className="p-3">{budgetItem.quantity || 1}</td>
+                    <td className="p-3 text-right font-medium">
+                      {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="space-y-4">
@@ -87,13 +76,13 @@ export function ViewBudgetDetailsModal({
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="p-2 text-left w-12"></th>
-                      <th className="p-2 text-left">Code</th>
-                      <th className="p-2 text-left">Name</th>
-                      <th className="p-2 text-right">Cost</th>
-                      <th className="p-2 text-center">Unit</th>
-                      <th className="p-2 text-right">Quantity</th>
-                      <th className="p-2 text-right">Subtotal</th>
+                      <th className="p-3 text-left w-12 text-sm font-medium"></th>
+                      <th className="p-3 text-left text-sm font-medium">Code</th>
+                      <th className="p-3 text-left text-sm font-medium">Name</th>
+                      <th className="p-3 text-right text-sm font-medium">Cost</th>
+                      <th className="p-3 text-center text-sm font-medium">Unit</th>
+                      <th className="p-3 text-right text-sm font-medium">Quantity</th>
+                      <th className="p-3 text-right text-sm font-medium">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -115,19 +104,19 @@ export function ViewBudgetDetailsModal({
                         const subtotal = (sub.unit_price || 0) * (sub.quantity || 1);
                         
                         return (
-                          <tr key={sub.id} className="border-b">
-                            <td className="p-2">
+                          <tr key={sub.id} className="border-b last:border-0">
+                            <td className="p-3">
                               <Checkbox
                                 checked={isSelected}
                                 onCheckedChange={() => toggleSubcategory(sub.cost_codes.id, !isSelected)}
                               />
                             </td>
-                            <td className="p-2">{sub.cost_codes.code}</td>
-                            <td className="p-2">{sub.cost_codes.name}</td>
-                            <td className="p-2 text-right">{formatCurrency(sub.unit_price)}</td>
-                            <td className="p-2 text-center">{sub.cost_codes.unit_of_measure || 'EA'}</td>
-                            <td className="p-2 text-right">{sub.quantity || 1}</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(subtotal)}</td>
+                            <td className="p-3">{sub.cost_codes.code}</td>
+                            <td className="p-3">{sub.cost_codes.name}</td>
+                            <td className="p-3 text-right">{formatCurrency(sub.unit_price)}</td>
+                            <td className="p-3 text-center">{sub.cost_codes.unit_of_measure || 'EA'}</td>
+                            <td className="p-3 text-right">{sub.quantity || 1}</td>
+                            <td className="p-3 text-right font-medium">{formatCurrency(subtotal)}</td>
                           </tr>
                         );
                       })
@@ -136,8 +125,8 @@ export function ViewBudgetDetailsModal({
                 </table>
               </div>
 
-              <div className="flex justify-end items-center gap-2 pt-4 border-t">
-                <span className="text-sm text-muted-foreground">Total Budget:</span>
+              <div className="flex justify-end items-center gap-2 pt-2 border-t">
+                <span className="text-sm font-medium text-muted-foreground">Total Budget:</span>
                 <span className="text-lg font-semibold">{formatCurrency(calculatedTotal)}</span>
               </div>
             </div>
