@@ -69,17 +69,17 @@ export function ActualGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-32">
+      <TableCell className="px-2 py-0 w-28">
         <div className="text-xs font-medium">
           {formatCurrency(groupBudgetTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-32">
+      <TableCell className="px-2 py-0 w-32">
         <div className="text-xs font-medium">
           {formatCurrency(groupCommittedTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-32">
+      <TableCell className="px-2 py-0 w-24">
         <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
           {formatCurrency(variance)}
         </div>
