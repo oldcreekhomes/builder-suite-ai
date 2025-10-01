@@ -87,27 +87,38 @@ export function ViewBudgetDetailsModal({
 
         <div className="flex-1 overflow-auto space-y-4">
           {!hasSubcategories ? (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="py-1 px-2 text-left text-xs font-medium">Cost</th>
-                    <th className="py-1 px-2 text-left text-xs font-medium">Unit</th>
-                    <th className="py-1 px-2 text-left text-xs font-medium">Quantity</th>
-                    <th className="py-1 px-2 text-right text-xs font-medium">Total Budget</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="py-1 px-2 text-xs">{formatCurrency(budgetItem.unit_price)}</td>
-                    <td className="py-1 px-2 text-xs">{truncateUnit(costCode.unit_of_measure)}</td>
-                    <td className="py-1 px-2 text-xs">{budgetItem.quantity || 1}</td>
-                    <td className="py-1 px-2 text-right font-medium text-xs">
-                      {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="py-1 px-2 text-left text-xs font-medium">Code</th>
+                      <th className="py-1 px-2 text-left text-xs font-medium">Name</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Cost</th>
+                      <th className="py-1 px-2 text-center text-xs font-medium">Unit</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Quantity</th>
+                      <th className="py-1 px-2 text-right text-xs font-medium">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="py-1 px-2 text-xs">{costCode.code}</td>
+                      <td className="py-1 px-2 text-xs">{costCode.name}</td>
+                      <td className="py-1 px-2 text-right text-xs">{formatCurrency(budgetItem.unit_price)}</td>
+                      <td className="py-1 px-2 text-center text-xs">{truncateUnit(costCode.unit_of_measure)}</td>
+                      <td className="py-1 px-2 text-right text-xs">{budgetItem.quantity || 1}</td>
+                      <td className="py-1 px-2 text-right font-medium text-xs">
+                        {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end items-center gap-2 pt-2 border-t">
+                <span className="text-xs font-medium text-muted-foreground">Total Budget:</span>
+                <span className="text-base font-semibold">{formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}</span>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
