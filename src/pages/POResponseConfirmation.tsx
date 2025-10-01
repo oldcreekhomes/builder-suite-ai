@@ -57,8 +57,8 @@ export default function POResponseConfirmation() {
   const isApproved = response === "approved";
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
