@@ -45,7 +45,7 @@ export function CostCodeGroupRow({
         )}
       </TableCell>
       <TableCell 
-        className="font-semibold text-gray-700 cursor-pointer py-1 text-sm text-right tabular-nums font-mono w-28"
+        className="font-semibold text-gray-700 cursor-pointer py-1 text-sm text-right tabular-nums"
         onClick={() => onToggleCollapse(groupKey)}
       >
         <div className="flex items-center gap-1 justify-end">
@@ -56,7 +56,7 @@ export function CostCodeGroupRow({
               <ChevronDown className="h-4 w-4" />
             )}
           </div>
-          <span className="font-mono tabular-nums">{groupKey}</span>
+          <span className="tabular-nums inline-block w-[7ch] text-right">{groupKey}</span>
         </div>
       </TableCell>
       <TableCell className="font-semibold text-gray-700 py-1 text-sm">
