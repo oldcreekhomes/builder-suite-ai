@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
@@ -39,6 +38,7 @@ export function BudgetTableRow({
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
+  const [tempUnit, setTempUnit] = useState('');
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
@@ -141,46 +141,27 @@ export function BudgetTableRow({
     }
   };
 
-  const handleUnitChange = (value: string) => {
-    onUpdateUnit(costCode.id, value);
+  const handleUnitBlur = () => {
+    if (tempUnit.trim() && tempUnit !== formatUnitOfMeasure(costCode?.unit_of_measure)) {
+      onUpdateUnit(costCode.id, tempUnit.trim());
+    }
     setIsEditingUnit(false);
   };
 
-  const handleUnitKeyDown = (e: React.KeyboardEvent) => {
-    // Handle keyboard shortcuts for unit selection
-    if (e.key === 'e') {
-      e.preventDefault();
-      handleUnitChange('each');
-      return;
-    } else if (e.key === 's') {
-      e.preventDefault();
-      handleUnitChange('square-feet');
-      return;
-    } else if (e.key === 'l') {
-      e.preventDefault();
-      handleUnitChange('linear-feet');
-      return;
-    } else if (e.key === 'y') {
-      e.preventDefault();
-      handleUnitChange('square-yard');
-      return;
-    } else if (e.key === 'c') {
-      e.preventDefault();
-      handleUnitChange('cubic-yard');
-      return;
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault();
+  const handleUnitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
       setIsEditingUnit(false);
-      // Move to Quantity column
-      setTimeout(() => {
-        setIsEditingQuantity(true);
-      }, 50);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      handleUnitBlur();
+      if (!e.shiftKey) {
+        setTimeout(() => {
+          setIsEditingQuantity(true);
+        }, 50);
+      }
     }
-  };
-
-  const handleQuantityClick = () => {
-    setIsEditingQuantity(true);
-    setQuantity((item.quantity || 0).toString());
   };
 
   const handlePriceClick = () => {
@@ -188,18 +169,14 @@ export function BudgetTableRow({
     setUnitPrice((item.unit_price || 0).toString());
   };
 
+  const handleQuantityClick = () => {
+    setIsEditingQuantity(true);
+    setQuantity((item.quantity || 0).toString());
+  };
+
   const handleUnitClick = () => {
     setIsEditingUnit(true);
-  };
-
-  const handleUnitValueChange = (value: string) => {
-    handleUnitChange(value);
-  };
-
-  const handleUnitOpenChange = (open: boolean) => {
-    if (!open) {
-      setIsEditingUnit(false);
-    }
+    setTempUnit(formatUnitOfMeasure(costCode?.unit_of_measure) || '');
   };
 
   const formatCurrency = (amount: number) => {
@@ -250,26 +227,16 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
         {!hasSubcategories && isEditingUnit ? (
-          <Select 
-            value={costCode?.unit_of_measure || ""} 
-            onValueChange={handleUnitValueChange}
-            onOpenChange={handleUnitOpenChange}
-            open={true}
-          >
-            <SelectTrigger 
-              className="h-6 border-none shadow-none bg-transparent text-xs p-0 focus:ring-0"
-              onKeyDown={handleUnitKeyDown}
-            >
-              <SelectValue placeholder="-" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border shadow-md z-50">
-              <SelectItem value="each">EA</SelectItem>
-              <SelectItem value="square-feet">SF</SelectItem>
-              <SelectItem value="linear-feet">LF</SelectItem>
-              <SelectItem value="square-yard">SY</SelectItem>
-              <SelectItem value="cubic-yard">CY</SelectItem>
-            </SelectContent>
-          </Select>
+          <input
+            type="text"
+            value={tempUnit}
+            onChange={(e) => setTempUnit(e.target.value.toUpperCase())}
+            onBlur={handleUnitBlur}
+            onKeyDown={handleUnitKeyDown}
+            className="w-full bg-transparent border-none outline-none text-xs p-0 text-black"
+            autoFocus
+            maxLength={10}
+          />
         ) : (
           <span 
             className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
