@@ -77,8 +77,8 @@ export function CostCodeTableRow({
             onCheckedChange={(checked) => onSelect(costCode.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="font-medium py-1 text-sm">
-          <div className="flex items-center gap-1" style={{ paddingLeft: `${indentLevel * 24}px` }}>
+        <TableCell className="font-medium py-1 text-sm text-right">
+          <div className="flex items-center gap-1 justify-end" style={{ paddingRight: `${indentLevel * 24}px` }}>
             {isExpandable && onToggleExpand && (
               <button
                 onClick={() => onToggleExpand(costCode.code)}
