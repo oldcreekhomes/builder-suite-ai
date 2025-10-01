@@ -77,7 +77,7 @@ export function CostCodeTableRow({
             onCheckedChange={(checked) => onSelect(costCode.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="font-medium py-1 text-sm text-right tabular-nums font-mono w-28">
+        <TableCell className="font-medium py-1 text-sm text-right">
           <div className="flex items-center gap-1 justify-end">
             <div className="w-4 h-4 flex items-center justify-center">
               {isExpandable && onToggleExpand && (
@@ -93,7 +93,7 @@ export function CostCodeTableRow({
                 </button>
               )}
             </div>
-            <span className="font-mono tabular-nums">{costCode.code}</span>
+            <span>{costCode.code}</span>
           </div>
         </TableCell>
         <TableCell className="py-1 text-sm">{costCode.name}</TableCell>

@@ -45,18 +45,16 @@ export function CostCodeGroupRow({
         )}
       </TableCell>
       <TableCell 
-        className="font-semibold text-gray-700 cursor-pointer py-1 text-sm text-right tabular-nums font-mono w-28"
+        className="font-semibold text-gray-700 cursor-pointer py-1 text-sm"
         onClick={() => onToggleCollapse(groupKey)}
       >
-        <div className="flex items-center gap-1 justify-end">
-          <div className="w-4 h-4 flex items-center justify-center">
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </div>
-          <span className="font-mono tabular-nums">{groupKey}</span>
+        <div className="flex items-center gap-2">
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+          <span>{groupKey}</span>
         </div>
       </TableCell>
       <TableCell className="font-semibold text-gray-700 py-1 text-sm">

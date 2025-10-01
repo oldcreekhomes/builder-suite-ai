@@ -58,7 +58,7 @@ export function CostCodesTable({
                 }}
               />
             </TableHead>
-            <TableHead className="font-bold py-2 text-sm text-right tabular-nums font-mono w-28">Code</TableHead>
+            <TableHead className="font-bold py-2 text-sm text-right">Code</TableHead>
             <TableHead className="font-bold py-2 text-sm">Description</TableHead>
             <TableHead className="font-bold py-2 text-sm">Quantity</TableHead>
             <TableHead className="font-bold py-2 text-sm">Price</TableHead>
