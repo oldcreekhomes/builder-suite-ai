@@ -152,7 +152,7 @@ export function BudgetTableRow({
   };
 
   const handleUnitBlur = () => {
-    if (tempUnit.trim() && tempUnit !== formatUnitOfMeasure(costCode?.unit_of_measure)) {
+    if (tempUnit.trim() && tempUnit !== costCode?.unit_of_measure) {
       onUpdateUnit(costCode.id, tempUnit.trim());
     }
     setIsEditingUnit(false);
@@ -186,7 +186,7 @@ export function BudgetTableRow({
 
   const handleUnitClick = () => {
     setIsEditingUnit(true);
-    setTempUnit(formatUnitOfMeasure(costCode?.unit_of_measure) || '');
+    setTempUnit(costCode?.unit_of_measure || '');
   };
 
   const formatCurrency = (amount: number) => {
@@ -242,7 +242,7 @@ export function BudgetTableRow({
           {!hasSubcategories && isEditingUnit ? (
             <Select
               defaultOpen
-              value={tempUnit || (costCode?.unit_of_measure || '')}
+              value={tempUnit || costCode?.unit_of_measure || ''}
               onValueChange={(value) => {
                 setTempUnit(value);
                 onUpdateUnit(costCode.id, value);
@@ -255,7 +255,9 @@ export function BudgetTableRow({
               }}
             >
               <SelectTrigger className="h-6 w-20 text-xs border-none shadow-none focus:ring-0 p-0 px-1 [&>svg]:hidden">
-                <SelectValue />
+                <span className="text-xs">
+                  {formatUnitOfMeasure(tempUnit || costCode?.unit_of_measure)}
+                </span>
               </SelectTrigger>
               <SelectContent className="z-50">
                 <SelectItem value="each">Each</SelectItem>

@@ -181,9 +181,11 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
         }}
       >
         <SelectTrigger className="h-8 text-sm [&>svg]:hidden">
-          <SelectValue placeholder="Select unit" />
+          <span className="text-sm">
+            {formatUnitOfMeasure(value)}
+          </span>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-50">
           <SelectItem value="each">Each</SelectItem>
           <SelectItem value="square-feet">Square Feet</SelectItem>
           <SelectItem value="linear-feet">Linear Feet</SelectItem>
