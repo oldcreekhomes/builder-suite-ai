@@ -1,15 +1,18 @@
 import { TableRow, TableCell } from '@/components/ui/table';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
+  visibleColumns: VisibleColumns;
 }
 
 export function BudgetProjectTotalRow({ 
   totalBudget, 
   totalHistorical,
-  showVarianceAsPercentage = false 
+  showVarianceAsPercentage = false,
+  visibleColumns
 }: BudgetProjectTotalRowProps) {
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return '-';
@@ -65,30 +68,42 @@ export function BudgetProjectTotalRow({
           Total Project Costs
         </div>
       </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        {/* Empty price cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-20">
-        {/* Empty unit cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-24">
-        {/* Empty quantity cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium">
-          {formatCurrency(totalBudget)}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-48">
-        <div className="text-xs -ml-3">
-          {formatCurrency(totalHistorical)}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
-          {formatVariance(variance)}
-        </div>
-      </TableCell>
+      {visibleColumns.cost && (
+        <TableCell className="px-3 py-0 w-32">
+          {/* Empty price cell */}
+        </TableCell>
+      )}
+      {visibleColumns.unit && (
+        <TableCell className="px-3 py-0 w-20">
+          {/* Empty unit cell */}
+        </TableCell>
+      )}
+      {visibleColumns.quantity && (
+        <TableCell className="px-3 py-0 w-24">
+          {/* Empty quantity cell */}
+        </TableCell>
+      )}
+      {visibleColumns.totalBudget && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className="text-xs font-medium">
+            {formatCurrency(totalBudget)}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.historicalCosts && (
+        <TableCell className="px-3 py-0 w-48">
+          <div className="text-xs -ml-3">
+            {formatCurrency(totalHistorical)}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+            {formatVariance(variance)}
+          </div>
+        </TableCell>
+      )}
       <TableCell className="px-1 py-0 w-20">
         {/* Empty actions cell */}
       </TableCell>

@@ -8,6 +8,7 @@ import { Eye } from 'lucide-react';
 import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -22,6 +23,7 @@ interface BudgetTableRowProps {
   isDeleting?: boolean;
   historicalActualCosts?: Record<string, number>;
   showVarianceAsPercentage?: boolean;
+  visibleColumns: VisibleColumns;
 }
 
 export function BudgetTableRow({ 
@@ -34,7 +36,8 @@ export function BudgetTableRow({
   onCheckboxChange,
   isDeleting = false,
   historicalActualCosts = {},
-  showVarianceAsPercentage = false
+  showVarianceAsPercentage = false,
+  visibleColumns
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -204,84 +207,96 @@ export function BudgetTableRow({
           {costCode?.name}
         </div>
       </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        {!hasSubcategories && isEditingPrice ? (
-          <input
-            type="number"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            onBlur={handleUnitPriceBlur}
-            onKeyDown={handleUnitPriceKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
-            autoFocus
-          />
-        ) : (
-          <span 
-            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-            onClick={hasSubcategories ? undefined : handlePriceClick}
-          >
-            ${Math.round(displayUnitPrice).toLocaleString()}
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-20">
-        {!hasSubcategories && isEditingUnit ? (
-          <input
-            type="text"
-            value={tempUnit}
-            onChange={(e) => setTempUnit(e.target.value.toUpperCase())}
-            onBlur={handleUnitBlur}
-            onKeyDown={handleUnitKeyDown}
-            className="w-full bg-transparent border-none outline-none text-xs p-0 text-black"
-            autoFocus
-            maxLength={10}
-          />
-        ) : (
-          <span 
-            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-            onClick={hasSubcategories ? undefined : handleUnitClick}
-          >
-            {formatUnitOfMeasure(costCode?.unit_of_measure)}
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-24">
-        {!hasSubcategories && isEditingQuantity ? (
-          <input
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            onBlur={handleQuantityBlur}
-            onKeyDown={handleQuantityKeyDown}
-            className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
-            autoFocus
-          />
-        ) : (
-          <span 
-            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-            onClick={hasSubcategories ? undefined : handleQuantityClick}
-          >
-            {parseFloat(quantity) || 0}
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium">
-          {formatCurrency(total)}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-48">
-        <div className="text-xs -ml-3">
-          {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
-          {formatVariance(variance)}
-        </div>
-      </TableCell>
+      {visibleColumns.cost && (
+        <TableCell className="px-3 py-0 w-32">
+          {!hasSubcategories && isEditingPrice ? (
+            <input
+              type="number"
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+              onBlur={handleUnitPriceBlur}
+              onKeyDown={handleUnitPriceKeyDown}
+              className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
+              autoFocus
+            />
+          ) : (
+            <span 
+              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+              onClick={hasSubcategories ? undefined : handlePriceClick}
+            >
+              ${Math.round(displayUnitPrice).toLocaleString()}
+            </span>
+          )}
+        </TableCell>
+      )}
+      {visibleColumns.unit && (
+        <TableCell className="px-3 py-0 w-20">
+          {!hasSubcategories && isEditingUnit ? (
+            <input
+              type="text"
+              value={tempUnit}
+              onChange={(e) => setTempUnit(e.target.value.toUpperCase())}
+              onBlur={handleUnitBlur}
+              onKeyDown={handleUnitKeyDown}
+              className="w-full bg-transparent border-none outline-none text-xs p-0 text-black"
+              autoFocus
+              maxLength={10}
+            />
+          ) : (
+            <span 
+              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+              onClick={hasSubcategories ? undefined : handleUnitClick}
+            >
+              {formatUnitOfMeasure(costCode?.unit_of_measure)}
+            </span>
+          )}
+        </TableCell>
+      )}
+      {visibleColumns.quantity && (
+        <TableCell className="px-3 py-0 w-24">
+          {!hasSubcategories && isEditingQuantity ? (
+            <input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              onBlur={handleQuantityBlur}
+              onKeyDown={handleQuantityKeyDown}
+              className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
+              autoFocus
+            />
+          ) : (
+            <span 
+              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+              onClick={hasSubcategories ? undefined : handleQuantityClick}
+            >
+              {parseFloat(quantity) || 0}
+            </span>
+          )}
+        </TableCell>
+      )}
+      {visibleColumns.totalBudget && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className="text-xs font-medium">
+            {formatCurrency(total)}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.historicalCosts && (
+        <TableCell className="px-3 py-0 w-48">
+          <div className="text-xs -ml-3">
+            {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+            {formatVariance(variance)}
+          </div>
+        </TableCell>
+      )}
       <TableCell className="px-1 py-0 w-20">
         <div className="flex items-center gap-1">
           <Button

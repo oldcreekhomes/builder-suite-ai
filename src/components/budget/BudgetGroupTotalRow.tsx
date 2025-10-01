@@ -1,18 +1,21 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetGroupTotalRowProps {
   group: string;
   groupTotal: number;
   historicalTotal?: number;
   showVarianceAsPercentage?: boolean;
+  visibleColumns: VisibleColumns;
 }
 
 export function BudgetGroupTotalRow({ 
   group, 
   groupTotal,
   historicalTotal,
-  showVarianceAsPercentage = false
+  showVarianceAsPercentage = false,
+  visibleColumns
 }: BudgetGroupTotalRowProps) {
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -61,32 +64,44 @@ export function BudgetGroupTotalRow({
           Total Budget
         </div>
       </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        {/* Empty price cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-20">
-        {/* Empty unit cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-24">
-        {/* Empty quantity cell */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium">
-          {formatCurrency(groupTotal)}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-48">
-        <div className="text-xs -ml-3">
-          {historicalTotal !== undefined && historicalTotal !== null && historicalTotal !== 0 
-            ? formatCurrency(historicalTotal) 
-            : '-'}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
-          {formatVariance(variance)}
-        </div>
-      </TableCell>
+      {visibleColumns.cost && (
+        <TableCell className="px-3 py-0 w-32">
+          {/* Empty price cell */}
+        </TableCell>
+      )}
+      {visibleColumns.unit && (
+        <TableCell className="px-3 py-0 w-20">
+          {/* Empty unit cell */}
+        </TableCell>
+      )}
+      {visibleColumns.quantity && (
+        <TableCell className="px-3 py-0 w-24">
+          {/* Empty quantity cell */}
+        </TableCell>
+      )}
+      {visibleColumns.totalBudget && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className="text-xs font-medium">
+            {formatCurrency(groupTotal)}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.historicalCosts && (
+        <TableCell className="px-3 py-0 w-48">
+          <div className="text-xs -ml-3">
+            {historicalTotal !== undefined && historicalTotal !== null && historicalTotal !== 0 
+              ? formatCurrency(historicalTotal) 
+              : '-'}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
+            {formatVariance(variance)}
+          </div>
+        </TableCell>
+      )}
       <TableCell className="px-1 py-0 w-20">
         {/* Empty actions cell */}
       </TableCell>

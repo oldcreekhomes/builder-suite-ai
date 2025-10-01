@@ -17,6 +17,7 @@ import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetTableProps {
   projectId: string;
@@ -27,6 +28,14 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
+    cost: true,
+    unit: true,
+    quantity: true,
+    totalBudget: true,
+    historicalCosts: true,
+    variance: true,
+  });
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
   const { data: historicalActualCosts = {} } = useHistoricalActualCosts(selectedHistoricalProject || null);
@@ -143,9 +152,21 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
+  const handleToggleColumn = (column: keyof VisibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
   return (
     <div className="space-y-4">
-      <BudgetPrintToolbar onPrint={handlePrint} onAddBudget={() => setShowAddBudgetModal(true)} />
+      <BudgetPrintToolbar 
+        onPrint={handlePrint} 
+        onAddBudget={() => setShowAddBudgetModal(true)}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+      />
 
       {selectedCount > 0 && (
         <BulkActionBar
@@ -161,6 +182,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <BudgetTableHeader 
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
+            visibleColumns={visibleColumns}
           />
           <TableBody>
             {budgetItems.length === 0 ? (
@@ -203,6 +225,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             isDeleting={deletingItems.has(item.id)}
                             historicalActualCosts={historicalActualCosts}
                             showVarianceAsPercentage={showVarianceAsPercentage}
+                            visibleColumns={visibleColumns}
                           />
                         ))}
                         <BudgetGroupTotalRow
@@ -214,6 +237,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             return sum + historicalActual;
                           }, 0)}
                           showVarianceAsPercentage={showVarianceAsPercentage}
+                          visibleColumns={visibleColumns}
                         />
                       </>
                     )}
@@ -227,6 +251,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     return sum + historicalActual;
                   }, 0)}
                   showVarianceAsPercentage={showVarianceAsPercentage}
+                  visibleColumns={visibleColumns}
                 />
               </>
             )}
