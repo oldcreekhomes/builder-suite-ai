@@ -34,6 +34,11 @@ export const useCostCodeGrouping = (costCodes: CostCode[]) => {
       if (parentCodes.has(costCode.code) && (!costCode.parent_group || costCode.parent_group.trim() === '')) {
         groupKey = costCode.code;
       }
+      // If this is a parent code WITH a parent, skip it as a child item - it will only appear as a group header
+      else if (parentCodes.has(costCode.code) && costCode.parent_group && costCode.parent_group.trim() !== '') {
+        // Don't add this to any group as a child item
+        return;
+      }
       // Otherwise, check if it has an explicit parent_group
       else if (costCode.parent_group && costCode.parent_group.trim() !== '') {
         groupKey = costCode.parent_group;
