@@ -158,19 +158,18 @@ export function ViewBudgetDetailsModal({
                             <td className="py-1 px-2 text-right">
                               {isEditing ? (
                                 <input
-                                  type="number"
-                                  step="0.01"
+                                  type="text"
                                   value={tempQuantities[sub.id] || sub.quantity || 1}
                                   onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                   onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
-                                  className="w-full bg-transparent border-none outline-none text-right text-xs p-0"
+                                  className="w-full min-w-[3rem] bg-transparent text-right text-xs px-1 py-0.5 focus:outline-none focus:ring-0"
                                   autoFocus
                                 />
                               ) : (
                                 <span
                                   onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
-                                  className="cursor-pointer hover:bg-accent rounded px-1 py-0.5 inline-block text-xs"
+                                  className="cursor-pointer hover:bg-accent rounded px-1 py-0.5 inline-block text-xs min-w-[3rem] text-right"
                                 >
                                   {sub.quantity || 1}
                                 </span>
