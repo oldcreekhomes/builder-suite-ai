@@ -13,6 +13,7 @@ export interface VisibleColumns {
   unit: boolean;
   quantity: boolean;
   totalBudget: boolean;
+  committedPOs: boolean;
   historicalCosts: boolean;
   variance: boolean;
 }
@@ -31,6 +32,7 @@ export function BudgetColumnVisibilityDropdown({
     { key: 'unit', label: 'Unit' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'totalBudget', label: 'Total Budget' },
+    { key: 'committedPOs', label: 'Committed PO\'s' },
     { key: 'historicalCosts', label: 'Historical Job Costs' },
     { key: 'variance', label: 'Historical Variance' },
   ];

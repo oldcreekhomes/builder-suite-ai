@@ -18,6 +18,7 @@ import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 
 interface BudgetTableProps {
   projectId: string;
@@ -33,12 +34,21 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     unit: true,
     quantity: true,
     totalBudget: true,
+    committedPOs: true,
     historicalCosts: true,
     variance: true,
   });
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
   const { data: historicalActualCosts = {} } = useHistoricalActualCosts(selectedHistoricalProject || null);
+  const { purchaseOrders } = usePurchaseOrders(projectId);
+  
+  // Calculate total PO amount by cost code
+  const calculatePOByCostCode = (costCodeId: string) => {
+    return purchaseOrders
+      .filter(po => po.cost_code_id === costCodeId)
+      .reduce((sum, po) => sum + (po.total_amount || 0), 0);
+  };
   
   const {
     expandedGroups,
@@ -227,6 +237,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             historicalActualCosts={historicalActualCosts}
                             showVarianceAsPercentage={showVarianceAsPercentage}
                             visibleColumns={visibleColumns}
+                            committedPOAmount={calculatePOByCostCode(item.cost_codes?.id)}
                           />
                         ))}
                         <BudgetGroupTotalRow
@@ -237,6 +248,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             const historicalActual = historicalActualCosts[costCode?.id] || 0;
                             return sum + historicalActual;
                           }, 0)}
+                          committedPOTotal={items.reduce((sum, item) => 
+                            sum + calculatePOByCostCode(item.cost_codes?.id), 0
+                          )}
                           showVarianceAsPercentage={showVarianceAsPercentage}
                           visibleColumns={visibleColumns}
                         />
@@ -251,6 +265,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     const historicalActual = historicalActualCosts[costCode?.id] || 0;
                     return sum + historicalActual;
                   }, 0)}
+                  totalCommittedPOs={budgetItems.reduce((sum, item) => 
+                    sum + calculatePOByCostCode(item.cost_codes?.id), 0
+                  )}
                   showVarianceAsPercentage={showVarianceAsPercentage}
                   visibleColumns={visibleColumns}
                 />

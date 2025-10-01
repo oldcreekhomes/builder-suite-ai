@@ -6,6 +6,7 @@ interface BudgetGroupTotalRowProps {
   group: string;
   groupTotal: number;
   historicalTotal?: number;
+  committedPOTotal?: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
 }
@@ -14,6 +15,7 @@ export function BudgetGroupTotalRow({
   group, 
   groupTotal,
   historicalTotal,
+  committedPOTotal = 0,
   showVarianceAsPercentage = false,
   visibleColumns
 }: BudgetGroupTotalRowProps) {
@@ -83,6 +85,11 @@ export function BudgetGroupTotalRow({
       <TableCell className="px-3 py-0 w-32">
         <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
           {formatCurrency(groupTotal)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs ${visibleColumns.committedPOs ? '' : 'opacity-0 select-none'}`}>
+          {committedPOTotal ? formatCurrency(committedPOTotal) : '-'}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-48">

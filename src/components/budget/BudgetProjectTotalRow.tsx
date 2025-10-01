@@ -4,6 +4,7 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
   totalHistorical: number;
+  totalCommittedPOs?: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
 }
@@ -11,6 +12,7 @@ interface BudgetProjectTotalRowProps {
 export function BudgetProjectTotalRow({ 
   totalBudget, 
   totalHistorical,
+  totalCommittedPOs = 0,
   showVarianceAsPercentage = false,
   visibleColumns
 }: BudgetProjectTotalRowProps) {
@@ -86,6 +88,11 @@ export function BudgetProjectTotalRow({
       <TableCell className="px-3 py-0 w-32">
         <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
           {formatCurrency(totalBudget)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${visibleColumns.committedPOs ? '' : 'opacity-0 select-none'}`}>
+          {formatCurrency(totalCommittedPOs || 0)}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-48">

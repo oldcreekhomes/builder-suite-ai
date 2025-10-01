@@ -31,6 +31,7 @@ interface BudgetTableRowProps {
   historicalActualCosts?: Record<string, number>;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
+  committedPOAmount?: number;
 }
 
 export function BudgetTableRow({ 
@@ -44,7 +45,8 @@ export function BudgetTableRow({
   isDeleting = false,
   historicalActualCosts = {},
   showVarianceAsPercentage = false,
-  visibleColumns
+  visibleColumns,
+  committedPOAmount = 0
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -303,6 +305,11 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-32">
         <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
           {formatCurrency(total)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs ${visibleColumns.committedPOs ? '' : 'opacity-0 select-none'}`}>
+          {committedPOAmount ? formatCurrency(committedPOAmount) : '-'}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
