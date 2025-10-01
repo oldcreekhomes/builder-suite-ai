@@ -207,8 +207,8 @@ export function BudgetTableRow({
           {costCode?.name}
         </div>
       </TableCell>
-      {visibleColumns.cost && (
-        <TableCell className="px-3 py-0 w-32">
+      <TableCell className="px-3 py-0 w-32">
+        <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingPrice ? (
             <input
               type="number"
@@ -228,10 +228,10 @@ export function BudgetTableRow({
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
           )}
-        </TableCell>
-      )}
-      {visibleColumns.unit && (
-        <TableCell className="px-3 py-0 w-20">
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-20">
+        <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingUnit ? (
             <input
               type="text"
@@ -251,10 +251,10 @@ export function BudgetTableRow({
               {formatUnitOfMeasure(costCode?.unit_of_measure)}
             </span>
           )}
-        </TableCell>
-      )}
-      {visibleColumns.quantity && (
-        <TableCell className="px-3 py-0 w-24">
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-24">
+        <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingQuantity ? (
             <input
               type="number"
@@ -274,29 +274,23 @@ export function BudgetTableRow({
               {parseFloat(quantity) || 0}
             </span>
           )}
-        </TableCell>
-      )}
-      {visibleColumns.totalBudget && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className="text-xs font-medium">
-            {formatCurrency(total)}
-          </div>
-        </TableCell>
-      )}
-      {visibleColumns.historicalCosts && (
-        <TableCell className="px-3 py-0 w-48">
-          <div className="text-xs -ml-3">
-            {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
-          </div>
-        </TableCell>
-      )}
-      {visibleColumns.variance && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
-            {formatVariance(variance)}
-          </div>
-        </TableCell>
-      )}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
+          {formatCurrency(total)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-48">
+        <div className={`text-xs -ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none'}`}>
+          {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
+          {formatVariance(variance)}
+        </div>
+      </TableCell>
       <TableCell className={`px-1 py-0 w-20 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
         <div className="flex items-center gap-1">
           <Button

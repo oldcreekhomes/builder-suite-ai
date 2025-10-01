@@ -178,7 +178,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       )}
 
       <div className="border rounded-lg overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <BudgetTableHeader 
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
