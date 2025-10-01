@@ -45,6 +45,13 @@ export function ViewBudgetDetailsModal({
 
   const truncateUnit = (unit: string | null | undefined) => {
     if (!unit) return 'EA';
+    const upperUnit = unit.toUpperCase();
+    // Handle common unit abbreviations
+    if (upperUnit.includes('LINEAR') || upperUnit.includes('LF')) return 'LF';
+    if (upperUnit.includes('SQUARE') || upperUnit.includes('SF')) return 'SF';
+    if (upperUnit.includes('CUBIC') || upperUnit.includes('CF')) return 'CF';
+    if (upperUnit.includes('EACH')) return 'EA';
+    // Default to first 2 characters
     return unit.substring(0, 2).toUpperCase();
   };
 
@@ -71,7 +78,7 @@ export function ViewBudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             {costCode.code} - {costCode.name}
