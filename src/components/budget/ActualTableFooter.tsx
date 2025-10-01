@@ -2,9 +2,10 @@ import React from 'react';
 
 interface ActualTableFooterProps {
   budgetItems: any[];
+  purchaseOrders: any[];
 }
 
-export function ActualTableFooter({ budgetItems }: ActualTableFooterProps) {
+export function ActualTableFooter({ budgetItems, purchaseOrders }: ActualTableFooterProps) {
   if (budgetItems.length === 0) return null;
 
   const totalBudget = budgetItems.reduce(
@@ -12,12 +13,13 @@ export function ActualTableFooter({ budgetItems }: ActualTableFooterProps) {
     0
   );
 
-  const totalActual = budgetItems.reduce(
-    (sum, item) => sum + ((item as any).actual_amount || 0),
+  // Calculate total committed costs from purchase orders
+  const totalCommitted = purchaseOrders.reduce(
+    (sum, po) => sum + (po.total_amount || 0),
     0
   );
 
-  const totalVariance = totalActual - totalBudget;
+  const totalVariance = totalCommitted - totalBudget;
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -32,7 +34,7 @@ export function ActualTableFooter({ budgetItems }: ActualTableFooterProps) {
   return (
     <div className="flex justify-end space-x-8 text-lg font-semibold">
       <div>Total Budget: {formatCurrency(totalBudget)}</div>
-      <div>Total Actual: {formatCurrency(totalActual)}</div>
+      <div>Total Committed Costs: {formatCurrency(totalCommitted)}</div>
       <div className={getVarianceColor(totalVariance)}>
         Total Variance: {formatCurrency(totalVariance)}
       </div>

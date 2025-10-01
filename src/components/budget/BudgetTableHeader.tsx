@@ -40,9 +40,6 @@ export function BudgetTableHeader({
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <span className={visibleColumns.totalBudget ? '' : 'opacity-0'}>Total Budget</span>
         </TableHead>
-        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
-          <span className={visibleColumns.committedPOs ? '' : 'opacity-0'}>Committed PO's</span>
-        </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
           {visibleColumns.historicalCosts && historicalProjects.length > 0 ? (
             <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>

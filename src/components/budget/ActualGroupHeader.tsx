@@ -11,7 +11,7 @@ interface ActualGroupHeaderProps {
   isPartiallySelected: boolean;
   onCheckboxChange: (group: string, checked: boolean) => void;
   groupBudgetTotal: number;
-  groupActualTotal: number;
+  groupCommittedTotal: number;
 }
 
 export function ActualGroupHeader({
@@ -22,7 +22,7 @@ export function ActualGroupHeader({
   isPartiallySelected,
   onCheckboxChange,
   groupBudgetTotal,
-  groupActualTotal
+  groupCommittedTotal
 }: ActualGroupHeaderProps) {
 
   const formatCurrency = (amount: number) => {
@@ -39,7 +39,7 @@ export function ActualGroupHeader({
     return 'text-gray-600'; // On budget
   };
 
-  const variance = calculateVariance(groupBudgetTotal, groupActualTotal);
+  const variance = calculateVariance(groupBudgetTotal, groupCommittedTotal);
 
   return (
     <TableRow className="bg-gray-50 h-8">
@@ -76,7 +76,7 @@ export function ActualGroupHeader({
       </TableCell>
       <TableCell className="px-1 py-0 text-right">
         <div className="text-xs font-medium">
-          {formatCurrency(groupActualTotal)}
+          {formatCurrency(groupCommittedTotal)}
         </div>
       </TableCell>
       <TableCell className="px-1 py-0 text-right">

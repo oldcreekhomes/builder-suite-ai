@@ -9,6 +9,7 @@ import { ActualTableFooter } from './ActualTableFooter';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 
 interface ActualTableProps {
   projectId: string;
@@ -17,6 +18,14 @@ interface ActualTableProps {
 
 export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
   const { budgetItems, groupedBudgetItems } = useBudgetData(projectId);
+  const { purchaseOrders } = usePurchaseOrders(projectId);
+  
+  // Calculate total PO amount by cost code
+  const calculatePOByCostCode = (costCodeId: string) => {
+    return purchaseOrders
+      .filter(po => po.cost_code_id === costCodeId)
+      .reduce((sum, po) => sum + (po.total_amount || 0), 0);
+  };
   
   const {
     expandedGroups,
@@ -42,8 +51,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     return groupItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
   };
 
-  const calculateGroupActualTotal = (groupItems: any[]) => {
-    return groupItems.reduce((sum, item) => sum + ((item as any).actual_amount || 0), 0);
+  const calculateGroupCommittedTotal = (items: any[]) => {
+    return items.reduce((sum, item) => sum + calculatePOByCostCode(item.cost_codes?.id), 0);
   };
 
   const handlePrint = () => {
@@ -79,16 +88,16 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                       onToggle={handleGroupToggle}
                       isSelected={isGroupSelected(items)}
                       isPartiallySelected={isGroupPartiallySelected(items)}
-                      onCheckboxChange={onGroupCheckboxChange}
-                      groupBudgetTotal={calculateGroupBudgetTotal(items)}
-                      groupActualTotal={calculateGroupActualTotal(items)}
-                    />
+                    onCheckboxChange={onGroupCheckboxChange}
+                    groupBudgetTotal={calculateGroupBudgetTotal(items)}
+                    groupCommittedTotal={calculateGroupCommittedTotal(items)}
+                  />
                     
                     {expandedGroups.has(group) && items.map((item) => (
                       <ActualTableRow
                         key={item.id}
                         item={item}
-                        onUpdateActual={handleUpdateActual}
+                        committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
                       />
@@ -101,7 +110,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
         </Table>
       </div>
 
-      <ActualTableFooter budgetItems={budgetItems} />
+      <ActualTableFooter budgetItems={budgetItems} purchaseOrders={purchaseOrders} />
     </div>
   );
 }
