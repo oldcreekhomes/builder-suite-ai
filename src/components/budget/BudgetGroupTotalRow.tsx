@@ -102,7 +102,7 @@ export function BudgetGroupTotalRow({
           </div>
         </TableCell>
       )}
-      <TableCell className="px-1 py-0 w-20">
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-white">
         {/* Empty actions cell */}
       </TableCell>
     </TableRow>

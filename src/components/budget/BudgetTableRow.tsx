@@ -297,7 +297,7 @@ export function BudgetTableRow({
           </div>
         </TableCell>
       )}
-      <TableCell className="px-1 py-0 w-20">
+      <TableCell className={`px-1 py-0 w-20 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
