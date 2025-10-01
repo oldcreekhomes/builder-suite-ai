@@ -96,7 +96,7 @@ export function CostCodeTableRow({
             <span>{costCode.code}</span>
           </div>
         </TableCell>
-        <TableCell className="py-1 text-sm">{costCode.name}</TableCell>
+        <TableCell className="py-1 text-sm pl-4">{costCode.name}</TableCell>
         <TableCell className="py-1">
           <CostCodeInlineEditor
             costCode={costCode}
