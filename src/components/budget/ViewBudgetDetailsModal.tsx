@@ -155,7 +155,7 @@ export function ViewBudgetDetailsModal({
                             <td className="py-1 px-2 text-xs">{sub.cost_codes.name}</td>
                             <td className="py-1 px-2 text-right text-xs">{formatCurrency(sub.unit_price)}</td>
                             <td className="py-1 px-2 text-center text-xs">{truncateUnit(sub.cost_codes.unit_of_measure)}</td>
-                            <td className="py-1 px-2 text-right">
+                            <td className="px-2 py-0 w-24 text-right">
                               {isEditing ? (
                                 <input
                                   type="number"
@@ -170,7 +170,7 @@ export function ViewBudgetDetailsModal({
                               ) : (
                                 <span
                                   onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
-                                  className="cursor-text hover:bg-muted text-black whitespace-nowrap text-xs"
+                                  className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
                                 >
                                   {sub.quantity || 1}
                                 </span>
