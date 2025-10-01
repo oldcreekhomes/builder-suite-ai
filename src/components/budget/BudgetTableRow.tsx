@@ -186,7 +186,7 @@ export function BudgetTableRow({
 
   const handleUnitClick = () => {
     setIsEditingUnit(true);
-    setTempUnit((costCode?.unit_of_measure as string) || '');
+    setTempUnit(formatUnitOfMeasure(costCode?.unit_of_measure) || '');
   };
 
   const formatCurrency = (amount: number) => {
