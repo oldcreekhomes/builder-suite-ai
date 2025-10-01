@@ -97,7 +97,7 @@ export function BudgetProjectTotalRow({
           </div>
         </TableCell>
       )}
-      {visibleColumns.variance && (
+      {visibleColumns.variance && visibleColumns.historicalCosts && (
         <TableCell className="px-3 py-0 w-32">
           <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
             {formatVariance(variance)}

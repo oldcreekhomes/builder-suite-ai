@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetGroupHeaderProps {
   group: string;
@@ -20,6 +21,7 @@ interface BudgetGroupHeaderProps {
   groupTotal: number;
   selectedHistoricalProject: string;
   onHistoricalProjectChange: (projectId: string) => void;
+  visibleColumns: VisibleColumns;
 }
 
 export function BudgetGroupHeader({ 
@@ -33,7 +35,8 @@ export function BudgetGroupHeader({
   isDeleting = false,
   groupTotal,
   selectedHistoricalProject,
-  onHistoricalProjectChange
+  onHistoricalProjectChange,
+  visibleColumns
 }: BudgetGroupHeaderProps) {
   const { data: historicalProjects = [] } = useHistoricalProjects();
   const formatCurrency = (amount: number) => {
@@ -72,14 +75,14 @@ export function BudgetGroupHeader({
         {/* Total moved to group total row */}
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
-        {group.startsWith('1000') && (
+        {visibleColumns.historicalCosts && group.startsWith('1000') && (
           <div className="flex items-center -ml-3">
             {historicalProjects.length > 0 && (
               <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
                 <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-gray-100 w-auto justify-start p-0 pl-1">
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border shadow-lg z-50">
+                <SelectContent className="bg-background border shadow-lg z-50">
                   {historicalProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id} className="text-xs">
                       {project.address}

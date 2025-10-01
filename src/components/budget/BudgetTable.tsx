@@ -208,6 +208,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       groupTotal={calculateGroupTotal(items)}
                       selectedHistoricalProject={selectedHistoricalProject}
                       onHistoricalProjectChange={setSelectedHistoricalProject}
+                      visibleColumns={visibleColumns}
                     />
                     
                     {expandedGroups.has(group) && (
