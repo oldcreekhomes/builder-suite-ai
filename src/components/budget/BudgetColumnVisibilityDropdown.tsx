@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export interface VisibleColumns {
   cost: boolean;
@@ -39,7 +39,7 @@ export function BudgetColumnVisibilityDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
-          <Plus className="h-4 w-4" />
+          <Eye className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-background z-50">
