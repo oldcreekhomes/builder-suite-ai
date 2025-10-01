@@ -316,9 +316,9 @@ export function BudgetTableRow({
             variant="ghost"
             size="sm"
             onClick={() => setShowDetailsModal(true)}
-            className="h-6 w-6 p-0"
+            className="h-6 w-6 p-0 text-primary hover:text-primary/80"
           >
-            <Eye className="h-3.5 w-3.5" />
+            <Eye className="h-icon-sm w-icon-sm" />
           </Button>
           <DeleteButton
             onDelete={() => onDelete(item.id)}

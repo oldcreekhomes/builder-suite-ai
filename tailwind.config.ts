@@ -22,6 +22,20 @@ export default {
 			fontFamily: {
 				sans: ['Montserrat', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
 			},
+			fontSize: {
+				'xs': ['var(--font-size-xs)', { lineHeight: '1rem' }],
+				'sm': ['var(--font-size-sm)', { lineHeight: '1.25rem' }],
+				'base': ['var(--font-size-base)', { lineHeight: '1.5rem' }],
+				'lg': ['var(--font-size-lg)', { lineHeight: '1.75rem' }],
+				'xl': ['var(--font-size-xl)', { lineHeight: '1.75rem' }],
+				'2xl': ['var(--font-size-2xl)', { lineHeight: '2rem' }],
+			},
+			spacing: {
+				'icon-xs': 'var(--icon-xs)',
+				'icon-sm': 'var(--icon-sm)',
+				'icon-base': 'var(--icon-base)',
+				'icon-lg': 'var(--icon-lg)',
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

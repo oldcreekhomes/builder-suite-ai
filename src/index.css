@@ -31,6 +31,20 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
     
+    /* Typography - Standardized font sizes */
+    --font-size-xs: 0.75rem;      /* 12px - Small labels, captions */
+    --font-size-sm: 0.875rem;     /* 14px - Default body text, table cells */
+    --font-size-base: 1rem;       /* 16px - Inputs, larger body text */
+    --font-size-lg: 1.125rem;     /* 18px - Section headings */
+    --font-size-xl: 1.25rem;      /* 20px - Dialog titles, page headings */
+    --font-size-2xl: 1.5rem;      /* 24px - Page titles */
+    
+    /* Icon sizes - Standardized icon dimensions */
+    --icon-xs: 0.875rem;          /* 14px - Inline icons */
+    --icon-sm: 1rem;              /* 16px - Default buttons, table actions */
+    --icon-base: 1.25rem;         /* 20px - Headers, large buttons */
+    --icon-lg: 1.5rem;            /* 24px - Feature highlights */
+    
     /* Sidebar colors */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 10% 3.9%;
@@ -105,6 +119,30 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans text-sm;
+  }
+  
+  /* Standardized table styles */
+  table thead th {
+    @apply text-sm font-medium p-3;
+  }
+  
+  table tbody td {
+    @apply text-sm p-3;
+  }
+  
+  /* Standardized dialog title */
+  h2[class*="text-"] {
+    @apply text-xl font-semibold;
+  }
+  
+  /* Standardized labels */
+  label {
+    @apply text-sm font-medium;
+  }
+  
+  /* Standardized input text */
+  input, textarea, select {
+    @apply text-sm;
   }
 }

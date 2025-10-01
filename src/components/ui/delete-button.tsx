@@ -46,9 +46,9 @@ export function DeleteButton({
         size={size}
         onClick={() => setShowConfirmation(true)}
         disabled={isLoading}
-        className={`text-red-600 hover:text-red-800 hover:bg-red-100 ${className}`}
+        className={`text-destructive hover:text-destructive/90 hover:bg-destructive/10 ${className}`}
       >
-        {showIcon && <Trash2 className="h-4 w-4" />}
+        {showIcon && <Trash2 className="h-icon-sm w-icon-sm" />}
         {children}
       </Button>
 
