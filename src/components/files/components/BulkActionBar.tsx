@@ -1,8 +1,7 @@
 
 import React from "react";
-
+import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { DeleteButton } from "@/components/ui/delete-button";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -38,17 +37,14 @@ export function BulkActionBar({
       <span className="text-blue-800 font-medium">
         {getSelectionText()}
       </span>
-      <DeleteButton
-        onDelete={onBulkDelete}
-        title="Delete Selected"
-        description="Are you sure you want to delete the selected items? This action cannot be undone."
+      <Button
         variant="destructive"
-        isLoading={isDeleting}
-        showIcon={true}
+        onClick={onBulkDelete}
+        disabled={isDeleting}
       >
         <Trash2 className="h-4 w-4 mr-2" />
         {isDeleting ? "Deleting..." : "Delete Selected"}
-      </DeleteButton>
+      </Button>
     </div>
   );
 }
