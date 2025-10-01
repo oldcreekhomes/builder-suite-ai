@@ -42,25 +42,25 @@ export function BudgetTableHeader({
           <span className={visibleColumns.totalBudget ? '' : 'opacity-0'}>Total Budget</span>
         </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
-          <div className={`-ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
-            {historicalProjects.length > 0 ? (
-              <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
-                <SelectTrigger className="h-6 text-xs font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">
-                  <span>Historical Job Costs</span>
-                  <ChevronDown className="h-3 w-3" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50">
-                  {historicalProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id} className="text-xs">
-                      {project.address}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span>Historical Job Costs</span>
-            )}
-          </div>
+          {visibleColumns.historicalCosts && historicalProjects.length > 0 ? (
+            <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
+              <SelectTrigger className="h-6 -ml-3 text-xs font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">
+                <span>Historical Job Costs</span>
+                <ChevronDown className="h-3 w-3" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                {historicalProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id} className="text-xs">
+                    {project.address}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className={`-ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
+              Historical Job Costs
+            </div>
+          )}
         </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button
