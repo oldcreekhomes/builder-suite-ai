@@ -78,7 +78,7 @@ export function CostCodeTableRow({
           />
         </TableCell>
         <TableCell className="font-medium py-1 text-sm text-right">
-          <div className="flex items-center gap-1 justify-end" style={{ paddingRight: `${indentLevel * 24}px` }}>
+          <div className="flex items-center gap-1 justify-end">
             {isExpandable && onToggleExpand && (
               <button
                 onClick={() => onToggleExpand(costCode.code)}
