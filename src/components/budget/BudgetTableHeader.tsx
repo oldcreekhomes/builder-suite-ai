@@ -65,7 +65,7 @@ export function BudgetTableHeader({
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button
             onClick={onToggleVarianceMode}
-            className={`text-xs font-medium rounded px-1 py-0.5 ${visibleColumns.variance ? 'hover:bg-muted' : 'opacity-0 pointer-events-none'}`}
+            className={`-ml-3 text-xs font-medium rounded px-1 py-0.5 ${visibleColumns.variance ? 'hover:bg-muted' : 'opacity-0 pointer-events-none'}`}
           >
             Historical Variance {showVarianceAsPercentage ? '%' : '$'}
           </button>
