@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import type { Tables } from "@/integrations/supabase/types";
 import { useState } from "react";
@@ -158,14 +157,14 @@ export function ViewBudgetDetailsModal({
                             <td className="py-1 px-2 text-center text-xs">{truncateUnit(sub.cost_codes.unit_of_measure)}</td>
                             <td className="py-1 px-2 text-right">
                               {isEditing ? (
-                                <Input
+                                <input
                                   type="number"
                                   step="0.01"
                                   value={tempQuantities[sub.id] || sub.quantity || 1}
                                   onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                   onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
-                                  className="w-16 h-6 text-right text-xs"
+                                  className="w-full bg-transparent border-none outline-none text-right text-xs p-0"
                                   autoFocus
                                 />
                               ) : (
