@@ -29,11 +29,9 @@ export function BudgetTableHeader({ showVarianceAsPercentage, onToggleVarianceMo
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <span className={visibleColumns.totalBudget ? '' : 'opacity-0'}>Total Budget</span>
         </TableHead>
-        {visibleColumns.historicalCosts && (
-          <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
-            <div className="-ml-3">Historical Job Costs</div>
-          </TableHead>
-        )}
+        <TableHead className="h-8 px-3 py-0 text-xs font-medium w-48">
+          <div className={`-ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>Historical Job Costs</div>
+        </TableHead>
         <TableHead className="h-8 px-3 py-0 text-xs font-medium w-32">
           <button
             onClick={onToggleVarianceMode}

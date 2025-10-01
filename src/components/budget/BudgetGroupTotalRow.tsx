@@ -85,15 +85,13 @@ export function BudgetGroupTotalRow({
           {formatCurrency(groupTotal)}
         </div>
       </TableCell>
-      {visibleColumns.historicalCosts && (
-        <TableCell className="px-3 py-0 w-48">
-          <div className="text-xs -ml-3">
-            {historicalTotal !== undefined && historicalTotal !== null && historicalTotal !== 0 
-              ? formatCurrency(historicalTotal) 
-              : '-'}
-          </div>
-        </TableCell>
-      )}
+      <TableCell className="px-3 py-0 w-48">
+        <div className={`text-xs -ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
+          {historicalTotal !== undefined && historicalTotal !== null && historicalTotal !== 0 
+            ? formatCurrency(historicalTotal) 
+            : '-'}
+        </div>
+      </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={`text-xs font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
           {formatVariance(variance)}
