@@ -60,7 +60,8 @@ export function ViewBudgetDetailsModal({
   };
 
   const handleQuantityBlur = (budgetId: string, costCodeId: string, subcategoryId: string) => {
-    const newQuantity = parseFloat(tempQuantities[subcategoryId] || '1');
+    const value = tempQuantities[subcategoryId]?.trim();
+    const newQuantity = value ? parseFloat(value) : 1;
     if (!isNaN(newQuantity) && newQuantity > 0) {
       updateQuantity(budgetId, costCodeId, newQuantity);
     }
@@ -159,18 +160,18 @@ export function ViewBudgetDetailsModal({
                               {isEditing ? (
                                 <input
                                   type="number"
-                                  value={tempQuantities[sub.id] || sub.quantity || 1}
+                                  value={tempQuantities[sub.id] ?? ''}
                                   onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                   onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
-                                  className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="bg-transparent border-none outline-none text-xs w-full p-0 text-right focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
                                   autoFocus
                                 />
                               ) : (
                                 <span
                                   onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
-                                  className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+                                  className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap text-right w-full"
                                 >
                                   {sub.quantity || 1}
                                 </span>
