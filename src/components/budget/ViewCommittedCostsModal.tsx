@@ -92,16 +92,16 @@ export function ViewCommittedCostsModal({
             <table className="w-full text-sm">
               <thead className="bg-muted">
                 <tr className="h-8">
-                  <th className="py-1 px-2 text-left text-xs font-medium">Company</th>
-                  <th className="py-1 px-2 text-right text-xs font-medium w-28">Amount</th>
-                  <th className="py-1 px-2 text-left text-xs font-medium w-24">Status</th>
-                  <th className="py-1 px-2 text-left text-xs font-medium">Files</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-[35%]">Company</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-[20%]">Amount</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-[20%]">Status</th>
+                  <th className="py-1 px-4 text-right text-xs font-medium w-[25%]">Files</th>
                 </tr>
               </thead>
               <tbody>
                 {purchaseOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 px-2 text-center text-gray-500 text-xs">
+                    <td colSpan={4} className="py-4 px-4 text-center text-gray-500 text-xs">
                       No purchase orders found for this cost code
                     </td>
                   </tr>
@@ -110,22 +110,24 @@ export function ViewCommittedCostsModal({
                     const files = po.files && Array.isArray(po.files) ? po.files : [];
                     return (
                       <tr key={po.id} className="border-b last:border-0">
-                        <td className="py-1 px-2 text-xs">
+                        <td className="py-1 px-4 text-xs w-[35%]">
                           {po.companies?.company_name || '-'}
                         </td>
-                        <td className="py-1 px-2 text-right text-xs w-28">
+                        <td className="py-1 px-4 text-xs w-[20%]">
                           {formatCurrency(po.total_amount)}
                         </td>
-                        <td className="py-1 px-2 text-xs w-24">
+                        <td className="py-1 px-4 text-xs w-[20%]">
                           <span className={getStatusColor(po.status)}>
                             {capitalizeFirstLetter(po.status)}
                           </span>
                         </td>
-                        <td className="py-1 px-2 text-xs">
+                        <td className="py-1 px-4 text-xs w-[25%]">
                           {files.length === 0 ? (
-                            <span className="text-muted-foreground">—</span>
+                            <div className="flex justify-end">
+                              <span className="text-muted-foreground">—</span>
+                            </div>
                           ) : (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center justify-end gap-1">
                               {files.slice(0, 3).map((file: any, index: number) => {
                                 const fileName = file.name || file.id || file;
                                 const IconComponent = getFileIcon(fileName);
