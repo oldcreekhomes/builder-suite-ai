@@ -179,7 +179,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
           }
         }}
       >
-        <SelectTrigger className="h-8 text-sm">
+        <SelectTrigger className="h-8 text-sm [&>svg]:hidden">
           <SelectValue placeholder="Select unit" />
         </SelectTrigger>
         <SelectContent>

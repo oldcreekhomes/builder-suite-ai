@@ -186,7 +186,7 @@ export function BudgetTableRow({
 
   const handleUnitClick = () => {
     setIsEditingUnit(true);
-    setTempUnit(formatUnitOfMeasure(costCode?.unit_of_measure) || '');
+    setTempUnit((costCode?.unit_of_measure as string) || '');
   };
 
   const formatCurrency = (amount: number) => {
@@ -241,7 +241,7 @@ export function BudgetTableRow({
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingUnit ? (
             <Select
-              value={tempUnit || formatUnitOfMeasure(costCode?.unit_of_measure)}
+              value={tempUnit || (costCode?.unit_of_measure || '')}
               onValueChange={(value) => {
                 setTempUnit(value);
                 onUpdateUnit(costCode.id, value);

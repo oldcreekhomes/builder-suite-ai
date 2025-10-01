@@ -155,9 +155,9 @@ export function EditCostCodeDialog({
               <div className="space-y-2">
                 <Label htmlFor="unit_of_measure">Unit of Measure</Label>
                 <Select value={formData.unit_of_measure} onValueChange={(value) => handleInputChange("unit_of_measure", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select unit of measure" />
-                  </SelectTrigger>
+                <SelectTrigger className="[&>svg]:hidden">
+                  <SelectValue placeholder="Select unit of measure" />
+                </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="each">Each</SelectItem>
                     <SelectItem value="square-feet">Square Feet</SelectItem>
