@@ -9,6 +9,13 @@ import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -233,19 +240,38 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingUnit ? (
-            <input
-              type="text"
-              value={tempUnit}
-              onChange={(e) => setTempUnit(e.target.value.toUpperCase())}
-              onBlur={handleUnitBlur}
-              onKeyDown={handleUnitKeyDown}
-              className="w-full bg-transparent border-none outline-none text-xs p-0 text-black"
-              autoFocus
-              maxLength={10}
-            />
+            <Select
+              value={tempUnit || formatUnitOfMeasure(costCode?.unit_of_measure)}
+              onValueChange={(value) => {
+                setTempUnit(value);
+                onUpdateUnit(costCode.id, value);
+                setIsEditingUnit(false);
+              }}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setIsEditingUnit(false);
+                }
+              }}
+            >
+              <SelectTrigger className="h-6 w-20 text-xs border-none shadow-none focus:ring-0 p-0 px-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="SF">SF</SelectItem>
+                <SelectItem value="LF">LF</SelectItem>
+                <SelectItem value="EA">EA</SelectItem>
+                <SelectItem value="LS">LS</SelectItem>
+                <SelectItem value="SY">SY</SelectItem>
+                <SelectItem value="CY">CY</SelectItem>
+                <SelectItem value="TON">TON</SelectItem>
+                <SelectItem value="LOAD">LOAD</SelectItem>
+                <SelectItem value="DAY">DAY</SelectItem>
+                <SelectItem value="MONTH">MONTH</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
             <span 
-              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+              className={`${hasSubcategories ? '' : 'cursor-pointer hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
               onClick={hasSubcategories ? undefined : handleUnitClick}
             >
               {formatUnitOfMeasure(costCode?.unit_of_measure)}
