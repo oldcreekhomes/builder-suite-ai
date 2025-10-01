@@ -85,6 +85,7 @@ export function ActualTableRow({
         onClose={() => setShowModal(false)}
         costCode={costCode ? { code: costCode.code, name: costCode.name } : null}
         purchaseOrders={costCodePOs}
+        projectId={item.project_id}
       />
     </>
   );

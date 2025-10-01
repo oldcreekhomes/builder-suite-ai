@@ -100,6 +100,7 @@ export function ActualGroupHeader({
         onClose={() => setShowModal(false)}
         costCode={{ code: group, name: '' }}
         purchaseOrders={groupPurchaseOrders}
+        projectId={groupPurchaseOrders[0]?.project_id}
       />
     </>
   );

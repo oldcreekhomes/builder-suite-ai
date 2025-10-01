@@ -6,19 +6,23 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
+import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { openFileViaRedirect } from '@/utils/fileOpenUtils';
 
 interface ViewCommittedCostsModalProps {
   isOpen: boolean;
   onClose: () => void;
   costCode: { code: string; name: string } | null;
   purchaseOrders: PurchaseOrder[];
+  projectId?: string;
 }
 
 export function ViewCommittedCostsModal({
   isOpen,
   onClose,
   costCode,
-  purchaseOrders
+  purchaseOrders,
+  projectId
 }: ViewCommittedCostsModalProps) {
   if (!costCode) return null;
 
@@ -27,6 +31,10 @@ export function ViewCommittedCostsModal({
   };
 
   const totalCommitted = purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0);
+
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -38,6 +46,35 @@ export function ViewCommittedCostsModal({
         return 'text-gray-600';
       default:
         return 'text-gray-600';
+    }
+  };
+
+  const handleFilePreview = (file: any, po: PurchaseOrder) => {
+    const fileName = file.name || file.id || file;
+    
+    if (file.bucket && file.path) {
+      openFileViaRedirect(file.bucket, file.path, fileName);
+      return;
+    }
+    
+    if (file.url) {
+      try {
+        const url = new URL(file.url);
+        const pathParts = url.pathname.split('/object/public/');
+        if (pathParts.length === 2) {
+          const [bucket, ...pathSegments] = pathParts[1].split('/');
+          const path = pathSegments.join('/');
+          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to parse file URL:', error);
+      }
+    }
+    
+    if (projectId) {
+      const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
+      openFileViaRedirect('project-files', filePath, fileName);
     }
   };
 
@@ -56,9 +93,9 @@ export function ViewCommittedCostsModal({
               <thead className="bg-muted">
                 <tr className="h-8">
                   <th className="py-1 px-2 text-left text-xs font-medium">Company</th>
-                  <th className="py-1 px-2 text-right text-xs font-medium">Amount</th>
-                  <th className="py-1 px-2 text-left text-xs font-medium">Status</th>
-                  <th className="py-1 px-2 text-left text-xs font-medium">Notes</th>
+                  <th className="py-1 px-2 text-right text-xs font-medium w-28">Amount</th>
+                  <th className="py-1 px-2 text-left text-xs font-medium w-24">Status</th>
+                  <th className="py-1 px-2 text-left text-xs font-medium">Files</th>
                 </tr>
               </thead>
               <tbody>
@@ -69,24 +106,52 @@ export function ViewCommittedCostsModal({
                     </td>
                   </tr>
                 ) : (
-                  purchaseOrders.map((po) => (
-                    <tr key={po.id} className="border-b last:border-0">
-                      <td className="py-1 px-2 text-xs">
-                        {po.companies?.company_name || '-'}
-                      </td>
-                      <td className="py-1 px-2 text-right text-xs">
-                        {formatCurrency(po.total_amount)}
-                      </td>
-                      <td className="py-1 px-2 text-xs">
-                        <span className={getStatusColor(po.status)}>
-                          {po.status}
-                        </span>
-                      </td>
-                      <td className="py-1 px-2 text-xs text-gray-600">
-                        {po.notes || '-'}
-                      </td>
-                    </tr>
-                  ))
+                  purchaseOrders.map((po) => {
+                    const files = po.files && Array.isArray(po.files) ? po.files : [];
+                    return (
+                      <tr key={po.id} className="border-b last:border-0">
+                        <td className="py-1 px-2 text-xs">
+                          {po.companies?.company_name || '-'}
+                        </td>
+                        <td className="py-1 px-2 text-right text-xs w-28">
+                          {formatCurrency(po.total_amount)}
+                        </td>
+                        <td className="py-1 px-2 text-xs w-24">
+                          <span className={getStatusColor(po.status)}>
+                            {capitalizeFirstLetter(po.status)}
+                          </span>
+                        </td>
+                        <td className="py-1 px-2 text-xs">
+                          {files.length === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              {files.slice(0, 3).map((file: any, index: number) => {
+                                const fileName = file.name || file.id || file;
+                                const IconComponent = getFileIcon(fileName);
+                                const iconColorClass = getFileIconColor(fileName);
+                                return (
+                                  <button
+                                    key={`${fileName}-${index}`}
+                                    onClick={() => handleFilePreview(file, po)}
+                                    className={`inline-block ${iconColorClass} transition-colors p-1`}
+                                    title={fileName}
+                                  >
+                                    <IconComponent className="h-4 w-4" />
+                                  </button>
+                                );
+                              })}
+                              {files.length > 3 && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  +{files.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
