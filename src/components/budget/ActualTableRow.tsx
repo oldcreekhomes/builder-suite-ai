@@ -41,27 +41,27 @@ export function ActualTableRow({
           className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="px-1 py-0" style={{ paddingLeft: '50px' }}>
+      <TableCell className="px-1 py-0 w-24" style={{ paddingLeft: '50px' }}>
         <div className="text-xs font-medium">
           {costCode?.code || '-'}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-64">
         <div className="text-xs">
           {costCode?.name || '-'}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-32">
         <div className="text-xs font-medium">
           {formatCurrency(budgetTotal)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-32">
         <div className="text-xs">
           {formatCurrency(committedAmount)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0">
+      <TableCell className="px-1 py-0 w-32">
         <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
           {formatCurrency(variance)}
         </div>
