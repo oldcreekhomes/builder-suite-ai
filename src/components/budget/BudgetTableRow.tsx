@@ -253,20 +253,15 @@ export function BudgetTableRow({
                 }
               }}
             >
-              <SelectTrigger className="h-6 w-20 text-xs border-none shadow-none focus:ring-0 p-0 px-1">
+              <SelectTrigger className="h-6 w-20 text-xs border-none shadow-none focus:ring-0 p-0 px-1 [&>svg]:hidden">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-50">
-                <SelectItem value="SF">SF</SelectItem>
-                <SelectItem value="LF">LF</SelectItem>
-                <SelectItem value="EA">EA</SelectItem>
-                <SelectItem value="LS">LS</SelectItem>
-                <SelectItem value="SY">SY</SelectItem>
-                <SelectItem value="CY">CY</SelectItem>
-                <SelectItem value="TON">TON</SelectItem>
-                <SelectItem value="LOAD">LOAD</SelectItem>
-                <SelectItem value="DAY">DAY</SelectItem>
-                <SelectItem value="MONTH">MONTH</SelectItem>
+                <SelectItem value="each">Each</SelectItem>
+                <SelectItem value="square-feet">Square Feet</SelectItem>
+                <SelectItem value="linear-feet">Linear Feet</SelectItem>
+                <SelectItem value="square-yard">Square Yard</SelectItem>
+                <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
               </SelectContent>
             </Select>
           ) : (
