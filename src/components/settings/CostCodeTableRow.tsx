@@ -79,18 +79,20 @@ export function CostCodeTableRow({
         </TableCell>
         <TableCell className="font-medium py-1 text-sm text-right">
           <div className="flex items-center gap-1 justify-end">
-            {isExpandable && onToggleExpand && (
-              <button
-                onClick={() => onToggleExpand(costCode.code)}
-                className="p-0 hover:bg-accent rounded"
-              >
-                {expanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-            )}
+            <div className="w-4 h-4 flex items-center justify-center">
+              {isExpandable && onToggleExpand && (
+                <button
+                  onClick={() => onToggleExpand(costCode.code)}
+                  className="p-0 hover:bg-accent rounded"
+                >
+                  {expanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+            </div>
             <span>{costCode.code}</span>
           </div>
         </TableCell>
