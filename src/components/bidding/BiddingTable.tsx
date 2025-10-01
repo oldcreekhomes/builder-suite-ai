@@ -12,7 +12,7 @@ import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
 import { BiddingTableFooter } from './BiddingTableFooter';
 
-import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { useBiddingData, useAllBiddingData } from '@/hooks/useBiddingData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBiddingMutations } from '@/hooks/useBiddingMutations';
@@ -193,9 +193,9 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
       {selectedCount > 0 && status === 'draft' && (
         <BulkActionBar
           selectedCount={selectedCount}
+          selectedFolderCount={0}
           onBulkDelete={onBulkDelete}
           isDeleting={isDeletingSelected}
-          itemType="bid package"
         />
       )}
 
