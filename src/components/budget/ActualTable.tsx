@@ -88,10 +88,13 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                       onToggle={handleGroupToggle}
                       isSelected={isGroupSelected(items)}
                       isPartiallySelected={isGroupPartiallySelected(items)}
-                    onCheckboxChange={onGroupCheckboxChange}
-                    groupBudgetTotal={calculateGroupBudgetTotal(items)}
-                    groupCommittedTotal={calculateGroupCommittedTotal(items)}
-                  />
+                      onCheckboxChange={onGroupCheckboxChange}
+                      groupBudgetTotal={calculateGroupBudgetTotal(items)}
+                      groupCommittedTotal={calculateGroupCommittedTotal(items)}
+                      groupPurchaseOrders={items.flatMap(item => 
+                        purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
+                      )}
+                    />
                     
                     {expandedGroups.has(group) && items.map((item) => (
                       <ActualTableRow
@@ -100,6 +103,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                         committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
                         isSelected={selectedItems.has(item.id)}
                         onCheckboxChange={handleItemCheckboxChange}
+                        purchaseOrders={purchaseOrders}
                       />
                     ))}
                   </React.Fragment>
