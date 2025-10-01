@@ -26,7 +26,7 @@ export default function BidResponseConfirmation() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen w-screen bg-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -35,7 +35,7 @@ export default function BidResponseConfirmation() {
   // Show error page if status is not success
   if (status !== "success") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen w-screen bg-white flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
@@ -57,8 +57,8 @@ export default function BidResponseConfirmation() {
   const willBid = response === "will_bid";
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen w-screen bg-white flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
