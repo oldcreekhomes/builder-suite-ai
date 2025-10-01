@@ -16,7 +16,7 @@ import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
-import { BulkActionBar } from '@/components/files/components/BulkActionBar';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetTableProps {
@@ -171,9 +171,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       {selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
-          selectedFolderCount={0}
           onBulkDelete={onBulkDelete}
           isDeleting={isDeletingSelected}
+          itemType="budget item"
         />
       )}
 
