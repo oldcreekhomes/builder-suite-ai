@@ -3,12 +3,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import type { Tables } from "@/integrations/supabase/types";
 
+type CostCode = Tables<'cost_codes'>;
+type BudgetItem = Tables<'project_budgets'> & {
+  cost_codes: CostCode;
+};
+
 interface ViewBudgetDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  budgetItem: Tables<'project_budgets'> & {
-    cost_codes: Tables<'cost_codes'> | null;
-  };
+  budgetItem: BudgetItem;
   projectId: string;
 }
 
@@ -19,114 +22,123 @@ export function ViewBudgetDetailsModal({
   projectId,
 }: ViewBudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
-  
+  const hasSubcategories = costCode.has_subcategories;
+
   const {
     subcategories,
     selections,
-    toggleSelection,
+    toggleSubcategory,
     calculatedTotal,
     isLoading,
-  } = useBudgetSubcategories(budgetItem.id, costCode?.code || '', projectId);
+  } = useBudgetSubcategories(budgetItem.id, costCode.id, projectId, hasSubcategories);
 
-  if (!costCode) return null;
-
-  const hasSubcategories = costCode.has_subcategories;
-  const simpleTotal = (budgetItem.quantity || 0) * (budgetItem.unit_price || 0);
+  const formatCurrency = (value: number | null | undefined) => {
+    if (!value) return '$0';
+    return `$${Math.round(value).toLocaleString()}`;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Budget Details</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-            <div>
-              <p className="text-sm text-muted-foreground">Cost Code</p>
-              <p className="font-medium">{costCode.code}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Name</p>
-              <p className="font-medium">{costCode.name}</p>
+          <div className="border-b pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-sm text-muted-foreground">Cost Code:</span>
+                <p className="font-medium">{costCode.code}</p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Name:</span>
+                <p className="font-medium">{costCode.name}</p>
+              </div>
             </div>
           </div>
 
           {!hasSubcategories ? (
-            // Simple view for items without subcategories
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Cost</p>
-                  <p className="font-medium">${budgetItem.unit_price?.toLocaleString() || '0'}</p>
+                  <span className="text-sm text-muted-foreground">Cost:</span>
+                  <p className="font-medium">{formatCurrency(budgetItem.unit_price)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Unit</p>
+                  <span className="text-sm text-muted-foreground">Unit:</span>
                   <p className="font-medium">{costCode.unit_of_measure || 'EA'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Quantity</p>
-                  <p className="font-medium">{budgetItem.quantity || 0}</p>
+                  <span className="text-sm text-muted-foreground">Quantity:</span>
+                  <p className="font-medium">{budgetItem.quantity || 1}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Budget</p>
-                  <p className="font-medium">${simpleTotal.toLocaleString()}</p>
+                  <span className="text-sm text-muted-foreground">Total Budget:</span>
+                  <p className="font-medium">
+                    {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
+                  </p>
                 </div>
               </div>
             </div>
           ) : (
-            // List view for items with subcategories
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Select subcategories to include in total:</p>
-              
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading subcategories...</p>
-              ) : subcategories.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No subcategories found</p>
-              ) : (
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted px-4 py-2 grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-4 text-sm font-medium">
-                    <div></div>
-                    <div>Code</div>
-                    <div>Name</div>
-                    <div className="text-right">Cost</div>
-                    <div className="text-right">Qty</div>
-                    <div className="text-right">Subtotal</div>
-                  </div>
-                  
-                  {subcategories.map((sub) => {
-                    const isSelected = selections[sub.budgetItem.id] ?? true;
-                    const subtotal = (sub.budgetItem.quantity || 0) * (sub.budgetItem.unit_price || 0);
-                    
-                    return (
-                      <div
-                        key={sub.budgetItem.id}
-                        className="px-4 py-3 grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr] gap-4 border-t items-center hover:bg-muted/50"
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelection(sub.budgetItem.id, sub.costCode.id)}
-                        />
-                        <div className="text-sm">{sub.costCode.code}</div>
-                        <div className="text-sm">{sub.costCode.name}</div>
-                        <div className="text-sm text-right">
-                          ${sub.budgetItem.unit_price?.toLocaleString() || '0'}
-                        </div>
-                        <div className="text-sm text-right">
-                          {sub.budgetItem.quantity || 0}
-                        </div>
-                        <div className="text-sm text-right font-medium">
-                          ${subtotal.toLocaleString()}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-2 text-left w-12"></th>
+                      <th className="p-2 text-left">Code</th>
+                      <th className="p-2 text-left">Name</th>
+                      <th className="p-2 text-right">Cost</th>
+                      <th className="p-2 text-center">Unit</th>
+                      <th className="p-2 text-right">Quantity</th>
+                      <th className="p-2 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                          Loading subcategories...
+                        </td>
+                      </tr>
+                    ) : subcategories.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                          No subcategories found
+                        </td>
+                      </tr>
+                    ) : (
+                      subcategories.map((sub) => {
+                        const isSelected = selections[sub.cost_codes.id] !== false;
+                        const subtotal = (sub.unit_price || 0) * (sub.quantity || 1);
+                        
+                        return (
+                          <tr key={sub.id} className="border-b">
+                            <td className="p-2">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSubcategory(sub.cost_codes.id, !isSelected)}
+                              />
+                            </td>
+                            <td className="p-2">{sub.cost_codes.code}</td>
+                            <td className="p-2">{sub.cost_codes.name}</td>
+                            <td className="p-2 text-right">{formatCurrency(sub.unit_price)}</td>
+                            <td className="p-2 text-center">{sub.cost_codes.unit_of_measure || 'EA'}</td>
+                            <td className="p-2 text-right">{sub.quantity || 1}</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(subtotal)}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="pt-4 border-t flex justify-between items-center">
-                <p className="font-medium">Total Budget:</p>
-                <p className="text-lg font-bold">${calculatedTotal.toLocaleString()}</p>
+              <div className="flex justify-end items-center gap-2 pt-4 border-t">
+                <span className="text-sm text-muted-foreground">Total Budget:</span>
+                <span className="text-lg font-semibold">{formatCurrency(calculatedTotal)}</span>
               </div>
             </div>
           )}

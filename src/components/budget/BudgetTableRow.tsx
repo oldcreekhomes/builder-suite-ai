@@ -7,6 +7,7 @@ import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
+import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -44,7 +45,20 @@ export function BudgetTableRow({
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
-  const total = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  
+  // Use subcategories hook to get calculated total if cost code has subcategories
+  const { calculatedTotal: subcategoryTotal } = useBudgetSubcategories(
+    item.id,
+    costCode?.id,
+    item.project_id,
+    costCode?.has_subcategories || false
+  );
+  
+  // Use subcategory total if available, otherwise calculate normally
+  const total = costCode?.has_subcategories 
+    ? subcategoryTotal 
+    : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+    
   const historicalActual = historicalActualCosts[costCode?.id] || null;
   
   const calculateVariance = () => {
