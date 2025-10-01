@@ -93,7 +93,7 @@ export function BudgetGroupTotalRow({
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
+        <div className={`text-xs -ml-3 font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
           {formatVariance(variance)}
         </div>
       </TableCell>
