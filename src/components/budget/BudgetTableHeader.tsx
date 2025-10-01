@@ -40,7 +40,7 @@ export function BudgetTableHeader({ showVarianceAsPercentage, onToggleVarianceMo
             Variance {showVarianceAsPercentage ? '%' : '$'}
           </button>
         </TableHead>
-        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20 sticky right-0 bg-background z-30 border-l">Actions</TableHead>
+        <TableHead className="h-8 px-1 py-0 text-xs font-medium w-20 sticky right-0 bg-background z-30">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
