@@ -94,17 +94,19 @@ export function BudgetGroupHeader({
       <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Variance column in group header */}
       </TableCell>
-      <TableCell className="px-1 py-0 w-20">
-        <div className="flex gap-1">
-          <DeleteButton
-            onDelete={() => onDeleteGroup(group)}
-            title="Delete Group"
-            description={`Are you sure you want to delete all budget items in the "${group}" group? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-          />
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50 z-20">
+        <div className="flex justify-center">
+          {isSelected && (
+            <DeleteButton
+              onDelete={() => onDeleteGroup(group)}
+              title="Delete Group"
+              description={`Are you sure you want to delete all budget items in the "${group}" group? This action cannot be undone.`}
+              size="sm"
+              variant="ghost"
+              isLoading={isDeleting}
+              showIcon={true}
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>
