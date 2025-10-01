@@ -115,9 +115,54 @@ export function useBudgetSubcategories(
     },
   });
 
+  // Mutation to update subcategory quantity
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ budgetId, costCodeId, quantity }: { budgetId: string; costCodeId: string; quantity: number }) => {
+      // Check if this budget item exists in project_budgets
+      const { data: existing } = await supabase
+        .from('project_budgets')
+        .select('id')
+        .eq('id', budgetId)
+        .single();
+
+      if (existing) {
+        // Update existing budget item
+        const { error } = await supabase
+          .from('project_budgets')
+          .update({ quantity })
+          .eq('id', budgetId);
+
+        if (error) throw error;
+      } else {
+        // Create new budget item
+        const subcategory = subcategories.find(s => s.cost_code_id === costCodeId);
+        if (!subcategory) throw new Error('Subcategory not found');
+
+        const { error } = await supabase
+          .from('project_budgets')
+          .insert({
+            project_id: projectId,
+            cost_code_id: costCodeId,
+            quantity,
+            unit_price: subcategory.unit_price,
+          });
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budget-subcategories', projectId, costCodeId] });
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+    },
+  });
+
   const toggleSubcategory = (costCodeId: string, included: boolean) => {
     setSelections(prev => ({ ...prev, [costCodeId]: included }));
     updateSelectionMutation.mutate({ costCodeId, included });
+  };
+
+  const updateQuantity = (budgetId: string, costCodeId: string, quantity: number) => {
+    updateQuantityMutation.mutate({ budgetId, costCodeId, quantity });
   };
 
   // Calculate total based on selections
@@ -133,6 +178,7 @@ export function useBudgetSubcategories(
     subcategories,
     selections,
     toggleSubcategory,
+    updateQuantity,
     calculatedTotal,
     isLoading,
   };

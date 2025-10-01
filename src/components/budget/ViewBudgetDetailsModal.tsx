@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import type { Tables } from "@/integrations/supabase/types";
+import { useState } from "react";
 
 type CostCode = Tables<'cost_codes'>;
 type BudgetItem = Tables<'project_budgets'> & {
@@ -28,13 +30,43 @@ export function ViewBudgetDetailsModal({
     subcategories,
     selections,
     toggleSubcategory,
+    updateQuantity,
     calculatedTotal,
     isLoading,
   } = useBudgetSubcategories(budgetItem.id, costCode.id, projectId, hasSubcategories);
 
+  const [editingQuantity, setEditingQuantity] = useState<string | null>(null);
+  const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
+
   const formatCurrency = (value: number | null | undefined) => {
     if (!value) return '$0';
     return `$${Math.round(value).toLocaleString()}`;
+  };
+
+  const truncateUnit = (unit: string | null | undefined) => {
+    if (!unit) return 'EA';
+    return unit.substring(0, 2).toUpperCase();
+  };
+
+  const handleQuantityClick = (subcategoryId: string, currentQuantity: number) => {
+    setEditingQuantity(subcategoryId);
+    setTempQuantities(prev => ({ ...prev, [subcategoryId]: currentQuantity.toString() }));
+  };
+
+  const handleQuantityBlur = (budgetId: string, costCodeId: string, subcategoryId: string) => {
+    const newQuantity = parseFloat(tempQuantities[subcategoryId] || '1');
+    if (!isNaN(newQuantity) && newQuantity > 0) {
+      updateQuantity(budgetId, costCodeId, newQuantity);
+    }
+    setEditingQuantity(null);
+  };
+
+  const handleQuantityKeyDown = (e: React.KeyboardEvent, budgetId: string, costCodeId: string, subcategoryId: string) => {
+    if (e.key === 'Enter') {
+      handleQuantityBlur(budgetId, costCodeId, subcategoryId);
+    } else if (e.key === 'Escape') {
+      setEditingQuantity(null);
+    }
   };
 
   return (
@@ -61,7 +93,7 @@ export function ViewBudgetDetailsModal({
                 <tbody>
                   <tr>
                     <td className="p-3">{formatCurrency(budgetItem.unit_price)}</td>
-                    <td className="p-3">{costCode.unit_of_measure || 'EA'}</td>
+                    <td className="p-3">{truncateUnit(costCode.unit_of_measure)}</td>
                     <td className="p-3">{budgetItem.quantity || 1}</td>
                     <td className="p-3 text-right font-medium">
                       {formatCurrency((budgetItem.unit_price || 0) * (budgetItem.quantity || 1))}
@@ -102,6 +134,7 @@ export function ViewBudgetDetailsModal({
                       subcategories.map((sub) => {
                         const isSelected = selections[sub.cost_codes.id] !== false;
                         const subtotal = (sub.unit_price || 0) * (sub.quantity || 1);
+                        const isEditing = editingQuantity === sub.id;
                         
                         return (
                           <tr key={sub.id} className="border-b last:border-0">
@@ -114,8 +147,28 @@ export function ViewBudgetDetailsModal({
                             <td className="p-3">{sub.cost_codes.code}</td>
                             <td className="p-3">{sub.cost_codes.name}</td>
                             <td className="p-3 text-right">{formatCurrency(sub.unit_price)}</td>
-                            <td className="p-3 text-center">{sub.cost_codes.unit_of_measure || 'EA'}</td>
-                            <td className="p-3 text-right">{sub.quantity || 1}</td>
+                            <td className="p-3 text-center">{truncateUnit(sub.cost_codes.unit_of_measure)}</td>
+                            <td className="p-3 text-right">
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={tempQuantities[sub.id] || sub.quantity || 1}
+                                  onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
+                                  onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
+                                  onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
+                                  className="w-20 h-8 text-right"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span
+                                  onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
+                                  className="cursor-pointer hover:bg-accent rounded px-2 py-1 inline-block"
+                                >
+                                  {sub.quantity || 1}
+                                </span>
+                              )}
+                            </td>
                             <td className="p-3 text-right font-medium">{formatCurrency(subtotal)}</td>
                           </tr>
                         );
