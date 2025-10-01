@@ -241,6 +241,7 @@ export function BudgetTableRow({
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {!hasSubcategories && isEditingUnit ? (
             <Select
+              defaultOpen
               value={tempUnit || (costCode?.unit_of_measure || '')}
               onValueChange={(value) => {
                 setTempUnit(value);

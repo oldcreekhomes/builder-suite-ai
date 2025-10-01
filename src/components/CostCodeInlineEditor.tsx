@@ -164,6 +164,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
   if (field === 'unit_of_measure') {
     return (
       <Select 
+        defaultOpen
         value={value} 
         onValueChange={(newValue) => {
           setValue(newValue);
