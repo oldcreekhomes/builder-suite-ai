@@ -47,17 +47,22 @@ export function BudgetTableRow({
   const costCode = item.cost_codes as CostCode;
   
   // Use subcategories hook to get calculated total if cost code has subcategories
+  const hasSubcategories = costCode?.has_subcategories || false;
   const { calculatedTotal: subcategoryTotal } = useBudgetSubcategories(
     item.id,
     costCode?.id,
     item.project_id,
-    costCode?.has_subcategories || false
+    hasSubcategories
   );
   
   // Use subcategory total if available, otherwise calculate normally
-  const total = costCode?.has_subcategories 
+  const total = hasSubcategories 
     ? subcategoryTotal 
     : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  
+  // For display purposes, show the unit price (Cost column)
+  // If has subcategories, show the calculated total (which represents the aggregated cost)
+  const displayUnitPrice = hasSubcategories ? subcategoryTotal : parseFloat(unitPrice) || 0;
     
   const historicalActual = historicalActualCosts[costCode?.id] || null;
   
@@ -223,7 +228,7 @@ export function BudgetTableRow({
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
-        {isEditingPrice ? (
+        {!hasSubcategories && isEditingPrice ? (
           <input
             type="number"
             value={unitPrice}
@@ -236,15 +241,15 @@ export function BudgetTableRow({
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
-            onClick={handlePriceClick}
+            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+            onClick={hasSubcategories ? undefined : handlePriceClick}
           >
-            ${Math.round(parseFloat(unitPrice) || 0).toLocaleString()}
+            ${Math.round(displayUnitPrice).toLocaleString()}
           </span>
         )}
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
-        {isEditingUnit ? (
+        {!hasSubcategories && isEditingUnit ? (
           <Select 
             value={costCode?.unit_of_measure || ""} 
             onValueChange={handleUnitValueChange}
@@ -267,15 +272,15 @@ export function BudgetTableRow({
           </Select>
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
-            onClick={handleUnitClick}
+            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+            onClick={hasSubcategories ? undefined : handleUnitClick}
           >
             {formatUnitOfMeasure(costCode?.unit_of_measure)}
           </span>
         )}
       </TableCell>
       <TableCell className="px-3 py-0 w-24">
-        {isEditingQuantity ? (
+        {!hasSubcategories && isEditingQuantity ? (
           <input
             type="number"
             value={quantity}
@@ -288,8 +293,8 @@ export function BudgetTableRow({
           />
         ) : (
           <span 
-            className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
-            onClick={handleQuantityClick}
+            className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
+            onClick={hasSubcategories ? undefined : handleQuantityClick}
           >
             {parseFloat(quantity) || 0}
           </span>
