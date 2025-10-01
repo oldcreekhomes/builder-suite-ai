@@ -29,13 +29,13 @@ export function ActualGroupHeader({
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
-  const calculateVariance = (budget: number, actual: number) => {
-    return actual - budget;
+  const calculateVariance = (budget: number, committed: number) => {
+    return budget - committed; // Budget - Committed Costs
   };
 
   const getVarianceColor = (variance: number) => {
-    if (variance > 0) return 'text-red-600'; // Over budget
-    if (variance < 0) return 'text-green-600'; // Under budget
+    if (variance < 0) return 'text-red-600'; // Over budget (negative)
+    if (variance > 0) return 'text-green-600'; // Under budget (positive)
     return 'text-gray-600'; // On budget
   };
 

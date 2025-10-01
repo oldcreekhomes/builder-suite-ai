@@ -20,15 +20,15 @@ export function ActualTableRow({
 }: ActualTableRowProps) {
   const costCode = item.cost_codes as CostCode;
   const budgetTotal = (item.quantity || 0) * (item.unit_price || 0);
-  const variance = committedAmount - budgetTotal;
+  const variance = budgetTotal - committedAmount; // Budget - Committed Costs
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
   const getVarianceColor = (variance: number) => {
-    if (variance > 0) return 'text-red-600'; // Over budget
-    if (variance < 0) return 'text-green-600'; // Under budget
+    if (variance < 0) return 'text-red-600'; // Over budget (negative)
+    if (variance > 0) return 'text-green-600'; // Under budget (positive)
     return 'text-gray-600'; // On budget
   };
 
