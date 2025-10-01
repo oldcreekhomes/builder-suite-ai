@@ -17,7 +17,7 @@ export function useBudgetSubcategories(
   const queryClient = useQueryClient();
   const [selections, setSelections] = useState<Record<string, boolean>>({});
 
-  // Fetch subcategories (child cost codes and their budget items)
+  // Fetch subcategories (child cost codes)
   const { data: subcategories = [], isLoading } = useQuery({
     queryKey: ['budget-subcategories', projectId, costCodeId],
     queryFn: async () => {
@@ -31,25 +31,36 @@ export function useBudgetSubcategories(
       if (!parentCode) return [];
 
       // Get child cost codes where parent_group matches parent code
-      const { data: childCodes } = await supabase
+      const { data: childCodes, error } = await supabase
         .from('cost_codes')
         .select('*')
         .eq('parent_group', parentCode.code);
 
+      if (error) throw error;
       if (!childCodes || childCodes.length === 0) return [];
 
-      // Get budget items for these child cost codes
-      const { data: budgetItems, error } = await supabase
+      // Get budget items for these child cost codes (if they exist)
+      const { data: budgetItems } = await supabase
         .from('project_budgets')
-        .select(`
-          *,
-          cost_codes (*)
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .in('cost_code_id', childCodes.map(c => c.id));
 
-      if (error) throw error;
-      return budgetItems as BudgetItem[];
+      // Map child codes to include budget data if available
+      return childCodes.map(costCode => {
+        const budgetItem = budgetItems?.find(b => b.cost_code_id === costCode.id);
+        return {
+          id: budgetItem?.id || costCode.id,
+          cost_code_id: costCode.id,
+          project_id: projectId,
+          quantity: budgetItem?.quantity || (costCode.quantity ? parseFloat(costCode.quantity) : 1),
+          unit_price: budgetItem?.unit_price || costCode.price || 0,
+          actual_amount: budgetItem?.actual_amount || 0,
+          created_at: budgetItem?.created_at || new Date().toISOString(),
+          updated_at: budgetItem?.updated_at || new Date().toISOString(),
+          cost_codes: costCode,
+        };
+      }) as BudgetItem[];
     },
     enabled: enabled,
   });
