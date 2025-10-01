@@ -2,8 +2,7 @@
 import React from 'react';
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 
 interface BudgetTableHeaderProps {
@@ -46,7 +45,6 @@ export function BudgetTableHeader({
             <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
               <SelectTrigger className="h-6 -ml-3 text-xs font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">
                 <span>Historical Job Costs</span>
-                <ChevronDown className="h-3 w-3" />
               </SelectTrigger>
               <SelectContent className="bg-background border shadow-lg z-50">
                 {historicalProjects.map((project) => (
