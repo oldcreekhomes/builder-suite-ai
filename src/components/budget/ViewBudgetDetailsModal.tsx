@@ -158,18 +158,19 @@ export function ViewBudgetDetailsModal({
                             <td className="py-1 px-2 text-right">
                               {isEditing ? (
                                 <input
-                                  type="text"
+                                  type="number"
                                   value={tempQuantities[sub.id] || sub.quantity || 1}
                                   onChange={(e) => setTempQuantities(prev => ({ ...prev, [sub.id]: e.target.value }))}
                                   onBlur={() => handleQuantityBlur(sub.id, sub.cost_code_id, sub.id)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, sub.id, sub.cost_code_id, sub.id)}
-                                  className="w-full min-w-[3rem] bg-transparent text-right text-xs px-1 py-0.5 focus:outline-none focus:ring-0"
+                                  className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
                                   autoFocus
                                 />
                               ) : (
                                 <span
                                   onClick={() => handleQuantityClick(sub.id, sub.quantity || 1)}
-                                  className="cursor-pointer hover:bg-accent rounded px-1 py-0.5 inline-block text-xs min-w-[3rem] text-right"
+                                  className="cursor-text hover:bg-muted text-black whitespace-nowrap text-xs"
                                 >
                                   {sub.quantity || 1}
                                 </span>
