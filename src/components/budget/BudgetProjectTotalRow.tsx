@@ -68,42 +68,36 @@ export function BudgetProjectTotalRow({
           Total Project Costs
         </div>
       </TableCell>
-      {visibleColumns.cost && (
-        <TableCell className="px-3 py-0 w-32">
+      <TableCell className="px-3 py-0 w-32">
+        <div className={visibleColumns.cost ? '' : 'opacity-0 select-none pointer-events-none'}>
           {/* Empty price cell */}
-        </TableCell>
-      )}
-      {visibleColumns.unit && (
-        <TableCell className="px-3 py-0 w-20">
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-20">
+        <div className={visibleColumns.unit ? '' : 'opacity-0 select-none pointer-events-none'}>
           {/* Empty unit cell */}
-        </TableCell>
-      )}
-      {visibleColumns.quantity && (
-        <TableCell className="px-3 py-0 w-24">
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-24">
+        <div className={visibleColumns.quantity ? '' : 'opacity-0 select-none pointer-events-none'}>
           {/* Empty quantity cell */}
-        </TableCell>
-      )}
-      {visibleColumns.totalBudget && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className="text-xs font-medium">
-            {formatCurrency(totalBudget)}
-          </div>
-        </TableCell>
-      )}
-      {visibleColumns.historicalCosts && (
-        <TableCell className="px-3 py-0 w-48">
-          <div className="text-xs -ml-3">
-            {formatCurrency(totalHistorical)}
-          </div>
-        </TableCell>
-      )}
-      {visibleColumns.variance && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
-            {formatVariance(variance)}
-          </div>
-        </TableCell>
-      )}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
+          {formatCurrency(totalBudget)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-48">
+        <div className={`text-xs -ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
+          {formatCurrency(totalHistorical)}
+        </div>
+      </TableCell>
+      <TableCell className="px-3 py-0 w-32">
+        <div className={`text-xs font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
+          {formatVariance(variance)}
+        </div>
+      </TableCell>
       <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50">
         {/* Empty actions cell */}
       </TableCell>
