@@ -92,10 +92,10 @@ export function ViewCommittedCostsModal({
             <table className="w-full text-sm">
               <thead className="bg-muted">
                 <tr className="h-8">
-                  <th className="py-1 px-4 text-left text-xs font-medium w-[35%]">Company</th>
-                  <th className="py-1 px-4 text-left text-xs font-medium w-[20%]">Amount</th>
-                  <th className="py-1 px-4 text-left text-xs font-medium w-[20%]">Status</th>
-                  <th className="py-1 px-4 text-right text-xs font-medium w-[25%]">Files</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-1/4">Company</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-1/4">Amount</th>
+                  <th className="py-1 px-4 text-left text-xs font-medium w-1/4">Status</th>
+                  <th className="py-1 px-4 text-right text-xs font-medium w-1/4">Files</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,18 +110,18 @@ export function ViewCommittedCostsModal({
                     const files = po.files && Array.isArray(po.files) ? po.files : [];
                     return (
                       <tr key={po.id} className="border-b last:border-0">
-                        <td className="py-1 px-4 text-xs w-[35%]">
+                        <td className="py-1 px-4 text-xs w-1/4">
                           {po.companies?.company_name || '-'}
                         </td>
-                        <td className="py-1 px-4 text-xs w-[20%]">
+                        <td className="py-1 px-4 text-xs w-1/4">
                           {formatCurrency(po.total_amount)}
                         </td>
-                        <td className="py-1 px-4 text-xs w-[20%]">
+                        <td className="py-1 px-4 text-xs w-1/4">
                           <span className={getStatusColor(po.status)}>
                             {capitalizeFirstLetter(po.status)}
                           </span>
                         </td>
-                        <td className="py-1 px-4 text-xs w-[25%]">
+                        <td className="py-1 px-4 text-xs w-1/4">
                           {files.length === 0 ? (
                             <div className="flex justify-end">
                               <span className="text-muted-foreground">—</span>
