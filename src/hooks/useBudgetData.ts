@@ -23,6 +23,19 @@ export function useBudgetData(projectId: string) {
     enabled: !!projectId,
   });
 
+  // Fetch all cost codes to understand the hierarchy
+  const { data: allCostCodes = [] } = useQuery({
+    queryKey: ['cost-codes-hierarchy'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cost_codes')
+        .select('code, parent_group');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Group budget items by parent group and sort by cost code
   const groupedBudgetItems = budgetItems.reduce((acc, item) => {
     const costCode = item.cost_codes as CostCode;
@@ -54,12 +67,27 @@ export function useBudgetData(projectId: string) {
     });
   });
 
+  // Filter out groups that are themselves children of other groups
+  // Only keep top-level groups (groups where the group key has no parent_group)
+  const topLevelGroupedBudgetItems: Record<string, typeof budgetItems> = {};
+  Object.keys(groupedBudgetItems).forEach(groupKey => {
+    // Check if this group key is itself a child of another group
+    const isChildGroup = allCostCodes.some(
+      cc => cc.code === groupKey && cc.parent_group && cc.parent_group.trim() !== ''
+    );
+    
+    // Only include if it's NOT a child group
+    if (!isChildGroup) {
+      topLevelGroupedBudgetItems[groupKey] = groupedBudgetItems[groupKey];
+    }
+  });
+
   // Get existing cost code IDs for the modal
   const existingCostCodeIds = budgetItems.map(item => item.cost_code_id);
 
   return {
     budgetItems,
-    groupedBudgetItems,
+    groupedBudgetItems: topLevelGroupedBudgetItems,
     existingCostCodeIds
   };
 }
