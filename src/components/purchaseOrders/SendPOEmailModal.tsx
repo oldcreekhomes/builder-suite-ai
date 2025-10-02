@@ -37,7 +37,7 @@ export function SendPOEmailModal({
       if (!representatives || representatives.length === 0) {
         toast({
           title: "Error",
-          description: "You do not have any Representatives set up.\u00A0\u00A0Go to settings -> Representative -> choose one Representative to receive PO's.",
+          description: "You do not have any Representatives set up for PO email notifications.\u00A0\u00A0Go to Companies -> Representatives -> choose one Representative to receive PO's.",
           variant: "destructive",
         });
         setIsSending(false);
@@ -85,7 +85,7 @@ export function SendPOEmailModal({
       toast({
         title: "Error",
         description: isNoRepresentativesError 
-          ? "You do not have any Representatives set up.\u00A0\u00A0Go to settings -> Representative -> choose one Representative to receive PO's."
+          ? "You do not have any Representatives set up for PO email notifications.\u00A0\u00A0Go to Companies -> Representatives -> choose one Representative to receive PO's."
           : "Failed to send purchase order email",
         variant: "destructive",
       });
