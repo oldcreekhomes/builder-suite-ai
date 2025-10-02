@@ -27,6 +27,23 @@ export function SendPOEmailModal({
   const handleSend = async () => {
     setIsSending(true);
     try {
+      // Pre-check: Verify company has representatives with PO notifications enabled
+      const { data: representatives } = await supabase
+        .from('company_representatives')
+        .select('id')
+        .eq('company_id', purchaseOrder.company_id)
+        .eq('receive_po_notifications', true);
+
+      if (!representatives || representatives.length === 0) {
+        toast({
+          title: "Error",
+          description: "Error:  You do not have any representatives set up.  Go to settings -> Representative -> choose one representative to receive PO's.",
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
       // Get sender company name from current user
       const { data: userData } = await supabase.auth.getUser();
       const { data: userDetails } = await supabase
@@ -68,7 +85,7 @@ export function SendPOEmailModal({
       toast({
         title: "Error",
         description: isNoRepresentativesError 
-          ? "Error: You do not have any representatives set up. Go to settings -> Representative -> choose one representative to receive PO's."
+          ? "Error:  You do not have any representatives set up.  Go to settings -> Representative -> choose one representative to receive PO's."
           : "Failed to send purchase order email",
         variant: "destructive",
       });
