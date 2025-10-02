@@ -61,13 +61,14 @@ export function SendPOEmailModal({
       console.error('Error sending PO email:', error);
       
       // Check if the error is about missing representatives
-      const errorMessage = error?.message || '';
-      const isNoRepresentativesError = errorMessage.includes('No representatives found');
+      // Check multiple possible error locations
+      const errorMessage = error?.message || error?.error || JSON.stringify(error) || '';
+      const isNoRepresentativesError = errorMessage.toLowerCase().includes('no representatives');
       
       toast({
         title: "Error",
         description: isNoRepresentativesError 
-          ? "You do not have any representatives set up. Go to settings -> Representative -> choose one representative to receive PO's."
+          ? "Error: You do not have any representatives set up. Go to settings -> Representative -> choose one representative to receive PO's."
           : "Failed to send purchase order email",
         variant: "destructive",
       });
