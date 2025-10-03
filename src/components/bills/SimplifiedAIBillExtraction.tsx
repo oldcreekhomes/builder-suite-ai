@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getDocument, GlobalWorkerOptions, version as pdfjsVersion } from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker via CDN (works with Vite without bundling the worker)
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
+// Use a working CDN URL for the worker
+(pdfjsLib as any).GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.js`;
 
 interface PendingUpload {
   id: string;
@@ -187,7 +187,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       }
 
       const arrayBuffer = await fileData.arrayBuffer();
-      const pdf = await getDocument({ data: arrayBuffer }).promise;
+      const pdf = await (pdfjsLib as any).getDocument({ data: arrayBuffer }).promise;
       const pageLimit = Math.min(pdf.numPages, 5);
       let fullText = '';
       
