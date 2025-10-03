@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+interface ExtractedData {
+  vendor_name?: string;
+  [key: string]: any;
+}
 
 interface ApproveBillDialogProps {
   open: boolean;
@@ -37,6 +45,58 @@ export const ApproveBillDialog = ({
   const [referenceNumber, setReferenceNumber] = useState("");
   const [terms, setTerms] = useState("");
   const [notes, setNotes] = useState("");
+  const [extractedVendorName, setExtractedVendorName] = useState<string | null>(null);
+
+  // Fetch pending upload data and auto-match vendor
+  useEffect(() => {
+    if (!open || !pendingUploadId) return;
+
+    const fetchAndMatchVendor = async () => {
+      try {
+        // Fetch pending upload data
+        const { data: upload, error } = await supabase
+          .from("pending_bill_uploads")
+          .select("extracted_data")
+          .eq("id", pendingUploadId)
+          .single();
+
+        if (error) throw error;
+
+        const extractedData = upload?.extracted_data as ExtractedData | null;
+        const vendorName = extractedData?.vendor_name;
+        if (!vendorName) return;
+
+        setExtractedVendorName(vendorName);
+
+        // Search for matching vendor in companies table
+        const { data: companies, error: searchError } = await supabase
+          .from("companies")
+          .select("id, company_name")
+          .ilike("company_name", `%${vendorName}%`)
+          .limit(5);
+
+        if (searchError) throw searchError;
+
+        // Auto-populate if exact match found
+        const exactMatch = companies?.find(
+          (c) => c.company_name.toLowerCase() === vendorName.toLowerCase()
+        );
+
+        if (exactMatch) {
+          setVendorId(exactMatch.id);
+          toast.success(`Auto-matched vendor: ${exactMatch.company_name}`);
+        } else if (companies && companies.length > 0) {
+          // Partial match - auto-select the first one
+          setVendorId(companies[0].id);
+          toast.info(`Selected vendor: ${companies[0].company_name}`);
+        }
+      } catch (error) {
+        console.error("Error fetching vendor data:", error);
+      }
+    };
+
+    fetchAndMatchVendor();
+  }, [open, pendingUploadId]);
 
   const handleApprove = () => {
     if (!vendorId) {
@@ -81,12 +141,24 @@ export const ApproveBillDialog = ({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="vendor">Vendor *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="vendor">Vendor *</Label>
+              {extractedVendorName && !vendorId && (
+                <Badge variant="outline" className="text-xs">
+                  Detected: {extractedVendorName}
+                </Badge>
+              )}
+            </div>
             <VendorSearchInput
               value={vendorId}
               onChange={setVendorId}
               placeholder="Select vendor"
             />
+            {extractedVendorName && !vendorId && (
+              <p className="text-sm text-muted-foreground">
+                No matching vendor found. Please create the vendor "{extractedVendorName}" in the Companies page first, or select a different vendor.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

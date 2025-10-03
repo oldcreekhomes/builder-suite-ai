@@ -2,11 +2,16 @@ import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, Check, X, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, X, FileText, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { BillsReviewLineItemsTable } from "./BillsReviewLineItemsTable";
 import { ApproveBillDialog } from "./ApproveBillDialog";
+
+interface ExtractedData {
+  vendor_name?: string;
+  [key: string]: any;
+}
 
 interface BillsReviewTableRowProps {
   bill: PendingBill;
@@ -21,6 +26,9 @@ export const BillsReviewTableRow = ({
 }: BillsReviewTableRowProps) => {
   const { rejectBill, startReview } = usePendingBills();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+
+  const extractedData = bill.extracted_data as ExtractedData | null;
+  const vendorName = extractedData?.vendor_name;
 
   const handleStartReview = () => {
     startReview.mutate(bill.id);
@@ -61,7 +69,15 @@ export const BillsReviewTableRow = ({
         <TableCell onClick={onToggle}>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{bill.file_name}</span>
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">{bill.file_name}</span>
+              {vendorName && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Building2 className="h-3 w-3" />
+                  <span>{vendorName}</span>
+                </div>
+              )}
+            </div>
           </div>
         </TableCell>
         <TableCell onClick={onToggle}>
