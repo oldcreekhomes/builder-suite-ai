@@ -85,16 +85,126 @@ serve(async (req) => {
     const base64 = arrayBufferToBase64(arrayBuffer);
     console.log(`Base64 conversion took ${Date.now() - conversionStartTime}ms`);
 
-    // Call OpenAI Vision API with retry logic
+    // Prepare AI extraction request with retry logic (supports PDF via text extraction)
     const extractionStartTime = Date.now();
     let response;
     let retryCount = 0;
     const maxRetries = 2;
 
+    // Build messages depending on file type
+    const systemPrompt = `You are an AI that extracts structured data from construction company bills/invoices. 
+Extract the following information and return as valid JSON:
+{
+  "vendor_name": "string",
+  "bill_date": "YYYY-MM-DD",
+  "due_date": "YYYY-MM-DD (or null)",
+  "reference_number": "string (or null)",
+  "terms": "string (e.g., 'Net 30', or null)",
+  "line_items": [
+    {
+      "description": "string",
+      "quantity": number,
+      "unit_cost": number,
+      "amount": number,
+      "memo": "string (or null)"
+    }
+  ],
+  "total_amount": number
+}
+
+Return ONLY the JSON object, no additional text.`;
+
+    let messages: any[] = [];
+    const isPdf = (pendingUpload.content_type?.toLowerCase().includes('pdf')) || pendingUpload.file_path?.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      console.log('Using PDF text extraction path...');
+      try {
+        const pdfjs: any = await import('https://esm.sh/pdfjs-dist@5.4.149/legacy/build/pdf.mjs');
+        const loadingTask = pdfjs.getDocument({ data: new Uint8Array(arrayBuffer), disableWorker: true });
+        const pdf = await loadingTask.promise;
+        const pageLimit = Math.min(pdf.numPages, 5);
+        let fullText = '';
+        for (let i = 1; i <= pageLimit; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = (content.items as any[]).map((it: any) => it.str).join(' ');
+          fullText += `\n\n--- Page ${i} ---\n${pageText}`;
+        }
+        const MAX_CHARS = 50000;
+        if (fullText.length > MAX_CHARS) fullText = fullText.slice(0, MAX_CHARS);
+        messages = [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Extract bill data from the following text extracted from a PDF invoice:\n${fullText}` }
+        ];
+      } catch (e) {
+        console.error('PDF text extraction failed:', e);
+        // Fallback: try as image route (will error for PDFs, but logs will reflect root cause)
+        messages = [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Extract bill data from this image.' },
+              { type: 'image_url', image_url: { url: `data:application/pdf;base64,${base64}` } }
+            ]
+          }
+        ];
+      }
+    } else {
+      // Non-PDF: treat as image
+      messages = [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Extract bill data from this image.' },
+            { type: 'image_url', image_url: { url: `data:application/octet-stream;base64,${base64}` } }
+          ]
+        }
+      ];
+    }
+
     while (retryCount <= maxRetries) {
       try {
         console.log(`Calling OpenAI API (attempt ${retryCount + 1}/${maxRetries + 1})...`);
         response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages,
+            max_tokens: 2000,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('OpenAI API error:', response.status, errorText);
+          
+          // Retry on rate limit or server errors
+          if ((response.status === 429 || response.status >= 500) && retryCount < maxRetries) {
+            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(`Retrying in ${waitTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            retryCount++;
+            continue;
+          }
+          
+          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        }
+        
+        break; // Success, exit retry loop
+      } catch (error) {
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+        retryCount++;
+      }
+    }
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${openAIApiKey}`,
