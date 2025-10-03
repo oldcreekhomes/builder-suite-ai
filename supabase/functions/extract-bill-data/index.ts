@@ -214,10 +214,20 @@ Return ONLY the JSON object, no additional text.`;
       throw new Error('No response from AI');
     }
 
+    // Helper function to strip markdown code blocks
+    function stripMarkdownCodeBlocks(text: string): string {
+      return text
+        .replace(/^```(?:json)?\n?/i, '')
+        .replace(/\n?```$/i, '')
+        .trim();
+    }
+
     // Parse the JSON response
     let extractedData;
     try {
-      extractedData = JSON.parse(extractedText);
+      const cleanedText = stripMarkdownCodeBlocks(extractedText);
+      console.log('Cleaned text for parsing:', cleanedText.substring(0, 200) + '...');
+      extractedData = JSON.parse(cleanedText);
     } catch (parseError) {
       console.error('Failed to parse AI response:', extractedText);
       throw new Error('Failed to parse AI response as JSON');
