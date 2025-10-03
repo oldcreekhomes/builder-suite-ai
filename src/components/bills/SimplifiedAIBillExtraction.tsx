@@ -5,12 +5,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface PendingUpload {
   id: string;
   file_name: string;
   file_size: number;
   file_path: string;
+  content_type?: string;
   status: 'pending' | 'processing' | 'extracted' | 'error';
   extracted_data: any;
   error_message?: string;
@@ -170,6 +175,37 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
   };
 
+  const extractPdfText = async (filePath: string): Promise<string | null> => {
+    try {
+      const { data: fileData, error } = await supabase.storage
+        .from('bill-attachments')
+        .download(filePath);
+      
+      if (error || !fileData) {
+        console.error('Failed to download PDF for text extraction:', error);
+        return null;
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pageLimit = Math.min(pdf.numPages, 5);
+      let fullText = '';
+      
+      for (let i = 1; i <= pageLimit; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map((item: any) => item.str).join(' ');
+        fullText += `\n\n--- Page ${i} ---\n${pageText}`;
+      }
+      
+      const MAX_CHARS = 50000;
+      return fullText.length > MAX_CHARS ? fullText.slice(0, MAX_CHARS) : fullText;
+    } catch (error) {
+      console.error('PDF text extraction failed:', error);
+      return null;
+    }
+  };
+
   const handleExtract = async (upload: PendingUpload) => {
     try {
       setProcessingStats(prev => ({ ...prev, processing: prev.processing + 1 }));
@@ -178,8 +214,21 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
       );
 
+      // Extract PDF text on client side if it's a PDF
+      let pdfText: string | null = null;
+      if (upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf')) {
+        console.log('Extracting PDF text on client side...');
+        pdfText = await extractPdfText(upload.file_path);
+        if (pdfText) {
+          console.log('PDF text extracted successfully, length:', pdfText.length);
+        }
+      }
+
       const { error } = await supabase.functions.invoke('extract-bill-data', {
-        body: { pendingUploadId: upload.id }
+        body: { 
+          pendingUploadId: upload.id,
+          pdfText: pdfText || undefined
+        }
       });
 
       if (error) throw error;
