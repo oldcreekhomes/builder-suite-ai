@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import * as pdfjsLib from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions, version as pdfjsVersion } from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker via CDN (works with Vite without bundling the worker)
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
 
 interface PendingUpload {
   id: string;
@@ -187,7 +187,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       }
 
       const arrayBuffer = await fileData.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await getDocument({ data: arrayBuffer }).promise;
       const pageLimit = Math.min(pdf.numPages, 5);
       let fullText = '';
       
@@ -216,11 +216,22 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
       // Extract PDF text on client side if it's a PDF
       let pdfText: string | null = null;
-      if (upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf')) {
+      const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
+      if (isPdf) {
         console.log('Extracting PDF text on client side...');
         pdfText = await extractPdfText(upload.file_path);
         if (pdfText) {
           console.log('PDF text extracted successfully, length:', pdfText.length);
+        } else {
+          const msg = 'Could not read PDF in the browser. Please re-save the PDF or upload a clearer copy (or an image).';
+          await supabase
+            .from('pending_bill_uploads')
+            .update({ status: 'error', error_message: msg })
+            .eq('id', upload.id);
+          setPendingUploads(prev => prev.map(u => u.id === upload.id ? { ...u, status: 'error' as const, error_message: msg } : u));
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
+          toast({ title: 'Extraction failed', description: msg, variant: 'destructive' });
+          return;
         }
       }
 
