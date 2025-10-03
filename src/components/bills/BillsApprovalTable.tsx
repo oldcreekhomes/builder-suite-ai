@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { format } from "date-fns";
+import { BillFilesCell } from "./BillFilesCell";
 
 interface BillForApproval {
   id: string;
@@ -40,6 +41,13 @@ interface BillForApproval {
   projects?: {
     address: string;
   };
+  bill_attachments?: Array<{
+    id: string;
+    file_name: string;
+    file_path: string;
+    file_size: number;
+    content_type: string;
+  }>;
 }
 
 interface BillsApprovalTableProps {
@@ -83,6 +91,13 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           ),
           projects:project_id (
             address
+          ),
+          bill_attachments (
+            id,
+            file_name,
+            file_path,
+            file_size,
+            content_type
           )
         `)
         .eq('status', status)
@@ -112,6 +127,13 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             projects!inner(
               address
             )
+          ),
+          bill_attachments (
+            id,
+            file_name,
+            file_path,
+            file_size,
+            content_type
           )
         `)
         .eq('status', status)
@@ -184,6 +206,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
               {canShowActions && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left">Actions</TableHead>
               )}
@@ -192,7 +215,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 8 : 7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 9 : 8} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -219,6 +242,9 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.terms || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
                   {canShowActions && (
                     <TableCell className="px-2 py-1 text-left">
