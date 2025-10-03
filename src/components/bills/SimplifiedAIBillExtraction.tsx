@@ -45,8 +45,13 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const inputEl = e.target;
+    const files = inputEl.files;
+    if (!files || files.length === 0) {
+      // Reset value so selecting the same file again will re-trigger onChange
+      inputEl.value = "";
+      return;
+    }
 
     setUploading(true);
     const fileCount = files.length;
@@ -114,6 +119,8 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       });
     } finally {
       setUploading(false);
+      // Allow selecting the same file(s) again to retrigger onChange
+      inputEl.value = "";
     }
   };
 
@@ -293,7 +300,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
               type="file"
               id="pdf-upload"
               className="hidden"
-              accept="application/pdf"
+              accept="application/pdf,.pdf"
               multiple
               onChange={handleFileUpload}
               disabled={uploading}
