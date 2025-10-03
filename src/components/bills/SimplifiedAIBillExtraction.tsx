@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -40,9 +40,9 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     setPendingUploads((data || []) as PendingUpload[]);
   };
 
-  useState(() => {
+  useEffect(() => {
     loadPendingUploads();
-  });
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputEl = e.target;
@@ -59,19 +59,48 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
 
+      console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id);
       const uploadedIds: string[] = [];
 
       for (const file of Array.from(files)) {
-        const filePath = `pending/${crypto.randomUUID()}-${file.name}`;
+        // Generate path with user ID to match RLS policies
+        const filePath = `pending/${user.id}/${crypto.randomUUID()}-${file.name}`;
+        console.log('[Upload] Uploading file to path:', filePath);
+
+        // Add optimistic UI entry
+        const optimisticId = crypto.randomUUID();
+        setPendingUploads(prev => [...prev, {
+          id: optimisticId,
+          file_name: file.name,
+          file_size: file.size,
+          file_path: filePath,
+          status: 'pending',
+          extracted_data: null
+        }]);
 
         const { error: uploadError } = await supabase.storage
           .from('bill-attachments')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            upsert: true,
+            contentType: file.type || 'application/pdf'
+          });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('[Upload] Storage upload failed:', uploadError);
+          setPendingUploads(prev => prev.filter(u => u.id !== optimisticId));
+          toast({
+            title: "Storage upload failed",
+            description: `${uploadError.message} (Code: ${uploadError.name || 'unknown'})`,
+            variant: "destructive"
+          });
+          throw uploadError;
+        }
 
+        console.log('[Upload] File uploaded to storage, inserting DB record...');
         const { data: uploadData, error: insertError } = await supabase
           .from('pending_bill_uploads')
           .insert({
@@ -80,13 +109,30 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             file_path: filePath,
             file_name: file.name,
             file_size: file.size,
-            content_type: file.type,
+            content_type: file.type || 'application/pdf',
             status: 'pending'
           })
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('[Upload] DB insert failed:', insertError);
+          // Remove optimistic entry
+          setPendingUploads(prev => prev.filter(u => u.id !== optimisticId));
+          // Clean up storage
+          await supabase.storage.from('bill-attachments').remove([filePath]);
+          toast({
+            title: "Database insert failed",
+            description: insertError.message || 'RLS policy may be blocking this insert',
+            variant: "destructive"
+          });
+          throw insertError;
+        }
+
+        // Replace optimistic entry with real one
+        setPendingUploads(prev => prev.map(u => u.id === optimisticId ? (uploadData as PendingUpload) : u));
+        
+        console.log('[Upload] DB record created:', uploadData.id);
         if (uploadData) uploadedIds.push(uploadData.id);
       }
 
