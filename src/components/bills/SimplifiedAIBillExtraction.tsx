@@ -225,30 +225,46 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       const images: string[] = [];
 
       for (let i = 1; i <= pageCount; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 2.0 });
-        
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) continue;
+        try {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2.0 });
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          if (!context) {
+            console.error(`Failed to get canvas context for page ${i}`);
+            continue;
+          }
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
 
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-          canvas: canvas
-        }).promise;
+          await page.render({
+            canvasContext: context,
+            viewport: viewport,
+            canvas: canvas
+          }).promise;
 
-        images.push(canvas.toDataURL('image/png'));
+          images.push(canvas.toDataURL('image/png'));
+        } catch (pageError) {
+          console.error(`Failed to render page ${i}:`, pageError);
+          console.error('Page error details:', {
+            message: pageError instanceof Error ? pageError.message : String(pageError),
+            stack: pageError instanceof Error ? pageError.stack : undefined
+          });
+          // Continue to next page instead of failing completely
+        }
       }
 
       return images;
-    } catch (error) {
-      console.error('Error rendering PDF to images:', error);
-      return [];
-    }
+  } catch (error) {
+    console.error('Error rendering PDF to images:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return [];
+  }
   };
 
   const handleExtract = async (upload: PendingUpload) => {
