@@ -8,6 +8,7 @@ interface UniversalFilePreviewContextType {
   openIssueFile: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
   openProposalFile: (fileName: string, additionalData?: Partial<UniversalFile>) => void;
   openSpecificationFile: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openBillAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
 }
 
 const UniversalFilePreviewContext = createContext<UniversalFilePreviewContextType | null>(null);
@@ -34,7 +35,8 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openProjectFile,
     openIssueFile,
     openProposalFile,
-    openSpecificationFile
+    openSpecificationFile,
+    openBillAttachment
   } = useUniversalFilePreview();
 
   const contextValue: UniversalFilePreviewContextType = {
@@ -42,7 +44,8 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openProjectFile,
     openIssueFile,
     openProposalFile,
-    openSpecificationFile
+    openSpecificationFile,
+    openBillAttachment
   };
 
   return (

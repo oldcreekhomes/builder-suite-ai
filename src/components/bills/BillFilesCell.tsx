@@ -1,7 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useUniversalFilePreviewContext } from '../files/UniversalFilePreviewProvider';
 
 interface BillAttachment {
   id: string;
@@ -17,40 +16,14 @@ interface BillFilesCellProps {
 
 export function BillFilesCell({ attachments }: BillFilesCellProps) {
   const fileCount = attachments?.length || 0;
+  const { openBillAttachment } = useUniversalFilePreviewContext();
 
-  const handleFileDownload = async (attachment: BillAttachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('bill-attachments')
-        .download(attachment.file_path);
-
-      if (error) {
-        console.error('Download error:', error);
-        toast({
-          title: "Download Failed",
-          description: "Failed to download the file. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create download link
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Unexpected download error:', error);
-      toast({
-        title: "Download Failed",
-        description: "An unexpected error occurred while downloading the file.",
-        variant: "destructive",
-      });
-    }
+  const handleFileClick = (attachment: BillAttachment) => {
+    openBillAttachment(attachment.file_path, attachment.file_name, {
+      id: attachment.id,
+      size: attachment.file_size,
+      mimeType: attachment.content_type
+    });
   };
 
   if (fileCount === 0) {
@@ -69,8 +42,8 @@ export function BillFilesCell({ attachments }: BillFilesCellProps) {
         return (
           <button
             key={attachment.id}
-            onClick={() => handleFileDownload(attachment)}
-            className={`inline-block ${iconColorClass} transition-colors p-1`}
+            onClick={() => handleFileClick(attachment)}
+            className={`inline-block ${iconColorClass} transition-colors p-1 hover:opacity-80`}
             title={attachment.file_name}
           >
             <IconComponent className="h-4 w-4" />

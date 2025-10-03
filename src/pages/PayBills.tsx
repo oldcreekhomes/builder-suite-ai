@@ -10,6 +10,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import {
   Table,
   TableBody,
@@ -202,10 +203,11 @@ export default function PayBills() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset>
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset>
           <DashboardHeader 
             title="Pay Bills" 
             projectId={projectId}
@@ -290,17 +292,18 @@ export default function PayBills() {
               <p>Total amount: {formatCurrency(bills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
             </div>
           )}
-        </div>
-      </SidebarInset>
-    </div>
-    
-    <PayBillDialog
-      open={dialogOpen}
-      onOpenChange={setDialogOpen}
-      bill={selectedBill}
-      onConfirm={handleConfirmPayment}
-      isLoading={payBill.isPending}
-    />
-  </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </div>
+      
+      <PayBillDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        bill={selectedBill}
+        onConfirm={handleConfirmPayment}
+        isLoading={payBill.isPending}
+      />
+    </SidebarProvider>
+  </UniversalFilePreviewProvider>
 );
 }

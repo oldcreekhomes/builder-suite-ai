@@ -75,6 +75,15 @@ export function useUniversalFilePreview() {
     });
   };
 
+  const openBillAttachment = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'bill-attachments',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
   return {
     previewFile,
     isOpen,
@@ -83,6 +92,7 @@ export function useUniversalFilePreview() {
     openProjectFile,
     openIssueFile,
     openProposalFile,
-    openSpecificationFile
+    openSpecificationFile,
+    openBillAttachment
   };
 }
