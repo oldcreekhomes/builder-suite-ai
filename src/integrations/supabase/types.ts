@@ -994,6 +994,51 @@ export type Database = {
           },
         ]
       }
+      pending_bill_uploads: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          error_message: string | null
+          extracted_data: Json | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          owner_id: string
+          status: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          owner_id: string
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       project_bid_packages: {
         Row: {
           cost_code_id: string
