@@ -24,6 +24,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { toast } from "@/hooks/use-toast";
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
+import SimplifiedAIBillExtraction from "@/components/bills/SimplifiedAIBillExtraction";
 
 interface ExpenseRow {
   id: string;
@@ -39,6 +40,7 @@ interface ExpenseRow {
 export default function EnterBills() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string>("manual");
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
   const [vendor, setVendor] = useState<string>("");
@@ -151,6 +153,45 @@ export default function EnterBills() {
     }, 0);
     
     return (jobCostTotal + expenseTotal).toFixed(2);
+  };
+
+  const handleAIDataExtracted = (extractedData: any) => {
+    // Populate form with AI-extracted data
+    if (extractedData.vendor_name) {
+      setVendor(extractedData.vendor_name);
+    }
+    
+    if (extractedData.bill_date) {
+      setBillDate(new Date(extractedData.bill_date));
+    }
+    
+    if (extractedData.due_date) {
+      setBillDueDate(new Date(extractedData.due_date));
+    }
+    
+    if (extractedData.terms) {
+      // Map extracted terms to our term options
+      const termsLower = extractedData.terms.toLowerCase();
+      if (termsLower.includes('15')) setTerms('net-15');
+      else if (termsLower.includes('30')) setTerms('net-30');
+      else if (termsLower.includes('60')) setTerms('net-60');
+      else if (termsLower.includes('receipt')) setTerms('due-on-receipt');
+    }
+
+    // Populate job cost rows from line items
+    if (extractedData.line_items && Array.isArray(extractedData.line_items) && extractedData.line_items.length > 0) {
+      const newJobCostRows: ExpenseRow[] = extractedData.line_items.map((item: any, index: number) => ({
+        id: `ai-${Date.now()}-${index}`,
+        account: item.description || "",
+        accountId: "",
+        project: "",
+        projectId: projectId || "",
+        quantity: item.quantity?.toString() || "1",
+        amount: item.amount?.toString() || "0",
+        memo: item.memo || item.description || ""
+      }));
+      setJobCostRows(newJobCostRows);
+    }
   };
 
   const handleSaveAndClose = async () => {
@@ -330,6 +371,20 @@ export default function EnterBills() {
           />
           
           <div className="flex-1 p-6 space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">Enter Bills</TabsTrigger>
+                <TabsTrigger value="ai">Enter Bills with AI</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="ai" className="mt-6">
+                <SimplifiedAIBillExtraction 
+                  onDataExtracted={handleAIDataExtracted}
+                  onSwitchToManual={() => setActiveTab("manual")}
+                />
+              </TabsContent>
+
+              <TabsContent value="manual" className="mt-6">
             <Card>
               <CardContent className="space-y-6 pt-6">
                 {/* Bill Header Information */}
@@ -682,6 +737,8 @@ export default function EnterBills() {
                 </div>
                </CardContent>
              </Card>
+              </TabsContent>
+            </Tabs>
            </div>
          </SidebarInset>
        </div>
