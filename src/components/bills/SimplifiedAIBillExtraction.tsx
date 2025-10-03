@@ -406,7 +406,32 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       if (textractError) {
         console.warn('AWS Textract failed, falling back to AI extraction:', textractError);
         
-        // Fall back to AI extraction with PDF text/images
+        // Check if this is an AWS credentials error
+        const isAwsAuthError = textractError.message && (
+          textractError.message.includes('AWS credentials') ||
+          textractError.message.includes('invalid or expired')
+        );
+        
+        if (isAwsAuthError) {
+          // Don't fall back - show the AWS error directly
+          setPendingUploads(prev => 
+            prev.map(u => u.id === upload.id ? { 
+              ...u, 
+              status: 'error' as const,
+              error_message: textractError.message 
+            } : u)
+          );
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
+          
+          toast({
+            title: 'AWS Textract Configuration Error',
+            description: 'Please check your AWS credentials in the edge function settings.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        
+        // For other Textract errors, fall back to AI extraction with PDF text/images
         const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
         let pdfText = '';
         let pageImages: string[] = [];

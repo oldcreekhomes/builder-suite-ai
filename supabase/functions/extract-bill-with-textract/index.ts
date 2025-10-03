@@ -25,11 +25,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const awsAccessKeyId = Deno.env.get('AWS_ACCESS_KEY_ID')!;
     const awsSecretAccessKey = Deno.env.get('AWS_SECRET_ACCESS_KEY')!;
+    const awsSessionToken = Deno.env.get('AWS_SESSION_TOKEN'); // Optional for temporary credentials
     const awsRegion = Deno.env.get('AWS_REGION') || 'us-east-1';
 
     if (!awsAccessKeyId || !awsSecretAccessKey) {
       throw new Error('AWS credentials not configured');
     }
+
+    console.log('AWS Configuration:', {
+      region: awsRegion,
+      hasSessionToken: !!awsSessionToken,
+      accessKeyIdPrefix: awsAccessKeyId.substring(0, 4) // Log first 4 chars for diagnostics
+    });
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -75,7 +82,8 @@ serve(async (req) => {
       base64Document,
       awsAccessKeyId,
       awsSecretAccessKey,
-      awsRegion
+      awsRegion,
+      awsSessionToken
     );
 
     console.log('Textract response received');
@@ -106,6 +114,18 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in extract-bill-with-textract:', error);
     
+    // Determine if this is an AWS auth error
+    const isAuthError = error.message && (
+      error.message.includes('UnrecognizedClientException') ||
+      error.message.includes('InvalidClientTokenId') ||
+      error.message.includes('SignatureDoesNotMatch') ||
+      error.message.includes('security token')
+    );
+    
+    const errorMessage = isAuthError 
+      ? 'AWS credentials invalid or expired. Please check your AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN (if using temporary credentials).'
+      : error.message;
+    
     // Try to update status to error
     if (pendingUploadId) {
       try {
@@ -117,7 +137,7 @@ serve(async (req) => {
           .from('pending_bill_uploads')
           .update({
             status: 'error',
-            error_message: error.message,
+            error_message: errorMessage,
           })
           .eq('id', pendingUploadId);
       } catch (e) {
@@ -126,7 +146,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -139,7 +159,8 @@ async function callTextract(
   base64Document: string,
   accessKeyId: string,
   secretAccessKey: string,
-  region: string
+  region: string,
+  sessionToken?: string
 ) {
   const endpoint = `https://textract.${region}.amazonaws.com/`;
   const service = 'textract';
@@ -160,7 +181,8 @@ async function callTextract(
     payload,
     accessKeyId,
     secretAccessKey,
-    target
+    target,
+    sessionToken
   );
 
   const response = await fetch(endpoint, {
@@ -186,16 +208,34 @@ async function signRequest(
   payload: string,
   accessKeyId: string,
   secretAccessKey: string,
-  target: string
+  target: string,
+  sessionToken?: string
 ) {
   const date = new Date();
   const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, '');
   const dateStamp = amzDate.slice(0, 8);
 
-  // Create canonical request
+  // Create canonical request with proper header ordering
   const payloadHash = await sha256(payload);
-  const canonicalHeaders = `content-type:application/x-amz-json-1.1\nhost:textract.${region}.amazonaws.com\nx-amz-date:${amzDate}\nx-amz-target:${target}\n`;
-  const signedHeaders = 'content-type;host;x-amz-date;x-amz-target';
+  const host = `textract.${region}.amazonaws.com`;
+  
+  // Build canonical headers in sorted order (lowercase)
+  let canonicalHeaders = `content-type:application/x-amz-json-1.1\n`;
+  canonicalHeaders += `host:${host}\n`;
+  canonicalHeaders += `x-amz-content-sha256:${payloadHash}\n`;
+  canonicalHeaders += `x-amz-date:${amzDate}\n`;
+  if (sessionToken) {
+    canonicalHeaders += `x-amz-security-token:${sessionToken}\n`;
+  }
+  canonicalHeaders += `x-amz-target:${target}\n`;
+
+  // Build signed headers list (must match canonical headers order)
+  let signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+  if (sessionToken) {
+    signedHeaders += ';x-amz-security-token';
+  }
+  signedHeaders += ';x-amz-target';
+
   const canonicalRequest = `${method}\n/\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
 
   // Create string to sign
@@ -211,12 +251,21 @@ async function signRequest(
   // Create authorization header
   const authorizationHeader = `${algorithm} Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
-  return {
+  // Return headers
+  const headers: Record<string, string> = {
     'Content-Type': 'application/x-amz-json-1.1',
+    'Host': host,
+    'X-Amz-Content-Sha256': payloadHash,
     'X-Amz-Date': amzDate,
     'X-Amz-Target': target,
     'Authorization': authorizationHeader,
   };
+
+  if (sessionToken) {
+    headers['X-Amz-Security-Token'] = sessionToken;
+  }
+
+  return headers;
 }
 
 async function sha256(message: string): Promise<string> {
