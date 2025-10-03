@@ -176,9 +176,36 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     } catch (error) {
       console.error('Extract error:', error);
       setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
+      
+      // Extract more detailed error message
+      let errorMessage = "Unknown error";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Check for specific error types
+      if (errorMessage.includes('quota') || errorMessage.includes('insufficient_quota') || errorMessage.includes('429')) {
+        errorMessage = "OpenAI API quota exceeded. Add credits at platform.openai.com/settings/organization/billing";
+      } else if (errorMessage.includes('API key') || errorMessage.includes('OPENAI_API_KEY')) {
+        errorMessage = "OpenAI API key is not configured or invalid";
+      }
+      
+      // Update the database with the error
+      await supabase
+        .from('pending_bill_uploads')
+        .update({ 
+          status: 'error',
+          error_message: errorMessage
+        })
+        .eq('id', upload.id);
+      
+      setPendingUploads(prev => 
+        prev.map(u => u.id === upload.id ? { ...u, status: 'error' as const, error_message: errorMessage } : u)
+      );
+      
       toast({
         title: "Extraction failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: errorMessage,
         variant: "destructive"
       });
     }
