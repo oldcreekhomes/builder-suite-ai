@@ -11,8 +11,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let pendingUploadId: string;
+  
   try {
-    const { pendingUploadId } = await req.json();
+    const body = await req.json();
+    pendingUploadId = body.pendingUploadId;
 
     if (!pendingUploadId) {
       throw new Error('Missing pendingUploadId');
@@ -102,11 +105,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in extract-bill-with-textract:', error);
-
+    
     // Try to update status to error
-    try {
-      const { pendingUploadId } = await req.json();
-      if (pendingUploadId) {
+    if (pendingUploadId) {
+      try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -118,9 +120,9 @@ serve(async (req) => {
             error_message: error.message,
           })
           .eq('id', pendingUploadId);
+      } catch (e) {
+        console.error('Failed to update error status:', e);
       }
-    } catch (e) {
-      console.error('Failed to update error status:', e);
     }
 
     return new Response(
@@ -142,7 +144,7 @@ async function callTextract(
   const endpoint = `https://textract.${region}.amazonaws.com/`;
   const service = 'textract';
   const method = 'POST';
-  const target = 'Textract_20180601.AnalyzeExpense';
+  const target = 'Textract.AnalyzeExpense';
 
   const payload = JSON.stringify({
     Document: {

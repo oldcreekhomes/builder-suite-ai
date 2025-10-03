@@ -244,8 +244,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
           await page.render({
             canvasContext: context,
-            viewport: viewport,
-            canvas: canvas
+            viewport: viewport
           }).promise;
 
           images.push(canvas.toDataURL('image/png'));
