@@ -7,17 +7,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert ArrayBuffer to base64 in chunks
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const CHUNK_SIZE = 8192; // 8KB chunks to avoid stack overflow
+  let binary = '';
+  
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+  
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestBody: any;
   try {
-    const { pendingUploadId } = await req.json();
+    requestBody = await req.json();
+    const { pendingUploadId } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
     }
+
+    console.log('Processing bill extraction for upload:', pendingUploadId);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -47,32 +65,47 @@ serve(async (req) => {
       .eq('id', pendingUploadId);
 
     // Download the PDF from storage
+    const downloadStartTime = Date.now();
     const { data: fileData, error: downloadError } = await supabase
       .storage
       .from('bill-attachments')
       .download(pendingUpload.file_path);
 
     if (downloadError || !fileData) {
+      console.error('Download error:', downloadError);
       throw new Error('Failed to download PDF');
     }
 
-    // Convert to base64
+    // Convert to base64 using chunked approach to handle large files
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const fileSizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+    console.log(`Downloaded PDF: ${fileSizeKB}KB, took ${Date.now() - downloadStartTime}ms`);
+    
+    const conversionStartTime = Date.now();
+    const base64 = arrayBufferToBase64(arrayBuffer);
+    console.log(`Base64 conversion took ${Date.now() - conversionStartTime}ms`);
 
-    // Call OpenAI Vision API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an AI that extracts structured data from construction company bills/invoices. 
+    // Call OpenAI Vision API with retry logic
+    const extractionStartTime = Date.now();
+    let response;
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`Calling OpenAI API (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an AI that extracts structured data from construction company bills/invoices. 
 Extract the following information and return as valid JSON:
 {
   "vendor_name": "string",
@@ -93,32 +126,53 @@ Extract the following information and return as valid JSON:
 }
 
 Return ONLY the JSON object, no additional text.`
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract bill data from this PDF.'
               },
               {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64}`
-                }
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Extract bill data from this PDF.'
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:application/pdf;base64,${base64}`
+                    }
+                  }
+                ]
               }
-            ]
-          }
-        ],
-        max_tokens: 2000,
-      }),
-    });
+            ],
+            max_tokens: 2000,
+          }),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('OpenAI API error:', response.status, errorText);
+          
+          // Retry on rate limit or server errors
+          if ((response.status === 429 || response.status >= 500) && retryCount < maxRetries) {
+            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(`Retrying in ${waitTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            retryCount++;
+            continue;
+          }
+          
+          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        }
+        
+        break; // Success, exit retry loop
+      } catch (error) {
+        if (retryCount >= maxRetries) {
+          throw error;
+        }
+        retryCount++;
+      }
     }
+
+    console.log(`OpenAI extraction took ${Date.now() - extractionStartTime}ms`);
 
     const aiData = await response.json();
     const extractedText = aiData.choices[0]?.message?.content;
@@ -158,21 +212,18 @@ Return ONLY the JSON object, no additional text.`
     console.error('Error in extract-bill-data function:', error);
 
     // Update status to error if we have the ID
-    if (error instanceof Error) {
-      const { pendingUploadId } = await req.json().catch(() => ({}));
-      if (pendingUploadId) {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        await supabase
-          .from('pending_bill_uploads')
-          .update({ 
-            status: 'error',
-            error_message: error.message 
-          })
-          .eq('id', pendingUploadId);
-      }
+    if (error instanceof Error && requestBody?.pendingUploadId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      await supabase
+        .from('pending_bill_uploads')
+        .update({ 
+          status: 'error',
+          error_message: error.message 
+        })
+        .eq('id', requestBody.pendingUploadId);
     }
 
     return new Response(
