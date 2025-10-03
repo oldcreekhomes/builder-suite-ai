@@ -24,6 +24,7 @@ interface SimplifiedAIBillExtractionProps {
 export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchToManual }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const [processingStats, setProcessingStats] = useState({ processing: 0, total: 0 });
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -48,10 +49,14 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    const fileCount = files.length;
+    setProcessingStats({ processing: 0, total: fileCount });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      const uploadedIds: string[] = [];
 
       for (const file of Array.from(files)) {
         const filePath = `pending/${crypto.randomUUID()}-${file.name}`;
@@ -62,7 +67,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
         if (uploadError) throw uploadError;
 
-        const { error: insertError } = await supabase
+        const { data: uploadData, error: insertError } = await supabase
           .from('pending_bill_uploads')
           .insert({
             owner_id: user.id,
@@ -72,17 +77,34 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             file_size: file.size,
             content_type: file.type,
             status: 'pending'
-          });
+          })
+          .select()
+          .single();
 
         if (insertError) throw insertError;
+        if (uploadData) uploadedIds.push(uploadData.id);
       }
 
       toast({
         title: "Files uploaded",
-        description: `${files.length} file(s) uploaded successfully`
+        description: `${files.length} file(s) uploaded. Starting extraction...`
       });
 
-      loadPendingUploads();
+      await loadPendingUploads();
+
+      // Auto-trigger extraction for each uploaded file
+      for (const uploadId of uploadedIds) {
+        const upload = await supabase
+          .from('pending_bill_uploads')
+          .select('*')
+          .eq('id', uploadId)
+          .single();
+        
+        if (upload.data) {
+          handleExtract(upload.data as PendingUpload);
+        }
+      }
+
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -97,6 +119,8 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
   const handleExtract = async (upload: PendingUpload) => {
     try {
+      setProcessingStats(prev => ({ ...prev, processing: prev.processing + 1 }));
+      
       setPendingUploads(prev => 
         prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
       );
@@ -107,11 +131,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
       if (error) throw error;
 
-      toast({
-        title: "Extraction started",
-        description: "AI is extracting data from your bill..."
-      });
-
       const pollInterval = setInterval(async () => {
         const { data, error } = await supabase
           .from('pending_bill_uploads')
@@ -121,6 +140,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
         if (error || !data) {
           clearInterval(pollInterval);
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           return;
         }
 
@@ -129,6 +149,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
           setPendingUploads(prev => 
             prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
           );
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           toast({
             title: "Extraction complete",
             description: "Click 'Use This Data' to populate the bill form"
@@ -138,6 +159,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
           setPendingUploads(prev => 
             prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
           );
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           toast({
             title: "Extraction failed",
             description: data.error_message || "Unknown error",
@@ -146,10 +168,14 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         }
       }, 2000);
 
-      setTimeout(() => clearInterval(pollInterval), 60000);
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
+      }, 60000);
 
     } catch (error) {
       console.error('Extract error:', error);
+      setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
       toast({
         title: "Extraction failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -200,16 +226,19 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      pending: "secondary",
-      processing: "default",
-      extracted: "default",
-      error: "destructive"
+    const statusConfig = {
+      pending: { variant: "secondary" as const, label: "Uploading" },
+      processing: { variant: "default" as const, label: "Processing", showSpinner: true },
+      extracted: { variant: "default" as const, label: "Extracted" },
+      error: { variant: "destructive" as const, label: "Error" }
     };
+    
+    const config = statusConfig[status as keyof typeof statusConfig];
+    
     return (
-      <Badge variant={variants[status]}>
-        {status === 'processing' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-        {status}
+      <Badge variant={config.variant}>
+        {'showSpinner' in config && config.showSpinner && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+        {config.label}
       </Badge>
     );
   };
@@ -218,8 +247,16 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     <div className="space-y-6">
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">AI Bill Extraction</h3>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold">AI Bill Extraction</h3>
+              {processingStats.processing > 0 && (
+                <Badge variant="secondary" className="animate-pulse">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Processing {processingStats.processing} of {processingStats.total}
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               Upload bill PDFs and let AI extract the data automatically
             </p>
@@ -267,15 +304,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   {getStatusBadge(upload.status)}
                 </div>
                 <div className="flex items-center gap-2">
-                  {upload.status === 'pending' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleExtract(upload)}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Extract Data
-                    </Button>
-                  )}
                   {upload.status === 'extracted' && (
                     <Button
                       size="sm"
