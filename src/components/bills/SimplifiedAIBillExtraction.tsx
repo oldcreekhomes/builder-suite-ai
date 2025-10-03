@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createRoot } from "react-dom/client";
+import { Document as PdfDocument, Page as PdfPage, pdfjs as ReactPdfjs } from 'react-pdf';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
@@ -8,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Use local worker to avoid CDN/CORS issues
+// Use local worker to avoid CDN/CORS issues for both pdfjs-dist and react-pdf
 GlobalWorkerOptions.workerSrc = workerSrc;
+ReactPdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 interface PendingUpload {
   id: string;
@@ -267,6 +270,116 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   }
   };
 
+  // Offscreen react-pdf fallback to render first N pages into PNGs
+  type OffscreenProps = {
+    blobUrl: string;
+    maxPages: number;
+    onDone: (images: string[]) => void;
+    onError: (error: any) => void;
+  };
+
+  function OffscreenPdfRenderer({ blobUrl, maxPages, onDone, onError }: OffscreenProps) {
+    const [numPages, setNumPages] = useState<number>(0);
+    const imagesRef = useRef<string[]>([]);
+    const expectedRef = useRef<number>(0);
+    const containerRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+    const handleLoadSuccess = ({ numPages }: { numPages: number }) => {
+      expectedRef.current = Math.min(numPages, maxPages);
+      setNumPages(numPages);
+    };
+
+    const handlePageRendered = (index: number) => {
+      const wrapper = containerRefs.current[index];
+      const canvas = wrapper?.querySelector('canvas') as HTMLCanvasElement | null;
+      if (canvas) {
+        try {
+          imagesRef.current[index] = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.error('toDataURL failed for page', index + 1, e);
+        }
+      } else {
+        console.warn('No canvas found for page', index + 1);
+      }
+      const ready = imagesRef.current.filter(Boolean).length;
+      if (expectedRef.current > 0 && ready >= expectedRef.current) {
+        onDone(imagesRef.current.filter(Boolean));
+      }
+    };
+
+    return (
+      <div style={{ position: 'fixed', left: -10000, top: -10000, opacity: 0, pointerEvents: 'none' }}>
+        <PdfDocument file={blobUrl} onLoadSuccess={handleLoadSuccess} onLoadError={onError}>
+          {Array.from({ length: Math.min(numPages, maxPages) }, (_, i) => (
+            <div key={i} ref={(el) => (containerRefs.current[i] = el)}>
+              <PdfPage pageNumber={i + 1} scale={1.5} renderMode="canvas" onRenderSuccess={() => handlePageRendered(i)} />
+            </div>
+          ))}
+        </PdfDocument>
+      </div>
+    );
+  }
+
+  const renderPdfPagesToImagesReact = async (filePath: string, maxPages = 2): Promise<string[]> => {
+    try {
+      const { data: fileData, error } = await supabase.storage
+        .from('bill-attachments')
+        .download(filePath);
+
+      if (error || !fileData) {
+        console.error('[react-pdf] Failed to download PDF for offscreen rendering:', error);
+        return [];
+      }
+
+      const blobUrl = URL.createObjectURL(fileData);
+
+      return await new Promise<string[]>((resolve) => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        let done = false;
+        const cleanup = (images: string[]) => {
+          if (done) return;
+          done = true;
+          try { root.unmount(); } catch {}
+          try { document.body.removeChild(container); } catch {}
+          try { URL.revokeObjectURL(blobUrl); } catch {}
+          resolve(images);
+        };
+
+        const onDone = (images: string[]) => {
+          console.log(`[react-pdf] Rendered ${images.length} page image(s)`);
+          cleanup(images);
+        };
+        const onError = (e: any) => {
+          console.error('[react-pdf] Offscreen renderer error:', e);
+          cleanup([]);
+        };
+
+        root.render(
+          <OffscreenPdfRenderer
+            blobUrl={blobUrl}
+            maxPages={maxPages}
+            onDone={onDone}
+            onError={onError}
+          />
+        );
+
+        // Safety timeout in case rendering stalls
+        setTimeout(() => {
+          if (!done) {
+            console.warn('[react-pdf] Offscreen rendering timed out');
+            cleanup([]);
+          }
+        }, 15000);
+      });
+    } catch (e) {
+      console.error('[react-pdf] Unexpected error while rendering pages:', e);
+      return [];
+    }
+  };
+
   const handleExtract = async (upload: PendingUpload) => {
     if (upload.status === 'processing') {
       toast({
@@ -290,10 +403,15 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         console.log('Extracting PDF text on client side...');
         pdfText = await extractPdfText(upload.file_path);
         
-        // If text extraction returns empty, try image fallback
+        // If text extraction returns empty, try image fallbacks
         if (!pdfText || pdfText.trim().length === 0) {
-          console.log('PDF text extraction empty, trying image fallback...');
-          pageImages = await renderPdfPagesToImages(upload.file_path, 2);
+          console.log('PDF text extraction empty, trying react-pdf image fallback...');
+          pageImages = await renderPdfPagesToImagesReact(upload.file_path, 2);
+
+          if (pageImages.length === 0) {
+            console.log('react-pdf fallback returned 0 images, trying pdfjs-dist fallback...');
+            pageImages = await renderPdfPagesToImages(upload.file_path, 2);
+          }
           
           if (pageImages.length === 0) {
             const errorMessage = 'This PDF appears to be scanned and could not be processed. Try re-saving as PDF/A or upload a photo/screenshot.';
@@ -316,14 +434,14 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
             
             toast({
-              title: "Extraction failed",
+              title: 'Extraction failed',
               description: errorMessage,
-              variant: "destructive"
+              variant: 'destructive'
             });
             return;
           }
           
-          console.log(`Rendered ${pageImages.length} PDF pages to images`);
+          console.log(`Rendered ${pageImages.length} PDF page image(s)`);
         } else {
           console.log('PDF text extracted successfully, length:', pdfText.length);
         }
