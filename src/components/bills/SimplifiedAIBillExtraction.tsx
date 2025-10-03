@@ -5,10 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import * as pdfjsLib from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Use a working CDN URL for the worker
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${(pdfjsLib as any).version}/build/pdf.worker.min.js`;
+// Use local worker to avoid CDN/CORS issues
+GlobalWorkerOptions.workerSrc = workerSrc;
 
 interface PendingUpload {
   id: string;
@@ -175,7 +176,8 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
   };
 
-  const extractPdfText = async (filePath: string): Promise<string | null> => {
+  // Extract text from PDF client-side
+  const extractPdfText = async (filePath: string): Promise<string> => {
     try {
       const { data: fileData, error } = await supabase.storage
         .from('bill-attachments')
@@ -183,11 +185,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       
       if (error || !fileData) {
         console.error('Failed to download PDF for text extraction:', error);
-        return null;
+        return '';
       }
 
       const arrayBuffer = await fileData.arrayBuffer();
-      const pdf = await (pdfjsLib as any).getDocument({ data: arrayBuffer }).promise;
+      const pdf = await getDocument({ data: arrayBuffer }).promise;
       const pageLimit = Math.min(pdf.numPages, 5);
       let fullText = '';
       
@@ -195,54 +197,139 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         const pageText = content.items.map((item: any) => item.str).join(' ');
-        fullText += `\n\n--- Page ${i} ---\n${pageText}`;
+        fullText += pageText + '\n';
       }
       
-      const MAX_CHARS = 50000;
-      return fullText.length > MAX_CHARS ? fullText.slice(0, MAX_CHARS) : fullText;
+      return fullText.trim();
     } catch (error) {
       console.error('PDF text extraction failed:', error);
-      return null;
+      return '';
+    }
+  };
+
+  // Render PDF pages to images as fallback for scanned PDFs
+  const renderPdfPagesToImages = async (filePath: string, maxPages = 2): Promise<string[]> => {
+    try {
+      const { data: fileData, error } = await supabase.storage
+        .from('bill-attachments')
+        .download(filePath);
+
+      if (error || !fileData) {
+        console.error('Failed to download PDF for image rendering:', error);
+        return [];
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      const pdf = await getDocument({ data: arrayBuffer }).promise;
+      const pageCount = Math.min(pdf.numPages, maxPages);
+      const images: string[] = [];
+
+      for (let i = 1; i <= pageCount; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2.0 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({
+          canvasContext: context,
+          viewport: viewport,
+          canvas: canvas
+        }).promise;
+
+        images.push(canvas.toDataURL('image/png'));
+      }
+
+      return images;
+    } catch (error) {
+      console.error('Error rendering PDF to images:', error);
+      return [];
     }
   };
 
   const handleExtract = async (upload: PendingUpload) => {
+    if (upload.status === 'processing') {
+      toast({
+        title: "Already processing",
+        description: "This bill is currently being extracted.",
+      });
+      return;
+    }
+
     try {
       setProcessingStats(prev => ({ ...prev, processing: prev.processing + 1 }));
-      
       setPendingUploads(prev => 
         prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
       );
 
-      // Extract PDF text on client side if it's a PDF
-      let pdfText: string | null = null;
       const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
+      let pdfText = '';
+      let pageImages: string[] = [];
+      
       if (isPdf) {
         console.log('Extracting PDF text on client side...');
         pdfText = await extractPdfText(upload.file_path);
-        if (pdfText) {
-          console.log('PDF text extracted successfully, length:', pdfText.length);
+        
+        // If text extraction returns empty, try image fallback
+        if (!pdfText || pdfText.trim().length === 0) {
+          console.log('PDF text extraction empty, trying image fallback...');
+          pageImages = await renderPdfPagesToImages(upload.file_path, 2);
+          
+          if (pageImages.length === 0) {
+            const errorMessage = 'This PDF appears to be scanned and could not be processed. Try re-saving as PDF/A or upload a photo/screenshot.';
+            
+            await supabase
+              .from('pending_bill_uploads')
+              .update({ 
+                status: 'error',
+                error_message: errorMessage
+              })
+              .eq('id', upload.id);
+
+            setPendingUploads(prev => 
+              prev.map(u => u.id === upload.id ? { 
+                ...u, 
+                status: 'error' as const,
+                error_message: errorMessage 
+              } : u)
+            );
+            setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
+            
+            toast({
+              title: "Extraction failed",
+              description: errorMessage,
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          console.log(`Rendered ${pageImages.length} PDF pages to images`);
         } else {
-          const msg = 'Could not read PDF in the browser. Please re-save the PDF or upload a clearer copy (or an image).';
-          await supabase
-            .from('pending_bill_uploads')
-            .update({ status: 'error', error_message: msg })
-            .eq('id', upload.id);
-          setPendingUploads(prev => prev.map(u => u.id === upload.id ? { ...u, status: 'error' as const, error_message: msg } : u));
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-          toast({ title: 'Extraction failed', description: msg, variant: 'destructive' });
-          return;
+          console.log('PDF text extracted successfully, length:', pdfText.length);
         }
       }
 
+      // Call edge function with either text or images
       const { error } = await supabase.functions.invoke('extract-bill-data', {
         body: { 
           pendingUploadId: upload.id,
-          pdfText: pdfText || undefined
+          pdfText: pdfText || undefined,
+          pageImages: pageImages.length > 0 ? pageImages : undefined
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Extraction started",
+        description: "Processing your bill...",
+      });
 
       const pollInterval = setInterval(async () => {
         const { data, error } = await supabase

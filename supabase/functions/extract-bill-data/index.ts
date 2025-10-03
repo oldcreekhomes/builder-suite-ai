@@ -29,7 +29,7 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pdfText } = requestBody;
+    const { pendingUploadId, pdfText, pageImages } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
@@ -39,10 +39,10 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -64,34 +64,35 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', pendingUploadId);
 
-    // Download the PDF from storage
-    const downloadStartTime = Date.now();
-    const { data: fileData, error: downloadError } = await supabase
-      .storage
-      .from('bill-attachments')
-      .download(pendingUpload.file_path);
+    // Only download file if we need to process it as an image (no text/pageImages provided)
+    let base64 = '';
+    if (!pdfText && !pageImages) {
+      const downloadStartTime = Date.now();
+      const { data: fileData, error: downloadError } = await supabase
+        .storage
+        .from('bill-attachments')
+        .download(pendingUpload.file_path);
 
-    if (downloadError || !fileData) {
-      console.error('Download error:', downloadError);
-      throw new Error('Failed to download PDF');
+      if (downloadError || !fileData) {
+        console.error('Download error:', downloadError);
+        throw new Error(`Couldn't download file from storage: ${downloadError?.message || 'Unknown error'}`);
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      const fileSizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+      console.log(`Downloaded file: ${fileSizeKB}KB, took ${Date.now() - downloadStartTime}ms`);
+      
+      const conversionStartTime = Date.now();
+      base64 = arrayBufferToBase64(arrayBuffer);
+      console.log(`Base64 conversion took ${Date.now() - conversionStartTime}ms`);
     }
 
-    // Convert to base64 using chunked approach to handle large files
-    const arrayBuffer = await fileData.arrayBuffer();
-    const fileSizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
-    console.log(`Downloaded PDF: ${fileSizeKB}KB, took ${Date.now() - downloadStartTime}ms`);
-    
-    const conversionStartTime = Date.now();
-    const base64 = arrayBufferToBase64(arrayBuffer);
-    console.log(`Base64 conversion took ${Date.now() - conversionStartTime}ms`);
-
-    // Prepare AI extraction request with retry logic (supports PDF via text extraction)
+    // Prepare AI extraction request with retry logic
     const extractionStartTime = Date.now();
     let response;
     let retryCount = 0;
     const maxRetries = 2;
 
-    // Build messages depending on whether we have PDF text from client
     const systemPrompt = `You are an AI that extracts structured data from construction company bills/invoices. 
 Extract the following information and return as valid JSON:
 {
@@ -115,7 +116,6 @@ Extract the following information and return as valid JSON:
 Return ONLY the JSON object, no additional text.`;
 
     let messages: any[] = [];
-    const isPdf = (pendingUpload.content_type?.toLowerCase().includes('pdf')) || pendingUpload.file_path?.toLowerCase().endsWith('.pdf');
 
     if (pdfText) {
       // Client provided PDF text extraction
@@ -124,13 +124,27 @@ Return ONLY the JSON object, no additional text.`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Extract bill data from the following text extracted from a PDF invoice:\n${pdfText}` }
       ];
-    } else if (isPdf) {
-      // PDF but no text provided - cannot process
-      throw new Error('PDF files require client-side text extraction. Please try uploading again.');
+    } else if (pageImages && pageImages.length > 0) {
+      // Client provided rendered PDF pages as images (fallback for scanned PDFs)
+      console.log('Using client-provided page images, count:', pageImages.length);
+      const imageContent = pageImages.map((url: string) => ({
+        type: 'image_url',
+        image_url: { url }
+      }));
+      messages = [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Extract bill data from these scanned invoice pages.' },
+            ...imageContent
+          ]
+        }
+      ];
     } else {
-      // Non-PDF: treat as image with proper MIME type
+      // Single image file
       const mimeType = pendingUpload.content_type || 'image/jpeg';
-      console.log('Processing as image with MIME type:', mimeType);
+      console.log('Processing as single image with MIME type:', mimeType);
       messages = [
         { role: 'system', content: systemPrompt },
         {
@@ -145,34 +159,41 @@ Return ONLY the JSON object, no additional text.`;
 
     while (retryCount <= maxRetries) {
       try {
-        console.log(`Calling OpenAI API (attempt ${retryCount + 1}/${maxRetries + 1})...`);
-        response = await fetch('https://api.openai.com/v1/chat/completions', {
+        console.log(`Calling Lovable AI Gateway (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+        response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
+            'Authorization': `Bearer ${lovableApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o',
+            model: 'google/gemini-2.5-flash',
             messages,
-            max_tokens: 2000,
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('OpenAI API error:', response.status, errorText);
+          console.error('Lovable AI Gateway error:', response.status, errorText);
           
-          // Retry on rate limit or server errors
-          if ((response.status === 429 || response.status >= 500) && retryCount < maxRetries) {
-            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          if (response.status === 429) {
+            throw new Error('Rate limits exceeded, please try again later.');
+          }
+          
+          if (response.status === 402) {
+            throw new Error('Payment required, please add funds to your Lovable AI workspace.');
+          }
+          
+          // Retry on server errors
+          if (response.status >= 500 && retryCount < maxRetries) {
+            const waitTime = Math.pow(2, retryCount) * 1000;
             console.log(`Retrying in ${waitTime}ms...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             retryCount++;
             continue;
           }
           
-          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+          throw new Error(`AI Gateway error: ${response.status} - ${errorText}`);
         }
         
         break; // Success, exit retry loop
@@ -184,7 +205,7 @@ Return ONLY the JSON object, no additional text.`;
       }
     }
 
-    console.log(`OpenAI extraction took ${Date.now() - extractionStartTime}ms`);
+    console.log(`AI extraction took ${Date.now() - extractionStartTime}ms`);
 
     const aiData = await response.json();
     const extractedText = aiData.choices[0]?.message?.content;
