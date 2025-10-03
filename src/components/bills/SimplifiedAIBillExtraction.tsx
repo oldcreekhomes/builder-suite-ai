@@ -20,7 +20,7 @@ interface PendingUpload {
   file_size: number;
   file_path: string;
   content_type?: string;
-  status: 'pending' | 'processing' | 'extracted' | 'error';
+  status: 'pending' | 'processing' | 'completed' | 'extracted' | 'error';
   extracted_data: any;
   error_message?: string;
 }
@@ -583,6 +583,57 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
   };
 
+  const saveExtractedLinesToDatabase = async (pendingUploadId: string, extractedData: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const jobCostLines = extractedData.jobCostRows || [];
+      const expenseLines = extractedData.expenseRows || [];
+      
+      const lines = [
+        ...jobCostLines.map((row: any, index: number) => ({
+          pending_upload_id: pendingUploadId,
+          line_number: index + 1,
+          line_type: 'job_cost',
+          description: row.memo || '',
+          cost_code_name: row.costCode || '',
+          project_name: row.project || '',
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.unitCost) || 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || '',
+          owner_id: user.id,
+        })),
+        ...expenseLines.map((row: any, index: number) => ({
+          pending_upload_id: pendingUploadId,
+          line_number: jobCostLines.length + index + 1,
+          line_type: 'expense',
+          description: row.memo || '',
+          account_name: row.account || '',
+          project_name: row.project || '',
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: 0,
+          amount: parseFloat(row.amount) || 0,
+          memo: row.memo || '',
+          owner_id: user.id,
+        }))
+      ];
+
+      if (lines.length > 0) {
+        const { error } = await supabase
+          .from('pending_bill_lines')
+          .insert(lines);
+
+        if (error) {
+          console.error('Error saving bill lines:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in saveExtractedLinesToDatabase:', error);
+    }
+  };
+
   const handleUseData = (upload: PendingUpload) => {
     if (upload.extracted_data) {
       onDataExtracted(upload.extracted_data);
@@ -628,6 +679,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     const statusConfig = {
       pending: { variant: "secondary" as const, label: "Uploading" },
       processing: { variant: "default" as const, label: "Processing", showSpinner: true },
+      completed: { variant: "default" as const, label: "Ready to Review" },
       extracted: { variant: "default" as const, label: "Extracted" },
       error: { variant: "destructive" as const, label: "Error" }
     };
@@ -703,6 +755,15 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   {getStatusBadge(upload.status)}
                 </div>
                 <div className="flex items-center gap-2">
+                  {upload.status === 'completed' && (
+                    <Button
+                      size="sm"
+                      onClick={() => window.location.href = '/enter-bills/review'}
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Go to Review Bills
+                    </Button>
+                  )}
                   {upload.status === 'extracted' && (
                     <Button
                       size="sm"

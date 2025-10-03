@@ -378,6 +378,19 @@ export default function EnterBills() {
               </TabsList>
 
               <TabsContent value="ai" className="mt-6">
+                <div className="mb-4 p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>New Workflow:</strong> Uploaded bills will be processed and sent to the{' '}
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-sm underline"
+                      onClick={() => window.location.href = `/project/${projectId}/accounting/bills/review`}
+                    >
+                      Review Bills
+                    </Button>
+                    {' '}page where you can review, edit, and approve them before adding to your accounting system.
+                  </p>
+                </div>
                 <SimplifiedAIBillExtraction 
                   onDataExtracted={handleAIDataExtracted}
                   onSwitchToManual={() => setActiveTab("manual")}

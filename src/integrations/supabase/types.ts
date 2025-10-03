@@ -994,6 +994,98 @@ export type Database = {
           },
         ]
       }
+      pending_bill_lines: {
+        Row: {
+          account_id: string | null
+          account_name: string | null
+          amount: number
+          cost_code_id: string | null
+          cost_code_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          line_number: number
+          line_type: string
+          memo: string | null
+          owner_id: string
+          pending_upload_id: string
+          project_id: string | null
+          project_name: string | null
+          quantity: number | null
+          unit_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_name?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          cost_code_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          line_number?: number
+          line_type: string
+          memo?: string | null
+          owner_id: string
+          pending_upload_id: string
+          project_id?: string | null
+          project_name?: string | null
+          quantity?: number | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          account_name?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          cost_code_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          line_number?: number
+          line_type?: string
+          memo?: string | null
+          owner_id?: string
+          pending_upload_id?: string
+          project_id?: string | null
+          project_name?: string | null
+          quantity?: number | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_bill_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_pending_upload_id_fkey"
+            columns: ["pending_upload_id"]
+            isOneToOne: false
+            referencedRelation: "pending_bill_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_bill_uploads: {
         Row: {
           content_type: string | null
@@ -1005,6 +1097,9 @@ export type Database = {
           file_size: number
           id: string
           owner_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           updated_at: string
           uploaded_by: string
@@ -1019,6 +1114,9 @@ export type Database = {
           file_size: number
           id?: string
           owner_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
           uploaded_by: string
@@ -1033,6 +1131,9 @@ export type Database = {
           file_size?: number
           id?: string
           owner_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
           uploaded_by?: string
@@ -1700,6 +1801,18 @@ export type Database = {
         Args: { employee_id: string }
         Returns: undefined
       }
+      approve_pending_bill: {
+        Args: {
+          bill_date_param: string
+          due_date_param: string
+          notes_param?: string
+          pending_upload_id_param: string
+          reference_number_param?: string
+          terms_param?: string
+          vendor_id_param: string
+        }
+        Returns: string
+      }
       create_project_task: {
         Args:
           | {
@@ -1808,6 +1921,10 @@ export type Database = {
       normalize_po_file_elem: {
         Args: { elem: Json; project_id: string }
         Returns: Json
+      }
+      reject_pending_bill: {
+        Args: { pending_upload_id_param: string; review_notes_param?: string }
+        Returns: boolean
       }
       reorder_project_tasks: {
         Args: {

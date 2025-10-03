@@ -33,6 +33,7 @@ import BillsApprovalStatus from "./pages/BillsApprovalStatus";
 import EnterBills from "./pages/EnterBills";
 import ApproveBills from "./pages/ApproveBills";
 import PayBills from "./pages/PayBills";
+import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
 import IncomeStatement from "./pages/IncomeStatement";
 import WriteChecks from "./pages/WriteChecks";
@@ -174,6 +175,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/bills/review" element={<ProtectedRoute><ReviewBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/pay" element={<ProtectedRoute><PayBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
