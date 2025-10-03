@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { PayBillDialog } from "@/components/PayBillDialog";
+import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import {
   Table,
   TableBody,
@@ -17,6 +18,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+interface BillAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  content_type: string;
+}
 
 interface BillForPayment {
   id: string;
@@ -35,6 +44,7 @@ interface BillForPayment {
   projects?: {
     address: string;
   };
+  bill_attachments?: BillAttachment[];
 }
 
 export default function PayBills() {
@@ -67,6 +77,13 @@ export default function PayBills() {
             ),
             projects:project_id (
               address
+            ),
+            bill_attachments (
+              id,
+              file_name,
+              file_path,
+              file_size,
+              content_type
             )
           `)
           .eq('status', 'posted')
@@ -95,7 +112,14 @@ export default function PayBills() {
             projects:project_id (
               address
             ),
-            bill_lines!inner(project_id)
+            bill_lines!inner(project_id),
+            bill_attachments (
+              id,
+              file_name,
+              file_path,
+              file_size,
+              content_type
+            )
           `)
           .eq('status', 'posted')
           .is('project_id', null)
@@ -131,6 +155,13 @@ export default function PayBills() {
             ),
             projects:project_id (
               address
+            ),
+            bill_attachments (
+              id,
+              file_name,
+              file_path,
+              file_size,
+              content_type
             )
           `)
           .eq('status', 'posted')
@@ -198,13 +229,14 @@ export default function PayBills() {
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bills.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={!projectId ? 8 : 7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={!projectId ? 9 : 8} className="text-center py-8 text-muted-foreground">
                       No approved bills found for payment.
                     </TableCell>
                   </TableRow>
@@ -232,6 +264,9 @@ export default function PayBills() {
                         {bill.reference_number || '-'}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">{bill.terms || '-'}</TableCell>
+                      <TableCell className="px-2 py-1 text-xs">
+                        <BillFilesCell attachments={bill.bill_attachments || []} />
+                      </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
                         <Button
                           size="sm"
