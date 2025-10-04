@@ -162,27 +162,48 @@ export default function EnterBills() {
     return (jobCostTotal + expenseTotal).toFixed(2);
   };
 
-  // Update batch bills when pending bills change
+  // Update batch bills when pending bills change - fetch lines for each bill
   useEffect(() => {
-    if (pendingBills) {
-      const completed = pendingBills.filter(b => b.status === 'completed').map(bill => {
-        const extractedData = bill.extracted_data || {};
-        return {
-          id: bill.id,
-          file_name: bill.file_name,
-          file_path: bill.file_path,
-          status: bill.status,
-          vendor_id: extractedData.vendorId,
-          vendor_name: extractedData.vendor,
-          bill_date: extractedData.date,
-          due_date: extractedData.dueDate,
-          reference_number: extractedData.referenceNumber,
-          terms: extractedData.terms,
-          lines: [], // Will be loaded separately
-        };
-      });
-      setBatchBills(completed);
-    }
+    const fetchBillsWithLines = async () => {
+      if (!pendingBills || pendingBills.length === 0) {
+        setBatchBills([]);
+        return;
+      }
+
+      const completedBills = pendingBills.filter(b => b.status === 'completed' || b.status === 'reviewing');
+      
+      const billsWithLines = await Promise.all(
+        completedBills.map(async (bill) => {
+          const extractedData = bill.extracted_data || {};
+          
+          // Fetch line items for this bill
+          const { data: lines } = await supabase
+            .from('pending_bill_lines')
+            .select('*')
+            .eq('pending_upload_id', bill.id)
+            .order('line_number');
+          
+          return {
+            id: bill.id,
+            file_name: bill.file_name,
+            file_path: bill.file_path,
+            status: bill.status,
+            vendor_id: extractedData.vendorId || null,
+            vendor_name: extractedData.vendor || '',
+            bill_date: extractedData.date || new Date().toISOString().split('T')[0],
+            due_date: extractedData.dueDate || '',
+            reference_number: extractedData.referenceNumber || '',
+            terms: extractedData.terms || 'net-30',
+            notes: extractedData.notes || '',
+            lines: lines || []
+          };
+        })
+      );
+      
+      setBatchBills(billsWithLines);
+    };
+
+    fetchBillsWithLines();
   }, [pendingBills]);
 
   const handleBillUpdate = (billId: string, updates: any) => {
