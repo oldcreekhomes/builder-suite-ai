@@ -272,7 +272,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               onChange={(e) => updateJobCostLine(line.id, "credit", e.target.value)}
                             />
                           </td>
-                          <td className="p-3 pr-3">
+                          <td className="p-3">
                             <Input
                               placeholder="Line memo (optional)"
                               value={line.memo}
@@ -342,7 +342,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               onChange={(e) => updateExpenseLine(line.id, "credit", e.target.value)}
                             />
                           </td>
-                          <td className="p-3 pr-3">
+                          <td className="p-3">
                             <Input
                               placeholder="Line memo (optional)"
                               value={line.memo}
