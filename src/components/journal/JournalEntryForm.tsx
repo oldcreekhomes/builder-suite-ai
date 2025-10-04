@@ -494,7 +494,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             <Input
                               type="text"
                               placeholder="0.00"
-                              value={line.debit ? formatNumber(line.debit) : ""}
+                              value={line.debit || ""}
                               onChange={(e) => {
                                 const value = parseFormattedNumber(e.target.value);
                                 if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
@@ -513,7 +513,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             <Input
                               type="text"
                               placeholder="0.00"
-                              value={line.credit ? formatNumber(line.credit) : ""}
+                              value={line.credit || ""}
                               onChange={(e) => {
                                 const value = parseFormattedNumber(e.target.value);
                                 if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
@@ -581,7 +581,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             <Input
                               type="text"
                               placeholder="0.00"
-                              value={line.debit ? formatNumber(line.debit) : ""}
+                              value={line.debit || ""}
                               onChange={(e) => {
                                 const value = parseFormattedNumber(e.target.value);
                                 if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
@@ -600,7 +600,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             <Input
                               type="text"
                               placeholder="0.00"
-                              value={line.credit ? formatNumber(line.credit) : ""}
+                              value={line.credit || ""}
                               onChange={(e) => {
                                 const value = parseFormattedNumber(e.target.value);
                                 if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
