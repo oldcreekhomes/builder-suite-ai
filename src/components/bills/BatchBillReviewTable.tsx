@@ -4,12 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, FileText, Trash2, AlertCircle, CheckCircle, Building2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Trash2, AlertCircle, CheckCircle, Building2, CalendarIcon } from "lucide-react";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { BatchBillLineItems } from "./BatchBillLineItems";
 import { format } from "date-fns";
 import { useCompanySearch } from "@/hooks/useCompanySearch";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface PendingBillLine {
   line_number: number;
@@ -228,11 +231,29 @@ export function BatchBillReviewTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="date"
-                        value={bill.bill_date || ''}
-                        onChange={(e) => onBillUpdate(bill.id, { bill_date: e.target.value })}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !bill.bill_date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yyyy") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={bill.bill_date ? new Date(bill.bill_date) : undefined}
+                            onSelect={(date) => onBillUpdate(bill.id, { bill_date: date ? format(date, "yyyy-MM-dd") : undefined })}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Input
@@ -242,11 +263,29 @@ export function BatchBillReviewTable({
                       />
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="date"
-                        value={bill.due_date || ''}
-                        onChange={(e) => onBillUpdate(bill.id, { due_date: e.target.value })}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !bill.due_date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {bill.due_date ? format(new Date(bill.due_date), "MM/dd/yyyy") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={bill.due_date ? new Date(bill.due_date) : undefined}
+                            onSelect={(date) => onBillUpdate(bill.id, { due_date: date ? format(date, "yyyy-MM-dd") : undefined })}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Input
