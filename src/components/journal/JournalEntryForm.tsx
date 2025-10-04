@@ -200,11 +200,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea
+            <Input
               placeholder="Entry description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
             />
           </div>
         </div>
@@ -212,20 +211,23 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         {/* Tabbed Line Items */}
         <div className="space-y-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'job_cost' | 'expense')}>
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="job_cost">Job Cost</TabsTrigger>
-              <TabsTrigger value="expense">Expense</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="job_cost">Job Cost</TabsTrigger>
+                <TabsTrigger value="expense">Expense</TabsTrigger>
+              </TabsList>
+              <Button 
+                onClick={activeTab === 'job_cost' ? addJobCostLine : addExpenseLine} 
+                size="sm" 
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Line
+              </Button>
+            </div>
 
             {/* Job Cost Tab */}
             <TabsContent value="job_cost" className="space-y-4 mt-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-lg font-semibold">Job Cost Lines</Label>
-                <Button onClick={addJobCostLine} size="sm" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Line
-                </Button>
-              </div>
 
               <div className="border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -300,14 +302,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
             {/* Expense Tab */}
             <TabsContent value="expense" className="space-y-4 mt-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-lg font-semibold">Expense Lines</Label>
-                <Button onClick={addExpenseLine} size="sm" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Line
-                </Button>
-              </div>
-
               <div className="border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
