@@ -234,10 +234,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium w-80">Cost Code</th>
-                        <th className="text-right p-3 font-medium w-28">Debit</th>
-                        <th className="text-right p-3 font-medium w-28">Credit</th>
-                        <th className="text-left p-3 font-medium w-80">Memo</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '300px' }}>Cost Code</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
+                        <th className="text-left p-3 font-medium">Memo</th>
                         <th className="w-12"></th>
                       </tr>
                     </thead>
@@ -260,7 +260,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.debit}
                               onChange={(e) => updateJobCostLine(line.id, "debit", e.target.value)}
-                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
@@ -271,7 +270,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.credit}
                               onChange={(e) => updateJobCostLine(line.id, "credit", e.target.value)}
-                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
@@ -307,10 +305,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium w-80">Account</th>
-                        <th className="text-right p-3 font-medium w-28">Debit</th>
-                        <th className="text-right p-3 font-medium w-28">Credit</th>
-                        <th className="text-left p-3 font-medium w-80">Memo</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '300px' }}>Account</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
+                        <th className="text-left p-3 font-medium">Memo</th>
                         <th className="w-12"></th>
                       </tr>
                     </thead>
@@ -332,7 +330,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.debit}
                               onChange={(e) => updateExpenseLine(line.id, "debit", e.target.value)}
-                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
@@ -343,7 +340,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.credit}
                               onChange={(e) => updateExpenseLine(line.id, "credit", e.target.value)}
-                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
