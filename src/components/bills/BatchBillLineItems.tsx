@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Plus } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LineItem {
   line_number: number;
@@ -44,7 +42,18 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
     onLinesChange(updated);
   };
 
-  const addLine = () => {
+  const addJobCostLine = () => {
+    const newLine: LineItem = {
+      line_number: lines.length + 1,
+      line_type: 'job_cost',
+      amount: 0,
+      quantity: 1,
+      unit_cost: 0,
+    };
+    onLinesChange([...lines, newLine]);
+  };
+
+  const addExpenseLine = () => {
     const newLine: LineItem = {
       line_number: lines.length + 1,
       line_type: 'expense',
@@ -64,130 +73,227 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
     onLinesChange(updated);
   };
 
-  const total = lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const jobCostLines = lines.filter(line => line.line_type === 'job_cost');
+  const expenseLines = lines.filter(line => line.line_type === 'expense');
+
+  const jobCostTotal = jobCostLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const expenseTotal = expenseLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Type</TableHead>
-              <TableHead>Account/Cost Code</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead className="w-[80px]">Qty</TableHead>
-              <TableHead className="w-[100px]">Unit Cost</TableHead>
-              <TableHead className="w-[120px]">Amount</TableHead>
-              <TableHead>Memo</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lines.map((line, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <Select
-                    value={line.line_type}
-                    onValueChange={(value) => updateLine(index, 'line_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">Expense</SelectItem>
-                      <SelectItem value="job_cost">Job Cost</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {line.line_type === 'expense' ? (
-                    <AccountSearchInput
-                      value={line.account_id || ''}
-                      onChange={(accountId) => {
-                        updateLine(index, 'account_id', accountId);
-                      }}
-                      placeholder="Select account"
-                    />
-                  ) : (
-                    <CostCodeSearchInput
-                      value={line.cost_code_name || ''}
-                      onChange={(value) => {
-                        updateLine(index, 'cost_code_name', value);
-                      }}
-                      onCostCodeSelect={(costCode) => {
-                        updateLine(index, 'cost_code_id', costCode.id);
-                        updateLine(index, 'cost_code_name', `${costCode.code} - ${costCode.name}`);
-                      }}
-                      placeholder="Select cost code"
-                    />
-                  )}
-                </TableCell>
-                <TableCell>
-                  <JobSearchInput
-                    value={line.project_id || ''}
-                    onChange={(projectId) => {
-                      updateLine(index, 'project_id', projectId);
-                    }}
-                    placeholder="Select project"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={line.quantity || ''}
-                    onChange={(e) => updateLine(index, 'quantity', parseFloat(e.target.value) || 0)}
-                    className="w-full"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={line.unit_cost || ''}
-                    onChange={(e) => updateLine(index, 'unit_cost', parseFloat(e.target.value) || 0)}
-                    className="w-full"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={line.amount || ''}
-                    onChange={(e) => updateLine(index, 'amount', parseFloat(e.target.value) || 0)}
-                    className="w-full"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    value={line.memo || line.description || ''}
-                    onChange={(e) => updateLine(index, 'memo', e.target.value)}
-                    placeholder="Memo"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeLine(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <Button onClick={addLine} variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Line
-        </Button>
-        <div className="text-right">
-          <div className="text-sm font-medium">
-            Total: ${total.toFixed(2)}
+      <Tabs defaultValue="job-cost" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+          <TabsTrigger value="expense">Expense</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="job-cost" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Button onClick={addJobCostLine} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Row
+            </Button>
           </div>
-        </div>
-      </div>
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+              <div className="col-span-2">Cost Code</div>
+              <div className="col-span-2">Project</div>
+              <div className="col-span-4">Memo</div>
+              <div className="col-span-1">Quantity</div>
+              <div className="col-span-1">Cost</div>
+              <div className="col-span-1">Total</div>
+              <div className="col-span-1 text-center">Action</div>
+            </div>
+
+            {jobCostLines.map((line, index) => {
+              const globalIndex = lines.indexOf(line);
+              return (
+                <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div className="col-span-2">
+                    <CostCodeSearchInput 
+                      value={line.cost_code_name || ''}
+                      onChange={(value) => updateLine(globalIndex, 'cost_code_name', value)}
+                      onCostCodeSelect={(costCode) => {
+                        updateLine(globalIndex, 'cost_code_id', costCode.id);
+                        updateLine(globalIndex, 'cost_code_name', `${costCode.code} - ${costCode.name}`);
+                      }}
+                      placeholder="Cost Code"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <JobSearchInput 
+                      value={line.project_id || ""}
+                      onChange={(projectId) => updateLine(globalIndex, 'project_id', projectId)}
+                      placeholder="Select project"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Input 
+                      placeholder="Job cost memo"
+                      value={line.memo || line.description || ''}
+                      onChange={(e) => updateLine(globalIndex, 'memo', e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      placeholder="1"
+                      value={line.quantity || ''}
+                      onChange={(e) => updateLine(globalIndex, 'quantity', parseFloat(e.target.value) || 0)}
+                      className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={line.unit_cost || ''}
+                        onChange={(e) => updateLine(globalIndex, 'unit_cost', parseFloat(e.target.value) || 0)}
+                        className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex items-center">
+                    <span className="text-sm font-medium">
+                      ${((Number(line.quantity) || 0) * (Number(line.unit_cost) || 0)).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex justify-center items-center">
+                    <Button
+                      onClick={() => removeLine(globalIndex)}
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="p-3 bg-muted border-t">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-8 font-medium">Total:</div>
+                <div className="col-span-1 font-medium">
+                  ${jobCostTotal.toFixed(2)}
+                </div>
+                <div className="col-span-3"></div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="expense" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Button onClick={addExpenseLine} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Row
+            </Button>
+          </div>
+
+          <div className="border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+              <div className="col-span-2">Account</div>
+              <div className="col-span-2">Project</div>
+              <div className="col-span-4">Memo</div>
+              <div className="col-span-1">Quantity</div>
+              <div className="col-span-1">Cost</div>
+              <div className="col-span-1">Total</div>
+              <div className="col-span-1 text-center">Action</div>
+            </div>
+
+            {expenseLines.map((line, index) => {
+              const globalIndex = lines.indexOf(line);
+              return (
+                <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div className="col-span-2">
+                    <AccountSearchInput
+                      value={line.account_id || ""}
+                      onChange={(accountId) => updateLine(globalIndex, 'account_id', accountId)}
+                      placeholder="Select account"
+                      accountType="expense"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <JobSearchInput 
+                      value={line.project_id || ""}
+                      onChange={(projectId) => updateLine(globalIndex, 'project_id', projectId)}
+                      placeholder="Select project"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <Input 
+                      placeholder="Expense memo"
+                      value={line.memo || line.description || ''}
+                      onChange={(e) => updateLine(globalIndex, 'memo', e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      placeholder="1"
+                      value={line.quantity || ''}
+                      onChange={(e) => updateLine(globalIndex, 'quantity', parseFloat(e.target.value) || 0)}
+                      className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={line.unit_cost || ''}
+                        onChange={(e) => updateLine(globalIndex, 'unit_cost', parseFloat(e.target.value) || 0)}
+                        className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-1 flex items-center">
+                    <span className="text-sm font-medium">
+                      ${((Number(line.quantity) || 0) * (Number(line.unit_cost) || 0)).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex justify-center items-center">
+                    <Button
+                      onClick={() => removeLine(globalIndex)}
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="p-3 bg-muted border-t">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-8 font-medium">Total:</div>
+                <div className="col-span-1 font-medium">
+                  ${expenseTotal.toFixed(2)}
+                </div>
+                <div className="col-span-3"></div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
