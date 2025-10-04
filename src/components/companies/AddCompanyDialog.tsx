@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,9 +49,16 @@ type CompanyFormData = z.infer<typeof companySchema>;
 interface AddCompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialCompanyName?: string;
+  onCompanyCreated?: (companyId: string, companyName: string) => void;
 }
 
-export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) {
+export function AddCompanyDialog({ 
+  open, 
+  onOpenChange, 
+  initialCompanyName, 
+  onCompanyCreated 
+}: AddCompanyDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
@@ -60,7 +67,7 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
     defaultValues: {
-      company_name: "",
+      company_name: initialCompanyName || "",
       company_type: "Subcontractor",
       address_line_1: "",
       address_line_2: "",
@@ -71,6 +78,13 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
       website: "",
     },
   });
+
+  // Update company name when initialCompanyName changes
+  useEffect(() => {
+    if (initialCompanyName) {
+      form.setValue("company_name", initialCompanyName);
+    }
+  }, [initialCompanyName, form]);
 
   // Memoize the cost codes change handler to prevent infinite re-renders
   const handleCostCodesChange = useCallback((costCodes: string[]) => {
@@ -148,18 +162,27 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
 
       return company;
     },
-    onSuccess: () => {
+    onSuccess: (company) => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
         title: "Success",
         description: "Company created successfully",
       });
+      
+      // Call the callback if provided (for bill linking)
+      if (onCompanyCreated) {
+        onCompanyCreated(company.id, company.company_name);
+      }
+      
       // Reset form and state
       form.reset();
       setSelectedCostCodes([]);
       onOpenChange(false);
-      // Refresh the page to ensure data is properly loaded
-      window.location.reload();
+      
+      // Only refresh if not in callback mode (to preserve bill data)
+      if (!onCompanyCreated) {
+        window.location.reload();
+      }
     },
     onError: (error) => {
       console.error('Error creating company:', error);

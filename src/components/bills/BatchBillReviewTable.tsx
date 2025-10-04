@@ -4,10 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, FileText, Trash2, AlertCircle, CheckCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Trash2, AlertCircle, CheckCircle, Building2 } from "lucide-react";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { BatchBillLineItems } from "./BatchBillLineItems";
 import { format } from "date-fns";
+import { useCompanySearch } from "@/hooks/useCompanySearch";
+import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 
 interface PendingBillLine {
   line_number: number;
@@ -54,6 +56,11 @@ export function BatchBillReviewTable({
   onLinesUpdate 
 }: BatchBillReviewTableProps) {
   const [expandedBills, setExpandedBills] = useState<Set<string>>(new Set());
+  const [addCompanyDialogOpen, setAddCompanyDialogOpen] = useState(false);
+  const [vendorNameToCreate, setVendorNameToCreate] = useState("");
+  const [billIdForVendor, setBillIdForVendor] = useState("");
+  
+  const { companies, loading: loadingCompanies } = useCompanySearch();
 
   const toggleExpanded = (billId: string) => {
     const newExpanded = new Set(expandedBills);
@@ -65,9 +72,24 @@ export function BatchBillReviewTable({
     setExpandedBills(newExpanded);
   };
 
+  const isVendorInSystem = (vendorName: string) => {
+    if (!vendorName) return false;
+    const lowercaseName = vendorName.toLowerCase().trim();
+    return companies.some(c => c.company_name.toLowerCase().trim() === lowercaseName);
+  };
+
   const validateBill = (bill: PendingBill) => {
     const issues: string[] = [];
-    if (!bill.vendor_id) issues.push("Vendor required");
+    
+    // Enhanced vendor validation
+    if (!bill.vendor_id) {
+      if (!bill.vendor_name) {
+        issues.push("Vendor required");
+      }
+      // Don't add "vendor required" if vendor name exists but not in system
+      // We'll show a different UI for that case
+    }
+    
     if (!bill.bill_date) issues.push("Bill date required");
     if (!bill.lines || bill.lines.length === 0) issues.push("At least one line item required");
     
@@ -82,6 +104,25 @@ export function BatchBillReviewTable({
     });
     
     return issues;
+  };
+
+  const handleCreateCompany = (billId: string, vendorName: string) => {
+    setBillIdForVendor(billId);
+    setVendorNameToCreate(vendorName);
+    setAddCompanyDialogOpen(true);
+  };
+
+  const handleCompanyCreated = (companyId: string, companyName: string) => {
+    // Link the created company to the bill
+    if (billIdForVendor) {
+      onBillUpdate(billIdForVendor, { 
+        vendor_id: companyId, 
+        vendor_name: companyName 
+      });
+    }
+    // Reset state
+    setBillIdForVendor("");
+    setVendorNameToCreate("");
   };
 
   const getStatusBadge = (bill: PendingBill) => {
@@ -143,11 +184,48 @@ export function BatchBillReviewTable({
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <Input
-                        value={bill.vendor_name || ''}
-                        onChange={(e) => onBillUpdate(bill.id, { vendor_name: e.target.value })}
-                        placeholder="Vendor name"
-                      />
+                      <div className="space-y-2">
+                        <VendorSearchInput
+                          value={bill.vendor_name || ''}
+                          onChange={(vendorName) => {
+                            // Find the company by name to get the ID
+                            const company = companies.find(c => 
+                              c.company_name.toLowerCase().trim() === vendorName.toLowerCase().trim()
+                            );
+                            onBillUpdate(bill.id, { 
+                              vendor_id: company?.id, 
+                              vendor_name: vendorName 
+                            });
+                          }}
+                          onCompanySelect={(company) => {
+                            // Find the full company details to get the ID
+                            const fullCompany = companies.find(c => 
+                              c.company_name === company.company_name
+                            );
+                            if (fullCompany) {
+                              onBillUpdate(bill.id, { 
+                                vendor_id: fullCompany.id, 
+                                vendor_name: fullCompany.company_name 
+                              });
+                            }
+                          }}
+                        />
+                        {bill.vendor_name && !bill.vendor_id && !isVendorInSystem(bill.vendor_name) && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <AlertCircle className="h-3 w-3 text-amber-600" />
+                            <span className="text-amber-600">This company is not currently in the system</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-xs"
+                              onClick={() => handleCreateCompany(bill.id, bill.vendor_name!)}
+                            >
+                              <Building2 className="h-3 w-3 mr-1" />
+                              Create New Company
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Input
@@ -234,6 +312,13 @@ export function BatchBillReviewTable({
           </TableBody>
         </Table>
       </div>
+      
+      <AddCompanyDialog
+        open={addCompanyDialogOpen}
+        onOpenChange={setAddCompanyDialogOpen}
+        initialCompanyName={vendorNameToCreate}
+        onCompanyCreated={handleCompanyCreated}
+      />
     </div>
   );
 }
