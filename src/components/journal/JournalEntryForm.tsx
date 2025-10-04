@@ -420,11 +420,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                 {currentEntryIndex + 1}/{filteredEntries.length}
               </Badge>
             )}
-            {!isViewingMode && filteredEntries.length === 0 && projectId && (
-              <span className="ml-2 text-sm text-muted-foreground">
-                No entries for this project yet
-              </span>
-            )}
           </div>
         </div>
 
