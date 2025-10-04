@@ -14,7 +14,7 @@ export default function JournalEntry() {
         {projectId ? (
           <DashboardHeader projectId={projectId} />
         ) : (
-          <CompanyDashboardHeader />
+          <CompanyDashboardHeader title=" " />
         )}
         
         <main className="flex-1 overflow-auto">
