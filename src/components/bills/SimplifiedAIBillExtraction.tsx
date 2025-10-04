@@ -755,7 +755,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   {getStatusBadge(upload.status)}
                 </div>
                 <div className="flex items-center gap-2">
-                  {upload.status === 'completed' && (
+                  {(upload.status === 'completed' || upload.status === 'extracted') && (
                     <Button
                       size="sm"
                       variant="ghost"
