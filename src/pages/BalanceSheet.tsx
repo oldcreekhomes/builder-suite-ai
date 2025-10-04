@@ -57,7 +57,9 @@ export default function BalanceSheet() {
 
       console.time('⏱️ Balance Sheet: Journal lines query');
       
-      // Direct query on journal_entry_lines filtered by project_id (much faster)
+      // Query journal_entry_lines filtered by project_id
+      // Since we backfilled project_id for all lines in project-scoped entries,
+      // this now correctly includes all lines (expense + job cost) from project journal entries
       let journalLinesQuery = supabase
         .from('journal_entry_lines')
         .select('account_id, debit, credit');
