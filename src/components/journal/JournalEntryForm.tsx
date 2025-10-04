@@ -42,6 +42,19 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" },
   ]);
 
+  // Format number with commas
+  const formatNumber = (value: string | number): string => {
+    if (!value) return "";
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return "";
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Remove commas from formatted number
+  const parseFormattedNumber = (value: string): string => {
+    return value.replace(/,/g, '');
+  };
+
   const totals = useMemo(() => {
     const allLines = [...expenseLines, ...jobCostLines];
     
@@ -276,24 +289,40 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                           </td>
                           <td className="p-3">
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
+                              type="text"
                               placeholder="0.00"
-                              value={line.debit}
-                              onChange={(e) => updateJobCostLine(line.id, "debit", e.target.value)}
-                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={line.debit ? formatNumber(line.debit) : ""}
+                              onChange={(e) => {
+                                const value = parseFormattedNumber(e.target.value);
+                                if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                                  updateJobCostLine(line.id, "debit", value);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value && !isNaN(parseFloat(parseFormattedNumber(e.target.value)))) {
+                                  updateJobCostLine(line.id, "debit", parseFormattedNumber(e.target.value));
+                                }
+                              }}
+                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
+                              type="text"
                               placeholder="0.00"
-                              value={line.credit}
-                              onChange={(e) => updateJobCostLine(line.id, "credit", e.target.value)}
-                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={line.credit ? formatNumber(line.credit) : ""}
+                              onChange={(e) => {
+                                const value = parseFormattedNumber(e.target.value);
+                                if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                                  updateJobCostLine(line.id, "credit", value);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value && !isNaN(parseFloat(parseFormattedNumber(e.target.value)))) {
+                                  updateJobCostLine(line.id, "credit", parseFormattedNumber(e.target.value));
+                                }
+                              }}
+                              className="text-right"
                             />
                           </td>
                           <td className="p-3 pr-0">
@@ -347,24 +376,40 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                           </td>
                           <td className="p-3">
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
+                              type="text"
                               placeholder="0.00"
-                              value={line.debit}
-                              onChange={(e) => updateExpenseLine(line.id, "debit", e.target.value)}
-                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={line.debit ? formatNumber(line.debit) : ""}
+                              onChange={(e) => {
+                                const value = parseFormattedNumber(e.target.value);
+                                if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                                  updateExpenseLine(line.id, "debit", value);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value && !isNaN(parseFloat(parseFormattedNumber(e.target.value)))) {
+                                  updateExpenseLine(line.id, "debit", parseFormattedNumber(e.target.value));
+                                }
+                              }}
+                              className="text-right"
                             />
                           </td>
                           <td className="p-3">
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
+                              type="text"
                               placeholder="0.00"
-                              value={line.credit}
-                              onChange={(e) => updateExpenseLine(line.id, "credit", e.target.value)}
-                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={line.credit ? formatNumber(line.credit) : ""}
+                              onChange={(e) => {
+                                const value = parseFormattedNumber(e.target.value);
+                                if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+                                  updateExpenseLine(line.id, "credit", value);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value && !isNaN(parseFloat(parseFormattedNumber(e.target.value)))) {
+                                  updateExpenseLine(line.id, "credit", parseFormattedNumber(e.target.value));
+                                }
+                              }}
+                              className="text-right"
                             />
                           </td>
                           <td className="p-3 pr-0">
@@ -399,10 +444,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                 <tr>
                   <td className="p-3 font-semibold" style={{ width: '400px' }}>Totals</td>
                   <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
-                    ${totals.totalDebits.toFixed(2)}
+                    ${formatNumber(totals.totalDebits)}
                   </td>
                   <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
-                    ${totals.totalCredits.toFixed(2)}
+                    ${formatNumber(totals.totalCredits)}
                   </td>
                   <td className="p-3"></td>
                   <td className="w-12"></td>
@@ -422,7 +467,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               <>
                 <AlertCircle className="h-5 w-5 text-destructive" />
                 <span className="text-destructive font-medium">
-                  Entry must balance. Difference: ${Math.abs(totals.difference).toFixed(2)}
+                  Entry must balance. Difference: ${formatNumber(Math.abs(totals.difference))}
                   {totals.difference > 0 ? " (Debits exceed Credits)" : " (Credits exceed Debits)"}
                 </span>
               </>
