@@ -63,7 +63,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       if (line.line_type === 'expense') {
         return line.account_id && (line.debit || line.credit);
       } else {
-        return line.cost_code_id && (line.debit || line.credit);
+        return line.cost_code_display && (line.debit || line.credit);
       }
     });
     
