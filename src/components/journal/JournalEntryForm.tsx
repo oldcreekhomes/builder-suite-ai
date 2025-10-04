@@ -234,10 +234,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium">Cost Code</th>
-                        <th className="text-right p-3 font-medium w-32">Debit</th>
-                        <th className="text-right p-3 font-medium w-32">Credit</th>
-                        <th className="text-left p-3 font-medium">Memo</th>
+                        <th className="text-left p-3 font-medium w-80">Cost Code</th>
+                        <th className="text-right p-3 font-medium w-28">Debit</th>
+                        <th className="text-right p-3 font-medium w-28">Credit</th>
+                        <th className="text-left p-3 font-medium w-80">Memo</th>
                         <th className="w-12"></th>
                       </tr>
                     </thead>
@@ -307,10 +307,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium">Account</th>
-                        <th className="text-right p-3 font-medium w-32">Debit</th>
-                        <th className="text-right p-3 font-medium w-32">Credit</th>
-                        <th className="text-left p-3 font-medium">Memo</th>
+                        <th className="text-left p-3 font-medium w-80">Account</th>
+                        <th className="text-right p-3 font-medium w-28">Debit</th>
+                        <th className="text-right p-3 font-medium w-28">Credit</th>
+                        <th className="text-left p-3 font-medium w-80">Memo</th>
                         <th className="w-12"></th>
                       </tr>
                     </thead>
