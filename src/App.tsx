@@ -37,6 +37,7 @@ import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
 import IncomeStatement from "./pages/IncomeStatement";
 import WriteChecks from "./pages/WriteChecks";
+import JournalEntry from "./pages/JournalEntry";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import POResponseConfirmation from "./pages/POResponseConfirmation";
@@ -129,6 +130,7 @@ const AppContent = () => {
           <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           <Route path="/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/accounting/bills/pay" element={<ProtectedRoute><PayBills /></ProtectedRoute>} />
+          <Route path="/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />
           <Route path="/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           <Route path="/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
           <Route path="/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
@@ -178,6 +180,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/bills/review" element={<ProtectedRoute><ReviewBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/pay" element={<ProtectedRoute><PayBills /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
