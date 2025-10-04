@@ -282,6 +282,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.debit}
                               onChange={(e) => updateJobCostLine(line.id, "debit", e.target.value)}
+                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
                           <td className="p-3">
@@ -292,6 +293,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.credit}
                               onChange={(e) => updateJobCostLine(line.id, "credit", e.target.value)}
+                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
                           <td className="p-3 pr-0">
@@ -351,6 +353,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.debit}
                               onChange={(e) => updateExpenseLine(line.id, "debit", e.target.value)}
+                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
                           <td className="p-3">
@@ -361,6 +364,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               placeholder="0.00"
                               value={line.credit}
                               onChange={(e) => updateExpenseLine(line.id, "credit", e.target.value)}
+                              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </td>
                           <td className="p-3 pr-0">
