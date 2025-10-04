@@ -272,14 +272,14 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               onChange={(e) => updateJobCostLine(line.id, "credit", e.target.value)}
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-3">
                             <Input
                               placeholder="Line memo (optional)"
                               value={line.memo}
                               onChange={(e) => updateJobCostLine(line.id, "memo", e.target.value)}
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pl-2">
                             {jobCostLines.length > 1 && (
                               <Button
                                 variant="ghost"
@@ -342,14 +342,14 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               onChange={(e) => updateExpenseLine(line.id, "credit", e.target.value)}
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-3">
                             <Input
                               placeholder="Line memo (optional)"
                               value={line.memo}
                               onChange={(e) => updateExpenseLine(line.id, "memo", e.target.value)}
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pl-2">
                             {expenseLines.length > 1 && (
                               <Button
                                 variant="ghost"
