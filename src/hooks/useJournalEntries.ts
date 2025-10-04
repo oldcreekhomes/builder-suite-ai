@@ -4,7 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
 interface JournalLineData {
-  account_id: string;
+  line_number: number;
+  line_type: 'expense' | 'job_cost';
+  account_id?: string;
   debit: number;
   credit: number;
   memo?: string;
@@ -41,10 +43,19 @@ export const useJournalEntries = () => {
         throw new Error("Journal entry must have at least 2 lines.");
       }
 
-      // Validate each line has account and either debit or credit
+      // Validate each line based on its type
       for (const line of data.lines) {
-        if (!line.account_id) {
-          throw new Error("All lines must have an account selected.");
+        if (line.line_type === 'expense') {
+          if (!line.account_id) {
+            throw new Error("Expense lines must have an account selected.");
+          }
+        } else if (line.line_type === 'job_cost') {
+          if (!line.project_id) {
+            throw new Error("Job cost lines must have a project selected.");
+          }
+          if (!line.cost_code_id) {
+            throw new Error("Job cost lines must have a cost code selected.");
+          }
         }
         if (line.debit > 0 && line.credit > 0) {
           throw new Error("A line cannot have both debit and credit amounts.");
@@ -83,16 +94,16 @@ export const useJournalEntries = () => {
       if (entryError) throw entryError;
 
       // Create journal entry lines
-      const linesToInsert = data.lines.map((line, index) => ({
+      const linesToInsert = data.lines.map((line) => ({
         journal_entry_id: journalEntry.id,
         owner_id,
-        line_number: index + 1,
-        account_id: line.account_id,
+        line_number: line.line_number,
+        account_id: line.line_type === 'expense' ? line.account_id : null,
         debit: line.debit,
         credit: line.credit,
         memo: line.memo || null,
-        project_id: data.project_id || null,
-        cost_code_id: line.cost_code_id || null,
+        project_id: line.line_type === 'job_cost' ? line.project_id : null,
+        cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : null,
       }));
 
       const { error: linesError } = await supabase
