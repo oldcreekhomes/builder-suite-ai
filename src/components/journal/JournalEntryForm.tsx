@@ -234,7 +234,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium" style={{ width: '300px' }}>Cost Code</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '400px' }}>Cost Code</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
@@ -306,7 +306,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium" style={{ width: '300px' }}>Account</th>
+                        <th className="text-left p-3 font-medium" style={{ width: '400px' }}>Account</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
