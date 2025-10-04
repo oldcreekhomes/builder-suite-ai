@@ -250,6 +250,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               onChange={(value) => updateJobCostLine(line.id, "cost_code_id", value)}
                               onCostCodeSelect={(costCode) => updateJobCostLine(line.id, "cost_code_id", costCode.id)}
                               placeholder="Select cost code"
+                              className="w-full"
                             />
                           </td>
                           <td className="p-3">
@@ -320,6 +321,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               value={line.account_id || ""}
                               onChange={(value) => updateExpenseLine(line.id, "account_id", value)}
                               placeholder="Select account"
+                              className="w-full"
                             />
                           </td>
                           <td className="p-3">
