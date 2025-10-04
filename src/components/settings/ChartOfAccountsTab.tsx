@@ -9,11 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
+import { AddAccountDialog } from "./AddAccountDialog";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
   const [isImporting, setIsImporting] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const handleImportIFF = async (files: File[]) => {
     if (files.length === 0) return;
@@ -144,7 +146,7 @@ export const ChartOfAccountsTab = () => {
               Manage your chart of accounts ({accounts.length} accounts)
             </p>
           </div>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Account
           </Button>
@@ -209,6 +211,11 @@ export const ChartOfAccountsTab = () => {
           </Table>
         </div>
       </div>
+
+      <AddAccountDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
 
       <EditAccountDialog
         account={editingAccount}
