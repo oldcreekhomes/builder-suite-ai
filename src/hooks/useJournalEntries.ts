@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,58 @@ export const useJournalEntries = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Fetch all manual journal entries with their lines
+  const { data: journalEntries = [], isLoading } = useQuery({
+    queryKey: ["journal-entries"],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, role, home_builder_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!userData) return [];
+
+      const owner_id = userData.role === "employee" ? userData.home_builder_id : userData.id;
+      if (!owner_id) return [];
+
+      // Fetch journal entries
+      const { data: entries, error: entriesError } = await supabase
+        .from("journal_entries")
+        .select("*")
+        .eq("owner_id", owner_id)
+        .eq("source_type", "manual")
+        .order("entry_date", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (entriesError) throw entriesError;
+      if (!entries) return [];
+
+      // Fetch lines for all entries
+      const { data: lines, error: linesError } = await supabase
+        .from("journal_entry_lines")
+        .select(`
+          *,
+          accounts:account_id (id, name, code),
+          cost_codes:cost_code_id (id, name, code),
+          projects:project_id (id, name)
+        `)
+        .in("journal_entry_id", entries.map(e => e.id))
+        .order("line_number", { ascending: true });
+
+      if (linesError) throw linesError;
+
+      // Group lines by entry
+      return entries.map(entry => ({
+        ...entry,
+        lines: lines?.filter(line => line.journal_entry_id === entry.id) || []
+      }));
+    },
+    enabled: !!user,
+  });
 
   const createManualJournalEntry = useMutation({
     mutationFn: async (data: CreateManualJournalEntryData) => {
@@ -148,5 +200,7 @@ export const useJournalEntries = () => {
 
   return {
     createManualJournalEntry,
+    journalEntries,
+    isLoading,
   };
 };

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { Badge } from "@/components/ui/badge";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +32,7 @@ interface JournalEntryFormProps {
 }
 
 export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
-  const { createManualJournalEntry } = useJournalEntries();
+  const { createManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
@@ -41,6 +42,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const [jobCostLines, setJobCostLines] = useState<JournalLine[]>([
     { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" },
   ]);
+  const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
+  const [isViewingMode, setIsViewingMode] = useState(false);
 
   // Format number with commas
   const formatNumber = (value: string | number): string => {
@@ -194,6 +197,77 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     ));
   };
 
+  // Load a journal entry into the form
+  const loadJournalEntry = (entry: any) => {
+    setEntryDate(new Date(entry.entry_date));
+    setDescription(entry.description || "");
+    
+    const expLines: JournalLine[] = [];
+    const jobLines: JournalLine[] = [];
+    
+    entry.lines?.forEach((line: any) => {
+      const formattedLine = {
+        id: crypto.randomUUID(),
+        line_type: line.project_id ? 'job_cost' : 'expense' as 'expense' | 'job_cost',
+        account_id: line.account_id || "",
+        cost_code_id: line.cost_code_id || "",
+        cost_code_display: line.cost_codes ? `${line.cost_codes.code} - ${line.cost_codes.name}` : "",
+        debit: line.debit?.toString() || "",
+        credit: line.credit?.toString() || "",
+        memo: line.memo || "",
+      };
+      
+      if (formattedLine.line_type === 'expense') {
+        expLines.push(formattedLine);
+      } else {
+        jobLines.push(formattedLine);
+      }
+    });
+    
+    setExpenseLines(expLines.length > 0 ? expLines : [
+      { id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }
+    ]);
+    setJobCostLines(jobLines.length > 0 ? jobLines : [
+      { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }
+    ]);
+    
+    setIsViewingMode(true);
+  };
+
+  // Navigation handlers
+  const goToPrevious = () => {
+    if (currentEntryIndex < journalEntries.length - 1) {
+      const newIndex = currentEntryIndex + 1;
+      setCurrentEntryIndex(newIndex);
+      loadJournalEntry(journalEntries[newIndex]);
+    }
+  };
+
+  const goToNext = () => {
+    if (currentEntryIndex > 0) {
+      const newIndex = currentEntryIndex - 1;
+      setCurrentEntryIndex(newIndex);
+      loadJournalEntry(journalEntries[newIndex]);
+    }
+  };
+
+  const createNewEntry = () => {
+    setCurrentEntryIndex(-1);
+    setIsViewingMode(false);
+    setEntryDate(new Date());
+    setDescription("");
+    setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
+    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
+  };
+
+  // Auto-load most recent entry on mount
+  useEffect(() => {
+    if (!isLoading && journalEntries.length > 0 && currentEntryIndex === -1) {
+      setCurrentEntryIndex(0);
+      loadJournalEntry(journalEntries[0]);
+    }
+  }, [isLoading, journalEntries]);
+
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
     if (totals.missingSelections > 0) {
@@ -224,11 +298,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       project_id: projectId,
     });
 
-    // Reset form
-    setEntryDate(new Date());
-    setDescription("");
-    setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
-    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
+    // After save, load the most recent entry (the one we just created)
+    setCurrentEntryIndex(0);
+    // The query will refetch automatically, and the useEffect will load it
   };
 
   const isValid = totals.isBalanced && totals.missingSelections === 0;
@@ -236,6 +308,51 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   return (
     <Card>
       <CardContent className="space-y-6 pt-6">
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={createNewEntry}
+              size="sm"
+              variant={!isViewingMode ? "default" : "outline"}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Entry
+            </Button>
+            {isViewingMode && (
+              <Badge variant="secondary">Viewing Saved Entry</Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {currentEntryIndex === -1 ? (
+                "New Entry"
+              ) : (
+                `Entry ${currentEntryIndex + 1} of ${journalEntries.length}`
+              )}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNext}
+                disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPrevious}
+                disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Header Section - Consolidated */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
