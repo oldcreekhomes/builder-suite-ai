@@ -168,12 +168,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Create Journal Entry</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Header Section */}
-        <div className="space-y-4">
+      <CardContent className="space-y-6 pt-6">
+        {/* Header Section - Consolidated */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Entry Date</Label>
             <Popover>
