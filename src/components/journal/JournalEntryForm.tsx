@@ -55,17 +55,27 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     return value.replace(/,/g, '');
   };
 
+  // Helper to check if a line has a numeric amount
+  const hasAmount = (line: JournalLine): boolean => {
+    const debit = parseFloat(parseFormattedNumber(line.debit)) || 0;
+    const credit = parseFloat(parseFormattedNumber(line.credit)) || 0;
+    return debit > 0 || credit > 0;
+  };
+
+  // Helper to check if a line has required selection based on type
+  const hasRequiredSelection = (line: JournalLine): boolean => {
+    if (line.line_type === 'expense') {
+      return !!line.account_id;
+    } else {
+      return !!line.cost_code_id;
+    }
+  };
+
   const totals = useMemo(() => {
     const allLines = [...expenseLines, ...jobCostLines];
     
-    // Filter lines the same way handleSubmit does
-    const validLines = allLines.filter(line => {
-      if (line.line_type === 'expense') {
-        return line.account_id && (line.debit || line.credit);
-      } else {
-        return line.cost_code_display && (line.debit || line.credit);
-      }
-    });
+    // Include ALL lines with amounts, regardless of whether they have selections
+    const validLines = allLines.filter(line => hasAmount(line));
     
     const totalDebits = validLines.reduce((sum, line) => {
       const debit = parseFloat(parseFormattedNumber(line.debit)) || 0;
@@ -80,7 +90,19 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     const difference = totalDebits - totalCredits;
     const isBalanced = Math.abs(difference) < 0.01 && totalDebits > 0 && totalCredits > 0;
 
-    return { totalDebits, totalCredits, difference, isBalanced };
+    // Count lines with amounts but missing required selections
+    const missingSelections = validLines.filter(line => !hasRequiredSelection(line)).length;
+
+    console.debug('Journal Entry Totals:', {
+      totalDebits,
+      totalCredits,
+      difference,
+      isBalanced,
+      missingSelections,
+      validLinesCount: validLines.length
+    });
+
+    return { totalDebits, totalCredits, difference, isBalanced, missingSelections };
   }, [expenseLines, jobCostLines]);
 
   const addExpenseLine = () => {
@@ -161,15 +183,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   };
 
   const handleSubmit = async () => {
+    // Check for missing selections before submitting (safety check, button should be disabled)
+    if (totals.missingSelections > 0) {
+      console.warn('Cannot submit: Missing selections for lines with amounts');
+      return;
+    }
+
     const allLines = [...expenseLines, ...jobCostLines];
     const journalLines = allLines
-      .filter(line => {
-        if (line.line_type === 'expense') {
-          return line.account_id && (line.debit || line.credit);
-        } else {
-          return line.cost_code_id && (line.debit || line.credit);
-        }
-      })
+      .filter(line => hasAmount(line) && hasRequiredSelection(line))
       .map((line, index) => ({
         line_number: index + 1,
         line_type: line.line_type,
@@ -180,6 +202,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         credit: parseFloat(parseFormattedNumber(line.credit)) || 0,
         memo: line.memo || undefined,
       }));
+
+    console.debug('Submitting journal entry with lines:', journalLines);
 
     await createManualJournalEntry.mutateAsync({
       entry_date: entryDate,
@@ -195,7 +219,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
 
-  const isValid = totals.isBalanced;
+  const isValid = totals.isBalanced && totals.missingSelections === 0;
 
   return (
     <Card>
@@ -458,10 +482,17 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
           {/* Balance Indicator */}
           <div className="flex items-center gap-2 p-4 rounded-lg border">
-            {totals.isBalanced ? (
+            {totals.isBalanced && totals.missingSelections === 0 ? (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-600 font-medium">Entry is balanced</span>
+                <span className="text-green-600 font-medium">Entry is balanced and ready to save</span>
+              </>
+            ) : totals.missingSelections > 0 ? (
+              <>
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <span className="text-orange-600 font-medium">
+                  Please select {activeTab === 'job_cost' ? 'cost code' : 'account'}{totals.missingSelections > 1 ? 's' : ''} for {totals.missingSelections} line{totals.missingSelections > 1 ? 's' : ''} with amounts
+                </span>
               </>
             ) : (
               <>
