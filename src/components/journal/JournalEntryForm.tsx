@@ -319,37 +319,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     <Card>
       <CardContent className="space-y-6 pt-6">
         {/* Compact Header with Navigation and Entry Fields */}
-        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 items-start">
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-2 pt-8">
-            <Button
-              onClick={createNewEntry}
-              size="sm"
-              variant={!isViewingMode ? "default" : "outline"}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToNext}
-              disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
-              title="Newer entry"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToPrevious}
-              disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
-              title="Older entry"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
+        <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-start">
           {/* Entry Date */}
           <div className="space-y-2">
             <Label>Entry Date</Label>
@@ -388,15 +358,41 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             />
           </div>
 
-          {/* Entry Counter Badge */}
+          {/* New Entry Button */}
           <div className="flex items-center pt-8">
-            {isViewingMode ? (
-              <Badge variant="secondary" className="whitespace-nowrap">
-                Entry {currentEntryIndex + 1} of {journalEntries.length}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="whitespace-nowrap">
-                New Entry
+            <Button
+              onClick={createNewEntry}
+              size="sm"
+              variant={!isViewingMode ? "default" : "outline"}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New
+            </Button>
+          </div>
+
+          {/* Navigation Arrows */}
+          <div className="flex items-center gap-1 pt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNext}
+              disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
+              title="Newer entry"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPrevious}
+              disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
+              title="Older entry"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            {isViewingMode && (
+              <Badge variant="secondary" className="ml-2 whitespace-nowrap">
+                {currentEntryIndex + 1}/{journalEntries.length}
               </Badge>
             )}
           </div>
