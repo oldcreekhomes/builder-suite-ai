@@ -32,7 +32,7 @@ interface JournalEntryFormProps {
 }
 
 export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
-  const { createManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
+  const { createManualJournalEntry, updateManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
@@ -44,6 +44,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   ]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
   const [isViewingMode, setIsViewingMode] = useState(false);
+  const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -217,6 +218,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   // Load a journal entry into the form
   const loadJournalEntry = (entry: any) => {
+    setCurrentJournalEntryId(entry.id);
     setEntryDate(new Date(entry.entry_date));
     setDescription(entry.description || "");
     
@@ -280,6 +282,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   const createNewEntry = () => {
     setCurrentEntryIndex(-1);
+    setCurrentJournalEntryId(null);
     setIsViewingMode(false);
     setEntryDate(new Date());
     setDescription("");
@@ -326,16 +329,29 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
     console.debug('Submitting journal entry with lines:', journalLines);
 
-    await createManualJournalEntry.mutateAsync({
-      entry_date: entryDate,
-      description: description || undefined,
-      lines: journalLines,
-      project_id: projectId,
-    });
-
-    // After save, prepare to view the newly created entry
-    setCurrentEntryIndex(0);
-    setIsViewingMode(true);
+    if (currentJournalEntryId) {
+      // Updating existing entry
+      await updateManualJournalEntry.mutateAsync({
+        journal_entry_id: currentJournalEntryId,
+        entry_date: entryDate,
+        description: description || undefined,
+        lines: journalLines,
+        project_id: projectId,
+      });
+      // Stay in viewing mode with same entry
+      setIsViewingMode(true);
+    } else {
+      // Creating new entry
+      await createManualJournalEntry.mutateAsync({
+        entry_date: entryDate,
+        description: description || undefined,
+        lines: journalLines,
+        project_id: projectId,
+      });
+      // After save, prepare to view the newly created entry
+      setCurrentEntryIndex(0);
+      setIsViewingMode(true);
+    }
   };
 
   const isValid = totals.isBalanced && totals.missingSelections === 0;
