@@ -114,7 +114,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Header Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label>Entry Date</Label>
             <Popover>
