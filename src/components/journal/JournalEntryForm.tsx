@@ -44,12 +44,22 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   const totals = useMemo(() => {
     const allLines = [...expenseLines, ...jobCostLines];
-    const totalDebits = allLines.reduce((sum, line) => {
+    
+    // Filter lines the same way handleSubmit does
+    const validLines = allLines.filter(line => {
+      if (line.line_type === 'expense') {
+        return line.account_id && (line.debit || line.credit);
+      } else {
+        return line.cost_code_id && (line.debit || line.credit);
+      }
+    });
+    
+    const totalDebits = validLines.reduce((sum, line) => {
       const debit = parseFloat(line.debit) || 0;
       return sum + debit;
     }, 0);
 
-    const totalCredits = allLines.reduce((sum, line) => {
+    const totalCredits = validLines.reduce((sum, line) => {
       const credit = parseFloat(line.credit) || 0;
       return sum + credit;
     }, 0);

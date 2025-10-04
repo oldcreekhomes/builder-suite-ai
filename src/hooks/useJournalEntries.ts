@@ -77,6 +77,17 @@ export const useJournalEntries = () => {
       const owner_id = userData.role === "employee" ? userData.home_builder_id : userData.id;
       if (!owner_id) throw new Error("Owner ID could not be determined");
 
+      // Fetch WIP account for job cost lines
+      const { data: accountingSettings } = await supabase
+        .from("accounting_settings")
+        .select("wip_account_id")
+        .eq("owner_id", owner_id)
+        .maybeSingle();
+      
+      if (!accountingSettings?.wip_account_id) {
+        throw new Error("WIP account not configured. Please configure accounting settings first.");
+      }
+
       // Create journal entry
       const { data: journalEntry, error: entryError } = await supabase
         .from("journal_entries")
@@ -98,7 +109,7 @@ export const useJournalEntries = () => {
         journal_entry_id: journalEntry.id,
         owner_id,
         line_number: line.line_number,
-        account_id: line.line_type === 'expense' ? line.account_id : null,
+        account_id: line.line_type === 'expense' ? line.account_id : accountingSettings.wip_account_id,
         debit: line.debit,
         credit: line.credit,
         memo: line.memo || null,
