@@ -397,13 +397,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             <table className="w-full">
               <tfoot className="border-t-2 bg-muted/50">
                 <tr>
-                  <td className="p-3 font-semibold">Totals</td>
-                  <td className="p-3 text-right font-semibold">
+                  <td className="p-3 font-semibold" style={{ width: '400px' }}>Totals</td>
+                  <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
                     ${totals.totalDebits.toFixed(2)}
                   </td>
-                  <td className="p-3 text-right font-semibold">
+                  <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
                     ${totals.totalCredits.toFixed(2)}
                   </td>
+                  <td className="p-3"></td>
+                  <td className="w-12"></td>
                 </tr>
               </tfoot>
             </table>
