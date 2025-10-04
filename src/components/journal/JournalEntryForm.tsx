@@ -147,7 +147,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   };
 
   const updateExpenseLine = (id: string, field: keyof JournalLine, value: string) => {
-    setExpenseLines(expenseLines.map(line => {
+    setExpenseLines(prev => prev.map(line => {
       if (line.id === id) {
         const updated = { ...line, [field]: value };
         
@@ -165,7 +165,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   };
 
   const updateJobCostLine = (id: string, field: keyof JournalLine, value: string) => {
-    setJobCostLines(jobCostLines.map(line => {
+    setJobCostLines(prev => prev.map(line => {
       if (line.id === id) {
         const updated = { ...line, [field]: value };
         
@@ -185,6 +185,13 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       }
       return line;
     }));
+  };
+
+  // Helper to update multiple fields at once
+  const updateJobCostLineFields = (id: string, updates: Partial<JournalLine>) => {
+    setJobCostLines(prev => prev.map(line => 
+      line.id === id ? { ...line, ...updates } : line
+    ));
   };
 
   const handleSubmit = async () => {
@@ -309,8 +316,11 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                               value={line.cost_code_display || ""}
                               onChange={(value) => updateJobCostLine(line.id, "cost_code_display", value)}
                               onCostCodeSelect={(costCode) => {
-                                updateJobCostLine(line.id, "cost_code_id", costCode.id);
-                                updateJobCostLine(line.id, "cost_code_display", `${costCode.code} - ${costCode.name}`);
+                                updateJobCostLineFields(line.id, {
+                                  cost_code_id: costCode.id,
+                                  cost_code_display: `${costCode.code} - ${costCode.name}`
+                                });
+                                console.debug('Cost code selected:', { id: costCode.id, display: `${costCode.code} - ${costCode.name}` });
                               }}
                               placeholder="Select cost code"
                               className="w-full"
