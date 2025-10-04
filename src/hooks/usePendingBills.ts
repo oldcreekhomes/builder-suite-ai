@@ -249,6 +249,44 @@ export const usePendingBills = () => {
     },
   });
 
+  // Batch approve multiple bills
+  const batchApproveBills = useMutation({
+    mutationFn: async (bills: Array<{
+      pendingUploadId: string;
+      vendorId: string;
+      billDate: string;
+      dueDate?: string;
+      referenceNumber?: string;
+      terms?: string;
+      notes?: string;
+    }>) => {
+      const results = [];
+      for (const bill of bills) {
+        try {
+          const { data, error } = await supabase.rpc('approve_pending_bill', {
+            pending_upload_id_param: bill.pendingUploadId,
+            vendor_id_param: bill.vendorId,
+            bill_date_param: bill.billDate,
+            due_date_param: bill.dueDate || null,
+            reference_number_param: bill.referenceNumber || null,
+            terms_param: bill.terms || null,
+            notes_param: bill.notes || null,
+          });
+
+          if (error) throw error;
+          results.push({ success: true, billId: data, pendingUploadId: bill.pendingUploadId });
+        } catch (error) {
+          results.push({ success: false, error, pendingUploadId: bill.pendingUploadId });
+        }
+      }
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+    },
+  });
+
   return {
     pendingBills,
     isLoading,
@@ -259,5 +297,6 @@ export const usePendingBills = () => {
     deleteLine,
     approveBill,
     rejectBill,
+    batchApproveBills,
   };
 };

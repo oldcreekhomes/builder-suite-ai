@@ -758,31 +758,24 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   {upload.status === 'completed' && (
                     <Button
                       size="sm"
-                      onClick={() => window.location.href = '/enter-bills/review'}
+                      variant="ghost"
+                      onClick={() => handleDeleteUpload(upload.id)}
                     >
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Go to Review Bills
-                    </Button>
-                  )}
-                  {upload.status === 'extracted' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleUseData(upload)}
-                    >
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Use This Data
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                   {upload.status === 'error' && upload.error_message && (
-                    <span className="text-sm text-destructive mr-2">{upload.error_message}</span>
+                    <>
+                      <span className="text-sm text-destructive mr-2">{upload.error_message}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteUpload(upload.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDeleteUpload(upload.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             ))}

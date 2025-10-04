@@ -25,6 +25,9 @@ import { useProject } from "@/hooks/useProject";
 import { toast } from "@/hooks/use-toast";
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 import SimplifiedAIBillExtraction from "@/components/bills/SimplifiedAIBillExtraction";
+import { BatchBillReviewTable } from "@/components/bills/BatchBillReviewTable";
+import { usePendingBills } from "@/hooks/usePendingBills";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExpenseRow {
   id: string;
@@ -53,6 +56,10 @@ export default function EnterBills() {
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
+  
+  const { pendingBills, isLoading: loadingPendingBills, batchApproveBills } = usePendingBills();
+  const [batchBills, setBatchBills] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { createBill } = useBills();
   const { accountingSettings } = useAccounts();
@@ -153,6 +160,133 @@ export default function EnterBills() {
     }, 0);
     
     return (jobCostTotal + expenseTotal).toFixed(2);
+  };
+
+  // Update batch bills when pending bills change
+  useEffect(() => {
+    if (pendingBills) {
+      const completed = pendingBills.filter(b => b.status === 'completed').map(bill => {
+        const extractedData = bill.extracted_data || {};
+        return {
+          id: bill.id,
+          file_name: bill.file_name,
+          file_path: bill.file_path,
+          status: bill.status,
+          vendor_id: extractedData.vendorId,
+          vendor_name: extractedData.vendor,
+          bill_date: extractedData.date,
+          due_date: extractedData.dueDate,
+          reference_number: extractedData.referenceNumber,
+          terms: extractedData.terms,
+          lines: [], // Will be loaded separately
+        };
+      });
+      setBatchBills(completed);
+    }
+  }, [pendingBills]);
+
+  const handleBillUpdate = (billId: string, updates: any) => {
+    setBatchBills(prev => prev.map(bill => 
+      bill.id === billId ? { ...bill, ...updates } : bill
+    ));
+  };
+
+  const handleBillDelete = async (billId: string) => {
+    const { error } = await supabase
+      .from('pending_bill_uploads')
+      .delete()
+      .eq('id', billId);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete bill",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setBatchBills(prev => prev.filter(bill => bill.id !== billId));
+    toast({
+      title: "Success",
+      description: "Bill deleted successfully",
+    });
+  };
+
+  const handleLinesUpdate = async (billId: string, lines: any[]) => {
+    setBatchBills(prev => prev.map(bill => 
+      bill.id === billId ? { ...bill, lines } : bill
+    ));
+
+    const { data: userData } = await supabase.auth.getUser();
+    const ownerId = userData.user?.id;
+
+    await supabase
+      .from('pending_bill_lines')
+      .delete()
+      .eq('pending_upload_id', billId);
+
+    const linesToInsert = lines.map(line => ({
+      pending_upload_id: billId,
+      owner_id: ownerId,
+      ...line,
+    }));
+
+    await supabase
+      .from('pending_bill_lines')
+      .insert(linesToInsert);
+  };
+
+  const handleSubmitAllBills = async () => {
+    setIsSubmitting(true);
+    
+    const billsToSubmit = batchBills
+      .filter(bill => bill.vendor_name && bill.bill_date)
+      .map(bill => ({
+        pendingUploadId: bill.id,
+        vendorId: bill.vendor_name, // For now using name, need to lookup ID
+        billDate: bill.bill_date,
+        dueDate: bill.due_date,
+        referenceNumber: bill.reference_number,
+        terms: bill.terms,
+      }));
+
+    if (billsToSubmit.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "No bills are ready to submit. Please ensure vendor and bill date are filled.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const results = await batchApproveBills.mutateAsync(billsToSubmit);
+      
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+
+      if (successful > 0) {
+        toast({
+          title: "Success",
+          description: `${successful} bill${successful > 1 ? 's' : ''} created successfully${failed > 0 ? `, ${failed} failed` : ''}`,
+        });
+      }
+
+      if (failed === 0) {
+        setBatchBills([]);
+        navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit bills",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAIDataExtracted = (extractedData: any) => {
@@ -377,24 +511,41 @@ export default function EnterBills() {
                 <TabsTrigger value="ai">Enter Bills with AI</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="ai" className="mt-6">
-                <div className="mb-4 p-4 border rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>New Workflow:</strong> Uploaded bills will be processed and sent to the{' '}
-                    <Button
-                      variant="link"
-                      className="h-auto p-0 text-sm underline"
-                      onClick={() => window.location.href = `/project/${projectId}/accounting/bills/review`}
-                    >
-                      Review Bills
-                    </Button>
-                    {' '}page where you can review, edit, and approve them before adding to your accounting system.
-                  </p>
-                </div>
+              <TabsContent value="ai" className="mt-6 space-y-6">
                 <SimplifiedAIBillExtraction 
-                  onDataExtracted={handleAIDataExtracted}
+                  onDataExtracted={() => {}}
                   onSwitchToManual={() => setActiveTab("manual")}
                 />
+
+                {batchBills.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <CardTitle>Extracted Bills</CardTitle>
+                          <CardDescription>
+                            Review and edit {batchBills.length} bill{batchBills.length > 1 ? 's' : ''} before submitting
+                          </CardDescription>
+                        </div>
+                        <Button
+                          onClick={handleSubmitAllBills}
+                          disabled={isSubmitting || batchBills.length === 0}
+                          size="lg"
+                        >
+                          {isSubmitting ? "Submitting..." : `Submit All Bills (${batchBills.length})`}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <BatchBillReviewTable
+                        bills={batchBills}
+                        onBillUpdate={handleBillUpdate}
+                        onBillDelete={handleBillDelete}
+                        onLinesUpdate={handleLinesUpdate}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="manual" className="mt-6">
