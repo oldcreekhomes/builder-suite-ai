@@ -19,7 +19,6 @@ interface JournalLine {
   id: string;
   line_type: 'expense' | 'job_cost';
   account_id?: string;
-  project_id?: string;
   cost_code_id?: string;
   debit: string;
   credit: string;
@@ -39,7 +38,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     { id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" },
   ]);
   const [jobCostLines, setJobCostLines] = useState<JournalLine[]>([
-    { id: crypto.randomUUID(), line_type: 'job_cost', project_id: "", cost_code_id: "", debit: "", credit: "", memo: "" },
+    { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" },
   ]);
 
   const totals = useMemo(() => {
@@ -75,7 +74,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setJobCostLines([...jobCostLines, { 
       id: crypto.randomUUID(), 
       line_type: 'job_cost',
-      project_id: "",
       cost_code_id: "",
       debit: "", 
       credit: "", 
@@ -138,14 +136,14 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         if (line.line_type === 'expense') {
           return line.account_id && (line.debit || line.credit);
         } else {
-          return line.project_id && line.cost_code_id && (line.debit || line.credit);
+          return line.cost_code_id && (line.debit || line.credit);
         }
       })
       .map((line, index) => ({
         line_number: index + 1,
         line_type: line.line_type,
         account_id: line.line_type === 'expense' ? line.account_id : undefined,
-        project_id: line.line_type === 'job_cost' ? line.project_id : undefined,
+        project_id: line.line_type === 'job_cost' ? projectId : undefined,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : undefined,
         debit: parseFloat(line.debit) || 0,
         credit: parseFloat(line.credit) || 0,
@@ -163,7 +161,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setEntryDate(new Date());
     setDescription("");
     setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
-    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', project_id: "", cost_code_id: "", debit: "", credit: "", memo: "" }]);
+    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" }]);
   };
 
   const isValid = totals.isBalanced;
@@ -237,7 +235,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium">Project</th>
                         <th className="text-left p-3 font-medium">Cost Code</th>
                         <th className="text-right p-3 font-medium w-32">Debit</th>
                         <th className="text-right p-3 font-medium w-32">Credit</th>
@@ -248,13 +245,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                     <tbody>
                       {jobCostLines.map((line, index) => (
                         <tr key={line.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/30"}>
-                          <td className="p-3">
-                            <JobSearchInput
-                              value={line.project_id || ""}
-                              onChange={(value) => updateJobCostLine(line.id, "project_id", value)}
-                              placeholder="Select project"
-                            />
-                          </td>
                           <td className="p-3">
                             <CostCodeSearchInput
                               value={line.cost_code_id || ""}
@@ -436,7 +426,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               setEntryDate(new Date());
               setDescription("");
               setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
-              setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', project_id: "", cost_code_id: "", debit: "", credit: "", memo: "" }]);
+              setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" }]);
             }}
           >
             Clear
