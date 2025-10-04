@@ -20,6 +20,7 @@ interface JournalLine {
   line_type: 'expense' | 'job_cost';
   account_id?: string;
   cost_code_id?: string;
+  cost_code_display?: string; // For displaying the formatted cost code text
   debit: string;
   credit: string;
   memo: string;
@@ -75,6 +76,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       id: crypto.randomUUID(), 
       line_type: 'job_cost',
       cost_code_id: "",
+      cost_code_display: "",
       debit: "", 
       credit: "", 
       memo: "" 
@@ -161,7 +163,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setEntryDate(new Date());
     setDescription("");
     setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
-    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" }]);
+    setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
 
   const isValid = totals.isBalanced;
@@ -246,9 +248,12 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                         <tr key={line.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/30"}>
                           <td className="p-3">
                             <CostCodeSearchInput
-                              value={line.cost_code_id || ""}
-                              onChange={(value) => updateJobCostLine(line.id, "cost_code_id", value)}
-                              onCostCodeSelect={(costCode) => updateJobCostLine(line.id, "cost_code_id", costCode.id)}
+                              value={line.cost_code_display || ""}
+                              onChange={(value) => updateJobCostLine(line.id, "cost_code_display", value)}
+                              onCostCodeSelect={(costCode) => {
+                                updateJobCostLine(line.id, "cost_code_id", costCode.id);
+                                updateJobCostLine(line.id, "cost_code_display", `${costCode.code} - ${costCode.name}`);
+                              }}
                               placeholder="Select cost code"
                               className="w-full"
                             />
@@ -415,7 +420,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               setEntryDate(new Date());
               setDescription("");
               setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
-              setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" }]);
+              setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
             }}
           >
             Clear
