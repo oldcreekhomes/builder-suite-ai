@@ -48,12 +48,14 @@ export const usePendingBills = () => {
       const { data, error } = await supabase
         .from('pending_bill_uploads')
         .select('*')
-        .in('status', ['completed', 'reviewing'])
+        .in('status', ['extracted', 'completed', 'reviewing'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as PendingBill[];
     },
+    refetchInterval: 2000,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch lines for a specific pending bill
