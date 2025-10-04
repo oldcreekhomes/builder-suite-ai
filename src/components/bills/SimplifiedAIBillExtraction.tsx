@@ -9,6 +9,16 @@ import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-
 import { Badge } from "@/components/ui/badge";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Use local worker to avoid CDN/CORS issues for both pdfjs-dist and react-pdf
 GlobalWorkerOptions.workerSrc = workerSrc;
@@ -34,6 +44,8 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [processingStats, setProcessingStats] = useState({ processing: 0, total: 0 });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uploadToDelete, setUploadToDelete] = useState<string | null>(null);
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -672,6 +684,15 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setUploadToDelete(null);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (uploadToDelete) {
+      handleDeleteUpload(uploadToDelete);
     }
   };
 
@@ -758,8 +779,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   {(upload.status === 'completed' || upload.status === 'extracted') && (
                     <Button
                       size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteUpload(upload.id)}
+                      variant="destructive"
+                      onClick={() => {
+                        setUploadToDelete(upload.id);
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -769,8 +793,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                       <span className="text-sm text-destructive mr-2">{upload.error_message}</span>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteUpload(upload.id)}
+                        variant="destructive"
+                        onClick={() => {
+                          setUploadToDelete(upload.id);
+                          setDeleteDialogOpen(true);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -788,6 +815,23 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
           </div>
         )}
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Bill Upload?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the uploaded bill and all extracted data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUploadToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
