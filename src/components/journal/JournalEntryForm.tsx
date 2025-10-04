@@ -45,6 +45,24 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
   const [isViewingMode, setIsViewingMode] = useState(false);
 
+  // Filter entries by projectId if specified
+  const filteredEntries = useMemo(() => {
+    if (!projectId) {
+      return journalEntries;
+    }
+    return journalEntries.filter(entry => 
+      entry.lines?.some((line: any) => line.project_id === projectId)
+    );
+  }, [journalEntries, projectId]);
+
+  console.debug('Journal Entry Navigation State:', {
+    projectId,
+    totalEntries: journalEntries.length,
+    filteredEntries: filteredEntries.length,
+    currentEntryIndex,
+    isViewingMode
+  });
+
   // Format number with commas
   const formatNumber = (value: string | number): string => {
     if (!value) return "";
@@ -236,22 +254,27 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   // Navigation handlers
   const goToPrevious = () => {
-    if (currentEntryIndex < journalEntries.length - 1) {
+    // Navigate to older entries (right arrow)
+    if (currentEntryIndex === -1 && filteredEntries.length > 0) {
+      // From "New" state, load the most recent entry
+      console.debug('Loading most recent entry from New state');
+      setCurrentEntryIndex(0);
+      loadJournalEntry(filteredEntries[0]);
+    } else if (currentEntryIndex < filteredEntries.length - 1) {
       const newIndex = currentEntryIndex + 1;
+      console.debug('Navigating to older entry:', newIndex);
       setCurrentEntryIndex(newIndex);
-      if (journalEntries[newIndex]) {
-        loadJournalEntry(journalEntries[newIndex]);
-      }
+      loadJournalEntry(filteredEntries[newIndex]);
     }
   };
 
   const goToNext = () => {
+    // Navigate to newer entries (left arrow)
     if (currentEntryIndex > 0) {
       const newIndex = currentEntryIndex - 1;
+      console.debug('Navigating to newer entry:', newIndex);
       setCurrentEntryIndex(newIndex);
-      if (journalEntries[newIndex]) {
-        loadJournalEntry(journalEntries[newIndex]);
-      }
+      loadJournalEntry(filteredEntries[newIndex]);
     }
   };
 
@@ -266,17 +289,19 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   // Auto-load most recent entry on mount or after save
   useEffect(() => {
-    if (!isLoading && journalEntries.length > 0) {
-      if (currentEntryIndex === -1) {
-        // Initial load
+    if (!isLoading && filteredEntries.length > 0) {
+      if (currentEntryIndex === -1 && !isViewingMode) {
+        // Initial load - load most recent entry for this project
+        console.debug('Initial load: loading most recent entry');
         setCurrentEntryIndex(0);
-        loadJournalEntry(journalEntries[0]);
+        loadJournalEntry(filteredEntries[0]);
       } else if (currentEntryIndex === 0 && isViewingMode) {
         // Refresh current entry after save (entry list was updated)
-        loadJournalEntry(journalEntries[0]);
+        console.debug('Refreshing current entry after save');
+        loadJournalEntry(filteredEntries[0]);
       }
     }
-  }, [isLoading, journalEntries.length]);
+  }, [isLoading, filteredEntries.length]);
 
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
@@ -376,7 +401,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               variant="outline"
               size="sm"
               onClick={goToNext}
-              disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
+              disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
               title="Newer entry"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -385,15 +410,20 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               variant="outline"
               size="sm"
               onClick={goToPrevious}
-              disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
+              disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
               title="Older entry"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-            {isViewingMode && (
+            {isViewingMode && filteredEntries.length > 0 && (
               <Badge variant="secondary" className="ml-2 whitespace-nowrap">
-                {currentEntryIndex + 1}/{journalEntries.length}
+                {currentEntryIndex + 1}/{filteredEntries.length}
               </Badge>
+            )}
+            {!isViewingMode && filteredEntries.length === 0 && projectId && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                No entries for this project yet
+              </span>
             )}
           </div>
         </div>
