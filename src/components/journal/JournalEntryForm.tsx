@@ -176,6 +176,11 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
           updated.debit = "";
         }
         
+        // Clear cost_code_id when display is cleared
+        if (field === "cost_code_display" && !value) {
+          updated.cost_code_id = "";
+        }
+        
         return updated;
       }
       return line;

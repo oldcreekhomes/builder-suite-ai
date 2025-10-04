@@ -54,9 +54,57 @@ export function CostCodeSearchInput({
     }
   };
 
+  const attemptAutoSelect = () => {
+    if (!searchQuery.trim() || !onCostCodeSelect) return;
+
+    // Try to extract a code from the input
+    let codeToMatch = searchQuery.trim();
+    
+    // If input contains " - ", extract the code part before it
+    if (codeToMatch.includes(' - ')) {
+      codeToMatch = codeToMatch.split(' - ')[0].trim();
+    }
+    
+    // Try exact code match first (preferred)
+    let match = filteredCostCodes.find(cc => cc.code === codeToMatch);
+    
+    // If no exact match, try case-insensitive exact match
+    if (!match) {
+      match = filteredCostCodes.find(cc => cc.code.toLowerCase() === codeToMatch.toLowerCase());
+    }
+    
+    // If still no match and we have exactly one search result, use it
+    if (!match && filteredCostCodes.length === 1) {
+      match = filteredCostCodes[0];
+    }
+    
+    // If still no match, try matching full "code - name" format (case-insensitive)
+    if (!match) {
+      const normalized = searchQuery.toLowerCase().trim();
+      match = filteredCostCodes.find(cc => 
+        `${cc.code} - ${cc.name}`.toLowerCase() === normalized
+      );
+    }
+    
+    // If we found a match, select it
+    if (match) {
+      handleSelectCostCode(match);
+    }
+  };
+
   const handleInputBlur = () => {
+    // Try to auto-select before hiding results
+    attemptAutoSelect();
     // Delay hiding results to allow for selection
     setTimeout(() => setShowResults(false), 200);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      attemptAutoSelect();
+      setShowResults(false);
+    }
   };
 
   const handleSelectCostCode = (costCode: { id: string; code: string; name: string }) => {
@@ -78,6 +126,7 @@ export function CostCodeSearchInput({
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onBlur={handleInputBlur}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={className}
       />
