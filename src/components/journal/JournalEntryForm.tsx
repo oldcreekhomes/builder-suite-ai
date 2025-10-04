@@ -86,12 +86,18 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const removeExpenseLine = (id: string) => {
     if (expenseLines.length > 1) {
       setExpenseLines(expenseLines.filter(line => line.id !== id));
+    } else {
+      // Reset the line to empty if it's the last one
+      setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
     }
   };
 
   const removeJobCostLine = (id: string) => {
     if (jobCostLines.length > 1) {
       setJobCostLines(jobCostLines.filter(line => line.id !== id));
+    } else {
+      // Reset the line to empty if it's the last one
+      setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
     }
   };
 
@@ -286,15 +292,13 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             />
                           </td>
                           <td className="py-3 pl-2 pr-3">
-                            {jobCostLines.length > 1 && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeJobCostLine(line.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeJobCostLine(line.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -357,15 +361,13 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                             />
                           </td>
                           <td className="py-3 pl-2 pr-3">
-                            {expenseLines.length > 1 && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeExpenseLine(line.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeExpenseLine(line.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </td>
                         </tr>
                       ))}
