@@ -61,8 +61,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
               </Button>
-              <div className="flex items-center space-x-4">
-                <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
+              <div>
                 {projectLoading ? (
                   <div className="h-5 w-32 bg-muted animate-pulse rounded"></div>
                 ) : project?.address ? (
