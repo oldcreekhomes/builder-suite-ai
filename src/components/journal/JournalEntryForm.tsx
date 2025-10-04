@@ -239,7 +239,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     if (currentEntryIndex < journalEntries.length - 1) {
       const newIndex = currentEntryIndex + 1;
       setCurrentEntryIndex(newIndex);
-      loadJournalEntry(journalEntries[newIndex]);
+      if (journalEntries[newIndex]) {
+        loadJournalEntry(journalEntries[newIndex]);
+      }
     }
   };
 
@@ -247,7 +249,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     if (currentEntryIndex > 0) {
       const newIndex = currentEntryIndex - 1;
       setCurrentEntryIndex(newIndex);
-      loadJournalEntry(journalEntries[newIndex]);
+      if (journalEntries[newIndex]) {
+        loadJournalEntry(journalEntries[newIndex]);
+      }
     }
   };
 
@@ -260,13 +264,19 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
 
-  // Auto-load most recent entry on mount
+  // Auto-load most recent entry on mount or after save
   useEffect(() => {
-    if (!isLoading && journalEntries.length > 0 && currentEntryIndex === -1) {
-      setCurrentEntryIndex(0);
-      loadJournalEntry(journalEntries[0]);
+    if (!isLoading && journalEntries.length > 0) {
+      if (currentEntryIndex === -1) {
+        // Initial load
+        setCurrentEntryIndex(0);
+        loadJournalEntry(journalEntries[0]);
+      } else if (currentEntryIndex === 0 && isViewingMode) {
+        // Refresh current entry after save (entry list was updated)
+        loadJournalEntry(journalEntries[0]);
+      }
     }
-  }, [isLoading, journalEntries]);
+  }, [isLoading, journalEntries.length]);
 
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
@@ -298,9 +308,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       project_id: projectId,
     });
 
-    // After save, load the most recent entry (the one we just created)
+    // After save, prepare to view the newly created entry
     setCurrentEntryIndex(0);
-    // The query will refetch automatically, and the useEffect will load it
+    setIsViewingMode(true);
   };
 
   const isValid = totals.isBalanced && totals.missingSelections === 0;
@@ -308,53 +318,39 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   return (
     <Card>
       <CardContent className="space-y-6 pt-6">
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
-          <div className="flex items-center gap-3">
+        {/* Compact Header with Navigation and Entry Fields */}
+        <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 items-start">
+          {/* Navigation Controls */}
+          <div className="flex items-center gap-2 pt-8">
             <Button
               onClick={createNewEntry}
               size="sm"
               variant={!isViewingMode ? "default" : "outline"}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Entry
+              New
             </Button>
-            {isViewingMode && (
-              <Badge variant="secondary">Viewing Saved Entry</Badge>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNext}
+              disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
+              title="Newer entry"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPrevious}
+              disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
+              title="Older entry"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {currentEntryIndex === -1 ? (
-                "New Entry"
-              ) : (
-                `Entry ${currentEntryIndex + 1} of ${journalEntries.length}`
-              )}
-            </span>
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNext}
-                disabled={currentEntryIndex <= 0 || journalEntries.length === 0}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPrevious}
-                disabled={currentEntryIndex >= journalEntries.length - 1 || journalEntries.length === 0}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {/* Header Section - Consolidated */}
-        <div className="grid grid-cols-2 gap-4">
+          {/* Entry Date */}
           <div className="space-y-2">
             <Label>Entry Date</Label>
             <Popover>
@@ -382,6 +378,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             </Popover>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label>Description</Label>
             <Input
@@ -389,6 +386,19 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+
+          {/* Entry Counter Badge */}
+          <div className="flex items-center pt-8">
+            {isViewingMode ? (
+              <Badge variant="secondary" className="whitespace-nowrap">
+                Entry {currentEntryIndex + 1} of {journalEntries.length}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="whitespace-nowrap">
+                New Entry
+              </Badge>
+            )}
           </div>
         </div>
 
