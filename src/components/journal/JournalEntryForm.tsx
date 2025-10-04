@@ -68,12 +68,12 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     });
     
     const totalDebits = validLines.reduce((sum, line) => {
-      const debit = parseFloat(line.debit) || 0;
+      const debit = parseFloat(parseFormattedNumber(line.debit)) || 0;
       return sum + debit;
     }, 0);
 
     const totalCredits = validLines.reduce((sum, line) => {
-      const credit = parseFloat(line.credit) || 0;
+      const credit = parseFloat(parseFormattedNumber(line.credit)) || 0;
       return sum + credit;
     }, 0);
 
@@ -176,8 +176,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         account_id: line.line_type === 'expense' ? line.account_id : undefined,
         project_id: line.line_type === 'job_cost' ? projectId : undefined,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : undefined,
-        debit: parseFloat(line.debit) || 0,
-        credit: parseFloat(line.credit) || 0,
+        debit: parseFloat(parseFormattedNumber(line.debit)) || 0,
+        credit: parseFloat(parseFormattedNumber(line.credit)) || 0,
         memo: line.memo || undefined,
       }));
 
