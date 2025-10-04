@@ -226,7 +226,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     entry.lines?.forEach((line: any) => {
       const formattedLine = {
         id: crypto.randomUUID(),
-        line_type: line.project_id ? 'job_cost' : 'expense' as 'expense' | 'job_cost',
+        line_type: line.cost_code_id ? 'job_cost' : 'expense' as 'expense' | 'job_cost',
         account_id: line.account_id || "",
         cost_code_id: line.cost_code_id || "",
         cost_code_display: line.cost_codes ? `${line.cost_codes.code} - ${line.cost_codes.name}` : "",
@@ -317,7 +317,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         line_number: index + 1,
         line_type: line.line_type,
         account_id: line.line_type === 'expense' ? line.account_id : undefined,
-        project_id: line.line_type === 'job_cost' ? projectId : undefined,
+        project_id: projectId || undefined,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : undefined,
         debit: parseFloat(parseFormattedNumber(line.debit)) || 0,
         credit: parseFloat(parseFormattedNumber(line.credit)) || 0,

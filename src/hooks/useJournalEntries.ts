@@ -165,7 +165,7 @@ export const useJournalEntries = () => {
         debit: line.debit,
         credit: line.credit,
         memo: line.memo || null,
-        project_id: line.line_type === 'job_cost' ? line.project_id : null,
+        project_id: data.project_id || line.project_id || null,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : null,
       }));
 
