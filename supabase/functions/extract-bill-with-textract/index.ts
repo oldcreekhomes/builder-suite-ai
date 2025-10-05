@@ -321,6 +321,7 @@ function parseTextractResponse(textractData: any): any {
     vendor: null,
     billDate: null,
     dueDate: null,
+    terms: null,
     totalAmount: null,
     referenceNumber: null,
     lineItems: [],
@@ -351,6 +352,11 @@ function parseTextractResponse(textractData: any): any {
           break;
         case 'due_date':
           extractedData.dueDate = value;
+          break;
+        case 'terms':
+        case 'payment_terms':
+        case 'payment_due':
+          extractedData.terms = value;
           break;
         case 'total':
         case 'amount_paid':

@@ -126,7 +126,7 @@ Extract the following information and return as valid JSON:
   "bill_date": "YYYY-MM-DD",
   "due_date": "YYYY-MM-DD (or null)",
   "reference_number": "string (or null)",
-  "terms": "string (e.g., 'Net 30', or null)",
+  "terms": "string - Payment terms EXACTLY as shown on invoice (e.g., 'Net 15', 'Net 30', 'Net 45', 'Due on receipt', 'COD', etc.). Look carefully for terms field or payment terms section. Return null if not found.",
   "line_items": [
     {
       "description": "string",
@@ -141,7 +141,13 @@ Extract the following information and return as valid JSON:
   "total_amount": number
 }
 
-IMPORTANT: For each line item, analyze the description and match it to the most appropriate account and cost code from the lists above. 
+IMPORTANT PAYMENT TERMS: 
+- Look carefully for payment terms on the document (often labeled as "Terms:", "Payment Terms:", "Net:", etc.)
+- Extract the EXACT text shown (e.g., if it says "Net 15", return "Net 15", NOT "Net 30")
+- Common formats include: Net 15, Net 30, Net 45, Net 60, Due on receipt, COD, 2/10 Net 30
+- If no payment terms are visible, return null
+
+IMPORTANT CATEGORIZATION: For each line item, analyze the description and match it to the most appropriate account and cost code from the lists above. 
 - For "account_name", return the exact account name from the available accounts list
 - For "cost_code_name", return the exact cost code name from the available cost codes list
 - If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
