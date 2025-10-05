@@ -102,7 +102,6 @@ export function BatchBillReviewTable({
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="w-[60px] px-2 py-0 text-xs font-medium text-right">Count</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium text-right">Total</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Attachment</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Status</TableHead>
@@ -112,8 +111,9 @@ export function BatchBillReviewTable({
             {bills.map((bill) => {
               const isExpanded = expandedBills.has(bill.id);
               const issues = validateBill(bill);
-              const lineCount = bill.lines?.length || 0;
-              const totalAmount = bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0;
+              const totalAmount = bill.lines?.reduce((sum, line) => {
+                return sum + ((line.quantity || 0) * (line.unit_cost || 0));
+              }, 0) || 0;
               
               return (
                 <>
@@ -143,9 +143,6 @@ export function BatchBillReviewTable({
                     </TableCell>
                     <TableCell className="px-2 py-1">
                       <span className="text-xs">{bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1 text-right">
-                      <span className="text-xs font-medium">{lineCount}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1 text-right">
                       <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
@@ -191,7 +188,7 @@ export function BatchBillReviewTable({
                   </TableRow>
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={9} className="bg-muted/30 px-2 py-1">
+                      <TableCell colSpan={8} className="bg-muted/30 px-2 py-1">
                         <div className="space-y-1 p-2">
                           <h4 className="text-xs font-medium">Line Items</h4>
                           {issues.length > 0 && (
