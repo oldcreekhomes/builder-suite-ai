@@ -409,11 +409,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       if (isPdf) {
         // Always render PDF pages to images for consistent AI processing
         console.log('Rendering PDF pages to images...');
-        pageImages = await renderPdfPagesToImagesReact(upload.file_path, 2);
+        pageImages = await renderPdfPagesToImagesReact(upload.file_path, 3);
 
         if (pageImages.length === 0) {
           console.log('react-pdf fallback returned 0 images, trying pdfjs-dist fallback...');
-          pageImages = await renderPdfPagesToImages(upload.file_path, 2);
+          pageImages = await renderPdfPagesToImages(upload.file_path, 3);
         }
         
         if (pageImages.length === 0) {
