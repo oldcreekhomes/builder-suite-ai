@@ -73,8 +73,18 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
     onLinesChange(updated);
   };
 
-  const jobCostLines = lines.filter(line => line.line_type === 'job_cost');
-  const expenseLines = lines.filter(line => line.line_type === 'expense');
+  // Filter lines based on type, inferring from data if line_type is not set
+  const jobCostLines = lines.filter(line => 
+    line.line_type === 'job_cost' || 
+    (!line.line_type && line.cost_code_id) || 
+    (!line.line_type && line.cost_code_name)
+  );
+  const expenseLines = lines.filter(line => 
+    line.line_type === 'expense' || 
+    (!line.line_type && line.account_id) || 
+    (!line.line_type && line.account_name) ||
+    (!line.line_type && !line.cost_code_id && !line.cost_code_name) // Default to expense if nothing is set
+  );
 
   const jobCostTotal = jobCostLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
   const expenseTotal = expenseLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
