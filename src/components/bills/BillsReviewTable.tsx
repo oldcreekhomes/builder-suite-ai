@@ -14,17 +14,6 @@ import { FileText } from "lucide-react";
 
 export const BillsReviewTable = () => {
   const { pendingBills, isLoading } = usePendingBills();
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  const toggleRow = (billId: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(billId)) {
-      newExpanded.delete(billId);
-    } else {
-      newExpanded.add(billId);
-    }
-    setExpandedRows(newExpanded);
-  };
 
   if (isLoading) {
     return (
@@ -53,7 +42,6 @@ export const BillsReviewTable = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10"></TableHead>
             <TableHead>File Name</TableHead>
             <TableHead>Uploaded</TableHead>
             <TableHead>Status</TableHead>
@@ -65,8 +53,6 @@ export const BillsReviewTable = () => {
             <BillsReviewTableRow
               key={bill.id}
               bill={bill}
-              isExpanded={expandedRows.has(bill.id)}
-              onToggle={() => toggleRow(bill.id)}
             />
           ))}
         </TableBody>

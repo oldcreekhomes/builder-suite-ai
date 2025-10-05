@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, FileText, Trash2 } from "lucide-react";
-import { BatchBillLineItems } from "./BatchBillLineItems";
+import { FileText, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 
 interface PendingBillLine {
   line_number: number;
@@ -50,17 +50,7 @@ export function BatchBillReviewTable({
   onBillDelete,
   onLinesUpdate 
 }: BatchBillReviewTableProps) {
-  const [expandedBills, setExpandedBills] = useState<Set<string>>(new Set());
-
-  const toggleExpanded = (billId: string) => {
-    const newExpanded = new Set(expandedBills);
-    if (newExpanded.has(billId)) {
-      newExpanded.delete(billId);
-    } else {
-      newExpanded.add(billId);
-    }
-    setExpandedBills(newExpanded);
-  };
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   const validateBill = (bill: PendingBill) => {
     const issues: string[] = [];
@@ -97,7 +87,6 @@ export function BatchBillReviewTable({
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="w-[40px] px-2 py-0 text-xs font-medium"></TableHead>
               <TableHead className="w-[200px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
@@ -106,11 +95,11 @@ export function BatchBillReviewTable({
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Total</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">File</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Status</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {bills.map((bill) => {
-              const isExpanded = expandedBills.has(bill.id);
               const issues = validateBill(bill);
               const totalAmount = bill.lines?.reduce((sum, line) => {
                 return sum + ((line.quantity || 0) * (line.unit_cost || 0));
@@ -126,107 +115,80 @@ export function BatchBillReviewTable({
               })();
               
               return (
-                <>
-                  <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
-                    <TableCell className="px-2 py-1">
+                <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{bill.vendor_name || '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{bill.reference_number || '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{accountDisplay}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <a
+                      href={`/file-redirect?bucket=bill-attachments&path=${bill.file_path}&fileName=${bill.file_name}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-red-600 hover:text-red-800 p-1 inline-block"
+                      title={bill.file_name}
+                    >
+                      <FileText className="h-4 w-4" />
+                    </a>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    {issues.length > 0 ? (
+                      <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
+                    ) : (
+                      <span className="text-xs text-green-600">Ready</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => toggleExpanded(bill.id)}
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setEditingBillId(bill.id)}
+                        title="Edit bill"
                       >
-                        {isExpanded ? (
-                          <ChevronDown className="h-3 w-3" />
-                        ) : (
-                          <ChevronRight className="h-3 w-3" />
-                        )}
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
                       </Button>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs">{bill.vendor_name || '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs">{bill.reference_number || '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs">{bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs">{bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs">{accountDisplay}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <div className="relative group inline-block">
-                        <a
-                          href={`/file-redirect?bucket=bill-attachments&path=${bill.file_path}&fileName=${bill.file_name}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-red-600 hover:text-red-800 p-1 inline-block"
-                          title={bill.file_name}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </a>
-                        <button
-                          onClick={() => onBillDelete(bill.id)}
-                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-colors"
-                          title="Delete bill"
-                        >
-                          <span className="text-xs font-bold leading-none">×</span>
-                        </button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        {issues.length > 0 ? (
-                          <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
-                        ) : (
-                          <span className="text-xs text-green-600">Ready</span>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => onBillDelete(bill.id)}
-                          title="Delete bill"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && (
-                    <TableRow>
-                      <TableCell colSpan={9} className="bg-muted/30 px-2 py-1">
-                        <div className="space-y-1 p-2">
-                          <h4 className="text-xs font-medium">Line Items</h4>
-                          {issues.length > 0 && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-1.5 text-xs">
-                              <ul className="list-disc list-inside space-y-0.5 text-red-800">
-                                {issues.map((issue, idx) => (
-                                  <li key={idx}>{issue}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          <BatchBillLineItems
-                            lines={bill.lines || []}
-                            onLinesChange={(lines) => onLinesUpdate(bill.id, lines)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => onBillDelete(bill.id)}
+                        title="Delete bill"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </div>
+      
+      {editingBillId && (
+        <EditExtractedBillDialog
+          open={!!editingBillId}
+          onOpenChange={(open) => !open && setEditingBillId(null)}
+          pendingUploadId={editingBillId}
+        />
+      )}
     </div>
   );
 }

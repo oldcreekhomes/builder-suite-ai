@@ -2,11 +2,11 @@ import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, Check, X, FileText, Building2, Trash2 } from "lucide-react";
+import { Check, X, FileText, Building2, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
-import { BillsReviewLineItemsTable } from "./BillsReviewLineItemsTable";
 import { ApproveBillDialog } from "./ApproveBillDialog";
+import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 
 interface ExtractedData {
   vendor_name?: string;
@@ -15,25 +15,17 @@ interface ExtractedData {
 
 interface BillsReviewTableRowProps {
   bill: PendingBill;
-  isExpanded: boolean;
-  onToggle: () => void;
 }
 
 export const BillsReviewTableRow = ({
   bill,
-  isExpanded,
-  onToggle,
 }: BillsReviewTableRowProps) => {
-  const { rejectBill, startReview } = usePendingBills();
+  const { rejectBill } = usePendingBills();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const extractedData = bill.extracted_data as ExtractedData | null;
   const vendorName = extractedData?.vendor_name;
-
-  const handleStartReview = () => {
-    startReview.mutate(bill.id);
-    onToggle();
-  };
 
   const handleReject = () => {
     if (confirm('Are you sure you want to reject this bill?')) {
@@ -64,15 +56,8 @@ export const BillsReviewTableRow = ({
 
   return (
     <>
-      <TableRow className="cursor-pointer hover:bg-muted/50">
-        <TableCell onClick={onToggle}>
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </TableCell>
-        <TableCell onClick={onToggle}>
+      <TableRow className="hover:bg-muted/50">
+        <TableCell>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <div className="flex flex-col gap-1">
@@ -86,21 +71,22 @@ export const BillsReviewTableRow = ({
             </div>
           </div>
         </TableCell>
-        <TableCell onClick={onToggle}>
+        <TableCell>
           <span className="text-sm text-muted-foreground">
             {format(new Date(bill.created_at), 'MMM d, yyyy')}
           </span>
         </TableCell>
-        <TableCell onClick={onToggle}>{getStatusBadge(bill.status)}</TableCell>
+        <TableCell>{getStatusBadge(bill.status)}</TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-2">
-            {bill.status === 'completed' && (
+            {(bill.status === 'completed' || bill.status === 'reviewing') && (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleStartReview}
+                onClick={() => setShowEditDialog(true)}
               >
-                Start Review
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
               </Button>
             )}
             {bill.status === 'reviewing' && (
@@ -135,17 +121,16 @@ export const BillsReviewTableRow = ({
           </div>
         </TableCell>
       </TableRow>
-      {isExpanded && bill.status === 'reviewing' && (
-        <TableRow>
-          <TableCell colSpan={5} className="bg-muted/20 p-6">
-            <BillsReviewLineItemsTable pendingUploadId={bill.id} />
-          </TableCell>
-        </TableRow>
-      )}
       
       <ApproveBillDialog
         open={showApproveDialog}
         onOpenChange={setShowApproveDialog}
+        pendingUploadId={bill.id}
+      />
+      
+      <EditExtractedBillDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
         pendingUploadId={bill.id}
       />
     </>
