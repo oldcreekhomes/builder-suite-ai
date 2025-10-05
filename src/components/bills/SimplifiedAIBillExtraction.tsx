@@ -3,22 +3,10 @@ import { createRoot } from "react-dom/client";
 import { Document as PdfDocument, Page as PdfPage, pdfjs as ReactPdfjs } from 'react-pdf';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Upload, Trash2 } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Loader2, Upload } from "lucide-react";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // Use local worker to avoid CDN/CORS issues for both pdfjs-dist and react-pdf
 GlobalWorkerOptions.workerSrc = workerSrc;
@@ -44,8 +32,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [processingStats, setProcessingStats] = useState({ processing: 0, total: 0 });
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [uploadToDelete, setUploadToDelete] = useState<string | null>(null);
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -657,186 +643,30 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
   };
 
-  const handleDeleteUpload = async (uploadId: string) => {
-    const upload = pendingUploads.find(u => u.id === uploadId);
-    if (!upload) return;
-
-    try {
-      await supabase.storage
-        .from('bill-attachments')
-        .remove([upload.file_path]);
-
-      await supabase
-        .from('pending_bill_uploads')
-        .delete()
-        .eq('id', uploadId);
-
-      setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
-
-      toast({
-        title: "Upload deleted",
-        description: "The pending upload has been removed"
-      });
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast({
-        title: "Delete failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleteDialogOpen(false);
-      setUploadToDelete(null);
-    }
-  };
-
-  const confirmDelete = () => {
-    if (uploadToDelete) {
-      handleDeleteUpload(uploadToDelete);
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    const statusConfig = {
-      pending: { label: "Uploading", color: "text-gray-600" },
-      processing: { label: "Processing", color: "text-red-600", showSpinner: true },
-      completed: { label: "Ready", color: "text-green-600" },
-      extracted: { label: "Extracted", color: "text-green-600" },
-      error: { label: "Error", color: "text-red-600" }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig];
-    
-    return (
-      <span className={`text-xs ${config.color} flex items-center gap-1`}>
-        {'showSpinner' in config && config.showSpinner && <Loader2 className="h-3 w-3 animate-spin" />}
-        {config.label}
-      </span>
-    );
-  };
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold">AI Bill Extraction</h3>
-              {processingStats.processing > 0 && (
-                <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Processing {processingStats.processing} of {processingStats.total}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Upload bill PDFs and let AI extract the data automatically
-            </p>
-          </div>
-          <div>
-            <input
-              type="file"
-              id="pdf-upload"
-              className="hidden"
-              accept="application/pdf,.pdf"
-              multiple
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-            <label htmlFor="pdf-upload">
-              <Button disabled={uploading} asChild>
-                <span>
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  Upload PDFs
-                </span>
-              </Button>
-            </label>
-          </div>
-        </div>
-
-        {pendingUploads.length > 0 ? (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="w-[300px] px-2 py-0 text-xs font-medium">File Name</TableHead>
-                  <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
-                  <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">File Size</TableHead>
-                  <TableHead className="w-[60px] px-2 py-0 text-xs font-medium text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingUploads.map((upload) => (
-                  <TableRow key={upload.id} className="h-10">
-                    <TableCell className="px-2 py-1">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs">{upload.file_name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      {getStatusText(upload.status)}
-                      {upload.status === 'error' && upload.error_message && (
-                        <div className="text-xs text-red-600 mt-0.5 max-w-[100px] truncate" title={upload.error_message}>
-                          {upload.error_message}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <span className="text-xs text-muted-foreground">
-                        {(upload.file_size / 1024).toFixed(1)} KB
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <div className="flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            setUploadToDelete(upload.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                          title="Delete file"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">No bills uploaded yet</p>
-            <p className="text-sm">Upload PDF bills to extract data automatically with AI</p>
-          </div>
-        )}
-      </Card>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Bill Upload?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the uploaded bill and all extracted data. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setUploadToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <div>
+      <input
+        type="file"
+        id="pdf-upload"
+        className="hidden"
+        accept="application/pdf,.pdf"
+        multiple
+        onChange={handleFileUpload}
+        disabled={uploading}
+      />
+      <label htmlFor="pdf-upload">
+        <Button disabled={uploading} asChild>
+          <span>
+            {uploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Upload PDFs
+          </span>
+        </Button>
+      </label>
     </div>
   );
 }
