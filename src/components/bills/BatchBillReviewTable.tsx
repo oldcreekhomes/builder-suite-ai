@@ -150,14 +150,14 @@ export function BatchBillReviewTable({
                           href={`/file-redirect?bucket=bill-attachments&path=${bill.file_path}&fileName=${bill.file_name}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-600 p-1 inline-block"
+                          className="text-red-600 hover:text-red-800 p-1 inline-block"
                           title={bill.file_name}
                         >
                           <FileText className="h-4 w-4" />
                         </a>
                         <button
                           onClick={() => onBillDelete(bill.id)}
-                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-colors"
                           title="Delete bill"
                         >
                           <span className="text-xs font-bold leading-none">×</span>
@@ -166,7 +166,7 @@ export function BatchBillReviewTable({
                     </TableCell>
                     <TableCell className="px-2 py-1">
                       {issues.length > 0 ? (
-                        <span className="text-xs text-red-600">{issues.length} issue{issues.length > 1 ? 's' : ''}</span>
+                        <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
                       ) : (
                         <span className="text-xs text-green-600">Ready</span>
                       )}
