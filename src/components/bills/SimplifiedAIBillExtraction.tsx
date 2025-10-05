@@ -765,7 +765,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                 <TableRow className="h-8">
                   <TableHead className="w-[300px] px-2 py-0 text-xs font-medium">File Name</TableHead>
                   <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
-                  <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">Remove</TableHead>
+                  <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">File Size</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
