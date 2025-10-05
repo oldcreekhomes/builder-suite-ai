@@ -3,6 +3,9 @@ project_id = "nlmnwlvmmkngrgatnzkj"
 [functions.extract-bill-data]
 verify_jwt = false
 
+[functions.extract-bill-with-textract]
+verify_jwt = false
+
 [functions.calculate-distances]
 verify_jwt = true
 

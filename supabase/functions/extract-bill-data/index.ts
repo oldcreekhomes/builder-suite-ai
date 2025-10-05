@@ -29,7 +29,7 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pageImages } = requestBody;
+    const { pendingUploadId, pdfText, pageImages } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
@@ -80,9 +80,9 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', pendingUploadId);
 
-    // Only download file if we need to process it as an image (no pageImages provided)
+    // Only download file if we need to process it as an image (no text/pageImages provided)
     let base64 = '';
-    if (!pageImages) {
+    if (!pdfText && !pageImages) {
       const downloadStartTime = Date.now();
       const { data: fileData, error: downloadError } = await supabase
         .storage
@@ -120,13 +120,13 @@ serve(async (req) => {
 
     const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}
 
-Extract ONLY the following fields and return valid JSON (no markdown):
+Extract the following information and return as valid JSON:
 {
   "vendor_name": "string",
   "bill_date": "YYYY-MM-DD",
   "due_date": "YYYY-MM-DD (or null)",
   "reference_number": "string (or null)",
-  "terms": "string (Net 15/30/45/etc., 'Due on receipt', or null)",
+  "terms": "string - Payment terms EXACTLY as shown on invoice (e.g., 'Net 15', 'Net 30', 'Net 45', 'Due on receipt', 'COD', etc.). Look carefully for terms field or payment terms section. Return null if not found.",
   "line_items": [
     {
       "description": "string",
@@ -134,36 +134,37 @@ Extract ONLY the following fields and return valid JSON (no markdown):
       "unit_cost": number,
       "amount": number,
       "memo": "string (or null)",
-      "account_name": "string (exact match from 'Available Accounts' if confident, else null)",
-      "cost_code_name": "string (exact match from 'Available Cost Codes' if confident, else null)"
+      "account_name": "string (match to available accounts if confident, or null)",
+      "cost_code_name": "string (match to available cost codes if confident, or null)"
     }
   ],
   "total_amount": number
 }
 
-Rules:
-- Parse numbers as numbers (strip $ and commas).
-- bill_date and due_date must be ISO dates (YYYY-MM-DD); convert from MM/DD/YY if needed.
-- reference_number can be an invoice number, bill number, account number, or parcel/id printed on the document.
-- If there is a clearly labeled "Total Amount Due", "Amount Due", or "Total", set total_amount to that value.
-- PAYMENT TERMS: Look for a field labeled Terms/Payment Terms/Net; return the exact text; if none, return null.
+IMPORTANT PAYMENT TERMS: 
+- Look carefully for payment terms on the document (often labeled as "Terms:", "Payment Terms:", "Net:", etc.)
+- Extract the EXACT text shown (e.g., if it says "Net 15", return "Net 15", NOT "Net 30")
+- Common formats include: Net 15, Net 30, Net 45, Net 60, Due on receipt, COD, 2/10 Net 30
+- If no payment terms are visible, return null
 
-Special handling for government/tax bills (e.g., Treasurer, County/City Tax, Property Tax):
-- vendor_name: use the agency header, e.g., "Arlington County Treasurer".
-- reference_number: prefer Bill Number or Account/Parcel Number if present.
-- due_date: use the labeled Due Date; if multiple installments, choose the nearest upcoming due date visible on the first pages.
-- line_items: if the bill shows components like Base Tax, Penalty, Interest, Discounts, create separate line items for each; otherwise create a single line item (e.g., "Property Tax") equal to total_amount.
-- terms: usually null for tax bills unless explicitly shown (e.g., "Due on receipt").
+IMPORTANT CATEGORIZATION: For each line item, analyze the description and match it to the most appropriate account and cost code from the lists above. 
+- For "account_name", return the exact account name from the available accounts list
+- For "cost_code_name", return the exact cost code name from the available cost codes list
+- If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
+- Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
 
-Categorization guidance:
-- For each line item, attempt to map to an account and/or cost code from the provided lists. If not confident, leave as null.
-- Typical mapping: job/project-related costs -> Job Costs; administrative fees -> G&A/Overhead; taxes -> Taxes/License fees if available.
-
-Return ONLY the JSON object.`;
+Return ONLY the JSON object, no additional text.`;
 
     let messages: any[] = [];
 
-    if (pageImages && pageImages.length > 0) {
+    if (pdfText) {
+      // Client provided PDF text extraction
+      console.log('Using client-provided PDF text, length:', pdfText.length);
+      messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Extract bill data from the following text extracted from a PDF invoice:\n${pdfText}` }
+      ];
+    } else if (pageImages && pageImages.length > 0) {
       // Client provided rendered PDF pages as images (fallback for scanned PDFs)
       console.log('Using client-provided page images, count:', pageImages.length);
       const imageContent = pageImages.map((url: string) => ({

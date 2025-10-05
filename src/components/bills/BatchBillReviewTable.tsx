@@ -65,15 +65,11 @@ export function BatchBillReviewTable({
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
-    // First check extracted_data (where AI puts the data)
-    if (bill.extracted_data) {
-      const value = bill.extracted_data[snakeCase] || bill.extracted_data[camelCase];
-      if (value !== undefined && value !== null && value !== '') return value;
-    }
-    // Fall back to root level only if extracted_data doesn't have it
-    const rootValue = bill[snakeCase as keyof PendingBill];
-    if (rootValue !== undefined && rootValue !== null && rootValue !== '') return rootValue;
-    return null;
+    // First check root level for backward compatibility
+    if (bill[snakeCase as keyof PendingBill]) return bill[snakeCase as keyof PendingBill];
+    // Then check extracted_data with both naming conventions
+    if (!bill.extracted_data) return null;
+    return bill.extracted_data[snakeCase] || bill.extracted_data[camelCase];
   };
 
   const validateBill = (bill: PendingBill) => {
