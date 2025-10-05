@@ -63,6 +63,15 @@ export function BatchBillReviewTable({
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
+  // Helper to get extracted values (handles both snake_case and camelCase)
+  const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
+    // First check root level for backward compatibility
+    if (bill[snakeCase as keyof PendingBill]) return bill[snakeCase as keyof PendingBill];
+    // Then check extracted_data with both naming conventions
+    if (!bill.extracted_data) return null;
+    return bill.extracted_data[snakeCase] || bill.extracted_data[camelCase];
+  };
+
   const validateBill = (bill: PendingBill) => {
     const issues: string[] = [];
     
@@ -162,9 +171,14 @@ export function BatchBillReviewTable({
             ) : (
               bills.map((bill) => {
               const issues = validateBill(bill);
-              const totalAmount = bill.lines?.reduce((sum, line) => {
-                return sum + ((line.quantity || 0) * (line.unit_cost || 0));
-              }, 0) || 0;
+              
+              // Get total from extracted data or calculate from lines
+              const extractedTotal = getExtractedValue(bill, 'total_amount', 'totalAmount');
+              const totalAmount = extractedTotal 
+                ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
+                : (bill.lines?.reduce((sum, line) => {
+                    return sum + ((line.quantity || 0) * (line.unit_cost || 0));
+                  }, 0) || 0);
               
               // Calculate account display
               const accountDisplay = (() => {
@@ -175,19 +189,24 @@ export function BatchBillReviewTable({
                 return `${uniqueAccounts.length} accounts`;
               })();
               
+              const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
+              const referenceNumber = getExtractedValue(bill, 'reference_number', 'referenceNumber');
+              const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
+              const dueDate = getExtractedValue(bill, 'due_date', 'dueDate');
+              
               return (
                 <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{bill.vendor_name || '-'}</span>
+                    <span className="text-xs">{vendorName || '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{bill.reference_number || '-'}</span>
+                    <span className="text-xs">{referenceNumber || '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : '-'}</span>
+                    <span className="text-xs">{billDate ? format(new Date(billDate as string), "MM/dd/yy") : '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : '-'}</span>
+                    <span className="text-xs">{dueDate ? format(new Date(dueDate as string), "MM/dd/yy") : '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs">{accountDisplay}</span>
