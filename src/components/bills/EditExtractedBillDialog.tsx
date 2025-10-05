@@ -428,6 +428,7 @@ export function EditExtractedBillDialog({
                           size="sm"
                           onClick={() => removeJobCostLine(line.id)}
                           disabled={jobCostLines.length === 1}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -493,6 +494,7 @@ export function EditExtractedBillDialog({
                           size="sm"
                           onClick={() => removeExpenseLine(line.id)}
                           disabled={expenseLines.length === 1}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
