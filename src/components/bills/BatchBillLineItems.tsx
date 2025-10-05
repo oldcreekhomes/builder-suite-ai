@@ -103,10 +103,9 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
           </div>
 
           <div className="border rounded-lg overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+            <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
               <div className="col-span-2">Cost Code</div>
-              <div className="col-span-2">Project</div>
-              <div className="col-span-4">Memo</div>
+              <div className="col-span-5">Memo</div>
               <div className="col-span-1">Quantity</div>
               <div className="col-span-1">Cost</div>
               <div className="col-span-1">Total</div>
@@ -116,7 +115,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             {jobCostLines.map((line, index) => {
               const globalIndex = normalizedLines.indexOf(line);
               return (
-                <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
+                <div key={index} className="grid grid-cols-10 gap-2 p-3 border-t">
                   <div className="col-span-2">
                     <CostCodeSearchInput 
                       value={line.cost_code_name || ''}
@@ -129,15 +128,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
                       className="h-8"
                     />
                   </div>
-                  <div className="col-span-2">
-                    <JobSearchInput 
-                      value={line.project_id || ""}
-                      onChange={(projectId) => updateLine(globalIndex, 'project_id', projectId)}
-                      placeholder="Select project"
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="col-span-4">
+                  <div className="col-span-5">
                     <Input 
                       placeholder="Job cost memo"
                       value={line.memo || line.description || ''}
@@ -188,8 +179,8 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             })}
 
             <div className="p-3 bg-muted border-t">
-              <div className="grid grid-cols-12 gap-2">
-                <div className="col-span-8 font-medium">Total:</div>
+              <div className="grid grid-cols-10 gap-2">
+                <div className="col-span-6 font-medium">Total:</div>
                 <div className="col-span-1 font-medium">
                   ${jobCostTotal.toFixed(2)}
                 </div>
@@ -208,10 +199,9 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
           </div>
 
           <div className="border rounded-lg overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+            <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
               <div className="col-span-2">Account</div>
-              <div className="col-span-2">Project</div>
-              <div className="col-span-4">Memo</div>
+              <div className="col-span-5">Memo</div>
               <div className="col-span-1">Quantity</div>
               <div className="col-span-1">Cost</div>
               <div className="col-span-1">Total</div>
@@ -221,7 +211,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             {expenseLines.map((line, index) => {
               const globalIndex = normalizedLines.indexOf(line);
               return (
-                <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
+                <div key={index} className="grid grid-cols-10 gap-2 p-3 border-t">
                   <div className="col-span-2">
                     <AccountSearchInput
                       value={line.account_id || ""}
@@ -231,15 +221,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
                       className="h-8"
                     />
                   </div>
-                  <div className="col-span-2">
-                    <JobSearchInput 
-                      value={line.project_id || ""}
-                      onChange={(projectId) => updateLine(globalIndex, 'project_id', projectId)}
-                      placeholder="Select project"
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="col-span-4">
+                  <div className="col-span-5">
                     <Input 
                       placeholder="Expense memo"
                       value={line.memo || line.description || ''}
@@ -290,8 +272,8 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             })}
 
             <div className="p-3 bg-muted border-t">
-              <div className="grid grid-cols-12 gap-2">
-                <div className="col-span-8 font-medium">Total:</div>
+              <div className="grid grid-cols-10 gap-2">
+                <div className="col-span-6 font-medium">Total:</div>
                 <div className="col-span-1 font-medium">
                   ${expenseTotal.toFixed(2)}
                 </div>
