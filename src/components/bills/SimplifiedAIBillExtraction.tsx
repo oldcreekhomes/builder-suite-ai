@@ -766,7 +766,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   <TableHead className="w-[300px] px-2 py-0 text-xs font-medium">File Name</TableHead>
                   <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
                   <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">Remove</TableHead>
-                  <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Extracted</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -805,11 +804,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                       <span className="text-xs text-muted-foreground">
                         {(upload.file_size / 1024).toFixed(1)} KB
                       </span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      {(upload.status === 'completed' || upload.status === 'extracted') && (
-                        <span className="text-xs text-green-600">Extracted</span>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
