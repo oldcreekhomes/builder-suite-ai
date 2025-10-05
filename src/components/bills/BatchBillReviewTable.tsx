@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, Edit } from "lucide-react";
+import { Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
 interface PendingBillLine {
   line_number: number;
@@ -135,15 +137,33 @@ export function BatchBillReviewTable({
                     <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <a
-                      href={`/file-redirect?bucket=bill-attachments&path=${bill.file_path}&fileName=${bill.file_name}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-red-600 hover:text-red-800 p-1 inline-block"
-                      title={bill.file_name}
-                    >
-                      <FileText className="h-4 w-4" />
-                    </a>
+                    <div className="relative group inline-block">
+                      <button
+                        onClick={() => {
+                          const displayName = bill.file_name.split('/').pop() || bill.file_name;
+                          openFileViaRedirect('bill-attachments', bill.file_path, displayName);
+                        }}
+                        className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
+                        title={bill.file_name}
+                        type="button"
+                      >
+                        {(() => {
+                          const IconComponent = getFileIcon(bill.file_name);
+                          return <IconComponent className="h-4 w-4" />;
+                        })()}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onBillDelete(bill.id);
+                        }}
+                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                        title="Delete file"
+                        type="button"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </div>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {issues.length > 0 ? (
