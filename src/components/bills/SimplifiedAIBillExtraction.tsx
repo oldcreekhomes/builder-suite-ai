@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Upload } from "lucide-react";
+import { FileText, Loader2, Upload, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -766,31 +766,17 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   <TableHead className="w-[300px] px-2 py-0 text-xs font-medium">File Name</TableHead>
                   <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
                   <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">File Size</TableHead>
+                  <TableHead className="w-[60px] px-2 py-0 text-xs font-medium text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingUploads.map((upload) => (
                   <TableRow key={upload.id} className="h-10">
                     <TableCell className="px-2 py-1">
-                      <div className="relative group inline-block">
-                        <button
-                          className="text-red-600 hover:text-red-800 p-1"
-                          title={upload.file_name}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setUploadToDelete(upload.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-colors"
-                          title="Delete file"
-                        >
-                          <span className="text-xs font-bold leading-none">×</span>
-                        </button>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs">{upload.file_name}</span>
                       </div>
-                      <span className="ml-2 text-xs">{upload.file_name}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1">
                       {getStatusText(upload.status)}
@@ -804,6 +790,22 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                       <span className="text-xs text-muted-foreground">
                         {(upload.file_size / 1024).toFixed(1)} KB
                       </span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setUploadToDelete(upload.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                          title="Delete file"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
