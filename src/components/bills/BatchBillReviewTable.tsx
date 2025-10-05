@@ -104,7 +104,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Due Date</TableHead>
               <TableHead className="w-[150px] px-2 py-0 text-xs font-medium">Account</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium text-right">Total</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Attachment</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">File</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Status</TableHead>
             </TableRow>
           </TableHeader>
