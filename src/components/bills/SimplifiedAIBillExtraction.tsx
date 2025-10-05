@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Upload, Sparkles, Trash2, ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { FileText, Loader2, Upload } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import {
@@ -696,22 +696,22 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusText = (status: string) => {
     const statusConfig = {
-      pending: { variant: "secondary" as const, label: "Uploading" },
-      processing: { variant: "default" as const, label: "Processing", showSpinner: true },
-      completed: { variant: "default" as const, label: "Ready to Review" },
-      extracted: { variant: "default" as const, label: "Extracted" },
-      error: { variant: "destructive" as const, label: "Error" }
+      pending: { label: "Uploading", color: "text-gray-600" },
+      processing: { label: "Processing", color: "text-blue-600", showSpinner: true },
+      completed: { label: "Ready", color: "text-green-600" },
+      extracted: { label: "Extracted", color: "text-green-600" },
+      error: { label: "Error", color: "text-red-600" }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig];
     
     return (
-      <Badge variant={config.variant}>
-        {'showSpinner' in config && config.showSpinner && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+      <span className={`text-xs ${config.color} flex items-center gap-1`}>
+        {'showSpinner' in config && config.showSpinner && <Loader2 className="h-3 w-3 animate-spin" />}
         {config.label}
-      </Badge>
+      </span>
     );
   };
 
@@ -723,10 +723,10 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-semibold">AI Bill Extraction</h3>
               {processingStats.processing > 0 && (
-                <Badge variant="secondary" className="animate-pulse">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
                   Processing {processingStats.processing} of {processingStats.total}
-                </Badge>
+                </span>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -759,53 +759,62 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         </div>
 
         {pendingUploads.length > 0 ? (
-          <div className="space-y-2">
-            {pendingUploads.map((upload) => (
-              <div
-                key={upload.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div className="flex-1">
-                    <div className="font-medium">{upload.file_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {(upload.file_size / 1024).toFixed(1)} KB
-                    </div>
-                  </div>
-                  {getStatusBadge(upload.status)}
-                </div>
-                <div className="flex items-center gap-2">
-                  {(upload.status === 'completed' || upload.status === 'extracted') && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        setUploadToDelete(upload.id);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {upload.status === 'error' && upload.error_message && (
-                    <>
-                      <span className="text-sm text-destructive mr-2">{upload.error_message}</span>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setUploadToDelete(upload.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="h-8">
+                  <TableHead className="w-[300px] px-2 py-0 text-xs font-medium">File Name</TableHead>
+                  <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
+                  <TableHead className="w-[80px] px-2 py-0 text-xs font-medium">Remove</TableHead>
+                  <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Extracted</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingUploads.map((upload) => (
+                  <TableRow key={upload.id} className="h-10">
+                    <TableCell className="px-2 py-1">
+                      <div className="relative group inline-block">
+                        <button
+                          className="text-red-600 hover:text-red-800 p-1"
+                          title={upload.file_name}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setUploadToDelete(upload.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-colors"
+                          title="Delete file"
+                        >
+                          <span className="text-xs font-bold leading-none">×</span>
+                        </button>
+                      </div>
+                      <span className="ml-2 text-xs">{upload.file_name}</span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
+                      {getStatusText(upload.status)}
+                      {upload.status === 'error' && upload.error_message && (
+                        <div className="text-xs text-red-600 mt-0.5 max-w-[100px] truncate" title={upload.error_message}>
+                          {upload.error_message}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
+                      <span className="text-xs text-muted-foreground">
+                        {(upload.file_size / 1024).toFixed(1)} KB
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
+                      {(upload.status === 'completed' || upload.status === 'extracted') && (
+                        <span className="text-xs text-green-600">Extracted</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
