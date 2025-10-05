@@ -99,9 +99,10 @@ export function BatchBillReviewTable({
             <TableRow className="h-8">
               <TableHead className="w-[40px] px-2 py-0 text-xs font-medium"></TableHead>
               <TableHead className="w-[200px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Reference #</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="w-[150px] px-2 py-0 text-xs font-medium">Account</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium text-right">Total</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Attachment</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Status</TableHead>
@@ -114,6 +115,15 @@ export function BatchBillReviewTable({
               const totalAmount = bill.lines?.reduce((sum, line) => {
                 return sum + ((line.quantity || 0) * (line.unit_cost || 0));
               }, 0) || 0;
+              
+              // Calculate account display
+              const accountDisplay = (() => {
+                if (!bill.lines || bill.lines.length === 0) return '-';
+                const uniqueAccounts = [...new Set(bill.lines.map(line => line.account_name).filter(Boolean))];
+                if (uniqueAccounts.length === 0) return '-';
+                if (uniqueAccounts.length === 1) return uniqueAccounts[0];
+                return `${uniqueAccounts.length} accounts`;
+              })();
               
               return (
                 <>
@@ -136,13 +146,16 @@ export function BatchBillReviewTable({
                       <span className="text-xs">{bill.vendor_name || '-'}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1">
-                      <span className="text-xs">{bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : '-'}</span>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
                       <span className="text-xs">{bill.reference_number || '-'}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1">
+                      <span className="text-xs">{bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : '-'}</span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
                       <span className="text-xs">{bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : '-'}</span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1">
+                      <span className="text-xs">{accountDisplay}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1 text-right">
                       <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
@@ -188,7 +201,7 @@ export function BatchBillReviewTable({
                   </TableRow>
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={8} className="bg-muted/30 px-2 py-1">
+                      <TableCell colSpan={9} className="bg-muted/30 px-2 py-1">
                         <div className="space-y-1 p-2">
                           <h4 className="text-xs font-medium">Line Items</h4>
                           {issues.length > 0 && (
