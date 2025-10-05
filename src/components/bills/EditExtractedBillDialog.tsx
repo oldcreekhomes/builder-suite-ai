@@ -30,7 +30,6 @@ interface LineItem {
   line_type: string;
   account_id?: string;
   cost_code_id?: string;
-  project_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -88,10 +87,9 @@ export function EditExtractedBillDialog({
               id: line.id,
               line_type: line.line_type,
               cost_code_id: line.cost_code_id || undefined,
-              project_id: line.project_id || undefined,
               quantity: line.quantity || 1,
               unit_cost: line.unit_cost || 0,
-              amount: line.amount || 0,
+              amount: (line.quantity || 1) * (line.unit_cost || 0),
               memo: line.memo || "",
             }));
           
@@ -101,10 +99,9 @@ export function EditExtractedBillDialog({
               id: line.id,
               line_type: line.line_type,
               account_id: line.account_id || undefined,
-              project_id: line.project_id || undefined,
               quantity: line.quantity || 1,
               unit_cost: line.unit_cost || 0,
-              amount: line.amount || 0,
+              amount: (line.quantity || 1) * (line.unit_cost || 0),
               memo: line.memo || "",
             }));
 
@@ -217,7 +214,6 @@ export function EditExtractedBillDialog({
             line_type: line.line_type as 'expense' | 'job_cost',
             account_id: line.account_id,
             cost_code_id: line.cost_code_id,
-            project_id: line.project_id,
             quantity: line.quantity,
             unit_cost: line.unit_cost,
             amount: line.amount,
@@ -231,7 +227,6 @@ export function EditExtractedBillDialog({
           updates: {
             account_id: line.account_id,
             cost_code_id: line.cost_code_id,
-            project_id: line.project_id,
             quantity: line.quantity,
             unit_cost: line.unit_cost,
             amount: line.amount,
@@ -361,7 +356,6 @@ export function EditExtractedBillDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Cost Code</TableHead>
-                    <TableHead className="w-[200px]">Project</TableHead>
                     <TableHead>Memo</TableHead>
                     <TableHead className="w-[100px]">Quantity</TableHead>
                     <TableHead className="w-[120px]">Unit Cost</TableHead>
@@ -376,12 +370,6 @@ export function EditExtractedBillDialog({
                         <CostCodeSearchInput
                           value={line.cost_code_id || ""}
                           onChange={(value) => updateJobCostLine(line.id, 'cost_code_id', value)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <JobSearchInput
-                          value={line.project_id || ""}
-                          onChange={(value) => updateJobCostLine(line.id, 'project_id', value)}
                         />
                       </TableCell>
                       <TableCell>
@@ -433,7 +421,6 @@ export function EditExtractedBillDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Account</TableHead>
-                    <TableHead className="w-[200px]">Project</TableHead>
                     <TableHead>Memo</TableHead>
                     <TableHead className="w-[100px]">Quantity</TableHead>
                     <TableHead className="w-[120px]">Unit Cost</TableHead>
@@ -448,12 +435,6 @@ export function EditExtractedBillDialog({
                         <AccountSearchInput
                           value={line.account_id || ""}
                           onChange={(value) => updateExpenseLine(line.id, 'account_id', value)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <JobSearchInput
-                          value={line.project_id || ""}
-                          onChange={(value) => updateExpenseLine(line.id, 'project_id', value)}
                         />
                       </TableCell>
                       <TableCell>

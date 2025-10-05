@@ -45,7 +45,10 @@ export function VendorSearchInput({
   };
 
   const handleInputFocus = () => {
-    setShowResults(true);
+    // Only show results if there's already a search query
+    if (searchQuery) {
+      setShowResults(true);
+    }
   };
 
   const handleInputBlur = () => {
