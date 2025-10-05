@@ -334,36 +334,38 @@ export function EditExtractedBillDialog({
             </div>
             <div className="space-y-2">
               <Label>Attachment</Label>
-              <div className="relative group inline-block">
-                <button
-                  onClick={() => {
-                    const displayName = fileName.split('/').pop() || fileName;
-                    openFileViaRedirect('bill-attachments', filePath, displayName);
-                  }}
-                  className={`${getFileIconColor(fileName)} transition-colors p-1`}
-                  title={fileName}
-                  type="button"
-                >
-                  {(() => {
-                    const IconComponent = getFileIcon(fileName);
-                    return <IconComponent className="h-4 w-4" />;
-                  })()}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Note: This deletes the entire pending bill upload
-                    if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
-                      onOpenChange(false);
-                      // Trigger deletion through parent component if needed
-                    }
-                  }}
-                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                  title="Delete file"
-                  type="button"
-                >
-                  <span className="text-xs font-bold leading-none">×</span>
-                </button>
+              <div>
+                <div className="relative group inline-block">
+                  <button
+                    onClick={() => {
+                      const displayName = fileName.split('/').pop() || fileName;
+                      openFileViaRedirect('bill-attachments', filePath, displayName);
+                    }}
+                    className={`${getFileIconColor(fileName)} transition-colors p-1`}
+                    title={fileName}
+                    type="button"
+                  >
+                    {(() => {
+                      const IconComponent = getFileIcon(fileName);
+                      return <IconComponent className="h-4 w-4" />;
+                    })()}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Note: This deletes the entire pending bill upload
+                      if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
+                        onOpenChange(false);
+                        // Trigger deletion through parent component if needed
+                      }
+                    }}
+                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                    title="Delete file"
+                    type="button"
+                  >
+                    <span className="text-xs font-bold leading-none">×</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
