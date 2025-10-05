@@ -28,8 +28,14 @@ interface BatchBillLineItemsProps {
 }
 
 export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsProps) {
+  // Normalize lines - set default line_type to 'job_cost' if not specified
+  const normalizedLines = lines.map(line => ({
+    ...line,
+    line_type: line.line_type || 'job_cost'
+  }));
+
   const updateLine = (index: number, field: keyof LineItem, value: any) => {
-    const updated = [...lines];
+    const updated = [...normalizedLines];
     updated[index] = { ...updated[index], [field]: value };
     
     // Recalculate amount if quantity or unit_cost changes
@@ -44,28 +50,28 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
 
   const addJobCostLine = () => {
     const newLine: LineItem = {
-      line_number: lines.length + 1,
+      line_number: normalizedLines.length + 1,
       line_type: 'job_cost',
       amount: 0,
       quantity: 1,
       unit_cost: 0,
     };
-    onLinesChange([...lines, newLine]);
+    onLinesChange([...normalizedLines, newLine]);
   };
 
   const addExpenseLine = () => {
     const newLine: LineItem = {
-      line_number: lines.length + 1,
+      line_number: normalizedLines.length + 1,
       line_type: 'expense',
       amount: 0,
       quantity: 1,
       unit_cost: 0,
     };
-    onLinesChange([...lines, newLine]);
+    onLinesChange([...normalizedLines, newLine]);
   };
 
   const removeLine = (index: number) => {
-    const updated = lines.filter((_, i) => i !== index);
+    const updated = normalizedLines.filter((_, i) => i !== index);
     // Renumber lines
     updated.forEach((line, i) => {
       line.line_number = i + 1;
@@ -73,18 +79,9 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
     onLinesChange(updated);
   };
 
-  // Filter lines based on type, inferring from data if line_type is not set
-  const jobCostLines = lines.filter(line => 
-    line.line_type === 'job_cost' || 
-    (!line.line_type && line.cost_code_id) || 
-    (!line.line_type && line.cost_code_name)
-  );
-  const expenseLines = lines.filter(line => 
-    line.line_type === 'expense' || 
-    (!line.line_type && line.account_id) || 
-    (!line.line_type && line.account_name) ||
-    (!line.line_type && !line.cost_code_id && !line.cost_code_name) // Default to expense if nothing is set
-  );
+  // Filter lines based on type (already normalized above)
+  const jobCostLines = normalizedLines.filter(line => line.line_type === 'job_cost');
+  const expenseLines = normalizedLines.filter(line => line.line_type === 'expense');
 
   const jobCostTotal = jobCostLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
   const expenseTotal = expenseLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
@@ -117,7 +114,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             </div>
 
             {jobCostLines.map((line, index) => {
-              const globalIndex = lines.indexOf(line);
+              const globalIndex = normalizedLines.indexOf(line);
               return (
                 <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
                   <div className="col-span-2">
@@ -222,7 +219,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
             </div>
 
             {expenseLines.map((line, index) => {
-              const globalIndex = lines.indexOf(line);
+              const globalIndex = normalizedLines.indexOf(line);
               return (
                 <div key={index} className="grid grid-cols-12 gap-2 p-3 border-t">
                   <div className="col-span-2">
