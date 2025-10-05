@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, FileText } from "lucide-react";
+import { Trash2, Edit, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
@@ -39,15 +40,23 @@ interface PendingBill {
   lines?: PendingBillLine[];
 }
 
+interface ProcessingUpload {
+  id: string;
+  file_name: string;
+  status: 'pending' | 'processing';
+}
+
 interface BatchBillReviewTableProps {
   bills: PendingBill[];
+  processingUploads?: ProcessingUpload[];
   onBillUpdate: (billId: string, updates: Partial<PendingBill>) => void;
   onBillDelete: (billId: string) => void;
   onLinesUpdate: (billId: string, lines: PendingBillLine[]) => void;
 }
 
 export function BatchBillReviewTable({ 
-  bills, 
+  bills,
+  processingUploads = [],
   onBillUpdate, 
   onBillDelete,
   onLinesUpdate 
@@ -101,7 +110,46 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bills.length === 0 ? (
+            {/* Processing uploads skeleton rows */}
+            {processingUploads.map((upload) => (
+              <TableRow key={upload.id} className="bg-blue-50/50">
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <div className="flex items-center gap-2 text-xs">
+                    <FileText className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate max-w-[150px]" title={upload.file_name}>
+                      {upload.file_name}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <div className="flex items-center gap-2 text-xs text-blue-600">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Extracting...</span>
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-8 w-16" />
+                </TableCell>
+              </TableRow>
+            ))}
+            
+            {/* Show empty state only if no bills AND no processing uploads */}
+            {bills.length === 0 && processingUploads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">

@@ -60,6 +60,7 @@ export default function EnterBills() {
   const { pendingBills, isLoading: loadingPendingBills, batchApproveBills } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [processingUploads, setProcessingUploads] = useState<any[]>([]);
 
   const { createBill } = useBills();
   const { accountingSettings } = useAccounts();
@@ -575,6 +576,9 @@ export default function EnterBills() {
                 <SimplifiedAIBillExtraction 
                   onDataExtracted={() => {}}
                   onSwitchToManual={() => setActiveTab("manual")}
+                  onProcessingChange={(uploads) => {
+                    setProcessingUploads(uploads.filter(u => u.status === 'pending' || u.status === 'processing'));
+                  }}
                 />
 
                 <Card>
@@ -603,6 +607,7 @@ export default function EnterBills() {
                   <CardContent>
                     <BatchBillReviewTable
                       bills={batchBills}
+                      processingUploads={processingUploads}
                       onBillUpdate={handleBillUpdate}
                       onBillDelete={handleBillDelete}
                       onLinesUpdate={handleLinesUpdate}

@@ -26,9 +26,10 @@ interface PendingUpload {
 interface SimplifiedAIBillExtractionProps {
   onDataExtracted: (data: any) => void;
   onSwitchToManual: () => void;
+  onProcessingChange?: (uploads: PendingUpload[]) => void;
 }
 
-export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchToManual }: SimplifiedAIBillExtractionProps) {
+export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchToManual, onProcessingChange }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [processingStats, setProcessingStats] = useState({ processing: 0, total: 0 });
@@ -44,12 +45,19 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       return;
     }
 
-    setPendingUploads((data || []) as PendingUpload[]);
+    const uploads = (data || []) as PendingUpload[];
+    setPendingUploads(uploads);
+    onProcessingChange?.(uploads);
   };
 
   useEffect(() => {
     loadPendingUploads();
   }, []);
+
+  // Notify parent whenever pendingUploads changes
+  useEffect(() => {
+    onProcessingChange?.(pendingUploads);
+  }, [pendingUploads, onProcessingChange]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputEl = e.target;
