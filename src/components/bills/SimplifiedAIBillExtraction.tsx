@@ -528,10 +528,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
           );
           setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-          toast({
-            title: "Extraction complete",
-            description: "Click 'Use This Data' to populate the bill form"
-          });
         } else if (data.status === 'error') {
           clearInterval(pollInterval);
           setPendingUploads(prev => 
