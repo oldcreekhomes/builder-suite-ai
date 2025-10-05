@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Trash2 } from "lucide-react";
 import { BatchBillLineItems } from "./BatchBillLineItems";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -165,11 +165,22 @@ export function BatchBillReviewTable({
                       </div>
                     </TableCell>
                     <TableCell className="px-2 py-1">
-                      {issues.length > 0 ? (
-                        <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
-                      ) : (
-                        <span className="text-xs text-green-600">Ready</span>
-                      )}
+                      <div className="flex items-center justify-between gap-2">
+                        {issues.length > 0 ? (
+                          <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
+                        ) : (
+                          <span className="text-xs text-green-600">Ready</span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => onBillDelete(bill.id)}
+                          title="Delete bill"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                   {isExpanded && (
