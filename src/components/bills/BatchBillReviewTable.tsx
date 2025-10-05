@@ -133,7 +133,7 @@ export function BatchBillReviewTable({
     
     if (issues.length > 0) {
       return (
-        <Badge variant="destructive" className="gap-1">
+        <Badge variant="destructive" className="h-5 text-xs px-2 gap-1">
           <AlertCircle className="h-3 w-3" />
           Needs Attention
         </Badge>
@@ -141,7 +141,7 @@ export function BatchBillReviewTable({
     }
     
     return (
-      <Badge variant="default" className="gap-1 bg-green-600">
+      <Badge variant="default" className="h-5 text-xs px-2 gap-1 bg-green-600">
         <CheckCircle className="h-3 w-3" />
         Ready
       </Badge>
@@ -153,16 +153,16 @@ export function BatchBillReviewTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]"></TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead className="w-[120px]">Bill Date</TableHead>
-              <TableHead>Reference #</TableHead>
-              <TableHead className="w-[120px]">Due Date</TableHead>
-              <TableHead>Terms</TableHead>
-              <TableHead>Attachment</TableHead>
-              <TableHead className="w-[150px]">Status</TableHead>
-              <TableHead className="w-[80px]">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="w-[40px] px-2 py-0 text-xs font-medium"></TableHead>
+              <TableHead className="w-[200px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Reference #</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Terms</TableHead>
+              <TableHead className="w-[180px] px-2 py-0 text-xs font-medium">Attachment</TableHead>
+              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Status</TableHead>
+              <TableHead className="w-[60px] px-2 py-0 text-xs font-medium"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -172,36 +172,37 @@ export function BatchBillReviewTable({
               
               return (
                 <>
-                  <TableRow key={bill.id} className={issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50'}>
-                    <TableCell>
+                  <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
+                    <TableCell className="px-2 py-1">
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
+                        className="h-6 w-6 p-0"
                         onClick={() => toggleExpanded(bill.id)}
                       >
                         {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-3 w-3" />
                         ) : (
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-3 w-3" />
                         )}
                       </Button>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1.5">
+                    <TableCell className="px-2 py-1">
+                      <div className="space-y-1">
                         {bill.vendor_name && !bill.vendor_id && !isVendorInSystem(bill.vendor_name) && (
                           <div className="flex items-center justify-between gap-2 text-xs py-0.5">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                               <AlertCircle className="h-3 w-3 text-amber-600" />
                               <span className="text-amber-600">No company found</span>
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-6 text-xs px-2"
+                              className="h-5 text-xs px-1.5"
                               onClick={() => handleCreateCompany(bill.id, bill.vendor_name!)}
                             >
-                              <Building2 className="h-3 w-3 mr-1" />
-                              Create Company
+                              <Building2 className="h-3 w-3 mr-0.5" />
+                              Create
                             </Button>
                           </div>
                         )}
@@ -232,18 +233,18 @@ export function BatchBillReviewTable({
                         />
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full justify-start text-left font-normal",
+                              "w-full h-7 justify-start text-left text-xs px-2",
                               !bill.bill_date && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yyyy") : <span>Pick a date</span>}
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {bill.bill_date ? format(new Date(bill.bill_date), "MM/dd/yy") : "Select"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -257,25 +258,26 @@ export function BatchBillReviewTable({
                         </PopoverContent>
                       </Popover>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <Input
                         value={bill.reference_number || ''}
                         onChange={(e) => onBillUpdate(bill.id, { reference_number: e.target.value })}
-                        placeholder="Reference #"
+                        placeholder="Ref #"
+                        className="h-7 text-xs px-2"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full justify-start text-left font-normal",
+                              "w-full h-7 justify-start text-left text-xs px-2",
                               !bill.due_date && "text-muted-foreground"
                             )}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {bill.due_date ? format(new Date(bill.due_date), "MM/dd/yyyy") : <span>Pick a date</span>}
+                            <CalendarIcon className="mr-1 h-3 w-3" />
+                            {bill.due_date ? format(new Date(bill.due_date), "MM/dd/yy") : "Select"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -289,50 +291,55 @@ export function BatchBillReviewTable({
                         </PopoverContent>
                       </Popover>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <Input
                         value={bill.terms || ''}
                         onChange={(e) => onBillUpdate(bill.id, { terms: e.target.value })}
                         placeholder="Terms"
+                        className="h-7 text-xs px-2"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <a
                         href={`/file-redirect?bucket=bill-attachments&path=${bill.file_path}&fileName=${bill.file_name}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-blue-600 hover:underline"
+                        className="flex items-center gap-1 text-primary hover:underline text-xs truncate max-w-[160px]"
+                        title={bill.file_name}
                       >
-                        <FileText className="h-4 w-4" />
-                        {bill.file_name}
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{bill.file_name}</span>
                       </a>
                     </TableCell>
-                    <TableCell>
-                      {getStatusBadge(bill)}
-                      {issues.length > 0 && (
-                        <div className="text-xs text-red-600 mt-1">
-                          {issues.length} issue{issues.length > 1 ? 's' : ''}
-                        </div>
-                      )}
+                    <TableCell className="px-2 py-1">
+                      <div className="flex flex-col gap-0.5">
+                        {getStatusBadge(bill)}
+                        {issues.length > 0 && (
+                          <div className="text-xs text-red-600">
+                            {issues.length} issue{issues.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
+                        className="h-6 w-6 p-0"
                         onClick={() => onBillDelete(bill.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </TableCell>
                   </TableRow>
                   {isExpanded && (
                     <TableRow>
-                      <TableCell colSpan={9} className="bg-gray-50 p-4">
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-sm">Line Items</h4>
+                      <TableCell colSpan={9} className="bg-muted/30 px-2 py-1">
+                        <div className="space-y-1 p-2">
+                          <h4 className="text-xs font-medium">Line Items</h4>
                           {issues.length > 0 && (
-                            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-                              <ul className="list-disc list-inside">
+                            <div className="bg-red-50 border border-red-200 rounded-md p-1.5 text-xs">
+                              <ul className="list-disc list-inside space-y-0.5 text-red-800">
                                 {issues.map((issue, idx) => (
                                   <li key={idx}>{issue}</li>
                                 ))}
