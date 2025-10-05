@@ -56,7 +56,7 @@ interface BatchBillReviewTableProps {
 
 export function BatchBillReviewTable({ 
   bills,
-  processingUploads = [],
+  processingUploads = [], // Shows loading state for bills being extracted
   onBillUpdate, 
   onBillDelete,
   onLinesUpdate 
