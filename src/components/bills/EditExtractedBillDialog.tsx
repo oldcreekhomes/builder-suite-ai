@@ -13,11 +13,13 @@ import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, FileText } from "lucide-react";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingBills } from "@/hooks/usePendingBills";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
 interface EditExtractedBillDialogProps {
   open: boolean;
@@ -332,15 +334,33 @@ export function EditExtractedBillDialog({
             </div>
             <div className="space-y-2">
               <Label>Attachment</Label>
-              <a
-                href={`/file-redirect?bucket=bill-attachments&path=${filePath}&fileName=${fileName}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-primary hover:underline"
-              >
-                <FileText className="h-4 w-4" />
-                {fileName}
-              </a>
+              <div className="relative group inline-block">
+                <button
+                  onClick={() => {
+                    const displayName = fileName.split('/').pop() || fileName;
+                    openFileViaRedirect('bill-attachments', filePath, displayName);
+                  }}
+                  className={`${getFileIconColor(fileName)} transition-colors p-1`}
+                  title={fileName}
+                  type="button"
+                >
+                  {(() => {
+                    const IconComponent = getFileIcon(fileName);
+                    return <IconComponent className="h-4 w-4" />;
+                  })()}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center opacity-50 cursor-not-allowed"
+                  title="Cannot delete attachment"
+                  type="button"
+                  disabled
+                >
+                  <span className="text-xs font-bold leading-none">×</span>
+                </button>
+              </div>
             </div>
           </div>
 

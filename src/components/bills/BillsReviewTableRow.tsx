@@ -2,11 +2,13 @@ import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, FileText, Building2, Trash2, Edit } from "lucide-react";
+import { Check, X, Building2, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { ApproveBillDialog } from "./ApproveBillDialog";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
 interface ExtractedData {
   vendor_name?: string;
@@ -59,9 +61,35 @@ export const BillsReviewTableRow = ({
       <TableRow className="hover:bg-muted/50">
         <TableCell>
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className="relative group inline-block">
+              <button
+                onClick={() => {
+                  const displayName = bill.file_name.split('/').pop() || bill.file_name;
+                  openFileViaRedirect('bill-attachments', bill.file_name, displayName);
+                }}
+                className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
+                title={bill.file_name}
+                type="button"
+              >
+                {(() => {
+                  const IconComponent = getFileIcon(bill.file_name);
+                  return <IconComponent className="h-4 w-4" />;
+                })()}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                title="Delete file"
+                type="button"
+              >
+                <span className="text-xs font-bold leading-none">×</span>
+              </button>
+            </div>
             <div className="flex flex-col gap-1">
-              <span className="font-medium">{bill.file_name}</span>
+              <span className="font-medium">{bill.file_name.split('/').pop() || bill.file_name}</span>
               {vendorName && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Building2 className="h-3 w-3" />
