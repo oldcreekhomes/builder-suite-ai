@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, Check, X, FileText, Building2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, X, FileText, Building2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { BillsReviewLineItemsTable } from "./BillsReviewLineItemsTable";
@@ -37,6 +37,12 @@ export const BillsReviewTableRow = ({
 
   const handleReject = () => {
     if (confirm('Are you sure you want to reject this bill?')) {
+      rejectBill.mutate({ pendingUploadId: bill.id });
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to permanently delete this bill upload? This action cannot be undone.')) {
       rejectBill.mutate({ pendingUploadId: bill.id });
     }
   };
@@ -117,6 +123,15 @@ export const BillsReviewTableRow = ({
                 </Button>
               </>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleDelete}
+              title="Delete bill upload"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </TableCell>
       </TableRow>
