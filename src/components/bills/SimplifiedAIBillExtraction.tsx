@@ -699,7 +699,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   const getStatusText = (status: string) => {
     const statusConfig = {
       pending: { label: "Uploading", color: "text-gray-600" },
-      processing: { label: "Processing", color: "text-blue-600", showSpinner: true },
+      processing: { label: "Processing", color: "text-red-600", showSpinner: true },
       completed: { label: "Ready", color: "text-green-600" },
       extracted: { label: "Extracted", color: "text-green-600" },
       error: { label: "Error", color: "text-red-600" }
