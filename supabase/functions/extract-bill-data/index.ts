@@ -58,6 +58,22 @@ serve(async (req) => {
       throw new Error('Pending upload not found');
     }
 
+    // Fetch user's accounts and cost codes for categorization
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id, code, name, type')
+      .eq('owner_id', pendingUpload.owner_id)
+      .eq('is_active', true)
+      .order('code');
+
+    const { data: costCodes } = await supabase
+      .from('cost_codes')
+      .select('id, code, name, category')
+      .eq('owner_id', pendingUpload.owner_id)
+      .order('code');
+
+    console.log(`Found ${accounts?.length || 0} accounts and ${costCodes?.length || 0} cost codes for categorization`);
+
     // Update status to processing
     await supabase
       .from('pending_bill_uploads')
@@ -93,7 +109,17 @@ serve(async (req) => {
     let retryCount = 0;
     const maxRetries = 2;
 
-    const systemPrompt = `You are an AI that extracts structured data from construction company bills/invoices. 
+    // Build categorization context
+    const accountsContext = accounts && accounts.length > 0
+      ? `\n\nAvailable Accounts:\n${accounts.map(a => `- ${a.code}: ${a.name} (${a.type})`).join('\n')}`
+      : '';
+    
+    const costCodesContext = costCodes && costCodes.length > 0
+      ? `\n\nAvailable Cost Codes:\n${costCodes.map(c => `- ${c.code}: ${c.name}${c.category ? ` (${c.category})` : ''}`).join('\n')}`
+      : '';
+
+    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}
+
 Extract the following information and return as valid JSON:
 {
   "vendor_name": "string",
@@ -107,11 +133,19 @@ Extract the following information and return as valid JSON:
       "quantity": number,
       "unit_cost": number,
       "amount": number,
-      "memo": "string (or null)"
+      "memo": "string (or null)",
+      "account_name": "string (match to available accounts if confident, or null)",
+      "cost_code_name": "string (match to available cost codes if confident, or null)"
     }
   ],
   "total_amount": number
 }
+
+IMPORTANT: For each line item, analyze the description and match it to the most appropriate account and cost code from the lists above. 
+- For "account_name", return the exact account name from the available accounts list
+- For "cost_code_name", return the exact cost code name from the available cost codes list
+- If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
+- Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
 
 Return ONLY the JSON object, no additional text.`;
 
