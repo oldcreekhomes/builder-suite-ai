@@ -577,16 +577,19 @@ export default function EnterBills() {
                   onSwitchToManual={() => setActiveTab("manual")}
                 />
 
-                {batchBills.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <CardTitle>Extracted Bills</CardTitle>
-                          <CardDescription>
-                            Review and edit {batchBills.length} bill{batchBills.length > 1 ? 's' : ''} before submitting
-                          </CardDescription>
-                        </div>
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle>Extracted Bills</CardTitle>
+                        <CardDescription>
+                          {batchBills.length > 0 
+                            ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
+                            : 'Upload PDF files above to extract bill data automatically'
+                          }
+                        </CardDescription>
+                      </div>
+                      {batchBills.length > 0 && (
                         <Button
                           onClick={handleSubmitAllBills}
                           disabled={isSubmitting || batchBills.length === 0}
@@ -594,18 +597,18 @@ export default function EnterBills() {
                         >
                           {isSubmitting ? "Submitting..." : `Submit All Bills (${batchBills.length})`}
                         </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <BatchBillReviewTable
-                        bills={batchBills}
-                        onBillUpdate={handleBillUpdate}
-                        onBillDelete={handleBillDelete}
-                        onLinesUpdate={handleLinesUpdate}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <BatchBillReviewTable
+                      bills={batchBills}
+                      onBillUpdate={handleBillUpdate}
+                      onBillDelete={handleBillDelete}
+                      onLinesUpdate={handleLinesUpdate}
+                    />
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="manual" className="mt-6">

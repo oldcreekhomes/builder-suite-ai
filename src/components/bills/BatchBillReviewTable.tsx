@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
@@ -101,7 +101,18 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bills.map((bill) => {
+            {bills.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
+                    <p className="text-sm font-medium">No bills uploaded yet</p>
+                    <p className="text-xs mt-1">Upload PDF files above to extract bill data automatically</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              bills.map((bill) => {
               const issues = validateBill(bill);
               const totalAmount = bill.lines?.reduce((sum, line) => {
                 return sum + ((line.quantity || 0) * (line.unit_cost || 0));
@@ -196,7 +207,8 @@ export function BatchBillReviewTable({
                   </TableCell>
                 </TableRow>
               );
-            })}
+            })
+            )}
           </TableBody>
         </Table>
       </div>
