@@ -400,108 +400,63 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
       );
 
-      console.log('Starting extraction with AWS Textract...');
+      console.log('Starting AI extraction with Lovable AI...');
       
-      // Try AWS Textract first
-      const { error: textractError } = await supabase.functions.invoke('extract-bill-with-textract', {
-        body: { 
-          pendingUploadId: upload.id
-        }
-      });
+      // Process PDFs or images directly with Lovable AI
+      const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
+      let pageImages: string[] = [];
+      
+      if (isPdf) {
+        // Always render PDF pages to images for consistent AI processing
+        console.log('Rendering PDF pages to images...');
+        pageImages = await renderPdfPagesToImagesReact(upload.file_path, 2);
 
-      if (textractError) {
-        console.warn('AWS Textract failed, falling back to AI extraction:', textractError);
+        if (pageImages.length === 0) {
+          console.log('react-pdf fallback returned 0 images, trying pdfjs-dist fallback...');
+          pageImages = await renderPdfPagesToImages(upload.file_path, 2);
+        }
         
-        // Check if this is an AWS credentials error
-        const isAwsAuthError = textractError.message && (
-          textractError.message.includes('AWS credentials') ||
-          textractError.message.includes('invalid or expired')
-        );
-        
-        if (isAwsAuthError) {
-          // Don't fall back - show the AWS error directly
+        if (pageImages.length === 0) {
+          const errorMessage = 'Could not process PDF. Try re-saving as PDF/A or upload a photo/screenshot.';
+          
+          await supabase
+            .from('pending_bill_uploads')
+            .update({ 
+              status: 'error',
+              error_message: errorMessage
+            })
+            .eq('id', upload.id);
+
           setPendingUploads(prev => 
             prev.map(u => u.id === upload.id ? { 
               ...u, 
               status: 'error' as const,
-              error_message: textractError.message 
+              error_message: errorMessage 
             } : u)
           );
           setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           
           toast({
-            title: 'AWS Textract Configuration Error',
-            description: 'Please check your AWS credentials in the edge function settings.',
+            title: 'Extraction failed',
+            description: errorMessage,
             variant: 'destructive'
           });
           return;
         }
         
-        // For other Textract errors, fall back to AI extraction with PDF text/images
-        const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
-        let pdfText = '';
-        let pageImages: string[] = [];
-        
-        if (isPdf) {
-          console.log('Extracting PDF text on client side...');
-          pdfText = await extractPdfText(upload.file_path);
-          
-          // If text extraction returns empty, try image fallbacks
-          if (!pdfText || pdfText.trim().length === 0) {
-            console.log('PDF text extraction empty, trying react-pdf image fallback...');
-            pageImages = await renderPdfPagesToImagesReact(upload.file_path, 2);
+        console.log(`Rendered ${pageImages.length} PDF page image(s)`);
+      }
 
-            if (pageImages.length === 0) {
-              console.log('react-pdf fallback returned 0 images, trying pdfjs-dist fallback...');
-              pageImages = await renderPdfPagesToImages(upload.file_path, 2);
-            }
-            
-            if (pageImages.length === 0) {
-              const errorMessage = 'This PDF appears to be scanned and could not be processed. Try re-saving as PDF/A or upload a photo/screenshot.';
-              
-              await supabase
-                .from('pending_bill_uploads')
-                .update({ 
-                  status: 'error',
-                  error_message: errorMessage
-                })
-                .eq('id', upload.id);
-
-              setPendingUploads(prev => 
-                prev.map(u => u.id === upload.id ? { 
-                  ...u, 
-                  status: 'error' as const,
-                  error_message: errorMessage 
-                } : u)
-              );
-              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-              
-              toast({
-                title: 'Extraction failed',
-                description: errorMessage,
-                variant: 'destructive'
-              });
-              return;
-            }
-            
-            console.log(`Rendered ${pageImages.length} PDF page image(s)`);
-          } else {
-            console.log('PDF text extracted successfully, length:', pdfText.length);
-          }
+      // Call AI edge function with page images (or let it handle single image files)
+      const { error: aiError } = await supabase.functions.invoke('extract-bill-data', {
+        body: { 
+          pendingUploadId: upload.id,
+          pageImages: pageImages.length > 0 ? pageImages : undefined
         }
+      });
 
-        // Call AI edge function with either text or images
-        const { error: aiError } = await supabase.functions.invoke('extract-bill-data', {
-          body: { 
-            pendingUploadId: upload.id,
-            pdfText: pdfText || undefined,
-            pageImages: pageImages.length > 0 ? pageImages : undefined
-          }
-        });
-
-        if (aiError) {
-          throw aiError;
-        }
+      if (aiError) {
+        throw aiError;
       }
 
       toast({

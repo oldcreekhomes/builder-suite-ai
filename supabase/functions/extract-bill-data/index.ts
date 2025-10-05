@@ -29,7 +29,7 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pdfText, pageImages } = requestBody;
+    const { pendingUploadId, pageImages } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
@@ -80,9 +80,9 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', pendingUploadId);
 
-    // Only download file if we need to process it as an image (no text/pageImages provided)
+    // Only download file if we need to process it as an image (no pageImages provided)
     let base64 = '';
-    if (!pdfText && !pageImages) {
+    if (!pageImages) {
       const downloadStartTime = Date.now();
       const { data: fileData, error: downloadError } = await supabase
         .storage
@@ -157,14 +157,7 @@ Return ONLY the JSON object, no additional text.`;
 
     let messages: any[] = [];
 
-    if (pdfText) {
-      // Client provided PDF text extraction
-      console.log('Using client-provided PDF text, length:', pdfText.length);
-      messages = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Extract bill data from the following text extracted from a PDF invoice:\n${pdfText}` }
-      ];
-    } else if (pageImages && pageImages.length > 0) {
+    if (pageImages && pageImages.length > 0) {
       // Client provided rendered PDF pages as images (fallback for scanned PDFs)
       console.log('Using client-provided page images, count:', pageImages.length);
       const imageContent = pageImages.map((url: string) => ({
