@@ -72,7 +72,15 @@ serve(async (req) => {
       .eq('owner_id', pendingUpload.owner_id)
       .order('code');
 
-    console.log(`Found ${accounts?.length || 0} accounts and ${costCodes?.length || 0} cost codes for categorization`);
+    // Fetch recent categorization examples for AI learning
+    const { data: learningExamples } = await supabase
+      .from('bill_categorization_examples')
+      .select('vendor_name, description, account_name, cost_code_name')
+      .eq('owner_id', pendingUpload.owner_id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    console.log(`Found ${accounts?.length || 0} accounts, ${costCodes?.length || 0} cost codes, and ${learningExamples?.length || 0} past categorizations for AI learning`);
 
     // Update status to processing
     await supabase
@@ -118,7 +126,14 @@ serve(async (req) => {
       ? `\n\nAvailable Cost Codes:\n${costCodes.map(c => `- ${c.code}: ${c.name}${c.category ? ` (${c.category})` : ''}`).join('\n')}`
       : '';
 
-    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}
+    // Build learning examples context (few-shot learning)
+    const learningContext = learningExamples && learningExamples.length > 0
+      ? `\n\nPAST CATEGORIZATION EXAMPLES (learn from these patterns):\n${learningExamples.map((ex, idx) => 
+          `${idx + 1}. Vendor: ${ex.vendor_name}\n   Description: "${ex.description}"\n   → Account: ${ex.account_name || 'none'}, Cost Code: ${ex.cost_code_name || 'none'}`
+        ).join('\n')}\n\nUse these examples to learn categorization patterns. When you see similar descriptions, apply the same categorization logic.`
+      : '';
+
+    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${learningContext}
 
 Extract the following information and return as valid JSON:
 {

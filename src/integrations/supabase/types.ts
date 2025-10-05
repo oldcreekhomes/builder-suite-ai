@@ -147,6 +147,42 @@ export type Database = {
           },
         ]
       }
+      bill_categorization_examples: {
+        Row: {
+          account_id: string | null
+          account_name: string | null
+          cost_code_id: string | null
+          cost_code_name: string | null
+          created_at: string
+          description: string
+          id: string
+          owner_id: string
+          vendor_name: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_name?: string | null
+          cost_code_id?: string | null
+          cost_code_name?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          owner_id: string
+          vendor_name: string
+        }
+        Update: {
+          account_id?: string | null
+          account_name?: string | null
+          cost_code_id?: string | null
+          cost_code_name?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          owner_id?: string
+          vendor_name?: string
+        }
+        Relationships: []
+      }
       bill_lines: {
         Row: {
           account_id: string | null
