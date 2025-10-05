@@ -187,7 +187,24 @@ export function BatchBillReviewTable({
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
+                        {bill.vendor_name && !bill.vendor_id && !isVendorInSystem(bill.vendor_name) && (
+                          <div className="flex items-center justify-between gap-2 text-xs py-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <AlertCircle className="h-3 w-3 text-amber-600" />
+                              <span className="text-amber-600">No company found</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-xs px-2"
+                              onClick={() => handleCreateCompany(bill.id, bill.vendor_name!)}
+                            >
+                              <Building2 className="h-3 w-3 mr-1" />
+                              Create Company
+                            </Button>
+                          </div>
+                        )}
                         <VendorSearchInput
                           value={bill.vendor_name || ''}
                           onChange={(vendorName) => {
@@ -213,21 +230,6 @@ export function BatchBillReviewTable({
                             }
                           }}
                         />
-                        {bill.vendor_name && !bill.vendor_id && !isVendorInSystem(bill.vendor_name) && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <AlertCircle className="h-3 w-3 text-amber-600" />
-                            <span className="text-amber-600">This company is not currently in the system</span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 text-xs"
-                              onClick={() => handleCreateCompany(bill.id, bill.vendor_name!)}
-                            >
-                              <Building2 className="h-3 w-3 mr-1" />
-                              Create New Company
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>
