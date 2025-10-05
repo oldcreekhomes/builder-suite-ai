@@ -137,7 +137,7 @@ export function BatchBillReviewTable({
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-3">
-                  <div className="flex items-center gap-2 text-xs text-blue-600">
+                  <div className="flex items-center gap-2 text-xs text-red-600">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     <span>Extracting...</span>
                   </div>
