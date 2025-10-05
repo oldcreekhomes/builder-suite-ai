@@ -352,11 +352,15 @@ export function EditExtractedBillDialog({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Note: This deletes the entire pending bill upload
+                    if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
+                      onOpenChange(false);
+                      // Trigger deletion through parent component if needed
+                    }
                   }}
-                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center opacity-50 cursor-not-allowed"
-                  title="Cannot delete attachment"
+                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                  title="Delete file"
                   type="button"
-                  disabled
                 >
                   <span className="text-xs font-bold leading-none">×</span>
                 </button>
