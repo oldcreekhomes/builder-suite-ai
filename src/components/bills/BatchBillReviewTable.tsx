@@ -157,7 +157,7 @@ export function BatchBillReviewTable({
                     <TableCell className="px-2 py-1">
                       <span className="text-xs">{accountDisplay}</span>
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right">
+                    <TableCell className="px-2 py-1">
                       <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
                     </TableCell>
                     <TableCell className="px-2 py-1">
