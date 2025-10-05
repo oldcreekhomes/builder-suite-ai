@@ -567,7 +567,7 @@ export default function EnterBills() {
           <div className="flex-1 p-6 space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="manual">Enter Bills</TabsTrigger>
+                <TabsTrigger value="manual">Manually Enter Bills</TabsTrigger>
                 <TabsTrigger value="ai">Enter Bills with AI</TabsTrigger>
               </TabsList>
 
