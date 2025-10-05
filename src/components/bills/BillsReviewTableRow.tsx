@@ -81,12 +81,13 @@ export const BillsReviewTableRow = ({
           <div className="flex justify-end gap-2">
             {(bill.status === 'completed' || bill.status === 'reviewing') && (
               <Button
+                variant="ghost"
                 size="sm"
-                variant="outline"
+                className="h-8 w-8 p-0"
                 onClick={() => setShowEditDialog(true)}
+                title="Edit bill"
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
+                <Edit className="h-4 w-4" />
               </Button>
             )}
             {bill.status === 'reviewing' && (

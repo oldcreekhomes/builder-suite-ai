@@ -157,12 +157,11 @@ export function BatchBillReviewTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2 text-xs"
+                        className="h-6 w-6 p-0"
                         onClick={() => setEditingBillId(bill.id)}
                         title="Edit bill"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        <Edit className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="ghost"
