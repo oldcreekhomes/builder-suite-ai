@@ -428,7 +428,7 @@ export function EditExtractedBillDialog({
                           size="sm"
                           onClick={() => removeJobCostLine(line.id)}
                           disabled={jobCostLines.length === 1}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -494,7 +494,7 @@ export function EditExtractedBillDialog({
                           size="sm"
                           onClick={() => removeExpenseLine(line.id)}
                           disabled={expenseLines.length === 1}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
