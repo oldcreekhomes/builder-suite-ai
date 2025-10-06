@@ -197,7 +197,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-[150px] px-2 py-0 text-xs font-medium">Account</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Total</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Status</TableHead>
+              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Issues</TableHead>
               <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -329,7 +329,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {issues.length > 0 ? (
-                      <span className="text-xs text-red-600">{issues.length} Issue{issues.length > 1 ? 's' : ''}</span>
+                      <span className="text-xs text-red-600">{issues.length}</span>
                     ) : (
                       <span className="text-xs text-green-600">Ready</span>
                     )}
