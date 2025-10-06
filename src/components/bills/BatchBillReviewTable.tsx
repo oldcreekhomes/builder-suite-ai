@@ -92,7 +92,8 @@ export function BatchBillReviewTable({
     
     // Enhanced vendor validation
     const hasVendorName = bill.vendor_name || getExtractedValue(bill, 'vendor_name', 'vendor');
-    if (!bill.vendor_id) {
+    const hasVendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
+    if (!hasVendorId) {
       if (!hasVendorName) {
         issues.push("Vendor required");
       } else {
@@ -369,6 +370,7 @@ export function BatchBillReviewTable({
               })();
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
+              const vendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
               const referenceNumber = getExtractedValue(bill, 'reference_number', 'referenceNumber');
               const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
               const dueDate = getExtractedValue(bill, 'due_date', 'dueDate');
@@ -376,7 +378,7 @@ export function BatchBillReviewTable({
               return (
                 <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
                   <TableCell className="px-2 py-1">
-                    {!bill.vendor_id && vendorName ? (
+                    {!vendorId && vendorName ? (
                       <button
                         onClick={() => handleAddVendor(bill.id, vendorName as string)}
                         className="flex items-center gap-1 px-2 py-1 -mx-2 -my-1 rounded hover:bg-red-50 transition-colors cursor-pointer w-full"

@@ -596,7 +596,8 @@ Return ONLY the JSON object, no additional text.`;
     console.error('Error in extract-bill-data function:', error);
 
     // Update status to error if we have the ID
-    if (error instanceof Error && requestBody?.pendingUploadId) {
+    // BUT: Don't set error status if in enrichContactOnly mode (keeps bill visible)
+    if (error instanceof Error && requestBody?.pendingUploadId && !requestBody?.enrichContactOnly) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);
