@@ -168,36 +168,72 @@ serve(async (req) => {
 
     const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}
 
+⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
+ALL field names MUST use snake_case (e.g., vendor_name, bill_date).
+DO NOT use camelCase (e.g., vendorName, billDate) - the system will REJECT camelCase.
+
+EXAMPLE OUTPUT (note the exact field names):
+{
+  "vendor_name": "ELG CONSULTING",
+  "vendor_address": "123 Business Park Dr, Suite 200, Austin, TX 78701",
+  "vendor_phone": "(512) 555-1234",
+  "vendor_website": "www.elgconsulting.com",
+  "bill_date": "2025-07-01",
+  "due_date": "2025-07-16",
+  "reference_number": "223",
+  "terms": "Net 15",
+  "line_items": [
+    {
+      "description": "Project Management - June",
+      "quantity": 1,
+      "unit_cost": 225,
+      "amount": 225,
+      "memo": null,
+      "account_name": "Job Costs",
+      "cost_code_name": "Project Management"
+    }
+  ],
+  "total_amount": 225
+}
+
 Extract the following information and return as valid JSON:
 {
-  "vendor_name": "string",
-  "vendor_address": "string (full address from invoice header/footer, or null)",
-  "vendor_phone": "string (phone number from invoice, or null)",
-  "vendor_website": "string (website URL from invoice, or null)",
-  "bill_date": "YYYY-MM-DD",
-  "due_date": "YYYY-MM-DD (or null)",
-  "reference_number": "string (or null)",
-  "terms": "string - Payment terms EXACTLY as shown on invoice (e.g., 'Net 15', 'Net 30', 'Net 45', 'Due on receipt', 'COD', etc.). Look carefully for terms field or payment terms section. Return null if not found.",
+  "vendor_name": "string - REQUIRED, company name from invoice",
+  "vendor_address": "string - EXTRACT when visible on invoice (letterhead/header/footer), or null",
+  "vendor_phone": "string - EXTRACT when visible on invoice (letterhead/header/footer), or null",
+  "vendor_website": "string - EXTRACT when visible on invoice (letterhead/header/footer), or null",
+  "bill_date": "YYYY-MM-DD - REQUIRED",
+  "due_date": "YYYY-MM-DD or null",
+  "reference_number": "string or null",
+  "terms": "string - Payment terms EXACTLY as shown (e.g., 'Net 15', 'Net 30'), or null",
   "line_items": [
     {
       "description": "string",
       "quantity": number,
       "unit_cost": number,
       "amount": number,
-      "memo": "string (or null)",
-      "account_name": "string (match to available accounts if confident, or null)",
-      "cost_code_name": "string (match to available cost codes if confident, or null)"
+      "memo": "string or null",
+      "account_name": "string - exact match from available accounts, or null",
+      "cost_code_name": "string - exact match from available cost codes, or null"
     }
   ],
   "total_amount": number
 }
 
-VENDOR INFORMATION EXTRACTION:
-- Look in the invoice header/letterhead for company name, address, phone, and website
-- Common locations: top of page, return address section, footer contact information
-- Extract full address exactly as shown (street, city, state, zip)
-- Phone numbers may be in various formats: (123) 456-7890, 123-456-7890, 123.456.7890
-- Website may include http/https or just domain name
+VENDOR CONTACT INFORMATION - CRITICAL EXTRACTION RULES:
+⚠️ ALWAYS extract vendor contact information when visible on the invoice
+- Look in MULTIPLE locations: letterhead (top), header section, footer, contact section, return address area
+- vendor_address: Extract COMPLETE address including street, suite/unit, city, state, ZIP code
+  * Example: "123 Business Park Dr, Suite 200, Austin, TX 78701"
+  * May span multiple lines - combine into single string with commas
+- vendor_phone: Extract phone number in any format
+  * Common formats: (123) 456-7890, 123-456-7890, 123.456.7890, +1-123-456-7890
+  * Return exactly as shown, including formatting
+- vendor_website: Extract website/URL
+  * May include: www.example.com, example.com, https://example.com
+  * Return exactly as shown
+- If contact information is NOT visible on the invoice, set to null
+- DO NOT fabricate or guess contact information
 
 CRITICAL DATE EXTRACTION RULES:
 - Extract dates EXACTLY as they appear on the document
@@ -236,6 +272,16 @@ SMART COST CODE ASSIGNMENT RULES:
    - Leave cost_code_name as null if uncertain
 
 IMPORTANT: Prioritize using company-specific cost codes over general cost codes when the vendor is found in the company list.
+
+🔍 FINAL VALIDATION CHECKLIST (before returning JSON):
+✓ All field names use snake_case (vendor_name, bill_date, NOT vendorName, billDate)
+✓ vendor_name is populated
+✓ vendor_address, vendor_phone, vendor_website are populated when visible on invoice
+✓ Dates are in YYYY-MM-DD format
+✓ terms field contains exact text from invoice (or null if not found)
+✓ line_items array contains all invoice line items
+✓ account_name and cost_code_name match exact names from available lists (or null)
+✓ All amounts are numeric (not strings)
 
 Return ONLY the JSON object, no additional text.`;
 
