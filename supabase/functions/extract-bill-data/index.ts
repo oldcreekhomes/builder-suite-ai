@@ -546,6 +546,7 @@ Return ONLY the JSON object, no additional text.`;
       // Merge: keep all existing fields, overlay contact fields
       const mergedData = {
         ...existingData,
+        vendor_id: extractedData.vendor_id || existingData.vendor_id || existedData.vendorId, // CRITICAL: Keep vendor_id
         vendor_name: extractedData.vendor_name || existingData.vendor_name || existingData.vendor,
         vendor_address: extractedData.vendor_address || existingData.vendor_address,
         vendor_phone: extractedData.vendor_phone || existingData.vendor_phone,

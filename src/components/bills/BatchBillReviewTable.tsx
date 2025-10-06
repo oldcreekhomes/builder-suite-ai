@@ -93,6 +93,14 @@ export function BatchBillReviewTable({
     // Enhanced vendor validation
     const hasVendorName = bill.vendor_name || getExtractedValue(bill, 'vendor_name', 'vendor');
     const hasVendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
+    
+    // Debug logging for vendor detection
+    console.debug('Vendor check:', { 
+      billId: bill.id, 
+      vendorName: hasVendorName, 
+      vendorId: hasVendorId 
+    });
+    
     if (!hasVendorId) {
       if (!hasVendorName) {
         issues.push("Vendor required");

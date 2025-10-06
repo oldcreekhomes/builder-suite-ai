@@ -167,13 +167,15 @@ export default function EnterBills() {
   // Update batch bills when pending bills change - fetch lines for each bill
   useEffect(() => {
     const fetchBillsWithLines = async () => {
-      if (!pendingBills || pendingBills.length === 0) {
+      // Only clear if pendingBills is explicitly defined and empty (not undefined during refetch)
+      if (pendingBills !== undefined && pendingBills.length === 0) {
         setBatchBills([]);
         return;
       }
+      if (!pendingBills) return; // Don't clear during refetch when data is undefined
 
       const completedBills = pendingBills.filter(b => 
-        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing'
+        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'processing'
       );
       
       const billsWithLines = await Promise.all(
