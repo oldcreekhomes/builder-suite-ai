@@ -50,13 +50,23 @@ interface AddCompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialCompanyName?: string;
+  initialData?: {
+    phone_number?: string;
+    address_line_1?: string;
+    address_line_2?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    website?: string;
+  };
   onCompanyCreated?: (companyId: string, companyName: string) => void;
 }
 
 export function AddCompanyDialog({ 
   open, 
   onOpenChange, 
-  initialCompanyName, 
+  initialCompanyName,
+  initialData,
   onCompanyCreated 
 }: AddCompanyDialogProps) {
   const { toast } = useToast();
@@ -69,22 +79,31 @@ export function AddCompanyDialog({
     defaultValues: {
       company_name: initialCompanyName || "",
       company_type: "Subcontractor",
-      address_line_1: "",
-      address_line_2: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      phone_number: "",
-      website: "",
+      address_line_1: initialData?.address_line_1 || "",
+      address_line_2: initialData?.address_line_2 || "",
+      city: initialData?.city || "",
+      state: initialData?.state || "",
+      zip_code: initialData?.zip_code || "",
+      phone_number: initialData?.phone_number || "",
+      website: initialData?.website || "",
     },
   });
 
-  // Update company name when initialCompanyName changes
+  // Update form values when initialCompanyName or initialData changes
   useEffect(() => {
     if (initialCompanyName) {
       form.setValue("company_name", initialCompanyName);
     }
-  }, [initialCompanyName, form]);
+    if (initialData) {
+      if (initialData.phone_number) form.setValue("phone_number", initialData.phone_number);
+      if (initialData.address_line_1) form.setValue("address_line_1", initialData.address_line_1);
+      if (initialData.address_line_2) form.setValue("address_line_2", initialData.address_line_2);
+      if (initialData.city) form.setValue("city", initialData.city);
+      if (initialData.state) form.setValue("state", initialData.state);
+      if (initialData.zip_code) form.setValue("zip_code", initialData.zip_code);
+      if (initialData.website) form.setValue("website", initialData.website);
+    }
+  }, [initialCompanyName, initialData, form]);
 
   // Memoize the cost codes change handler to prevent infinite re-renders
   const handleCostCodesChange = useCallback((costCodes: string[]) => {

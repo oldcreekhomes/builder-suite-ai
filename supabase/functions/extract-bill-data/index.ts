@@ -138,6 +138,9 @@ serve(async (req) => {
 Extract the following information and return as valid JSON:
 {
   "vendor_name": "string",
+  "vendor_address": "string (full address from invoice header/footer, or null)",
+  "vendor_phone": "string (phone number from invoice, or null)",
+  "vendor_website": "string (website URL from invoice, or null)",
   "bill_date": "YYYY-MM-DD",
   "due_date": "YYYY-MM-DD (or null)",
   "reference_number": "string (or null)",
@@ -155,6 +158,13 @@ Extract the following information and return as valid JSON:
   ],
   "total_amount": number
 }
+
+VENDOR INFORMATION EXTRACTION:
+- Look in the invoice header/letterhead for company name, address, phone, and website
+- Common locations: top of page, return address section, footer contact information
+- Extract full address exactly as shown (street, city, state, zip)
+- Phone numbers may be in various formats: (123) 456-7890, 123-456-7890, 123.456.7890
+- Website may include http/https or just domain name
 
 CRITICAL DATE EXTRACTION RULES:
 - Extract dates EXACTLY as they appear on the document

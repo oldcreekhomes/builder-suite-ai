@@ -66,6 +66,15 @@ export function BatchBillReviewTable({
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");
+  const [vendorInitialData, setVendorInitialData] = useState<{
+    phone_number?: string;
+    address_line_1?: string;
+    address_line_2?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    website?: string;
+  } | undefined>(undefined);
   const { toast } = useToast();
 
   // Helper to get extracted values (handles both snake_case and camelCase)
@@ -107,6 +116,52 @@ export function BatchBillReviewTable({
   };
 
   const handleAddVendor = (billId: string, vendorName: string) => {
+    // Find the bill to extract vendor data
+    const bill = bills.find(b => b.id === billId);
+    
+    if (bill?.extracted_data) {
+      const data = bill.extracted_data as any;
+      
+      // Parse address if available
+      let addressData = {};
+      if (data.vendor_address) {
+        const addressStr = data.vendor_address as string;
+        // Try to parse the address into components
+        // Format: "123 Main St, City, ST 12345" or variations
+        const parts = addressStr.split(',').map(p => p.trim());
+        
+        if (parts.length >= 3) {
+          // Last part might be "ST ZIP"
+          const lastPart = parts[parts.length - 1];
+          const stateZipMatch = lastPart.match(/([A-Z]{2})\s+(\d{5}(?:-\d{4})?)/);
+          
+          addressData = {
+            address_line_1: parts[0],
+            city: parts[parts.length - 2],
+            state: stateZipMatch?.[1] || '',
+            zip_code: stateZipMatch?.[2] || '',
+          };
+        } else if (parts.length === 2) {
+          addressData = {
+            address_line_1: parts[0],
+            city: parts[1],
+          };
+        } else {
+          addressData = {
+            address_line_1: addressStr,
+          };
+        }
+      }
+      
+      setVendorInitialData({
+        phone_number: data.vendor_phone || undefined,
+        website: data.vendor_website || undefined,
+        ...addressData,
+      });
+    } else {
+      setVendorInitialData(undefined);
+    }
+    
     setAddingVendorForBillId(billId);
     setAddingVendorName(vendorName);
   };
@@ -324,9 +379,11 @@ export function BatchBillReviewTable({
             if (!open) {
               setAddingVendorForBillId(null);
               setAddingVendorName("");
+              setVendorInitialData(undefined);
             }
           }}
           initialCompanyName={addingVendorName}
+          initialData={vendorInitialData}
           onCompanyCreated={handleVendorCreated}
         />
       )}
