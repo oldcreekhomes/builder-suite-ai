@@ -524,8 +524,15 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
         if (data.status === 'extracted') {
           clearInterval(pollInterval);
+          
+          // Keep status as 'processing' while enrichment happens
+          await supabase
+            .from('pending_bill_uploads')
+            .update({ status: 'processing' })
+            .eq('id', upload.id);
+          
           setPendingUploads(prev => 
-            prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
+            prev.map(u => u.id === upload.id ? { ...data as PendingUpload, status: 'processing' } : u)
           );
           
           // Enrich with contact details after successful extraction
@@ -555,6 +562,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                 }
               });
               
+              // Update status to 'extracted' now that enrichment is complete
+              await supabase
+                .from('pending_bill_uploads')
+                .update({ status: 'extracted' })
+                .eq('id', upload.id);
+              
               // Refresh the upload data
               const { data: refreshed } = await supabase
                 .from('pending_bill_uploads')
@@ -573,6 +586,26 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
               setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
             } catch (enrichError) {
               console.warn('Contact enrichment failed (non-critical):', enrichError);
+              
+              // Update to 'extracted' even if enrichment fails
+              await supabase
+                .from('pending_bill_uploads')
+                .update({ status: 'extracted' })
+                .eq('id', upload.id);
+              
+              // Refresh data
+              const { data: refreshed } = await supabase
+                .from('pending_bill_uploads')
+                .select('*')
+                .eq('id', upload.id)
+                .single();
+              
+              if (refreshed) {
+                setPendingUploads(prev => 
+                  prev.map(u => u.id === upload.id ? (refreshed as PendingUpload) : u)
+                );
+              }
+              
               // Stop spinner even if enrichment fails
               setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
             }

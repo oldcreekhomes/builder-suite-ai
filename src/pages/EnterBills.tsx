@@ -175,7 +175,7 @@ export default function EnterBills() {
       if (!pendingBills) return; // Don't clear during refetch when data is undefined
 
       const completedBills = pendingBills.filter(b => 
-        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'processing'
+        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing'
       );
       
       const billsWithLines = await Promise.all(
