@@ -212,18 +212,14 @@ export function BatchBillReviewTable({
                 <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
                   <TableCell className="px-2 py-1">
                     {!bill.vendor_id && vendorName ? (
-                      <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleAddVendor(bill.id, vendorName as string)}
+                        className="flex items-center gap-1 px-2 py-1 -mx-2 -my-1 rounded hover:bg-red-50 transition-colors cursor-pointer w-full"
+                        title="Add vendor to database"
+                      >
                         <span className="text-xs text-red-600 font-medium">{vendorName}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleAddVendor(bill.id, vendorName as string)}
-                          title="Add vendor to database"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                        <Plus className="h-3 w-3 text-red-600" />
+                      </button>
                     ) : (
                       <span className="text-xs">{vendorName || '-'}</span>
                     )}
