@@ -527,7 +527,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
           setPendingUploads(prev => 
             prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
           );
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           
           // Enrich with contact details after successful extraction
           (async () => {
@@ -569,8 +568,13 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                 );
                 console.log('Contact enrichment completed');
               }
+              
+              // Stop spinner after enrichment completes
+              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
             } catch (enrichError) {
               console.warn('Contact enrichment failed (non-critical):', enrichError);
+              // Stop spinner even if enrichment fails
+              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
             }
           })();
         } else if (data.status === 'error') {
