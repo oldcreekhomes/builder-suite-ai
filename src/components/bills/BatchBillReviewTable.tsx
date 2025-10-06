@@ -115,6 +115,73 @@ export function BatchBillReviewTable({
     return issues;
   };
 
+  const parseUSAddress = (addressStr: string) => {
+    // Normalize: replace newlines with spaces, collapse multiple spaces
+    const normalized = addressStr.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    // Try to extract state and zip using regex (handles various formats)
+    const stateZipMatch = normalized.match(/\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
+    
+    if (stateZipMatch) {
+      const state = stateZipMatch[1];
+      const zip = stateZipMatch[2];
+      const beforeStateZip = normalized.substring(0, stateZipMatch.index).trim();
+      
+      // Check if there are commas (traditional format)
+      if (beforeStateZip.includes(',')) {
+        const parts = beforeStateZip.split(',').map(p => p.trim()).filter(p => p);
+        if (parts.length >= 2) {
+          return {
+            address_line_1: parts[0],
+            city: parts[parts.length - 1],
+            state,
+            zip_code: zip,
+          };
+        } else if (parts.length === 1) {
+          return {
+            address_line_1: parts[0],
+            state,
+            zip_code: zip,
+          };
+        }
+      } else {
+        // No commas - try to extract city as the word(s) before state
+        // Pattern: "123 Main St SomeCity ST ZIP"
+        const cityMatch = beforeStateZip.match(/^(.+)\s+([A-Za-z\s]+)$/);
+        if (cityMatch) {
+          return {
+            address_line_1: cityMatch[1].trim(),
+            city: cityMatch[2].trim(),
+            state,
+            zip_code: zip,
+          };
+        } else {
+          return {
+            address_line_1: beforeStateZip,
+            state,
+            zip_code: zip,
+          };
+        }
+      }
+    }
+    
+    // Fallback: no state/zip found, try comma-separated
+    if (normalized.includes(',')) {
+      const parts = normalized.split(',').map(p => p.trim()).filter(p => p);
+      if (parts.length >= 2) {
+        return {
+          address_line_1: parts[0],
+          city: parts[1],
+        };
+      }
+    }
+    
+    // Ultimate fallback: just use as address line 1
+    return {
+      address_line_1: normalized,
+    };
+  };
+
   const handleAddVendor = (billId: string, vendorName: string) => {
     // Find the bill to extract vendor data
     const bill = bills.find(b => b.id === billId);
@@ -125,32 +192,7 @@ export function BatchBillReviewTable({
       // Parse address if available
       let addressData = {};
       if (data.vendor_address) {
-        const addressStr = data.vendor_address as string;
-        // Try to parse the address into components
-        // Format: "123 Main St, City, ST 12345" or variations
-        const parts = addressStr.split(',').map(p => p.trim());
-        
-        if (parts.length >= 3) {
-          // Last part might be "ST ZIP"
-          const lastPart = parts[parts.length - 1];
-          const stateZipMatch = lastPart.match(/([A-Z]{2})\s+(\d{5}(?:-\d{4})?)/);
-          
-          addressData = {
-            address_line_1: parts[0],
-            city: parts[parts.length - 2],
-            state: stateZipMatch?.[1] || '',
-            zip_code: stateZipMatch?.[2] || '',
-          };
-        } else if (parts.length === 2) {
-          addressData = {
-            address_line_1: parts[0],
-            city: parts[1],
-          };
-        } else {
-          addressData = {
-            address_line_1: addressStr,
-          };
-        }
+        addressData = parseUSAddress(data.vendor_address as string);
       }
       
       setVendorInitialData({
