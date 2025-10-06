@@ -509,45 +509,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         description: "Processing your bill...",
       });
 
-      const pollInterval = setInterval(async () => {
-        const { data, error } = await supabase
-          .from('pending_bill_uploads')
-          .select('*')
-          .eq('id', upload.id)
-          .single();
 
-        if (error || !data) {
-          clearInterval(pollInterval);
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-          return;
-        }
-
-        if (data.status === 'extracted') {
-          clearInterval(pollInterval);
-          setPendingUploads(prev => 
-            prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
-          );
-          // Stop processing spinner
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-        } else if (data.status === 'error') {
-          clearInterval(pollInterval);
-          setPendingUploads(prev => 
-            prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
-          );
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-          toast({
-            title: "Extraction failed",
-            description: data.error_message || "Unknown error",
-            variant: "destructive"
-          });
-        }
-      }, 2000);
-
-      // Removed 60-second timeout - let backend complete naturally
+      // Extraction started - let usePendingBills hook handle polling and status updates
+      console.log('Extraction process initiated for upload:', upload.id);
 
     } catch (error) {
       console.error('Extract error:', error);
-      setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
       
       // Extract more detailed error message
       let errorMessage = "Unknown error";
