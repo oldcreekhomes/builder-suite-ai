@@ -196,9 +196,9 @@ export function BatchBillReviewTable({
               
               // Calculate account display
               const accountDisplay = (() => {
-                if (!bill.lines || bill.lines.length === 0) return '-';
+                if (!bill.lines || bill.lines.length === 0) return null;
                 const uniqueAccounts = [...new Set(bill.lines.map(line => line.account_name).filter(Boolean))];
-                if (uniqueAccounts.length === 0) return '-';
+                if (uniqueAccounts.length === 0) return null;
                 if (uniqueAccounts.length === 1) return uniqueAccounts[0];
                 return `${uniqueAccounts.length} accounts`;
               })();
@@ -238,7 +238,11 @@ export function BatchBillReviewTable({
                     <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{accountDisplay}</span>
+                    {accountDisplay === null ? (
+                      <span className="text-xs text-red-600 font-medium">NONE</span>
+                    ) : (
+                      <span className="text-xs">{accountDisplay}</span>
+                    )}
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
