@@ -10,6 +10,7 @@ import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIc
 import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PendingBillLine {
   line_number: number;
@@ -119,13 +120,24 @@ export function BatchBillReviewTable({
     // Normalize: replace newlines with spaces, collapse multiple spaces
     const normalized = addressStr.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
     
+    // Check for suite/unit/apt patterns and extract to address_line_2
+    const suitePattern = /\b(suite|ste|unit|apt|apartment|#)\s+([^\s,]+)/i;
+    const suiteMatch = normalized.match(suitePattern);
+    let address_line_2: string | undefined;
+    let cleanedAddress = normalized;
+    
+    if (suiteMatch) {
+      address_line_2 = suiteMatch[0].trim(); // e.g., "Suite 200"
+      cleanedAddress = normalized.replace(suiteMatch[0], '').replace(/\s+/g, ' ').trim();
+    }
+    
     // Try to extract state and zip using regex (handles various formats)
-    const stateZipMatch = normalized.match(/\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
+    const stateZipMatch = cleanedAddress.match(/\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/);
     
     if (stateZipMatch) {
       const state = stateZipMatch[1];
       const zip = stateZipMatch[2];
-      const beforeStateZip = normalized.substring(0, stateZipMatch.index).trim();
+      const beforeStateZip = cleanedAddress.substring(0, stateZipMatch.index).trim();
       
       // Check if there are commas (traditional format)
       if (beforeStateZip.includes(',')) {
@@ -133,6 +145,7 @@ export function BatchBillReviewTable({
         if (parts.length >= 2) {
           return {
             address_line_1: parts[0],
+            address_line_2,
             city: parts[parts.length - 1],
             state,
             zip_code: zip,
@@ -140,6 +153,7 @@ export function BatchBillReviewTable({
         } else if (parts.length === 1) {
           return {
             address_line_1: parts[0],
+            address_line_2,
             state,
             zip_code: zip,
           };
@@ -151,6 +165,7 @@ export function BatchBillReviewTable({
         if (cityMatch) {
           return {
             address_line_1: cityMatch[1].trim(),
+            address_line_2,
             city: cityMatch[2].trim(),
             state,
             zip_code: zip,
@@ -158,6 +173,7 @@ export function BatchBillReviewTable({
         } else {
           return {
             address_line_1: beforeStateZip,
+            address_line_2,
             state,
             zip_code: zip,
           };
@@ -166,11 +182,12 @@ export function BatchBillReviewTable({
     }
     
     // Fallback: no state/zip found, try comma-separated
-    if (normalized.includes(',')) {
-      const parts = normalized.split(',').map(p => p.trim()).filter(p => p);
+    if (cleanedAddress.includes(',')) {
+      const parts = cleanedAddress.split(',').map(p => p.trim()).filter(p => p);
       if (parts.length >= 2) {
         return {
           address_line_1: parts[0],
+          address_line_2,
           city: parts[1],
         };
       }
@@ -178,28 +195,78 @@ export function BatchBillReviewTable({
     
     // Ultimate fallback: just use as address line 1
     return {
-      address_line_1: normalized,
+      address_line_1: cleanedAddress,
+      address_line_2,
     };
   };
 
-  const handleAddVendor = (billId: string, vendorName: string) => {
+  const handleAddVendor = async (billId: string, vendorName: string) => {
     // Find the bill to extract vendor data
     const bill = bills.find(b => b.id === billId);
     
-    if (bill?.extracted_data) {
+    // Helper to get contact info with flexible key checking
+    const getContact = (data: any, snakeKey: string, camelKey: string) => {
+      return data?.[snakeKey] || data?.[camelKey];
+    };
+    
+    if (bill) {
       const data = bill.extracted_data as any;
+      
+      // Try to get contact info from extracted_data
+      let vendorAddress = getContact(data, 'vendor_address', 'vendorAddress');
+      let vendorPhone = getContact(data, 'vendor_phone', 'vendorPhone');
+      let vendorWebsite = getContact(data, 'vendor_website', 'vendorWebsite');
+      
+      // If no contact info found, try enriching
+      if (!vendorAddress && !vendorPhone && !vendorWebsite) {
+        console.debug('No contact info found, attempting enrichment...');
+        
+        try {
+          // Call extract-bill-data with enrichContactOnly flag
+          const { error: enrichError } = await supabase.functions.invoke('extract-bill-data', {
+            body: {
+              pendingUploadId: billId,
+              enrichContactOnly: true
+            }
+          });
+          
+          if (enrichError) {
+            console.error('Error enriching contact:', enrichError);
+          } else {
+            // Refetch the pending upload to get updated extracted_data
+            const { data: updatedBill, error: fetchError } = await supabase
+              .from('pending_bill_uploads')
+              .select('extracted_data')
+              .eq('id', billId)
+              .single();
+            
+            if (!fetchError && updatedBill?.extracted_data) {
+              const enrichedData = updatedBill.extracted_data as any;
+              vendorAddress = getContact(enrichedData, 'vendor_address', 'vendorAddress');
+              vendorPhone = getContact(enrichedData, 'vendor_phone', 'vendorPhone');
+              vendorWebsite = getContact(enrichedData, 'vendor_website', 'vendorWebsite');
+              console.debug('Enriched contact data:', { vendorAddress, vendorPhone, vendorWebsite });
+            }
+          }
+        } catch (err) {
+          console.error('Error during contact enrichment:', err);
+        }
+      }
       
       // Parse address if available
       let addressData = {};
-      if (data.vendor_address) {
-        addressData = parseUSAddress(data.vendor_address as string);
+      if (vendorAddress) {
+        addressData = parseUSAddress(vendorAddress as string);
       }
       
-      setVendorInitialData({
-        phone_number: data.vendor_phone || undefined,
-        website: data.vendor_website || undefined,
+      const initialData = {
+        phone_number: vendorPhone || undefined,
+        website: vendorWebsite || undefined,
         ...addressData,
-      });
+      };
+      
+      console.debug('Setting vendor initial data:', initialData);
+      setVendorInitialData(initialData);
     } else {
       setVendorInitialData(undefined);
     }
