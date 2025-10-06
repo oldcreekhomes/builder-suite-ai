@@ -128,28 +128,14 @@ export function BatchBillReviewTable({
                 <TableCell className="px-2 py-3">
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
-                <TableCell className="px-2 py-3">
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-                <TableCell className="px-2 py-3">
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-                <TableCell className="px-2 py-3">
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-                <TableCell className="px-2 py-3">
-                  <div className="flex items-center gap-2 text-xs">
-                    <FileText className="h-3 w-3 text-muted-foreground" />
-                    <span className="truncate max-w-[150px]" title={upload.file_name}>
-                      {upload.file_name}
-                    </span>
+                <TableCell colSpan={5} className="px-2 py-3">
+                  <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium">Extracting data from {upload.file_name}...</span>
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-3">
-                  <div className="flex items-center gap-2 text-xs text-red-600">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Extracting...</span>
-                  </div>
+                  <Skeleton className="h-4 w-20" />
                 </TableCell>
                 <TableCell className="px-2 py-3">
                   <Skeleton className="h-8 w-16" />
