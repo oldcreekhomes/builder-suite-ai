@@ -156,7 +156,17 @@ Extract the following information and return as valid JSON:
   "total_amount": number
 }
 
-IMPORTANT PAYMENT TERMS: 
+CRITICAL DATE EXTRACTION RULES:
+- Extract dates EXACTLY as they appear on the document
+- Look for fields labeled: "Invoice Date:", "Date:", "Bill Date:", "Dated:", etc.
+- Look for due date fields labeled: "Due Date:", "Payment Due:", "Due:", etc.
+- DO NOT perform any timezone conversions or date calculations
+- DO NOT adjust dates by adding or subtracting days
+- Common date formats: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD
+- If the invoice shows "07/01/2025", return "2025-07-01" (NOT "2025-06-30")
+- If ambiguous (e.g., "01/07/2025" could be Jan 7 or Jul 1), use US format (MM/DD/YYYY) unless clearly indicated otherwise
+
+IMPORTANT PAYMENT TERMS:
 - Look carefully for payment terms on the document (often labeled as "Terms:", "Payment Terms:", "Net:", etc.)
 - Extract the EXACT text shown (e.g., if it says "Net 15", return "Net 15", NOT "Net 30")
 - Common formats include: Net 15, Net 30, Net 45, Net 60, Due on receipt, COD, 2/10 Net 30
