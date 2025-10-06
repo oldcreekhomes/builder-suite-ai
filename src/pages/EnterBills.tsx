@@ -18,6 +18,7 @@ import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -186,16 +187,6 @@ export default function EnterBills() {
             .eq('pending_upload_id', bill.id)
             .order('line_number');
           
-          // Normalize date format
-          const normalizeDateToYYYYMMDD = (dateStr: string) => {
-            if (!dateStr) return '';
-            try {
-              const date = new Date(dateStr);
-              return date.toISOString().split('T')[0];
-            } catch {
-              return dateStr;
-            }
-          };
 
           // If no lines exist but extractedData has lineItems, auto-populate
           let finalLines = lines || [];
@@ -230,8 +221,8 @@ export default function EnterBills() {
             status: bill.status,
             vendor_id: extractedData.vendorId || null,
             vendor_name: extractedData.vendor || '',
-            bill_date: normalizeDateToYYYYMMDD(extractedData.billDate || extractedData.date || '') || new Date().toISOString().split('T')[0],
-            due_date: normalizeDateToYYYYMMDD(extractedData.dueDate || ''),
+            bill_date: normalizeToYMD(extractedData.bill_date || extractedData.billDate || extractedData.date || ''),
+            due_date: normalizeToYMD(extractedData.due_date || extractedData.dueDate || ''),
             reference_number: extractedData.referenceNumber || '',
             terms: extractedData.terms || 'net-30',
             notes: extractedData.notes || '',
@@ -357,11 +348,11 @@ export default function EnterBills() {
     }
     
     if (extractedData.bill_date) {
-      setBillDate(new Date(extractedData.bill_date));
+      setBillDate(toDateLocal(normalizeToYMD(extractedData.bill_date)));
     }
     
     if (extractedData.due_date) {
-      setBillDueDate(new Date(extractedData.due_date));
+      setBillDueDate(toDateLocal(normalizeToYMD(extractedData.due_date)));
     }
     
     if (extractedData.terms) {

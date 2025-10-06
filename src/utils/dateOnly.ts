@@ -183,3 +183,52 @@ export const getDayOfMonth = (dateStr: DateString): string => {
   const { day } = parseDateString(dateStr);
   return String(day).padStart(2, '0');
 };
+
+/**
+ * Normalize any date input to YYYY-MM-DD string (date-only, no timezone shift)
+ * Handles: YYYY-MM-DD, ISO strings, MM/DD/YYYY, Date objects
+ */
+export const normalizeToYMD = (input: string | Date): DateString => {
+  if (!input) return '';
+  
+  // If already YYYY-MM-DD format
+  if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return input;
+  }
+  
+  // If ISO string (YYYY-MM-DDTHH:mm:ss.sssZ), extract date part
+  if (typeof input === 'string' && input.includes('T')) {
+    return input.split('T')[0];
+  }
+  
+  // If MM/DD/YYYY format
+  if (typeof input === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(input)) {
+    const [month, day, year] = input.split('/').map(Number);
+    return formatDateString(year, month, day);
+  }
+  
+  // For Date objects or other formats, use local date components
+  try {
+    const date = typeof input === 'string' ? new Date(input) : input;
+    return formatDateString(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * Create a Date object from YYYY-MM-DD string using local timezone (no UTC drift)
+ * Use this for date pickers to avoid off-by-one errors
+ */
+export const toDateLocal = (ymd: DateString): Date => {
+  const { year, month, day } = parseDateString(ymd);
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * Format any date input for display (MM/dd/yy) without timezone issues
+ */
+export const formatDisplayFromAny = (input: string | Date): string => {
+  const ymd = normalizeToYMD(input);
+  return ymd ? formatDisplayDate(ymd) : '';
+};

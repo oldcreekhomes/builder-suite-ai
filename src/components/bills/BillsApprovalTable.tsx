@@ -21,8 +21,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
-import { format } from "date-fns";
 import { BillFilesCell } from "./BillFilesCell";
+import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 
 interface BillForApproval {
   id: string;
@@ -152,8 +152,9 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
       // Combine both result sets
       const allBills = [...(directBills || []), ...transformedIndirectBills];
       
+      // Sort by date strings (YYYY-MM-DD lexicographical sort)
       return allBills
-        .sort((a, b) => new Date(b.bill_date).getTime() - new Date(a.bill_date).getTime()) as BillForApproval[];
+        .sort((a, b) => normalizeToYMD(b.bill_date).localeCompare(normalizeToYMD(a.bill_date))) as BillForApproval[];
     },
   });
 
@@ -229,10 +230,10 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                     {bill.projects?.address || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {format(new Date(bill.bill_date), 'MMM dd, yyyy')}
+                    {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : '-'}
+                    {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {formatCurrency(bill.total_amount)}

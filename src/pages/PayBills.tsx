@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
+import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -254,10 +254,10 @@ export default function PayBills() {
                         </TableCell>
                       )}
                       <TableCell className="px-2 py-1 text-xs">
-                        {format(new Date(bill.bill_date), 'MMM dd, yyyy')}
+                        {formatDisplayFromAny(bill.bill_date)}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
-                        {bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : '-'}
+                        {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs font-medium">
                         {formatCurrency(bill.total_amount)}

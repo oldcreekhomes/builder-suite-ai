@@ -15,6 +15,7 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
 import { usePendingBills } from "@/hooks/usePendingBills";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,11 +69,11 @@ export function EditExtractedBillDialog({
     setFileName(bill.file_name);
     setFilePath(bill.file_path);
 
-    if (extractedData.billDate) {
-      setBillDate(new Date(extractedData.billDate));
+    if (extractedData.bill_date || extractedData.billDate) {
+      setBillDate(toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate)));
     }
-    if (extractedData.dueDate) {
-      setDueDate(new Date(extractedData.dueDate));
+    if (extractedData.due_date || extractedData.dueDate) {
+      setDueDate(toDateLocal(normalizeToYMD(extractedData.due_date || extractedData.dueDate)));
     }
 
     // Fetch line items
@@ -190,14 +191,19 @@ export function EditExtractedBillDialog({
       return;
     }
 
-    // Update pending bill with basic info
+    // Update pending bill with basic info - save dates as YYYY-MM-DD (both naming conventions)
+    const billDateStr = normalizeToYMD(billDate);
+    const dueDateStr = dueDate ? normalizeToYMD(dueDate) : null;
+    
     await supabase
       .from('pending_bill_uploads')
       .update({
         extracted_data: {
           vendorId,
-          billDate: billDate.toISOString(),
-          dueDate: dueDate?.toISOString(),
+          bill_date: billDateStr,
+          billDate: billDateStr, // backward compatibility
+          due_date: dueDateStr,
+          dueDate: dueDateStr, // backward compatibility
           referenceNumber: refNo,
           terms,
         },

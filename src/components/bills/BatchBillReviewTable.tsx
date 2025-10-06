@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, FileText, Loader2 } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
@@ -203,10 +203,10 @@ export function BatchBillReviewTable({
                     <span className="text-xs">{referenceNumber || '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{billDate ? format(new Date(billDate as string), "MM/dd/yy") : '-'}</span>
+                    <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{dueDate ? format(new Date(dueDate as string), "MM/dd/yy") : '-'}</span>
+                    <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs">{accountDisplay}</span>
