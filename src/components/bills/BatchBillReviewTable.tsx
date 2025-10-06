@@ -129,9 +129,9 @@ export function BatchBillReviewTable({
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
                 <TableCell colSpan={5} className="px-2 py-3">
-                  <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                  <div className="flex items-center justify-center gap-2 text-sm text-red-600">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="font-medium">Extracting data from {upload.file_name}...</span>
+                    <span className="font-medium">Extracting...</span>
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-3">
