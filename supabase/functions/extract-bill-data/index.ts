@@ -21,6 +21,85 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+// Normalize vendor name for comparison
+function normalizeVendorName(name: string): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuation
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '') // Remove common suffixes
+    .trim();
+}
+
+// Calculate similarity between two strings (Levenshtein distance-based)
+function calculateSimilarity(str1: string, str2: string): number {
+  const norm1 = normalizeVendorName(str1);
+  const norm2 = normalizeVendorName(str2);
+  
+  if (norm1 === norm2) return 1.0; // Perfect match
+  if (norm1.length === 0 || norm2.length === 0) return 0.0;
+  
+  // Calculate Levenshtein distance
+  const matrix: number[][] = [];
+  const len1 = norm1.length;
+  const len2 = norm2.length;
+  
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = norm1[i - 1] === norm2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,     // deletion
+        matrix[i][j - 1] + 1,     // insertion
+        matrix[i - 1][j - 1] + cost  // substitution
+      );
+    }
+  }
+  
+  const distance = matrix[len1][len2];
+  const maxLen = Math.max(len1, len2);
+  
+  return maxLen === 0 ? 1.0 : 1.0 - (distance / maxLen);
+}
+
+// Find matching vendor in database
+async function findMatchingVendor(vendorName: string, supabase: any, ownerId: string): Promise<string | null> {
+  if (!vendorName) return null;
+  
+  // Fetch all companies for this owner
+  const { data: companies } = await supabase
+    .from('companies')
+    .select('id, company_name')
+    .eq('home_builder_id', ownerId);
+  
+  if (!companies || companies.length === 0) return null;
+  
+  let bestMatch: { id: string; score: number; name: string } | null = null;
+  
+  for (const company of companies) {
+    const similarity = calculateSimilarity(vendorName, company.company_name);
+    
+    if (similarity > 0.8 && (!bestMatch || similarity > bestMatch.score)) {
+      bestMatch = { id: company.id, score: similarity, name: company.company_name };
+    }
+  }
+  
+  if (bestMatch) {
+    console.log(`Matched "${vendorName}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
+  }
+  
+  return bestMatch?.id || null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -430,6 +509,20 @@ Return ONLY the JSON object, no additional text.`;
     } catch (parseError) {
       console.error('Failed to parse AI response:', extractedText);
       throw new Error('Failed to parse AI response as JSON');
+    }
+
+    // Try to match vendor to existing company (for both modes)
+    if (extractedData.vendor_name) {
+      const matchedVendorId = await findMatchingVendor(
+        extractedData.vendor_name,
+        supabase,
+        pendingUpload.owner_id
+      );
+      
+      if (matchedVendorId) {
+        extractedData.vendor_id = matchedVendorId;
+        console.log('Automatically matched vendor to existing company');
+      }
     }
 
     // Handle enrichContactOnly mode - merge with existing data
