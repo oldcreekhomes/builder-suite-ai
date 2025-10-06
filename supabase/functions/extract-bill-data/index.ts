@@ -100,11 +100,13 @@ serve(async (req) => {
 
     console.log(`Found ${accounts?.length || 0} accounts, ${costCodes?.length || 0} cost codes, and ${learningExamples?.length || 0} past categorizations for AI learning`);
 
-    // Update status to processing
-    await supabase
-      .from('pending_bill_uploads')
-      .update({ status: 'processing' })
-      .eq('id', pendingUploadId);
+    // Update status to processing (but not for enrichContactOnly mode to avoid disappearing from UI)
+    if (!enrichContactOnly) {
+      await supabase
+        .from('pending_bill_uploads')
+        .update({ status: 'processing' })
+        .eq('id', pendingUploadId);
+    }
 
     // Only download file if we need to process it as an image (no text/pageImages provided)
     let base64 = '';
