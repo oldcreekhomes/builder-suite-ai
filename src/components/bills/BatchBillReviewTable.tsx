@@ -209,7 +209,7 @@ export function BatchBillReviewTable({
               const dueDate = getExtractedValue(bill, 'due_date', 'dueDate');
               
               return (
-                <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
+                <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
                   <TableCell className="px-2 py-1">
                     {!bill.vendor_id && vendorName ? (
                       <div className="flex items-center gap-1">
