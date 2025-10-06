@@ -72,6 +72,24 @@ serve(async (req) => {
       .eq('owner_id', pendingUpload.owner_id)
       .order('code');
 
+    // Fetch companies with their associated cost codes
+    const { data: companiesWithCostCodes } = await supabase
+      .from('companies')
+      .select(`
+        id,
+        company_name,
+        company_cost_codes (
+          cost_code_id,
+          cost_codes (
+            id,
+            code,
+            name,
+            category
+          )
+        )
+      `)
+      .eq('home_builder_id', pendingUpload.owner_id);
+
     // Fetch recent categorization examples for AI learning
     const { data: learningExamples } = await supabase
       .from('bill_categorization_examples')
@@ -126,6 +144,21 @@ serve(async (req) => {
       ? `\n\nAvailable Cost Codes:\n${costCodes.map(c => `- ${c.code}: ${c.name}${c.category ? ` (${c.category})` : ''}`).join('\n')}`
       : '';
 
+    // Build company-cost code context for smart assignment
+    const companyContext = companiesWithCostCodes && companiesWithCostCodes.length > 0
+      ? `\n\nCOMPANY-SPECIFIC COST CODES:\n${companiesWithCostCodes.map(company => {
+          const costCodes = company.company_cost_codes
+            .map((cc: any) => cc.cost_codes)
+            .filter(Boolean);
+          
+          if (costCodes.length === 0) return null;
+          
+          return `- ${company.company_name}:\n${costCodes.map((cc: any) => 
+            `  * ${cc.code}: ${cc.name}${cc.category ? ` (${cc.category})` : ''}`
+          ).join('\n')}`;
+        }).filter(Boolean).join('\n')}`
+      : '';
+
     // Build learning examples context (few-shot learning)
     const learningContext = learningExamples && learningExamples.length > 0
       ? `\n\nPAST CATEGORIZATION EXAMPLES (learn from these patterns):\n${learningExamples.map((ex, idx) => 
@@ -133,7 +166,7 @@ serve(async (req) => {
         ).join('\n')}\n\nUse these examples to learn categorization patterns. When you see similar descriptions, apply the same categorization logic.`
       : '';
 
-    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${learningContext}
+    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}
 
 Extract the following information and return as valid JSON:
 {
@@ -187,6 +220,22 @@ IMPORTANT CATEGORIZATION: For each line item, analyze the description and match 
 - For "cost_code_name", return the exact cost code name from the available cost codes list
 - If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
 - Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
+
+SMART COST CODE ASSIGNMENT RULES:
+1. First, identify the vendor company name from the invoice
+2. Check if this vendor is listed in the COMPANY-SPECIFIC COST CODES section above
+3. If the company has ONLY ONE cost code associated:
+   - Automatically assign that cost code to ALL line items
+   - Set cost_code_name for every line item to that code's name
+4. If the company has MULTIPLE cost codes:
+   - Review each line item description carefully
+   - Match the line item to the MOST APPROPRIATE cost code from that company's specific list
+   - Only use cost codes from that specific company's list
+5. If the vendor is NOT in the company list:
+   - Try to match against the general Available Cost Codes list
+   - Leave cost_code_name as null if uncertain
+
+IMPORTANT: Prioritize using company-specific cost codes over general cost codes when the vendor is found in the company list.
 
 Return ONLY the JSON object, no additional text.`;
 
