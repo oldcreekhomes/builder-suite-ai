@@ -137,21 +137,34 @@ serve(async (req) => {
       throw new Error('Pending upload not found');
     }
 
-    // Fetch user's accounts and cost codes for categorization
+    // Determine effectiveOwnerId (use home_builder_id if uploader is employee)
+    const { data: uploaderUser } = await supabase
+      .from('users')
+      .select('role, home_builder_id')
+      .eq('id', pendingUpload.owner_id)
+      .single();
+    
+    const effectiveOwnerId = (uploaderUser?.role === 'employee' && uploaderUser?.home_builder_id) 
+      ? uploaderUser.home_builder_id 
+      : pendingUpload.owner_id;
+    
+    console.log('Effective owner for data queries:', effectiveOwnerId, '(uploader role:', uploaderUser?.role, ')');
+
+    // Fetch user's accounts and cost codes for categorization (using effectiveOwnerId)
     const { data: accounts } = await supabase
       .from('accounts')
       .select('id, code, name, type')
-      .eq('owner_id', pendingUpload.owner_id)
+      .eq('owner_id', effectiveOwnerId)
       .eq('is_active', true)
       .order('code');
 
     const { data: costCodes } = await supabase
       .from('cost_codes')
       .select('id, code, name, category')
-      .eq('owner_id', pendingUpload.owner_id)
+      .eq('owner_id', effectiveOwnerId)
       .order('code');
 
-    // Fetch companies with their associated cost codes
+    // Fetch companies with their associated cost codes (using effectiveOwnerId)
     const { data: companiesWithCostCodes } = await supabase
       .from('companies')
       .select(`
@@ -167,13 +180,13 @@ serve(async (req) => {
           )
         )
       `)
-      .eq('home_builder_id', pendingUpload.owner_id);
+      .eq('home_builder_id', effectiveOwnerId);
 
-    // Fetch recent categorization examples for AI learning
+    // Fetch recent categorization examples for AI learning (using effectiveOwnerId)
     const { data: learningExamples } = await supabase
       .from('bill_categorization_examples')
       .select('vendor_name, description, account_name, cost_code_name')
-      .eq('owner_id', pendingUpload.owner_id)
+      .eq('owner_id', effectiveOwnerId)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -514,12 +527,12 @@ Return ONLY the JSON object, no additional text.`;
       extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();
     }
 
-    // Try to match vendor to existing company
+    // Try to match vendor to existing company (use effectiveOwnerId)
     if (extractedData.vendor_name) {
       const matchedVendorId = await findMatchingVendor(
         extractedData.vendor_name,
         supabase,
-        pendingUpload.owner_id
+        effectiveOwnerId
       );
       
       if (matchedVendorId) {

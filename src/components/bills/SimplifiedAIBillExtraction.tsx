@@ -543,10 +543,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         }
       }, 2000);
 
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-      }, 60000);
+      // Removed 60-second timeout - let backend complete naturally
 
     } catch (error) {
       console.error('Extract error:', error);

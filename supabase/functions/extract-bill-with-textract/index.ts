@@ -91,9 +91,63 @@ serve(async (req) => {
     // Parse Textract results
     const extractedData = parseTextractResponse(textractResponse);
 
-    console.log('Extracted data:', extractedData);
+    console.log('Raw extracted data:', extractedData);
 
-    // Update the pending upload with extracted data
+    // Clean vendor name (fix newlines and extra whitespace)
+    if (extractedData.vendor) {
+      extractedData.vendor = extractedData.vendor.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      console.log('Cleaned vendor name:', extractedData.vendor);
+    }
+
+    // Determine effectiveOwnerId (use home_builder_id if uploader is employee)
+    const { data: uploaderUser } = await supabase
+      .from('users')
+      .select('role, home_builder_id')
+      .eq('id', upload.owner_id)
+      .single();
+    
+    const effectiveOwnerId = (uploaderUser?.role === 'employee' && uploaderUser?.home_builder_id) 
+      ? uploaderUser.home_builder_id 
+      : upload.owner_id;
+    
+    console.log('Effective owner for vendor matching:', effectiveOwnerId);
+
+    // Robust vendor matching using similarity
+    let vendorId: string | null = null;
+    if (extractedData.vendor) {
+      const { data: companies } = await supabase
+        .from('companies')
+        .select('id, company_name')
+        .eq('home_builder_id', effectiveOwnerId);
+      
+      if (companies && companies.length > 0) {
+        let bestMatch: { id: string; score: number; name: string } | null = null;
+        
+        for (const company of companies) {
+          const similarity = calculateVendorSimilarity(extractedData.vendor, company.company_name);
+          
+          if (similarity > 0.8 && (!bestMatch || similarity > bestMatch.score)) {
+            bestMatch = { id: company.id, score: similarity, name: company.company_name };
+          }
+        }
+        
+        if (bestMatch) {
+          vendorId = bestMatch.id;
+          console.log(`✓ Matched "${extractedData.vendor}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
+        } else {
+          console.log(`✗ No vendor match found for "${extractedData.vendor}" (best similarity < 80%)`);
+        }
+      }
+    }
+
+    // Add vendor_id to extracted data if matched
+    if (vendorId) {
+      extractedData.vendor_id = vendorId;
+    }
+
+    console.log('Final extracted data with vendor match:', extractedData);
+
+    // Update the pending upload with extracted data and keep status='extracted'
     const { error: updateError } = await supabase
       .from('pending_bill_uploads')
       .update({
@@ -418,4 +472,53 @@ function parseTextractResponse(textractData: any): any {
   }
 
   return extractedData;
+}
+
+// Normalize vendor name for comparison (same logic as in extract-bill-data)
+function normalizeVendorName(name: string): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, '') // Remove all non-alphanumeric except spaces
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '') // Remove common suffixes
+    .trim();
+}
+
+// Calculate similarity between two vendor names (Levenshtein distance)
+function calculateVendorSimilarity(str1: string, str2: string): number {
+  const norm1 = normalizeVendorName(str1);
+  const norm2 = normalizeVendorName(str2);
+  
+  if (norm1 === norm2) return 1.0;
+  if (norm1.length === 0 || norm2.length === 0) return 0.0;
+  
+  const matrix: number[][] = [];
+  const len1 = norm1.length;
+  const len2 = norm2.length;
+  
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = norm1[i - 1] === norm2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  
+  const distance = matrix[len1][len2];
+  const maxLen = Math.max(len1, len2);
+  
+  return maxLen === 0 ? 1.0 : 1.0 - (distance / maxLen);
 }
