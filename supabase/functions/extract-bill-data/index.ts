@@ -27,7 +27,7 @@ function normalizeVendorName(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuation
+    .replace(/[^a-z0-9\s]/g, '') // Remove all non-alphanumeric except spaces (including +)
     .replace(/\s+/g, ' ') // Normalize whitespace
     .replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '') // Remove common suffixes
     .trim();
@@ -179,13 +179,11 @@ serve(async (req) => {
 
     console.log(`Found ${accounts?.length || 0} accounts, ${costCodes?.length || 0} cost codes, and ${learningExamples?.length || 0} past categorizations for AI learning`);
 
-    // Update status to processing (but not for enrichContactOnly mode to avoid disappearing from UI)
-    if (!enrichContactOnly) {
-      await supabase
-        .from('pending_bill_uploads')
-        .update({ status: 'processing' })
-        .eq('id', pendingUploadId);
-    }
+    // Update status to processing
+    await supabase
+      .from('pending_bill_uploads')
+      .update({ status: 'processing' })
+      .eq('id', pendingUploadId);
 
     // Only download file if we need to process it as an image (no text/pageImages provided)
     let base64 = '';
@@ -511,7 +509,12 @@ Return ONLY the JSON object, no additional text.`;
       throw new Error('Failed to parse AI response as JSON');
     }
 
-    // Try to match vendor to existing company (for both modes)
+    // Clean vendor name (remove newlines/extra whitespace)
+    if (extractedData.vendor_name) {
+      extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();
+    }
+
+    // Try to match vendor to existing company
     if (extractedData.vendor_name) {
       const matchedVendorId = await findMatchingVendor(
         extractedData.vendor_name,
@@ -525,57 +528,77 @@ Return ONLY the JSON object, no additional text.`;
       }
     }
 
-    // Handle enrichContactOnly mode - merge with existing data
-    if (enrichContactOnly) {
-      console.log('Enrichment mode: merging contact data into existing record');
+    // Perform contact enrichment inline (no separate mode)
+    if (!enrichContactOnly && extractedData.vendor_name) {
+      console.log('Starting inline contact enrichment...');
       
-      // Clean vendor name (remove newlines)
-      if (extractedData.vendor_name) {
-        extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();
+      try {
+        const enrichmentPrompt = `You are an AI that extracts ONLY vendor contact information from bills/invoices.
+
+⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
+ALL field names MUST use snake_case (e.g., vendor_name, vendor_address).
+
+Extract ONLY the following vendor contact information:
+{
+  "vendor_name": "string - company name from invoice",
+  "vendor_address": "string - COMPLETE address from letterhead/header/footer, or null",
+  "vendor_phone": "string - phone number from letterhead/header/footer, or null",
+  "vendor_website": "string - website from letterhead/header/footer, or null"
+}
+
+Look in letterhead (top), header, footer, contact section. Extract COMPLETE addresses. If not visible, set to null.
+
+Return ONLY the JSON object, no additional text.`;
+
+        const enrichResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: messages.map(msg => {
+              if (msg.role === 'system') {
+                return { role: 'system', content: enrichmentPrompt };
+              }
+              return msg;
+            }),
+          }),
+        });
+
+        if (enrichResponse.ok) {
+          const enrichData = await enrichResponse.json();
+          const enrichedText = enrichData.choices[0]?.message?.content;
+          
+          if (enrichedText) {
+            try {
+              const cleanedEnrichText = stripMarkdownCodeBlocks(enrichedText);
+              const contactData = JSON.parse(cleanedEnrichText);
+              
+              // Merge contact data into extractedData
+              extractedData.vendor_address = contactData.vendor_address || extractedData.vendor_address;
+              extractedData.vendor_phone = contactData.vendor_phone || extractedData.vendor_phone;
+              extractedData.vendor_website = contactData.vendor_website || extractedData.vendor_website;
+              
+              console.log('Contact enrichment successful:', {
+                vendor_address: extractedData.vendor_address,
+                vendor_phone: extractedData.vendor_phone,
+                vendor_website: extractedData.vendor_website
+              });
+            } catch (parseErr) {
+              console.warn('Failed to parse contact enrichment response, continuing without it');
+            }
+          }
+        } else {
+          console.warn('Contact enrichment request failed, continuing without it');
+        }
+      } catch (enrichError) {
+        console.warn('Contact enrichment error (non-critical):', enrichError);
       }
-      
-      // Get existing data
-      const { data: existingRecord } = await supabase
-        .from('pending_bill_uploads')
-        .select('extracted_data')
-        .eq('id', pendingUploadId)
-        .single();
-      
-      const existingData = existingRecord?.extracted_data || {};
-      
-      // Merge: keep all existing fields, overlay contact fields
-      const mergedData = {
-        ...existingData,
-        vendor_id: extractedData.vendor_id || existingData.vendor_id || existedData.vendorId, // CRITICAL: Keep vendor_id
-        vendor_name: extractedData.vendor_name || existingData.vendor_name || existingData.vendor,
-        vendor_address: extractedData.vendor_address || existingData.vendor_address,
-        vendor_phone: extractedData.vendor_phone || existingData.vendor_phone,
-        vendor_website: extractedData.vendor_website || existingData.vendor_website,
-      };
-      
-      console.log('Merged contact fields:', {
-        vendor_name: mergedData.vendor_name,
-        vendor_address: mergedData.vendor_address,
-        vendor_phone: mergedData.vendor_phone,
-        vendor_website: mergedData.vendor_website
-      });
-      
-      const { error: updateError } = await supabase
-        .from('pending_bill_uploads')
-        .update({ extracted_data: mergedData, status: 'extracted' })
-        .eq('id', pendingUploadId);
-      
-      if (updateError) {
-        throw updateError;
-      }
-      
-      return new Response(
-        JSON.stringify({ success: true, extractedData: mergedData }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    // Normal mode - full extraction
+    // Update to 'extracted' only after everything is complete
     const { error: updateError } = await supabase
       .from('pending_bill_uploads')
       .update({
@@ -597,8 +620,7 @@ Return ONLY the JSON object, no additional text.`;
     console.error('Error in extract-bill-data function:', error);
 
     // Update status to error if we have the ID
-    // BUT: Don't set error status if in enrichContactOnly mode (keeps bill visible)
-    if (error instanceof Error && requestBody?.pendingUploadId && !requestBody?.enrichContactOnly) {
+    if (error instanceof Error && requestBody?.pendingUploadId) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseKey);

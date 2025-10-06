@@ -524,92 +524,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
         if (data.status === 'extracted') {
           clearInterval(pollInterval);
-          
-          // Keep status as 'processing' while enrichment happens
-          await supabase
-            .from('pending_bill_uploads')
-            .update({ status: 'processing' })
-            .eq('id', upload.id);
-          
           setPendingUploads(prev => 
-            prev.map(u => u.id === upload.id ? { ...data as PendingUpload, status: 'processing' } : u)
+            prev.map(u => u.id === upload.id ? (data as PendingUpload) : u)
           );
-          
-          // Enrich with contact details after successful extraction
-          (async () => {
-            try {
-              console.log('Starting contact enrichment for:', upload.id);
-              const isPdf = upload.content_type?.includes('pdf') || upload.file_path.endsWith('.pdf');
-              let pdfText = '';
-              let pageImages: string[] = [];
-              
-              if (isPdf) {
-                pdfText = await extractPdfText(upload.file_path);
-                if (!pdfText || pdfText.trim().length === 0) {
-                  pageImages = await renderPdfPagesToImagesReact(upload.file_path, 1);
-                  if (pageImages.length === 0) {
-                    pageImages = await renderPdfPagesToImages(upload.file_path, 1);
-                  }
-                }
-              }
-              
-              await supabase.functions.invoke('extract-bill-data', {
-                body: { 
-                  pendingUploadId: upload.id,
-                  pdfText: pdfText || undefined,
-                  pageImages: pageImages.length > 0 ? pageImages : undefined,
-                  enrichContactOnly: true
-                }
-              });
-              
-              // Update status to 'extracted' now that enrichment is complete
-              await supabase
-                .from('pending_bill_uploads')
-                .update({ status: 'extracted' })
-                .eq('id', upload.id);
-              
-              // Refresh the upload data
-              const { data: refreshed } = await supabase
-                .from('pending_bill_uploads')
-                .select('*')
-                .eq('id', upload.id)
-                .single();
-              
-              if (refreshed) {
-                setPendingUploads(prev => 
-                  prev.map(u => u.id === upload.id ? (refreshed as PendingUpload) : u)
-                );
-                console.log('Contact enrichment completed');
-              }
-              
-              // Stop spinner after enrichment completes
-              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-            } catch (enrichError) {
-              console.warn('Contact enrichment failed (non-critical):', enrichError);
-              
-              // Update to 'extracted' even if enrichment fails
-              await supabase
-                .from('pending_bill_uploads')
-                .update({ status: 'extracted' })
-                .eq('id', upload.id);
-              
-              // Refresh data
-              const { data: refreshed } = await supabase
-                .from('pending_bill_uploads')
-                .select('*')
-                .eq('id', upload.id)
-                .single();
-              
-              if (refreshed) {
-                setPendingUploads(prev => 
-                  prev.map(u => u.id === upload.id ? (refreshed as PendingUpload) : u)
-                );
-              }
-              
-              // Stop spinner even if enrichment fails
-              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
-            }
-          })();
+          // Stop processing spinner
+          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
         } else if (data.status === 'error') {
           clearInterval(pollInterval);
           setPendingUploads(prev => 
