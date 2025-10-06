@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, FileText, Loader2 } from "lucide-react";
+import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { openFileViaRedirect } from "@/utils/fileOpenUtils";
+import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingBillLine {
   line_number: number;
@@ -62,6 +64,9 @@ export function BatchBillReviewTable({
   onLinesUpdate 
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
+  const [addingVendorName, setAddingVendorName] = useState<string>("");
+  const { toast } = useToast();
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
@@ -76,12 +81,13 @@ export function BatchBillReviewTable({
     const issues: string[] = [];
     
     // Enhanced vendor validation
+    const hasVendorName = bill.vendor_name || getExtractedValue(bill, 'vendor_name', 'vendor');
     if (!bill.vendor_id) {
-      if (!bill.vendor_name) {
+      if (!hasVendorName) {
         issues.push("Vendor required");
+      } else {
+        issues.push("Vendor not in database");
       }
-      // Don't add "vendor required" if vendor name exists but not in system
-      // We'll show a different UI for that case
     }
     
     if (!bill.bill_date) issues.push("Bill date required");
@@ -98,6 +104,28 @@ export function BatchBillReviewTable({
     });
     
     return issues;
+  };
+
+  const handleAddVendor = (billId: string, vendorName: string) => {
+    setAddingVendorForBillId(billId);
+    setAddingVendorName(vendorName);
+  };
+
+  const handleVendorCreated = (companyId: string, companyName: string) => {
+    if (addingVendorForBillId) {
+      onBillUpdate(addingVendorForBillId, {
+        vendor_id: companyId,
+        vendor_name: companyName
+      });
+      
+      toast({
+        title: "Vendor added",
+        description: `${companyName} has been added and linked to the bill.`,
+      });
+    }
+    
+    setAddingVendorForBillId(null);
+    setAddingVendorName("");
   };
 
 
@@ -183,7 +211,22 @@ export function BatchBillReviewTable({
               return (
                 <TableRow key={bill.id} className={cn("h-10", issues.length > 0 ? 'bg-yellow-50' : 'bg-green-50')}>
                   <TableCell className="px-2 py-1">
-                    <span className="text-xs">{vendorName || '-'}</span>
+                    {!bill.vendor_id && vendorName ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-red-600 font-medium">{vendorName}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleAddVendor(bill.id, vendorName as string)}
+                          title="Add vendor to database"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs">{vendorName || '-'}</span>
+                    )}
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs">{referenceNumber || '-'}</span>
@@ -271,6 +314,20 @@ export function BatchBillReviewTable({
           open={!!editingBillId}
           onOpenChange={(open) => !open && setEditingBillId(null)}
           pendingUploadId={editingBillId}
+        />
+      )}
+
+      {addingVendorForBillId && (
+        <AddCompanyDialog
+          open={!!addingVendorForBillId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAddingVendorForBillId(null);
+              setAddingVendorName("");
+            }
+          }}
+          initialCompanyName={addingVendorName}
+          onCompanyCreated={handleVendorCreated}
         />
       )}
     </div>
