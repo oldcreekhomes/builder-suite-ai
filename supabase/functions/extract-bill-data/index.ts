@@ -466,7 +466,7 @@ Return ONLY the JSON object, no additional text.`;
       
       const { error: updateError } = await supabase
         .from('pending_bill_uploads')
-        .update({ extracted_data: mergedData })
+        .update({ extracted_data: mergedData, status: 'extracted' })
         .eq('id', pendingUploadId);
       
       if (updateError) {
