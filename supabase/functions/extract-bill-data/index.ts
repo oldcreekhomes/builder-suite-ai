@@ -29,13 +29,13 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pdfText, pageImages } = requestBody;
+    const { pendingUploadId, pdfText, pageImages, enrichContactOnly } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
     }
 
-    console.log('Processing bill extraction for upload:', pendingUploadId);
+    console.log('Processing bill extraction for upload:', pendingUploadId, enrichContactOnly ? '(contact enrichment mode)' : '');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -166,7 +166,34 @@ serve(async (req) => {
         ).join('\n')}\n\nUse these examples to learn categorization patterns. When you see similar descriptions, apply the same categorization logic.`
       : '';
 
-    const systemPrompt = `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}
+    // Use different prompt based on enrichContactOnly flag
+    const systemPrompt = enrichContactOnly 
+      ? `You are an AI that extracts ONLY vendor contact information from bills/invoices.
+
+⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
+ALL field names MUST use snake_case (e.g., vendor_name, vendor_address).
+DO NOT use camelCase (e.g., vendorName, vendorAddress) - the system will REJECT camelCase.
+
+Extract ONLY the following vendor contact information and return as valid JSON:
+{
+  "vendor_name": "string - company name from invoice",
+  "vendor_address": "string - COMPLETE address from letterhead/header/footer, or null",
+  "vendor_phone": "string - phone number from letterhead/header/footer, or null",
+  "vendor_website": "string - website from letterhead/header/footer, or null"
+}
+
+VENDOR CONTACT EXTRACTION RULES:
+- Look in letterhead (top), header, footer, contact section, return address area
+- vendor_address: Extract COMPLETE address with street, suite, city, state, ZIP
+  * Example: "123 Business Park Dr, Suite 200, Austin, TX 78701"
+  * Combine multi-line addresses into single string with commas
+- vendor_phone: Extract exactly as shown (any format)
+- vendor_website: Extract exactly as shown (www.example.com, example.com, https://...)
+- If contact info NOT visible, set to null
+- DO NOT fabricate or guess
+
+Return ONLY the JSON object with these 4 fields, no additional text.`
+      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}
 
 ⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
 ALL field names MUST use snake_case (e.g., vendor_name, bill_date).
@@ -403,7 +430,56 @@ Return ONLY the JSON object, no additional text.`;
       throw new Error('Failed to parse AI response as JSON');
     }
 
-    // Update the pending upload with extracted data
+    // Handle enrichContactOnly mode - merge with existing data
+    if (enrichContactOnly) {
+      console.log('Enrichment mode: merging contact data into existing record');
+      
+      // Clean vendor name (remove newlines)
+      if (extractedData.vendor_name) {
+        extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();
+      }
+      
+      // Get existing data
+      const { data: existingRecord } = await supabase
+        .from('pending_bill_uploads')
+        .select('extracted_data')
+        .eq('id', pendingUploadId)
+        .single();
+      
+      const existingData = existingRecord?.extracted_data || {};
+      
+      // Merge: keep all existing fields, overlay contact fields
+      const mergedData = {
+        ...existingData,
+        vendor_name: extractedData.vendor_name || existingData.vendor_name || existingData.vendor,
+        vendor_address: extractedData.vendor_address || existingData.vendor_address,
+        vendor_phone: extractedData.vendor_phone || existingData.vendor_phone,
+        vendor_website: extractedData.vendor_website || existingData.vendor_website,
+      };
+      
+      console.log('Merged contact fields:', {
+        vendor_name: mergedData.vendor_name,
+        vendor_address: mergedData.vendor_address,
+        vendor_phone: mergedData.vendor_phone,
+        vendor_website: mergedData.vendor_website
+      });
+      
+      const { error: updateError } = await supabase
+        .from('pending_bill_uploads')
+        .update({ extracted_data: mergedData })
+        .eq('id', pendingUploadId);
+      
+      if (updateError) {
+        throw updateError;
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, extractedData: mergedData }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Normal mode - full extraction
     const { error: updateError } = await supabase
       .from('pending_bill_uploads')
       .update({

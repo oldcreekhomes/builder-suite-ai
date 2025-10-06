@@ -163,7 +163,8 @@ export function BatchBillReviewTable({
     }
     
     setAddingVendorForBillId(billId);
-    setAddingVendorName(vendorName);
+    // Normalize vendor name: replace newlines/multiple spaces with single space
+    setAddingVendorName(String(vendorName).replace(/\s+/g, ' ').trim());
   };
 
   const handleVendorCreated = (companyId: string, companyName: string) => {
