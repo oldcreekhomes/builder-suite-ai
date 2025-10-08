@@ -446,6 +446,34 @@ export default function EnterBills() {
       return;
     }
 
+    // Validate that all job cost rows with amounts have a cost code selected
+    const invalidJobCostRows = jobCostRows.filter(row => 
+      parseFloat(row.amount) > 0 && !row.accountId
+    );
+    
+    if (invalidJobCostRows.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "All job cost items must have a cost code selected. Please select a cost code from the dropdown.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that all expense rows with amounts have an account selected
+    const invalidExpenseRows = expenseRows.filter(row => 
+      parseFloat(row.amount) > 0 && !row.accountId
+    );
+    
+    if (invalidExpenseRows.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "All expense items must have an account selected. Please select an account from the dropdown.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const billLines: BillLineData[] = [
       ...jobCostRows
         .filter(row => row.accountId || row.amount)
@@ -560,6 +588,34 @@ export default function EnterBills() {
       toast({
         title: "Validation Error",
         description: "Please select a vendor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that all job cost rows with amounts have a cost code selected
+    const invalidJobCostRows = jobCostRows.filter(row => 
+      parseFloat(row.amount) > 0 && !row.accountId
+    );
+    
+    if (invalidJobCostRows.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "All job cost items must have a cost code selected. Please select a cost code from the dropdown.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that all expense rows with amounts have an account selected
+    const invalidExpenseRows = expenseRows.filter(row => 
+      parseFloat(row.amount) > 0 && !row.accountId
+    );
+    
+    if (invalidExpenseRows.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "All expense items must have an account selected. Please select an account from the dropdown.",
         variant: "destructive",
       });
       return;

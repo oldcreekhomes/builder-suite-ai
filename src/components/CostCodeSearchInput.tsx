@@ -60,9 +60,13 @@ export function CostCodeSearchInput({
     // Try to extract a code from the input
     let codeToMatch = searchQuery.trim();
     
-    // If input contains " - ", extract the code part before it
+    // If input contains " - ", extract the code part before it (e.g., "2220 - Marketing")
     if (codeToMatch.includes(' - ')) {
       codeToMatch = codeToMatch.split(' - ')[0].trim();
+    }
+    // If input contains space without dash, extract the code part (e.g., "2220 Marketing")
+    else if (codeToMatch.includes(' ')) {
+      codeToMatch = codeToMatch.split(' ')[0].trim();
     }
     
     // Try exact code match first (preferred)
@@ -82,7 +86,8 @@ export function CostCodeSearchInput({
     if (!match) {
       const normalized = searchQuery.toLowerCase().trim();
       match = filteredCostCodes.find(cc => 
-        `${cc.code} - ${cc.name}`.toLowerCase() === normalized
+        `${cc.code} - ${cc.name}`.toLowerCase() === normalized ||
+        `${cc.code} ${cc.name}`.toLowerCase() === normalized
       );
     }
     
