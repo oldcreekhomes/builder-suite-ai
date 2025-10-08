@@ -242,6 +242,13 @@ export function EditExtractedBillDialog({
       return;
     }
 
+    // Query vendor name
+    const { data: vendorData } = await supabase
+      .from('companies')
+      .select('company_name')
+      .eq('id', vendorId)
+      .single();
+
     // Update pending bill with basic info - save dates as YYYY-MM-DD (both naming conventions)
     const billDateStr = normalizeToYMD(billDate);
     const dueDateStr = dueDate ? normalizeToYMD(dueDate) : null;
@@ -251,19 +258,44 @@ export function EditExtractedBillDialog({
       .update({
         extracted_data: {
           vendorId,
+          vendor_id: vendorId,
+          vendor_name: vendorData?.company_name || '',
           bill_date: billDateStr,
-          billDate: billDateStr, // backward compatibility
+          billDate: billDateStr,
           due_date: dueDateStr,
-          dueDate: dueDateStr, // backward compatibility
+          dueDate: dueDateStr,
           referenceNumber: refNo,
           terms,
         },
       })
       .eq('id', pendingUploadId);
 
-    // Save all lines
+    // Save all lines with display names
     const allLines = [...jobCostLines, ...expenseLines];
     for (const line of allLines) {
+      // Query display names for this line
+      let accountName = '';
+      let costCodeName = '';
+      let projectName = '';
+
+      if (line.account_id) {
+        const { data: accountData } = await supabase
+          .from('accounts')
+          .select('name')
+          .eq('id', line.account_id)
+          .single();
+        accountName = accountData?.name || '';
+      }
+
+      if (line.cost_code_id) {
+        const { data: costCodeData } = await supabase
+          .from('cost_codes')
+          .select('name')
+          .eq('id', line.cost_code_id)
+          .single();
+        costCodeName = costCodeData?.name || '';
+      }
+
       if (line.id.startsWith('new-')) {
         // Add new line
         await addLine.mutateAsync({
@@ -272,7 +304,9 @@ export function EditExtractedBillDialog({
             line_number: 1,
             line_type: line.line_type as 'expense' | 'job_cost',
             account_id: line.account_id,
+            account_name: accountName,
             cost_code_id: line.cost_code_id,
+            cost_code_name: costCodeName,
             quantity: line.quantity,
             unit_cost: line.unit_cost,
             amount: line.amount,
@@ -285,7 +319,9 @@ export function EditExtractedBillDialog({
           lineId: line.id,
           updates: {
             account_id: line.account_id,
+            account_name: accountName,
             cost_code_id: line.cost_code_id,
+            cost_code_name: costCodeName,
             quantity: line.quantity,
             unit_cost: line.unit_cost,
             amount: line.amount,
