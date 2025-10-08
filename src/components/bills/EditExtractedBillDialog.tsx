@@ -54,6 +54,7 @@ export function EditExtractedBillDialog({
   const [expenseLines, setExpenseLines] = useState<LineItem[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [filePath, setFilePath] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("job-cost");
   const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
@@ -121,8 +122,15 @@ export function EditExtractedBillDialog({
               };
             });
 
-          setJobCostLines(jobCost.length > 0 ? jobCost : [createEmptyLine('job_cost')]);
-          setExpenseLines(expense.length > 0 ? expense : [createEmptyLine('expense')]);
+          setJobCostLines(jobCost);
+          setExpenseLines(expense);
+
+          // Default to the tab that has data
+          if (expense.length > 0 && jobCost.length === 0) {
+            setActiveTab("expense");
+          } else if (jobCost.length > 0) {
+            setActiveTab("job-cost");
+          }
         }
       });
   }, [open, pendingUploadId, pendingBills]);
@@ -145,20 +153,16 @@ export function EditExtractedBillDialog({
   };
 
   const removeJobCostLine = (id: string) => {
-    if (jobCostLines.length > 1) {
-      setJobCostLines(jobCostLines.filter(line => line.id !== id));
-      if (!id.startsWith('new-')) {
-        deleteLine.mutate(id);
-      }
+    setJobCostLines(jobCostLines.filter(line => line.id !== id));
+    if (!id.startsWith('new-')) {
+      deleteLine.mutate(id);
     }
   };
 
   const removeExpenseLine = (id: string) => {
-    if (expenseLines.length > 1) {
-      setExpenseLines(expenseLines.filter(line => line.id !== id));
-      if (!id.startsWith('new-')) {
-        deleteLine.mutate(id);
-      }
+    setExpenseLines(expenseLines.filter(line => line.id !== id));
+    if (!id.startsWith('new-')) {
+      deleteLine.mutate(id);
     }
   };
 
@@ -392,26 +396,31 @@ export function EditExtractedBillDialog({
           </div>
 
           {/* Line Items */}
-          <Tabs defaultValue="job-cost" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList>
               <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
               <TabsTrigger value="expense">Expense</TabsTrigger>
             </TabsList>
 
             <TabsContent value="job-cost" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Cost Code</TableHead>
-                    <TableHead>Memo</TableHead>
-                    <TableHead className="w-[100px]">Quantity</TableHead>
-                    <TableHead className="w-[120px]">Unit Cost</TableHead>
-                    <TableHead className="w-[120px]">Total</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobCostLines.map((line) => (
+              {jobCostLines.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No job cost lines. Click "Add Line" to add one.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Cost Code</TableHead>
+                      <TableHead>Memo</TableHead>
+                      <TableHead className="w-[100px]">Quantity</TableHead>
+                      <TableHead className="w-[120px]">Unit Cost</TableHead>
+                      <TableHead className="w-[120px]">Total</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobCostLines.map((line) => (
                     <TableRow key={line.id}>
                       <TableCell>
                         <CostCodeSearchInput
@@ -453,8 +462,7 @@ export function EditExtractedBillDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeJobCostLine(line.id)}
-                          disabled={jobCostLines.length === 1}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50 disabled:text-red-600"
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -463,6 +471,7 @@ export function EditExtractedBillDialog({
                   ))}
                 </TableBody>
               </Table>
+              )}
               <Button onClick={addJobCostLine} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Line
@@ -470,19 +479,24 @@ export function EditExtractedBillDialog({
             </TabsContent>
 
             <TabsContent value="expense" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Account</TableHead>
-                    <TableHead>Memo</TableHead>
-                    <TableHead className="w-[100px]">Quantity</TableHead>
-                    <TableHead className="w-[120px]">Unit Cost</TableHead>
-                    <TableHead className="w-[120px]">Total</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenseLines.map((line) => (
+              {expenseLines.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No expense lines. Click "Add Line" to add one.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Account</TableHead>
+                      <TableHead>Memo</TableHead>
+                      <TableHead className="w-[100px]">Quantity</TableHead>
+                      <TableHead className="w-[120px]">Unit Cost</TableHead>
+                      <TableHead className="w-[120px]">Total</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expenseLines.map((line) => (
                     <TableRow key={line.id}>
                       <TableCell>
                         <AccountSearchInput
@@ -519,8 +533,7 @@ export function EditExtractedBillDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeExpenseLine(line.id)}
-                          disabled={expenseLines.length === 1}
-                          className="text-red-600 hover:text-red-800 hover:bg-red-50 disabled:text-red-600"
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -529,6 +542,7 @@ export function EditExtractedBillDialog({
                   ))}
                 </TableBody>
               </Table>
+              )}
               <Button onClick={addExpenseLine} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Line
