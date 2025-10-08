@@ -231,9 +231,9 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     const uniqueItems = new Set<string>();
     bill.bill_lines.forEach(line => {
       if (line.cost_codes?.code && line.cost_codes?.name) {
-        uniqueItems.add(`${line.cost_codes.code} — ${line.cost_codes.name}`);
+        uniqueItems.add(`${line.cost_codes.code}: ${line.cost_codes.name}`);
       } else if (line.accounts?.code && line.accounts?.name) {
-        uniqueItems.add(`${line.accounts.code} — ${line.accounts.name}`);
+        uniqueItems.add(`${line.accounts.code}: ${line.accounts.name}`);
       } else if (line.cost_codes?.name) {
         uniqueItems.add(line.cost_codes.name);
       } else if (line.accounts?.name) {
