@@ -477,13 +477,25 @@ function parseTextractResponse(textractData: any): any {
 // Normalize vendor name for comparison (same logic as in extract-bill-data)
 function normalizeVendorName(name: string): string {
   if (!name) return '';
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, '') // Remove all non-alphanumeric except spaces
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '') // Remove common suffixes
-    .trim();
+  
+  let normalized = name.toLowerCase().trim();
+  
+  // Remove common domain prefixes
+  normalized = normalized.replace(/^www\./, '');
+  
+  // Remove common domain extensions at the end
+  normalized = normalized.replace(/\.(com|net|org|co|biz|info|us|edu|gov)$/, '');
+  
+  // Remove all non-alphanumeric except spaces
+  normalized = normalized.replace(/[^a-z0-9\s]/g, '');
+  
+  // Normalize whitespace
+  normalized = normalized.replace(/\s+/g, ' ');
+  
+  // Remove common business suffixes
+  normalized = normalized.replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '');
+  
+  return normalized.trim();
 }
 
 // Calculate similarity between two vendor names (Levenshtein distance)
