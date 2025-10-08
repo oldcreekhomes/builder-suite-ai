@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, X, FileText } from "lucide-react";
+import { Trash2, X, FileText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { formatFileSize } from "./utils/simplifiedFileUtils";
@@ -46,16 +46,6 @@ export function FilePreviewHeader({
       </div>
       
       <div className="flex items-center space-x-2 flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onDownload}
-          className="text-muted-foreground hover:text-foreground"
-          title="Download file"
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-        
         {showDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
