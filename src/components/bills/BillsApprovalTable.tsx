@@ -225,15 +225,29 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     }).format(amount);
   };
 
+  const formatTerms = (terms: string | null | undefined) => {
+    if (!terms) return '-';
+    
+    const termMap: Record<string, string> = {
+      'due-on-receipt': 'On Receipt',
+      'net-15': '15',
+      'net-30': '30',
+      'net-60': '60',
+      'net-90': '90',
+    };
+    
+    return termMap[terms.toLowerCase()] || terms;
+  };
+
   const getCostCodeOrAccount = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
     
     const uniqueItems = new Set<string>();
     bill.bill_lines.forEach(line => {
-      if (line.cost_codes?.name) {
-        uniqueItems.add(line.cost_codes.name);
-      } else if (line.accounts?.name) {
-        uniqueItems.add(line.accounts.name);
+      if (line.cost_codes) {
+        uniqueItems.add(`${line.cost_codes.code}: ${line.cost_codes.name}`);
+      } else if (line.accounts) {
+        uniqueItems.add(`${line.accounts.code}: ${line.accounts.name}`);
       }
     });
     
@@ -260,11 +274,11 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-32">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               {canShowActions && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left">Actions</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -297,13 +311,13 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                     {bill.reference_number || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {bill.terms || '-'}
+                    {formatTerms(bill.terms)}
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
                   {canShowActions && (
-                    <TableCell className="px-2 py-1 text-left">
+                    <TableCell className="py-1 text-left">
                       <div className="flex justify-start">
                         <Select
                           onValueChange={(value) => handleActionChange(bill.id, value)}

@@ -41,6 +41,19 @@ interface BillForPayment {
     address: string;
   };
   bill_attachments?: BillAttachment[];
+  bill_lines?: Array<{
+    line_type: string;
+    cost_code_id?: string;
+    account_id?: string;
+    cost_codes?: {
+      code: string;
+      name: string;
+    };
+    accounts?: {
+      code: string;
+      name: string;
+    };
+  }>;
 }
 
 interface PayBillsTableProps {
@@ -83,6 +96,19 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
               file_path,
               file_size,
               content_type
+            ),
+            bill_lines (
+              line_type,
+              cost_code_id,
+              account_id,
+              cost_codes!bill_lines_cost_code_id_fkey (
+                code,
+                name
+              ),
+              accounts!bill_lines_account_id_fkey (
+                code,
+                name
+              )
             )
           `)
           .eq('status', 'posted')
@@ -111,7 +137,20 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
             projects:project_id (
               address
             ),
-            bill_lines!inner(project_id),
+            bill_lines!inner(
+              project_id,
+              line_type,
+              cost_code_id,
+              account_id,
+              cost_codes!bill_lines_cost_code_id_fkey (
+                code,
+                name
+              ),
+              accounts!bill_lines_account_id_fkey (
+                code,
+                name
+              )
+            ),
             bill_attachments (
               id,
               file_name,
@@ -161,6 +200,19 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
               file_path,
               file_size,
               content_type
+            ),
+            bill_lines (
+              line_type,
+              cost_code_id,
+              account_id,
+              cost_codes!bill_lines_cost_code_id_fkey (
+                code,
+                name
+              ),
+              accounts!bill_lines_account_id_fkey (
+                code,
+                name
+              )
             )
           `)
           .eq('status', 'posted')
@@ -196,6 +248,38 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
     }).format(amount);
   };
 
+  const formatTerms = (terms: string | null | undefined) => {
+    if (!terms) return '-';
+    
+    const termMap: Record<string, string> = {
+      'due-on-receipt': 'On Receipt',
+      'net-15': '15',
+      'net-30': '30',
+      'net-60': '60',
+      'net-90': '90',
+    };
+    
+    return termMap[terms.toLowerCase()] || terms;
+  };
+
+  const getCostCodeOrAccount = (bill: BillForPayment) => {
+    if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
+    
+    const uniqueItems = new Set<string>();
+    bill.bill_lines.forEach(line => {
+      if (line.cost_codes) {
+        uniqueItems.add(`${line.cost_codes.code}: ${line.cost_codes.name}`);
+      } else if (line.accounts) {
+        uniqueItems.add(`${line.accounts.code}: ${line.accounts.name}`);
+      }
+    });
+    
+    const items = Array.from(uniqueItems);
+    if (items.length === 0) return '-';
+    if (items.length === 1) return items[0];
+    return `${items[0]} +${items.length - 1}`;
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills for payment...</div>;
   }
@@ -207,22 +291,23 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               {!projectId && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
               )}
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-32">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={!projectId ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={!projectId ? 10 : 9} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -231,6 +316,9 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
                 <TableRow key={bill.id} className="h-10">
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {bill.companies?.company_name || 'Unknown Vendor'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {getCostCodeOrAccount(bill)}
                   </TableCell>
                   {!projectId && (
                     <TableCell className="px-2 py-1 text-xs">
@@ -249,11 +337,11 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.reference_number || '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">{bill.terms || '-'}</TableCell>
+                  <TableCell className="px-2 py-1 text-xs">{formatTerms(bill.terms)}</TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="py-1 text-xs">
                     <Button
                       size="sm"
                       onClick={() => handlePayBill(bill)}
