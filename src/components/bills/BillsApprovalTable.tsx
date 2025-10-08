@@ -228,14 +228,14 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
   const formatTerms = (terms: string | null | undefined) => {
     if (!terms) return '-';
     
-    // Normalize the terms string for case-insensitive matching
-    const normalizedTerms = terms.toLowerCase().trim();
+    // Normalize the terms string for case-insensitive matching and remove spaces/hyphens
+    const normalizedTerms = terms.toLowerCase().replace(/[\s-]/g, '');
     
     // Handle specific term formats
-    if (normalizedTerms === 'net 15' || normalizedTerms === 'net15') return '15';
-    if (normalizedTerms === 'net 30' || normalizedTerms === 'net30') return '30';
-    if (normalizedTerms === 'net 60' || normalizedTerms === 'net60') return '60';
-    if (normalizedTerms === 'due on receipt' || normalizedTerms === 'dueonreceipt') return 'On Receipt';
+    if (normalizedTerms === 'net15') return '15';
+    if (normalizedTerms === 'net30') return '30';
+    if (normalizedTerms === 'net60') return '60';
+    if (normalizedTerms === 'dueonreceipt') return 'On Receipt';
     
     // Return original if no match
     return terms;
