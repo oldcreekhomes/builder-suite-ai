@@ -12,6 +12,23 @@ import { useUniversalFilePreviewContext } from "@/components/files/UniversalFile
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper function to format terms for display
+const formatTerms = (terms: string | null | undefined): string => {
+  if (!terms) return '-';
+  const termsStr = String(terms).toLowerCase().trim();
+  
+  if (termsStr.includes('due') && termsStr.includes('receipt')) {
+    return 'On Receipt';
+  }
+  
+  const netMatch = termsStr.match(/net\s*(\d+)/i);
+  if (netMatch) {
+    return netMatch[1]; // Just return the number
+  }
+  
+  return terms;
+};
+
 interface PendingBillLine {
   line_number: number;
   line_type: string;
@@ -310,15 +327,16 @@ export function BatchBillReviewTable({
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="w-[200px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="w-[150px] px-2 py-0 text-xs font-medium">Account</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="w-[100px] px-2 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="w-[180px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="w-32 px-2 py-0 text-xs font-medium">Reference #</TableHead>
+              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Terms</TableHead>
+              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Account</TableHead>
+              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Total</TableHead>
+              <TableHead className="w-16 px-2 py-0 text-xs font-medium">File</TableHead>
+              <TableHead className="w-20 px-2 py-0 text-xs font-medium">Issues</TableHead>
+              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -331,7 +349,7 @@ export function BatchBillReviewTable({
                 <TableCell className="px-2 py-3">
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
-                <TableCell colSpan={5} className="px-2 py-3">
+                <TableCell colSpan={6} className="px-2 py-3">
                   <div className="flex items-center justify-center gap-2 text-sm text-red-600">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="font-medium">Extracting...</span>
@@ -349,7 +367,7 @@ export function BatchBillReviewTable({
             {/* Show empty state only if no bills AND no processing uploads */}
             {bills.length === 0 && processingUploads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center">
+                <TableCell colSpan={10} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
                     <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
                     <p className="text-sm font-medium">No bills uploaded yet</p>
@@ -405,6 +423,9 @@ export function BatchBillReviewTable({
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
+                    <span className="text-xs">{formatTerms(getExtractedValue(bill, 'terms', 'terms') as string)}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
