@@ -80,7 +80,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
 
   // Fetch bills based on status
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-approval', status],
+    queryKey: ['bills-for-approval-v2', status],
     queryFn: async () => {
       // Get bills with direct project assignment
       const { data: directBills, error: directError } = await supabase
