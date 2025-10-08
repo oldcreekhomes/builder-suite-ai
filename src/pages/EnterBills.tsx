@@ -399,6 +399,40 @@ export default function EnterBills() {
     }
   };
 
+  // Validation function to check bill completeness
+  const validateBillForSubmission = (bill: any) => {
+    const issues: string[] = [];
+    
+    // Check vendor
+    if (!bill.vendor_id) {
+      if (!bill.vendor_name) {
+        issues.push("Vendor required");
+      } else {
+        issues.push("Vendor not in database");
+      }
+    }
+    
+    // Check bill date
+    if (!bill.bill_date) issues.push("Bill date required");
+    
+    // Check line items exist
+    if (!bill.lines || bill.lines.length === 0) {
+      issues.push("At least one line item required");
+    } else {
+      // Check each line item for required fields
+      bill.lines.forEach((line: any, idx: number) => {
+        if (line.line_type === 'expense' && !line.account_id) {
+          issues.push(`Line ${idx + 1}: Account required`);
+        }
+        if (line.line_type === 'job_cost' && !line.cost_code_id) {
+          issues.push(`Line ${idx + 1}: Cost code required`);
+        }
+      });
+    }
+    
+    return issues;
+  };
+
   const handleSubmitAllBills = async () => {
     if (selectedBillIds.size === 0) {
       toast({
@@ -411,26 +445,43 @@ export default function EnterBills() {
 
     setIsSubmitting(true);
     
-    const billsToSubmit = batchBills
-      .filter(bill => selectedBillIds.has(bill.id) && bill.vendor_name && bill.bill_date)
-      .map(bill => ({
-        pendingUploadId: bill.id,
-        vendorId: bill.vendor_name, // For now using name, need to lookup ID
-        billDate: bill.bill_date,
-        dueDate: bill.due_date,
-        referenceNumber: bill.reference_number,
-        terms: bill.terms,
-      }));
-
-    if (billsToSubmit.length === 0) {
+    // Validate all selected bills before submission
+    const billsWithIssues: Array<{ bill: any; issues: string[] }> = [];
+    
+    selectedBillIds.forEach(billId => {
+      const bill = batchBills.find(b => b.id === billId);
+      if (bill) {
+        const issues = validateBillForSubmission(bill);
+        if (issues.length > 0) {
+          billsWithIssues.push({ bill, issues });
+        }
+      }
+    });
+    
+    // If any bills have validation issues, show error and stop
+    if (billsWithIssues.length > 0) {
+      const issueCount = billsWithIssues.length;
+      const firstBillIssues = billsWithIssues[0].issues.join(', ');
+      
       toast({
-        title: "Validation Error",
-        description: "Selected bills must have vendor and bill date filled.",
+        title: "Cannot Submit Bills",
+        description: `${issueCount} selected bill${issueCount > 1 ? 's have' : ' has'} missing information. ${issueCount === 1 ? firstBillIssues : 'Please check the Issues column and fix all errors before submitting.'}`,
         variant: "destructive",
       });
       setIsSubmitting(false);
       return;
     }
+    
+    const billsToSubmit = batchBills
+      .filter(bill => selectedBillIds.has(bill.id))
+      .map(bill => ({
+        pendingUploadId: bill.id,
+        vendorId: bill.vendor_id,
+        billDate: bill.bill_date,
+        dueDate: bill.due_date,
+        referenceNumber: bill.reference_number,
+        terms: bill.terms,
+      }));
 
     try {
       const results = await batchApproveBills.mutateAsync(billsToSubmit);
