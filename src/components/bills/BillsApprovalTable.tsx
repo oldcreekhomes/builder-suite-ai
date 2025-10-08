@@ -48,6 +48,16 @@ interface BillForApproval {
     file_size: number;
     content_type: string;
   }>;
+  bill_lines?: Array<{
+    cost_code_id?: string;
+    account_id?: string;
+    cost_codes?: {
+      name: string;
+    };
+    accounts?: {
+      name: string;
+    };
+  }>;
 }
 
 interface BillsApprovalTableProps {
@@ -98,6 +108,16 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             file_path,
             file_size,
             content_type
+          ),
+          bill_lines (
+            cost_code_id,
+            account_id,
+            cost_codes:cost_code_id (
+              name
+            ),
+            accounts:account_id (
+              name
+            )
           )
         `)
         .eq('status', status)
@@ -124,8 +144,16 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           ),
           bill_lines!inner(
             project_id,
+            cost_code_id,
+            account_id,
             projects!inner(
               address
+            ),
+            cost_codes:cost_code_id (
+              name
+            ),
+            accounts:account_id (
+              name
             )
           ),
           bill_attachments (
@@ -188,6 +216,24 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     }).format(amount);
   };
 
+  const getCostCodeOrAccount = (bill: BillForApproval) => {
+    if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
+    
+    const uniqueItems = new Set<string>();
+    bill.bill_lines.forEach(line => {
+      if (line.cost_codes?.name) {
+        uniqueItems.add(line.cost_codes.name);
+      } else if (line.accounts?.name) {
+        uniqueItems.add(line.accounts.name);
+      }
+    });
+    
+    const items = Array.from(uniqueItems);
+    if (items.length === 0) return '-';
+    if (items.length === 1) return items[0];
+    return `${items[0]} +${items.length - 1}`;
+  };
+
   const canShowActions = status === 'draft';
 
   if (isLoading) {
@@ -202,6 +248,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
@@ -216,7 +263,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 10 : 9} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -228,6 +275,9 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.projects?.address || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {getCostCodeOrAccount(bill)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatDisplayFromAny(bill.bill_date)}
