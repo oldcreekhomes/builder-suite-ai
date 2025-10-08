@@ -265,6 +265,9 @@ export default function EnterBills() {
               .select('id, name')
               .eq('owner_id', ownerId);
 
+            const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
+            const isSingleLine = extractedData.lineItems.length === 1;
+
             const linesToInsert = extractedData.lineItems.map((item: any, index: number) => {
               // Look up IDs from names
               const accountId = item.account_name 
@@ -279,14 +282,28 @@ export default function EnterBills() {
               
               // Parse numeric fields properly
               const qty = Number(item.quantity) || 1;
+              const unitPrice = Number(item.unit_price || item.unitPrice) || 0;
               
               // Clean and parse amount string (remove $, commas, etc.)
-              const parsedAmount = typeof item.amount === 'string'
+              let parsedAmount = typeof item.amount === 'string'
                 ? Number(item.amount.replace(/[^0-9.-]/g, ''))
                 : Number(item.amount) || 0;
               
-              // Calculate unit_cost FROM amount (not the other way around)
-              const unitCost = parsedAmount > 0 && qty > 0 ? parsedAmount / qty : 0;
+              // SANITY CHECK: For single-line bills, use extracted total if available
+              if (isSingleLine && extractedTotal > 0 && Math.abs(parsedAmount - extractedTotal) > 0.01) {
+                console.log(`Correcting single-line amount from ${parsedAmount} to extracted total ${extractedTotal}`);
+                parsedAmount = extractedTotal;
+              }
+              
+              // SANITY CHECK: If amount seems absurd (>$1M), use qty * unit_price if available
+              if (parsedAmount > 1000000 && unitPrice > 0) {
+                console.log(`Correcting absurd amount ${parsedAmount} using qty * unit_price`);
+                parsedAmount = qty * unitPrice;
+              }
+              
+              // Calculate amount from qty * unit_price if unit_price is present, otherwise use parsed amount
+              const finalAmount = unitPrice > 0 ? Math.round(qty * unitPrice * 100) / 100 : parsedAmount;
+              const unitCost = finalAmount > 0 && qty > 0 ? finalAmount / qty : 0;
               
               return {
                 pending_upload_id: bill.id,
@@ -300,8 +317,8 @@ export default function EnterBills() {
                 cost_code_name: item.cost_code_name || null,
                 project_name: item.project_name || null,
                 quantity: qty,
-                unit_cost: unitCost, // Derived from amount
-                amount: parsedAmount, // Source of truth from extraction
+                unit_cost: unitCost,
+                amount: finalAmount,
                 memo: item.memo || item.description || '',
               };
             });

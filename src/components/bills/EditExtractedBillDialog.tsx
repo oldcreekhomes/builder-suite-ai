@@ -86,20 +86,38 @@ export function EditExtractedBillDialog({
       .order('line_number')
       .then(({ data }) => {
         if (data) {
+          const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
+          const isSingleLine = data.length === 1;
+          
           const jobCost = data
             .filter(line => line.line_type === 'job_cost')
             .map(line => {
-              const qty = Number(line.quantity) || 1;
-              const amt = Number(line.amount) || 0;
-              const unitCost = amt > 0 && qty > 0 ? amt / qty : 0;
+              let qty = Number(line.quantity) || 1;
+              let amt = Number(line.amount) || 0;
+              
+              // SANITY CHECK: For single-line bills with extracted total, use that if amounts differ significantly
+              if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
+                console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
+                amt = extractedTotal;
+              }
+              
+              // SANITY CHECK: If amount is absurdly large (>$1M), cap it or recalculate
+              if (amt > 1000000 && qty > 0) {
+                // Try to use a reasonable unit cost if this seems wrong
+                const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
+                console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
+                amt = reasonableUnitCost * qty;
+              }
+              
+              const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
               
               return {
                 id: line.id,
                 line_type: line.line_type,
                 cost_code_id: line.cost_code_id || undefined,
                 quantity: qty,
-                unit_cost: unitCost, // Derived from amount
-                amount: amt, // Source of truth from DB
+                unit_cost: unitCost,
+                amount: amt,
                 memo: line.memo || "",
               };
             });
@@ -107,17 +125,31 @@ export function EditExtractedBillDialog({
           const expense = data
             .filter(line => line.line_type === 'expense')
             .map(line => {
-              const qty = Number(line.quantity) || 1;
-              const amt = Number(line.amount) || 0;
-              const unitCost = amt > 0 && qty > 0 ? amt / qty : 0;
+              let qty = Number(line.quantity) || 1;
+              let amt = Number(line.amount) || 0;
+              
+              // SANITY CHECK: For single-line bills with extracted total, use that if amounts differ significantly
+              if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
+                console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
+                amt = extractedTotal;
+              }
+              
+              // SANITY CHECK: If amount is absurdly large (>$1M), cap it or recalculate
+              if (amt > 1000000 && qty > 0) {
+                const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
+                console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
+                amt = reasonableUnitCost * qty;
+              }
+              
+              const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
               
               return {
                 id: line.id,
                 line_type: line.line_type,
                 account_id: line.account_id || undefined,
                 quantity: qty,
-                unit_cost: unitCost, // Derived from amount
-                amount: amt, // Source of truth from DB
+                unit_cost: unitCost,
+                amount: amt,
                 memo: line.memo || "",
               };
             });
