@@ -88,9 +88,24 @@ export function EditExtractedBillDialog({
           const jobCost = data
             .filter(line => line.line_type === 'job_cost')
             .map(line => {
-              const qty = line.quantity || 1;
-              const amt = line.amount || 0;
-              const unitCost = line.unit_cost || (amt / qty);
+              // Coerce to numbers
+              const qty = Number(line.quantity) || 1;
+              const rawAmt = Number(line.amount);
+              const rawUnit = Number(line.unit_cost);
+              
+              // Calculate unit cost (prefer provided value, otherwise derive from amount)
+              let unitCost = Number.isFinite(rawUnit) && rawUnit > 0 
+                ? rawUnit 
+                : (Number.isFinite(rawAmt) && qty > 0 ? rawAmt / qty : 0);
+              
+              // Calculate amount (prefer provided value initially)
+              let amt = Number.isFinite(rawAmt) ? rawAmt : 0;
+              
+              // Sanity check: prefer qty * unitCost if stored amount seems wrong
+              const product = Number.isFinite(qty * unitCost) ? qty * unitCost : 0;
+              if (product > 0 && (!Number.isFinite(amt) || Math.abs(amt - product) > Math.max(1, 0.05 * product))) {
+                amt = product;
+              }
               
               return {
                 id: line.id,
@@ -106,9 +121,24 @@ export function EditExtractedBillDialog({
           const expense = data
             .filter(line => line.line_type === 'expense')
             .map(line => {
-              const qty = line.quantity || 1;
-              const amt = line.amount || 0;
-              const unitCost = line.unit_cost || (amt / qty);
+              // Coerce to numbers
+              const qty = Number(line.quantity) || 1;
+              const rawAmt = Number(line.amount);
+              const rawUnit = Number(line.unit_cost);
+              
+              // Calculate unit cost (prefer provided value, otherwise derive from amount)
+              let unitCost = Number.isFinite(rawUnit) && rawUnit > 0 
+                ? rawUnit 
+                : (Number.isFinite(rawAmt) && qty > 0 ? rawAmt / qty : 0);
+              
+              // Calculate amount (prefer provided value initially)
+              let amt = Number.isFinite(rawAmt) ? rawAmt : 0;
+              
+              // Sanity check: prefer qty * unitCost if stored amount seems wrong
+              const product = Number.isFinite(qty * unitCost) ? qty * unitCost : 0;
+              if (product > 0 && (!Number.isFinite(amt) || Math.abs(amt - product) > Math.max(1, 0.05 * product))) {
+                amt = product;
+              }
               
               return {
                 id: line.id,
@@ -189,9 +219,11 @@ export function EditExtractedBillDialog({
   };
 
   const calculateTotal = () => {
-    const jobCostTotal = jobCostLines.reduce((sum, line) => sum + (line.amount || 0), 0);
-    const expenseTotal = expenseLines.reduce((sum, line) => sum + (line.amount || 0), 0);
-    return (jobCostTotal + expenseTotal).toFixed(2);
+    const sumSafe = (arr: LineItem[]) => arr.reduce((s, l) => {
+      const v = Number(l.amount);
+      return s + (Number.isFinite(v) ? v : 0);
+    }, 0);
+    return (sumSafe(jobCostLines) + sumSafe(expenseLines)).toFixed(2);
   };
 
   const handleSave = async () => {

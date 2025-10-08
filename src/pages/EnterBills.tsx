@@ -277,6 +277,19 @@ export default function EnterBills() {
               // Determine line type
               const lineType = costCodeId ? 'job_cost' : 'expense';
               
+              // Parse numeric fields properly
+              const qty = Number(item.quantity) || 1;
+              const unit = Number(item.unitPrice ?? item.unit_cost) || 0;
+              
+              // Clean and parse amount string (remove $, commas, etc.)
+              const parsedAmount = typeof item.amount === 'string'
+                ? Number(item.amount.replace(/[^0-9.-]/g, ''))
+                : Number(item.amount) || 0;
+              
+              // Prefer calculated amount over raw amount
+              const computed = qty > 0 && unit > 0 ? qty * unit : 0;
+              const finalAmount = computed > 0 ? computed : parsedAmount;
+              
               return {
                 pending_upload_id: bill.id,
                 owner_id: ownerId,
@@ -288,9 +301,9 @@ export default function EnterBills() {
                 account_name: item.account_name || null,
                 cost_code_name: item.cost_code_name || null,
                 project_name: item.project_name || null,
-                quantity: item.quantity || 1,
-                unit_cost: item.unitPrice || item.unit_cost || 0,
-                amount: item.amount || ((item.quantity || 1) * (item.unitPrice || item.unit_cost || 0)),
+                quantity: qty,
+                unit_cost: unit,
+                amount: finalAmount,
                 memo: item.memo || item.description || '',
               };
             });
