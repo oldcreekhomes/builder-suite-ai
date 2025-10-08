@@ -1,16 +1,11 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { DashboardHeader } from "@/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
-import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import {
   Table,
   TableBody,
@@ -48,8 +43,11 @@ interface BillForPayment {
   bill_attachments?: BillAttachment[];
 }
 
-export default function PayBills() {
-  const { projectId } = useParams();
+interface PayBillsTableProps {
+  projectId?: string;
+}
+
+export function PayBillsTable({ projectId }: PayBillsTableProps) {
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -203,99 +201,82 @@ export default function PayBills() {
   }
 
   return (
-    <UniversalFilePreviewProvider>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <AppSidebar />
-          <SidebarInset>
-          <DashboardHeader 
-            title="Pay Bills" 
-            projectId={projectId}
-          />
-          <div className="container mx-auto p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Pay Bills</h1>
-            <p className="text-muted-foreground">Process payments for approved bills.</p>
-          </div>
-
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+    <>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+              {!projectId && (
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+              )}
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {bills.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={!projectId ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                  No approved bills found for payment.
+                </TableCell>
+              </TableRow>
+            ) : (
+              bills.map((bill) => (
+                <TableRow key={bill.id} className="h-10">
+                  <TableCell className="px-2 py-1 text-xs font-medium">
+                    {bill.companies?.company_name || 'Unknown Vendor'}
+                  </TableCell>
                   {!projectId && (
-                    <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
-                  )}
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bills.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={!projectId ? 9 : 8} className="text-center py-8 text-muted-foreground">
-                      No approved bills found for payment.
+                    <TableCell className="px-2 py-1 text-xs">
+                      {bill.projects?.address || '-'}
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  bills.map((bill) => (
-                    <TableRow key={bill.id} className="h-10">
-                      <TableCell className="px-2 py-1 text-xs font-medium">
-                        {bill.companies?.company_name || 'Unknown Vendor'}
-                      </TableCell>
-                      {!projectId && (
-                        <TableCell className="px-2 py-1 text-xs">
-                          {bill.projects?.address || '-'}
-                        </TableCell>
-                      )}
-                      <TableCell className="px-2 py-1 text-xs">
-                        {formatDisplayFromAny(bill.bill_date)}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-xs font-medium">
-                        {formatCurrency(bill.total_amount)}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        {bill.reference_number || '-'}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">{bill.terms || '-'}</TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        <BillFilesCell attachments={bill.bill_attachments || []} />
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-xs">
-                        <Button
-                          size="sm"
-                          onClick={() => handlePayBill(bill)}
-                          disabled={payBill.isPending}
-                          className="h-7 text-xs px-3"
-                        >
-                          {payBill.isPending ? "Processing..." : "Pay Bill"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {bills.length > 0 && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p>Total bills: {bills.length}</p>
-              <p>Total amount: {formatCurrency(bills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
-            </div>
-          )}
-          </div>
-        </SidebarInset>
+                  )}
+                  <TableCell className="px-2 py-1 text-xs">
+                    {formatDisplayFromAny(bill.bill_date)}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs font-medium">
+                    {formatCurrency(bill.total_amount)}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {bill.reference_number || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">{bill.terms || '-'}</TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    <BillFilesCell attachments={bill.bill_attachments || []} />
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    <Button
+                      size="sm"
+                      onClick={() => handlePayBill(bill)}
+                      disabled={payBill.isPending}
+                      className="h-7 text-xs px-3"
+                    >
+                      {payBill.isPending ? "Processing..." : "Pay Bill"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
-      
+
+      {bills.length > 0 && (
+        <div className="mt-4 text-sm text-muted-foreground">
+          <p>Total bills: {bills.length}</p>
+          <p>Total amount: {formatCurrency(bills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
+        </div>
+      )}
+
       <PayBillDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -303,7 +284,6 @@ export default function PayBills() {
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending}
       />
-    </SidebarProvider>
-  </UniversalFilePreviewProvider>
-);
+    </>
+  );
 }

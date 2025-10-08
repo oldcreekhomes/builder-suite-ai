@@ -109,7 +109,7 @@ export default function Accounting() {
   };
 
   const handleTotalOutstandingClick = () => {
-    const path = projectId ? `/project/${projectId}/accounting/bills/pay` : '/accounting/bills/pay';
+    const path = projectId ? `/project/${projectId}/accounting/bills/approve` : '/accounting/bills/approve';
     navigate(path);
   };
   

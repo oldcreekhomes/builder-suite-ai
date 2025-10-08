@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "./BillsApprovalTable";
+import { PayBillsTable } from "./PayBillsTable";
 import { useBillCounts } from "@/hooks/useBillCounts";
 
-export function BillsApprovalTabs() {
+interface BillsApprovalTabsProps {
+  projectId?: string;
+}
+
+export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState("pending");
   const { data: counts, isLoading } = useBillCounts();
 
@@ -16,6 +21,8 @@ export function BillsApprovalTabs() {
           return "Rejected";
         case 'approved':
           return "Approved";
+        case 'pay-bills':
+          return "Pay Bills";
         default:
           return status;
       }
@@ -29,6 +36,8 @@ export function BillsApprovalTabs() {
         return `Rejected (${displayCount})`;
       case 'approved':
         return `Approved (${displayCount})`;
+      case 'pay-bills':
+        return `Pay Bills (${displayCount})`;
       default:
         return `${status} (${displayCount})`;
     }
@@ -36,7 +45,7 @@ export function BillsApprovalTabs() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="pending">
           {getTabLabel('pending', counts?.pendingCount)}
         </TabsTrigger>
@@ -45,6 +54,9 @@ export function BillsApprovalTabs() {
         </TabsTrigger>
         <TabsTrigger value="approved">
           {getTabLabel('approved', counts?.approvedCount)}
+        </TabsTrigger>
+        <TabsTrigger value="pay-bills">
+          {getTabLabel('pay-bills', counts?.payBillsCount)}
         </TabsTrigger>
       </TabsList>
       
@@ -58,6 +70,10 @@ export function BillsApprovalTabs() {
       
       <TabsContent value="approved" className="mt-6">
         <BillsApprovalTable status="posted" />
+      </TabsContent>
+      
+      <TabsContent value="pay-bills" className="mt-6">
+        <PayBillsTable projectId={projectId} />
       </TabsContent>
     </Tabs>
   );

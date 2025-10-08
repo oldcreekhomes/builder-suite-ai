@@ -252,10 +252,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                           <span>Enter Bills</span>
                         </a>
                         <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Approve Bills</span>
-                        </a>
-                        <a href={`/project/${projectId}/accounting/bills/pay`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Pay Bills</span>
+                          <span>Manage Bills</span>
                         </a>
                       </div>
                     </CollapsibleContent>

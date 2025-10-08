@@ -15,16 +15,16 @@ export default function ApproveBills() {
           <AppSidebar />
           <SidebarInset>
             <DashboardHeader 
-              title="Approve Bills" 
+              title="Manage Bills" 
               projectId={projectId}
             />
             <div className="container mx-auto p-6">
               <div className="mb-6">
-                <h1 className="text-2xl font-bold">Approve Bills</h1>
-                <p className="text-muted-foreground">Review and manage bills by approval status.</p>
+                <h1 className="text-2xl font-bold">Manage Bills</h1>
+                <p className="text-muted-foreground">Review, approve, and pay bills.</p>
               </div>
 
-              <BillsApprovalTabs />
+              <BillsApprovalTabs projectId={projectId} />
             </div>
           </SidebarInset>
         </div>
