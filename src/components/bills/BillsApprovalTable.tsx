@@ -225,32 +225,12 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     }).format(amount);
   };
 
-  const formatTerms = (terms: string | null | undefined) => {
-    if (!terms) return '-';
-    
-    // Normalize the terms string for case-insensitive matching and remove spaces/hyphens
-    const normalizedTerms = terms.toLowerCase().replace(/[\s-]/g, '');
-    
-    // Handle specific term formats
-    if (normalizedTerms === 'net15') return '15';
-    if (normalizedTerms === 'net30') return '30';
-    if (normalizedTerms === 'net60') return '60';
-    if (normalizedTerms === 'dueonreceipt') return 'On Receipt';
-    
-    // Return original if no match
-    return terms;
-  };
-
   const getCostCodeOrAccount = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
     
     const uniqueItems = new Set<string>();
     bill.bill_lines.forEach(line => {
-      if (line.cost_codes?.code && line.cost_codes?.name) {
-        uniqueItems.add(`${line.cost_codes.code}: ${line.cost_codes.name}`);
-      } else if (line.accounts?.code && line.accounts?.name) {
-        uniqueItems.add(`${line.accounts.code}: ${line.accounts.name}`);
-      } else if (line.cost_codes?.name) {
+      if (line.cost_codes?.name) {
         uniqueItems.add(line.cost_codes.name);
       } else if (line.accounts?.name) {
         uniqueItems.add(line.accounts.name);
@@ -276,7 +256,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
@@ -292,7 +271,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 9 : 8} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -301,9 +280,6 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                 <TableRow key={bill.id} className="h-10">
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {bill.companies?.company_name || 'Unknown Vendor'}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {bill.projects?.address || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {getCostCodeOrAccount(bill)}
@@ -321,7 +297,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                     {bill.reference_number || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {formatTerms(bill.terms)}
+                    {bill.terms || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
