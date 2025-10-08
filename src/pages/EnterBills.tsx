@@ -63,6 +63,7 @@ export default function EnterBills() {
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [processingUploads, setProcessingUploads] = useState<any[]>([]);
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
 
   const { createBill } = useBills();
   const { accountingSettings } = useAccounts();
@@ -378,11 +379,40 @@ export default function EnterBills() {
       .insert(linesToInsert);
   };
 
+  const handleBillSelect = (billId: string) => {
+    setSelectedBillIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(billId)) {
+        newSet.delete(billId);
+      } else {
+        newSet.add(billId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (selectAll: boolean) => {
+    if (selectAll) {
+      setSelectedBillIds(new Set(batchBills.map(bill => bill.id)));
+    } else {
+      setSelectedBillIds(new Set());
+    }
+  };
+
   const handleSubmitAllBills = async () => {
+    if (selectedBillIds.size === 0) {
+      toast({
+        title: "No Bills Selected",
+        description: "Please select at least one bill to submit",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     const billsToSubmit = batchBills
-      .filter(bill => bill.vendor_name && bill.bill_date)
+      .filter(bill => selectedBillIds.has(bill.id) && bill.vendor_name && bill.bill_date)
       .map(bill => ({
         pendingUploadId: bill.id,
         vendorId: bill.vendor_name, // For now using name, need to lookup ID
@@ -395,7 +425,7 @@ export default function EnterBills() {
     if (billsToSubmit.length === 0) {
       toast({
         title: "Validation Error",
-        description: "No bills are ready to submit. Please ensure vendor and bill date are filled.",
+        description: "Selected bills must have vendor and bill date filled.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -417,7 +447,18 @@ export default function EnterBills() {
 
       if (failed === 0) {
         setBatchBills([]);
+        setSelectedBillIds(new Set());
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+      } else {
+        // Remove successfully submitted bills from selection
+        setSelectedBillIds(prev => {
+          const newSet = new Set(prev);
+          results.filter(r => r.success).forEach(r => {
+            const bill = batchBills.find(b => b.id === r.pendingUploadId);
+            if (bill) newSet.delete(bill.id);
+          });
+          return newSet;
+        });
       }
     } catch (error) {
       toast({
@@ -892,10 +933,10 @@ export default function EnterBills() {
                       {batchBills.length > 0 && (
                         <Button
                           onClick={handleSubmitAllBills}
-                          disabled={isSubmitting || batchBills.length === 0}
+                          disabled={isSubmitting || selectedBillIds.size === 0}
                           size="lg"
                         >
-                          {isSubmitting ? "Submitting..." : `Submit All Bills (${batchBills.length})`}
+                          {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
                         </Button>
                       )}
                     </div>
@@ -907,6 +948,9 @@ export default function EnterBills() {
                       onBillUpdate={handleBillUpdate}
                       onBillDelete={handleBillDelete}
                       onLinesUpdate={handleLinesUpdate}
+                      selectedBillIds={selectedBillIds}
+                      onBillSelect={handleBillSelect}
+                      onSelectAll={handleSelectAll}
                     />
                   </CardContent>
                 </Card>

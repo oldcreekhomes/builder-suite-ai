@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
@@ -72,6 +73,9 @@ interface BatchBillReviewTableProps {
   onBillUpdate: (billId: string, updates: Partial<PendingBill>) => void;
   onBillDelete: (billId: string) => void;
   onLinesUpdate: (billId: string, lines: PendingBillLine[]) => void;
+  selectedBillIds: Set<string>;
+  onBillSelect: (billId: string) => void;
+  onSelectAll: (selectAll: boolean) => void;
 }
 
 export function BatchBillReviewTable({ 
@@ -79,7 +83,10 @@ export function BatchBillReviewTable({
   processingUploads = [], // Shows loading state for bills being extracted
   onBillUpdate, 
   onBillDelete,
-  onLinesUpdate 
+  onLinesUpdate,
+  selectedBillIds,
+  onBillSelect,
+  onSelectAll
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -321,12 +328,27 @@ export function BatchBillReviewTable({
   };
 
 
+  const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
+  const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
+              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+                <Checkbox
+                  checked={allSelected}
+                  ref={(el: any) => {
+                    if (el) {
+                      el.indeterminate = someSelected;
+                    }
+                  }}
+                  onCheckedChange={(checked) => onSelectAll(checked === true)}
+                  aria-label="Select all bills"
+                />
+              </TableHead>
               <TableHead className="w-[180px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
               <TableHead className="w-32 px-2 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="w-24 px-2 py-0 text-xs font-medium">Bill Date</TableHead>
@@ -343,6 +365,9 @@ export function BatchBillReviewTable({
             {/* Processing uploads skeleton rows */}
             {processingUploads.map((upload) => (
               <TableRow key={upload.id} className="bg-blue-50/50">
+                <TableCell className="px-2 py-3">
+                  <Skeleton className="h-4 w-4" />
+                </TableCell>
                 <TableCell className="px-2 py-3">
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
@@ -367,7 +392,7 @@ export function BatchBillReviewTable({
             {/* Show empty state only if no bills AND no processing uploads */}
             {bills.length === 0 && processingUploads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="h-32 text-center">
+                <TableCell colSpan={11} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
                     <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
                     <p className="text-sm font-medium">No bills uploaded yet</p>
@@ -402,6 +427,13 @@ export function BatchBillReviewTable({
               
               return (
                 <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
+                  <TableCell className="px-2 py-1">
+                    <Checkbox
+                      checked={selectedBillIds.has(bill.id)}
+                      onCheckedChange={() => onBillSelect(bill.id)}
+                      aria-label={`Select bill from ${vendorName}`}
+                    />
+                  </TableCell>
                   <TableCell className="px-2 py-1">
                     {!vendorId && vendorName ? (
                       <button
