@@ -420,6 +420,9 @@ function parseTextractResponse(textractData: any): any {
 
   const expenseDoc = textractData.ExpenseDocuments[0];
 
+  // Track all total-related fields to prioritize grand_total
+  const totalFields: { type: string; value: number }[] = [];
+
   // Extract summary fields
   if (expenseDoc.SummaryFields) {
     console.log('📋 Textract Summary Fields:');
@@ -453,14 +456,34 @@ function parseTextractResponse(textractData: any): any {
         case 'payment_due':
           extractedData.terms = value;
           break;
+        case 'grand_total':
         case 'total':
         case 'amount_paid':
-          extractedData.totalAmount = parseFloat(value.replace(/[^0-9.]/g, '')) || null;
+        case 'amount_due':
+        case 'invoice_total':
+          // Store all total fields with priority (grand_total has highest priority)
+          const parsedAmount = parseFloat(value.replace(/[^0-9.]/g, ''));
+          if (parsedAmount) {
+            totalFields.push({ type, value: parsedAmount });
+          }
           break;
         case 'invoice_receipt_id':
         case 'invoice_number':
           extractedData.referenceNumber = value;
           break;
+      }
+    }
+
+    // Prioritize grand_total for total amount (especially important for Amazon invoices)
+    if (totalFields.length > 0) {
+      const grandTotal = totalFields.find(f => f.type === 'grand_total');
+      if (grandTotal) {
+        extractedData.totalAmount = grandTotal.value;
+        console.log(`  ✓ Using grand_total: $${grandTotal.value}`);
+      } else {
+        // Use the first total found if no grand_total
+        extractedData.totalAmount = totalFields[0].value;
+        console.log(`  ✓ Using ${totalFields[0].type}: $${totalFields[0].value}`);
       }
     }
   }
@@ -521,11 +544,12 @@ function normalizeVendorName(name: string): string {
   
   let normalized = name.toLowerCase().trim();
   
-  // Remove common domain prefixes
-  normalized = normalized.replace(/^www\./, '');
+  // Remove common domain prefixes (www., http://, https://)
+  normalized = normalized.replace(/^(https?:\/\/)?(www\.)?/, '');
   
-  // Remove common domain extensions at the end
-  normalized = normalized.replace(/\.(com|net|org|co|biz|info|us|edu|gov)$/, '');
+  // Remove common domain extensions anywhere in the string (not just at the end)
+  // This handles cases like "amazon.com" -> "amazon"
+  normalized = normalized.replace(/\.(com|net|org|co|biz|info|us|edu|gov)(\b|$)/gi, '');
   
   // Remove all non-alphanumeric except spaces
   normalized = normalized.replace(/[^a-z0-9\s]/g, '');
