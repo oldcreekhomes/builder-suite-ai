@@ -349,16 +349,16 @@ export function BatchBillReviewTable({
                   aria-label="Select all bills"
                 />
               </TableHead>
-              <TableHead className="w-[180px] px-2 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="w-32 px-2 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Terms</TableHead>
-              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="w-16 px-2 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="w-20 px-2 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="w-24 px-2 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -368,22 +368,22 @@ export function BatchBillReviewTable({
                 <TableCell className="px-2 py-3">
                   <Skeleton className="h-4 w-4" />
                 </TableCell>
-                <TableCell className="px-2 py-3">
+                <TableCell className="px-3 py-3">
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
-                <TableCell className="px-2 py-3">
+                <TableCell className="px-3 py-3">
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
-                <TableCell colSpan={6} className="px-2 py-3">
+                <TableCell colSpan={6} className="px-3 py-3">
                   <div className="flex items-center justify-center gap-2 text-sm text-red-600">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="font-medium">Extracting...</span>
                   </div>
                 </TableCell>
-                <TableCell className="px-2 py-3">
+                <TableCell className="px-3 py-3">
                   <Skeleton className="h-4 w-20" />
                 </TableCell>
-                <TableCell className="px-2 py-3">
+                <TableCell className="px-3 py-3">
                   <Skeleton className="h-8 w-16" />
                 </TableCell>
               </TableRow>
@@ -443,7 +443,7 @@ export function BatchBillReviewTable({
                       aria-label={`Select bill from ${vendorName}`}
                     />
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     {!vendorId && vendorName ? (
                       <button
                         onClick={() => handleAddVendor(bill.id, vendorName as string)}
@@ -457,29 +457,29 @@ export function BatchBillReviewTable({
                       <span className="text-xs">{vendorName || '-'}</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <span className="text-xs">{referenceNumber || '-'}</span>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <span className="text-xs">{formatTerms(getExtractedValue(bill, 'terms', 'terms') as string)}</span>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     {accountDisplay === null ? (
                       <span className="text-xs text-red-600 font-medium">NONE</span>
                     ) : (
                       <span className="text-xs">{accountDisplay}</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <div className="relative group inline-block">
                       <button
                         onClick={() => {
@@ -508,14 +508,14 @@ export function BatchBillReviewTable({
                       </button>
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     {issues.length > 0 ? (
                       <span className="text-xs text-red-600">{issues.length}</span>
                     ) : (
                       <span className="text-xs text-green-600">Ready</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1">
+                  <TableCell className="px-3 py-1">
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
