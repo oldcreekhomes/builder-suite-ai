@@ -23,7 +23,7 @@ const formatTerms = (terms: string | null | undefined): string => {
   
   const netMatch = termsStr.match(/net\s*(\d+)/i);
   if (netMatch) {
-    return netMatch[1]; // Just return the number
+    return `Net ${netMatch[1]}`;
   }
   
   return terms;
