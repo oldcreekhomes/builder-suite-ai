@@ -64,7 +64,7 @@ export function EditExtractedBillDialog({
     if (!bill) return;
 
     const extractedData = bill.extracted_data || {};
-    setVendorId(extractedData.vendorId || "");
+    setVendorId(extractedData.vendor_id || extractedData.vendorId || "");
     setRefNo(extractedData.referenceNumber || "");
     setTerms(extractedData.terms || "net-30");
     setFileName(bill.file_name);
