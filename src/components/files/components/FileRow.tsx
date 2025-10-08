@@ -17,7 +17,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { openFileViaRedirect } from "@/utils/fileOpenUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 interface FileRowProps {
   file: any;
   isSelected: boolean;
@@ -47,6 +47,7 @@ export function FileRow({
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(fileName);
+  const { openProjectFile } = useUniversalFilePreviewContext();
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
@@ -142,7 +143,7 @@ export function FileRow({
           if (!isEditing && (e.button === 1 || e.metaKey || e.ctrlKey)) {
             e.preventDefault();
             e.stopPropagation();
-            openFileViaRedirect('project-files', (file.storage_path || file.original_filename), fileName);
+            openProjectFile((file.storage_path || file.original_filename), fileName);
           }
         }}
       >
@@ -232,7 +233,7 @@ export function FileRow({
     </TableRow>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={() => openFileViaRedirect('project-files', (file.storage_path || file.original_filename), fileName)}>
+        <ContextMenuItem onClick={() => openProjectFile((file.storage_path || file.original_filename), fileName)}>
           <Eye className="h-4 w-4 mr-2" />
           Open in New Tab
         </ContextMenuItem>

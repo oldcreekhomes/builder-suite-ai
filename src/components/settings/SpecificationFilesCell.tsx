@@ -2,8 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
-import { openSpecificationFile } from '@/utils/fileOpenUtils';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface SpecificationFilesCellProps {
   files: string[] | null;
@@ -20,6 +20,8 @@ export function SpecificationFilesCell({
   onDeleteAllFiles,
   isReadOnly = false 
 }: SpecificationFilesCellProps) {
+  const { openSpecificationFile } = useUniversalFilePreviewContext();
+  
   const handleFilePreview = (filePath: string) => {
     console.log('SPECIFICATION FILES: Opening file', filePath);
     const fileName = filePath.split('/').pop() || filePath;

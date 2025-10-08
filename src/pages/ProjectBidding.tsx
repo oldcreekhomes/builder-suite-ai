@@ -8,6 +8,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { BiddingTabs } from "@/components/bidding/BiddingTabs";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 export default function ProjectBidding() {
   const { projectId } = useParams();
@@ -40,23 +41,25 @@ export default function ProjectBidding() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar onStartChat={openFloatingChat} />
-        <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Bidding" 
-            projectId={projectId}
-          />
-          
-          <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <BiddingTabs 
-              projectId={projectId} 
-              projectAddress={project?.address}
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar onStartChat={openFloatingChat} />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title="Bidding" 
+              projectId={projectId}
             />
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+            
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+              <BiddingTabs 
+                projectId={projectId} 
+                projectAddress={project?.address}
+              />
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 }

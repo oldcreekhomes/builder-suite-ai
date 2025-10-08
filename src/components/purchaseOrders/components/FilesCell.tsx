@@ -1,6 +1,6 @@
 import React from 'react';
 import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
-import { openFileViaRedirect } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface FilesCellProps {
   files: any;
@@ -9,16 +9,21 @@ interface FilesCellProps {
 
 export function FilesCell({ files, projectId }: FilesCellProps) {
   const fileCount = files && Array.isArray(files) ? files.length : 0;
+  const { openProjectFile, openSpecificationFile } = useUniversalFilePreviewContext();
 
   const handleFilePreview = (file: any) => {
     console.log('PURCHASE ORDER FILES: Opening file', file);
     
     const fileName = file.name || file.id || file;
     
-    // Check for structured file data with direct bucket and path properties (older format)
+    // Check for structured file data with direct bucket and path properties
     if (file.bucket && file.path) {
       console.log('Opening file with direct bucket/path:', file.bucket, file.path);
-      openFileViaRedirect(file.bucket, file.path, fileName);
+      if (file.bucket === 'project-files' && file.path.startsWith('specifications/')) {
+        openSpecificationFile(file.path, fileName);
+      } else {
+        openProjectFile(file.path, fileName);
+      }
       return;
     }
     
@@ -30,10 +35,15 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
         const url = new URL(file.url);
         const pathParts = url.pathname.split('/object/public/');
         if (pathParts.length === 2) {
-          const [bucket, ...pathSegments] = pathParts[1].split('/');
+          const [, ...pathSegments] = pathParts[1].split('/');
           const path = pathSegments.join('/');
+          const decodedPath = decodeURIComponent(path);
           
-          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
+          if (decodedPath.startsWith('specifications/')) {
+            openSpecificationFile(decodedPath, fileName);
+          } else {
+            openProjectFile(decodedPath, fileName);
+          }
           return;
         }
       } catch (error) {
@@ -43,7 +53,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
     
     // Otherwise, build the correct path for project-files
     const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
-    openFileViaRedirect('project-files', filePath, fileName);
+    openProjectFile(filePath, fileName);
   };
 
   if (fileCount === 0) {

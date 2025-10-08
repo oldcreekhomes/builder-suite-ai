@@ -8,7 +8,7 @@ import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { ApproveBillDialog } from "./ApproveBillDialog";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
-import { openFileViaRedirect } from "@/utils/fileOpenUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 interface ExtractedData {
   vendor_name?: string;
@@ -25,6 +25,7 @@ export const BillsReviewTableRow = ({
   const { rejectBill } = usePendingBills();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const { openBillAttachment } = useUniversalFilePreviewContext();
 
   const extractedData = bill.extracted_data as ExtractedData | null;
   const vendorName = extractedData?.vendor_name;
@@ -65,7 +66,7 @@ export const BillsReviewTableRow = ({
               <button
                 onClick={() => {
                   const displayName = bill.file_name.split('/').pop() || bill.file_name;
-                  openFileViaRedirect('bill-attachments', bill.file_name, displayName);
+                  openBillAttachment(bill.file_name, displayName);
                 }}
                 className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
                 title={bill.file_name}

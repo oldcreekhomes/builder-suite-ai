@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PurchaseOrdersTable } from "@/components/purchaseOrders/PurchaseOrdersTable";
 import { FileText, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 export default function ProjectPurchaseOrders() {
   const {
     projectId
@@ -37,7 +38,8 @@ export default function ProjectPurchaseOrders() {
     approved: purchaseOrders.filter(po => po.status === 'approved').length,
     totalValue: purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0)
   };
-  return <SidebarProvider>
+  return <UniversalFilePreviewProvider>
+    <SidebarProvider>
       <div className="min-h-screen flex w-full bg-muted/40">
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
@@ -114,7 +116,6 @@ export default function ProjectPurchaseOrders() {
           </div>
         </SidebarInset>
       </div>
-
-      
-    </SidebarProvider>;
+    </SidebarProvider>
+  </UniversalFilePreviewProvider>;
 }

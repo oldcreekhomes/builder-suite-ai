@@ -7,8 +7,8 @@ import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
-import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -77,6 +77,7 @@ export function BatchBillReviewTable({
     website?: string;
   } | undefined>(undefined);
   const { toast } = useToast();
+  const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
@@ -423,7 +424,7 @@ export function BatchBillReviewTable({
                       <button
                         onClick={() => {
                           const displayName = bill.file_name.split('/').pop() || bill.file_name;
-                          openFileViaRedirect('bill-attachments', bill.file_path, displayName);
+                          openBillAttachment(bill.file_path, displayName);
                         }}
                         className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
                         title={bill.file_name}

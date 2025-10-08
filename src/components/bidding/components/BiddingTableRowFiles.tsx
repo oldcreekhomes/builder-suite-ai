@@ -3,7 +3,8 @@ import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
+import { getProjectFileStoragePath } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface BiddingTableRowFilesProps {
   item: any;
@@ -14,6 +15,7 @@ interface BiddingTableRowFilesProps {
 
 export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteIndividualFile }: BiddingTableRowFilesProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   const handleFileUpload = () => {
     console.log('File upload clicked, onFileUpload function:', !!onFileUpload);
@@ -45,7 +47,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     console.log('📁 BiddingTableRowFiles: Opening file', fileName);
     const displayName = fileName.split('/').pop() || fileName;
     const storagePath = getProjectFileStoragePath(fileName);
-    openFileViaRedirect('project-files', storagePath, displayName);
+    openSpecificationFile(storagePath, displayName);
   };
 
   return (

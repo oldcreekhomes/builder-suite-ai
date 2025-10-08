@@ -20,7 +20,7 @@ import { usePendingBills } from "@/hooks/usePendingBills";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
-import { openFileViaRedirect } from "@/utils/fileOpenUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 interface EditExtractedBillDialogProps {
   open: boolean;
@@ -54,6 +54,7 @@ export function EditExtractedBillDialog({
   const [expenseLines, setExpenseLines] = useState<LineItem[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [filePath, setFilePath] = useState<string>("");
+  const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
   useEffect(() => {
@@ -345,7 +346,7 @@ export function EditExtractedBillDialog({
                   <button
                     onClick={() => {
                       const displayName = fileName.split('/').pop() || fileName;
-                      openFileViaRedirect('bill-attachments', filePath, displayName);
+                      openBillAttachment(filePath, displayName);
                     }}
                     className={`${getFileIconColor(fileName)} transition-colors p-1`}
                     title={fileName}

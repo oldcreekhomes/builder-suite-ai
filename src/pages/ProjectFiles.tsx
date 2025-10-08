@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { SimpleFileManager } from '@/components/files/SimpleFileManager';
 import { useFloatingChat } from '@/components/chat/FloatingChatManager';
+import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
 
 const ProjectFiles = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -18,25 +19,27 @@ const ProjectFiles = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar onStartChat={openFloatingChat} />
-        <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Project Files" 
-            projectId={projectId}
-          />
-          
-          <div className="flex-1">
-            <SimpleFileManager 
-              projectId={projectId} 
-              refreshKey={refreshKey}
-              onUploadSuccess={handleUploadSuccess}
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar onStartChat={openFloatingChat} />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title="Project Files" 
+              projectId={projectId}
             />
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+            
+            <div className="flex-1">
+              <SimpleFileManager 
+                projectId={projectId} 
+                refreshKey={refreshKey}
+                onUploadSuccess={handleUploadSuccess}
+              />
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 };
 

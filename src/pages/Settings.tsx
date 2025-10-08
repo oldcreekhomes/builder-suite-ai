@@ -26,6 +26,7 @@ import { useSpecifications } from "@/hooks/useSpecifications";
 import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
 import { useSettingsDialogs } from "@/hooks/useSettingsDialogs";
 import type { CostCode, SpecificationWithCostCode } from "@/types/settings";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 const Settings = () => {
   const { openFloatingChat } = useFloatingChat();
@@ -106,12 +107,13 @@ const Settings = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar onStartChat={openFloatingChat} />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <div className="flex-1 p-6">
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-gray-50">
+          <AppSidebar onStartChat={openFloatingChat} />
+          <main className="flex-1 flex flex-col">
+            <DashboardHeader />
+            <div className="flex-1 p-6">
             <div className="max-w-6xl mx-auto">
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-black">Settings</h1>
@@ -253,6 +255,7 @@ const Settings = () => {
         </AlertDialog>
       </div>
     </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 };
 

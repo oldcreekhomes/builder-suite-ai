@@ -11,7 +11,7 @@ import { FileShareModal } from './components/FileShareModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { openFileViaRedirect } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 interface SimpleFolder {
   name: string;
   path: string;
@@ -66,9 +66,10 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
+  const { openProjectFile } = useUniversalFilePreviewContext();
   const handleFileView = (file: SimpleFile) => {
     console.log('PROJECT FILES: Opening file', file.storage_path, file.displayName);
-    openFileViaRedirect('project-files', file.storage_path, file.displayName);
+    openProjectFile(file.storage_path, file.displayName);
   };
 
   const handleFileDownload = async (file: SimpleFile) => {
@@ -657,7 +658,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 if (e.button === 1 || e.metaKey || e.ctrlKey) {
                   e.stopPropagation();
                   e.preventDefault();
-                  openFileViaRedirect('project-files', file.storage_path, file.displayName);
+                  openProjectFile(file.storage_path, file.displayName);
                 }
               }}
             >
