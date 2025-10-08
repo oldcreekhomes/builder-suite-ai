@@ -117,23 +117,34 @@ serve(async (req) => {
     if (extractedData.vendor) {
       const { data: companies } = await supabase
         .from('companies')
-        .select('id, company_name')
+        .select('id, company_name, terms')
         .eq('home_builder_id', effectiveOwnerId);
       
       if (companies && companies.length > 0) {
-        let bestMatch: { id: string; score: number; name: string } | null = null;
+        let bestMatch: { id: string; score: number; name: string; terms?: string | null } | null = null;
         
         for (const company of companies) {
           const similarity = calculateVendorSimilarity(extractedData.vendor, company.company_name);
           
           if (similarity > 0.8 && (!bestMatch || similarity > bestMatch.score)) {
-            bestMatch = { id: company.id, score: similarity, name: company.company_name };
+            bestMatch = { 
+              id: company.id, 
+              score: similarity, 
+              name: company.company_name,
+              terms: company.terms 
+            };
           }
         }
         
         if (bestMatch) {
           vendorId = bestMatch.id;
           console.log(`✓ Matched "${extractedData.vendor}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
+          
+          // Auto-fill terms from vendor if available and not already extracted
+          if (bestMatch.terms && !extractedData.terms) {
+            extractedData.terms = bestMatch.terms;
+            console.log(`  Auto-filled terms from vendor: "${bestMatch.terms}"`);
+          }
         } else {
           console.log(`✗ No vendor match found for "${extractedData.vendor}" (best similarity < 80%)`);
         }
@@ -143,6 +154,28 @@ serve(async (req) => {
     // Add vendor_id to extracted data if matched
     if (vendorId) {
       extractedData.vendor_id = vendorId;
+    }
+
+    // Calculate due date from terms if bill date exists and due date is not set
+    if (extractedData.billDate && !extractedData.dueDate && extractedData.terms) {
+      const billDate = new Date(extractedData.billDate);
+      const termsLower = extractedData.terms.toLowerCase();
+      
+      if (termsLower.includes('due-on-receipt') || termsLower.includes('due on receipt') || termsLower.includes('receipt')) {
+        // Due on receipt = same as bill date
+        extractedData.dueDate = extractedData.billDate;
+        console.log(`  Calculated due date from "due-on-receipt": ${extractedData.dueDate}`);
+      } else if (termsLower.includes('net')) {
+        // Extract number from "Net 30", "Net 15", etc.
+        const match = termsLower.match(/net\s*(\d+)/);
+        if (match) {
+          const days = parseInt(match[1]);
+          const dueDate = new Date(billDate);
+          dueDate.setDate(dueDate.getDate() + days);
+          extractedData.dueDate = dueDate.toISOString().split('T')[0];
+          console.log(`  Calculated due date from "Net ${days}": ${extractedData.dueDate}`);
+        }
+      }
     }
 
     console.log('Final extracted data with vendor match:', extractedData);
@@ -389,9 +422,15 @@ function parseTextractResponse(textractData: any): any {
 
   // Extract summary fields
   if (expenseDoc.SummaryFields) {
+    console.log('📋 Textract Summary Fields:');
     for (const field of expenseDoc.SummaryFields) {
       const type = field.Type?.Text?.toLowerCase();
       const value = field.ValueDetection?.Text;
+
+      // Log all field types for debugging
+      if (type && value) {
+        console.log(`  - ${type}: ${value}`);
+      }
 
       if (!value) continue;
 
@@ -401,6 +440,8 @@ function parseTextractResponse(textractData: any): any {
           extractedData.vendor = value;
           break;
         case 'invoice_receipt_date':
+        case 'invoice_date':
+        case 'order_date':
         case 'date':
           extractedData.billDate = value;
           break;
