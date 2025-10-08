@@ -281,19 +281,19 @@ export function EditExtractedBillDialog({
       if (line.account_id) {
         const { data: accountData } = await supabase
           .from('accounts')
-          .select('name')
+          .select('code, name')
           .eq('id', line.account_id)
           .single();
-        accountName = accountData?.name || '';
+        accountName = accountData ? `${accountData.code}: ${accountData.name}` : '';
       }
 
       if (line.cost_code_id) {
         const { data: costCodeData } = await supabase
           .from('cost_codes')
-          .select('name')
+          .select('code, name')
           .eq('id', line.cost_code_id)
           .single();
-        costCodeName = costCodeData?.name || '';
+        costCodeName = costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : '';
       }
 
       if (line.id.startsWith('new-')) {

@@ -414,28 +414,18 @@ export function BatchBillReviewTable({
               const accountDisplay = (() => {
                 if (!bill.lines || bill.lines.length === 0) return null;
                 
-                // Collect display strings in "Account: Cost Code" format
+                // Collect display names - these are already formatted with codes
                 const displayNames = bill.lines
                   .map(line => {
-                    const accountName = line.account_name;
-                    const costCodeName = line.cost_code_name;
-                    
-                    if (accountName && costCodeName) {
-                      return `${accountName}: ${costCodeName}`;
-                    } else if (costCodeName) {
-                      return costCodeName;
-                    } else if (accountName) {
-                      return accountName;
-                    }
+                    if (line.line_type === 'job_cost') return line.cost_code_name;
+                    if (line.line_type === 'expense') return line.account_name;
                     return null;
                   })
                   .filter(Boolean);
                 
+                if (displayNames.length === 0) return null;
                 const uniqueNames = [...new Set(displayNames)];
-                
-                if (uniqueNames.length === 0) return null;
-                if (uniqueNames.length === 1) return uniqueNames[0];
-                return `${uniqueNames.length} items`;
+                return uniqueNames.length === 1 ? uniqueNames[0] : `${uniqueNames.length} items`;
               })();
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
