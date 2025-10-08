@@ -165,6 +165,15 @@ serve(async (req) => {
       }
     }
 
+    // Normalize terms to match system format (e.g., "Net 30" -> "net-30")
+    if (extractedData.terms) {
+      const originalTerms = extractedData.terms;
+      extractedData.terms = normalizeTerms(extractedData.terms);
+      if (originalTerms !== extractedData.terms) {
+        console.log(`  Normalized terms: "${originalTerms}" -> "${extractedData.terms}"`);
+      }
+    }
+
     // Add vendor_id to extracted data if matched
     if (vendorId) {
       extractedData.vendor_id = vendorId;
@@ -610,6 +619,37 @@ function normalizeVendorName(name: string): string {
   normalized = normalized.replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '');
   
   return normalized.trim();
+}
+
+// Normalize terms to match system format
+function normalizeTerms(terms: string | null | undefined): string {
+  if (!terms) return 'net-30'; // Default
+  
+  const normalized = terms.toLowerCase().trim();
+  
+  // Handle various "net XX" formats
+  const netMatch = normalized.match(/net\s*(\d+)/);
+  if (netMatch) {
+    return `net-${netMatch[1]}`;
+  }
+  
+  // Handle "due on receipt" variations
+  if (normalized.includes('due') && normalized.includes('receipt')) {
+    return 'due-on-receipt';
+  }
+  
+  // Handle "cash on delivery" variations
+  if (normalized.includes('cash') && (normalized.includes('delivery') || normalized.includes('cod'))) {
+    return 'cash-on-delivery';
+  }
+  
+  // Handle "end of month" variations
+  if (normalized.includes('end') && normalized.includes('month')) {
+    return 'end-of-month';
+  }
+  
+  // Return as-is if already in correct format or unknown
+  return normalized.replace(/\s+/g, '-');
 }
 
 // Calculate similarity between two vendor names (Levenshtein distance)
