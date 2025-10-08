@@ -53,6 +53,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   useEffect(() => {
     loadPendingUploads();
 
+    // Set up periodic polling to ensure UI syncs even if realtime fails
+    const pollingInterval = setInterval(() => {
+      loadPendingUploads();
+    }, 2000); // Poll every 2 seconds
+
     // Set up realtime subscription to detect when bills complete
     const channel = supabase
       .channel('pending_bill_uploads_changes')
@@ -88,6 +93,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
       .subscribe();
 
     return () => {
+      clearInterval(pollingInterval);
       supabase.removeChannel(channel);
     };
   }, []);
