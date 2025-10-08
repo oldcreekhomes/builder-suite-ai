@@ -354,7 +354,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-24 px-2 py-0 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="w-24 px-2 py-0 text-xs font-medium">Terms</TableHead>
               <TableHead className="w-24 px-2 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Account</TableHead>
+              <TableHead className="w-[120px] px-2 py-0 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="w-24 px-2 py-0 text-xs font-medium">Total</TableHead>
               <TableHead className="w-16 px-2 py-0 text-xs font-medium">File</TableHead>
               <TableHead className="w-20 px-2 py-0 text-xs font-medium">Issues</TableHead>
@@ -410,15 +410,23 @@ export function BatchBillReviewTable({
                 ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
                 : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
               
-              // Calculate account display
+              // Calculate account/cost code display
               const accountDisplay = (() => {
                 if (!bill.lines || bill.lines.length === 0) return null;
                 
-                // Collect both account names (for expense lines) AND cost code names (for job cost lines)
+                // Collect display strings in "Account: Cost Code" format
                 const displayNames = bill.lines
                   .map(line => {
-                    if (line.line_type === 'expense') return line.account_name;
-                    if (line.line_type === 'job_cost') return line.cost_code_name;
+                    const accountName = line.account_name;
+                    const costCodeName = line.cost_code_name;
+                    
+                    if (accountName && costCodeName) {
+                      return `${accountName}: ${costCodeName}`;
+                    } else if (costCodeName) {
+                      return costCodeName;
+                    } else if (accountName) {
+                      return accountName;
+                    }
                     return null;
                   })
                   .filter(Boolean);
