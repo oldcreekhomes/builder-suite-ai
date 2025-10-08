@@ -112,6 +112,16 @@ serve(async (req) => {
     
     console.log('Effective owner for vendor matching:', effectiveOwnerId);
 
+    // Fetch learning examples for this company
+    const { data: learningExamples } = await supabase
+      .from('bill_categorization_examples')
+      .select('*')
+      .eq('owner_id', effectiveOwnerId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    console.log(`📚 Loaded ${learningExamples?.length || 0} learning examples for categorization`);
+
     // Robust vendor matching using similarity
     let vendorId: string | null = null;
     if (extractedData.vendor) {
@@ -154,6 +164,41 @@ serve(async (req) => {
     // Add vendor_id to extracted data if matched
     if (vendorId) {
       extractedData.vendor_id = vendorId;
+    }
+
+    // Get the matched vendor name for learning
+    let matchedVendorName: string | null = null;
+    if (vendorId) {
+      const { data: matchedVendor } = await supabase
+        .from('companies')
+        .select('company_name')
+        .eq('id', vendorId)
+        .single();
+      matchedVendorName = matchedVendor?.company_name || null;
+    }
+
+    // Apply learning examples to categorize line items
+    if (learningExamples && learningExamples.length > 0 && extractedData.lineItems && extractedData.lineItems.length > 0) {
+      console.log('🎯 Applying learning examples to line items...');
+      for (const lineItem of extractedData.lineItems) {
+        if (lineItem.description) {
+          const bestMatch = findBestLearningMatch(
+            lineItem.description,
+            learningExamples,
+            matchedVendorName
+          );
+          
+          if (bestMatch && bestMatch.similarity > 0.6) {
+            console.log(`  ✓ Matched "${lineItem.description.substring(0, 50)}..." to past example (${(bestMatch.similarity * 100).toFixed(0)}% similar)`);
+            console.log(`    → Account: ${bestMatch.example.account_name || 'none'}, Cost Code: ${bestMatch.example.cost_code_name || 'none'}`);
+            
+            lineItem.account_id = bestMatch.example.account_id;
+            lineItem.account_name = bestMatch.example.account_name;
+            lineItem.cost_code_id = bestMatch.example.cost_code_id;
+            lineItem.cost_code_name = bestMatch.example.cost_code_name;
+          }
+        }
+      }
     }
 
     // Calculate due date from terms if bill date exists and due date is not set
@@ -586,6 +631,97 @@ function calculateVendorSimilarity(str1: string, str2: string): number {
   for (let i = 1; i <= len1; i++) {
     for (let j = 1; j <= len2; j++) {
       const cost = norm1[i - 1] === norm2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  
+  const distance = matrix[len1][len2];
+  const maxLen = Math.max(len1, len2);
+  
+  return maxLen === 0 ? 1.0 : 1.0 - (distance / maxLen);
+}
+
+/**
+ * Find the best matching learning example for a given description
+ * Prioritizes: exact matches > vendor-specific matches > general matches
+ */
+function findBestLearningMatch(
+  description: string,
+  examples: any[],
+  vendorName?: string | null
+): { example: any; similarity: number } | null {
+  if (!description || !examples || examples.length === 0) return null;
+
+  const normalizedDescription = description.toLowerCase().trim();
+  let bestMatch: { example: any; similarity: number } | null = null;
+
+  for (const example of examples) {
+    if (!example.description) continue;
+
+    const normalizedExample = example.description.toLowerCase().trim();
+    
+    // Calculate base similarity using Levenshtein distance
+    let similarity = calculateTextSimilarity(normalizedDescription, normalizedExample);
+
+    // Boost score for vendor-specific examples
+    if (vendorName && example.vendor_name) {
+      const normalizedVendor = normalizeVendorName(vendorName);
+      const normalizedExampleVendor = normalizeVendorName(example.vendor_name);
+      if (normalizedVendor === normalizedExampleVendor) {
+        similarity *= 1.2; // 20% boost for same vendor
+      }
+    }
+
+    // Boost score for exact matches
+    if (normalizedDescription === normalizedExample) {
+      similarity = 1.0;
+    }
+
+    // Check for keyword matches (additional boost)
+    const descWords = normalizedDescription.split(/\s+/).filter(w => w.length > 3);
+    const exampleWords = normalizedExample.split(/\s+/).filter(w => w.length > 3);
+    const commonWords = descWords.filter(word => exampleWords.includes(word));
+    if (commonWords.length > 0) {
+      similarity += commonWords.length * 0.05; // Small boost per matching keyword
+    }
+
+    // Cap similarity at 1.0
+    similarity = Math.min(similarity, 1.0);
+
+    if (!bestMatch || similarity > bestMatch.similarity) {
+      bestMatch = { example, similarity };
+    }
+  }
+
+  return bestMatch;
+}
+
+/**
+ * Calculate text similarity between two strings using Levenshtein distance
+ */
+function calculateTextSimilarity(text1: string, text2: string): number {
+  if (!text1 || !text2) return 0;
+  if (text1 === text2) return 1.0;
+  
+  const matrix: number[][] = [];
+  const len1 = text1.length;
+  const len2 = text2.length;
+  
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = text1[i - 1] === text2[j - 1] ? 0 : 1;
       matrix[i][j] = Math.min(
         matrix[i - 1][j] + 1,
         matrix[i][j - 1] + 1,
