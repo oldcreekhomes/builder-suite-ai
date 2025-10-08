@@ -314,6 +314,7 @@ export default function EnterBills() {
             reference_number: extractedData.referenceNumber || extractedData.reference_number || '',
             terms: extractedData.terms || 'net-30',
             notes: extractedData.notes || '',
+            total_amount: extractedData.totalAmount || extractedData.total_amount || 0,
             lines: finalLines
           };
         })
