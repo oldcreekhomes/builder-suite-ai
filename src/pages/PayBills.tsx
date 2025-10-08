@@ -228,7 +228,7 @@ export default function PayBills() {
                   )}
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Total Amount</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Terms</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium">Files</TableHead>
