@@ -165,6 +165,43 @@ export default function EnterBills() {
     return (jobCostTotal + expenseTotal).toFixed(2);
   };
 
+  // Helper function to resolve cost code ID from text input
+  const resolveCostCodeIdFromText = (
+    text: string, 
+    costCodes: Array<{ id: string; code: string; name: string }>
+  ): string => {
+    const trimmed = text.trim();
+    if (!trimmed) return "";
+    
+    // Extract code part
+    const code = trimmed.includes(" - ") 
+      ? trimmed.split(" - ")[0].trim()
+      : trimmed.includes(" ") 
+      ? trimmed.split(" ")[0].trim()
+      : trimmed;
+    
+    const normalized = trimmed.toLowerCase();
+    
+    // Try exact code match (case-sensitive)
+    const exactMatch = costCodes.find(cc => cc.code === code);
+    if (exactMatch) return exactMatch.id;
+    
+    // Try case-insensitive code match
+    const caseInsensitiveMatch = costCodes.find(
+      cc => cc.code.toLowerCase() === code.toLowerCase()
+    );
+    if (caseInsensitiveMatch) return caseInsensitiveMatch.id;
+    
+    // Try full format matches
+    const fullMatch = costCodes.find(
+      cc => `${cc.code} - ${cc.name}`.toLowerCase() === normalized ||
+            `${cc.code} ${cc.name}`.toLowerCase() === normalized
+    );
+    if (fullMatch) return fullMatch.id;
+    
+    return "";
+  };
+
   // Update batch bills when pending bills change - fetch lines for each bill
   useEffect(() => {
     const fetchBillsWithLines = async () => {
@@ -446,6 +483,24 @@ export default function EnterBills() {
       return;
     }
 
+    // Attempt to resolve cost code IDs from text before validation
+    const { data: allCostCodes } = await supabase
+      .from('cost_codes')
+      .select('id, code, name');
+    
+    if (allCostCodes) {
+      setJobCostRows(prev => prev.map(row => {
+        if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim()) {
+          const id = resolveCostCodeIdFromText(row.account, allCostCodes);
+          return id ? { ...row, accountId: id } : row;
+        }
+        return row;
+      }));
+      
+      // Give state time to update
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     // Validate that all job cost rows with amounts have a cost code selected
     const invalidJobCostRows = jobCostRows.filter(row => 
       parseFloat(row.amount) > 0 && !row.accountId
@@ -591,6 +646,24 @@ export default function EnterBills() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Attempt to resolve cost code IDs from text before validation
+    const { data: allCostCodes } = await supabase
+      .from('cost_codes')
+      .select('id, code, name');
+    
+    if (allCostCodes) {
+      setJobCostRows(prev => prev.map(row => {
+        if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim()) {
+          const id = resolveCostCodeIdFromText(row.account, allCostCodes);
+          return id ? { ...row, accountId: id } : row;
+        }
+        return row;
+      }));
+      
+      // Give state time to update
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     // Validate that all job cost rows with amounts have a cost code selected

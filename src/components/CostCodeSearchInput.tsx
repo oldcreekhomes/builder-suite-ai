@@ -22,7 +22,7 @@ export function CostCodeSearchInput({
   const [showResults, setShowResults] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
-  const { searchCostCodes, loading } = useCostCodeSearch();
+  const { costCodes, loading } = useCostCodeSearch();
 
   useEffect(() => {
     setSearchQuery(value);
@@ -39,7 +39,17 @@ export function CostCodeSearchInput({
     }
   }, [showResults]);
 
-  const filteredCostCodes = searchQuery.trim().length >= 1 ? searchCostCodes(searchQuery) : [];
+  // Improved tokenized filtering - allows "2220 - Marketing" to match
+  const filteredCostCodes = searchQuery.trim().length >= 1 
+    ? (() => {
+        const tokens = searchQuery.toLowerCase().split(/[-\s]+/).filter(Boolean);
+        return costCodes.filter(cc => 
+          tokens.every(t =>
+            cc.code.toLowerCase().includes(t) || cc.name.toLowerCase().includes(t)
+          )
+        );
+      })()
+    : [];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -57,38 +67,47 @@ export function CostCodeSearchInput({
   const attemptAutoSelect = () => {
     if (!searchQuery.trim() || !onCostCodeSelect) return;
 
-    // Try to extract a code from the input
-    let codeToMatch = searchQuery.trim();
+    // Search against the full costCodes list, not just filtered ones
+    const query = searchQuery.trim();
+    let codeToMatch = query;
     
-    // If input contains " - ", extract the code part before it (e.g., "2220 - Marketing")
+    // Extract potential code from input
     if (codeToMatch.includes(' - ')) {
       codeToMatch = codeToMatch.split(' - ')[0].trim();
-    }
-    // If input contains space without dash, extract the code part (e.g., "2220 Marketing")
-    else if (codeToMatch.includes(' ')) {
+    } else if (codeToMatch.includes(' ')) {
       codeToMatch = codeToMatch.split(' ')[0].trim();
     }
     
-    // Try exact code match first (preferred)
-    let match = filteredCostCodes.find(cc => cc.code === codeToMatch);
+    // Try exact code match first (case-sensitive)
+    let match = costCodes.find(cc => cc.code === codeToMatch);
     
-    // If no exact match, try case-insensitive exact match
+    // Try case-insensitive exact code match
     if (!match) {
-      match = filteredCostCodes.find(cc => cc.code.toLowerCase() === codeToMatch.toLowerCase());
+      match = costCodes.find(cc => cc.code.toLowerCase() === codeToMatch.toLowerCase());
     }
     
-    // If still no match and we have exactly one search result, use it
-    if (!match && filteredCostCodes.length === 1) {
-      match = filteredCostCodes[0];
-    }
-    
-    // If still no match, try matching full "code - name" format (case-insensitive)
+    // Try matching full "code - name" or "code name" format
     if (!match) {
-      const normalized = searchQuery.toLowerCase().trim();
-      match = filteredCostCodes.find(cc => 
+      const normalized = query.toLowerCase();
+      match = costCodes.find(cc => 
         `${cc.code} - ${cc.name}`.toLowerCase() === normalized ||
         `${cc.code} ${cc.name}`.toLowerCase() === normalized
       );
+    }
+    
+    // If still no match, try tokenized match with exactly one result
+    if (!match) {
+      const tokens = query.toLowerCase().split(/[-\s]+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const matches = costCodes.filter(cc => 
+          tokens.every(t =>
+            cc.code.toLowerCase().includes(t) || cc.name.toLowerCase().includes(t)
+          )
+        );
+        if (matches.length === 1) {
+          match = matches[0];
+        }
+      }
     }
     
     // If we found a match, select it
