@@ -49,12 +49,15 @@ interface BillForApproval {
     content_type: string;
   }>;
   bill_lines?: Array<{
+    line_type: string;
     cost_code_id?: string;
     account_id?: string;
     cost_codes?: {
+      code: string;
       name: string;
     };
     accounts?: {
+      code: string;
       name: string;
     };
   }>;
@@ -80,7 +83,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
 
   // Fetch bills based on status
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-approval-v2', status],
+    queryKey: ['bills-for-approval-v3', status],
     queryFn: async () => {
       // Get bills with direct project assignment
       const { data: directBills, error: directError } = await supabase
@@ -110,12 +113,15 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             content_type
           ),
           bill_lines (
+            line_type,
             cost_code_id,
             account_id,
-            cost_codes:cost_code_id (
+            cost_codes!bill_lines_cost_code_id_fkey (
+              code,
               name
             ),
-            accounts:account_id (
+            accounts!bill_lines_account_id_fkey (
+              code,
               name
             )
           )
@@ -143,16 +149,19 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             company_name
           ),
           bill_lines!inner(
+            line_type,
             project_id,
             cost_code_id,
             account_id,
             projects!inner(
               address
             ),
-            cost_codes:cost_code_id (
+            cost_codes!bill_lines_cost_code_id_fkey (
+              code,
               name
             ),
-            accounts:account_id (
+            accounts!bill_lines_account_id_fkey (
+              code,
               name
             )
           ),
@@ -221,7 +230,11 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     
     const uniqueItems = new Set<string>();
     bill.bill_lines.forEach(line => {
-      if (line.cost_codes?.name) {
+      if (line.cost_codes?.code && line.cost_codes?.name) {
+        uniqueItems.add(`${line.cost_codes.code} — ${line.cost_codes.name}`);
+      } else if (line.accounts?.code && line.accounts?.name) {
+        uniqueItems.add(`${line.accounts.code} — ${line.accounts.name}`);
+      } else if (line.cost_codes?.name) {
         uniqueItems.add(line.cost_codes.name);
       } else if (line.accounts?.name) {
         uniqueItems.add(line.accounts.name);
