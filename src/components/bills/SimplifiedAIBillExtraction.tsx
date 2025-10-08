@@ -32,12 +32,12 @@ interface SimplifiedAIBillExtractionProps {
 export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchToManual, onProcessingChange }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
-  const [processingStats, setProcessingStats] = useState({ processing: 0, total: 0 });
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
       .from('pending_bill_uploads')
       .select('*')
+      .in('status', ['pending', 'processing'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -52,6 +52,44 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
   useEffect(() => {
     loadPendingUploads();
+
+    // Set up realtime subscription to detect when bills complete
+    const channel = supabase
+      .channel('pending_bill_uploads_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pending_bill_uploads'
+        },
+        (payload) => {
+          const newStatus = payload.new.status;
+          const uploadId = payload.new.id;
+
+          console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
+
+          if (newStatus === 'extracted' || newStatus === 'error') {
+            // Remove from local pending list when extraction completes
+            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
+          } else if (newStatus === 'pending' || newStatus === 'processing') {
+            // Upsert into local pending list
+            setPendingUploads(prev => {
+              const exists = prev.find(u => u.id === uploadId);
+              if (exists) {
+                return prev.map(u => u.id === uploadId ? (payload.new as PendingUpload) : u);
+              } else {
+                return [...prev, payload.new as PendingUpload];
+              }
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Notify parent whenever pendingUploads changes
@@ -69,8 +107,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
 
     setUploading(true);
-    const fileCount = files.length;
-    setProcessingStats({ processing: 0, total: fileCount });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -395,7 +431,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
 
     try {
-      setProcessingStats(prev => ({ ...prev, processing: prev.processing + 1 }));
       setPendingUploads(prev => 
         prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
       );
@@ -427,7 +462,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
               error_message: textractError.message 
             } : u)
           );
-          setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
           
           toast({
             title: 'AWS Textract Configuration Error',
@@ -474,7 +508,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
                   error_message: errorMessage 
                 } : u)
               );
-              setProcessingStats(prev => ({ ...prev, processing: Math.max(0, prev.processing - 1) }));
               
               toast({
                 title: 'Extraction failed',
