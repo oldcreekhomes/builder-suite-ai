@@ -71,7 +71,7 @@ export const ApproveBillDialog = ({
         // Search for matching vendor in companies table
         const { data: companies, error: searchError } = await supabase
           .from("companies")
-          .select("id, company_name")
+          .select("id, company_name, terms")
           .ilike("company_name", `%${vendorName}%`)
           .limit(5);
 
@@ -84,10 +84,18 @@ export const ApproveBillDialog = ({
 
         if (exactMatch) {
           setVendorId(exactMatch.id);
+          // Auto-populate terms from vendor if available
+          if (exactMatch.terms) {
+            setTerms(exactMatch.terms);
+          }
           toast.success(`Auto-matched vendor: ${exactMatch.company_name}`);
         } else if (companies && companies.length > 0) {
           // Partial match - auto-select the first one
           setVendorId(companies[0].id);
+          // Auto-populate terms from vendor if available
+          if (companies[0].terms) {
+            setTerms(companies[0].terms);
+          }
           toast.info(`Selected vendor: ${companies[0].company_name}`);
         }
       } catch (error) {
@@ -97,6 +105,25 @@ export const ApproveBillDialog = ({
 
     fetchAndMatchVendor();
   }, [open, pendingUploadId]);
+
+  // Auto-populate terms when vendor is manually selected
+  useEffect(() => {
+    const fetchVendorTerms = async () => {
+      if (!vendorId) return;
+      
+      const { data: company } = await supabase
+        .from('companies')
+        .select('terms')
+        .eq('id', vendorId)
+        .single();
+      
+      if (company?.terms) {
+        setTerms(company.terms);
+      }
+    };
+    
+    fetchVendorTerms();
+  }, [vendorId]);
 
   const handleApprove = () => {
     if (!vendorId) {

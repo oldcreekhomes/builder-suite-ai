@@ -503,6 +503,7 @@ export type Database = {
           id: string
           phone_number: string | null
           state: string | null
+          terms: string | null
           updated_at: string
           website: string | null
           zip_code: string | null
@@ -519,6 +520,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           state?: string | null
+          terms?: string | null
           updated_at?: string
           website?: string | null
           zip_code?: string | null
@@ -535,6 +537,7 @@ export type Database = {
           id?: string
           phone_number?: string | null
           state?: string | null
+          terms?: string | null
           updated_at?: string
           website?: string | null
           zip_code?: string | null

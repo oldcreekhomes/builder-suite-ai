@@ -214,6 +214,15 @@ export const usePendingBills = () => {
       });
 
       if (error) throw error;
+
+      // Update vendor's terms in companies table
+      if (vendorId && terms) {
+        await supabase
+          .from('companies')
+          .update({ terms })
+          .eq('id', vendorId);
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -276,6 +285,15 @@ export const usePendingBills = () => {
           });
 
           if (error) throw error;
+
+          // Update vendor's terms in companies table
+          if (bill.vendorId && bill.terms) {
+            await supabase
+              .from('companies')
+              .update({ terms: bill.terms })
+              .eq('id', bill.vendorId);
+          }
+
           results.push({ success: true, billId: data, pendingUploadId: bill.pendingUploadId });
         } catch (error) {
           results.push({ success: false, error, pendingUploadId: bill.pendingUploadId });

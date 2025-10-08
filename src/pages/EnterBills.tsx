@@ -98,6 +98,25 @@ export default function EnterBills() {
     setBillDueDate(addDays(today, 30)); // Default to Net 30
   }, []);
 
+  // Auto-populate terms when vendor is selected
+  useEffect(() => {
+    const fetchVendorTerms = async () => {
+      if (!vendor) return;
+      
+      const { data: company } = await supabase
+        .from('companies')
+        .select('terms')
+        .eq('id', vendor)
+        .single();
+      
+      if (company?.terms) {
+        setTerms(company.terms);
+      }
+    };
+    
+    fetchVendorTerms();
+  }, [vendor]);
+
   const addJobCostRow = () => {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
@@ -584,6 +603,14 @@ export default function EnterBills() {
       const bill = await createBill.mutateAsync({ billData, billLines });
       setSavedBillId(bill.id);
 
+      // Update vendor's terms in companies table
+      if (vendor && terms) {
+        await supabase
+          .from('companies')
+          .update({ terms })
+          .eq('id', vendor);
+      }
+
       // Upload attachments to storage and database
       if (attachments.length > 0) {
         for (const attachment of attachments) {
@@ -746,6 +773,14 @@ export default function EnterBills() {
     try {
       const bill = await createBill.mutateAsync({ billData, billLines });
       setSavedBillId(bill.id);
+
+      // Update vendor's terms in companies table
+      if (vendor && terms) {
+        await supabase
+          .from('companies')
+          .update({ terms })
+          .eq('id', vendor);
+      }
 
       // Upload attachments to storage and database
       if (attachments.length > 0) {
