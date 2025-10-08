@@ -483,26 +483,24 @@ export default function EnterBills() {
       return;
     }
 
-    // Attempt to resolve cost code IDs from text before validation
+    // Attempt to resolve cost code IDs from text before validation (synchronously)
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
       .select('id, code, name');
-    
-    if (allCostCodes) {
-      setJobCostRows(prev => prev.map(row => {
-        if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim()) {
-          const id = resolveCostCodeIdFromText(row.account, allCostCodes);
-          return id ? { ...row, accountId: id } : row;
-        }
-        return row;
-      }));
-      
-      // Give state time to update
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
+
+    const resolvedJobRows = jobCostRows.map(row => {
+      if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim() && allCostCodes) {
+        const id = resolveCostCodeIdFromText(row.account, allCostCodes);
+        return id ? { ...row, accountId: id } : row;
+      }
+      return row;
+    });
+
+    // Keep UI in sync
+    setJobCostRows(resolvedJobRows);
 
     // Validate that all job cost rows with amounts have a cost code selected
-    const invalidJobCostRows = jobCostRows.filter(row => 
+    const invalidJobCostRows = resolvedJobRows.filter(row => 
       parseFloat(row.amount) > 0 && !row.accountId
     );
     
@@ -530,7 +528,7 @@ export default function EnterBills() {
     }
 
     const billLines: BillLineData[] = [
-      ...jobCostRows
+      ...resolvedJobRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
           line_type: 'job_cost' as const,
@@ -648,26 +646,24 @@ export default function EnterBills() {
       return;
     }
 
-    // Attempt to resolve cost code IDs from text before validation
+    // Attempt to resolve cost code IDs from text before validation (synchronously)
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
       .select('id, code, name');
-    
-    if (allCostCodes) {
-      setJobCostRows(prev => prev.map(row => {
-        if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim()) {
-          const id = resolveCostCodeIdFromText(row.account, allCostCodes);
-          return id ? { ...row, accountId: id } : row;
-        }
-        return row;
-      }));
-      
-      // Give state time to update
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
+
+    const resolvedJobRows = jobCostRows.map(row => {
+      if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim() && allCostCodes) {
+        const id = resolveCostCodeIdFromText(row.account, allCostCodes);
+        return id ? { ...row, accountId: id } : row;
+      }
+      return row;
+    });
+
+    // Keep UI in sync
+    setJobCostRows(resolvedJobRows);
 
     // Validate that all job cost rows with amounts have a cost code selected
-    const invalidJobCostRows = jobCostRows.filter(row => 
+    const invalidJobCostRows = resolvedJobRows.filter(row => 
       parseFloat(row.amount) > 0 && !row.accountId
     );
     
@@ -695,7 +691,7 @@ export default function EnterBills() {
     }
 
     const billLines: BillLineData[] = [
-      ...jobCostRows
+      ...resolvedJobRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
           line_type: 'job_cost' as const,
