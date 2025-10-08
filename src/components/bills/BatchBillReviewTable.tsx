@@ -413,10 +413,21 @@ export function BatchBillReviewTable({
               // Calculate account display
               const accountDisplay = (() => {
                 if (!bill.lines || bill.lines.length === 0) return null;
-                const uniqueAccounts = [...new Set(bill.lines.map(line => line.account_name).filter(Boolean))];
-                if (uniqueAccounts.length === 0) return null;
-                if (uniqueAccounts.length === 1) return uniqueAccounts[0];
-                return `${uniqueAccounts.length} accounts`;
+                
+                // Collect both account names (for expense lines) AND cost code names (for job cost lines)
+                const displayNames = bill.lines
+                  .map(line => {
+                    if (line.line_type === 'expense') return line.account_name;
+                    if (line.line_type === 'job_cost') return line.cost_code_name;
+                    return null;
+                  })
+                  .filter(Boolean);
+                
+                const uniqueNames = [...new Set(displayNames)];
+                
+                if (uniqueNames.length === 0) return null;
+                if (uniqueNames.length === 1) return uniqueNames[0];
+                return `${uniqueNames.length} items`;
               })();
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
