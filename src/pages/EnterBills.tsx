@@ -448,6 +448,49 @@ export default function EnterBills() {
     try {
       const bill = await createBill.mutateAsync({ billData, billLines });
       setSavedBillId(bill.id);
+
+      // Upload attachments to storage and database
+      if (attachments.length > 0) {
+        for (const attachment of attachments) {
+          // Skip if already uploaded (has an ID)
+          if (attachment.id) continue;
+
+          try {
+            const timestamp = Date.now();
+            const sanitizedName = attachment.file_name
+              .replace(/\s+/g, '_')
+              .replace(/[^\w.-]/g, '_')
+              .replace(/_+/g, '_');
+            const fileName = `${timestamp}_${sanitizedName}`;
+            const filePath = `${bill.id}/${fileName}`;
+
+            // Upload file to storage
+            const { error: uploadError } = await supabase.storage
+              .from('bill-attachments')
+              .upload(filePath, attachment.file!);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              continue;
+            }
+
+            // Save attachment metadata to database
+            await supabase
+              .from('bill_attachments')
+              .insert({
+                bill_id: bill.id,
+                file_name: attachment.file_name,
+                file_path: filePath,
+                file_size: attachment.file_size,
+                content_type: attachment.content_type,
+                uploaded_by: (await supabase.auth.getUser()).data.user?.id
+              });
+          } catch (error) {
+            console.error('Error uploading attachment:', error);
+          }
+        }
+      }
+
       toast({
         title: "Bill Saved",
         description: "Bill has been saved as draft",
@@ -522,7 +565,51 @@ export default function EnterBills() {
     };
 
     try {
-      await createBill.mutateAsync({ billData, billLines });
+      const bill = await createBill.mutateAsync({ billData, billLines });
+      setSavedBillId(bill.id);
+
+      // Upload attachments to storage and database
+      if (attachments.length > 0) {
+        for (const attachment of attachments) {
+          // Skip if already uploaded (has an ID)
+          if (attachment.id) continue;
+
+          try {
+            const timestamp = Date.now();
+            const sanitizedName = attachment.file_name
+              .replace(/\s+/g, '_')
+              .replace(/[^\w.-]/g, '_')
+              .replace(/_+/g, '_');
+            const fileName = `${timestamp}_${sanitizedName}`;
+            const filePath = `${bill.id}/${fileName}`;
+
+            // Upload file to storage
+            const { error: uploadError } = await supabase.storage
+              .from('bill-attachments')
+              .upload(filePath, attachment.file!);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              continue;
+            }
+
+            // Save attachment metadata to database
+            await supabase
+              .from('bill_attachments')
+              .insert({
+                bill_id: bill.id,
+                file_name: attachment.file_name,
+                file_path: filePath,
+                file_size: attachment.file_size,
+                content_type: attachment.content_type,
+                uploaded_by: (await supabase.auth.getUser()).data.user?.id
+              });
+          } catch (error) {
+            console.error('Error uploading attachment:', error);
+          }
+        }
+      }
+
       toast({
         title: "Bill Saved",
         description: "Bill has been saved as draft",
