@@ -379,13 +379,11 @@ export function BatchBillReviewTable({
               bills.map((bill) => {
               const issues = validateBill(bill);
               
-              // Get total from extracted data or calculate from lines
+              // Get total from extracted data or calculate from line amounts
               const extractedTotal = getExtractedValue(bill, 'total_amount', 'totalAmount');
               const totalAmount = extractedTotal 
                 ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
-                : (bill.lines?.reduce((sum, line) => {
-                    return sum + ((line.quantity || 0) * (line.unit_cost || 0));
-                  }, 0) || 0);
+                : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
               
               // Calculate account display
               const accountDisplay = (() => {

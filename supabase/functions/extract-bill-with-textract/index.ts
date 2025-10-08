@@ -150,6 +150,10 @@ serve(async (req) => {
           vendorId = bestMatch.id;
           console.log(`✓ Matched "${extractedData.vendor}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
           
+          // Replace vendor name with matched company name from database
+          extractedData.vendor = bestMatch.name;
+          console.log(`  Replaced vendor name with: "${bestMatch.name}"`);
+          
           // Auto-fill terms from vendor if available and not already extracted
           if (bestMatch.terms && !extractedData.terms) {
             extractedData.terms = bestMatch.terms;
