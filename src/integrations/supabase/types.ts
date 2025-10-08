@@ -1883,6 +1883,10 @@ export type Database = {
         Args: { bill_id_param: string }
         Returns: boolean
       }
+      delete_pending_bill_upload: {
+        Args: { upload_id_param: string }
+        Returns: boolean
+      }
       delete_project_task: {
         Args: { task_id_param: string }
         Returns: boolean
