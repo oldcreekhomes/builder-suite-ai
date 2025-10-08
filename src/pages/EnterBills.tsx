@@ -197,17 +197,46 @@ export default function EnterBills() {
             const { data: userData } = await supabase.auth.getUser();
             const ownerId = userData.user?.id;
 
-            const linesToInsert = extractedData.lineItems.map((item: any, index: number) => ({
-              pending_upload_id: bill.id,
-              owner_id: ownerId,
-              line_number: index + 1,
-              line_type: 'expense',
-              description: item.description || '',
-              quantity: item.quantity || 1,
-              unit_cost: item.unitPrice || item.unit_cost || 0,
-              amount: item.amount || ((item.quantity || 1) * (item.unitPrice || item.unit_cost || 0)),
-              memo: item.memo || item.description || '',
-            }));
+            // Fetch accounts and cost codes for lookup
+            const { data: accounts } = await supabase
+              .from('accounts')
+              .select('id, name')
+              .eq('owner_id', ownerId);
+
+            const { data: costCodes } = await supabase
+              .from('cost_codes')
+              .select('id, name')
+              .eq('owner_id', ownerId);
+
+            const linesToInsert = extractedData.lineItems.map((item: any, index: number) => {
+              // Look up IDs from names
+              const accountId = item.account_name 
+                ? accounts?.find((a: any) => a.name === item.account_name)?.id 
+                : null;
+              const costCodeId = item.cost_code_name 
+                ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id 
+                : null;
+              
+              // Determine line type
+              const lineType = costCodeId ? 'job_cost' : 'expense';
+              
+              return {
+                pending_upload_id: bill.id,
+                owner_id: ownerId,
+                line_number: index + 1,
+                line_type: lineType,
+                description: item.description || '',
+                account_id: accountId,
+                cost_code_id: costCodeId,
+                account_name: item.account_name || null,
+                cost_code_name: item.cost_code_name || null,
+                project_name: item.project_name || null,
+                quantity: item.quantity || 1,
+                unit_cost: item.unitPrice || item.unit_cost || 0,
+                amount: item.amount || ((item.quantity || 1) * (item.unitPrice || item.unit_cost || 0)),
+                memo: item.memo || item.description || '',
+              };
+            });
 
             const { data: insertedLines } = await supabase
               .from('pending_bill_lines')
@@ -344,7 +373,7 @@ export default function EnterBills() {
     }
   };
 
-  const handleAIDataExtracted = (extractedData: any) => {
+  const handleAIDataExtracted = async (extractedData: any) => {
     // Populate form with AI-extracted data
     if (extractedData.vendor_name) {
       setVendor(extractedData.vendor_name);
@@ -369,16 +398,40 @@ export default function EnterBills() {
 
     // Populate job cost rows from line items
     if (extractedData.line_items && Array.isArray(extractedData.line_items) && extractedData.line_items.length > 0) {
-      const newJobCostRows: ExpenseRow[] = extractedData.line_items.map((item: any, index: number) => ({
-        id: `ai-${Date.now()}-${index}`,
-        account: item.description || "",
-        accountId: "",
-        project: "",
-        projectId: projectId || "",
-        quantity: item.quantity?.toString() || "1",
-        amount: item.amount?.toString() || "0",
-        memo: item.memo || item.description || ""
-      }));
+      // Fetch accounts and cost codes for lookup
+      const { data: userData } = await supabase.auth.getUser();
+      const ownerId = userData.user?.id;
+
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('id, name')
+        .eq('owner_id', ownerId);
+      
+      const { data: costCodes } = await supabase
+        .from('cost_codes')
+        .select('id, name')
+        .eq('owner_id', ownerId);
+
+      const newJobCostRows: ExpenseRow[] = extractedData.line_items.map((item: any, index: number) => {
+        // Look up the actual UUID based on the name
+        const accountId = item.account_name 
+          ? accounts?.find((a: any) => a.name === item.account_name)?.id || ""
+          : "";
+        const costCodeId = item.cost_code_name 
+          ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id || ""
+          : "";
+        
+        return {
+          id: `ai-${Date.now()}-${index}`,
+          account: item.account_name || item.cost_code_name || item.description || "",
+          accountId: costCodeId || accountId, // Prefer cost code for job cost
+          project: "",
+          projectId: projectId || "",
+          quantity: item.quantity?.toString() || "1",
+          amount: item.amount?.toString() || "0",
+          memo: item.memo || item.description || ""
+        };
+      });
       setJobCostRows(newJobCostRows);
     }
   };

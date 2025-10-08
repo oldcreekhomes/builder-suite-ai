@@ -403,6 +403,11 @@ export function EditExtractedBillDialog({
                         <CostCodeSearchInput
                           value={line.cost_code_id || ""}
                           onChange={(value) => updateJobCostLine(line.id, 'cost_code_id', value)}
+                          onCostCodeSelect={(costCode) => {
+                            if (costCode) {
+                              updateJobCostLine(line.id, 'cost_code_id', costCode.id);
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell>
