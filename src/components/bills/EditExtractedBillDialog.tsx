@@ -335,7 +335,7 @@ export function EditExtractedBillDialog({
                   <SelectItem value="net-15">Net 15</SelectItem>
                   <SelectItem value="net-30">Net 30</SelectItem>
                   <SelectItem value="net-60">Net 60</SelectItem>
-                  <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                  <SelectItem value="due-on-receipt">On Receipt</SelectItem>
                 </SelectContent>
               </Select>
             </div>

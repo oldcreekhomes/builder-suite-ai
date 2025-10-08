@@ -236,10 +236,10 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     
     const termMap: Record<string, string> = {
       'due-on-receipt': 'On Receipt',
-      'net-15': '15',
-      'net-30': '30',
-      'net-60': '60',
-      'net-90': '90',
+      'net-15': 'Net 15',
+      'net-30': 'Net 30',
+      'net-60': 'Net 60',
+      'net-90': 'Net 90',
     };
     
     return termMap[terms.toLowerCase()] || terms;
