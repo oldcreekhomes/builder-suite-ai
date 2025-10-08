@@ -29,6 +29,7 @@ import SimplifiedAIBillExtraction from "@/components/bills/SimplifiedAIBillExtra
 import { BatchBillReviewTable } from "@/components/bills/BatchBillReviewTable";
 import { usePendingBills } from "@/hooks/usePendingBills";
 import { supabase } from "@/integrations/supabase/client";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 interface ExpenseRow {
   id: string;
@@ -636,9 +637,10 @@ export default function EnterBills() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title="Enter Bills" 
@@ -1055,5 +1057,6 @@ export default function EnterBills() {
          </SidebarInset>
        </div>
      </SidebarProvider>
+    </UniversalFilePreviewProvider>
    );
  }
