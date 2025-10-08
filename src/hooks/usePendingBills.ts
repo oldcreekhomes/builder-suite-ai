@@ -260,6 +260,25 @@ export const usePendingBills = () => {
     },
   });
 
+  // Permanently delete a pending bill upload
+  const deletePendingUpload = useMutation({
+    mutationFn: async (uploadId: string) => {
+      const { data, error } = await supabase.rpc('delete_pending_bill_upload', {
+        upload_id_param: uploadId
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+      toast.success('Pending bill upload deleted permanently');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete pending upload: ${error.message}`);
+    },
+  });
+
   // Batch approve multiple bills
   const batchApproveBills = useMutation({
     mutationFn: async (bills: Array<{
@@ -317,6 +336,7 @@ export const usePendingBills = () => {
     deleteLine,
     approveBill,
     rejectBill,
+    deletePendingUpload,
     batchApproveBills,
   };
 };
