@@ -298,7 +298,7 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-32">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
@@ -314,7 +314,7 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
             ) : (
               bills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
-                  <TableCell className="px-2 py-1 text-xs font-medium">
+                  <TableCell className="px-2 py-1 text-xs">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
@@ -334,7 +334,7 @@ export function PayBillsTable({ projectId }: PayBillsTableProps) {
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {formatCurrency(bill.total_amount)}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.reference_number || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">{formatTerms(bill.terms)}</TableCell>
