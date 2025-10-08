@@ -382,6 +382,7 @@ export const useBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       toast({
         title: "Success",
