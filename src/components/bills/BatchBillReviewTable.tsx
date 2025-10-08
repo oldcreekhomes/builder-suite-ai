@@ -21,7 +21,7 @@ const formatTerms = (terms: string | null | undefined): string => {
     return 'On Receipt';
   }
   
-  const netMatch = termsStr.match(/net\s*(\d+)/i);
+  const netMatch = termsStr.match(/net[\s-]*(\d+)/i);
   if (netMatch) {
     return `Net ${netMatch[1]}`;
   }
