@@ -88,32 +88,17 @@ export function EditExtractedBillDialog({
           const jobCost = data
             .filter(line => line.line_type === 'job_cost')
             .map(line => {
-              // Coerce to numbers
               const qty = Number(line.quantity) || 1;
-              const rawAmt = Number(line.amount);
-              const rawUnit = Number(line.unit_cost);
-              
-              // Calculate unit cost (prefer provided value, otherwise derive from amount)
-              let unitCost = Number.isFinite(rawUnit) && rawUnit > 0 
-                ? rawUnit 
-                : (Number.isFinite(rawAmt) && qty > 0 ? rawAmt / qty : 0);
-              
-              // Calculate amount (prefer provided value initially)
-              let amt = Number.isFinite(rawAmt) ? rawAmt : 0;
-              
-              // Sanity check: prefer qty * unitCost if stored amount seems wrong
-              const product = Number.isFinite(qty * unitCost) ? qty * unitCost : 0;
-              if (product > 0 && (!Number.isFinite(amt) || Math.abs(amt - product) > Math.max(1, 0.05 * product))) {
-                amt = product;
-              }
+              const amt = Number(line.amount) || 0;
+              const unitCost = amt > 0 && qty > 0 ? amt / qty : 0;
               
               return {
                 id: line.id,
                 line_type: line.line_type,
                 cost_code_id: line.cost_code_id || undefined,
                 quantity: qty,
-                unit_cost: unitCost,
-                amount: amt,
+                unit_cost: unitCost, // Derived from amount
+                amount: amt, // Source of truth from DB
                 memo: line.memo || "",
               };
             });
@@ -121,32 +106,17 @@ export function EditExtractedBillDialog({
           const expense = data
             .filter(line => line.line_type === 'expense')
             .map(line => {
-              // Coerce to numbers
               const qty = Number(line.quantity) || 1;
-              const rawAmt = Number(line.amount);
-              const rawUnit = Number(line.unit_cost);
-              
-              // Calculate unit cost (prefer provided value, otherwise derive from amount)
-              let unitCost = Number.isFinite(rawUnit) && rawUnit > 0 
-                ? rawUnit 
-                : (Number.isFinite(rawAmt) && qty > 0 ? rawAmt / qty : 0);
-              
-              // Calculate amount (prefer provided value initially)
-              let amt = Number.isFinite(rawAmt) ? rawAmt : 0;
-              
-              // Sanity check: prefer qty * unitCost if stored amount seems wrong
-              const product = Number.isFinite(qty * unitCost) ? qty * unitCost : 0;
-              if (product > 0 && (!Number.isFinite(amt) || Math.abs(amt - product) > Math.max(1, 0.05 * product))) {
-                amt = product;
-              }
+              const amt = Number(line.amount) || 0;
+              const unitCost = amt > 0 && qty > 0 ? amt / qty : 0;
               
               return {
                 id: line.id,
                 line_type: line.line_type,
                 account_id: line.account_id || undefined,
                 quantity: qty,
-                unit_cost: unitCost,
-                amount: amt,
+                unit_cost: unitCost, // Derived from amount
+                amount: amt, // Source of truth from DB
                 memo: line.memo || "",
               };
             });

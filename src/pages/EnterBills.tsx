@@ -279,16 +279,14 @@ export default function EnterBills() {
               
               // Parse numeric fields properly
               const qty = Number(item.quantity) || 1;
-              const unit = Number(item.unitPrice ?? item.unit_cost) || 0;
               
               // Clean and parse amount string (remove $, commas, etc.)
               const parsedAmount = typeof item.amount === 'string'
                 ? Number(item.amount.replace(/[^0-9.-]/g, ''))
                 : Number(item.amount) || 0;
               
-              // Prefer calculated amount over raw amount
-              const computed = qty > 0 && unit > 0 ? qty * unit : 0;
-              const finalAmount = computed > 0 ? computed : parsedAmount;
+              // Calculate unit_cost FROM amount (not the other way around)
+              const unitCost = parsedAmount > 0 && qty > 0 ? parsedAmount / qty : 0;
               
               return {
                 pending_upload_id: bill.id,
@@ -302,8 +300,8 @@ export default function EnterBills() {
                 cost_code_name: item.cost_code_name || null,
                 project_name: item.project_name || null,
                 quantity: qty,
-                unit_cost: unit,
-                amount: finalAmount,
+                unit_cost: unitCost, // Derived from amount
+                amount: parsedAmount, // Source of truth from extraction
                 memo: item.memo || item.description || '',
               };
             });
