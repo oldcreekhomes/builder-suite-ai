@@ -58,7 +58,7 @@ export function VendorSearchInput({
 
   const handleSelectCompany = (company: { id: string; company_name: string; company_type?: string; address?: string }) => {
     setSearchQuery(company.company_name);
-    onChange(company.company_name); // Pass company name for display in checks
+    onChange(company.id); // Pass company UUID for database operations
     setShowResults(false);
     
     // Call the onCompanySelect callback with company details including address
