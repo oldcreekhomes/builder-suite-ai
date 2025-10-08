@@ -27,7 +27,7 @@ export function useBillCounts() {
         supabase
           .from('bills')
           .select('id', { count: 'exact', head: true })
-          .eq('status', 'posted'),
+          .in('status', ['posted', 'paid']),
         
         supabase
           .from('bills')

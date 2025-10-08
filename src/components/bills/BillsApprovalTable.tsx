@@ -64,7 +64,7 @@ interface BillForApproval {
 }
 
 interface BillsApprovalTableProps {
-  status: 'draft' | 'void' | 'posted';
+  status: 'draft' | 'void' | 'posted' | 'paid' | Array<'draft' | 'void' | 'posted' | 'paid'>;
 }
 
 export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
@@ -85,8 +85,10 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
   const { data: bills = [], isLoading } = useQuery({
     queryKey: ['bills-for-approval-v3', status],
     queryFn: async () => {
+      const statusArray = Array.isArray(status) ? status : [status];
+      
       // Get bills with direct project assignment
-      const { data: directBills, error: directError } = await supabase
+      let directQuery = supabase
         .from('bills')
         .select(`
           id,
@@ -126,13 +128,15 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             )
           )
         `)
-        .eq('status', status)
+        .in('status', statusArray)
         .not('project_id', 'is', null);
+
+      const { data: directBills, error: directError } = await directQuery;
 
       if (directError) throw directError;
 
       // Get bills without direct project but with project in line items
-      const { data: indirectBills, error: indirectError } = await supabase
+      let indirectQuery = supabase
         .from('bills')
         .select(`
           id,
@@ -173,8 +177,10 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             content_type
           )
         `)
-        .eq('status', status)
+        .in('status', statusArray)
         .is('project_id', null);
+
+      const { data: indirectBills, error: indirectError } = await indirectQuery;
 
       if (indirectError) throw indirectError;
 

@@ -69,7 +69,7 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
       </TabsContent>
       
       <TabsContent value="approved" className="mt-6">
-        <BillsApprovalTable status="posted" />
+        <BillsApprovalTable status={['posted', 'paid']} />
       </TabsContent>
       
       <TabsContent value="pay-bills" className="mt-6">
