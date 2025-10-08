@@ -87,27 +87,39 @@ export function EditExtractedBillDialog({
         if (data) {
           const jobCost = data
             .filter(line => line.line_type === 'job_cost')
-            .map(line => ({
-              id: line.id,
-              line_type: line.line_type,
-              cost_code_id: line.cost_code_id || undefined,
-              quantity: line.quantity || 1,
-              unit_cost: line.unit_cost || 0,
-              amount: (line.quantity || 1) * (line.unit_cost || 0),
-              memo: line.memo || "",
-            }));
+            .map(line => {
+              const qty = line.quantity || 1;
+              const amt = line.amount || 0;
+              const unitCost = line.unit_cost || (amt / qty);
+              
+              return {
+                id: line.id,
+                line_type: line.line_type,
+                cost_code_id: line.cost_code_id || undefined,
+                quantity: qty,
+                unit_cost: unitCost,
+                amount: amt,
+                memo: line.memo || "",
+              };
+            });
           
           const expense = data
             .filter(line => line.line_type === 'expense')
-            .map(line => ({
-              id: line.id,
-              line_type: line.line_type,
-              account_id: line.account_id || undefined,
-              quantity: line.quantity || 1,
-              unit_cost: line.unit_cost || 0,
-              amount: (line.quantity || 1) * (line.unit_cost || 0),
-              memo: line.memo || "",
-            }));
+            .map(line => {
+              const qty = line.quantity || 1;
+              const amt = line.amount || 0;
+              const unitCost = line.unit_cost || (amt / qty);
+              
+              return {
+                id: line.id,
+                line_type: line.line_type,
+                account_id: line.account_id || undefined,
+                quantity: qty,
+                unit_cost: unitCost,
+                amount: amt,
+                memo: line.memo || "",
+              };
+            });
 
           setJobCostLines(jobCost.length > 0 ? jobCost : [createEmptyLine('job_cost')]);
           setExpenseLines(expense.length > 0 ? expense : [createEmptyLine('expense')]);
