@@ -298,7 +298,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs font-medium">
+                  <TableCell className="px-2 py-1 text-xs">
                     {formatCurrency(bill.total_amount)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
