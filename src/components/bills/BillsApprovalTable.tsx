@@ -225,6 +225,22 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     }).format(amount);
   };
 
+  const formatTerms = (terms: string | null | undefined) => {
+    if (!terms) return '-';
+    
+    // Normalize the terms string for case-insensitive matching
+    const normalizedTerms = terms.toLowerCase().trim();
+    
+    // Handle specific term formats
+    if (normalizedTerms === 'net 15' || normalizedTerms === 'net15') return '15';
+    if (normalizedTerms === 'net 30' || normalizedTerms === 'net30') return '30';
+    if (normalizedTerms === 'net 60' || normalizedTerms === 'net60') return '60';
+    if (normalizedTerms === 'due on receipt' || normalizedTerms === 'dueonreceipt') return 'On Receipt';
+    
+    // Return original if no match
+    return terms;
+  };
+
   const getCostCodeOrAccount = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
     
@@ -305,7 +321,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
                     {bill.reference_number || '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {bill.terms || '-'}
+                    {formatTerms(bill.terms)}
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
