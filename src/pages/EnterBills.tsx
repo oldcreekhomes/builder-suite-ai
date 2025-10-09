@@ -598,6 +598,17 @@ export default function EnterBills() {
       const successful = results.filter(r => r.success).length;
       const failed = results.filter(r => !r.success).length;
 
+      // Remove successfully submitted bills from UI and selection
+      const successIds = results.filter(r => r.success).map(r => r.pendingUploadId);
+      if (successIds.length > 0) {
+        setBatchBills(prev => prev.filter(b => !successIds.includes(b.id)));
+        setSelectedBillIds(prev => {
+          const next = new Set(prev);
+          successIds.forEach(id => next.delete(id));
+          return next;
+        });
+      }
+
       if (successful > 0) {
         toast({
           title: "Success",
@@ -605,21 +616,20 @@ export default function EnterBills() {
         });
       }
 
-      if (failed === 0) {
-        setBatchBills([]);
-        setSelectedBillIds(new Set());
-        navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
-      } else {
-        // Remove successfully submitted bills from selection
-        setSelectedBillIds(prev => {
-          const newSet = new Set(prev);
-          results.filter(r => r.success).forEach(r => {
-            const bill = batchBills.find(b => b.id === r.pendingUploadId);
-            if (bill) newSet.delete(bill.id);
-          });
-          return newSet;
+      if (failed > 0) {
+        const errorSummaries = results
+          .filter(r => !r.success)
+          .map((r) => (r as any).error?.message || JSON.stringify((r as any).error));
+        console.error('Bill submission failures:', errorSummaries);
+        toast({
+          title: successful > 0 ? "Some bills failed" : "No bills submitted",
+          description: errorSummaries[0] || "Please review the bills and try again.",
+          variant: "destructive",
         });
       }
+
+      // Stay on this page. Successfully submitted items are removed; failed ones remain selected for retry.
+
     } catch (error) {
       console.error('=== BILL SUBMISSION ERROR ===');
       console.error('Error object:', error);
