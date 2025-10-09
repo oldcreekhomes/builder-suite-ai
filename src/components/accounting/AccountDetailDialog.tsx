@@ -26,6 +26,7 @@ import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor
 
 interface Transaction {
   source_id: string;
+  line_id: string;
   date: string;
   memo: string | null;
   vendor: string | null;
@@ -58,7 +59,7 @@ export function AccountDetailDialog({
   const [sortOrder] = useState<'asc' | 'desc'>('desc');
   const { deleteCheck, updateCheck } = useChecks();
   const { deleteDeposit, updateDeposit } = useDeposits();
-  const { deleteManualJournalEntry, updateJournalEntryField } = useJournalEntries();
+  const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
 
   const { data: transactions, isLoading } = useQuery({
@@ -69,6 +70,7 @@ export function AccountDetailDialog({
       let query = supabase
         .from('journal_entry_lines')
         .select(`
+          id,
           memo,
           debit,
           credit,
@@ -101,7 +103,6 @@ export function AccountDetailDialog({
 
       // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
-      let checkLinesMap = new Map();
       
       if (checkIds.length > 0) {
         const { data: checksData } = await supabase
@@ -113,21 +114,6 @@ export function AccountDetailDialog({
             check_number
           `)
           .in('id', checkIds);
-        
-        // Fetch check lines to get descriptions
-        const { data: checkLinesData } = await supabase
-          .from('check_lines')
-          .select('check_id, memo, line_number')
-          .in('check_id', checkIds)
-          .order('line_number', { ascending: true });
-        
-        // Group check lines by check_id
-        checkLinesData?.forEach((line: any) => {
-          if (!checkLinesMap.has(line.check_id)) {
-            checkLinesMap.set(line.check_id, []);
-          }
-          checkLinesMap.get(line.check_id).push(line.memo);
-        });
         
         // Get unique vendor IDs (UUIDs) to fetch company names
         const vendorIds = (checksData || [])
@@ -163,7 +149,6 @@ export function AccountDetailDialog({
 
       // Fetch deposit details with customer names if we have any deposits
       let depositsMap = new Map();
-      let depositLinesMap = new Map();
       
       if (depositIds.length > 0) {
         const { data: depositsData } = await supabase
@@ -175,21 +160,6 @@ export function AccountDetailDialog({
             deposit_sources(customer_name)
           `)
           .in('id', depositIds);
-        
-        // Fetch deposit lines to get descriptions
-        const { data: depositLinesData } = await supabase
-          .from('deposit_lines')
-          .select('deposit_id, memo, line_number')
-          .in('deposit_id', depositIds)
-          .order('line_number', { ascending: true });
-        
-        // Group deposit lines by deposit_id
-        depositLinesData?.forEach((line: any) => {
-          if (!depositLinesMap.has(line.deposit_id)) {
-            depositLinesMap.set(line.deposit_id, []);
-          }
-          depositLinesMap.get(line.deposit_id).push(line.memo);
-        });
         
         depositsData?.forEach((deposit: any) => {
           depositsMap.set(deposit.id, {
@@ -203,44 +173,31 @@ export function AccountDetailDialog({
         let memo = line.memo;
         let vendor = null;
         let reference = null;
-        let description = null;
+        let description = line.memo; // Description always comes from the line memo
 
-        // If this is a check, get vendor details and descriptions from checks table
+        // If this is a check, get vendor details and reference from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
             vendor = check.vendor_name;
             reference = check.check_number;
-            
-            // Get descriptions from check_lines
-            const checkLineMemos = checkLinesMap.get(line.journal_entries.source_id);
-            if (checkLineMemos && checkLineMemos.length > 0) {
-              // Join all line memos with semicolons if multiple lines
-              description = checkLineMemos.filter((m: string) => m).join('; ');
-            }
           }
         }
 
-        // If this is a deposit, get customer details and descriptions from deposits table
+        // If this is a deposit, get customer details and reference from deposits table
         if (line.journal_entries.source_type === 'deposit') {
           const deposit = depositsMap.get(line.journal_entries.source_id);
           if (deposit) {
             memo = deposit.memo;
             vendor = deposit.customer_name || 'Cash';
-            reference = null;
-            
-            // Get descriptions from deposit_lines
-            const depositLineMemos = depositLinesMap.get(line.journal_entries.source_id);
-            if (depositLineMemos && depositLineMemos.length > 0) {
-              // Join all line memos with semicolons if multiple lines
-              description = depositLineMemos.filter((m: string) => m).join('; ');
-            }
+            reference = deposit.memo; // Reference for deposits is the memo field
           }
         }
 
         return {
           source_id: line.journal_entries.source_id,
+          line_id: line.id, // Journal entry line ID
           date: line.journal_entries.entry_date,
           memo: memo,
           vendor: vendor,
@@ -291,27 +248,34 @@ export function AccountDetailDialog({
     value: string | number | Date
   ) => {
     try {
+      // Description is always updated on the journal entry line
+      if (field === "description") {
+        await updateJournalEntryLine.mutateAsync({ 
+          lineId: transaction.line_id, 
+          updates: { memo: value as string } 
+        });
+        return;
+      }
+
       switch (transaction.source_type) {
         case 'check':
           const checkUpdates: any = {};
           if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
           if (field === "reference") checkUpdates.check_number = value as string;
           if (field === "vendor") checkUpdates.pay_to = value as string;
-          if (field === "description") checkUpdates.memo = value as string;
           if (field === "amount") checkUpdates.amount = value as number;
           await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
           break;
         case 'deposit':
           const depositUpdates: any = {};
           if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "description") depositUpdates.memo = value as string;
+          if (field === "reference") depositUpdates.memo = value as string; // Reference for deposits
           if (field === "amount") depositUpdates.amount = value as number;
           await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           break;
         case 'manual':
           const journalUpdates: any = {};
           if (field === "date") journalUpdates.entry_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "description") journalUpdates.description = value as string;
           await updateJournalEntryField.mutateAsync({ entryId: transaction.source_id, updates: journalUpdates });
           break;
         default:
@@ -395,7 +359,7 @@ export function AccountDetailDialog({
                         value={txn.reference || '-'}
                         field="reference"
                         onSave={(value) => handleUpdate(txn, "reference", value)}
-                        readOnly={!canDeleteBills || txn.source_type === 'manual'}
+                        readOnly={!canDeleteBills || !['check', 'deposit'].includes(txn.source_type)}
                       />
                     </TableCell>
                     <TableCell>

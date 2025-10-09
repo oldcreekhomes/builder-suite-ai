@@ -373,6 +373,7 @@ export const useJournalEntries = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
       toast({ title: "Journal entry updated successfully" });
     },
     onError: (error: Error) => {
@@ -384,11 +385,49 @@ export const useJournalEntries = () => {
     },
   });
 
+  const updateJournalEntryLine = useMutation({
+    mutationFn: async ({ 
+      lineId, 
+      updates 
+    }: { 
+      lineId: string; 
+      updates: { memo?: string } 
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Filter out undefined values
+      const updateData: any = {};
+      if (updates.memo !== undefined) updateData.memo = updates.memo;
+
+      // Update the journal entry line
+      const { error } = await supabase
+        .from("journal_entry_lines")
+        .update(updateData)
+        .eq("id", lineId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
+      toast({ title: "Transaction updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating transaction",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createManualJournalEntry,
     updateManualJournalEntry,
     deleteManualJournalEntry,
     updateJournalEntryField,
+    updateJournalEntryLine,
     journalEntries,
     isLoading,
   };
