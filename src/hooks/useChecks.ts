@@ -282,19 +282,32 @@ export const useChecks = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Filter out undefined values to only update provided fields
+      const updateData: any = {};
+      if (updates.check_date !== undefined) updateData.check_date = updates.check_date;
+      if (updates.check_number !== undefined) updateData.check_number = updates.check_number;
+      if (updates.pay_to !== undefined) updateData.pay_to = updates.pay_to;
+      if (updates.memo !== undefined) updateData.memo = updates.memo;
+      if (updates.amount !== undefined) updateData.amount = updates.amount;
+
       // Update the check
       const { error: checkError } = await supabase
         .from("checks")
-        .update({
-          check_date: updates.check_date,
-          check_number: updates.check_number,
-          pay_to: updates.pay_to,
-          memo: updates.memo,
-          amount: updates.amount,
-        })
+        .update(updateData)
         .eq("id", checkId);
 
       if (checkError) throw checkError;
+
+      // If date changed, update the journal entry date too
+      if (updates.check_date !== undefined) {
+        const { error: journalError } = await supabase
+          .from("journal_entries")
+          .update({ entry_date: updates.check_date })
+          .eq("source_type", "check")
+          .eq("source_id", checkId);
+
+        if (journalError) throw journalError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checks"] });

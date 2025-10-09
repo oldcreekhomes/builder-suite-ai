@@ -235,17 +235,30 @@ export const useDeposits = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Filter out undefined values to only update provided fields
+      const updateData: any = {};
+      if (updates.deposit_date !== undefined) updateData.deposit_date = updates.deposit_date;
+      if (updates.memo !== undefined) updateData.memo = updates.memo;
+      if (updates.amount !== undefined) updateData.amount = updates.amount;
+
       // Update the deposit
       const { error: depositError } = await supabase
         .from("deposits")
-        .update({
-          deposit_date: updates.deposit_date,
-          memo: updates.memo,
-          amount: updates.amount,
-        })
+        .update(updateData)
         .eq("id", depositId);
 
       if (depositError) throw depositError;
+
+      // If date changed, update the journal entry date too
+      if (updates.deposit_date !== undefined) {
+        const { error: journalError } = await supabase
+          .from("journal_entries")
+          .update({ entry_date: updates.deposit_date })
+          .eq("source_type", "deposit")
+          .eq("source_id", depositId);
+
+        if (journalError) throw journalError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deposits"] });

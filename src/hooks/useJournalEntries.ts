@@ -358,13 +358,15 @@ export const useJournalEntries = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Filter out undefined values to only update provided fields
+      const updateData: any = {};
+      if (updates.entry_date !== undefined) updateData.entry_date = updates.entry_date;
+      if (updates.description !== undefined) updateData.description = updates.description;
+
       // Update the journal entry
       const { error: entryError } = await supabase
         .from("journal_entries")
-        .update({
-          entry_date: updates.entry_date,
-          description: updates.description,
-        })
+        .update(updateData)
         .eq("id", entryId);
 
       if (entryError) throw entryError;
