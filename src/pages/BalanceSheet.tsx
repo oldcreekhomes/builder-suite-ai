@@ -209,11 +209,14 @@ export default function BalanceSheet() {
   });
 
   const formatCurrency = (amount: number) => {
+    // Normalize tiny values and negative zero for clean display
+    const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
+    const value = Object.is(normalized, -0) ? 0 : normalized;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(value);
   };
 
   // Show loading while auth is initializing
