@@ -248,9 +248,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                         <a href={`/project/${projectId}/accounting/bills/approval-status`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                           <span>Approval Status</span>
                         </a>
-                        <a href={`/project/${projectId}/accounting/bills/enter`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Enter Bills</span>
-                        </a>
                         <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                           <span>Manage Bills</span>
                         </a>

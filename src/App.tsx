@@ -30,7 +30,7 @@ import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
 import BillsApprovalStatus from "./pages/BillsApprovalStatus";
 
-import EnterBills from "./pages/EnterBills";
+
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
@@ -126,7 +126,6 @@ const AppContent = () => {
           {/* Accounting routes */}
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
-          <Route path="/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           <Route path="/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />
           <Route path="/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
@@ -174,7 +173,6 @@ const AppContent = () => {
           {/* Project Accounting routes */}
           <Route path="/project/:projectId/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approval-status" element={<ProtectedRoute><BillsApprovalStatus /></ProtectedRoute>} />
-          <Route path="/project/:projectId/accounting/bills/enter" element={<ProtectedRoute><EnterBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/review" element={<ProtectedRoute><ReviewBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />

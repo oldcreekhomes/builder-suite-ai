@@ -19,10 +19,10 @@ export default function ApproveBills() {
               projectId={projectId}
             />
             <div className="container mx-auto p-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Manage Bills</h1>
-                <p className="text-muted-foreground">Review, approve, and pay bills.</p>
-              </div>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Manage Bills</h1>
+              <p className="text-muted-foreground">Enter, review, approve, and pay bills - all in one place.</p>
+            </div>
 
               <BillsApprovalTabs projectId={projectId} />
             </div>
