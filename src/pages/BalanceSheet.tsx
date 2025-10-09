@@ -414,7 +414,7 @@ export default function BalanceSheet() {
                       )}
 
                       <div className="border-t pt-3 mt-4">
-                        <div className="flex justify-between items-center font-semibold">
+                        <div className="flex justify-between items-center font-semibold px-2">
                           <span>Total Assets</span>
                           <span>{formatCurrency(balanceSheetData?.totalAssets || 0)}</span>
                         </div>
@@ -469,7 +469,7 @@ export default function BalanceSheet() {
                       )}
 
                       <div className="border-t pt-3 mb-6">
-                        <div className="flex justify-between items-center font-semibold text-sm">
+                        <div className="flex justify-between items-center font-semibold text-sm px-2">
                           <span>Total Liabilities</span>
                           <span>{formatCurrency(balanceSheetData?.totalLiabilities || 0)}</span>
                         </div>
@@ -503,7 +503,7 @@ export default function BalanceSheet() {
                       )}
 
                        <div className="border-t pt-3">
-                         <div className="flex justify-between items-center font-semibold">
+                         <div className="flex justify-between items-center font-semibold px-2">
                            <span>Total Liabilities & Equity</span>
                            <span>{formatCurrency((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))}</span>
                          </div>
@@ -511,7 +511,7 @@ export default function BalanceSheet() {
 
                         {/* Balance Check */}
                         <div className="border-t-2 border-primary pt-3 mt-4">
-                          <div className="flex justify-between items-center font-semibold text-primary">
+                          <div className="flex justify-between items-center font-semibold text-primary px-2">
                             <span>Balance Check</span>
                             <span>
                               {Math.abs((balanceSheetData?.totalAssets || 0) - ((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))) < 0.01 
