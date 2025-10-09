@@ -232,7 +232,7 @@ export const useBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast({
         title: "Success",
@@ -267,7 +267,7 @@ export const useBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast({
         title: "Success",
@@ -415,7 +415,7 @@ export const useBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills-for-approval'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       toast({
         title: "Success",
