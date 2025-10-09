@@ -87,7 +87,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
     queryFn: async () => {
       const statusArray = Array.isArray(status) ? status : [status];
       
-      // Get bills with direct project assignment
+      // Get all bills matching the status
       let directQuery = supabase
         .from('bills')
         .select(`
@@ -128,72 +128,14 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
             )
           )
         `)
-        .in('status', statusArray)
-        .not('project_id', 'is', null);
+        .in('status', statusArray);
 
       const { data: directBills, error: directError } = await directQuery;
 
       if (directError) throw directError;
 
-      // Get bills without direct project but with project in line items
-      let indirectQuery = supabase
-        .from('bills')
-        .select(`
-          id,
-          vendor_id,
-          project_id,
-          bill_date,
-          due_date,
-          total_amount,
-          reference_number,
-          terms,
-          notes,
-          status,
-          companies:vendor_id (
-            company_name
-          ),
-          bill_lines!inner(
-            line_type,
-            project_id,
-            cost_code_id,
-            account_id,
-            projects!inner(
-              address
-            ),
-            cost_codes!bill_lines_cost_code_id_fkey (
-              code,
-              name
-            ),
-            accounts!bill_lines_account_id_fkey (
-              code,
-              name
-            )
-          ),
-          bill_attachments (
-            id,
-            file_name,
-            file_path,
-            file_size,
-            content_type
-          )
-        `)
-        .in('status', statusArray)
-        .is('project_id', null);
-
-      const { data: indirectBills, error: indirectError } = await indirectQuery;
-
-      if (indirectError) throw indirectError;
-
-      // Transform indirect bills to match expected structure
-      const transformedIndirectBills = indirectBills?.map(bill => ({
-        ...bill,
-        projects: bill.bill_lines?.[0]?.projects ? {
-          address: bill.bill_lines[0].projects.address
-        } : undefined
-      })) || [];
-
-      // Combine both result sets
-      const allBills = [...(directBills || []), ...transformedIndirectBills];
+      // Return all bills
+      const allBills = directBills || [];
       
       // Sort by date strings (YYYY-MM-DD lexicographical sort)
       return allBills
