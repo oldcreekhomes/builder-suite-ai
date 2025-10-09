@@ -275,7 +275,8 @@ export const usePendingBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
-      toast.success('Pending bill upload deleted permanently');
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      toast.success('Bill deleted successfully');
     },
     onError: (error: any) => {
       toast.error(`Failed to delete pending upload: ${error.message}`);
