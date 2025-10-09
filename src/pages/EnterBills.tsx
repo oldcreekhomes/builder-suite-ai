@@ -329,6 +329,7 @@ export default function EnterBills() {
               .select();
 
             finalLines = insertedLines || [];
+          }
 
           // Apply default cost code if vendor has exactly one associated cost code
           try {
@@ -353,21 +354,22 @@ export default function EnterBills() {
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
                     updatePromises.push(
-                      supabase.from('pending_bill_lines').update({
-                        cost_code_id: defaultId,
-                        cost_code_name: costCodeName,
-                      }).eq('id', line.id)
+                      (async () => {
+                        await supabase.from('pending_bill_lines')
+                          .update({ cost_code_id: defaultId, cost_code_name: costCodeName })
+                          .eq('id', line.id);
+                      })()
                     );
                   } else if (line.line_type === 'expense' && !line.account_id && !line.cost_code_id) {
                     line.line_type = 'job_cost';
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
                     updatePromises.push(
-                      supabase.from('pending_bill_lines').update({
-                        line_type: 'job_cost',
-                        cost_code_id: defaultId,
-                        cost_code_name: costCodeName,
-                      }).eq('id', line.id)
+                      (async () => {
+                        await supabase.from('pending_bill_lines')
+                          .update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName })
+                          .eq('id', line.id);
+                      })()
                     );
                   }
                   return line;

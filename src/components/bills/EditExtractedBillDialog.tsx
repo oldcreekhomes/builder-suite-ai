@@ -364,7 +364,7 @@ export function EditExtractedBillDialog({
         await updateLine.mutateAsync({
           lineId: line.id,
           updates: {
-            line_type: line.line_type,
+            line_type: line.line_type as 'expense' | 'job_cost',
             account_id: line.account_id,
             account_name: accountName,
             cost_code_id: line.cost_code_id,
