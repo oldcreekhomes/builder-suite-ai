@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -223,6 +223,13 @@ export function AccountDetailDialog({
     },
     enabled: !!accountId && open,
   });
+
+  // Auto-close dialog when all transactions are deleted
+  useEffect(() => {
+    if (transactions && transactions.length === 0 && open) {
+      onOpenChange(false);
+    }
+  }, [transactions, open, onOpenChange]);
 
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;

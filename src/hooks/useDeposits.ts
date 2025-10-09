@@ -206,6 +206,7 @@ export const useDeposits = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deposits'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['income-statement'] });
       
