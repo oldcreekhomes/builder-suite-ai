@@ -380,14 +380,14 @@ export default function MakeDeposits() {
                 </div>
 
                 {/* Deposit Details Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Deposit Details</h3>
-                  
-              <Tabs defaultValue="other" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="other">Other Income</TabsTrigger>
-                  <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="other" className="w-full space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <h3 className="text-lg font-medium">Deposit Details</h3>
+                    <TabsList className="grid grid-cols-2 w-auto">
+                      <TabsTrigger value="other">Other Income</TabsTrigger>
+                      <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                    </TabsList>
+                  </div>
                     
                     <TabsContent value="other" className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -557,8 +557,7 @@ export default function MakeDeposits() {
                         ))}
                       </div>
                     </TabsContent>
-                  </Tabs>
-                  
+                   
                   <div className="p-3 bg-muted border rounded-lg">
                     <div className="flex justify-between items-center">
                       <div className="text-base font-semibold">
@@ -588,7 +587,7 @@ export default function MakeDeposits() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
