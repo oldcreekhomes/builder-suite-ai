@@ -310,18 +310,19 @@ export default function MakeDeposits() {
       .map(row => ({
         line_type: 'revenue' as const,
         account_id: row.accountId!,
-        project_id: row.projectId || undefined,
+        project_id: row.projectId || projectId || undefined,
         amount: amountOfRow(row),
         memo: row.memo || undefined
       }));
 
     // Build deposit lines from Job Cost rows (customer_payment)
+    // For Job Cost, pass cost_code_id (not account_id - hook will map to Equity 2905)
     const jobCostLines: DepositLineData[] = resolvedRevenueRows
       .filter(row => row.accountId && amountOfRow(row) > 0)
       .map(row => ({
         line_type: 'customer_payment' as const,
-        account_id: row.accountId!,
-        project_id: row.projectId || undefined,
+        cost_code_id: row.accountId!,  // This is actually the cost code ID
+        project_id: row.projectId || projectId || undefined,
         amount: amountOfRow(row),
         memo: row.memo || undefined
       }));

@@ -7,6 +7,7 @@ export interface DepositLineData {
   line_type: 'revenue' | 'customer_payment';
   account_id?: string;
   project_id?: string;
+  cost_code_id?: string;
   amount: number;
   memo?: string;
 }
@@ -115,29 +116,53 @@ export const useDeposits = () => {
       if (journalError) throw journalError;
       if (!journalEntry) throw new Error("Failed to create journal entry");
 
+      // Find Equity account (2905) for customer payments
+      const { data: equityAccount } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('owner_id', owner_id)
+        .eq('code', '2905')
+        .single();
+
       // Create journal entry lines
-      // First line: DEBIT bank account (money coming in)
+      // First line: DEBIT bank account (money coming in) - INCLUDE PROJECT_ID
       const bankLine = {
         journal_entry_id: journalEntry.id,
         owner_id,
         line_number: 1,
         account_id: depositData.bank_account_id,
+        project_id: depositData.project_id || null,
         debit: depositData.amount,
         credit: 0,
         memo: depositData.memo || 'Deposit'
       };
 
       // Remaining lines: CREDIT source accounts (revenue/customer payments)
-      const sourceLinesData = depositLines.map((line, index) => ({
-        journal_entry_id: journalEntry.id,
-        owner_id,
-        line_number: index + 2,
-        account_id: line.account_id!,
-        project_id: line.project_id || null,
-        debit: 0,
-        credit: line.amount,
-        memo: line.memo || null
-      }));
+      const sourceLinesData = depositLines.map((line, index) => {
+        let creditAccountId = line.account_id;
+        let costCodeId = null;
+
+        // For customer payments (Job Cost), use Equity account 2905
+        if (line.line_type === 'customer_payment') {
+          if (!equityAccount) {
+            throw new Error('Equity account (2905) not found. Please add it in Chart of Accounts before making customer deposits.');
+          }
+          creditAccountId = equityAccount.id;
+          costCodeId = line.cost_code_id || null;
+        }
+
+        return {
+          journal_entry_id: journalEntry.id,
+          owner_id,
+          line_number: index + 2,
+          account_id: creditAccountId!,
+          project_id: line.project_id || null,
+          cost_code_id: costCodeId,
+          debit: 0,
+          credit: line.amount,
+          memo: line.memo || null
+        };
+      });
 
       const allJournalLines = [bankLine, ...sourceLinesData];
 
@@ -152,6 +177,8 @@ export const useDeposits = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deposits'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
       toast({
         title: "Success",
         description: "Deposit recorded successfully",
