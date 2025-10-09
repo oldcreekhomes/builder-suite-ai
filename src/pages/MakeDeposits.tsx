@@ -26,6 +26,7 @@ interface DepositRow {
   accountId?: string;
   project: string;
   projectId?: string;
+  quantity?: string;
   amount: string;
   memo: string;
 }
@@ -48,7 +49,7 @@ export default function MakeDeposits() {
   const [bankName, setBankName] = useState<string>("Your Bank Name");
   
   const [depositRows, setDepositRows] = useState<DepositRow[]>([
-    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
   ]);
 
   const { data: project } = useProject(projectId || "");
@@ -72,6 +73,7 @@ export default function MakeDeposits() {
       accountId: "",
       project: "",
       projectId: projectId || "",
+      quantity: "1",
       amount: "",
       memo: ""
     };
@@ -92,8 +94,9 @@ export default function MakeDeposits() {
 
   const calculateTotal = () => {
     const total = depositRows.reduce((sum, row) => {
-      const amount = parseFloat(row.amount) || 0;
-      return sum + amount;
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return sum + q * c;
     }, 0);
     return total.toFixed(2);
   };
@@ -169,7 +172,11 @@ export default function MakeDeposits() {
     }
 
     // Filter and validate deposit rows
-    const validRows = depositRows.filter(row => row.accountId && parseFloat(row.amount) > 0);
+    const validRows = depositRows.filter(row => {
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return row.accountId && (q * c) > 0;
+    });
     
     if (validRows.length === 0) {
       toast({
@@ -181,13 +188,17 @@ export default function MakeDeposits() {
     }
 
     // Prepare deposit lines
-    const depositLines: DepositLineData[] = validRows.map(row => ({
-      line_type: 'revenue' as const,
-      account_id: row.accountId,
-      project_id: row.projectId || undefined,
-      amount: parseFloat(row.amount),
-      memo: row.memo || undefined
-    }));
+    const depositLines: DepositLineData[] = validRows.map(row => {
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return {
+        line_type: 'revenue' as const,
+        account_id: row.accountId,
+        project_id: row.projectId || undefined,
+        amount: q * c,
+        memo: row.memo || undefined
+      };
+    });
 
     const depositAmount = parseFloat(calculateTotal());
 
@@ -212,7 +223,7 @@ export default function MakeDeposits() {
         // Reset form for new deposit
         setReceivedFrom("");
         setDepositRows([
-          { id: Date.now().toString(), account: "", accountId: "", project: "", projectId: projectId || "", amount: "", memo: "" }
+          { id: Date.now().toString(), account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
         ]);
       } else {
         // Navigate back
@@ -302,110 +313,120 @@ export default function MakeDeposits() {
                   </div>
                 </div>
 
-                {/* Deposit Lines */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Deposit Details</h3>
-                    <Button onClick={addDepositRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Line
-                    </Button>
-                  </div>
+                {/* Deposit Details Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Deposit Details</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Button onClick={addDepositRow} size="sm" variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Row
+                      </Button>
+                    </div>
 
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="text-left p-3 font-medium">Account</th>
-                          <th className="text-left p-3 font-medium">Project</th>
-                          <th className="text-right p-3 font-medium">Amount</th>
-                          <th className="text-left p-3 font-medium">Memo</th>
-                          <th className="w-12"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {depositRows.map((row) => (
-                          <tr key={row.id} className="border-t">
-                            <td className="p-2">
-                              <AccountSearchInputInline
-                                value={row.accountId || ""}
-                                onChange={(value) => updateDepositRow(row.id, 'accountId', value)}
-                                accountType="revenue"
-                                placeholder="Select revenue account"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <JobSearchInput
-                                value={row.projectId || ""}
-                                onChange={(projectId) => {
-                                  updateDepositRow(row.id, 'projectId', projectId);
-                                }}
-                                placeholder="Optional"
-                              />
-                            </td>
-                            <td className="p-2">
+                    <div className="border rounded-lg overflow-visible">
+                      <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                        <div className="col-span-3">Account</div>
+                        <div className="col-span-5">Description</div>
+                        <div className="col-span-1">Quantity</div>
+                        <div className="col-span-1">Amount</div>
+                        <div className="col-span-1">Total</div>
+                        <div className="col-span-1 text-center">Action</div>
+                      </div>
+
+                      {depositRows.map((row) => (
+                        <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                          <div className="col-span-3">
+                            <AccountSearchInputInline
+                              value={row.account}
+                              onChange={(value) => updateDepositRow(row.id, "account", value)}
+                              onAccountSelect={(account) => {
+                                updateDepositRow(row.id, "accountId", account.id);
+                                updateDepositRow(row.id, "account", `${account.code} - ${account.name}`);
+                              }}
+                              placeholder="Select account..."
+                              accountType="revenue"
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="col-span-5">
+                            <Input
+                              value={row.memo}
+                              onChange={(e) => updateDepositRow(row.id, "memo", e.target.value)}
+                              placeholder="Description..."
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={row.quantity || "1"}
+                              onChange={(e) => updateDepositRow(row.id, "quantity", e.target.value)}
+                              placeholder="1"
+                              className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+                          <div className="col-span-1">
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                               <Input
                                 type="number"
                                 step="0.01"
                                 value={row.amount}
-                                onChange={(e) => updateDepositRow(row.id, 'amount', e.target.value)}
+                                onChange={(e) => updateDepositRow(row.id, "amount", e.target.value)}
                                 placeholder="0.00"
-                                className="text-right"
+                                className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={row.memo}
-                                onChange={(e) => updateDepositRow(row.id, 'memo', e.target.value)}
-                                placeholder="Optional note"
-                              />
-                            </td>
-                            <td className="p-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeDepositRow(row.id)}
-                                disabled={depositRows.length === 1}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Total Amount Display */}
-                <div className="border-t pt-6">
-                  <div className="flex justify-end mb-6">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground mb-1">Total Deposit Amount:</p>
-                      <p className="text-3xl font-bold">${getDisplayAmount()}</p>
-                      <p className="text-xs text-muted-foreground mt-2 max-w-md">
-                        {numberToWords(parseFloat(calculateTotal()))}
-                      </p>
+                            </div>
+                          </div>
+                          <div className="col-span-1 flex items-center">
+                            <span className="text-sm font-medium">
+                              ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="col-span-1 flex justify-center items-center">
+                            <Button
+                              onClick={() => removeDepositRow(row.id)}
+                              size="sm"
+                              variant="destructive"
+                              disabled={depositRows.length === 1}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <div className="p-3 bg-muted border-t">
+                        <div className="flex justify-between items-center">
+                          <div className="text-base font-semibold">
+                            Total: ${calculateTotal()}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleSave(true)}
+                              disabled={createDeposit.isPending}
+                            >
+                              {createDeposit.isPending ? "Saving..." : "Save & New"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleSave(false)}
+                              disabled={createDeposit.isPending}
+                            >
+                              {createDeposit.isPending ? "Saving..." : "Save & Close"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(projectId ? `/project/${projectId}/accounting` : '/accounting')}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleSave(true)}
-                    >
-                      Save and New
-                    </Button>
-                    <Button onClick={() => handleSave(false)}>
-                      Save and Close
-                    </Button>
                   </div>
                 </div>
               </CardContent>
