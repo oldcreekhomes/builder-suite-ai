@@ -140,6 +140,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone_number: formData.phoneNumber || null,
+          role: formData.role,
           confirmed: formData.confirmed,
         })
         .eq('id', employee.id);
