@@ -514,6 +514,16 @@ export default function EnterBills() {
   };
 
   const handleSubmitAllBills = async () => {
+    // Check if data is still loading
+    if (loadingPendingBills) {
+      toast({
+        title: "Please Wait",
+        description: "Bills are still loading. Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (selectedBillIds.size === 0) {
       toast({
         title: "No Bills Selected",
@@ -525,13 +535,26 @@ export default function EnterBills() {
 
     setIsSubmitting(true);
     
+    console.log('=== BILL SUBMISSION DEBUG ===');
+    console.log('Selected Bill IDs:', Array.from(selectedBillIds));
+    console.log('Batch Bills State:', JSON.stringify(batchBills, null, 2));
+    
     // Validate all selected bills before submission
     const billsWithIssues: Array<{ bill: any; issues: string[] }> = [];
     
     selectedBillIds.forEach(billId => {
       const bill = batchBills.find(b => b.id === billId);
       if (bill) {
+        console.log(`Validating bill ${billId}:`, {
+          vendor_id: bill.vendor_id,
+          vendor_name: bill.vendor_name,
+          bill_date: bill.bill_date,
+          due_date: bill.due_date,
+          lines_count: bill.lines?.length,
+          lines: bill.lines
+        });
         const issues = validateBillForSubmission(bill);
+        console.log(`Validation result for ${billId}:`, issues);
         if (issues.length > 0) {
           billsWithIssues.push({ bill, issues });
         }
@@ -542,6 +565,8 @@ export default function EnterBills() {
     if (billsWithIssues.length > 0) {
       const issueCount = billsWithIssues.length;
       const firstBillIssues = billsWithIssues[0].issues.join(', ');
+      
+      console.error('Bills with validation issues:', billsWithIssues);
       
       toast({
         title: "Cannot Submit Bills",
@@ -563,8 +588,12 @@ export default function EnterBills() {
         terms: bill.terms,
       }));
 
+    console.log('Bills to submit to mutation:', JSON.stringify(billsToSubmit, null, 2));
+
     try {
       const results = await batchApproveBills.mutateAsync(billsToSubmit);
+      
+      console.log('Submission results:', results);
       
       const successful = results.filter(r => r.success).length;
       const failed = results.filter(r => !r.success).length;
@@ -592,13 +621,24 @@ export default function EnterBills() {
         });
       }
     } catch (error) {
+      console.error('=== BILL SUBMISSION ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error !== null
+        ? JSON.stringify(error)
+        : "Failed to submit bills";
+      
       toast({
         title: "Error",
-        description: "Failed to submit bills",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+      console.log('=== END BILL SUBMISSION ===');
     }
   };
 
