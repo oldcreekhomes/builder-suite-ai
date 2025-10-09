@@ -320,44 +320,40 @@ export default function MakeDeposits() {
             <Card className="max-w-6xl mx-auto">
               <CardContent className="p-8">
                 {/* Deposit Slip Header */}
-                <div className="border-b pb-6 mb-6">
-                  <div className="flex justify-end">
-                    <div className="text-right">
-                      <h1 className="text-3xl font-bold">DEPOSIT</h1>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Date: {format(depositDate, "MM/dd/yyyy")}
-                      </p>
+                <div className="border-b pb-4 mb-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <h1 className="text-3xl font-bold">DEPOSIT</h1>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="depositDate" className="text-sm whitespace-nowrap">Date:</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "justify-start text-left font-normal",
+                              !depositDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {depositDate ? format(depositDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={depositDate}
+                            onSelect={(date) => date && setDepositDate(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
 
                 {/* Deposit Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="depositDate">Deposit Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !depositDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {depositDate ? format(depositDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={depositDate}
-                          onSelect={(date) => date && setDepositDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="receivedFrom">Received From</Label>
