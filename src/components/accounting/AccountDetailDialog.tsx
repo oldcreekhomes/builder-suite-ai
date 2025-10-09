@@ -27,6 +27,7 @@ import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor
 interface Transaction {
   source_id: string;
   line_id: string;
+  journal_entry_id: string;
   date: string;
   memo: string | null;
   vendor: string | null;
@@ -35,6 +36,7 @@ interface Transaction {
   source_type: string;
   debit: number;
   credit: number;
+  created_at: string;
 }
 
 interface AccountDetailDialogProps {
@@ -77,12 +79,14 @@ export function AccountDetailDialog({
           memo,
           debit,
           credit,
-          journal_entries!inner(
-            entry_date,
-            description,
-            source_type,
-            source_id
-          )
+        journal_entries!inner(
+          id,
+          entry_date,
+          description,
+          source_type,
+          source_id,
+          created_at
+        )
         `)
         .eq('account_id', accountId);
 
@@ -200,7 +204,8 @@ export function AccountDetailDialog({
 
         return {
           source_id: line.journal_entries.source_id,
-          line_id: line.id, // Journal entry line ID
+          line_id: line.id,
+          journal_entry_id: line.journal_entries.id,
           date: line.journal_entries.entry_date,
           memo: memo,
           vendor: vendor,
@@ -209,14 +214,23 @@ export function AccountDetailDialog({
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
           credit: line.credit || 0,
+          created_at: line.journal_entries.created_at,
         };
       });
 
-      // Sort by date
+      // Sort by date first, then by created_at for stable ordering
       transactions.sort((a, b) => {
         const dateA = new Date(`${a.date}T00:00:00`).getTime();
         const dateB = new Date(`${b.date}T00:00:00`).getTime();
-        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        
+        // Primary sort by date
+        const dateDiff = sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        if (dateDiff !== 0) return dateDiff;
+        
+        // Secondary sort by created_at timestamp for stable ordering
+        const createdA = new Date(a.created_at).getTime();
+        const createdB = new Date(b.created_at).getTime();
+        return sortOrder === 'desc' ? createdB - createdA : createdA - createdB;
       });
 
       return transactions;
