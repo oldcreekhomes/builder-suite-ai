@@ -42,7 +42,9 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       "square-feet": "SF", 
       "linear-feet": "LF",
       "square-yard": "SY",
-      "cubic-yard": "CY"
+      "cubic-yard": "CY",
+      "month": "MO",
+      "hour": "HR"
     };
     
     return unitMap[unit] || unit.toUpperCase();
@@ -191,6 +193,8 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
           <SelectItem value="linear-feet">Linear Feet</SelectItem>
           <SelectItem value="square-yard">Square Yard</SelectItem>
           <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+          <SelectItem value="month">Month</SelectItem>
+          <SelectItem value="hour">Hour</SelectItem>
         </SelectContent>
       </Select>
     );
