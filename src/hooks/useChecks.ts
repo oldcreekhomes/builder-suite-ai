@@ -271,8 +271,48 @@ export const useChecks = () => {
     },
   });
 
+  const updateCheck = useMutation({
+    mutationFn: async ({ 
+      checkId, 
+      updates 
+    }: { 
+      checkId: string; 
+      updates: { check_date?: string; check_number?: string; pay_to?: string; memo?: string; amount?: number } 
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Update the check
+      const { error: checkError } = await supabase
+        .from("checks")
+        .update({
+          check_date: updates.check_date,
+          check_number: updates.check_number,
+          pay_to: updates.pay_to,
+          memo: updates.memo,
+          amount: updates.amount,
+        })
+        .eq("id", checkId);
+
+      if (checkError) throw checkError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["checks"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({ title: "Check updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating check",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createCheck,
     deleteCheck,
+    updateCheck,
   };
 };

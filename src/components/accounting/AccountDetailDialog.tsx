@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -16,14 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChecks } from "@/hooks/useChecks";
 import { useDeposits } from "@/hooks/useDeposits";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
+import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
 
 interface Transaction {
   source_id: string;
@@ -57,9 +56,9 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('desc');
-  const { deleteCheck } = useChecks();
-  const { deleteDeposit } = useDeposits();
-  const { deleteManualJournalEntry } = useJournalEntries();
+  const { deleteCheck, updateCheck } = useChecks();
+  const { deleteDeposit, updateDeposit } = useDeposits();
+  const { deleteManualJournalEntry, updateJournalEntryField } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
 
   const { data: transactions, isLoading } = useQuery({
@@ -266,6 +265,8 @@ export function AccountDetailDialog({
   });
 
   const handleDelete = async (transaction: Transaction) => {
+    if (!canDeleteBills) return;
+
     try {
       if (transaction.source_type === 'check') {
         await deleteCheck.mutateAsync(transaction.source_id);
@@ -274,7 +275,6 @@ export function AccountDetailDialog({
       } else if (transaction.source_type === 'manual') {
         await deleteManualJournalEntry.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'bill' || transaction.source_type === 'bill_payment') {
-        // Bills use existing delete_bill_with_journal_entries function
         const { error } = await supabase.rpc('delete_bill_with_journal_entries', {
           bill_id_param: transaction.source_id
         });
@@ -282,6 +282,43 @@ export function AccountDetailDialog({
       }
     } catch (error) {
       console.error('Error deleting transaction:', error);
+    }
+  };
+
+  const handleUpdate = async (
+    transaction: Transaction,
+    field: "date" | "reference" | "vendor" | "description" | "amount",
+    value: string | number | Date
+  ) => {
+    try {
+      switch (transaction.source_type) {
+        case 'check':
+          const checkUpdates: any = {};
+          if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
+          if (field === "reference") checkUpdates.check_number = value as string;
+          if (field === "vendor") checkUpdates.pay_to = value as string;
+          if (field === "description") checkUpdates.memo = value as string;
+          if (field === "amount") checkUpdates.amount = value as number;
+          await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
+          break;
+        case 'deposit':
+          const depositUpdates: any = {};
+          if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
+          if (field === "description") depositUpdates.memo = value as string;
+          if (field === "amount") depositUpdates.amount = value as number;
+          await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
+          break;
+        case 'manual':
+          const journalUpdates: any = {};
+          if (field === "date") journalUpdates.entry_date = format(value as Date, "yyyy-MM-dd");
+          if (field === "description") journalUpdates.description = value as string;
+          await updateJournalEntryField.mutateAsync({ entryId: transaction.source_id, updates: journalUpdates });
+          break;
+        default:
+          console.log('Edit not implemented for:', transaction.source_type);
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
     }
   };
 
@@ -335,27 +372,47 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((txn, index) => (
                   <TableRow key={index}>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(txn.date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {txn.reference || '-'}
+                    <TableCell>
+                      <AccountTransactionInlineEditor
+                        value={new Date(txn.date)}
+                        field="date"
+                        onSave={(value) => handleUpdate(txn, "date", value)}
+                        readOnly={!canDeleteBills}
+                      />
                     </TableCell>
                     <TableCell>
-                      {txn.vendor || '-'}
+                      <AccountTransactionInlineEditor
+                        value={txn.reference || '-'}
+                        field="reference"
+                        onSave={(value) => handleUpdate(txn, "reference", value)}
+                        readOnly={!canDeleteBills || txn.source_type === 'manual'}
+                      />
                     </TableCell>
                     <TableCell>
-                      {txn.description || '-'}
+                      <AccountTransactionInlineEditor
+                        value={txn.vendor || '-'}
+                        field="vendor"
+                        onSave={(value) => handleUpdate(txn, "vendor", value)}
+                        readOnly={!canDeleteBills || txn.source_type !== 'check'}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <AccountTransactionInlineEditor
+                        value={txn.description || '-'}
+                        field="description"
+                        onSave={(value) => handleUpdate(txn, "description", value)}
+                        readOnly={!canDeleteBills}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       {txn.credit > 0 
@@ -368,36 +425,16 @@ export function AccountDetailDialog({
                       {formatCurrency(balances[index])}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled
-                                className="h-8 w-8 p-0"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Edit functionality coming soon</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        {canDeleteBills && (
-                          <DeleteButton
-                            onDelete={() => handleDelete(txn)}
-                            title="Delete Transaction"
-                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                          />
-                        )}
-                      </div>
+                      {canDeleteBills && (
+                        <DeleteButton
+                          onDelete={() => handleDelete(txn)}
+                          title="Delete Transaction"
+                          description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

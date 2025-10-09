@@ -224,5 +224,42 @@ export const useDeposits = () => {
     },
   });
 
-  return { createDeposit, deleteDeposit };
+  const updateDeposit = useMutation({
+    mutationFn: async ({ 
+      depositId, 
+      updates 
+    }: { 
+      depositId: string; 
+      updates: { deposit_date?: string; memo?: string; amount?: number } 
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Update the deposit
+      const { error: depositError } = await supabase
+        .from("deposits")
+        .update({
+          deposit_date: updates.deposit_date,
+          memo: updates.memo,
+          amount: updates.amount,
+        })
+        .eq("id", depositId);
+
+      if (depositError) throw depositError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deposits"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({ title: "Deposit updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating deposit",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return { createDeposit, deleteDeposit, updateDeposit };
 };

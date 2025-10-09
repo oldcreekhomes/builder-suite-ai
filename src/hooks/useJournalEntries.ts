@@ -346,10 +346,46 @@ export const useJournalEntries = () => {
     },
   });
 
+  const updateJournalEntryField = useMutation({
+    mutationFn: async ({ 
+      entryId, 
+      updates 
+    }: { 
+      entryId: string; 
+      updates: { entry_date?: string; description?: string } 
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Update the journal entry
+      const { error: entryError } = await supabase
+        .from("journal_entries")
+        .update({
+          entry_date: updates.entry_date,
+          description: updates.description,
+        })
+        .eq("id", entryId);
+
+      if (entryError) throw entryError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({ title: "Journal entry updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating journal entry",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createManualJournalEntry,
     updateManualJournalEntry,
     deleteManualJournalEntry,
+    updateJournalEntryField,
     journalEntries,
     isLoading,
   };
