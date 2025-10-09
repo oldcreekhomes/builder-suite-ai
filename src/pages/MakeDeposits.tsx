@@ -243,12 +243,7 @@ export default function MakeDeposits() {
               <CardContent className="p-8">
                 {/* Deposit Slip Header */}
                 <div className="border-b pb-6 mb-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-2xl font-bold">{companyName}</h2>
-                      <p className="text-sm text-muted-foreground">{companyAddress}</p>
-                      <p className="text-sm text-muted-foreground">{companyCityState}</p>
-                    </div>
+                  <div className="flex justify-end">
                     <div className="text-right">
                       <h1 className="text-3xl font-bold">DEPOSIT</h1>
                       <p className="text-sm text-muted-foreground mt-2">
