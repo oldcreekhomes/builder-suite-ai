@@ -36,6 +36,7 @@ import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
 import IncomeStatement from "./pages/IncomeStatement";
 import WriteChecks from "./pages/WriteChecks";
+import MakeDeposits from "./pages/MakeDeposits";
 import JournalEntry from "./pages/JournalEntry";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
@@ -131,6 +132,7 @@ const AppContent = () => {
           <Route path="/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           <Route path="/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
           <Route path="/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
+          <Route path="/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
           
           {/* Estimating AI route */}
           <Route path="/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
@@ -179,6 +181,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
           
           
           {/* Messages route - TEMPORARILY DISABLED

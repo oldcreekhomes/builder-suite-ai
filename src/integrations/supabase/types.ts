@@ -784,6 +784,116 @@ export type Database = {
         }
         Relationships: []
       }
+      deposit_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          created_at: string
+          deposit_id: string
+          id: string
+          line_number: number
+          line_type: string
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          deposit_id: string
+          id?: string
+          line_number?: number
+          line_type: string
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          deposit_id?: string
+          id?: string
+          line_number?: number
+          line_type?: string
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_lines_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposits: {
+        Row: {
+          account_number: string | null
+          amount: number
+          bank_account_id: string
+          bank_name: string | null
+          company_address: string | null
+          company_city_state: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string
+          deposit_date: string
+          id: string
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          routing_number: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount?: number
+          bank_account_id: string
+          bank_name?: string | null
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by: string
+          deposit_date?: string
+          id?: string
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          routing_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          bank_account_id?: string
+          bank_name?: string | null
+          company_address?: string | null
+          company_city_state?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string
+          deposit_date?: string
+          id?: string
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          routing_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       issue_files: {
         Row: {
           file_name: string
