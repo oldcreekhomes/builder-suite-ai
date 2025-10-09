@@ -347,10 +347,10 @@ export function AccountDetailDialog({
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1">Vendor</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1">Description</TableHead>
+              <TableHead className="h-8 px-2 py-1">Amount</TableHead>
+              <TableHead className="h-8 px-2 py-1">Balance</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -388,17 +388,17 @@ export function AccountDetailDialog({
                         readOnly={!canDeleteBills}
                       />
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right">
+                    <TableCell className="px-2 py-1">
                       {txn.credit > 0 
                         ? `(${formatCurrency(txn.credit)})` 
                         : txn.debit > 0 
                         ? formatCurrency(txn.debit) 
                         : '-'}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right font-medium">
+                    <TableCell className="px-2 py-1 font-medium">
                       {formatCurrency(balances[index])}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right">
+                    <TableCell className="px-2 py-1 text-center">
                       {canDeleteBills && (
                         <DeleteButton
                           onDelete={() => handleDelete(txn)}
