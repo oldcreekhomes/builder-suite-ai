@@ -234,7 +234,7 @@ export default function MakeDeposits() {
     if (validRevenueRows.length === 0 && validOtherRows.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please add at least one line item with an account and amount",
+        description: "Please select at least one account from the dropdown and enter an amount greater than zero",
         variant: "destructive",
       });
       return;
@@ -414,7 +414,13 @@ export default function MakeDeposits() {
                             <div className="col-span-3">
                               <AccountSearchInputInline
                                 value={row.account}
-                                onChange={(value) => updateOtherRow(row.id, "account", value)}
+                                onChange={(value) => {
+                                  updateOtherRow(row.id, "account", value);
+                                  // Clear accountId when manually typing to force selection from dropdown
+                                  if (!value) {
+                                    updateOtherRow(row.id, "accountId", "");
+                                  }
+                                }}
                                 onAccountSelect={(account) => {
                                   updateOtherRow(row.id, "accountId", account.id);
                                   updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
@@ -492,7 +498,13 @@ export default function MakeDeposits() {
                             <div className="col-span-3">
                               <CostCodeSearchInput
                                 value={row.account}
-                                onChange={(value) => updateRevenueRow(row.id, "account", value)}
+                                onChange={(value) => {
+                                  updateRevenueRow(row.id, "account", value);
+                                  // Clear accountId when manually typing to force selection from dropdown
+                                  if (!value) {
+                                    updateRevenueRow(row.id, "accountId", "");
+                                  }
+                                }}
                                 onCostCodeSelect={(costCode) => {
                                   updateRevenueRow(row.id, "accountId", costCode.id);
                                   updateRevenueRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
