@@ -41,6 +41,7 @@ export default function MakeDeposits() {
   const [depositSourceId, setDepositSourceId] = useState<string>("");
   const [depositSourceName, setDepositSourceName] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
+  const [bankAccountId, setBankAccountId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("other");
   
   // Company information state - reuse from check settings
@@ -209,10 +210,10 @@ export default function MakeDeposits() {
       return;
     }
 
-    if (!bankAccount) {
+    if (!bankAccountId) {
       toast({
         title: "Validation Error",
-        description: "Please select a bank account",
+        description: "Please select a bank account from the dropdown",
         variant: "destructive",
       });
       return;
@@ -273,7 +274,7 @@ export default function MakeDeposits() {
 
     const depositData: DepositData = {
       deposit_date: depositDate.toISOString().split('T')[0],
-      bank_account_id: bankAccount,
+      bank_account_id: bankAccountId,
       project_id: projectId || undefined,
       amount: depositAmount,
       memo: depositSourceName,
@@ -357,7 +358,11 @@ export default function MakeDeposits() {
                     <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
                     <AccountSearchInputInline
                       value={bankAccount}
-                      onChange={setBankAccount}
+                      onChange={(v) => { setBankAccount(v); if (!v) setBankAccountId(""); }}
+                      onAccountSelect={(account) => {
+                        setBankAccountId(account.id);
+                        setBankAccount(`${account.code} - ${account.name}`);
+                      }}
                       accountType="asset"
                       placeholder="Select bank account"
                     />

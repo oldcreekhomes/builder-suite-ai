@@ -52,6 +52,8 @@ export function AccountSearchInputInline({
   };
 
   const handleInputBlur = () => {
+    // Try auto-select on blur if there's a clear match
+    attemptAutoSelect();
     // Delay hiding results to allow for selection
     setTimeout(() => setShowResults(false), 200);
   };
@@ -66,6 +68,33 @@ export function AccountSearchInputInline({
     }
   };
 
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const attemptAutoSelect = () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+
+    const lc = normalize(q);
+
+    // Try exact code or full "code - name" match
+    const exact = (accounts || []).find(acc => {
+      const code = acc.code ?? '';
+      const name = acc.name ?? '';
+      const full = `${code} - ${name}`;
+      return normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc;
+    });
+
+    if (exact) {
+      handleSelectAccount({ id: String(exact.id), code: exact.code, name: exact.name });
+      return;
+    }
+
+    // If typing uniquely identifies one filtered account, select it
+    if (filteredAccounts.length === 1) {
+      const a = filteredAccounts[0];
+      handleSelectAccount({ id: String(a.id), code: a.code, name: a.name });
+    }
+  };
+
   return (
     <div className="relative">
       <Input
@@ -74,6 +103,7 @@ export function AccountSearchInputInline({
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onBlur={handleInputBlur}
+        onKeyDown={(e) => { if (e.key === 'Enter') { attemptAutoSelect(); } }}
         placeholder={placeholder}
         className={className}
       />
