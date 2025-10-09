@@ -302,6 +302,7 @@ export const useJournalEntries = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
       toast({
         title: "Success",
         description: "Journal entry updated successfully",

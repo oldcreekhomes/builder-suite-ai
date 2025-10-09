@@ -299,6 +299,7 @@ export const useChecks = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checks"] });
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
       toast({ title: "Check updated successfully" });
     },
     onError: (error: Error) => {

@@ -77,12 +77,19 @@ export function AccountTransactionInlineEditor({
     return (
       <Popover open={showCalendar} onOpenChange={setShowCalendar}>
         <PopoverTrigger asChild>
-          <div className="group flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded">
+          <Button
+            variant="ghost"
+            className="group flex items-center gap-2 h-auto px-2 py-1 hover:bg-muted/50 font-normal"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCalendar(true);
+            }}
+          >
             <span className="text-sm">
               {value instanceof Date ? format(value, "MM/dd/yyyy") : value}
             </span>
             <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-          </div>
+          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar

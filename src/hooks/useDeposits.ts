@@ -250,6 +250,7 @@ export const useDeposits = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
       toast({ title: "Deposit updated successfully" });
     },
     onError: (error: Error) => {
