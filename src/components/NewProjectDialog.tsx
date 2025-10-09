@@ -74,8 +74,8 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     try {
       // Determine the correct owner_id based on user role
       let owner_id = user.id;
-      if (profile && profile.role === 'employee' && profile.home_builder_id) {
-        // User is an employee, use their home_builder_id as the project owner
+      if (profile && profile.home_builder_id) {
+        // User is internal (has home_builder_id), use that as the project owner
         owner_id = profile.home_builder_id;
       }
 

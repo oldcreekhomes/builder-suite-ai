@@ -40,7 +40,7 @@ export const useJournalEntries = () => {
 
       if (!userData) return [];
 
-      const owner_id = userData.role === "employee" ? userData.home_builder_id : userData.id;
+      const owner_id = userData.home_builder_id || userData.id;
       if (!owner_id) return [];
 
       // Fetch journal entries
@@ -126,7 +126,7 @@ export const useJournalEntries = () => {
 
       if (!userData) throw new Error("User data not found");
 
-      const owner_id = userData.role === "employee" ? userData.home_builder_id : userData.id;
+      const owner_id = userData.home_builder_id || userData.id;
       if (!owner_id) throw new Error("Owner ID could not be determined");
 
       // Fetch WIP account for job cost lines
@@ -246,7 +246,7 @@ export const useJournalEntries = () => {
 
       if (!userData) throw new Error("User data not found");
 
-      const owner_id = userData.role === "employee" ? userData.home_builder_id : userData.id;
+      const owner_id = userData.home_builder_id || userData.id;
       if (!owner_id) throw new Error("Owner ID could not be determined");
 
       // Fetch WIP account

@@ -52,9 +52,7 @@ export const useDeposits = () => {
         .eq('id', user.id)
         .single();
 
-      const owner_id = userData?.role === 'employee' && userData?.home_builder_id 
-        ? userData.home_builder_id 
-        : user.id;
+      const owner_id = userData?.home_builder_id || user.id;
 
       // Insert deposit record
       const { data: deposit, error: depositError } = await supabase

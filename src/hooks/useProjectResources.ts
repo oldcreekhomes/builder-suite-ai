@@ -35,7 +35,7 @@ export const useProjectResources = () => {
       let companyName = '';
       if (currentUserProfile.role === 'owner') {
         companyName = currentUserProfile.company_name;
-      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
+      } else if (currentUserProfile.home_builder_id) {
         // Get owner's company name
         const { data: owner } = await supabase
           .from('users')
@@ -75,7 +75,7 @@ export const useProjectResources = () => {
       let homeBuilderOwnerId: string;
       if (currentUserProfile.role === 'owner') {
         homeBuilderOwnerId = currentUserProfile.id;
-      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
+      } else if (currentUserProfile.home_builder_id) {
         homeBuilderOwnerId = currentUserProfile.home_builder_id;
       } else {
         console.log('Unable to determine home builder owner ID');

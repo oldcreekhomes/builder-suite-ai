@@ -80,9 +80,9 @@ export const useCompanyUsers = () => {
             phone_number: emp.phone_number
           })) || [])
         ];
-      } else if (currentUserProfile.role === 'employee' && currentUserProfile.home_builder_id) {
-        // User is employee - get owner and other employees
-        console.log('Employee flow - home_builder_id:', currentUserProfile.home_builder_id);
+      } else if (currentUserProfile.home_builder_id) {
+        // User is internal (any role with home_builder_id) - get owner and other internal users
+        console.log('Internal user flow - home_builder_id:', currentUserProfile.home_builder_id);
         
         // Get owner
         const { data: owner, error: ownerError } = await supabase
@@ -94,12 +94,11 @@ export const useCompanyUsers = () => {
 
         console.log('Owner query result:', { owner, ownerError });
 
-        // Get ALL employees (including current user)
+        // Get ALL internal users (including current user) regardless of role
         const { data: employees, error: employeesError } = await supabase
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUserProfile.home_builder_id)
-          .eq('role', 'employee')
           .eq('confirmed', true);
 
         console.log('Employees query result:', { employees, employeesError });

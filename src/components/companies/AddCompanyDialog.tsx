@@ -128,10 +128,8 @@ export function AddCompanyDialog({
         .eq('id', user.id)
         .single();
 
-      // Use home_builder_id if user is employee, otherwise use user.id (for home builder)
-      const homeBuilderIdToUse = userDetails?.role === 'employee' 
-        ? userDetails.home_builder_id 
-        : user.id;
+      // Use home_builder_id if user is internal (has home_builder_id), otherwise use user.id (for owner)
+      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
       const insertData = {
         company_name: data.company_name,

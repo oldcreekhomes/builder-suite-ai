@@ -80,9 +80,7 @@ export function useDepositSources() {
         .eq('id', user.id)
         .single();
 
-      const ownerId = userData?.role === 'employee' && userData?.home_builder_id 
-        ? userData.home_builder_id 
-        : user.id;
+      const ownerId = userData?.home_builder_id || user.id;
 
       const { data: newSource, error } = await supabase
         .from('deposit_sources')

@@ -107,9 +107,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         .eq('id', user.id)
         .single();
 
-      const homeBuilderIdToUse = userDetails?.role === 'employee' 
-        ? userDetails.home_builder_id 
-        : user.id;
+      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
       const representativeData = {
         first_name: data.first_name,

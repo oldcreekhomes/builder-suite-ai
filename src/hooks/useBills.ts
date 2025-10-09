@@ -40,7 +40,7 @@ export const useBills = () => {
         .eq('id', user.id)
         .single();
 
-      const owner_id = userData?.role === 'employee' ? userData.home_builder_id : user.id;
+      const owner_id = userData?.home_builder_id || user.id;
 
       // Create the bill
       const { data: bill, error: billError } = await supabase

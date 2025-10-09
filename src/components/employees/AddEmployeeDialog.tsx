@@ -49,8 +49,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       let homeBuilderEmail = currentUser.email;
       let companyName = currentUser.company_name;
 
-      // If current user is an employee, get the owner's email
-      if (currentUser.role === 'employee' && currentUser.home_builder_id) {
+      // If current user is internal (has home_builder_id), get the owner's email
+      if (currentUser.home_builder_id) {
         const { data: owner, error: ownerError } = await supabase
           .from('users')
           .select('email, company_name')

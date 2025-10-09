@@ -26,7 +26,7 @@ export function useIssueCounts() {
 
       // Determine the company name to filter by
       let companyName = userProfile.company_name;
-      if (userProfile.role === 'employee' && userProfile.home_builder_id) {
+      if (userProfile.home_builder_id) {
         const { data: homeBuilder, error: homeBuilderError } = await supabase
           .from('users')
           .select('company_name')

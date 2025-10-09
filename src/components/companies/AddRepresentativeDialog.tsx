@@ -72,9 +72,7 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
         .eq('id', user.id)
         .single();
 
-      const homeBuilderIdToUse = userDetails?.role === 'employee' 
-        ? userDetails.home_builder_id 
-        : user.id;
+      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
       const { error } = await supabase
         .from('company_representatives')

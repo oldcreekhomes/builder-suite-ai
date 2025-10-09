@@ -42,7 +42,7 @@ export const useAccounts = () => {
         .eq('id', user.id)
         .single();
 
-      const owner_id = userData?.role === 'employee' ? userData.home_builder_id : user.id;
+      const owner_id = userData?.home_builder_id || user.id;
 
       const { data, error } = await supabase
         .from('accounting_settings')
@@ -69,7 +69,7 @@ export const useAccounts = () => {
         .eq('id', user.id)
         .single();
 
-      const owner_id = userData?.role === 'employee' ? userData.home_builder_id : user.id;
+      const owner_id = userData?.home_builder_id || user.id;
 
       const { data, error } = await supabase
         .from('accounts')
@@ -110,7 +110,7 @@ export const useAccounts = () => {
         .eq('id', user.id)
         .single();
 
-      const owner_id = userData?.role === 'employee' ? userData.home_builder_id : user.id;
+      const owner_id = userData?.home_builder_id || user.id;
 
       const { data, error } = await supabase
         .from('accounting_settings')

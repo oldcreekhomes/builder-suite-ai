@@ -206,9 +206,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
             .eq('id', user.id)
             .single();
 
-          const homeBuilderIdToUse = userDetails?.role === 'employee' 
-            ? userDetails.home_builder_id 
-            : user.id;
+          const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
           const companyData = {
             company_name: row.CompanyName,
@@ -312,9 +310,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         .eq('id', user.id)
         .single();
 
-      const homeBuilderIdForReps = userDetails?.role === 'employee' 
-        ? userDetails.home_builder_id 
-        : user.id;
+      const homeBuilderIdForReps = userDetails?.home_builder_id || user.id;
       
       for (let i = 0; i < representativesData.length; i++) {
         const row = representativesData[i] as any;
