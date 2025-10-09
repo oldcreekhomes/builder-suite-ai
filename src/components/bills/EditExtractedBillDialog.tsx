@@ -62,31 +62,48 @@ export function EditExtractedBillDialog({
   useEffect(() => {
     if (!open || !pendingUploadId) return;
 
-    const bill = pendingBills?.find(b => b.id === pendingUploadId);
-    if (!bill) return;
+    const loadBillData = async () => {
+      const bill = pendingBills?.find(b => b.id === pendingUploadId);
+      if (!bill) return;
 
-    const extractedData = bill.extracted_data || {};
-    setVendorId(extractedData.vendor_id || extractedData.vendorId || "");
-    setRefNo(extractedData.referenceNumber || "");
-    setTerms(extractedData.terms || "net-30");
-    setFileName(bill.file_name);
-    setFilePath(bill.file_path);
+      const extractedData = bill.extracted_data || {};
+      const extractedVendorId = extractedData.vendor_id || extractedData.vendorId || "";
+      
+      setVendorId(extractedVendorId);
+      setRefNo(extractedData.referenceNumber || "");
+      setTerms(extractedData.terms || "net-30");
+      setFileName(bill.file_name);
+      setFilePath(bill.file_path);
 
-    if (extractedData.bill_date || extractedData.billDate) {
-      setBillDate(toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate)));
-    }
-    if (extractedData.due_date || extractedData.dueDate) {
-      setDueDate(toDateLocal(normalizeToYMD(extractedData.due_date || extractedData.dueDate)));
-    }
+      if (extractedData.bill_date || extractedData.billDate) {
+        setBillDate(toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate)));
+      }
+      if (extractedData.due_date || extractedData.dueDate) {
+        setDueDate(toDateLocal(normalizeToYMD(extractedData.due_date || extractedData.dueDate)));
+      }
 
-    // Fetch line items
-    supabase
-      .from('pending_bill_lines')
-      .select('*')
-      .eq('pending_upload_id', pendingUploadId)
-      .order('line_number')
-      .then(({ data }) => {
-        if (data) {
+      // Fetch default cost code if vendor has exactly 1
+      let defaultCostCode: string | null = null;
+      if (extractedVendorId) {
+        const { data: costCodeData } = await supabase
+          .from('company_cost_codes')
+          .select('cost_code_id')
+          .eq('company_id', extractedVendorId);
+
+        if (costCodeData && costCodeData.length === 1) {
+          defaultCostCode = costCodeData[0].cost_code_id;
+          setDefaultCostCodeId(defaultCostCode);
+        }
+      }
+
+      // Fetch line items
+      const { data } = await supabase
+        .from('pending_bill_lines')
+        .select('*')
+        .eq('pending_upload_id', pendingUploadId)
+        .order('line_number');
+
+      if (data) {
           const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
           const isSingleLine = data.length === 1;
           
@@ -115,7 +132,7 @@ export function EditExtractedBillDialog({
               return {
                 id: line.id,
                 line_type: line.line_type,
-                cost_code_id: line.cost_code_id || undefined,
+                cost_code_id: line.cost_code_id || defaultCostCode || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
@@ -155,55 +172,20 @@ export function EditExtractedBillDialog({
               };
             });
 
-          setJobCostLines(jobCost);
-          setExpenseLines(expense);
+        setJobCostLines(jobCost);
+        setExpenseLines(expense);
 
-          // Default to the tab that has data
-          if (expense.length > 0 && jobCost.length === 0) {
-            setActiveTab("expense");
-          } else if (jobCost.length > 0) {
-            setActiveTab("job-cost");
-          }
+        // Default to the tab that has data
+        if (expense.length > 0 && jobCost.length === 0) {
+          setActiveTab("expense");
+        } else if (jobCost.length > 0) {
+          setActiveTab("job-cost");
         }
-      });
-  }, [open, pendingUploadId, pendingBills]);
-
-  // Smart default cost code: If vendor has exactly 1 associated cost code, auto-populate it
-  useEffect(() => {
-    if (!vendorId) {
-      setDefaultCostCodeId(null);
-      return;
-    }
-
-    const fetchDefaultCostCode = async () => {
-      const { data, error } = await supabase
-        .from('company_cost_codes')
-        .select('cost_code_id')
-        .eq('company_id', vendorId);
-
-      if (error || !data) {
-        setDefaultCostCodeId(null);
-        return;
-      }
-
-      // Only set default if exactly 1 cost code is associated
-      if (data.length === 1) {
-        const defaultId = data[0].cost_code_id;
-        setDefaultCostCodeId(defaultId);
-
-        // Apply default to existing job cost lines that don't have a cost code
-        setJobCostLines(lines =>
-          lines.map(line => 
-            !line.cost_code_id ? { ...line, cost_code_id: defaultId } : line
-          )
-        );
-      } else {
-        setDefaultCostCodeId(null);
       }
     };
 
-    fetchDefaultCostCode();
-  }, [vendorId]);
+    loadBillData();
+  }, [open, pendingUploadId, pendingBills]);
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
