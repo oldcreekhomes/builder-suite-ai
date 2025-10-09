@@ -189,6 +189,7 @@ export const usePendingBills = () => {
     mutationFn: async ({
       pendingUploadId,
       vendorId,
+      projectId,
       billDate,
       dueDate,
       referenceNumber,
@@ -197,6 +198,7 @@ export const usePendingBills = () => {
     }: {
       pendingUploadId: string;
       vendorId: string;
+      projectId: string;
       billDate: string;
       dueDate?: string;
       referenceNumber?: string;
@@ -206,6 +208,7 @@ export const usePendingBills = () => {
       const { data, error } = await supabase.rpc('approve_pending_bill', {
         pending_upload_id_param: pendingUploadId,
         vendor_id_param: vendorId,
+        project_id_param: projectId,
         bill_date_param: billDate,
         due_date_param: dueDate || null,
         reference_number_param: referenceNumber || null,
@@ -284,6 +287,7 @@ export const usePendingBills = () => {
     mutationFn: async (bills: Array<{
       pendingUploadId: string;
       vendorId: string;
+      projectId: string;
       billDate: string;
       dueDate?: string;
       referenceNumber?: string;
@@ -296,6 +300,7 @@ export const usePendingBills = () => {
           const { data, error } = await supabase.rpc('approve_pending_bill', {
             pending_upload_id_param: bill.pendingUploadId,
             vendor_id_param: bill.vendorId,
+            project_id_param: bill.projectId,
             bill_date_param: bill.billDate,
             due_date_param: bill.dueDate || null,
             reference_number_param: bill.referenceNumber || null,

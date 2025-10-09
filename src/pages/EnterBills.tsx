@@ -533,6 +533,16 @@ export default function EnterBills() {
       return;
     }
 
+    // Check if we have a project context (required for all bills)
+    if (!projectId) {
+      toast({
+        title: "Project Required",
+        description: "Bills must be associated with a project. Please navigate to a specific project to enter bills.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     console.log('=== BILL SUBMISSION DEBUG ===');
@@ -582,6 +592,7 @@ export default function EnterBills() {
       .map(bill => ({
         pendingUploadId: bill.id,
         vendorId: bill.vendor_id,
+        projectId: projectId!, // Required - checked above
         billDate: bill.bill_date,
         dueDate: bill.due_date,
         referenceNumber: bill.reference_number,
@@ -725,6 +736,15 @@ export default function EnterBills() {
       return;
     }
 
+    if (!projectId) {
+      toast({
+        title: "Validation Error",
+        description: "Bills must be associated with a project. Please navigate to a specific project to enter bills.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Attempt to resolve cost code IDs from text before validation (synchronously)
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
@@ -812,9 +832,19 @@ export default function EnterBills() {
       }
     }
 
+    // Project is required for all bills
+    if (!derivedProjectId) {
+      toast({
+        title: "Validation Error",
+        description: "Bills must be associated with a project.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const billData: BillData = {
       vendor_id: vendor,
-      project_id: derivedProjectId || undefined,
+      project_id: derivedProjectId,
       bill_date: billDate.toISOString().split('T')[0],
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,
@@ -896,6 +926,15 @@ export default function EnterBills() {
       return;
     }
 
+    if (!projectId) {
+      toast({
+        title: "Validation Error",
+        description: "Bills must be associated with a project. Please navigate to a specific project to enter bills.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Attempt to resolve cost code IDs from text before validation (synchronously)
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
@@ -983,9 +1022,19 @@ export default function EnterBills() {
       }
     }
 
+    // Project is required for all bills
+    if (!derivedProjectId) {
+      toast({
+        title: "Validation Error",
+        description: "Bills must be associated with a project.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const billData: BillData = {
       vendor_id: vendor,
-      project_id: derivedProjectId || undefined,
+      project_id: derivedProjectId,
       bill_date: billDate.toISOString().split('T')[0],
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,

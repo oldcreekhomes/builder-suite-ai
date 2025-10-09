@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePendingBills } from "@/hooks/usePendingBills";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
+import { JobSearchInput } from "@/components/JobSearchInput";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -31,21 +32,31 @@ interface ApproveBillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pendingUploadId: string;
+  projectId?: string;
 }
 
 export const ApproveBillDialog = ({
   open,
   onOpenChange,
   pendingUploadId,
+  projectId: initialProjectId,
 }: ApproveBillDialogProps) => {
   const { approveBill } = usePendingBills();
   const [vendorId, setVendorId] = useState("");
+  const [projectId, setProjectId] = useState(initialProjectId || "");
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [referenceNumber, setReferenceNumber] = useState("");
   const [terms, setTerms] = useState("");
   const [notes, setNotes] = useState("");
   const [extractedVendorName, setExtractedVendorName] = useState<string | null>(null);
+
+  // Update projectId when initialProjectId changes
+  useEffect(() => {
+    if (initialProjectId) {
+      setProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
 
   // Fetch pending upload data and auto-match vendor
   useEffect(() => {
@@ -131,10 +142,16 @@ export const ApproveBillDialog = ({
       return;
     }
 
+    if (!projectId) {
+      alert('Please select a project');
+      return;
+    }
+
     approveBill.mutate(
       {
         pendingUploadId,
         vendorId,
+        projectId,
         billDate: format(billDate, 'yyyy-MM-dd'),
         dueDate: dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined,
         referenceNumber,
@@ -186,6 +203,15 @@ export const ApproveBillDialog = ({
                 No matching vendor found. Please create the vendor "{extractedVendorName}" in the Companies page first, or select a different vendor.
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="project">Project *</Label>
+            <JobSearchInput
+              value={projectId}
+              onChange={setProjectId}
+              placeholder="Select project"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -280,7 +306,7 @@ export const ApproveBillDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleApprove} disabled={!vendorId}>
+          <Button onClick={handleApprove} disabled={!vendorId || !projectId}>
             Approve & Create Bill
           </Button>
         </DialogFooter>
