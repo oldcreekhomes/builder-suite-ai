@@ -40,6 +40,7 @@ export default function MakeDeposits() {
   const [depositSourceId, setDepositSourceId] = useState<string>("");
   const [depositSourceName, setDepositSourceName] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("other");
   
   // Company information state - reuse from check settings
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
@@ -380,22 +381,26 @@ export default function MakeDeposits() {
                 </div>
 
                 {/* Deposit Details Section */}
-                <Tabs defaultValue="other" className="w-full space-y-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
                   <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-lg font-medium">Deposit Details</h3>
-                    <TabsList className="grid grid-cols-2 w-auto">
-                      <TabsTrigger value="other">Other Income</TabsTrigger>
-                      <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                    </TabsList>
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-lg font-medium">Deposit Details</h3>
+                      <TabsList className="grid grid-cols-2 w-auto">
+                        <TabsTrigger value="other">Other Income</TabsTrigger>
+                        <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                      </TabsList>
+                    </div>
+                    <Button 
+                      onClick={activeTab === "other" ? addOtherRow : addRevenueRow} 
+                      size="sm" 
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Row
+                    </Button>
                   </div>
                     
                     <TabsContent value="other" className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Button onClick={addOtherRow} size="sm" variant="outline">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Row
-                        </Button>
-                      </div>
 
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
@@ -474,12 +479,6 @@ export default function MakeDeposits() {
                     </TabsContent>
                     
                     <TabsContent value="revenue" className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Button onClick={addRevenueRow} size="sm" variant="outline">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Row
-                        </Button>
-                      </div>
 
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
