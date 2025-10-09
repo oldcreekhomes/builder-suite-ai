@@ -1772,6 +1772,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -1954,6 +1975,13 @@ export type Database = {
           user_role: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       mark_conversation_as_read: {
         Args: { other_user_id_param: string }
         Returns: undefined
@@ -2025,6 +2053,7 @@ export type Database = {
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
+      app_role: "owner" | "accountant" | "employee"
       bill_line_type: "job_cost" | "expense"
       bill_status: "draft" | "posted" | "void" | "paid"
       user_type: "home_builder" | "employee"
@@ -2156,6 +2185,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
+      app_role: ["owner", "accountant", "employee"],
       bill_line_type: ["job_cost", "expense"],
       bill_status: ["draft", "posted", "void", "paid"],
       user_type: ["home_builder", "employee"],

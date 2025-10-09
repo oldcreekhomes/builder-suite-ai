@@ -21,7 +21,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
+import { useUserRole } from "@/hooks/useUserRole";
 import { BillFilesCell } from "./BillFilesCell";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 
 interface BillForApproval {
@@ -69,7 +71,8 @@ interface BillsApprovalTableProps {
 }
 
 export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProps) {
-  const { approveBill, rejectBill } = useBills();
+  const { approveBill, rejectBill, deleteBill } = useBills();
+  const { canDeleteBills } = useUserRole();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     action: string;
@@ -212,6 +215,7 @@ export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProp
   };
 
   const canShowActions = status === 'draft';
+  const canShowDeleteButton = canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid'))));
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills...</div>;
@@ -234,12 +238,15 @@ export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProp
               {canShowActions && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
+              {canShowDeleteButton && (
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-20">Delete</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 9 : canShowDeleteButton ? 9 : 8} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -286,6 +293,18 @@ export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProp
                           </SelectContent>
                         </Select>
                       </div>
+                    </TableCell>
+                  )}
+                  {canShowDeleteButton && (
+                    <TableCell className="py-1 text-left">
+                      <DeleteButton
+                        onDelete={() => deleteBill.mutate(bill.id)}
+                        title="Delete Bill"
+                        description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
+                        size="sm"
+                        variant="ghost"
+                        isLoading={deleteBill.isPending}
+                      />
                     </TableCell>
                   )}
                 </TableRow>
