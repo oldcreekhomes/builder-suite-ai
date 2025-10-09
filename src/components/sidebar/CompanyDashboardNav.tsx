@@ -1,10 +1,8 @@
-import { Calculator, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
-const items = [
-  { title: "Company Accounting", url: "/accounting", icon: Calculator },
-];
+const items: any[] = [];
 
 export function CompanyDashboardNav() {
   const { data: issueCounts } = useIssueCounts();
