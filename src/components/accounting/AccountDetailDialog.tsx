@@ -82,6 +82,11 @@ export function AccountDetailDialog({
         .filter((line: any) => line.journal_entries.source_type === 'check')
         .map((line: any) => line.journal_entries.source_id);
 
+      // Get deposit IDs for deposit transactions
+      const depositIds = (data || [])
+        .filter((line: any) => line.journal_entries.source_type === 'deposit')
+        .map((line: any) => line.journal_entries.source_id);
+
       // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
       let checkLinesMap = new Map();
@@ -144,6 +149,44 @@ export function AccountDetailDialog({
         });
       }
 
+      // Fetch deposit details with customer names if we have any deposits
+      let depositsMap = new Map();
+      let depositLinesMap = new Map();
+      
+      if (depositIds.length > 0) {
+        const { data: depositsData } = await supabase
+          .from('deposits')
+          .select(`
+            id, 
+            memo,
+            deposit_source_id,
+            deposit_sources(customer_name)
+          `)
+          .in('id', depositIds);
+        
+        // Fetch deposit lines to get descriptions
+        const { data: depositLinesData } = await supabase
+          .from('deposit_lines')
+          .select('deposit_id, memo, line_number')
+          .in('deposit_id', depositIds)
+          .order('line_number', { ascending: true });
+        
+        // Group deposit lines by deposit_id
+        depositLinesData?.forEach((line: any) => {
+          if (!depositLinesMap.has(line.deposit_id)) {
+            depositLinesMap.set(line.deposit_id, []);
+          }
+          depositLinesMap.get(line.deposit_id).push(line.memo);
+        });
+        
+        depositsData?.forEach((deposit: any) => {
+          depositsMap.set(deposit.id, {
+            ...deposit,
+            customer_name: deposit.deposit_sources?.customer_name || null
+          });
+        });
+      }
+
       const transactions: Transaction[] = (data || []).map((line: any) => {
         let memo = line.memo;
         let vendor = null;
@@ -163,6 +206,23 @@ export function AccountDetailDialog({
             if (checkLineMemos && checkLineMemos.length > 0) {
               // Join all line memos with semicolons if multiple lines
               description = checkLineMemos.filter((m: string) => m).join('; ');
+            }
+          }
+        }
+
+        // If this is a deposit, get customer details and descriptions from deposits table
+        if (line.journal_entries.source_type === 'deposit') {
+          const deposit = depositsMap.get(line.journal_entries.source_id);
+          if (deposit) {
+            memo = deposit.memo;
+            vendor = deposit.customer_name || 'Cash';
+            reference = null;
+            
+            // Get descriptions from deposit_lines
+            const depositLineMemos = depositLinesMap.get(line.journal_entries.source_id);
+            if (depositLineMemos && depositLineMemos.length > 0) {
+              // Join all line memos with semicolons if multiple lines
+              description = depositLineMemos.filter((m: string) => m).join('; ');
             }
           }
         }
