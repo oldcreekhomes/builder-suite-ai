@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { JobSearchInput } from "@/components/JobSearchInput";
+import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -302,10 +303,6 @@ export default function MakeDeposits() {
     }
   };
 
-  // Get revenue/income accounts for dropdown
-  const revenueAccounts = (accounts as any[]).filter(acc => 
-    acc.type === 'revenue' || acc.type === 'income'
-  );
 
   return (
     <SidebarProvider>
@@ -482,7 +479,7 @@ export default function MakeDeposits() {
 
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
+                          <div className="col-span-3">Cost Code</div>
                           <div className="col-span-5">Description</div>
                           <div className="col-span-1">Quantity</div>
                           <div className="col-span-1">Cost</div>
@@ -493,15 +490,14 @@ export default function MakeDeposits() {
                         {revenueRows.map((row) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
-                              <AccountSearchInputInline
+                              <CostCodeSearchInput
                                 value={row.account}
                                 onChange={(value) => updateRevenueRow(row.id, "account", value)}
-                                onAccountSelect={(account) => {
-                                  updateRevenueRow(row.id, "accountId", account.id);
-                                  updateRevenueRow(row.id, "account", `${account.code} - ${account.name}`);
+                                onCostCodeSelect={(costCode) => {
+                                  updateRevenueRow(row.id, "accountId", costCode.id);
+                                  updateRevenueRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
                                 }}
-                                placeholder="Select account..."
-                                accountType="revenue"
+                                placeholder="Select cost code..."
                                 className="h-8"
                               />
                             </div>
