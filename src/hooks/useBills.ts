@@ -417,6 +417,7 @@ export const useBills = () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast({
         title: "Success",
         description: "Bill and related journal entries deleted successfully",
