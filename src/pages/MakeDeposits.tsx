@@ -386,8 +386,8 @@ export default function MakeDeposits() {
                     <div className="flex items-center gap-4">
                       <h3 className="text-lg font-medium">Deposit Details</h3>
                       <TabsList className="grid grid-cols-2 w-auto">
-                        <TabsTrigger value="other">Other Income</TabsTrigger>
-                        <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                        <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
+                        <TabsTrigger value="revenue">Job Cost</TabsTrigger>
                       </TabsList>
                     </div>
                     <Button 
