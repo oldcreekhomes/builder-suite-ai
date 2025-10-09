@@ -456,7 +456,7 @@ export default function MakeDeposits() {
                             </div>
                             <div className="col-span-1 flex items-center">
                               <span className="text-sm font-medium">
-                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                             <div className="col-span-1 flex justify-center items-center">
@@ -534,7 +534,7 @@ export default function MakeDeposits() {
                             </div>
                             <div className="col-span-1 flex items-center">
                               <span className="text-sm font-medium">
-                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                             <div className="col-span-1 flex justify-center items-center">
@@ -556,7 +556,7 @@ export default function MakeDeposits() {
                   <div className="p-3 bg-muted border rounded-lg">
                     <div className="flex justify-between items-center">
                       <div className="text-base font-semibold">
-                        Total: ${calculateTotal()}
+                        Total: ${getDisplayAmount()}
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
