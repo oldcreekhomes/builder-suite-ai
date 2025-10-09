@@ -33,6 +33,7 @@ interface LineItem {
   line_type: string;
   account_id?: string;
   cost_code_id?: string;
+  cost_code_display?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -127,11 +128,26 @@ export function EditExtractedBillDialog({
             }
             const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
 
+            // Fetch cost code display string if applicable
+            let costCodeDisplay = '';
+            const costCodeToUse = line.cost_code_id || defaultCostCode;
+            if (costCodeToUse) {
+              const { data: ccData } = await supabase
+                .from('cost_codes')
+                .select('code, name')
+                .eq('id', costCodeToUse)
+                .single();
+              if (ccData) {
+                costCodeDisplay = `${ccData.code} - ${ccData.name}`;
+              }
+            }
+
             if (line.line_type === 'job_cost') {
               jobCost.push({
                 id: line.id,
                 line_type: 'job_cost',
-                cost_code_id: line.cost_code_id || defaultCostCode || undefined,
+                cost_code_id: costCodeToUse || undefined,
+                cost_code_display: costCodeDisplay || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
@@ -144,6 +160,7 @@ export function EditExtractedBillDialog({
                   id: line.id,
                   line_type: 'job_cost',
                   cost_code_id: defaultCostCode,
+                  cost_code_display: costCodeDisplay || undefined,
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
@@ -189,13 +206,26 @@ export function EditExtractedBillDialog({
       if (cc && cc.length === 1) {
         const id = cc[0].cost_code_id as string;
         setDefaultCostCodeId(id);
-        setJobCostLines(prev => prev.map(l => ({ ...l, cost_code_id: l.cost_code_id || id })));
+        
+        // Fetch display string for default cost code
+        const { data: ccData } = await supabase
+          .from('cost_codes')
+          .select('code, name')
+          .eq('id', id)
+          .single();
+        const display = ccData ? `${ccData.code} - ${ccData.name}` : '';
+        
+        setJobCostLines(prev => prev.map(l => ({ 
+          ...l, 
+          cost_code_id: l.cost_code_id || id,
+          cost_code_display: l.cost_code_display || display
+        })));
         setExpenseLines(prev => {
           const keep: LineItem[] = [];
           const promote: LineItem[] = [];
           prev.forEach(l => {
             if (!l.account_id && !l.cost_code_id) {
-              promote.push({ ...l, line_type: 'job_cost', cost_code_id: id });
+              promote.push({ ...l, line_type: 'job_cost', cost_code_id: id, cost_code_display: display });
             } else {
               keep.push(l);
             }
@@ -222,8 +252,29 @@ export function EditExtractedBillDialog({
     ...(type === 'job_cost' && defaultCostCodeId ? { cost_code_id: defaultCostCodeId } : {}),
   });
 
-  const addJobCostLine = () => {
-    setJobCostLines([...jobCostLines, createEmptyLine('job_cost')]);
+  const addJobCostLine = async () => {
+    const newLine: LineItem = {
+      id: `new-${Date.now()}`,
+      line_type: 'job_cost',
+      quantity: 1,
+      unit_cost: 0,
+      amount: 0,
+      memo: "",
+    };
+
+    // If there's a default cost code, fetch and add its display string
+    if (defaultCostCodeId) {
+      const { data: ccData } = await supabase
+        .from('cost_codes')
+        .select('code, name')
+        .eq('id', defaultCostCodeId)
+        .single();
+      
+      newLine.cost_code_id = defaultCostCodeId;
+      newLine.cost_code_display = ccData ? `${ccData.code} - ${ccData.name}` : '';
+    }
+
+    setJobCostLines([...jobCostLines, newLine]);
   };
 
   const addExpenseLine = () => {
@@ -251,6 +302,10 @@ export function EditExtractedBillDialog({
         const updated = { ...line, [field]: value };
         if (field === 'quantity' || field === 'unit_cost') {
           updated.amount = (updated.quantity || 0) * (updated.unit_cost || 0);
+        }
+        // If cost_code_display is being updated, keep cost_code_id in sync
+        if (field === 'cost_code_display') {
+          // The display value is being updated, cost_code_id should be set via onCostCodeSelect
         }
         return updated;
       })
@@ -539,11 +594,18 @@ export function EditExtractedBillDialog({
                     <TableRow key={line.id}>
                       <TableCell>
                         <CostCodeSearchInput
-                          value={line.cost_code_id || ""}
-                          onChange={(value) => updateJobCostLine(line.id, 'cost_code_id', value)}
+                          value={line.cost_code_display || ""}
+                          onChange={(value) => updateJobCostLine(line.id, 'cost_code_display', value)}
                           onCostCodeSelect={(costCode) => {
                             if (costCode) {
-                              updateJobCostLine(line.id, 'cost_code_id', costCode.id);
+                              const display = `${costCode.code} - ${costCode.name}`;
+                              setJobCostLines(lines =>
+                                lines.map(l => 
+                                  l.id === line.id 
+                                    ? { ...l, cost_code_id: costCode.id, cost_code_display: display }
+                                    : l
+                                )
+                              );
                             }
                           }}
                         />
