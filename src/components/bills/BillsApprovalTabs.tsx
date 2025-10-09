@@ -10,7 +10,7 @@ interface BillsApprovalTabsProps {
 
 export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState("pending");
-  const { data: counts, isLoading } = useBillCounts();
+  const { data: counts, isLoading } = useBillCounts(projectId);
 
   const getTabLabel = (status: string, count: number | undefined) => {
     if (isLoading) {
@@ -61,15 +61,15 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
       </TabsList>
       
       <TabsContent value="pending" className="mt-6">
-        <BillsApprovalTable status="draft" />
+        <BillsApprovalTable status="draft" projectId={projectId} />
       </TabsContent>
       
       <TabsContent value="rejected" className="mt-6">
-        <BillsApprovalTable status="void" />
+        <BillsApprovalTable status="void" projectId={projectId} />
       </TabsContent>
       
       <TabsContent value="approved" className="mt-6">
-        <BillsApprovalTable status={['posted', 'paid']} />
+        <BillsApprovalTable status={['posted', 'paid']} projectId={projectId} />
       </TabsContent>
       
       <TabsContent value="pay-bills" className="mt-6">

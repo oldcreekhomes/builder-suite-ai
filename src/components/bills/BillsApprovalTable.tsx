@@ -65,9 +65,10 @@ interface BillForApproval {
 
 interface BillsApprovalTableProps {
   status: 'draft' | 'void' | 'posted' | 'paid' | Array<'draft' | 'void' | 'posted' | 'paid'>;
+  projectId?: string;
 }
 
-export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProps) {
   const { approveBill, rejectBill } = useBills();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -83,7 +84,7 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
 
   // Fetch bills based on status
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-approval-v3', status],
+    queryKey: ['bills-for-approval-v3', status, projectId],
     queryFn: async () => {
       const statusArray = Array.isArray(status) ? status : [status];
       
@@ -129,6 +130,11 @@ export function BillsApprovalTable({ status }: BillsApprovalTableProps) {
           )
         `)
         .in('status', statusArray);
+
+      // Filter by project_id if provided
+      if (projectId) {
+        directQuery = directQuery.eq('project_id', projectId);
+      }
 
       const { data: directBills, error: directError } = await directQuery;
 

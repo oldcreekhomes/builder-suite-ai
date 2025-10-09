@@ -8,31 +8,44 @@ interface BillCounts {
   payBillsCount: number;
 }
 
-export function useBillCounts() {
+export function useBillCounts(projectId?: string) {
   return useQuery({
-    queryKey: ['bill-approval-counts'],
+    queryKey: ['bill-approval-counts', projectId],
     queryFn: async (): Promise<BillCounts> => {
       // Get counts for each status
+      const pendingQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'draft');
+      
+      const rejectedQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'void');
+      
+      const approvedQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['posted', 'paid']);
+      
+      const payBillsQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'posted');
+
+      // Apply project filter if provided
+      if (projectId) {
+        pendingQuery.eq('project_id', projectId);
+        rejectedQuery.eq('project_id', projectId);
+        approvedQuery.eq('project_id', projectId);
+        payBillsQuery.eq('project_id', projectId);
+      }
+
       const [pendingResult, rejectedResult, approvedResult, payBillsResult] = await Promise.all([
-        supabase
-          .from('bills')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'draft'),
-        
-        supabase
-          .from('bills')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'void'),
-        
-        supabase
-          .from('bills')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['posted', 'paid']),
-        
-        supabase
-          .from('bills')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'posted')
+        pendingQuery,
+        rejectedQuery,
+        approvedQuery,
+        payBillsQuery
       ]);
 
       if (pendingResult.error) throw pendingResult.error;
