@@ -387,11 +387,95 @@ export default function MakeDeposits() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Deposit Details</h3>
                   
-                  <Tabs defaultValue="revenue" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                      <TabsTrigger value="other">Other Income</TabsTrigger>
-                    </TabsList>
+              <Tabs defaultValue="other" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="other">Other Income</TabsTrigger>
+                  <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                </TabsList>
+                    
+                    <TabsContent value="other" className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button onClick={addOtherRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Row
+                        </Button>
+                      </div>
+
+                      <div className="border rounded-lg overflow-visible">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Account</div>
+                          <div className="col-span-5">Description</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
+                          <div className="col-span-1 text-center">Action</div>
+                        </div>
+
+                        {otherRows.map((row) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <AccountSearchInputInline
+                                value={row.account}
+                                onChange={(value) => updateOtherRow(row.id, "account", value)}
+                                onAccountSelect={(account) => {
+                                  updateOtherRow(row.id, "accountId", account.id);
+                                  updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
+                                }}
+                                placeholder="Select account..."
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-5">
+                              <Input
+                                value={row.memo}
+                                onChange={(e) => updateOtherRow(row.id, "memo", e.target.value)}
+                                placeholder="Description..."
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateOtherRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateOtherRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center">
+                              <Button
+                                onClick={() => removeOtherRow(row.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={otherRows.length === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
                     
                     <TabsContent value="revenue" className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -468,90 +552,6 @@ export default function MakeDeposits() {
                                 size="sm"
                                 variant="destructive"
                                 disabled={revenueRows.length === 1}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="other" className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Button onClick={addOtherRow} size="sm" variant="outline">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Row
-                        </Button>
-                      </div>
-
-                      <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Account</div>
-                          <div className="col-span-5">Description</div>
-                          <div className="col-span-1">Quantity</div>
-                          <div className="col-span-1">Cost</div>
-                          <div className="col-span-1">Total</div>
-                          <div className="col-span-1 text-center">Action</div>
-                        </div>
-
-                        {otherRows.map((row) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
-                              <AccountSearchInputInline
-                                value={row.account}
-                                onChange={(value) => updateOtherRow(row.id, "account", value)}
-                                onAccountSelect={(account) => {
-                                  updateOtherRow(row.id, "accountId", account.id);
-                                  updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
-                                }}
-                                placeholder="Select account..."
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="col-span-5">
-                              <Input
-                                value={row.memo}
-                                onChange={(e) => updateOtherRow(row.id, "memo", e.target.value)}
-                                placeholder="Description..."
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={row.quantity || "1"}
-                                onChange={(e) => updateOtherRow(row.id, "quantity", e.target.value)}
-                                placeholder="1"
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={row.amount}
-                                  onChange={(e) => updateOtherRow(row.id, "amount", e.target.value)}
-                                  placeholder="0.00"
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                              </div>
-                            </div>
-                            <div className="col-span-1 flex items-center">
-                              <span className="text-sm font-medium">
-                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="col-span-1 flex justify-center items-center">
-                              <Button
-                                onClick={() => removeOtherRow(row.id)}
-                                size="sm"
-                                variant="destructive"
-                                disabled={otherRows.length === 1}
                                 className="h-8 w-8 p-0"
                               >
                                 <Trash2 className="h-4 w-4" />
