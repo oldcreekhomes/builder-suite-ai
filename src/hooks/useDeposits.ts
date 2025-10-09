@@ -18,6 +18,7 @@ export interface DepositData {
   project_id?: string;
   amount: number;
   memo?: string;
+  deposit_source_id?: string;
   company_name?: string;
   company_address?: string;
   company_city_state?: string;
@@ -66,6 +67,7 @@ export const useDeposits = () => {
           project_id: depositData.project_id || null,
           amount: depositData.amount,
           memo: depositData.memo || null,
+          deposit_source_id: depositData.deposit_source_id || null,
           company_name: depositData.company_name,
           company_address: depositData.company_address,
           company_city_state: depositData.company_city_state,

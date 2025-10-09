@@ -19,6 +19,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
+import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
 
 interface DepositRow {
   id: string;
@@ -35,7 +36,8 @@ export default function MakeDeposits() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [depositDate, setDepositDate] = useState<Date>(new Date());
-  const [receivedFrom, setReceivedFrom] = useState<string>("");
+  const [depositSourceId, setDepositSourceId] = useState<string>("");
+  const [depositSourceName, setDepositSourceName] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   
   // Company information state - reuse from check settings
@@ -153,7 +155,7 @@ export default function MakeDeposits() {
 
   const handleSave = async (saveAndNew: boolean = false) => {
     // Validate required fields
-    if (!receivedFrom) {
+    if (!depositSourceName) {
       toast({
         title: "Validation Error",
         description: "Please enter who the deposit is from",
@@ -207,7 +209,8 @@ export default function MakeDeposits() {
       bank_account_id: bankAccount,
       project_id: projectId || undefined,
       amount: depositAmount,
-      memo: receivedFrom,
+      memo: depositSourceName,
+      deposit_source_id: depositSourceId || undefined,
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
@@ -221,7 +224,8 @@ export default function MakeDeposits() {
       
       if (saveAndNew) {
         // Reset form for new deposit
-        setReceivedFrom("");
+        setDepositSourceId("");
+        setDepositSourceName("");
         setDepositRows([
           { id: Date.now().toString(), account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
         ]);
@@ -294,11 +298,14 @@ export default function MakeDeposits() {
 
                   <div className="space-y-2">
                     <Label htmlFor="receivedFrom">Received From</Label>
-                    <Input
-                      id="receivedFrom"
-                      value={receivedFrom}
-                      onChange={(e) => setReceivedFrom(e.target.value)}
-                      placeholder="Customer or source name"
+                    <DepositSourceSearchInput
+                      value={depositSourceName}
+                      onChange={setDepositSourceName}
+                      onSourceSelect={(sourceId, sourceName) => {
+                        setDepositSourceId(sourceId);
+                        setDepositSourceName(sourceName);
+                      }}
+                      placeholder="Search or add customer"
                     />
                   </div>
 

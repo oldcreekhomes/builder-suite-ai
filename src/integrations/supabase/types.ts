@@ -834,6 +834,51 @@ export type Database = {
           },
         ]
       }
+      deposit_sources: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          customer_name: string
+          email: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          phone_number: string | null
+          state: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          customer_name: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          customer_name?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          phone_number?: string | null
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       deposits: {
         Row: {
           account_number: string | null
@@ -846,6 +891,7 @@ export type Database = {
           created_at: string
           created_by: string
           deposit_date: string
+          deposit_source_id: string | null
           id: string
           memo: string | null
           owner_id: string
@@ -865,6 +911,7 @@ export type Database = {
           created_at?: string
           created_by: string
           deposit_date?: string
+          deposit_source_id?: string | null
           id?: string
           memo?: string | null
           owner_id: string
@@ -884,6 +931,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           deposit_date?: string
+          deposit_source_id?: string | null
           id?: string
           memo?: string | null
           owner_id?: string
@@ -892,7 +940,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deposits_deposit_source_id_fkey"
+            columns: ["deposit_source_id"]
+            isOneToOne: false
+            referencedRelation: "deposit_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       issue_files: {
         Row: {
