@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format } from "date-fns";
@@ -50,7 +51,11 @@ export default function MakeDeposits() {
   const [accountNumber, setAccountNumber] = useState<string>("1234567890");
   const [bankName, setBankName] = useState<string>("Your Bank Name");
   
-  const [depositRows, setDepositRows] = useState<DepositRow[]>([
+  const [revenueRows, setRevenueRows] = useState<DepositRow[]>([
+    { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
+  ]);
+  
+  const [otherRows, setOtherRows] = useState<DepositRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
   ]);
 
@@ -68,7 +73,7 @@ export default function MakeDeposits() {
     }
   }, [settings]);
 
-  const addDepositRow = () => {
+  const addRevenueRow = () => {
     const newRow: DepositRow = {
       id: Date.now().toString(),
       account: "",
@@ -79,28 +84,66 @@ export default function MakeDeposits() {
       amount: "",
       memo: ""
     };
-    setDepositRows([...depositRows, newRow]);
+    setRevenueRows([...revenueRows, newRow]);
   };
 
-  const removeDepositRow = (id: string) => {
-    if (depositRows.length > 1) {
-      setDepositRows(depositRows.filter(row => row.id !== id));
+  const removeRevenueRow = (id: string) => {
+    if (revenueRows.length > 1) {
+      setRevenueRows(revenueRows.filter(row => row.id !== id));
     }
   };
 
-  const updateDepositRow = (id: string, field: keyof DepositRow, value: string) => {
-    setDepositRows(depositRows.map(row => 
+  const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
+    setRevenueRows(revenueRows.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
   };
 
+  const addOtherRow = () => {
+    const newRow: DepositRow = {
+      id: Date.now().toString(),
+      account: "",
+      accountId: "",
+      project: "",
+      projectId: projectId || "",
+      quantity: "1",
+      amount: "",
+      memo: ""
+    };
+    setOtherRows([...otherRows, newRow]);
+  };
+
+  const removeOtherRow = (id: string) => {
+    if (otherRows.length > 1) {
+      setOtherRows(otherRows.filter(row => row.id !== id));
+    }
+  };
+
+  const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
+    setOtherRows(otherRows.map(row => 
+      row.id === id ? { ...row, [field]: value } : row
+    ));
+  };
+
+  const handleClear = () => {
+    setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+  };
+
   const calculateTotal = () => {
-    const total = depositRows.reduce((sum, row) => {
+    const revenueTotal = revenueRows.reduce((sum, row) => {
       const q = parseFloat(row.quantity || "0") || 0;
       const c = parseFloat(row.amount) || 0;
       return sum + q * c;
     }, 0);
-    return total.toFixed(2);
+    
+    const otherTotal = otherRows.reduce((sum, row) => {
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return sum + q * c;
+    }, 0);
+    
+    return (revenueTotal + otherTotal).toFixed(2);
   };
 
   const getDisplayAmount = () => {
@@ -173,14 +216,20 @@ export default function MakeDeposits() {
       return;
     }
 
-    // Filter and validate deposit rows
-    const validRows = depositRows.filter(row => {
+    // Filter and validate deposit rows from both tabs
+    const validRevenueRows = revenueRows.filter(row => {
       const q = parseFloat(row.quantity || "0") || 0;
       const c = parseFloat(row.amount) || 0;
       return row.accountId && (q * c) > 0;
     });
     
-    if (validRows.length === 0) {
+    const validOtherRows = otherRows.filter(row => {
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return row.accountId && (q * c) > 0;
+    });
+    
+    if (validRevenueRows.length === 0 && validOtherRows.length === 0) {
       toast({
         title: "Validation Error",
         description: "Please add at least one line item with an account and amount",
@@ -189,8 +238,8 @@ export default function MakeDeposits() {
       return;
     }
 
-    // Prepare deposit lines
-    const depositLines: DepositLineData[] = validRows.map(row => {
+    // Prepare deposit lines from revenue tab
+    const revenueLines: DepositLineData[] = validRevenueRows.map(row => {
       const q = parseFloat(row.quantity || "0") || 0;
       const c = parseFloat(row.amount) || 0;
       return {
@@ -201,6 +250,22 @@ export default function MakeDeposits() {
         memo: row.memo || undefined
       };
     });
+    
+    // Prepare deposit lines from other income tab
+    const otherLines: DepositLineData[] = validOtherRows.map(row => {
+      const q = parseFloat(row.quantity || "0") || 0;
+      const c = parseFloat(row.amount) || 0;
+      return {
+        line_type: 'revenue' as const,
+        account_id: row.accountId,
+        project_id: row.projectId || undefined,
+        amount: q * c,
+        memo: row.memo || undefined
+      };
+    });
+    
+    // Combine all lines
+    const depositLines: DepositLineData[] = [...revenueLines, ...otherLines];
 
     const depositAmount = parseFloat(calculateTotal());
 
@@ -226,9 +291,7 @@ export default function MakeDeposits() {
         // Reset form for new deposit
         setDepositSourceId("");
         setDepositSourceName("");
-        setDepositRows([
-          { id: Date.now().toString(), account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
-        ]);
+        handleClear();
       } else {
         // Navigate back
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
@@ -324,114 +387,208 @@ export default function MakeDeposits() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Deposit Details</h3>
                   
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Button onClick={addDepositRow} size="sm" variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Row
-                      </Button>
-                    </div>
-
-                    <div className="border rounded-lg overflow-visible">
-                      <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                        <div className="col-span-3">Account</div>
-                        <div className="col-span-5">Description</div>
-                        <div className="col-span-1">Quantity</div>
-                        <div className="col-span-1">Amount</div>
-                        <div className="col-span-1">Total</div>
-                        <div className="col-span-1 text-center">Action</div>
+                  <Tabs defaultValue="revenue" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                      <TabsTrigger value="other">Other Income</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="revenue" className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button onClick={addRevenueRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Row
+                        </Button>
                       </div>
 
-                      {depositRows.map((row) => (
-                        <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                          <div className="col-span-3">
-                            <AccountSearchInputInline
-                              value={row.account}
-                              onChange={(value) => updateDepositRow(row.id, "account", value)}
-                              onAccountSelect={(account) => {
-                                updateDepositRow(row.id, "accountId", account.id);
-                                updateDepositRow(row.id, "account", `${account.code} - ${account.name}`);
-                              }}
-                              placeholder="Select account..."
-                              accountType="revenue"
-                              className="h-8"
-                            />
-                          </div>
-                          <div className="col-span-5">
-                            <Input
-                              value={row.memo}
-                              onChange={(e) => updateDepositRow(row.id, "memo", e.target.value)}
-                              placeholder="Description..."
-                              className="h-8"
-                            />
-                          </div>
-                          <div className="col-span-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={row.quantity || "1"}
-                              onChange={(e) => updateDepositRow(row.id, "quantity", e.target.value)}
-                              placeholder="1"
-                              className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </div>
-                          <div className="col-span-1">
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <div className="border rounded-lg overflow-visible">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Account</div>
+                          <div className="col-span-5">Description</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
+                          <div className="col-span-1 text-center">Action</div>
+                        </div>
+
+                        {revenueRows.map((row) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <AccountSearchInputInline
+                                value={row.account}
+                                onChange={(value) => updateRevenueRow(row.id, "account", value)}
+                                onAccountSelect={(account) => {
+                                  updateRevenueRow(row.id, "accountId", account.id);
+                                  updateRevenueRow(row.id, "account", `${account.code} - ${account.name}`);
+                                }}
+                                placeholder="Select account..."
+                                accountType="revenue"
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-5">
+                              <Input
+                                value={row.memo}
+                                onChange={(e) => updateRevenueRow(row.id, "memo", e.target.value)}
+                                placeholder="Description..."
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-1">
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={row.amount}
-                                onChange={(e) => updateDepositRow(row.id, "amount", e.target.value)}
-                                placeholder="0.00"
-                                className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateRevenueRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateRevenueRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center">
+                              <Button
+                                onClick={() => removeRevenueRow(row.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={revenueRows.length === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="col-span-1 flex items-center">
-                            <span className="text-sm font-medium">
-                              ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="col-span-1 flex justify-center items-center">
-                            <Button
-                              onClick={() => removeDepositRow(row.id)}
-                              size="sm"
-                              variant="destructive"
-                              disabled={depositRows.length === 1}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="other" className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button onClick={addOtherRow} size="sm" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Row
+                        </Button>
+                      </div>
+
+                      <div className="border rounded-lg overflow-visible">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Account</div>
+                          <div className="col-span-5">Description</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
+                          <div className="col-span-1 text-center">Action</div>
                         </div>
-                      ))}
-                      
-                      <div className="p-3 bg-muted border-t">
-                        <div className="flex justify-between items-center">
-                          <div className="text-base font-semibold">
-                            Total: ${calculateTotal()}
+
+                        {otherRows.map((row) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <AccountSearchInputInline
+                                value={row.account}
+                                onChange={(value) => updateOtherRow(row.id, "account", value)}
+                                onAccountSelect={(account) => {
+                                  updateOtherRow(row.id, "accountId", account.id);
+                                  updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
+                                }}
+                                placeholder="Select account..."
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-5">
+                              <Input
+                                value={row.memo}
+                                onChange={(e) => updateOtherRow(row.id, "memo", e.target.value)}
+                                placeholder="Description..."
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateOtherRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateOtherRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex items-center">
+                              <span className="text-sm font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center">
+                              <Button
+                                onClick={() => removeOtherRow(row.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={otherRows.length === 1}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => handleSave(true)}
-                              disabled={createDeposit.isPending}
-                            >
-                              {createDeposit.isPending ? "Saving..." : "Save & New"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-8"
-                              onClick={() => handleSave(false)}
-                              disabled={createDeposit.isPending}
-                            >
-                              {createDeposit.isPending ? "Saving..." : "Save & Close"}
-                            </Button>
-                          </div>
-                        </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                  
+                  <div className="p-3 bg-muted border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div className="text-base font-semibold">
+                        Total: ${calculateTotal()}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                          Clear
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handleSave(true)}
+                          disabled={createDeposit.isPending}
+                        >
+                          {createDeposit.isPending ? "Saving..." : "Save & New"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handleSave(false)}
+                          disabled={createDeposit.isPending}
+                        >
+                          {createDeposit.isPending ? "Saving..." : "Save & Close"}
+                        </Button>
                       </div>
                     </div>
                   </div>
