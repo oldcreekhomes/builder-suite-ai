@@ -55,6 +55,7 @@ export function EditExtractedBillDialog({
   const [fileName, setFileName] = useState<string>("");
   const [filePath, setFilePath] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("job-cost");
+  const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
@@ -167,6 +168,43 @@ export function EditExtractedBillDialog({
       });
   }, [open, pendingUploadId, pendingBills]);
 
+  // Smart default cost code: If vendor has exactly 1 associated cost code, auto-populate it
+  useEffect(() => {
+    if (!vendorId) {
+      setDefaultCostCodeId(null);
+      return;
+    }
+
+    const fetchDefaultCostCode = async () => {
+      const { data, error } = await supabase
+        .from('company_cost_codes')
+        .select('cost_code_id')
+        .eq('company_id', vendorId);
+
+      if (error || !data) {
+        setDefaultCostCodeId(null);
+        return;
+      }
+
+      // Only set default if exactly 1 cost code is associated
+      if (data.length === 1) {
+        const defaultId = data[0].cost_code_id;
+        setDefaultCostCodeId(defaultId);
+
+        // Apply default to existing job cost lines that don't have a cost code
+        setJobCostLines(lines =>
+          lines.map(line => 
+            !line.cost_code_id ? { ...line, cost_code_id: defaultId } : line
+          )
+        );
+      } else {
+        setDefaultCostCodeId(null);
+      }
+    };
+
+    fetchDefaultCostCode();
+  }, [vendorId]);
+
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
     line_type: type,
@@ -174,6 +212,7 @@ export function EditExtractedBillDialog({
     unit_cost: 0,
     amount: 0,
     memo: "",
+    ...(type === 'job_cost' && defaultCostCodeId ? { cost_code_id: defaultCostCodeId } : {}),
   });
 
   const addJobCostLine = () => {
