@@ -22,6 +22,7 @@ import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
+import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 
 interface DepositRow {
   id: string;
@@ -66,6 +67,7 @@ export default function MakeDeposits() {
   const { accounts } = useAccounts();
   const { createDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
+  const { costCodes } = useCostCodeSearch();
 
   // Load saved settings when available (reuse check settings for company info)
   useEffect(() => {
@@ -199,6 +201,66 @@ export default function MakeDeposits() {
     return result;
   };
 
+  // Helpers to resolve typed inputs to IDs (copied from WriteChecks)
+  const normalize = (s: string) => s.trim().toLowerCase();
+
+  const extractLeadingCode = (text: string): string | null => {
+    if (!text) return null;
+    const trimmed = text.trim();
+    const dashIdx = trimmed.indexOf("-");
+    if (dashIdx > 0) {
+      const left = trimmed.slice(0, dashIdx).trim();
+      if (/^\d+[A-Za-z0-9.]*$/.test(left)) return left;
+    }
+    const match = trimmed.match(/^[A-Za-z0-9.]+/);
+    return match ? match[0] : null;
+  };
+
+  const findCostCodeIdFromText = (text: string | undefined): string | undefined => {
+    if (!text) return undefined;
+    const leading = extractLeadingCode(text);
+    if (leading) {
+      const exact = costCodes.find(cc => cc.code.toLowerCase() === leading.toLowerCase());
+      if (exact) return exact.id;
+    }
+    const q = normalize(text);
+    const matches = costCodes.filter(cc =>
+      cc.code.toLowerCase().includes(q) || cc.name.toLowerCase().includes(q)
+    );
+    return matches.length === 1 ? matches[0].id : undefined;
+  };
+
+  const findAccountIdFromText = (text: string | undefined): string | undefined => {
+    if (!text) return undefined;
+    const leading = extractLeadingCode(text);
+    if (leading) {
+      const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
+      if (exact) return String(exact.id);
+    }
+    const q = normalize(text);
+    const matches = (accounts as any[]).filter(acc =>
+      String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
+    );
+    return matches.length === 1 ? String(matches[0].id) : undefined;
+  };
+
+  const amountOfRow = (row: DepositRow) => ((parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0));
+
+  const resolveRowsForSave = (rows: DepositRow[], kind: 'revenue' | 'other'): DepositRow[] => {
+    return rows.map(row => {
+      const amt = amountOfRow(row);
+      let resolvedAccountId = row.accountId;
+      if (amt > 0 && !resolvedAccountId) {
+        resolvedAccountId = kind === 'revenue' ? findCostCodeIdFromText(row.account) : findAccountIdFromText(row.account);
+      }
+      return {
+        ...row,
+        accountId: resolvedAccountId,
+        projectId: row.projectId || (projectId || ""),
+      };
+    });
+  };
+
   const handleSave = async (saveAndNew: boolean = false) => {
     // Validate required fields
     if (!depositSourceName) {
@@ -210,7 +272,13 @@ export default function MakeDeposits() {
       return;
     }
 
-    if (!bankAccountId) {
+    // Auto-resolve bank account if typed
+    let resolvedBankAccountId = bankAccountId;
+    if (!resolvedBankAccountId && bankAccount) {
+      resolvedBankAccountId = findAccountIdFromText(bankAccount) || "";
+    }
+
+    if (!resolvedBankAccountId) {
       toast({
         title: "Validation Error",
         description: "Please select a bank account from the dropdown",
@@ -219,20 +287,15 @@ export default function MakeDeposits() {
       return;
     }
 
-    // Filter and validate deposit rows from both tabs
-    const validRevenueRows = revenueRows.filter(row => {
-      const q = parseFloat(row.quantity || "0") || 0;
-      const c = parseFloat(row.amount) || 0;
-      return row.accountId && (q * c) > 0;
-    });
-    
-    const validOtherRows = otherRows.filter(row => {
-      const q = parseFloat(row.quantity || "0") || 0;
-      const c = parseFloat(row.amount) || 0;
-      return row.accountId && (q * c) > 0;
-    });
-    
-    if (validRevenueRows.length === 0 && validOtherRows.length === 0) {
+    // Auto-resolve typed selections
+    const resolvedRevenueRows = resolveRowsForSave(revenueRows, 'revenue');
+    const resolvedOtherRows = resolveRowsForSave(otherRows, 'other');
+
+    // Validate we have at least one row with valid data
+    const allRows = [...resolvedRevenueRows, ...resolvedOtherRows];
+    const validRows = allRows.filter(row => row.accountId && amountOfRow(row) > 0);
+
+    if (validRows.length === 0) {
       toast({
         title: "Validation Error",
         description: "Please select at least one account from the dropdown and enter an amount greater than zero",
@@ -241,40 +304,36 @@ export default function MakeDeposits() {
       return;
     }
 
-    // Prepare deposit lines from revenue tab
-    const revenueLines: DepositLineData[] = validRevenueRows.map(row => {
-      const q = parseFloat(row.quantity || "0") || 0;
-      const c = parseFloat(row.amount) || 0;
-      return {
+    // Build deposit lines from Chart of Accounts rows (revenue)
+    const chartLines: DepositLineData[] = resolvedOtherRows
+      .filter(row => row.accountId && amountOfRow(row) > 0)
+      .map(row => ({
         line_type: 'revenue' as const,
-        account_id: row.accountId,
+        account_id: row.accountId!,
         project_id: row.projectId || undefined,
-        amount: q * c,
+        amount: amountOfRow(row),
         memo: row.memo || undefined
-      };
-    });
-    
-    // Prepare deposit lines from other income tab
-    const otherLines: DepositLineData[] = validOtherRows.map(row => {
-      const q = parseFloat(row.quantity || "0") || 0;
-      const c = parseFloat(row.amount) || 0;
-      return {
-        line_type: 'revenue' as const,
-        account_id: row.accountId,
+      }));
+
+    // Build deposit lines from Job Cost rows (customer_payment)
+    const jobCostLines: DepositLineData[] = resolvedRevenueRows
+      .filter(row => row.accountId && amountOfRow(row) > 0)
+      .map(row => ({
+        line_type: 'customer_payment' as const,
+        account_id: row.accountId!,
         project_id: row.projectId || undefined,
-        amount: q * c,
+        amount: amountOfRow(row),
         memo: row.memo || undefined
-      };
-    });
+      }));
     
     // Combine all lines
-    const depositLines: DepositLineData[] = [...revenueLines, ...otherLines];
+    const depositLines: DepositLineData[] = [...chartLines, ...jobCostLines];
 
     const depositAmount = parseFloat(calculateTotal());
 
     const depositData: DepositData = {
       deposit_date: depositDate.toISOString().split('T')[0],
-      bank_account_id: bankAccountId,
+      bank_account_id: resolvedBankAccountId,
       project_id: projectId || undefined,
       amount: depositAmount,
       memo: depositSourceName,
