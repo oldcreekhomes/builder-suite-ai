@@ -30,7 +30,6 @@ interface Transaction {
   journal_entry_id: string;
   date: string;
   memo: string | null;
-  vendor: string | null;
   description: string | null;
   reference: string | null;
   source_type: string;
@@ -184,27 +183,24 @@ export function AccountDetailDialog({
 
       const transactions: Transaction[] = (data || []).map((line: any) => {
         let memo = line.memo;
-        let vendor = null;
         let reference = null;
         let description = line.memo; // Description always comes from the line memo
 
-        // If this is a check, get vendor details and reference from checks table
+        // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
           const check = checksMap.get(line.journal_entries.source_id);
           if (check) {
             memo = check.memo;
-            vendor = check.vendor_name;
-            reference = check.check_number;
+            reference = check.vendor_name || check.pay_to;
           }
         }
 
-        // If this is a deposit, get customer details and reference from deposits table
+        // If this is a deposit, get reference from deposits table
         if (line.journal_entries.source_type === 'deposit') {
           const deposit = depositsMap.get(line.journal_entries.source_id);
           if (deposit) {
             memo = deposit.memo;
-            vendor = deposit.customer_name || 'Cash';
-            reference = deposit.memo; // Reference for deposits is the memo field
+            reference = deposit.customer_name || 'Cash';
           }
         }
 
@@ -214,7 +210,6 @@ export function AccountDetailDialog({
           journal_entry_id: line.journal_entries.id,
           date: line.journal_entries.entry_date,
           memo: memo,
-          vendor: vendor,
           description: description,
           reference: reference,
           source_type: line.journal_entries.source_type,
@@ -296,7 +291,7 @@ export function AccountDetailDialog({
 
   const handleUpdate = async (
     transaction: Transaction,
-    field: "date" | "reference" | "vendor" | "description" | "amount",
+    field: "date" | "reference" | "description" | "amount",
     value: string | number | Date
   ) => {
     try {
@@ -313,15 +308,13 @@ export function AccountDetailDialog({
         case 'check':
           const checkUpdates: any = {};
           if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") checkUpdates.check_number = value as string;
-          if (field === "vendor") checkUpdates.pay_to = value as string;
+          if (field === "reference") checkUpdates.pay_to = value as string;
           if (field === "amount") checkUpdates.amount = value as number;
           await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
           break;
         case 'deposit':
           const depositUpdates: any = {};
           if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") depositUpdates.memo = value as string; // Reference for deposits
           if (field === "amount") depositUpdates.amount = value as number;
           await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           break;
@@ -387,8 +380,7 @@ export function AccountDetailDialog({
               <TableHeader>
                 <TableRow className="h-8">
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Reference</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Vendor</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Received From</TableHead>
               <TableHead className="h-8 px-2 py-1">Description</TableHead>
               <TableHead className="h-8 px-2 py-1">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1">Balance</TableHead>
@@ -411,14 +403,6 @@ export function AccountDetailDialog({
                         value={txn.reference || '-'}
                         field="reference"
                         onSave={(value) => handleUpdate(txn, "reference", value)}
-                        readOnly={!canDeleteBills || !['check', 'deposit'].includes(txn.source_type)}
-                      />
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <AccountTransactionInlineEditor
-                        value={txn.vendor || '-'}
-                        field="vendor"
-                        onSave={(value) => handleUpdate(txn, "vendor", value)}
                         readOnly={!canDeleteBills || txn.source_type !== 'check'}
                       />
                     </TableCell>
