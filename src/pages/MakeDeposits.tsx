@@ -356,6 +356,16 @@ export default function MakeDeposits() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
                   <div className="space-y-2">
+                    <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
+                    <AccountSearchInputInline
+                      value={bankAccount}
+                      onChange={setBankAccount}
+                      accountType="asset"
+                      placeholder="Select bank account"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="receivedFrom">Received From</Label>
                     <DepositSourceSearchInput
                       value={depositSourceName}
@@ -365,16 +375,6 @@ export default function MakeDeposits() {
                         setDepositSourceName(sourceName);
                       }}
                       placeholder="Search or add customer"
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
-                    <AccountSearchInputInline
-                      value={bankAccount}
-                      onChange={setBankAccount}
-                      accountType="asset"
-                      placeholder="Select bank account"
                     />
                   </div>
                 </div>
