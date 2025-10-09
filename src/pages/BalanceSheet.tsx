@@ -121,7 +121,7 @@ export default function BalanceSheet() {
             
           case 'liability':
             // Liabilities: Credit balances are positive for balance sheet presentation
-            displayBalance = -rawBalance;
+            displayBalance = Math.abs(rawBalance);
             const liabilityBalance: AccountBalance = {
               id: account.id,
               code: account.code,
@@ -134,7 +134,7 @@ export default function BalanceSheet() {
             
           case 'equity':
             // Equity: Credit balances are positive for balance sheet presentation
-            displayBalance = -rawBalance;
+            displayBalance = Math.abs(rawBalance);
             const equityBalance: AccountBalance = {
               id: account.id,
               code: account.code,
@@ -383,7 +383,7 @@ export default function BalanceSheet() {
                                 className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                                 onClick={() => setSelectedAccount(account)}
                               >
-                                <span>{account.code} - {account.name}</span>
+                                <span>{account.code}: {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
@@ -402,7 +402,7 @@ export default function BalanceSheet() {
                                 className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                                 onClick={() => setSelectedAccount(account)}
                               >
-                                <span>{account.code} - {account.name}</span>
+                                <span>{account.code}: {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
@@ -438,7 +438,7 @@ export default function BalanceSheet() {
                                 className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                                 onClick={() => setSelectedAccount(account)}
                               >
-                                <span>{account.code} - {account.name}</span>
+                                <span>{account.code}: {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
@@ -457,7 +457,7 @@ export default function BalanceSheet() {
                                 className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                                 onClick={() => setSelectedAccount(account)}
                               >
-                                <span>{account.code} - {account.name}</span>
+                                <span>{account.code}: {account.name}</span>
                                  <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
@@ -491,7 +491,7 @@ export default function BalanceSheet() {
                                   }
                                 }}
                               >
-                                <span>{account.code} - {account.name}</span>
+                                <span>{account.code}: {account.name}</span>
                                 <span>{formatCurrency(account.balance)}</span>
                               </div>
                             ))}
