@@ -39,29 +39,27 @@ export function CostCodeSearchInput({
     }
   }, [showResults]);
 
-  // Improved tokenized filtering - allows "2220 - Marketing" to match
-  const filteredCostCodes = searchQuery.trim().length >= 1 
-    ? (() => {
+  // Show all cost codes when empty, filter when user types
+  const filteredCostCodes = searchQuery.trim().length === 0
+    ? costCodes
+    : (() => {
         const tokens = searchQuery.toLowerCase().split(/[-\s]+/).filter(Boolean);
         return costCodes.filter(cc => 
           tokens.every(t =>
             cc.code.toLowerCase().includes(t) || cc.name.toLowerCase().includes(t)
           )
         );
-      })()
-    : [];
+      })();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
     onChange(newValue);
-    setShowResults(newValue.trim().length >= 1);
+    setShowResults(true);
   };
 
   const handleInputFocus = () => {
-    if (searchQuery.trim().length >= 1) {
-      setShowResults(true);
-    }
+    setShowResults(true);
   };
 
   const attemptAutoSelect = () => {
@@ -164,7 +162,7 @@ export function CostCodeSearchInput({
             width: `${Math.max(dropdownPosition.width, 300)}px`
           }}
         >
-          {filteredCostCodes.slice(0, 10).map((costCode) => (
+          {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
               type="button"
