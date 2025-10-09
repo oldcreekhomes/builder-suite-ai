@@ -78,6 +78,7 @@ export function AccountDetailDialog({
           memo,
           debit,
           credit,
+          account_id,
         journal_entries!inner(
           id,
           entry_date,
@@ -168,14 +169,25 @@ export function AccountDetailDialog({
           .select(`
             id, 
             memo,
+            bank_account_id,
             deposit_source_id,
-            deposit_sources(customer_name)
+            deposit_sources(customer_name),
+            deposit_lines(memo, line_number)
           `)
           .in('id', depositIds);
         
         depositsData?.forEach((deposit: any) => {
+          // Received From is the deposit memo, with customer_name as fallback
+          const receivedFrom = deposit.memo || deposit.deposit_sources?.customer_name || 'Cash';
+          
+          // First line memo is from the first deposit line
+          const sortedLines = (deposit.deposit_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+          const firstLineMemo = sortedLines.find((line: any) => line.memo)?.memo || null;
+          
           depositsMap.set(deposit.id, {
             ...deposit,
+            receivedFrom,
+            firstLineMemo,
             customer_name: deposit.deposit_sources?.customer_name || null
           });
         });
@@ -200,7 +212,12 @@ export function AccountDetailDialog({
           const deposit = depositsMap.get(line.journal_entries.source_id);
           if (deposit) {
             memo = deposit.memo;
-            reference = deposit.customer_name || 'Cash';
+            reference = deposit.receivedFrom;
+            
+            // For the bank line, use the first deposit line memo as description
+            if (line.account_id === deposit.bank_account_id) {
+              description = deposit.firstLineMemo || line.memo;
+            }
           }
         }
 
