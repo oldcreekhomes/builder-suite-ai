@@ -1,9 +1,8 @@
-import { Home, Calculator, AlertTriangle } from "lucide-react";
+import { Calculator, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 
 const items = [
-  { title: "Company Dashboard", url: "/", icon: Home },
   { title: "Company Accounting", url: "/accounting", icon: Calculator },
 ];
 
