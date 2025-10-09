@@ -231,6 +231,7 @@ export const usePendingBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       toast.success('Bill approved and created successfully');
     },
     onError: (error: any) => {
@@ -329,6 +330,7 @@ export const usePendingBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
     },
   });
 
