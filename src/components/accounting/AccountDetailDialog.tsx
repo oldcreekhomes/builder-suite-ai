@@ -322,9 +322,9 @@ export function AccountDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-base">
             {accountCode} - {accountName}
           </DialogTitle>
         </DialogHeader>
@@ -341,22 +341,22 @@ export function AccountDetailDialog({
               No transactions found for this account.
             </div>
           ) : (
-            <Table>
+            <Table className="text-xs">
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="h-8">
+                  <TableHead className="h-8 px-2 py-1">Date</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Reference</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Vendor</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((txn, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
+                  <TableRow key={index} className="h-8">
+                    <TableCell className="px-2 py-1">
                   <AccountTransactionInlineEditor
                     value={toLocalDate(txn.date)}
                     field="date"
@@ -364,7 +364,7 @@ export function AccountDetailDialog({
                     readOnly={!canDeleteBills}
                   />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <AccountTransactionInlineEditor
                         value={txn.reference || '-'}
                         field="reference"
@@ -372,7 +372,7 @@ export function AccountDetailDialog({
                         readOnly={!canDeleteBills || !['check', 'deposit'].includes(txn.source_type)}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <AccountTransactionInlineEditor
                         value={txn.vendor || '-'}
                         field="vendor"
@@ -380,7 +380,7 @@ export function AccountDetailDialog({
                         readOnly={!canDeleteBills || txn.source_type !== 'check'}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 py-1">
                       <AccountTransactionInlineEditor
                         value={txn.description || '-'}
                         field="description"
@@ -388,17 +388,17 @@ export function AccountDetailDialog({
                         readOnly={!canDeleteBills}
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-2 py-1 text-right">
                       {txn.credit > 0 
                         ? `(${formatCurrency(txn.credit)})` 
                         : txn.debit > 0 
                         ? formatCurrency(txn.debit) 
                         : '-'}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="px-2 py-1 text-right font-medium">
                       {formatCurrency(balances[index])}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-2 py-1 text-right">
                       {canDeleteBills && (
                         <DeleteButton
                           onDelete={() => handleDelete(txn)}
@@ -406,7 +406,7 @@ export function AccountDetailDialog({
                           description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
+                          className="h-6 w-6 p-0"
                         />
                       )}
                     </TableCell>

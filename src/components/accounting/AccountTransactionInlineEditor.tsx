@@ -61,7 +61,7 @@ export function AccountTransactionInlineEditor({
 
   if (readOnly) {
     return (
-      <span className="text-sm">
+      <span className="text-xs">
         {field === "date" && value instanceof Date
           ? format(value, "MM/dd/yyyy")
           : field === "amount"
@@ -79,13 +79,13 @@ export function AccountTransactionInlineEditor({
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            className="group flex items-center gap-2 h-auto px-2 py-1 hover:bg-muted/50 font-normal"
+            className="group flex items-center gap-1 h-auto px-1 py-0.5 hover:bg-muted/50 font-normal"
             onClick={(e) => {
               e.stopPropagation();
               setShowCalendar(true);
             }}
           >
-            <span className="text-sm">
+            <span className="text-xs">
               {value instanceof Date ? format(value, "MM/dd/yyyy") : value}
             </span>
             <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -113,7 +113,7 @@ export function AccountTransactionInlineEditor({
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className="h-8 text-sm"
+        className="h-6 text-xs py-0"
         step={field === "amount" ? "0.01" : undefined}
       />
     );
@@ -121,10 +121,10 @@ export function AccountTransactionInlineEditor({
 
   return (
     <div
-      className="group flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+      className="group flex items-center gap-1 cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded"
       onClick={() => setIsEditing(true)}
     >
-      <span className="text-sm">
+      <span className="text-xs">
         {field === "amount" && typeof value === "number"
           ? `$${value.toFixed(2)}`
           : String(value)}
