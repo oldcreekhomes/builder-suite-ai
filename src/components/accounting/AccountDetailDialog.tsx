@@ -315,6 +315,10 @@ export function AccountDetailDialog({
         case 'deposit':
           const depositUpdates: any = {};
           if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
+          if (field === "reference") {
+            // For deposits, "Received From" updates the memo field which is displayed as the received from
+            depositUpdates.memo = value as string;
+          }
           if (field === "amount") depositUpdates.amount = value as number;
           await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           break;
@@ -403,7 +407,7 @@ export function AccountDetailDialog({
                         value={txn.reference || '-'}
                         field="reference"
                         onSave={(value) => handleUpdate(txn, "reference", value)}
-                        readOnly={!canDeleteBills || txn.source_type !== 'check'}
+                        readOnly={!canDeleteBills || !['check', 'deposit'].includes(txn.source_type)}
                       />
                     </TableCell>
                     <TableCell className="px-2 py-1">
