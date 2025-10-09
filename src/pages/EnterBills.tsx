@@ -329,6 +329,56 @@ export default function EnterBills() {
               .select();
 
             finalLines = insertedLines || [];
+
+          // Apply default cost code if vendor has exactly one associated cost code
+          try {
+            const vendorId = extractedData.vendor_id || extractedData.vendorId || null;
+            if (vendorId) {
+              const { data: cc } = await supabase
+                .from('company_cost_codes')
+                .select('cost_code_id')
+                .eq('company_id', vendorId);
+              if (cc && cc.length === 1) {
+                const defaultId = cc[0].cost_code_id as string;
+                const { data: ccInfo } = await supabase
+                  .from('cost_codes')
+                  .select('code, name')
+                  .eq('id', defaultId)
+                  .maybeSingle();
+                const costCodeName = ccInfo ? `${ccInfo.code}: ${ccInfo.name}` : null;
+
+                const updatePromises: Promise<any>[] = [];
+                finalLines = (finalLines || []).map((line: any) => {
+                  if (line.line_type === 'job_cost' && !line.cost_code_id) {
+                    line.cost_code_id = defaultId;
+                    line.cost_code_name = costCodeName;
+                    updatePromises.push(
+                      supabase.from('pending_bill_lines').update({
+                        cost_code_id: defaultId,
+                        cost_code_name: costCodeName,
+                      }).eq('id', line.id)
+                    );
+                  } else if (line.line_type === 'expense' && !line.account_id && !line.cost_code_id) {
+                    line.line_type = 'job_cost';
+                    line.cost_code_id = defaultId;
+                    line.cost_code_name = costCodeName;
+                    updatePromises.push(
+                      supabase.from('pending_bill_lines').update({
+                        line_type: 'job_cost',
+                        cost_code_id: defaultId,
+                        cost_code_name: costCodeName,
+                      }).eq('id', line.id)
+                    );
+                  }
+                  return line;
+                });
+                if (updatePromises.length) {
+                  await Promise.all(updatePromises);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Default cost code application skipped:', e);
           }
           
           return {

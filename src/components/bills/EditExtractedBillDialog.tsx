@@ -107,85 +107,110 @@ export function EditExtractedBillDialog({
           const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
           const isSingleLine = data.length === 1;
           
-          const jobCost = data
-            .filter(line => line.line_type === 'job_cost')
-            .map(line => {
-              let qty = Number(line.quantity) || 1;
-              let amt = Number(line.amount) || 0;
-              
-              // SANITY CHECK: For single-line bills with extracted total, use that if amounts differ significantly
-              if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
-                console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
-                amt = extractedTotal;
-              }
-              
-              // SANITY CHECK: If amount is absurdly large (>$1M), cap it or recalculate
-              if (amt > 1000000 && qty > 0) {
-                // Try to use a reasonable unit cost if this seems wrong
-                const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
-                console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
-                amt = reasonableUnitCost * qty;
-              }
-              
-              const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
-              
-              return {
+          // Build job cost and expense arrays, promoting expense lines to job_cost when a single default cost code exists
+          const jobCost: LineItem[] = [];
+          const expense: LineItem[] = [];
+
+          for (const line of data) {
+            let qty = Number(line.quantity) || 1;
+            let amt = Number(line.amount) || 0;
+
+            // SANITY CHECKS common to both types
+            if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
+              console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
+              amt = extractedTotal;
+            }
+            if (amt > 1000000 && qty > 0) {
+              const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
+              console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
+              amt = reasonableUnitCost * qty;
+            }
+            const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
+
+            if (line.line_type === 'job_cost') {
+              jobCost.push({
                 id: line.id,
-                line_type: line.line_type,
+                line_type: 'job_cost',
                 cost_code_id: line.cost_code_id || defaultCostCode || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
                 memo: line.memo || "",
-              };
-            });
-          
-          const expense = data
-            .filter(line => line.line_type === 'expense')
-            .map(line => {
-              let qty = Number(line.quantity) || 1;
-              let amt = Number(line.amount) || 0;
-              
-              // SANITY CHECK: For single-line bills with extracted total, use that if amounts differ significantly
-              if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
-                console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
-                amt = extractedTotal;
+              });
+            } else if (line.line_type === 'expense') {
+              // If vendor has exactly one cost code and the expense line isn't categorized, promote it to job_cost
+              if (defaultCostCode && !line.account_id && !line.cost_code_id) {
+                jobCost.push({
+                  id: line.id,
+                  line_type: 'job_cost',
+                  cost_code_id: defaultCostCode,
+                  quantity: qty,
+                  unit_cost: unitCost,
+                  amount: amt,
+                  memo: line.memo || "",
+                });
+              } else {
+                expense.push({
+                  id: line.id,
+                  line_type: 'expense',
+                  account_id: line.account_id || undefined,
+                  quantity: qty,
+                  unit_cost: unitCost,
+                  amount: amt,
+                  memo: line.memo || "",
+                });
               }
-              
-              // SANITY CHECK: If amount is absurdly large (>$1M), cap it or recalculate
-              if (amt > 1000000 && qty > 0) {
-                const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
-                console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
-                amt = reasonableUnitCost * qty;
-              }
-              
-              const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
-              
-              return {
-                id: line.id,
-                line_type: line.line_type,
-                account_id: line.account_id || undefined,
-                quantity: qty,
-                unit_cost: unitCost,
-                amount: amt,
-                memo: line.memo || "",
-              };
-            });
+            }
+          }
 
-        setJobCostLines(jobCost);
-        setExpenseLines(expense);
+          setJobCostLines(jobCost);
+          setExpenseLines(expense);
 
-        // Default to the tab that has data
-        if (expense.length > 0 && jobCost.length === 0) {
-          setActiveTab("expense");
-        } else if (jobCost.length > 0) {
-          setActiveTab("job-cost");
-        }
+          // Default to the tab that has data
+          if (expense.length > 0 && jobCost.length === 0) {
+            setActiveTab("expense");
+          } else if (jobCost.length > 0) {
+            setActiveTab("job-cost");
+          }
       }
     };
 
     loadBillData();
   }, [open, pendingUploadId, pendingBills]);
+
+  // Re-apply default cost code when vendor changes
+  useEffect(() => {
+    if (!open || !vendorId) return;
+    const applyDefault = async () => {
+      const { data: cc } = await supabase
+        .from('company_cost_codes')
+        .select('cost_code_id')
+        .eq('company_id', vendorId);
+      if (cc && cc.length === 1) {
+        const id = cc[0].cost_code_id as string;
+        setDefaultCostCodeId(id);
+        setJobCostLines(prev => prev.map(l => ({ ...l, cost_code_id: l.cost_code_id || id })));
+        setExpenseLines(prev => {
+          const keep: LineItem[] = [];
+          const promote: LineItem[] = [];
+          prev.forEach(l => {
+            if (!l.account_id && !l.cost_code_id) {
+              promote.push({ ...l, line_type: 'job_cost', cost_code_id: id });
+            } else {
+              keep.push(l);
+            }
+          });
+          if (promote.length) {
+            setJobCostLines(prevJ => [...prevJ, ...promote]);
+          }
+          return keep;
+        });
+      } else {
+        setDefaultCostCodeId(null);
+      }
+    };
+    applyDefault();
+  }, [vendorId, open]);
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
@@ -339,6 +364,7 @@ export function EditExtractedBillDialog({
         await updateLine.mutateAsync({
           lineId: line.id,
           updates: {
+            line_type: line.line_type,
             account_id: line.account_id,
             account_name: accountName,
             cost_code_id: line.cost_code_id,
