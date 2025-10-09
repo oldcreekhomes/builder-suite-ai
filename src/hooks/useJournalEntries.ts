@@ -317,9 +317,39 @@ export const useJournalEntries = () => {
     },
   });
 
+  const deleteManualJournalEntry = useMutation({
+    mutationFn: async (journalEntryId: string) => {
+      const { data, error } = await supabase.rpc('delete_manual_journal_entry', {
+        journal_entry_id_param: journalEntryId
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      
+      toast({
+        title: "Success",
+        description: "Journal entry deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error deleting journal entry:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete journal entry",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createManualJournalEntry,
     updateManualJournalEntry,
+    deleteManualJournalEntry,
     journalEntries,
     isLoading,
   };

@@ -194,5 +194,35 @@ export const useDeposits = () => {
     },
   });
 
-  return { createDeposit };
+  const deleteDeposit = useMutation({
+    mutationFn: async (depositId: string) => {
+      const { data, error } = await supabase.rpc('delete_deposit_with_journal_entries', {
+        deposit_id_param: depositId
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      
+      toast({
+        title: "Success",
+        description: "Deposit and all related entries have been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting deposit:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete deposit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return { createDeposit, deleteDeposit };
 };

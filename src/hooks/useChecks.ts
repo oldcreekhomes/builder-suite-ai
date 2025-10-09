@@ -241,7 +241,38 @@ export const useChecks = () => {
     },
   });
 
+  const deleteCheck = useMutation({
+    mutationFn: async (checkId: string) => {
+      const { data, error } = await supabase.rpc('delete_check_with_journal_entries', {
+        check_id_param: checkId
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checks'] });
+      queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      
+      toast({
+        title: "Check Deleted",
+        description: "Check and all related entries have been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting check:', error);
+      toast({
+        title: "Error Deleting Check",
+        description: error.message || "There was an error deleting the check. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createCheck,
+    deleteCheck,
   };
 };

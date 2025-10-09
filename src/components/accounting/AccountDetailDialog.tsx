@@ -16,8 +16,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useChecks } from "@/hooks/useChecks";
+import { useDeposits } from "@/hooks/useDeposits";
+import { useJournalEntries } from "@/hooks/useJournalEntries";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Transaction {
+  source_id: string;
   date: string;
   memo: string | null;
   vendor: string | null;
@@ -48,6 +57,10 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('desc');
+  const { deleteCheck } = useChecks();
+  const { deleteDeposit } = useDeposits();
+  const { deleteManualJournalEntry } = useJournalEntries();
+  const { canDeleteBills } = useUserRole();
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['account-transactions', accountId, projectId, sortOrder],
@@ -228,6 +241,7 @@ export function AccountDetailDialog({
         }
 
         return {
+          source_id: line.journal_entries.source_id,
           date: line.journal_entries.entry_date,
           memo: memo,
           vendor: vendor,
@@ -250,6 +264,26 @@ export function AccountDetailDialog({
     },
     enabled: !!accountId && open,
   });
+
+  const handleDelete = async (transaction: Transaction) => {
+    try {
+      if (transaction.source_type === 'check') {
+        await deleteCheck.mutateAsync(transaction.source_id);
+      } else if (transaction.source_type === 'deposit') {
+        await deleteDeposit.mutateAsync(transaction.source_id);
+      } else if (transaction.source_type === 'manual') {
+        await deleteManualJournalEntry.mutateAsync(transaction.source_id);
+      } else if (transaction.source_type === 'bill' || transaction.source_type === 'bill_payment') {
+        // Bills use existing delete_bill_with_journal_entries function
+        const { error } = await supabase.rpc('delete_bill_with_journal_entries', {
+          bill_id_param: transaction.source_id
+        });
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -301,11 +335,12 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Reference</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
+              <TableHead>Vendor</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((txn, index) => (
@@ -331,6 +366,38 @@ export function AccountDetailDialog({
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(balances[index])}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled
+                                className="h-8 w-8 p-0"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit functionality coming soon</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        {canDeleteBills && (
+                          <DeleteButton
+                            onDelete={() => handleDelete(txn)}
+                            title="Delete Transaction"
+                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                          />
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

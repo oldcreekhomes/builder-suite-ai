@@ -2071,6 +2071,18 @@ export type Database = {
         Args: { bill_id_param: string }
         Returns: boolean
       }
+      delete_check_with_journal_entries: {
+        Args: { check_id_param: string }
+        Returns: boolean
+      }
+      delete_deposit_with_journal_entries: {
+        Args: { deposit_id_param: string }
+        Returns: boolean
+      }
+      delete_manual_journal_entry: {
+        Args: { journal_entry_id_param: string }
+        Returns: boolean
+      }
       delete_pending_bill_upload: {
         Args: { upload_id_param: string }
         Returns: boolean
