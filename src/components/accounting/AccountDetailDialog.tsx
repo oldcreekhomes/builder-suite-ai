@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import {
@@ -67,7 +67,7 @@ export function AccountDetailDialog({
   // Helper to parse date-only strings as local midnight (avoids timezone shift)
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['account-transactions', accountId, projectId, sortOrder],
     queryFn: async (): Promise<Transaction[]> => {
       if (!accountId) return [];
@@ -93,6 +93,12 @@ export function AccountDetailDialog({
       if (projectId) {
         query = query.eq('project_id', projectId);
       }
+
+      // Apply stable server-side ordering to reduce reshuffling
+      query = query
+        .order('entry_date', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
+        .order('created_at', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
+        .order('id', { ascending: sortOrder !== 'desc' });
 
       const { data, error } = await query;
 
@@ -218,24 +224,46 @@ export function AccountDetailDialog({
         };
       });
 
-      // Sort by date first, then by created_at for stable ordering
+      // Fully deterministic sort: date, then created_at, then journal_entry_id, then line_id
       transactions.sort((a, b) => {
         const dateA = new Date(`${a.date}T00:00:00`).getTime();
         const dateB = new Date(`${b.date}T00:00:00`).getTime();
-        
-        // Primary sort by date
+
+        // Primary: date
         const dateDiff = sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         if (dateDiff !== 0) return dateDiff;
-        
-        // Secondary sort by created_at timestamp for stable ordering
+
+        // Secondary: created_at
         const createdA = new Date(a.created_at).getTime();
         const createdB = new Date(b.created_at).getTime();
-        return sortOrder === 'desc' ? createdB - createdA : createdA - createdB;
+        const createdDiff = sortOrder === 'desc' ? createdB - createdA : createdA - createdB;
+        if (createdDiff !== 0) return createdDiff;
+
+        // Tertiary: journal_entry_id (string compare)
+        if (a.journal_entry_id !== b.journal_entry_id) {
+          if (sortOrder === 'desc') {
+            return a.journal_entry_id < b.journal_entry_id ? 1 : -1;
+          } else {
+            return a.journal_entry_id < b.journal_entry_id ? -1 : 1;
+          }
+        }
+
+        // Quaternary: line_id (string compare)
+        if (a.line_id !== b.line_id) {
+          if (sortOrder === 'desc') {
+            return a.line_id < b.line_id ? 1 : -1;
+          } else {
+            return a.line_id < b.line_id ? -1 : 1;
+          }
+        }
+
+        return 0;
       });
 
       return transactions;
     },
     enabled: !!accountId && open,
+    placeholderData: keepPreviousData,
   });
 
   // Auto-close dialog when all transactions are deleted
@@ -369,7 +397,7 @@ export function AccountDetailDialog({
               </TableHeader>
               <TableBody>
                 {transactions.map((txn, index) => (
-                  <TableRow key={index} className="h-8">
+                  <TableRow key={txn.line_id} className="h-8">
                     <TableCell className="px-2 py-1">
                   <AccountTransactionInlineEditor
                     value={toLocalDate(txn.date)}
