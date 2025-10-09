@@ -62,6 +62,9 @@ export function AccountDetailDialog({
   const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
 
+  // Helper to parse date-only strings as local midnight (avoids timezone shift)
+  const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
+
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['account-transactions', accountId, projectId, sortOrder],
     queryFn: async (): Promise<Transaction[]> => {
@@ -211,8 +214,8 @@ export function AccountDetailDialog({
 
       // Sort by date
       transactions.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
+        const dateA = new Date(`${a.date}T00:00:00`).getTime();
+        const dateB = new Date(`${b.date}T00:00:00`).getTime();
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
       });
 
@@ -347,12 +350,12 @@ export function AccountDetailDialog({
                 {transactions.map((txn, index) => (
                   <TableRow key={index}>
                     <TableCell>
-                      <AccountTransactionInlineEditor
-                        value={new Date(txn.date)}
-                        field="date"
-                        onSave={(value) => handleUpdate(txn, "date", value)}
-                        readOnly={!canDeleteBills}
-                      />
+                  <AccountTransactionInlineEditor
+                    value={toLocalDate(txn.date)}
+                    field="date"
+                    onSave={(value) => handleUpdate(txn, "date", value)}
+                    readOnly={!canDeleteBills}
+                  />
                     </TableCell>
                     <TableCell>
                       <AccountTransactionInlineEditor
