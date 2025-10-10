@@ -39,14 +39,39 @@ export function EditSpecificationDescriptionDialog({
 
   // Convert simple markdown stored in DB to HTML for editing
   const markdownToHtml = (markdown: string) => {
-    return markdown
+    let html = markdown;
+    
+    // Group consecutive bullet points into single <ul>
+    html = html.replace(/(^•\s+.+$\n?)+/gm, (match) => {
+      const items = match
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^•\s+/, ''))
+        .map(item => `<li>${item}</li>`)
+        .join('');
+      return `<ul>${items}</ul>`;
+    });
+    
+    // Group consecutive numbered items into single <ol>
+    html = html.replace(/(^\d+\.\s+.+$\n?)+/gm, (match) => {
+      const items = match
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => line.replace(/^\d+\.\s+/, ''))
+        .map(item => `<li>${item}</li>`)
+        .join('');
+      return `<ol>${items}</ol>`;
+    });
+    
+    // Apply other formatting
+    html = html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/__(.*?)__/g, '<u>$1</u>')
-      .replace(/^•\s+(.+)$/gm, '<ul><li>$1</li></ul>')
-      .replace(/^\d+\.\s+(.+)$/gm, '<ol><li>$1</li></ol>')
       .replace(/^\s{4}(.+)$/gm, '<div style="margin-left: 20px;">$1</div>')
       .replace(/\n/g, '<br />');
+    
+    return html;
   };
 
   // Convert edited HTML back to markdown for storage (to remain backward compatible)
@@ -57,7 +82,7 @@ export function EditSpecificationDescriptionDialog({
     text = text.replace(/<ul>(.*?)<\/ul>/gs, (match, content) => {
       return content
         .replace(/<li>(.*?)<\/li>/gs, (_, item) => `• ${item.trim()}\n`)
-        .trim() + '\n';
+        .trim();
     });
     
     // Handle ordered lists (numbered lists) - process entire <ol> blocks
@@ -65,7 +90,7 @@ export function EditSpecificationDescriptionDialog({
       let counter = 1;
       return content
         .replace(/<li>(.*?)<\/li>/gs, (_, item) => `${counter++}. ${item.trim()}\n`)
-        .trim() + '\n';
+        .trim();
     });
     
     // Handle other formatting
