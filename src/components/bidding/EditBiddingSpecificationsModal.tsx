@@ -46,16 +46,34 @@ export function EditBiddingSpecificationsModal({
   };
 
   const htmlToMarkdown = (value: string) => {
-    let text = value
-      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-      .replace(/<em>(.*?)<\/em>/g, '*$1*')
-      .replace(/<u>(.*?)<\/u>/g, '__$1__')
-      .replace(/<ol>\s*<li>(.*?)<\/li>\s*<\/ol>/gs, (_m, p1) => `1. ${p1}`)
-      .replace(/<ul>\s*<li>(.*?)<\/li>\s*<\/ul>/gs, (_m, p1) => `• ${p1}`)
-      .replace(/<div style="margin-left: 20px;">(.*?)<\/div>/g, '    $1')
-      .replace(/<br\s*\/?\s*>/g, '\n')
+    let text = value;
+    
+    // Handle unordered lists (bullet points) - process entire <ul> blocks
+    text = text.replace(/<ul>(.*?)<\/ul>/gs, (match, content) => {
+      return content
+        .replace(/<li>(.*?)<\/li>/gs, (_, item) => `• ${item.trim()}\n`)
+        .trim() + '\n';
+    });
+    
+    // Handle ordered lists (numbered lists) - process entire <ol> blocks
+    text = text.replace(/<ol>(.*?)<\/ol>/gs, (match, content) => {
+      let counter = 1;
+      return content
+        .replace(/<li>(.*?)<\/li>/gs, (_, item) => `${counter++}. ${item.trim()}\n`)
+        .trim() + '\n';
+    });
+    
+    // Handle other formatting
+    text = text
+      .replace(/<strong>(.*?)<\/strong>/gs, '**$1**')
+      .replace(/<em>(.*?)<\/em>/gs, '*$1*')
+      .replace(/<u>(.*?)<\/u>/gs, '__$1__')
+      .replace(/<div style="margin-left: 20px;">(.*?)<\/div>/gs, '    $1')
+      .replace(/<p>(.*?)<\/p>/gs, '$1\n')
+      .replace(/<br\s*\/?>/g, '\n')
       .replace(/<[^>]+>/g, '');
-    return text;
+    
+    return text.trim();
   };
 
   useEffect(() => {
