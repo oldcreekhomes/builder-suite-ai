@@ -566,14 +566,9 @@ export function BatchBillReviewTable({
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     <div className="flex flex-col gap-1">
-                      {bill.status === 'error' && (
-                        <Badge variant="destructive" className="w-fit text-xs">
-                          Error
-                        </Badge>
-                      )}
                       {issues.length > 0 ? (
                         <span className="text-xs text-red-600">{issues.length}</span>
-                      ) : !bill.status.includes('error') && (
+                      ) : (
                         <span className="text-xs text-green-600">Ready</span>
                       )}
                     </div>
