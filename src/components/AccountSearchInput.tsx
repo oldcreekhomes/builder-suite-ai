@@ -199,16 +199,22 @@ export function AccountSearchInput({
             top: menuPos.top, 
             left: menuPos.left, 
             width: menuPos.width, 
-            zIndex: 2147483647 
+            zIndex: 2147483647,
+            maxHeight: '240px',
+            overflowY: 'auto'
           }} 
-          className="max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"
+          className="rounded-md border bg-popover shadow-lg"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {filteredAccounts.map((account) => (
             <button
               key={account.id}
               type="button"
               className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              onMouseDown={() => handleSelectAccount(account)}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleSelectAccount(account);
+              }}
             >
               <div className="font-medium">{account.code} - {account.name}</div>
             </button>
