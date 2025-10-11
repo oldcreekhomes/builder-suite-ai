@@ -638,7 +638,7 @@ export function EditExtractedBillDialog({
               </Button>
             </div>
 
-            <TabsContent value="job-cost" className="space-y-4">
+            <TabsContent value="job-cost" className="space-y-4 mt-4">
               {jobCostLines.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No job cost lines. Click "Add Line" to add one.
@@ -717,7 +717,7 @@ export function EditExtractedBillDialog({
               )}
             </TabsContent>
 
-            <TabsContent value="expense" className="space-y-4">
+            <TabsContent value="expense" className="space-y-4 mt-4">
               {expenseLines.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   No expense lines. Click "Add Line" to add one.
