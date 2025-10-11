@@ -142,7 +142,7 @@ export function CostCodeSearchInput({
       />
       
       {showResults && filteredCostCodes.length > 0 && (
-        <div className="absolute z-[100] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
           {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
@@ -157,13 +157,13 @@ export function CostCodeSearchInput({
       )}
       
       {showResults && loading && (
-        <div className="absolute z-[100] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
           <div className="text-sm text-muted-foreground">Loading cost codes...</div>
         </div>
       )}
       
       {showResults && !loading && filteredCostCodes.length === 0 && searchQuery.trim().length > 0 && (
-        <div className="absolute z-[100] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
           <div className="text-sm text-muted-foreground">No cost codes found</div>
         </div>
       )}
