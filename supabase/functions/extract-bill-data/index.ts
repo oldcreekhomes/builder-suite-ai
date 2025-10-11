@@ -577,6 +577,17 @@ Return ONLY the JSON object, no additional text.`;
       throw new Error('Failed to parse AI response as JSON');
     }
 
+    // Validate amount - if > $1M, likely a parsing error
+    if (extractedData.total || extractedData.total_amount || extractedData.totalAmount) {
+      const amount = extractedData.total || extractedData.total_amount || extractedData.totalAmount;
+      if (amount && amount > 1000000) {
+        console.warn('⚠️ Suspicious amount detected:', amount, '- setting to null');
+        extractedData.total = null;
+        extractedData.total_amount = null;
+        extractedData.totalAmount = null;
+      }
+    }
+
     // Clean vendor name (remove newlines/extra whitespace)
     if (extractedData.vendor_name) {
       extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();

@@ -42,7 +42,7 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
       if (!pendingBills) return;
 
       const completedBills = pendingBills.filter(b => 
-        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing'
+        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
       );
       
       const billsWithLines = await Promise.all(
@@ -202,10 +202,60 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
     fetchBillsWithLines();
   }, [pendingBills]);
 
-  const handleBillUpdate = (billId: string, updates: any) => {
+  const handleBillUpdate = async (billId: string, updates: any) => {
+    // Update local state immediately for responsive UI
     setBatchBills(prev => prev.map(bill => 
-      bill.id === billId ? { ...bill, ...updates } : bill
+      bill.id === billId ? { ...bill, ...(updates || {}) } : bill
     ));
+    
+    // If vendor info is being updated, persist to database
+    if (updates && (updates.vendor_id !== undefined || updates.vendor_name !== undefined)) {
+      try {
+        // Get the current extracted_data
+        const { data: currentBill } = await supabase
+          .from('pending_bill_uploads')
+          .select('extracted_data')
+          .eq('id', billId)
+          .single();
+        
+        const currentData = (currentBill?.extracted_data as Record<string, any>) || {};
+        
+        // Merge the updates into extracted_data
+        const updatedData: Record<string, any> = {
+          ...currentData,
+        };
+        
+        if (updates.vendor_id !== undefined) {
+          updatedData.vendor_id = updates.vendor_id;
+          updatedData.vendorId = updates.vendor_id;
+        }
+        
+        if (updates.vendor_name !== undefined) {
+          updatedData.vendor_name = updates.vendor_name;
+          updatedData.vendor = updates.vendor_name;
+        }
+        
+        // Save to database
+        const { error } = await supabase
+          .from('pending_bill_uploads')
+          .update({ 
+            extracted_data: updatedData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', billId);
+        
+        if (error) {
+          console.error('Failed to persist vendor update:', error);
+          toast({
+            title: "Warning",
+            description: "Vendor was added but may need to be reselected",
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        console.error('Error persisting vendor update:', err);
+      }
+    }
   };
 
   const handleBillDelete = async (billId: string) => {

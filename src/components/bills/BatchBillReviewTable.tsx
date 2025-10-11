@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
@@ -564,11 +565,18 @@ export function BatchBillReviewTable({
                     </div>
                   </TableCell>
                   <TableCell className="px-3 py-1">
-                    {issues.length > 0 ? (
-                      <span className="text-xs text-red-600">{issues.length}</span>
-                    ) : (
-                      <span className="text-xs text-green-600">Ready</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {bill.status === 'error' && (
+                        <Badge variant="destructive" className="w-fit text-xs">
+                          Error
+                        </Badge>
+                      )}
+                      {issues.length > 0 ? (
+                        <span className="text-xs text-red-600">{issues.length}</span>
+                      ) : !bill.status.includes('error') && (
+                        <span className="text-xs text-green-600">Ready</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     <div className="flex items-center gap-1">

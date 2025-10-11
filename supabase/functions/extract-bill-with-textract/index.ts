@@ -93,6 +93,16 @@ serve(async (req) => {
 
     console.log('Raw extracted data:', extractedData);
 
+    // Validate amount - if > $1M, likely a parsing error
+    if (extractedData.total || extractedData.totalAmount) {
+      const amount = extractedData.total || extractedData.totalAmount;
+      if (amount && amount > 1000000) {
+        console.warn('⚠️ Suspicious amount detected:', amount, '- setting to null');
+        extractedData.total = null;
+        extractedData.totalAmount = null;
+      }
+    }
+
     // Clean vendor name (fix newlines and extra whitespace)
     if (extractedData.vendor) {
       extractedData.vendor = extractedData.vendor.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
