@@ -632,7 +632,7 @@ export function EditExtractedBillDialog({
                   No job cost lines. Click "Add Line" to add one.
                 </div>
               ) : (
-                <Table>
+                <Table containerClassName="relative w-full overflow-x-auto overflow-y-visible max-h-none">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[200px]">Cost Code</TableHead>
@@ -715,7 +715,7 @@ export function EditExtractedBillDialog({
                   No expense lines. Click "Add Line" to add one.
                 </div>
               ) : (
-                <Table>
+                <Table containerClassName="relative w-full overflow-x-auto overflow-y-visible max-h-none">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[200px]">Account</TableHead>
