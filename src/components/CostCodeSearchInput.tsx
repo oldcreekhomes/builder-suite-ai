@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
@@ -20,12 +21,39 @@ export function CostCodeSearchInput({
 }: CostCodeSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const { costCodes, loading } = useCostCodeSearch();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     setSearchQuery(value);
   }, [value]);
+
+  const updatePosition = () => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setMenuPos({ 
+      top: rect.bottom + 4, 
+      left: rect.left, 
+      width: rect.width 
+    });
+  };
+
+  useEffect(() => {
+    if (!showResults) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [showResults]);
 
   // Show all cost codes when empty, filter when user types
   const filteredCostCodes = searchQuery.trim().length === 0
@@ -141,8 +169,17 @@ export function CostCodeSearchInput({
         className={className}
       />
       
-      {showResults && filteredCostCodes.length > 0 && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
+      {mounted && showResults && filteredCostCodes.length > 0 && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"
+        >
           {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
@@ -153,19 +190,40 @@ export function CostCodeSearchInput({
               <div className="font-medium">{costCode.code} - {costCode.name}</div>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
       
-      {showResults && loading && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+      {mounted && showResults && loading && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="rounded-md border bg-popover p-4 shadow-lg"
+        >
           <div className="text-sm text-muted-foreground">Loading cost codes...</div>
-        </div>
+        </div>,
+        document.body
       )}
       
-      {showResults && !loading && filteredCostCodes.length === 0 && searchQuery.trim().length > 0 && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+      {mounted && showResults && !loading && filteredCostCodes.length === 0 && searchQuery.trim().length > 0 && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="rounded-md border bg-popover p-4 shadow-lg"
+        >
           <div className="text-sm text-muted-foreground">No cost codes found</div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
