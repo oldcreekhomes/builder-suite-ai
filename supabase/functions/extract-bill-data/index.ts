@@ -72,9 +72,15 @@ function calculateSimilarity(str1: string, str2: string): number {
 }
 
 // Extract company initials/acronym (e.g., "JZ Structural Engineering" -> "JZSE")
-// Handles multi-letter acronyms like "JZ" correctly
+// Handles multi-letter acronyms like "JZ" correctly and ignores legal suffixes
 function getCompanyInitials(companyName: string): string {
-  return companyName
+  // Common legal suffixes to ignore
+  const suffixes = /\b(Inc|LLC|Corp|Corporation|Ltd|Limited|Co|Company|LP|LLP|PLLC|PC)\b\.?$/i;
+  
+  // Remove suffixes first
+  const nameWithoutSuffix = companyName.replace(suffixes, '').trim();
+  
+  return nameWithoutSuffix
     .split(/[\s\-]+/)
     .filter(word => word.length > 0)
     .map(word => {
