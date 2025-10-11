@@ -20,24 +20,12 @@ export function CostCodeSearchInput({
 }: CostCodeSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const { costCodes, loading } = useCostCodeSearch();
 
   useEffect(() => {
     setSearchQuery(value);
   }, [value]);
-
-  useEffect(() => {
-    if (showResults && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
-    }
-  }, [showResults]);
 
   // Show all cost codes when empty, filter when user types
   const filteredCostCodes = searchQuery.trim().length === 0
@@ -154,14 +142,7 @@ export function CostCodeSearchInput({
       />
       
       {showResults && filteredCostCodes.length > 0 && (
-        <div 
-          className="fixed z-[100] max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"
-          style={{
-            top: `${dropdownPosition.top + 4}px`,
-            left: `${dropdownPosition.left}px`,
-            width: `${Math.max(dropdownPosition.width, 300)}px`
-          }}
-        >
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
           {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
@@ -176,27 +157,13 @@ export function CostCodeSearchInput({
       )}
       
       {showResults && loading && (
-        <div 
-          className="fixed z-[100] rounded-md border bg-popover p-4 shadow-lg"
-          style={{
-            top: `${dropdownPosition.top + 4}px`,
-            left: `${dropdownPosition.left}px`,
-            width: `${Math.max(dropdownPosition.width, 300)}px`
-          }}
-        >
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
           <div className="text-sm text-muted-foreground">Loading cost codes...</div>
         </div>
       )}
       
       {showResults && !loading && filteredCostCodes.length === 0 && searchQuery.trim().length > 0 && (
-        <div 
-          className="fixed z-[100] rounded-md border bg-popover p-4 shadow-lg"
-          style={{
-            top: `${dropdownPosition.top + 4}px`,
-            left: `${dropdownPosition.left}px`,
-            width: `${Math.max(dropdownPosition.width, 300)}px`
-          }}
-        >
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
           <div className="text-sm text-muted-foreground">No cost codes found</div>
         </div>
       )}
