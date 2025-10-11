@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -26,7 +25,14 @@ export const AccountSearchInput = ({
   bankAccountsOnly = false
 }: AccountSearchInputProps) => {
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { accounts } = useAccounts();
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open]);
 
   const filteredAccounts = accounts.filter(account => {
     if (accountType && account.type !== accountType) return false;
@@ -70,9 +76,21 @@ export const AccountSearchInput = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0 z-[9999] bg-popover pointer-events-auto">
+      <PopoverContent 
+        className="w-[400px] p-0 z-[9999] bg-popover pointer-events-auto"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <Command>
-          <CommandInput placeholder="Search accounts..." />
+          <CommandInput 
+            ref={inputRef}
+            placeholder="Search accounts..." 
+            autoFocus
+            onKeyDown={(e) => e.stopPropagation()}
+          />
           <CommandList>
             <CommandEmpty>No accounts found.</CommandEmpty>
             <CommandGroup>
