@@ -177,15 +177,18 @@ export function CostCodeSearchInput({
             left: menuPos.left,
             width: menuPos.width,
             zIndex: 2147483647,
+            maxHeight: '240px',
+            overflowY: 'auto'
           }}
-          className="max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"
+          className="rounded-md border bg-popover shadow-lg"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
               type="button"
               className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              onMouseDown={() => handleSelectCostCode(costCode)}
+              onMouseDown={(e) => { e.stopPropagation(); handleSelectCostCode(costCode); }}
             >
               <div className="font-medium">{costCode.code} - {costCode.name}</div>
             </button>
