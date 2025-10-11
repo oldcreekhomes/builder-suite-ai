@@ -168,11 +168,24 @@ serve(async (req) => {
           return norm.length >= 3 && norm.length <= 8 && /^[A-Z]+$/.test(norm);
         };
         
-        const getInitials = (name: string) => {
-          return name
+        const getCompanyInitials = (companyName: string): string => {
+          // Strip common legal suffixes before processing
+          const suffixes = /\b(Inc|LLC|Corp|Corporation|Ltd|Limited|Co|Company|LP|LLP|PLLC|PC)\b\.?$/i;
+          const nameWithoutSuffix = companyName.replace(suffixes, '').trim();
+
+          return nameWithoutSuffix
             .split(/[\s\-]+/)
-            .filter(word => word.length > 0)
-            .map(word => word[0].toUpperCase())
+            .filter(Boolean)
+            .map(word => {
+              const cleaned = word.replace(/[^a-zA-Z0-9]/g, '');
+              if (!cleaned) return '';
+              // Preserve multi-letter acronyms (2-4 uppercase letters)
+              if (cleaned.length >= 2 && cleaned.length <= 4 && cleaned === cleaned.toUpperCase()) {
+                return cleaned;
+              }
+              return cleaned[0].toUpperCase();
+            })
+            .filter(Boolean)
             .join('');
         };
         
@@ -186,7 +199,7 @@ serve(async (req) => {
             .eq('home_builder_id', effectiveOwnerId);
           
           for (const company of companies || []) {
-            const initials = getInitials(company.company_name);
+            const initials = getCompanyInitials(company.company_name);
             if (initials === acronym) {
               vendorId = company.id;
               console.log(`✓ Acronym match: "${extractedData.vendor}" → "${company.company_name}" (${acronym})`);

@@ -92,6 +92,7 @@ export function BatchBillReviewTable({
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");
+  const [rematchingBillId, setRematchingBillId] = useState<string | null>(null);
   const [vendorInitialData, setVendorInitialData] = useState<{
     phone_number?: string;
     address_line_1?: string;
@@ -275,6 +276,45 @@ export function BatchBillReviewTable({
     setAddingVendorForBillId(billId);
     // Normalize vendor name: replace newlines/multiple spaces with single space
     setAddingVendorName(String(vendorName).replace(/\s+/g, ' ').trim());
+  };
+
+  const handleRematchVendor = async (billId: string) => {
+    setRematchingBillId(billId);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('rematch-pending-bill', {
+        body: { pendingUploadId: billId }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data?.vendor_id && data?.company_name) {
+        onBillUpdate(billId, {
+          vendor_id: data.vendor_id,
+          vendor_name: data.company_name
+        });
+        
+        toast({
+          title: "Vendor matched",
+          description: `Matched to ${data.company_name}`,
+        });
+      } else {
+        toast({
+          title: "No match found",
+          description: "Could not find a matching vendor in your database.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Rematch error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to rematch vendor",
+        variant: "destructive",
+      });
+    } finally {
+      setRematchingBillId(null);
+    }
   };
 
   const handleVendorCreated = async (companyId: string, companyName: string) => {
@@ -467,14 +507,32 @@ export function BatchBillReviewTable({
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     {!vendorId && vendorName ? (
-                      <button
-                        onClick={() => handleAddVendor(bill.id, vendorName as string)}
-                        className="flex items-center gap-1 px-2 py-1 -mx-2 -my-1 rounded hover:bg-red-50 transition-colors cursor-pointer w-full"
-                        title="Add vendor to database"
-                      >
+                      <div className="flex items-center gap-1">
                         <span className="text-xs text-red-600 font-medium">{vendorName}</span>
-                        <Plus className="h-3 w-3 text-red-600" />
-                      </button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleRematchVendor(bill.id)}
+                          disabled={rematchingBillId === bill.id}
+                          title="Try to match vendor again"
+                        >
+                          {rematchingBillId === bill.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Re-match"
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleAddVendor(bill.id, vendorName as string)}
+                          title="Add vendor to database"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     ) : (
                       <span className="text-xs">{vendorName || '-'}</span>
                     )}
