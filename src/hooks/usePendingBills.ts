@@ -48,7 +48,7 @@ export const usePendingBills = () => {
       const { data, error } = await supabase
         .from('pending_bill_uploads')
         .select('*')
-        .in('status', ['extracted', 'completed', 'reviewing'])
+        .in('status', ['extracted', 'completed', 'reviewing', 'error'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
