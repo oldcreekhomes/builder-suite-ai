@@ -622,10 +622,21 @@ export function EditExtractedBillDialog({
 
           {/* Line Items */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-              <TabsTrigger value="expense">Expense</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between border-b">
+              <TabsList>
+                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                <TabsTrigger value="expense">Expense</TabsTrigger>
+              </TabsList>
+              <Button 
+                onClick={activeTab === 'job-cost' ? addJobCostLine : addExpenseLine} 
+                variant="outline" 
+                size="sm"
+                className="mb-1"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Line
+              </Button>
+            </div>
 
             <TabsContent value="job-cost" className="space-y-4">
               {jobCostLines.length === 0 ? (
@@ -704,10 +715,6 @@ export function EditExtractedBillDialog({
                 </TableBody>
               </Table>
               )}
-              <Button onClick={addJobCostLine} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Line
-              </Button>
             </TabsContent>
 
             <TabsContent value="expense" className="space-y-4">
@@ -788,10 +795,6 @@ export function EditExtractedBillDialog({
                 </TableBody>
               </Table>
               )}
-              <Button onClick={addExpenseLine} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Line
-              </Button>
             </TabsContent>
           </Tabs>
 
