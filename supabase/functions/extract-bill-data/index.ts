@@ -71,11 +71,64 @@ function calculateSimilarity(str1: string, str2: string): number {
   return maxLen === 0 ? 1.0 : 1.0 - (distance / maxLen);
 }
 
-// Find matching vendor in database
+// Extract company initials/acronym (e.g., "JZ Structural Engineering" -> "JZSE")
+function getCompanyInitials(companyName: string): string {
+  return companyName
+    .split(/[\s\-]+/)
+    .filter(word => word.length > 0)
+    .map(word => word[0].toUpperCase())
+    .join('');
+}
+
+// Check if string looks like an acronym (3-8 uppercase letters, maybe with spaces/periods)
+function isAcronymLike(str: string): boolean {
+  const normalized = str.replace(/[\s\.]/g, '').toUpperCase();
+  return normalized.length >= 3 && normalized.length <= 8 && /^[A-Z]+$/.test(normalized);
+}
+
+// Find matching vendor in database - now with alias and acronym support
 async function findMatchingVendor(vendorName: string, supabase: any, ownerId: string): Promise<string | null> {
   if (!vendorName) return null;
   
-  // Fetch all companies for this owner
+  const normalized = normalizeVendorName(vendorName);
+  
+  // STEP 1: Check vendor aliases first (fastest, most accurate)
+  console.log(`Checking vendor aliases for "${vendorName}" (normalized: "${normalized}")`);
+  const { data: aliasMatch } = await supabase
+    .from('vendor_aliases')
+    .select('company_id, companies(company_name)')
+    .eq('owner_id', ownerId)
+    .eq('normalized_alias', normalized)
+    .limit(1)
+    .single();
+  
+  if (aliasMatch?.company_id) {
+    const companyName = aliasMatch.companies?.company_name || 'matched company';
+    console.log(`✓ Alias match: "${vendorName}" → "${companyName}" (via learned alias)`);
+    return aliasMatch.company_id;
+  }
+  
+  // STEP 2: Check for acronym matching (e.g., "JZSC" → "JZ Structural Consulting")
+  if (isAcronymLike(vendorName)) {
+    const acronym = vendorName.replace(/[\s\.]/g, '').toUpperCase();
+    console.log(`Checking acronym match for "${acronym}"`);
+    
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('id, company_name')
+      .eq('home_builder_id', ownerId);
+    
+    for (const company of companies || []) {
+      const initials = getCompanyInitials(company.company_name);
+      if (initials === acronym) {
+        console.log(`✓ Acronym match: "${vendorName}" → "${company.company_name}" (${acronym})`);
+        return company.id;
+      }
+    }
+  }
+  
+  // STEP 3: Fuzzy matching (existing fallback)
+  console.log(`Trying fuzzy match for "${vendorName}"`);
   const { data: companies } = await supabase
     .from('companies')
     .select('id, company_name')
@@ -94,10 +147,12 @@ async function findMatchingVendor(vendorName: string, supabase: any, ownerId: st
   }
   
   if (bestMatch) {
-    console.log(`Matched "${vendorName}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
+    console.log(`✓ Fuzzy match: "${vendorName}" → "${bestMatch.name}" (${(bestMatch.score * 100).toFixed(1)}% confidence)`);
+    return bestMatch.id;
   }
   
-  return bestMatch?.id || null;
+  console.log(`✗ No match found for "${vendorName}"`);
+  return null;
 }
 
 serve(async (req) => {

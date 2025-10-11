@@ -122,45 +122,118 @@ serve(async (req) => {
 
     console.log(`📚 Loaded ${learningExamples?.length || 0} learning examples for categorization`);
 
-    // Robust vendor matching using similarity
+    // Robust vendor matching using aliases, acronyms, and similarity
     let vendorId: string | null = null;
     if (extractedData.vendor) {
-      const { data: companies } = await supabase
-        .from('companies')
-        .select('id, company_name, terms')
-        .eq('home_builder_id', effectiveOwnerId);
+      const normalized = normalizeVendorName(extractedData.vendor);
       
-      if (companies && companies.length > 0) {
-        let bestMatch: { id: string; score: number; name: string; terms?: string | null } | null = null;
+      // STEP 1: Check vendor aliases first (fastest, most accurate)
+      console.log(`Checking vendor aliases for "${extractedData.vendor}" (normalized: "${normalized}")`);
+      const { data: aliasMatch } = await supabase
+        .from('vendor_aliases')
+        .select('company_id, companies(company_name, terms)')
+        .eq('owner_id', effectiveOwnerId)
+        .eq('normalized_alias', normalized)
+        .limit(1)
+        .single();
+      
+      if (aliasMatch?.company_id) {
+        const companyName = aliasMatch.companies?.company_name || 'matched company';
+        const companyTerms = aliasMatch.companies?.terms;
+        vendorId = aliasMatch.company_id;
+        console.log(`✓ Alias match: "${extractedData.vendor}" → "${companyName}" (via learned alias)`);
         
-        for (const company of companies) {
-          const similarity = calculateVendorSimilarity(extractedData.vendor, company.company_name);
+        // Replace vendor name with matched company name
+        extractedData.vendor = companyName;
+        
+        // Auto-fill terms if available and not already extracted
+        if (companyTerms && !extractedData.terms) {
+          extractedData.terms = companyTerms;
+          console.log(`  Auto-filled terms from vendor: "${companyTerms}"`);
+        }
+      } else {
+        // STEP 2: Check for acronym matching (e.g., "JZSC" → "JZ Structural Consulting")
+        const isAcronym = (str: string) => {
+          const norm = str.replace(/[\s\.]/g, '').toUpperCase();
+          return norm.length >= 3 && norm.length <= 8 && /^[A-Z]+$/.test(norm);
+        };
+        
+        const getInitials = (name: string) => {
+          return name
+            .split(/[\s\-]+/)
+            .filter(word => word.length > 0)
+            .map(word => word[0].toUpperCase())
+            .join('');
+        };
+        
+        if (isAcronym(extractedData.vendor)) {
+          const acronym = extractedData.vendor.replace(/[\s\.]/g, '').toUpperCase();
+          console.log(`Checking acronym match for "${acronym}"`);
           
-          if (similarity > 0.8 && (!bestMatch || similarity > bestMatch.score)) {
-            bestMatch = { 
-              id: company.id, 
-              score: similarity, 
-              name: company.company_name,
-              terms: company.terms 
-            };
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id, company_name, terms')
+            .eq('home_builder_id', effectiveOwnerId);
+          
+          for (const company of companies || []) {
+            const initials = getInitials(company.company_name);
+            if (initials === acronym) {
+              vendorId = company.id;
+              console.log(`✓ Acronym match: "${extractedData.vendor}" → "${company.company_name}" (${acronym})`);
+              
+              // Replace vendor name with matched company name
+              extractedData.vendor = company.company_name;
+              
+              // Auto-fill terms if available and not already extracted
+              if (company.terms && !extractedData.terms) {
+                extractedData.terms = company.terms;
+                console.log(`  Auto-filled terms from vendor: "${company.terms}"`);
+              }
+              break;
+            }
           }
         }
         
-        if (bestMatch) {
-          vendorId = bestMatch.id;
-          console.log(`✓ Matched "${extractedData.vendor}" to "${bestMatch.name}" (ID: ${bestMatch.id}) with ${(bestMatch.score * 100).toFixed(1)}% confidence`);
+        // STEP 3: Fuzzy matching (existing fallback)
+        if (!vendorId) {
+          console.log(`Trying fuzzy match for "${extractedData.vendor}"`);
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id, company_name, terms')
+            .eq('home_builder_id', effectiveOwnerId);
           
-          // Replace vendor name with matched company name from database
-          extractedData.vendor = bestMatch.name;
-          console.log(`  Replaced vendor name with: "${bestMatch.name}"`);
-          
-          // Auto-fill terms from vendor if available and not already extracted
-          if (bestMatch.terms && !extractedData.terms) {
-            extractedData.terms = bestMatch.terms;
-            console.log(`  Auto-filled terms from vendor: "${bestMatch.terms}"`);
+          if (companies && companies.length > 0) {
+            let bestMatch: { id: string; score: number; name: string; terms?: string | null } | null = null;
+            
+            for (const company of companies) {
+              const similarity = calculateVendorSimilarity(extractedData.vendor, company.company_name);
+              
+              if (similarity > 0.8 && (!bestMatch || similarity > bestMatch.score)) {
+                bestMatch = { 
+                  id: company.id, 
+                  score: similarity, 
+                  name: company.company_name,
+                  terms: company.terms 
+                };
+              }
+            }
+            
+            if (bestMatch) {
+              vendorId = bestMatch.id;
+              console.log(`✓ Fuzzy match: "${extractedData.vendor}" → "${bestMatch.name}" (${(bestMatch.score * 100).toFixed(1)}% confidence)`);
+              
+              // Replace vendor name with matched company name from database
+              extractedData.vendor = bestMatch.name;
+              
+              // Auto-fill terms from vendor if available and not already extracted
+              if (bestMatch.terms && !extractedData.terms) {
+                extractedData.terms = bestMatch.terms;
+                console.log(`  Auto-filled terms from vendor: "${bestMatch.terms}"`);
+              }
+            } else {
+              console.log(`✗ No vendor match found for "${extractedData.vendor}" (best similarity < 80%)`);
+            }
           }
-        } else {
-          console.log(`✗ No vendor match found for "${extractedData.vendor}" (best similarity < 80%)`);
         }
       }
     }

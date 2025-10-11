@@ -2004,6 +2004,41 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_aliases: {
+        Row: {
+          alias: string
+          company_id: string
+          created_at: string
+          id: string
+          normalized_alias: string
+          owner_id: string
+        }
+        Insert: {
+          alias: string
+          company_id: string
+          created_at?: string
+          id?: string
+          normalized_alias: string
+          owner_id: string
+        }
+        Update: {
+          alias?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          normalized_alias?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_aliases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

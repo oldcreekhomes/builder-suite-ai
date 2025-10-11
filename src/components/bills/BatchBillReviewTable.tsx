@@ -310,12 +310,67 @@ export function BatchBillReviewTable({
     setAddingVendorName(String(vendorName).replace(/\s+/g, ' ').trim());
   };
 
-  const handleVendorCreated = (companyId: string, companyName: string) => {
+  const handleVendorCreated = async (companyId: string, companyName: string) => {
     if (addingVendorForBillId) {
       onBillUpdate(addingVendorForBillId, {
         vendor_id: companyId,
         vendor_name: companyName
       });
+      
+      // Save vendor alias for future recognition
+      const bill = bills.find(b => b.id === addingVendorForBillId);
+      const originalVendorName = bill?.extracted_data?.vendor_name || bill?.extracted_data?.vendor || addingVendorName;
+      
+      if (originalVendorName && originalVendorName.trim()) {
+        try {
+          // Normalize the alias
+          const normalizedAlias = originalVendorName
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '')
+            .trim();
+          
+          // Get current user to determine owner_id
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            console.error('No authenticated user for alias save');
+            return;
+          }
+          
+          // Get effective owner ID (owner or home_builder_id if employee)
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role, home_builder_id')
+            .eq('id', user.id)
+            .single();
+          
+          const effectiveOwnerId = (userData?.role === 'employee' && userData?.home_builder_id)
+            ? userData.home_builder_id
+            : user.id;
+          
+          // Upsert the alias (idempotent - won't fail if already exists)
+          const { error: aliasError } = await supabase
+            .from('vendor_aliases')
+            .upsert({
+              owner_id: effectiveOwnerId,
+              company_id: companyId,
+              alias: originalVendorName.trim(),
+              normalized_alias: normalizedAlias,
+            }, {
+              onConflict: 'owner_id,normalized_alias'
+            });
+          
+          if (aliasError) {
+            console.error('Failed to save vendor alias:', aliasError);
+          } else {
+            console.log(`Saved vendor alias: "${originalVendorName}" → ${companyName}`);
+          }
+        } catch (err) {
+          console.error('Error saving vendor alias:', err);
+        }
+      }
       
       toast({
         title: "Vendor added",
