@@ -26,7 +26,7 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState("enter-manually");
   const { data: counts, isLoading } = useBillCounts(effectiveProjectId);
   
-  const { pendingBills, isLoading: loadingPendingBills, batchApproveBills } = usePendingBills();
+  const { pendingBills, isLoading: loadingPendingBills, batchApproveBills, deletePendingUpload } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [processingUploads, setProcessingUploads] = useState<any[]>([]);
@@ -259,25 +259,20 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
   };
 
   const handleBillDelete = async (billId: string) => {
-    const { error } = await supabase
-      .from('pending_bill_uploads')
-      .delete()
-      .eq('id', billId);
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete bill",
-        variant: "destructive",
+    try {
+      await deletePendingUpload.mutateAsync(billId);
+      // Update local state to remove the deleted bill
+      setBatchBills(prev => prev.filter(bill => bill.id !== billId));
+      // Remove from selection if it was selected
+      setSelectedBillIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(billId);
+        return newSet;
       });
-      return;
+    } catch (error) {
+      // Error handling is already done by the mutation
+      console.error('Delete failed:', error);
     }
-    
-    setBatchBills(prev => prev.filter(bill => bill.id !== billId));
-    toast({
-      title: "Success",
-      description: "Bill deleted successfully",
-    });
   };
 
   const handleLinesUpdate = async (billId: string, lines: any[]) => {
