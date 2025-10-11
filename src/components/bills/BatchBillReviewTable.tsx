@@ -252,41 +252,7 @@ export function BatchBillReviewTable({
       let vendorPhone = getContact(data, 'vendor_phone', 'vendorPhone');
       let vendorWebsite = getContact(data, 'vendor_website', 'vendorWebsite');
       
-      // If no contact info found, try enriching
-      if (!vendorAddress && !vendorPhone && !vendorWebsite) {
-        console.debug('No contact info found, attempting enrichment...');
-        
-        try {
-          // Call extract-bill-data with enrichContactOnly flag
-          const { error: enrichError } = await supabase.functions.invoke('extract-bill-data', {
-            body: {
-              pendingUploadId: billId,
-              enrichContactOnly: true
-            }
-          });
-          
-          if (enrichError) {
-            console.error('Error enriching contact:', enrichError);
-          } else {
-            // Refetch the pending upload to get updated extracted_data
-            const { data: updatedBill, error: fetchError } = await supabase
-              .from('pending_bill_uploads')
-              .select('extracted_data')
-              .eq('id', billId)
-              .single();
-            
-            if (!fetchError && updatedBill?.extracted_data) {
-              const enrichedData = updatedBill.extracted_data as any;
-              vendorAddress = getContact(enrichedData, 'vendor_address', 'vendorAddress');
-              vendorPhone = getContact(enrichedData, 'vendor_phone', 'vendorPhone');
-              vendorWebsite = getContact(enrichedData, 'vendor_website', 'vendorWebsite');
-              console.debug('Enriched contact data:', { vendorAddress, vendorPhone, vendorWebsite });
-            }
-          }
-        } catch (err) {
-          console.error('Error during contact enrichment:', err);
-        }
-      }
+      // Note: Opening dialog with existing extracted data (if any)
       
       // Parse address if available
       let addressData = {};
