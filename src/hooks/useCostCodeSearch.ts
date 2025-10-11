@@ -21,7 +21,9 @@ export function useCostCodeSearch() {
           .order('code');
 
         if (error) throw error;
-        setCostCodes(data || []);
+        // Filter out subcategories (cost codes with .XXX format)
+        const parentCostCodes = (data || []).filter(cc => !cc.code.includes('.'));
+        setCostCodes(parentCostCodes);
       } catch (error) {
         console.error('Error fetching cost codes:', error);
       } finally {
