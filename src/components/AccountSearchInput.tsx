@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -24,12 +25,39 @@ export function AccountSearchInput({
 }: AccountSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { accounts, isLoading } = useAccounts();
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     setSearchQuery(value);
   }, [value]);
+
+  const updatePosition = () => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setMenuPos({ 
+      top: rect.bottom + 4, 
+      left: rect.left, 
+      width: rect.width 
+    });
+  };
+
+  useEffect(() => {
+    if (!showResults) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [showResults]);
 
   // Filter by account type if specified
   const typeFilteredAccounts = accounts.filter(account => {
@@ -164,8 +192,17 @@ export function AccountSearchInput({
         className={className}
       />
       
-      {showResults && filteredAccounts.length > 0 && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
+      {mounted && showResults && filteredAccounts.length > 0 && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"
+        >
           {filteredAccounts.map((account) => (
             <button
               key={account.id}
@@ -176,19 +213,40 @@ export function AccountSearchInput({
               <div className="font-medium">{account.code} - {account.name}</div>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
       
-      {showResults && isLoading && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+      {mounted && showResults && isLoading && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="rounded-md border bg-popover p-4 shadow-lg"
+        >
           <div className="text-sm text-muted-foreground">Loading accounts...</div>
-        </div>
+        </div>,
+        document.body
       )}
       
-      {showResults && !isLoading && filteredAccounts.length === 0 && searchQuery.trim().length > 0 && (
-        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+      {mounted && showResults && !isLoading && filteredAccounts.length === 0 && searchQuery.trim().length > 0 && createPortal(
+        <div 
+          style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+          }}
+          className="rounded-md border bg-popover p-4 shadow-lg"
+        >
           <div className="text-sm text-muted-foreground">No accounts found</div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
