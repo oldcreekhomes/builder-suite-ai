@@ -24,6 +24,7 @@ export function CostCodeSearchInput({
   const [mounted, setMounted] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
+  const justSelectedRef = useRef(false);
   const { costCodes, loading } = useCostCodeSearch();
 
   useEffect(() => {
@@ -131,6 +132,11 @@ export function CostCodeSearchInput({
   };
 
   const handleInputBlur = () => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      setShowResults(false);
+      return;
+    }
     // Try to auto-select before hiding results
     attemptAutoSelect();
     // Delay hiding results to allow for selection
@@ -146,6 +152,7 @@ export function CostCodeSearchInput({
   };
 
   const handleSelectCostCode = (costCode: { id: string; code: string; name: string }) => {
+    justSelectedRef.current = true;
     const selectedValue = `${costCode.code} - ${costCode.name}`;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
@@ -178,17 +185,25 @@ export function CostCodeSearchInput({
             width: menuPos.width,
             zIndex: 2147483647,
             maxHeight: '240px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            pointerEvents: 'auto'
           }}
           className="rounded-md border bg-popover shadow-lg"
           onMouseDown={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
         >
           {filteredCostCodes.map((costCode) => (
             <button
               key={costCode.id}
               type="button"
               className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              onMouseDown={(e) => { e.stopPropagation(); handleSelectCostCode(costCode); }}
+              onMouseDown={(e) => { 
+                e.preventDefault();
+                e.stopPropagation(); 
+                handleSelectCostCode(costCode); 
+              }}
             >
               <div className="font-medium">{costCode.code} - {costCode.name}</div>
             </button>

@@ -26,6 +26,7 @@ export function AccountSearchInput({
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const justSelectedRef = useRef(false);
   const { accounts, isLoading } = useAccounts();
   const [mounted, setMounted] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
@@ -154,6 +155,11 @@ export function AccountSearchInput({
   };
 
   const handleInputBlur = () => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      setShowResults(false);
+      return;
+    }
     // Try to auto-select before hiding results
     attemptAutoSelect();
     // Delay hiding results to allow for selection
@@ -169,6 +175,7 @@ export function AccountSearchInput({
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    justSelectedRef.current = true;
     const selectedValue = `${account.code} - ${account.name}`;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
@@ -201,10 +208,14 @@ export function AccountSearchInput({
             width: menuPos.width, 
             zIndex: 2147483647,
             maxHeight: '240px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            pointerEvents: 'auto'
           }} 
           className="rounded-md border bg-popover shadow-lg"
           onMouseDown={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
         >
           {filteredAccounts.map((account) => (
             <button
@@ -212,6 +223,7 @@ export function AccountSearchInput({
               type="button"
               className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
               onMouseDown={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 handleSelectAccount(account);
               }}
