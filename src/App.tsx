@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -114,6 +115,7 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <SidebarProvider>
+        <ImpersonationBanner />
         <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />

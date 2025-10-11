@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export const useUserProfile = () => {
-  const { user } = useAuth();
+  const { user, isImpersonating } = useAuth();
 
   const { data: profile, isLoading, error } = useQuery({
-    queryKey: ['profile', user?.id],
+    queryKey: ['profile', user?.id, isImpersonating],
     queryFn: async () => {
       if (!user?.id) return null;
       
@@ -34,6 +34,7 @@ export const useUserProfile = () => {
       return null;
     },
     enabled: !!user?.id,
+    staleTime: isImpersonating ? 0 : 5 * 60 * 1000, // Don't cache when impersonating
   });
 
   return { profile, isLoading, error };

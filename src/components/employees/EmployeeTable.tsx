@@ -4,12 +4,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Pencil } from "lucide-react";
+import { Pencil, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Employee {
   id: string;
@@ -27,7 +30,9 @@ interface Employee {
 
 export function EmployeeTable() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
+  const { isOwner } = useUserRole();
+  const { startImpersonation } = useImpersonation();
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -123,6 +128,37 @@ export function EmployeeTable() {
     setEditingEmployee(null);
   };
 
+  const handleViewAsUser = async (employee: Employee) => {
+    if (!isOwner) {
+      toast({
+        title: "Permission Denied",
+        description: "Only owners can impersonate users.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!employee.confirmed) {
+      toast({
+        title: "Cannot Impersonate",
+        description: "Cannot impersonate users with pending invitations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (employee.id === realUser?.id) {
+      toast({
+        title: "Cannot Impersonate",
+        description: "You cannot impersonate yourself.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await startImpersonation(employee.id);
+  };
+
   if (isLoading) {
     return <div className="text-center py-8">Loading employees...</div>;
   }
@@ -136,7 +172,7 @@ export function EmployeeTable() {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -175,6 +211,27 @@ export function EmployeeTable() {
                 <TableCell>{getStatusBadge(employee)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
+                    {isOwner && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewAsUser(employee)}
+                            disabled={!employee.confirmed || employee.id === realUser?.id}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {employee.id === realUser?.id
+                            ? "Cannot view as yourself"
+                            : !employee.confirmed
+                            ? "Cannot view as pending user"
+                            : "View application as this user"}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -203,6 +260,6 @@ export function EmployeeTable() {
           onOpenChange={handleCloseDialog}
         />
       )}
-    </>
+    </TooltipProvider>
   );
 }
