@@ -72,11 +72,25 @@ function calculateSimilarity(str1: string, str2: string): number {
 }
 
 // Extract company initials/acronym (e.g., "JZ Structural Engineering" -> "JZSE")
+// Handles multi-letter acronyms like "JZ" correctly
 function getCompanyInitials(companyName: string): string {
   return companyName
     .split(/[\s\-]+/)
     .filter(word => word.length > 0)
-    .map(word => word[0].toUpperCase())
+    .map(word => {
+      // Remove punctuation from word
+      const cleaned = word.replace(/[^a-zA-Z0-9]/g, '');
+      if (cleaned.length === 0) return '';
+      
+      // If word is already a 2-4 letter acronym (all uppercase), use all letters
+      if (cleaned.length >= 2 && cleaned.length <= 4 && cleaned === cleaned.toUpperCase()) {
+        return cleaned;
+      }
+      
+      // Otherwise, take just the first letter
+      return cleaned[0].toUpperCase();
+    })
+    .filter(part => part.length > 0)
     .join('');
 }
 
