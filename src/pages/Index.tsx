@@ -9,6 +9,7 @@ import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { useProjects } from "@/hooks/useProjects";
+import { AccountingUpdates } from "@/components/AccountingUpdates";
 
 export default function Index() {
   const { data: projects = [] } = useProjects();
@@ -22,11 +23,14 @@ export default function Index() {
         <SidebarInset className="flex-1">
           <CompanyDashboardHeader />
           <div className="flex flex-1 flex-col gap-6 p-6">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-4">
               <div className="md:col-span-2">
                 <div className="rounded-xl bg-muted/50 h-full">
                   <ProjectsOverview />
                 </div>
+              </div>
+              <div className="h-full">
+                <AccountingUpdates />
               </div>
               <div className="h-full">
                 <div className="rounded-xl bg-muted/50 h-full">
