@@ -753,7 +753,6 @@ export function EditExtractedBillDialog({
                               );
                             }
                           }}
-                          accountType="expense"
                         />
                       </TableCell>
                       <TableCell>
