@@ -1,46 +1,42 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 
 interface AccountSearchInputProps {
   value: string;
   onChange: (value: string) => void;
+  onAccountSelect?: (account: { id: string; code: string; name: string }) => void;
   placeholder?: string;
   className?: string;
   accountType?: 'expense' | 'asset' | 'liability' | 'equity' | 'revenue';
   bankAccountsOnly?: boolean;
 }
 
-export const AccountSearchInput = ({ 
+export function AccountSearchInput({ 
   value, 
   onChange, 
+  onAccountSelect,
   placeholder = "Search accounts...",
   className,
   accountType,
   bankAccountsOnly = false
-}: AccountSearchInputProps) => {
-  const [open, setOpen] = useState(false);
+}: AccountSearchInputProps) {
+  const [searchQuery, setSearchQuery] = useState(value);
+  const [showResults, setShowResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { accounts } = useAccounts();
+  const { accounts, isLoading } = useAccounts();
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
-  }, [open]);
+    setSearchQuery(value);
+  }, [value]);
 
-  const filteredAccounts = accounts.filter(account => {
+  // Filter by account type if specified
+  const typeFilteredAccounts = accounts.filter(account => {
     if (accountType && account.type !== accountType) return false;
     
     // If bankAccountsOnly is true, filter to show only actual bank accounts
     if (bankAccountsOnly) {
-      // Filter for accounts that are likely bank accounts (checking, savings, etc.)
-      // This includes accounts with codes like 1010, 1030, or names containing "bank", "checking", "savings", "clearing"
       const isBankAccount = 
         account.code === '1010' || 
         account.code === '1030' ||
@@ -55,74 +51,145 @@ export const AccountSearchInput = ({
     return true;
   });
 
-  const selectedAccount = accounts.find(account => account.id === value);
+  // Show all accounts when empty, filter when user types
+  const filteredAccounts = searchQuery.trim().length === 0
+    ? typeFilteredAccounts
+    : (() => {
+        const tokens = searchQuery.toLowerCase().split(/[-\s]+/).filter(Boolean);
+        return typeFilteredAccounts.filter(account => 
+          tokens.every(t =>
+            account.code.toLowerCase().includes(t) || account.name.toLowerCase().includes(t)
+          )
+        );
+      })();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+    onChange(newValue);
+    setShowResults(true);
+  };
+
+  const handleInputFocus = () => {
+    setShowResults(true);
+  };
+
+  const attemptAutoSelect = () => {
+    if (!searchQuery.trim() || !onAccountSelect) return;
+
+    const query = searchQuery.trim();
+    let codeToMatch = query;
+    
+    // Extract potential code from input
+    if (codeToMatch.includes(' - ')) {
+      codeToMatch = codeToMatch.split(' - ')[0].trim();
+    } else if (codeToMatch.includes(' ')) {
+      codeToMatch = codeToMatch.split(' ')[0].trim();
+    }
+    
+    // Try exact code match first (case-sensitive)
+    let match = typeFilteredAccounts.find(account => account.code === codeToMatch);
+    
+    // Try case-insensitive exact code match
+    if (!match) {
+      match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase());
+    }
+    
+    // Try matching full "code - name" or "code name" format
+    if (!match) {
+      const normalized = query.toLowerCase();
+      match = typeFilteredAccounts.find(account => 
+        `${account.code} - ${account.name}`.toLowerCase() === normalized ||
+        `${account.code} ${account.name}`.toLowerCase() === normalized
+      );
+    }
+    
+    // If still no match, try tokenized match with exactly one result
+    if (!match) {
+      const tokens = query.toLowerCase().split(/[-\s]+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const matches = typeFilteredAccounts.filter(account => 
+          tokens.every(t =>
+            account.code.toLowerCase().includes(t) || account.name.toLowerCase().includes(t)
+          )
+        );
+        if (matches.length === 1) {
+          match = matches[0];
+        }
+      }
+    }
+    
+    // If we found a match, select it
+    if (match) {
+      handleSelectAccount(match);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Try to auto-select before hiding results
+    attemptAutoSelect();
+    // Delay hiding results to allow for selection
+    setTimeout(() => setShowResults(false), 200);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      attemptAutoSelect();
+      setShowResults(false);
+    }
+  };
+
+  const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    const selectedValue = `${account.code} - ${account.name}`;
+    setSearchQuery(selectedValue);
+    onChange(selectedValue);
+    setShowResults(false);
+    if (onAccountSelect) {
+      onAccountSelect(account);
+    }
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("justify-between cursor-pointer", className)}
-        >
-          {selectedAccount ? (
-            <span className="truncate">
-              {selectedAccount.code} {selectedAccount.name}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent 
-        className="w-[400px] p-0 z-[9999] bg-popover pointer-events-auto"
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          inputRef.current?.focus();
-        }}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-      >
-        <Command>
-          <CommandInput 
-            ref={inputRef}
-            placeholder="Search accounts..." 
-            autoFocus
-            onKeyDown={(e) => e.stopPropagation()}
-          />
-          <CommandList>
-            <CommandEmpty>No accounts found.</CommandEmpty>
-            <CommandGroup>
-              {filteredAccounts.map((account) => (
-                <CommandItem
-                  key={account.id}
-                  value={`${account.code} ${account.name}`}
-                  className="cursor-pointer"
-                  onSelect={() => {
-                    onChange(account.id);
-                    setOpen(false);
-                  }}
-                  onClick={() => {
-                    onChange(account.id);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === account.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{account.code} {account.name}</span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="relative">
+      <Input
+        ref={inputRef}
+        type="text"
+        value={searchQuery}
+        onChange={handleInputChange}
+        onFocus={handleInputFocus}
+        onBlur={handleInputBlur}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className={className}
+      />
+      
+      {showResults && filteredAccounts.length > 0 && (
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-lg">
+          {filteredAccounts.map((account) => (
+            <button
+              key={account.id}
+              type="button"
+              className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+              onMouseDown={() => handleSelectAccount(account)}
+            >
+              <div className="font-medium">{account.code} - {account.name}</div>
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {showResults && isLoading && (
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+          <div className="text-sm text-muted-foreground">Loading accounts...</div>
+        </div>
+      )}
+      
+      {showResults && !isLoading && filteredAccounts.length === 0 && searchQuery.trim().length > 0 && (
+        <div className="absolute z-[9999] top-full left-0 right-0 mt-1 rounded-md border bg-popover p-4 shadow-lg">
+          <div className="text-sm text-muted-foreground">No accounts found</div>
+        </div>
+      )}
+    </div>
   );
-};
+}

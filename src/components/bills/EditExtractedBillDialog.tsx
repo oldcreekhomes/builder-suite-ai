@@ -32,6 +32,7 @@ interface LineItem {
   id: string;
   line_type: string;
   account_id?: string;
+  account_display?: string;
   cost_code_id?: string;
   cost_code_display?: string;
   quantity: number;
@@ -731,8 +732,21 @@ export function EditExtractedBillDialog({
                     <TableRow key={line.id}>
                       <TableCell>
                         <AccountSearchInput
-                          value={line.account_id || ""}
-                          onChange={(value) => updateExpenseLine(line.id, 'account_id', value)}
+                          value={line.account_display || ""}
+                          onChange={(value) => updateExpenseLine(line.id, 'account_display', value)}
+                          onAccountSelect={(account) => {
+                            if (account) {
+                              const display = `${account.code} - ${account.name}`;
+                              setExpenseLines(lines =>
+                                lines.map(l => 
+                                  l.id === line.id 
+                                    ? { ...l, account_id: account.id, account_display: display }
+                                    : l
+                                )
+                              );
+                            }
+                          }}
+                          accountType="expense"
                         />
                       </TableCell>
                       <TableCell>
