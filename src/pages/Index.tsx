@@ -7,9 +7,9 @@ import { RecentActivity } from "@/components/RecentActivity";
 import { QuickStats } from "@/components/QuickStats";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
+import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { useProjects } from "@/hooks/useProjects";
-import { AccountingUpdates } from "@/components/AccountingUpdates";
 
 export default function Index() {
   const { data: projects = [] } = useProjects();
@@ -30,7 +30,7 @@ export default function Index() {
                 </div>
               </div>
               <div className="h-full">
-                <AccountingUpdates />
+                <ProjectWarnings />
               </div>
               <div className="h-full">
                 <div className="rounded-xl bg-muted/50 h-full">
@@ -43,6 +43,7 @@ export default function Index() {
             </div>
           </div>
         </SidebarInset>
+        <FloatingChatManager onOpenChat={registerChatManager} />
       </div>
     </SidebarProvider>
   );
