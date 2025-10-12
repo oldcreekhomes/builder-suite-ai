@@ -395,6 +395,26 @@ export function BatchBillReviewTable({
 
   return (
     <div className="space-y-4">
+      {/* Loading Banner - shows when bills are being processed */}
+      {processingUploads.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-900">
+                Processing {processingUploads.length} bill{processingUploads.length > 1 ? 's' : ''}...
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                {processingUploads.map(u => u.file_name.split('/').pop()).join(', ')}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Extracting bill data with AI. This may take 10-20 seconds per file.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -424,33 +444,6 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Processing uploads skeleton rows */}
-            {processingUploads.map((upload) => (
-              <TableRow key={upload.id} className="bg-blue-50/50">
-                <TableCell className="px-2 py-3">
-                  <Skeleton className="h-4 w-4" />
-                </TableCell>
-                <TableCell className="px-3 py-3">
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-                <TableCell className="px-3 py-3">
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-                <TableCell colSpan={6} className="px-3 py-3">
-                  <div className="flex items-center justify-center gap-2 text-sm text-red-600">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="font-medium">Extracting...</span>
-                  </div>
-                </TableCell>
-                <TableCell className="px-3 py-3">
-                  <Skeleton className="h-4 w-20" />
-                </TableCell>
-                <TableCell className="px-3 py-3">
-                  <Skeleton className="h-8 w-16" />
-                </TableCell>
-              </TableRow>
-            ))}
-            
             {/* Show empty state only if no bills AND no processing uploads */}
             {bills.length === 0 && processingUploads.length === 0 ? (
               <TableRow>

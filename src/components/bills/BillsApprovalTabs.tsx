@@ -547,7 +547,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("enter-manually")}
             onProcessingChange={(uploads) => {
-              setProcessingUploads(uploads.filter(u => u.status === 'pending' || u.status === 'processing'));
+              // Only show as processing if NOT yet in batchBills
+              const filteredUploads = uploads.filter(u => 
+                (u.status === 'pending' || u.status === 'processing') &&
+                !batchBills.some(b => b.id === u.id)
+              );
+              setProcessingUploads(filteredUploads);
             }}
           />
 

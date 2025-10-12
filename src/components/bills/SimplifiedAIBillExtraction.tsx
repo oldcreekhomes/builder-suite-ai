@@ -74,11 +74,23 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
           console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
 
-          if (newStatus === 'extracted' || newStatus === 'error') {
-            // Remove from local pending list when extraction completes
+          if (newStatus === 'extracted') {
+            console.log('[Realtime] Extraction complete for', uploadId);
+            toast({
+              title: "Extraction complete",
+              description: "Bill data has been extracted successfully.",
+            });
+            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
+          } else if (newStatus === 'error') {
+            console.error('[Realtime] Extraction error for', uploadId);
+            toast({
+              title: "Extraction failed",
+              description: payload.new.error_message || "Failed to extract bill data.",
+              variant: "destructive",
+            });
             setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'pending' || newStatus === 'processing') {
-            // Upsert into local pending list
+            // Keep in processing state - no toast spam
             setPendingUploads(prev => {
               const exists = prev.find(u => u.id === uploadId);
               if (exists) {
@@ -192,11 +204,6 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         console.log('[Upload] DB record created:', uploadData.id);
         if (uploadData) uploadedIds.push(uploadData.id);
       }
-
-      toast({
-        title: "Files uploaded",
-        description: `${files.length} file(s) uploaded. Starting extraction...`
-      });
 
       await loadPendingUploads();
 
