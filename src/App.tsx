@@ -50,15 +50,12 @@ import FileRedirect from "./pages/FileRedirect";
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
 import { useBrowserTitle } from "@/hooks/useBrowserTitle";
-import { AppLoadingProvider, useAppLoading } from "@/contexts/AppLoadingContext";
-import { AppLoadingScreen } from "@/components/AppLoadingScreen";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
-  const { setIsLoading, setLoadingPhase } = useAppLoading();
   
   // Initialize browser title with unread counts (must be after QueryClientProvider)
   console.log('🔄 Browser title hook initialized inside QueryClientProvider');
@@ -71,7 +68,6 @@ const AppContent = () => {
   useEffect(() => {
     const registerSyncfusionLicense = async () => {
       try {
-        setLoadingPhase('Initializing application...');
         console.log('Registering Syncfusion license...');
         
         // Simple timeout without AbortController
@@ -95,12 +91,11 @@ const AppContent = () => {
         console.error('Failed to register Syncfusion license:', error);
       } finally {
         setSyncfusionLicenseRegistered(true);
-        // Don't set loading to false here - let auth/project loading continue
       }
     };
 
     registerSyncfusionLicense();
-  }, [setLoadingPhase]);
+  }, []);
 
   // Note: Global chat notifications are now handled by FloatingChatManager using the master hook
   // to prevent duplicate Supabase subscriptions
@@ -226,27 +221,16 @@ const AppContent = () => {
   );
 };
 
-// Wrapper component to handle global loading screen
-const AppLoadingWrapper = () => {
-  const { isLoading, loadingPhase } = useAppLoading();
-
-  if (isLoading) {
-    return <AppLoadingScreen message={loadingPhase} />;
-  }
-
-  return <AppContent />;
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AppContent />
+        <Toaster />
+        <Sonner />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 };
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AppLoadingProvider>
-        <AppLoadingWrapper />
-      </AppLoadingProvider>
-      <Toaster />
-      <Sonner />
-    </TooltipProvider>
-  </QueryClientProvider>
-);
 
 export default App;
