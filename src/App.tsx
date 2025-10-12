@@ -230,11 +230,16 @@ const AppContent = () => {
 const AppLoadingWrapper = () => {
   const { isLoading, loadingPhase } = useAppLoading();
 
-  if (isLoading) {
-    return <AppLoadingScreen message={loadingPhase} />;
-  }
-
-  return <AppContent />;
+  return (
+    <>
+      <AppContent />
+      {isLoading && (
+        <div className="fixed inset-0 z-[9999]">
+          <AppLoadingScreen message={loadingPhase} />
+        </div>
+      )}
+    </>
+  );
 };
 
 const App = () => (
