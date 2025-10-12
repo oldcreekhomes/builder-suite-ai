@@ -692,6 +692,37 @@ function parseTextractResponse(textractData: any): any {
   return extractedData;
 }
 
+// Normalize payment terms to standard values
+function normalizeTerms(terms: string | null | undefined): string {
+  if (!terms) return 'net-30';
+  
+  const normalized = terms.toLowerCase().trim();
+  
+  // Net 15 variations
+  if (normalized.match(/\b(net\s*15|n\s*15|15\s*days?|within\s*15\s*days?)\b/i)) {
+    return 'net-15';
+  }
+  
+  // Net 30 variations
+  if (normalized.match(/\b(net\s*30|n\s*30|30\s*days?|within\s*30\s*days?|pay\s*within\s*30\s*days?|please\s*pay\s*within\s*30\s*days?)\b/i)) {
+    return 'net-30';
+  }
+  
+  // Net 60 variations
+  if (normalized.match(/\b(net\s*60|n\s*60|60\s*days?|within\s*60\s*days?)\b/i)) {
+    return 'net-60';
+  }
+  
+  // Due on receipt variations
+  if (normalized.match(/\b(due\s*on\s*receipt|upon\s*receipt|receipt|cod|cash\s*on\s*delivery|immediate|net\s*0)\b/i)) {
+    return 'due-on-receipt';
+  }
+  
+  // Default to net-30
+  console.log(`Warning: Could not normalize payment terms "${terms}", defaulting to net-30`);
+  return 'net-30';
+}
+
 // Normalize vendor name for comparison (same logic as in extract-bill-data)
 function normalizeVendorName(name: string): string {
   if (!name) return '';
@@ -715,37 +746,6 @@ function normalizeVendorName(name: string): string {
   normalized = normalized.replace(/\b(llc|inc|incorporated|corp|corporation|ltd|limited|co|company)\b/gi, '');
   
   return normalized.trim();
-}
-
-// Normalize terms to match system format
-function normalizeTerms(terms: string | null | undefined): string {
-  if (!terms) return 'net-30'; // Default
-  
-  const normalized = terms.toLowerCase().trim();
-  
-  // Handle various "net XX" formats
-  const netMatch = normalized.match(/net\s*(\d+)/);
-  if (netMatch) {
-    return `net-${netMatch[1]}`;
-  }
-  
-  // Handle "due on receipt" variations
-  if (normalized.includes('due') && normalized.includes('receipt')) {
-    return 'due-on-receipt';
-  }
-  
-  // Handle "cash on delivery" variations
-  if (normalized.includes('cash') && (normalized.includes('delivery') || normalized.includes('cod'))) {
-    return 'cash-on-delivery';
-  }
-  
-  // Handle "end of month" variations
-  if (normalized.includes('end') && normalized.includes('month')) {
-    return 'end-of-month';
-  }
-  
-  // Return as-is if already in correct format or unknown
-  return normalized.replace(/\s+/g, '-');
 }
 
 // Calculate similarity between two vendor names (Levenshtein distance)

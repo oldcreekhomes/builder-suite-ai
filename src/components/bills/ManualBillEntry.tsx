@@ -20,6 +20,25 @@ import { toast } from "@/hooks/use-toast";
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 import { supabase } from "@/integrations/supabase/client";
 
+// Normalize terms from any format to standardized dropdown values
+function normalizeTermsForUI(terms: string | null | undefined): string {
+  if (!terms) return 'net-30';
+  
+  // Already in correct format
+  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+    return terms;
+  }
+  
+  // Try to normalize
+  const normalized = terms.toLowerCase().trim();
+  if (normalized.includes('15')) return 'net-15';
+  if (normalized.includes('60')) return 'net-60';
+  if (normalized.includes('receipt') || normalized.includes('cod')) return 'due-on-receipt';
+  
+  // Default to net-30
+  return 'net-30';
+}
+
 interface ExpenseRow {
   id: string;
   account: string;
@@ -91,7 +110,7 @@ export function ManualBillEntry() {
         .single();
       
       if (company?.terms) {
-        setTerms(company.terms);
+        setTerms(normalizeTermsForUI(company.terms));
       }
     };
     

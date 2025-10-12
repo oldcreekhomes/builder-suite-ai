@@ -71,6 +71,37 @@ function calculateSimilarity(str1: string, str2: string): number {
   return maxLen === 0 ? 1.0 : 1.0 - (distance / maxLen);
 }
 
+// Helper function to normalize payment terms to standard values
+function normalizePaymentTerms(terms: string | null | undefined): string | null {
+  if (!terms) return null;
+  
+  const normalized = terms.toLowerCase().trim();
+  
+  // Net 15 variations
+  if (normalized.match(/\b(net\s*15|n\s*15|15\s*days?|within\s*15\s*days?)\b/i)) {
+    return 'net-15';
+  }
+  
+  // Net 30 variations
+  if (normalized.match(/\b(net\s*30|n\s*30|30\s*days?|within\s*30\s*days?|pay\s*within\s*30\s*days?|please\s*pay\s*within\s*30\s*days?)\b/i)) {
+    return 'net-30';
+  }
+  
+  // Net 60 variations
+  if (normalized.match(/\b(net\s*60|n\s*60|60\s*days?|within\s*60\s*days?)\b/i)) {
+    return 'net-60';
+  }
+  
+  // Due on receipt variations
+  if (normalized.match(/\b(due\s*on\s*receipt|upon\s*receipt|receipt|cod|cash\s*on\s*delivery|immediate|net\s*0)\b/i)) {
+    return 'due-on-receipt';
+  }
+  
+  // Default to net-30 if we can't parse it
+  console.log(`Warning: Could not normalize payment terms "${terms}", defaulting to net-30`);
+  return 'net-30';
+}
+
 // Extract company initials/acronym (e.g., "JZ Structural Engineering" -> "JZSE")
 // Handles multi-letter acronyms like "JZ" correctly and ignores legal suffixes
 function getCompanyInitials(companyName: string): string {
@@ -611,6 +642,13 @@ Return ONLY the JSON object, no additional text.`;
     // Clean vendor name (remove newlines/extra whitespace)
     if (extractedData.vendor_name) {
       extractedData.vendor_name = extractedData.vendor_name.replace(/\s+/g, ' ').trim();
+    }
+
+    // Normalize payment terms to standard values
+    if (extractedData.terms) {
+      const normalizedTerms = normalizePaymentTerms(extractedData.terms);
+      extractedData.terms = normalizedTerms;
+      console.log(`Normalized payment terms from "${extractedData.terms}" to "${normalizedTerms}"`);
     }
 
     // Try to match vendor to existing company (use effectiveOwnerId)
