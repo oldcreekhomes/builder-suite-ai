@@ -97,15 +97,13 @@ export default function SimplifiedAIBillExtraction({
               progressIntervalsRef.current.delete(uploadId);
             }
             
-            const upload = pendingUploads.find(u => u.id === uploadId);
-            if (upload) {
-              onProgressUpdate?.({
-                uploadId,
-                fileName: upload.file_name,
-                progress: 100,
-                status: 'complete'
-              });
-            }
+            // Use filename from payload.new instead of stale pendingUploads
+            onProgressUpdate?.({
+              uploadId,
+              fileName: payload.new.file_name || 'Unknown',
+              progress: 100,
+              status: 'complete'
+            });
             
             if (!suppressIndividualToasts) {
               toast({
@@ -125,15 +123,13 @@ export default function SimplifiedAIBillExtraction({
               progressIntervalsRef.current.delete(uploadId);
             }
             
-            const upload = pendingUploads.find(u => u.id === uploadId);
-            if (upload) {
-              onProgressUpdate?.({
-                uploadId,
-                fileName: upload.file_name,
-                progress: 0,
-                status: 'error'
-              });
-            }
+            // Use filename from payload.new instead of stale pendingUploads
+            onProgressUpdate?.({
+              uploadId,
+              fileName: payload.new.file_name || 'Unknown',
+              progress: 0,
+              status: 'error'
+            });
             
             if (!suppressIndividualToasts) {
               toast({
