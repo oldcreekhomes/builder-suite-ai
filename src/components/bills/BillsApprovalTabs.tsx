@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
@@ -12,7 +12,6 @@ import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
-import { useEffect } from "react";
 import { normalizeToYMD } from "@/utils/dateOnly";
 
 interface BillsApprovalTabsProps {
@@ -33,15 +32,31 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [processingUploads, setProcessingUploads] = useState<any[]>([]);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  
+  // Processing gate refs and state to control banner visibility
+  const processingIdsRef = useRef<Set<string>>(new Set());
+  const awaitingAppearanceRef = useRef<Set<string>>(new Set());
+  const [isBuildingBatch, setIsBuildingBatch] = useState(false);
+  const [showProcessingBanner, setShowProcessingBanner] = useState(false);
+  const [bannerFileNames, setBannerFileNames] = useState<string[]>([]);
+
+  // Helper to recompute banner visibility
+  const recomputeBanner = (uploads?: any[]) => {
+    const hasProcessing = (uploads ?? processingUploads).length > 0;
+    const awaiting = awaitingAppearanceRef.current.size > 0;
+    const show = hasProcessing || awaiting || isBuildingBatch || loadingPendingBills;
+    setShowProcessingBanner(show);
+  };
 
   // Update batch bills when pending bills change
   useEffect(() => {
     const fetchBillsWithLines = async () => {
-      if (pendingBills !== undefined && pendingBills.length === 0) {
-        setBatchBills([]);
-        return;
-      }
       if (!pendingBills) return;
+
+      setIsBuildingBatch(true);
+      try {
+        // Don't eagerly clear to avoid flicker during refetch
+        // if (pendingBills.length === 0) { setBatchBills([]); return; }
 
       // Include all bills that have data to show, including processing ones
       const completedBills = pendingBills.filter(b => 
@@ -199,7 +214,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         })
       );
       
+      // Any IDs now present in billsWithLines are no longer "awaiting appearance"
+      billsWithLines.forEach(b => awaitingAppearanceRef.current.delete(b.id));
+      
       setBatchBills(billsWithLines);
+      } finally {
+        setIsBuildingBatch(false);
+        recomputeBanner();
+      }
     };
 
     fetchBillsWithLines();
@@ -548,10 +570,17 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("enter-manually")}
             onProcessingChange={(uploads) => {
-              // Always show processing banner for pending/processing bills
-              setProcessingUploads(uploads.filter(u => 
-                u.status === 'pending' || u.status === 'processing'
-              ));
+              const newIds = new Set(uploads.map(u => u.id));
+              const prevIds = processingIdsRef.current;
+              
+              // IDs that just completed extraction
+              const completedIds: string[] = Array.from(prevIds).filter(id => !newIds.has(id));
+              completedIds.forEach(id => awaitingAppearanceRef.current.add(id));
+              
+              processingIdsRef.current = newIds;
+              setProcessingUploads(uploads);
+              setBannerFileNames(uploads.map(u => u.file_name));
+              recomputeBanner(uploads);
             }}
           />
 
@@ -582,6 +611,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               <BatchBillReviewTable
                 bills={batchBills}
                 processingUploads={processingUploads}
+                showProcessingBanner={showProcessingBanner}
+                bannerFilenames={bannerFileNames}
                 onBillUpdate={handleBillUpdate}
                 onBillDelete={handleBillDelete}
                 onLinesUpdate={handleLinesUpdate}

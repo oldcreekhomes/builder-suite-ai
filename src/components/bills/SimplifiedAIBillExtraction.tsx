@@ -80,7 +80,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
               title: "Extraction complete",
               description: "Bill data has been extracted successfully.",
             });
-            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
+            setPendingUploads(prev => {
+              const updated = prev.filter(u => u.id !== uploadId);
+              // Immediately notify parent
+              onProcessingChange?.(updated);
+              return updated;
+            });
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
             toast({
@@ -88,7 +93,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
               description: payload.new.error_message || "Failed to extract bill data.",
               variant: "destructive",
             });
-            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
+            setPendingUploads(prev => {
+              const updated = prev.filter(u => u.id !== uploadId);
+              // Immediately notify parent
+              onProcessingChange?.(updated);
+              return updated;
+            });
           } else if (newStatus === 'pending' || newStatus === 'processing') {
             // Keep in processing state and update parent
             setPendingUploads(prev => {

@@ -71,6 +71,8 @@ interface ProcessingUpload {
 interface BatchBillReviewTableProps {
   bills: PendingBill[];
   processingUploads?: ProcessingUpload[];
+  showProcessingBanner?: boolean;
+  bannerFilenames?: string[];
   onBillUpdate: (billId: string, updates: Partial<PendingBill>) => void;
   onBillDelete: (billId: string) => void;
   onLinesUpdate: (billId: string, lines: PendingBillLine[]) => void;
@@ -82,6 +84,8 @@ interface BatchBillReviewTableProps {
 export function BatchBillReviewTable({ 
   bills,
   processingUploads = [], // Shows loading state for bills being extracted
+  showProcessingBanner = false,
+  bannerFilenames = [],
   onBillUpdate, 
   onBillDelete,
   onLinesUpdate,
@@ -394,32 +398,30 @@ export function BatchBillReviewTable({
   const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
   const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
   
-  // Track when we last had processing uploads to prevent flicker
-  const [lastProcessingTime, setLastProcessingTime] = useState<number>(0);
-  
-  useEffect(() => {
-    if (processingUploads.length > 0) {
-      setLastProcessingTime(Date.now());
-    }
-  }, [processingUploads.length]);
-  
-  // Show loading state if actively processing OR within 1 second of completion
-  const showLoadingState = processingUploads.length > 0 || (Date.now() - lastProcessingTime < 1000);
+  // Use parent's processing gate to control banner visibility
+  const bannerOn = !!showProcessingBanner;
+  const names = (bannerFilenames && bannerFilenames.length > 0)
+    ? bannerFilenames
+    : processingUploads.map(u => u.file_name.split('/').pop());
 
   return (
     <div className="space-y-4">
-      {/* Loading Banner - shows when bills are being processed */}
-      {showLoadingState && processingUploads.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 transition-opacity duration-300">
+      {/* Loading Banner - shows continuously from upload through extraction until bills fully appear */}
+      {bannerOn && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-900">
-                Processing {processingUploads.length} bill{processingUploads.length > 1 ? 's' : ''}...
+                {processingUploads.length > 0
+                  ? `Processing ${processingUploads.length} bill${processingUploads.length > 1 ? 's' : ''}...`
+                  : 'Finalizing extracted bills...'}
               </p>
-              <p className="text-xs text-blue-700 mt-1">
-                {processingUploads.map(u => u.file_name.split('/').pop()).join(', ')}
-              </p>
+              {names && names.length > 0 && (
+                <p className="text-xs text-blue-700 mt-1">
+                  {names.join(', ')}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Extracting bill data with AI. This may take 10-20 seconds per file.
               </p>
@@ -457,8 +459,8 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Show empty state only if no bills AND not in loading state */}
-            {bills.length === 0 && !showLoadingState ? (
+            {/* Show empty state only if no bills AND banner is not on */}
+            {bills.length === 0 && !bannerOn ? (
               <TableRow>
                 <TableCell colSpan={11} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
