@@ -43,8 +43,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       }
       if (!pendingBills) return;
 
+      // Include all bills that have data to show, including processing ones
       const completedBills = pendingBills.filter(b => 
-        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
+        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error' || b.status === 'processing'
       );
       
       const billsWithLines = await Promise.all(
@@ -547,12 +548,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("enter-manually")}
             onProcessingChange={(uploads) => {
-              // Only show as processing if NOT yet in batchBills
-              const filteredUploads = uploads.filter(u => 
-                (u.status === 'pending' || u.status === 'processing') &&
-                !batchBills.some(b => b.id === u.id)
-              );
-              setProcessingUploads(filteredUploads);
+              // Always show processing banner for pending/processing bills
+              setProcessingUploads(uploads.filter(u => 
+                u.status === 'pending' || u.status === 'processing'
+              ));
             }}
           />
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -390,14 +390,27 @@ export function BatchBillReviewTable({
   };
 
 
+
   const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
   const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
+  
+  // Track when we last had processing uploads to prevent flicker
+  const [lastProcessingTime, setLastProcessingTime] = useState<number>(0);
+  
+  useEffect(() => {
+    if (processingUploads.length > 0) {
+      setLastProcessingTime(Date.now());
+    }
+  }, [processingUploads.length]);
+  
+  // Show loading state if actively processing OR within 1 second of completion
+  const showLoadingState = processingUploads.length > 0 || (Date.now() - lastProcessingTime < 1000);
 
   return (
     <div className="space-y-4">
       {/* Loading Banner - shows when bills are being processed */}
-      {processingUploads.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      {showLoadingState && processingUploads.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 transition-opacity duration-300">
           <div className="flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             <div className="flex-1">
@@ -444,8 +457,8 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Show empty state only if no bills AND no processing uploads */}
-            {bills.length === 0 && processingUploads.length === 0 ? (
+            {/* Show empty state only if no bills AND not in loading state */}
+            {bills.length === 0 && !showLoadingState ? (
               <TableRow>
                 <TableCell colSpan={11} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">

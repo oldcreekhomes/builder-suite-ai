@@ -90,14 +90,15 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             });
             setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'pending' || newStatus === 'processing') {
-            // Keep in processing state - no toast spam
+            // Keep in processing state and update parent
             setPendingUploads(prev => {
               const exists = prev.find(u => u.id === uploadId);
-              if (exists) {
-                return prev.map(u => u.id === uploadId ? (payload.new as PendingUpload) : u);
-              } else {
-                return [...prev, payload.new as PendingUpload];
-              }
+              const updated = exists
+                ? prev.map(u => u.id === uploadId ? (payload.new as PendingUpload) : u)
+                : [...prev, payload.new as PendingUpload];
+              // Immediately notify parent of status change
+              onProcessingChange?.(updated);
+              return updated;
             });
           }
         }
@@ -113,7 +114,7 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
   // Notify parent whenever pendingUploads changes
   useEffect(() => {
     onProcessingChange?.(pendingUploads);
-  }, [pendingUploads, onProcessingChange]);
+  }, [pendingUploads]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputEl = e.target;
@@ -444,9 +445,11 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     }
 
     try {
-      setPendingUploads(prev => 
-        prev.map(u => u.id === upload.id ? { ...u, status: 'processing' as const } : u)
+      const updatedUploads = pendingUploads.map(u => 
+        u.id === upload.id ? { ...u, status: 'processing' as const } : u
       );
+      setPendingUploads(updatedUploads);
+      onProcessingChange?.(updatedUploads);
 
       console.log('Starting extraction with AWS Textract...');
       
