@@ -16,6 +16,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (loading) {
       setLoadingPhase('Checking authentication...');
       setIsLoading(true);
+    } else {
+      // Auth completed - let page components take over loading state
+      setIsLoading(false);
     }
   }, [loading, setIsLoading, setLoadingPhase]);
 
