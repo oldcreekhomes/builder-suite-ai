@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
@@ -41,12 +41,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [bannerFileNames, setBannerFileNames] = useState<string[]>([]);
 
   // Helper to recompute banner visibility
-  const recomputeBanner = (uploads?: any[]) => {
+  const recomputeBanner = useCallback((uploads?: any[]) => {
     const hasProcessing = (uploads ?? processingUploads).length > 0;
     const awaiting = awaitingAppearanceRef.current.size > 0;
-    const show = hasProcessing || awaiting || isBuildingBatch || loadingPendingBills;
+    const show = hasProcessing || awaiting || isBuildingBatch;
     setShowProcessingBanner(show);
-  };
+  }, [processingUploads, isBuildingBatch]);
 
   // Update batch bills when pending bills change
   useEffect(() => {
@@ -59,9 +59,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         // if (pendingBills.length === 0) { setBatchBills([]); return; }
 
       // Include all bills that have data to show, including processing ones
-      const completedBills = pendingBills.filter(b => 
-        b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error' || b.status === 'processing'
-      );
+        const completedBills = pendingBills.filter(b => 
+          b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
+        );
       
       const billsWithLines = await Promise.all(
         completedBills.map(async (bill) => {
@@ -226,6 +226,43 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
     fetchBillsWithLines();
   }, [pendingBills]);
+
+  // Cleanup effect: clear awaiting refs when processing completes and bills are rendered
+  useEffect(() => {
+    if (processingUploads.length === 0 && batchBills.length > 0) {
+      const currentAwaiting = Array.from(awaitingAppearanceRef.current);
+      const renderedIds = new Set(batchBills.map(b => b.id));
+      
+      currentAwaiting.forEach(id => {
+        if (renderedIds.has(id)) {
+          awaitingAppearanceRef.current.delete(id);
+        }
+      });
+      
+      recomputeBanner();
+    }
+  }, [processingUploads.length, batchBills.length, recomputeBanner]);
+
+  const onProcessingChange = useCallback((uploads: any[]) => {
+    const newIds = new Set(uploads.map((u: any) => u.id));
+    const prevIds = processingIdsRef.current;
+    const completedIds: string[] = Array.from(prevIds).filter(id => !newIds.has(id));
+    
+    completedIds.forEach(id => {
+      awaitingAppearanceRef.current.add(id);
+      
+      // Safety timeout: remove from awaiting after 5 seconds
+      setTimeout(() => {
+        awaitingAppearanceRef.current.delete(id);
+        recomputeBanner();
+      }, 5000);
+    });
+    
+    processingIdsRef.current = newIds;
+    setProcessingUploads(uploads);
+    setBannerFileNames(uploads.map((u: any) => u.file_name));
+    recomputeBanner(uploads);
+  }, [recomputeBanner]);
 
   const handleBillUpdate = async (billId: string, updates: any) => {
     // Update local state immediately for responsive UI
@@ -569,19 +606,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           <SimplifiedAIBillExtraction 
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("enter-manually")}
-            onProcessingChange={(uploads) => {
-              const newIds = new Set(uploads.map(u => u.id));
-              const prevIds = processingIdsRef.current;
-              
-              // IDs that just completed extraction
-              const completedIds: string[] = Array.from(prevIds).filter(id => !newIds.has(id));
-              completedIds.forEach(id => awaitingAppearanceRef.current.add(id));
-              
-              processingIdsRef.current = newIds;
-              setProcessingUploads(uploads);
-              setBannerFileNames(uploads.map(u => u.file_name));
-              recomputeBanner(uploads);
-            }}
+            onProcessingChange={onProcessingChange}
           />
 
           <Card>

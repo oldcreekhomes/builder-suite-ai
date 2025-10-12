@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -404,6 +404,13 @@ export function BatchBillReviewTable({
     ? bannerFilenames
     : processingUploads.map(u => u.file_name.split('/').pop());
 
+  const bannerMessage = useMemo(() => {
+    if (processingUploads.length > 0) {
+      return `Processing ${processingUploads.length} bill${processingUploads.length > 1 ? 's' : ''}...`;
+    }
+    return 'Processing extracted bills...';
+  }, [processingUploads.length]);
+
   return (
     <div className="space-y-4">
       {/* Loading Banner - shows continuously from upload through extraction until bills fully appear */}
@@ -413,11 +420,9 @@ export function BatchBillReviewTable({
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-900">
-                {processingUploads.length > 0
-                  ? `Processing ${processingUploads.length} bill${processingUploads.length > 1 ? 's' : ''}...`
-                  : 'Finalizing extracted bills...'}
+                {bannerMessage}
               </p>
-              {names && names.length > 0 && (
+              {names && names.length > 0 && processingUploads.length > 0 && (
                 <p className="text-xs text-blue-700 mt-1">
                   {names.join(', ')}
                 </p>
