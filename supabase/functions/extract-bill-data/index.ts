@@ -102,6 +102,60 @@ function normalizePaymentTerms(terms: string | null | undefined): string | null 
   return 'net-30';
 }
 
+// Infer payment terms from date difference (smart date-based inference)
+function inferTermsFromDates(billDate: string | null, dueDate: string | null): string | null {
+  if (!billDate || !dueDate) return null;
+  
+  try {
+    const bill = new Date(billDate);
+    const due = new Date(dueDate);
+    
+    // Calculate difference in days
+    const diffTime = Math.abs(due.getTime() - bill.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log(`📅 Date difference: ${diffDays} days (${billDate} to ${dueDate})`);
+    
+    // Map to standard terms with ranges (allowing for month length variations)
+    if (diffDays <= 2) {
+      console.log('  → Inferred: due-on-receipt');
+      return 'due-on-receipt';
+    }
+    if (diffDays >= 13 && diffDays <= 17) {
+      console.log('  → Inferred: net-15');
+      return 'net-15';
+    }
+    if (diffDays >= 28 && diffDays <= 32) {
+      console.log('  → Inferred: net-30');
+      return 'net-30';
+    }
+    if (diffDays >= 58 && diffDays <= 62) {
+      console.log('  → Inferred: net-60');
+      return 'net-60';
+    }
+    
+    // Wider ranges for edge cases (allow ±3 days)
+    if (diffDays >= 25 && diffDays <= 35) {
+      console.log('  → Inferred: net-30 (wider range)');
+      return 'net-30';
+    }
+    if (diffDays >= 55 && diffDays <= 65) {
+      console.log('  → Inferred: net-60 (wider range)');
+      return 'net-60';
+    }
+    if (diffDays >= 10 && diffDays <= 20) {
+      console.log('  → Inferred: net-15 (wider range)');
+      return 'net-15';
+    }
+    
+    console.log(`  ℹ️ Could not map ${diffDays} days to a standard term`);
+    return null;
+  } catch (e) {
+    console.error('Error calculating date difference:', e);
+    return null;
+  }
+}
+
 // Extract company initials/acronym (e.g., "JZ Structural Engineering" -> "JZSE")
 // Handles multi-letter acronyms like "JZ" correctly and ignores legal suffixes
 function getCompanyInitials(companyName: string): string {
@@ -649,6 +703,24 @@ Return ONLY the JSON object, no additional text.`;
       const normalizedTerms = normalizePaymentTerms(extractedData.terms);
       extractedData.terms = normalizedTerms;
       console.log(`Normalized payment terms from "${extractedData.terms}" to "${normalizedTerms}"`);
+    }
+
+    // Infer terms from date difference (smart date-based inference)
+    const inferredTerms = inferTermsFromDates(extractedData.bill_date, extractedData.due_date);
+    if (inferredTerms) {
+      if (!extractedData.terms) {
+        // No terms were extracted, use date-based inference
+        extractedData.terms = inferredTerms;
+        console.log(`✅ Using date-based inference: "${inferredTerms}" (no terms extracted)`);
+      } else if (extractedData.terms !== inferredTerms) {
+        // Date-based inference differs from extracted terms
+        console.log(`ℹ️ Date inference (${inferredTerms}) differs from extracted (${extractedData.terms})`);
+        // Trust date math over potentially unclear text
+        extractedData.terms = inferredTerms;
+        console.log(`✅ Overriding with date-based inference: "${inferredTerms}"`);
+      } else {
+        console.log(`✅ Date inference confirms extracted terms: "${inferredTerms}"`);
+      }
     }
 
     // Try to match vendor to existing company (use effectiveOwnerId)

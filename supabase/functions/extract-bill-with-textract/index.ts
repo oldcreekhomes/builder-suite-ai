@@ -270,6 +270,21 @@ serve(async (req) => {
       }
     }
 
+    // Infer terms from date difference (smart date-based inference)
+    const inferredTerms = inferTermsFromDates(extractedData.billDate, extractedData.dueDate);
+    if (inferredTerms) {
+      if (!extractedData.terms) {
+        extractedData.terms = inferredTerms;
+        console.log(`✅ Using date-based inference: "${inferredTerms}" (no terms extracted)`);
+      } else if (extractedData.terms !== inferredTerms) {
+        console.log(`ℹ️ Date inference (${inferredTerms}) differs from extracted (${extractedData.terms})`);
+        extractedData.terms = inferredTerms;
+        console.log(`✅ Overriding with date-based inference: "${inferredTerms}"`);
+      } else {
+        console.log(`✅ Date inference confirms extracted terms: "${inferredTerms}"`);
+      }
+    }
+
     // Add vendor_id to extracted data if matched
     if (vendorId) {
       extractedData.vendor_id = vendorId;
@@ -721,6 +736,60 @@ function normalizeTerms(terms: string | null | undefined): string {
   // Default to net-30
   console.log(`Warning: Could not normalize payment terms "${terms}", defaulting to net-30`);
   return 'net-30';
+}
+
+// Infer payment terms from date difference (smart date-based inference)
+function inferTermsFromDates(billDate: string | null, dueDate: string | null): string | null {
+  if (!billDate || !dueDate) return null;
+  
+  try {
+    const bill = new Date(billDate);
+    const due = new Date(dueDate);
+    
+    // Calculate difference in days
+    const diffTime = Math.abs(due.getTime() - bill.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log(`📅 Date difference: ${diffDays} days (${billDate} to ${dueDate})`);
+    
+    // Map to standard terms with ranges
+    if (diffDays <= 2) {
+      console.log('  → Inferred: due-on-receipt');
+      return 'due-on-receipt';
+    }
+    if (diffDays >= 13 && diffDays <= 17) {
+      console.log('  → Inferred: net-15');
+      return 'net-15';
+    }
+    if (diffDays >= 28 && diffDays <= 32) {
+      console.log('  → Inferred: net-30');
+      return 'net-30';
+    }
+    if (diffDays >= 58 && diffDays <= 62) {
+      console.log('  → Inferred: net-60');
+      return 'net-60';
+    }
+    
+    // Wider ranges for edge cases
+    if (diffDays >= 25 && diffDays <= 35) {
+      console.log('  → Inferred: net-30 (wider range)');
+      return 'net-30';
+    }
+    if (diffDays >= 55 && diffDays <= 65) {
+      console.log('  → Inferred: net-60 (wider range)');
+      return 'net-60';
+    }
+    if (diffDays >= 10 && diffDays <= 20) {
+      console.log('  → Inferred: net-15 (wider range)');
+      return 'net-15';
+    }
+    
+    console.log(`  ℹ️ Could not map ${diffDays} days to a standard term`);
+    return null;
+  } catch (e) {
+    console.error('Error calculating date difference:', e);
+    return null;
+  }
 }
 
 // Normalize vendor name for comparison (same logic as in extract-bill-data)
