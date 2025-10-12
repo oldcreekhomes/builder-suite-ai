@@ -43,7 +43,7 @@ export function ProjectWarnings() {
     );
   }
 
-  const { pendingCount } = data || { pendingCount: 0 };
+  const { pendingCount, projectIds } = data || { pendingCount: 0, projectIds: [] };
 
   return (
     <>
@@ -77,6 +77,7 @@ export function ProjectWarnings() {
       <ManageBillsDialog 
         open={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
+        projectIds={projectIds}
       />
     </>
   );

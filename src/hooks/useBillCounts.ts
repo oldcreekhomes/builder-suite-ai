@@ -9,9 +9,9 @@ interface BillCounts {
   aiExtractCount: number;
 }
 
-export function useBillCounts(projectId?: string) {
+export function useBillCounts(projectId?: string, projectIds?: string[]) {
   return useQuery({
-    queryKey: ['bill-approval-counts', projectId],
+    queryKey: ['bill-approval-counts', projectId, projectIds],
     refetchOnWindowFocus: true,
     refetchInterval: 5000,
     queryFn: async (): Promise<BillCounts> => {
@@ -43,7 +43,13 @@ export function useBillCounts(projectId?: string) {
         .in('status', ['extracted', 'completed', 'reviewing']);
 
       // Apply project filter if provided
-      if (projectId) {
+      if (projectIds && projectIds.length > 0) {
+        pendingQuery.in('project_id', projectIds);
+        rejectedQuery.in('project_id', projectIds);
+        approvedQuery.in('project_id', projectIds);
+        payBillsQuery.in('project_id', projectIds);
+        // Note: pending_bill_uploads doesn't have project_id, so no filter for AI
+      } else if (projectId) {
         pendingQuery.eq('project_id', projectId);
         rejectedQuery.eq('project_id', projectId);
         approvedQuery.eq('project_id', projectId);

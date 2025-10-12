@@ -58,18 +58,67 @@ interface BillForPayment {
 
 interface PayBillsTableProps {
   projectId?: string;
+  projectIds?: string[];
 }
 
-export function PayBillsTable({ projectId }: PayBillsTableProps) {
+export function PayBillsTable({ projectId, projectIds }: PayBillsTableProps) {
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-payment', projectId],
+    queryKey: ['bills-for-payment', projectId, projectIds],
     queryFn: async () => {
-      if (projectId) {
+      if (projectIds && projectIds.length > 0) {
+        // Multiple project filtering - get bills for specific projects
+        const { data: directBills, error: directError } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            vendor_id,
+            project_id,
+            bill_date,
+            due_date,
+            total_amount,
+            reference_number,
+            terms,
+            notes,
+            status,
+            companies:vendor_id (
+              company_name
+            ),
+            projects:project_id (
+              address
+            ),
+            bill_attachments (
+              id,
+              file_name,
+              file_path,
+              file_size,
+              content_type
+            ),
+            bill_lines (
+              line_type,
+              cost_code_id,
+              account_id,
+              cost_codes!bill_lines_cost_code_id_fkey (
+                code,
+                name
+              ),
+              accounts!bill_lines_account_id_fkey (
+                code,
+                name
+              )
+            )
+          `)
+          .eq('status', 'posted')
+          .in('project_id', projectIds)
+          .order('due_date', { ascending: true, nullsFirst: false });
+
+        if (directError) throw directError;
+        return (directBills || []) as BillForPayment[];
+      } else if (projectId) {
         // Project-specific bills - get bills directly assigned to project
         const { data: directBills, error: directError } = await supabase
           .from('bills')

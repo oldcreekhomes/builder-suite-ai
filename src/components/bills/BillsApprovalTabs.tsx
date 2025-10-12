@@ -17,14 +17,15 @@ import { normalizeToYMD } from "@/utils/dateOnly";
 
 interface BillsApprovalTabsProps {
   projectId?: string;
+  projectIds?: string[];
 }
 
-export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
+export function BillsApprovalTabs({ projectId, projectIds }: BillsApprovalTabsProps) {
   const { projectId: paramsProjectId } = useParams();
   const effectiveProjectId = projectId || paramsProjectId;
   
   const [activeTab, setActiveTab] = useState("enter-manually");
-  const { data: counts, isLoading } = useBillCounts(effectiveProjectId);
+  const { data: counts, isLoading } = useBillCounts(effectiveProjectId, projectIds);
   
   const { pendingBills, isLoading: loadingPendingBills, batchApproveBills, deletePendingUpload } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
@@ -579,19 +580,19 @@ export function BillsApprovalTabs({ projectId }: BillsApprovalTabsProps) {
       </TabsContent>
       
       <TabsContent value="pending" className="mt-6">
-        <BillsApprovalTable status="draft" projectId={effectiveProjectId} />
+        <BillsApprovalTable status="draft" projectId={effectiveProjectId} projectIds={projectIds} />
       </TabsContent>
       
       <TabsContent value="rejected" className="mt-6">
-        <BillsApprovalTable status="void" projectId={effectiveProjectId} />
+        <BillsApprovalTable status="void" projectId={effectiveProjectId} projectIds={projectIds} />
       </TabsContent>
       
       <TabsContent value="approved" className="mt-6">
-        <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} />
+        <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} projectIds={projectIds} />
       </TabsContent>
       
       <TabsContent value="pay-bills" className="mt-6">
-        <PayBillsTable projectId={effectiveProjectId} />
+        <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} />
       </TabsContent>
     </Tabs>
   );

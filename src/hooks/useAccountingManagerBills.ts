@@ -14,6 +14,7 @@ interface AccountingManagerBillsData {
   pendingCount: number;
   totalAmount: number;
   recentBills: BillSummary[];
+  projectIds: string[];
 }
 
 export function useAccountingManagerBills() {
@@ -23,7 +24,7 @@ export function useAccountingManagerBills() {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        return { pendingCount: 0, totalAmount: 0, recentBills: [] };
+        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       // Get projects where current user is the accounting manager
@@ -34,11 +35,11 @@ export function useAccountingManagerBills() {
 
       if (projectsError) {
         console.error('Error fetching managed projects:', projectsError);
-        return { pendingCount: 0, totalAmount: 0, recentBills: [] };
+        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       if (!projects || projects.length === 0) {
-        return { pendingCount: 0, totalAmount: 0, recentBills: [] };
+        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       const projectIds = projects.map(p => p.id);
@@ -60,7 +61,7 @@ export function useAccountingManagerBills() {
 
       if (billsError) {
         console.error('Error fetching bills:', billsError);
-        return { pendingCount: 0, totalAmount: 0, recentBills: [] };
+        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       const pendingCount = bills?.length || 0;
@@ -79,6 +80,7 @@ export function useAccountingManagerBills() {
         pendingCount,
         totalAmount,
         recentBills,
+        projectIds,
       };
     },
     refetchInterval: 30000, // Refetch every 30 seconds

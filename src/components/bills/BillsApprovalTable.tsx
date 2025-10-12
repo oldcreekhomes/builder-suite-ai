@@ -68,9 +68,10 @@ interface BillForApproval {
 interface BillsApprovalTableProps {
   status: 'draft' | 'void' | 'posted' | 'paid' | Array<'draft' | 'void' | 'posted' | 'paid'>;
   projectId?: string;
+  projectIds?: string[];
 }
 
-export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill } = useBills();
   const { canDeleteBills } = useUserRole();
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -87,7 +88,7 @@ export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProp
 
   // Fetch bills based on status
   const { data: bills = [], isLoading } = useQuery({
-    queryKey: ['bills-for-approval-v3', status, projectId],
+    queryKey: ['bills-for-approval-v3', status, projectId, projectIds],
     queryFn: async () => {
       const statusArray = Array.isArray(status) ? status : [status];
       
@@ -134,8 +135,10 @@ export function BillsApprovalTable({ status, projectId }: BillsApprovalTableProp
         `)
         .in('status', statusArray);
 
-      // Filter by project_id if provided
-      if (projectId) {
+      // Filter by project_id or projectIds if provided
+      if (projectIds && projectIds.length > 0) {
+        directQuery = directQuery.in('project_id', projectIds);
+      } else if (projectId) {
         directQuery = directQuery.eq('project_id', projectId);
       }
 

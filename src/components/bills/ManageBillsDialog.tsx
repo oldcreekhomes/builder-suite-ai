@@ -12,9 +12,10 @@ interface ManageBillsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId?: string;
+  projectIds?: string[];
 }
 
-export function ManageBillsDialog({ open, onOpenChange, projectId }: ManageBillsDialogProps) {
+export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }: ManageBillsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
@@ -26,7 +27,7 @@ export function ManageBillsDialog({ open, onOpenChange, projectId }: ManageBills
         </DialogHeader>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
-            <BillsApprovalTabs projectId={projectId} />
+            <BillsApprovalTabs projectId={projectId} projectIds={projectIds} />
           </UniversalFilePreviewProvider>
         </div>
       </DialogContent>
