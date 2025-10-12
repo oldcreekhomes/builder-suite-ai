@@ -44,6 +44,35 @@ export default function SimplifiedAIBillExtraction({
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
 
+  // Local, session-scoped indicator to avoid cross-component flicker
+  const trackedIdsRef = useRef<Set<string>>(new Set());
+  const activeCountRef = useRef(0);
+  const hideTimerRef = useRef<number | null>(null);
+  const [showProcessing, setShowProcessing] = useState(false);
+
+  const startIndicator = () => {
+    activeCountRef.current += 1;
+    if (activeCountRef.current === 1) {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      setShowProcessing(true);
+    }
+  };
+
+  const stopIndicator = () => {
+    activeCountRef.current = Math.max(0, activeCountRef.current - 1);
+    if (activeCountRef.current === 0) {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+      hideTimerRef.current = window.setTimeout(() => {
+        setShowProcessing(false);
+        hideTimerRef.current = null;
+      }, 800);
+    }
+  };
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
       .from('pending_bill_uploads')
@@ -122,6 +151,10 @@ export default function SimplifiedAIBillExtraction({
     return () => {
       clearInterval(pollingInterval);
       supabase.removeChannel(channel);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -689,6 +722,14 @@ export default function SimplifiedAIBillExtraction({
         onChange={handleFileUpload}
         disabled={uploading}
       />
+
+      {showProcessing && (
+        <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Extracting bills...</span>
+        </div>
+      )}
+
       <label htmlFor="pdf-upload">
         <Button disabled={uploading} asChild>
           <span>

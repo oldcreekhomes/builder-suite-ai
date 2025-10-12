@@ -3,8 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Trash2, Edit, FileText, Loader2, Plus, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
@@ -85,7 +83,6 @@ interface BatchBillReviewTableProps {
   selectedBillIds: Set<string>;
   onBillSelect: (billId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
-  processingCount: number;
 }
 
 export function BatchBillReviewTable({ 
@@ -96,7 +93,6 @@ export function BatchBillReviewTable({
   selectedBillIds,
   onBillSelect,
   onSelectAll,
-  processingCount
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -442,16 +438,6 @@ export function BatchBillReviewTable({
 
   return (
     <div className="space-y-4">
-      {processingCount > 0 && (
-        <Card className="mb-4">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <p>Extracting {processingCount} bill{processingCount !== 1 ? 's' : ''}...</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       
       <div className="rounded-md border">
         <Table>

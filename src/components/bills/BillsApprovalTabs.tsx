@@ -32,10 +32,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   
-  // Count bills being processed
-  const processingCount = pendingBills?.filter(b => 
-    b.status === 'pending' || b.status === 'processing'
-  ).length || 0;
 
   // Update batch bills when pending bills change
   useEffect(() => {
@@ -593,7 +589,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 selectedBillIds={selectedBillIds}
                 onBillSelect={handleBillSelect}
                 onSelectAll={handleSelectAll}
-                processingCount={processingCount}
+                
               />
             </CardContent>
           </Card>
