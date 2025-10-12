@@ -301,6 +301,84 @@ serve(async (req) => {
       matchedVendorName = matchedVendor?.company_name || null;
     }
 
+    // Auto-assign cost code if vendor has exactly one
+    if (vendorId && extractedData.lineItems && Array.isArray(extractedData.lineItems)) {
+      console.log('Checking for single cost code auto-assignment...');
+      extractedData.lineItems = await autoAssignSingleCostCode(
+        vendorId,
+        extractedData.lineItems,
+        supabase
+      );
+    }
+
+/**
+ * Auto-assign cost code if vendor has exactly one associated cost code
+ */
+async function autoAssignSingleCostCode(
+  vendorId: string,
+  lineItems: any[],
+  supabase: any
+): Promise<any[]> {
+  try {
+    // Check if vendor has exactly one cost code
+    const { data: costCodes, error } = await supabase
+      .from('company_cost_codes')
+      .select(`
+        cost_code_id,
+        cost_codes (
+          id,
+          code,
+          name
+        )
+      `)
+      .eq('company_id', vendorId);
+    
+    if (error) {
+      console.error('Error fetching vendor cost codes:', error);
+      return lineItems;
+    }
+    
+    if (!costCodes || costCodes.length !== 1) {
+      // Vendor has 0 or multiple cost codes - no auto-assignment
+      if (costCodes && costCodes.length > 1) {
+        console.log(`  Vendor has ${costCodes.length} cost codes - no auto-assignment`);
+      }
+      return lineItems;
+    }
+    
+    const costCode = costCodes[0].cost_codes;
+    if (!costCode) {
+      console.log('  Cost code data missing');
+      return lineItems;
+    }
+    
+    console.log(`✅ Vendor has exactly 1 cost code: ${costCode.code}: ${costCode.name}`);
+    
+    // Auto-assign to all lines without a cost code
+    let assignedCount = 0;
+    const updatedItems = lineItems.map((item: any) => {
+      if (!item.costCodeName || item.costCodeName === '') {
+        assignedCount++;
+        console.log(`  → Auto-assigning to line: "${item.description}"`);
+        return {
+          ...item,
+          costCodeName: `${costCode.code}: ${costCode.name}`
+        };
+      }
+      return item;
+    });
+    
+    if (assignedCount > 0) {
+      console.log(`✅ Auto-assigned cost code to ${assignedCount} line item(s)`);
+    }
+    
+    return updatedItems;
+  } catch (e) {
+    console.error('Error in autoAssignSingleCostCode:', e);
+    return lineItems;
+  }
+}
+
     // Apply learning examples to categorize line items
     if (learningExamples && learningExamples.length > 0 && extractedData.lineItems && extractedData.lineItems.length > 0) {
       console.log('🎯 Applying learning examples to line items...');

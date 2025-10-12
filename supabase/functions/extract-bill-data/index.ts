@@ -260,6 +260,74 @@ async function findMatchingVendor(vendorName: string, supabase: any, ownerId: st
   return null;
 }
 
+/**
+ * Auto-assign cost code if vendor has exactly one associated cost code
+ */
+async function autoAssignSingleCostCode(
+  vendorId: string,
+  lineItems: any[],
+  supabase: any
+): Promise<any[]> {
+  try {
+    // Check if vendor has exactly one cost code
+    const { data: costCodes, error } = await supabase
+      .from('company_cost_codes')
+      .select(`
+        cost_code_id,
+        cost_codes (
+          id,
+          code,
+          name
+        )
+      `)
+      .eq('company_id', vendorId);
+    
+    if (error) {
+      console.error('Error fetching vendor cost codes:', error);
+      return lineItems;
+    }
+    
+    if (!costCodes || costCodes.length !== 1) {
+      // Vendor has 0 or multiple cost codes - no auto-assignment
+      if (costCodes && costCodes.length > 1) {
+        console.log(`  Vendor has ${costCodes.length} cost codes - no auto-assignment`);
+      }
+      return lineItems;
+    }
+    
+    const costCode = costCodes[0].cost_codes;
+    if (!costCode) {
+      console.log('  Cost code data missing');
+      return lineItems;
+    }
+    
+    console.log(`✅ Vendor has exactly 1 cost code: ${costCode.code}: ${costCode.name}`);
+    
+    // Auto-assign to all lines without a cost code
+    let assignedCount = 0;
+    const updatedItems = lineItems.map((item: any) => {
+      if (!item.cost_code_name || item.cost_code_name === '') {
+        assignedCount++;
+        console.log(`  → Auto-assigning to line ${item.line_number}: "${item.description || item.memo}"`);
+        return {
+          ...item,
+          cost_code_name: `${costCode.code}: ${costCode.name}`
+        };
+      }
+      return item;
+    });
+    
+    if (assignedCount > 0) {
+      console.log(`✅ Auto-assigned cost code to ${assignedCount} line item(s)`);
+    }
+    
+    return updatedItems;
+  } catch (e) {
+    console.error('Error in autoAssignSingleCostCode:', e);
+    return lineItems;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -734,6 +802,16 @@ Return ONLY the JSON object, no additional text.`;
       if (matchedVendorId) {
         extractedData.vendor_id = matchedVendorId;
         console.log('Automatically matched vendor to existing company');
+        
+        // Auto-assign cost code if vendor has exactly one
+        if (extractedData.line_items && Array.isArray(extractedData.line_items)) {
+          console.log('Checking for single cost code auto-assignment...');
+          extractedData.line_items = await autoAssignSingleCostCode(
+            matchedVendorId,
+            extractedData.line_items,
+            supabase
+          );
+        }
       }
     }
 
