@@ -23,21 +23,29 @@ interface PendingUpload {
   error_message?: string;
 }
 
+interface ExtractionProgress {
+  uploadId: string;
+  fileName: string;
+  progress: number;
+  status: 'processing' | 'complete' | 'error';
+}
+
 interface SimplifiedAIBillExtractionProps {
   onDataExtracted: (data: any) => void;
   onSwitchToManual: () => void;
-  onProcessingChange?: (uploads: PendingUpload[]) => void;
+  onProgressUpdate?: (progress: ExtractionProgress) => void;
   suppressIndividualToasts?: boolean;
 }
 
 export default function SimplifiedAIBillExtraction({ 
   onDataExtracted, 
   onSwitchToManual, 
-  onProcessingChange,
+  onProgressUpdate,
   suppressIndividualToasts = false
 }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const progressIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -53,7 +61,6 @@ export default function SimplifiedAIBillExtraction({
 
     const uploads = (data || []) as PendingUpload[];
     setPendingUploads(uploads);
-    onProcessingChange?.(uploads);
   };
 
   useEffect(() => {
@@ -82,20 +89,52 @@ export default function SimplifiedAIBillExtraction({
 
           if (newStatus === 'extracted') {
             console.log('[Realtime] Extraction complete for', uploadId);
+            
+            // Clear progress interval and report completion
+            const interval = progressIntervalsRef.current.get(uploadId);
+            if (interval) {
+              clearInterval(interval);
+              progressIntervalsRef.current.delete(uploadId);
+            }
+            
+            const upload = pendingUploads.find(u => u.id === uploadId);
+            if (upload) {
+              onProgressUpdate?.({
+                uploadId,
+                fileName: upload.file_name,
+                progress: 100,
+                status: 'complete'
+              });
+            }
+            
             if (!suppressIndividualToasts) {
               toast({
                 title: "Extraction complete",
                 description: "Bill data has been extracted successfully.",
               });
             }
-            setPendingUploads(prev => {
-              const updated = prev.filter(u => u.id !== uploadId);
-              // Immediately notify parent
-              onProcessingChange?.(updated);
-              return updated;
-            });
+            
+            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
+            
+            // Clear progress interval and report error
+            const interval = progressIntervalsRef.current.get(uploadId);
+            if (interval) {
+              clearInterval(interval);
+              progressIntervalsRef.current.delete(uploadId);
+            }
+            
+            const upload = pendingUploads.find(u => u.id === uploadId);
+            if (upload) {
+              onProgressUpdate?.({
+                uploadId,
+                fileName: upload.file_name,
+                progress: 0,
+                status: 'error'
+              });
+            }
+            
             if (!suppressIndividualToasts) {
               toast({
                 title: "Extraction failed",
@@ -103,22 +142,14 @@ export default function SimplifiedAIBillExtraction({
                 variant: "destructive",
               });
             }
-            setPendingUploads(prev => {
-              const updated = prev.filter(u => u.id !== uploadId);
-              // Immediately notify parent
-              onProcessingChange?.(updated);
-              return updated;
-            });
+            
+            setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'pending' || newStatus === 'processing') {
-            // Keep in processing state and update parent
             setPendingUploads(prev => {
               const exists = prev.find(u => u.id === uploadId);
-              const updated = exists
+              return exists
                 ? prev.map(u => u.id === uploadId ? (payload.new as PendingUpload) : u)
                 : [...prev, payload.new as PendingUpload];
-              // Immediately notify parent of status change
-              onProcessingChange?.(updated);
-              return updated;
             });
           }
         }
@@ -128,13 +159,11 @@ export default function SimplifiedAIBillExtraction({
     return () => {
       clearInterval(pollingInterval);
       supabase.removeChannel(channel);
+      // Clean up all progress intervals
+      progressIntervalsRef.current.forEach(interval => clearInterval(interval));
+      progressIntervalsRef.current.clear();
     };
   }, []);
-
-  // Notify parent whenever pendingUploads changes
-  useEffect(() => {
-    onProcessingChange?.(pendingUploads);
-  }, [pendingUploads]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputEl = e.target;
@@ -471,7 +500,28 @@ export default function SimplifiedAIBillExtraction({
         u.id === upload.id ? { ...u, status: 'processing' as const } : u
       );
       setPendingUploads(updatedUploads);
-      onProcessingChange?.(updatedUploads);
+      
+      // Start progress tracking at 0%
+      onProgressUpdate?.({
+        uploadId: upload.id,
+        fileName: upload.file_name,
+        progress: 0,
+        status: 'processing'
+      });
+      
+      // Simulate progress from 0% to 90% over time
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress = Math.min(currentProgress + 10, 90);
+        onProgressUpdate?.({
+          uploadId: upload.id,
+          fileName: upload.file_name,
+          progress: currentProgress,
+          status: 'processing'
+        });
+      }, 1000);
+      
+      progressIntervalsRef.current.set(upload.id, progressInterval);
 
       console.log('Starting extraction with AWS Textract...');
       
@@ -507,6 +557,13 @@ export default function SimplifiedAIBillExtraction({
             variant: 'destructive'
           });
           return;
+        }
+        
+        // Clear progress interval on error
+        const interval = progressIntervalsRef.current.get(upload.id);
+        if (interval) {
+          clearInterval(interval);
+          progressIntervalsRef.current.delete(upload.id);
         }
         
         // For other Textract errors, fall back to AI extraction with PDF text/images
@@ -614,6 +671,20 @@ export default function SimplifiedAIBillExtraction({
       setPendingUploads(prev => 
         prev.map(u => u.id === upload.id ? { ...u, status: 'error' as const, error_message: errorMessage } : u)
       );
+      
+      // Clear progress interval and report error
+      const interval = progressIntervalsRef.current.get(upload.id);
+      if (interval) {
+        clearInterval(interval);
+        progressIntervalsRef.current.delete(upload.id);
+      }
+      
+      onProgressUpdate?.({
+        uploadId: upload.id,
+        fileName: upload.file_name,
+        progress: 0,
+        status: 'error'
+      });
       
       if (!suppressIndividualToasts) {
         toast({

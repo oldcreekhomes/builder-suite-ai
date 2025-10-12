@@ -31,7 +31,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
-  const processingToastRef = useRef<ReturnType<typeof toast> | null>(null);
+  const [extractingBills, setExtractingBills] = useState<Array<{
+    uploadId: string;
+    fileName: string;
+    progress: number;
+    status: 'processing' | 'complete' | 'error';
+  }>>([]);
 
   // Update batch bills when pending bills change
   useEffect(() => {
@@ -211,20 +216,37 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     fetchBillsWithLines();
   }, [pendingBills]);
 
-  const onProcessingChange = useCallback((uploads: any[]) => {
-    if (uploads.length > 0) {
-      if (!processingToastRef.current) {
-        processingToastRef.current = toast({
-          title: "Extracting bills...",
-          description: "We'll show them as soon as they're ready."
-        });
+  const handleProgressUpdate = useCallback((progress: {
+    uploadId: string;
+    fileName: string;
+    progress: number;
+    status: 'processing' | 'complete' | 'error';
+  }) => {
+    setExtractingBills(prev => {
+      const existing = prev.find(b => b.uploadId === progress.uploadId);
+      
+      if (progress.status === 'complete') {
+        // Keep for 1 second then remove
+        setTimeout(() => {
+          setExtractingBills(current => current.filter(b => b.uploadId !== progress.uploadId));
+        }, 1000);
+        return existing 
+          ? prev.map(b => b.uploadId === progress.uploadId ? progress : b)
+          : [...prev, progress];
+      } else if (progress.status === 'error') {
+        // Remove errors after 3 seconds
+        setTimeout(() => {
+          setExtractingBills(current => current.filter(b => b.uploadId !== progress.uploadId));
+        }, 3000);
+        return existing 
+          ? prev.map(b => b.uploadId === progress.uploadId ? progress : b)
+          : [...prev, progress];
       }
-    } else {
-      if (processingToastRef.current) {
-        processingToastRef.current.dismiss();
-        processingToastRef.current = null;
-      }
-    }
+      
+      return existing 
+        ? prev.map(b => b.uploadId === progress.uploadId ? progress : b)
+        : [...prev, progress];
+    });
   }, []);
 
   const handleBillUpdate = async (billId: string, updates: any) => {
@@ -569,7 +591,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 <SimplifiedAIBillExtraction
                   onDataExtracted={() => {}}
                   onSwitchToManual={() => setActiveTab("enter-manually")}
-                  onProcessingChange={onProcessingChange}
+                  onProgressUpdate={handleProgressUpdate}
                   suppressIndividualToasts
                 />
 
@@ -605,6 +627,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 selectedBillIds={selectedBillIds}
                 onBillSelect={handleBillSelect}
                 onSelectAll={handleSelectAll}
+                extractingBills={extractingBills}
               />
             </CardContent>
           </Card>

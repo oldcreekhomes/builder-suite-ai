@@ -3,7 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Trash2, Edit, FileText, Loader2, Plus, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
@@ -68,6 +70,13 @@ interface ProcessingUpload {
   status: 'pending' | 'processing';
 }
 
+interface ExtractionProgress {
+  uploadId: string;
+  fileName: string;
+  progress: number;
+  status: 'processing' | 'complete' | 'error';
+}
+
 interface BatchBillReviewTableProps {
   bills: PendingBill[];
   onBillUpdate: (billId: string, updates: Partial<PendingBill>) => void;
@@ -76,6 +85,7 @@ interface BatchBillReviewTableProps {
   selectedBillIds: Set<string>;
   onBillSelect: (billId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
+  extractingBills: ExtractionProgress[];
 }
 
 export function BatchBillReviewTable({ 
@@ -85,7 +95,8 @@ export function BatchBillReviewTable({
   onLinesUpdate,
   selectedBillIds,
   onBillSelect,
-  onSelectAll
+  onSelectAll,
+  extractingBills
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -431,6 +442,41 @@ export function BatchBillReviewTable({
 
   return (
     <div className="space-y-4">
+      {extractingBills.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Extracting Bills</h3>
+              {extractingBills.map((bill) => (
+                <div key={bill.uploadId} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{bill.fileName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {bill.status === 'processing' && (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span className="text-muted-foreground">{bill.progress}%</span>
+                        </>
+                      )}
+                      {bill.status === 'complete' && (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      )}
+                      {bill.status === 'error' && (
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      )}
+                    </div>
+                  </div>
+                  <Progress value={bill.progress} className="h-2" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
