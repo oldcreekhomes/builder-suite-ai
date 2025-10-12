@@ -18,7 +18,7 @@ export const useAppLoading = () => {
 };
 
 export const AppLoadingProvider = ({ children }: { children: ReactNode }) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState('Preparing your workspace...');
 
   return (
