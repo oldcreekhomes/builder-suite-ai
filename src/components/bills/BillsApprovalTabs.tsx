@@ -30,35 +30,18 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const { pendingBills, isLoading: loadingPendingBills, batchApproveBills, deletePendingUpload } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [processingUploads, setProcessingUploads] = useState<any[]>([]);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
-  
-  // Processing gate refs and state to control banner visibility
-  const processingIdsRef = useRef<Set<string>>(new Set());
-  const awaitingAppearanceRef = useRef<Set<string>>(new Set());
-  const [isBuildingBatch, setIsBuildingBatch] = useState(false);
-  const [showProcessingBanner, setShowProcessingBanner] = useState(false);
-  const [bannerFileNames, setBannerFileNames] = useState<string[]>([]);
-
-  // Helper to recompute banner visibility
-  const recomputeBanner = useCallback((uploads?: any[]) => {
-    const hasProcessing = (uploads ?? processingUploads).length > 0;
-    const awaiting = awaitingAppearanceRef.current.size > 0;
-    const show = hasProcessing || awaiting || isBuildingBatch;
-    setShowProcessingBanner(show);
-  }, [processingUploads, isBuildingBatch]);
+  const processingToastRef = useRef<ReturnType<typeof toast> | null>(null);
 
   // Update batch bills when pending bills change
   useEffect(() => {
     const fetchBillsWithLines = async () => {
-      if (!pendingBills) return;
+      if (!pendingBills || pendingBills.length === 0) {
+        setBatchBills([]);
+        return;
+      }
 
-      setIsBuildingBatch(true);
       try {
-        // Don't eagerly clear to avoid flicker during refetch
-        // if (pendingBills.length === 0) { setBatchBills([]); return; }
-
-      // Include all bills that have data to show, including processing ones
         const completedBills = pendingBills.filter(b => 
           b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
         );
@@ -214,55 +197,35 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         })
       );
       
-      // Any IDs now present in billsWithLines are no longer "awaiting appearance"
-      billsWithLines.forEach(b => awaitingAppearanceRef.current.delete(b.id));
-      
       setBatchBills(billsWithLines);
-      } finally {
-        setIsBuildingBatch(false);
-        recomputeBanner();
+      } catch (error) {
+        console.error('Error fetching bill lines:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load bill details",
+          variant: "destructive"
+        });
       }
     };
 
     fetchBillsWithLines();
   }, [pendingBills]);
 
-  // Cleanup effect: clear awaiting refs when processing completes and bills are rendered
-  useEffect(() => {
-    if (processingUploads.length === 0 && batchBills.length > 0) {
-      const currentAwaiting = Array.from(awaitingAppearanceRef.current);
-      const renderedIds = new Set(batchBills.map(b => b.id));
-      
-      currentAwaiting.forEach(id => {
-        if (renderedIds.has(id)) {
-          awaitingAppearanceRef.current.delete(id);
-        }
-      });
-      
-      recomputeBanner();
-    }
-  }, [processingUploads.length, batchBills.length, recomputeBanner]);
-
   const onProcessingChange = useCallback((uploads: any[]) => {
-    const newIds = new Set(uploads.map((u: any) => u.id));
-    const prevIds = processingIdsRef.current;
-    const completedIds: string[] = Array.from(prevIds).filter(id => !newIds.has(id));
-    
-    completedIds.forEach(id => {
-      awaitingAppearanceRef.current.add(id);
-      
-      // Safety timeout: remove from awaiting after 5 seconds
-      setTimeout(() => {
-        awaitingAppearanceRef.current.delete(id);
-        recomputeBanner();
-      }, 5000);
-    });
-    
-    processingIdsRef.current = newIds;
-    setProcessingUploads(uploads);
-    setBannerFileNames(uploads.map((u: any) => u.file_name));
-    recomputeBanner(uploads);
-  }, [recomputeBanner]);
+    if (uploads.length > 0) {
+      if (!processingToastRef.current) {
+        processingToastRef.current = toast({
+          title: "Extracting bills...",
+          description: "We'll show them as soon as they're ready."
+        });
+      }
+    } else {
+      if (processingToastRef.current) {
+        processingToastRef.current.dismiss();
+        processingToastRef.current = null;
+      }
+    }
+  }, []);
 
   const handleBillUpdate = async (billId: string, updates: any) => {
     // Update local state immediately for responsive UI
@@ -603,11 +566,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
-          <SimplifiedAIBillExtraction 
-            onDataExtracted={() => {}}
-            onSwitchToManual={() => setActiveTab("enter-manually")}
-            onProcessingChange={onProcessingChange}
-          />
+                <SimplifiedAIBillExtraction
+                  onDataExtracted={() => {}}
+                  onSwitchToManual={() => setActiveTab("enter-manually")}
+                  onProcessingChange={onProcessingChange}
+                  suppressIndividualToasts
+                />
 
           <Card>
             <CardHeader>
@@ -635,9 +599,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             <CardContent>
               <BatchBillReviewTable
                 bills={batchBills}
-                processingUploads={processingUploads}
-                showProcessingBanner={showProcessingBanner}
-                bannerFilenames={bannerFileNames}
                 onBillUpdate={handleBillUpdate}
                 onBillDelete={handleBillDelete}
                 onLinesUpdate={handleLinesUpdate}

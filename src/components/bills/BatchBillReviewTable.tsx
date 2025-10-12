@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -70,9 +70,6 @@ interface ProcessingUpload {
 
 interface BatchBillReviewTableProps {
   bills: PendingBill[];
-  processingUploads?: ProcessingUpload[];
-  showProcessingBanner?: boolean;
-  bannerFilenames?: string[];
   onBillUpdate: (billId: string, updates: Partial<PendingBill>) => void;
   onBillDelete: (billId: string) => void;
   onLinesUpdate: (billId: string, lines: PendingBillLine[]) => void;
@@ -83,9 +80,6 @@ interface BatchBillReviewTableProps {
 
 export function BatchBillReviewTable({ 
   bills,
-  processingUploads = [], // Shows loading state for bills being extracted
-  showProcessingBanner = false,
-  bannerFilenames = [],
   onBillUpdate, 
   onBillDelete,
   onLinesUpdate,
@@ -397,44 +391,46 @@ export function BatchBillReviewTable({
 
   const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
   const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
-  
-  // Use parent's processing gate to control banner visibility
-  const bannerOn = !!showProcessingBanner;
-  const names = (bannerFilenames && bannerFilenames.length > 0)
-    ? bannerFilenames
-    : processingUploads.map(u => u.file_name.split('/').pop());
 
-  const bannerMessage = useMemo(() => {
-    if (processingUploads.length > 0) {
-      return `Processing ${processingUploads.length} bill${processingUploads.length > 1 ? 's' : ''}...`;
-    }
-    return 'Processing extracted bills...';
-  }, [processingUploads.length]);
+  if (bills.length === 0) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow className="h-8">
+              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+                <Checkbox disabled aria-label="Select all bills" />
+              </TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={11} className="h-32 text-center">
+                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                  <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
+                  <p className="text-sm font-medium">No bills uploaded yet</p>
+                  <p className="text-xs mt-1">Upload PDF files above to extract bill data automatically</p>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Loading Banner - shows continuously from upload through extraction until bills fully appear */}
-      {bannerOn && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">
-                {bannerMessage}
-              </p>
-              {names && names.length > 0 && processingUploads.length > 0 && (
-                <p className="text-xs text-blue-700 mt-1">
-                  {names.join(', ')}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Extracting bill data with AI. This may take 10-20 seconds per file.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -464,19 +460,7 @@ export function BatchBillReviewTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Show empty state only if no bills AND banner is not on */}
-            {bills.length === 0 && !bannerOn ? (
-              <TableRow>
-                <TableCell colSpan={11} className="h-32 text-center">
-                  <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
-                    <p className="text-sm font-medium">No bills uploaded yet</p>
-                    <p className="text-xs mt-1">Upload PDF files above to extract bill data automatically</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              bills.map((bill) => {
+            {bills.map((bill) => {
               const issues = validateBill(bill);
               
               // Get total from extracted data or calculate from line amounts
@@ -632,10 +616,9 @@ export function BatchBillReviewTable({
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
-              );
-            })
-            )}
+              </TableRow>
+            );
+            })}
           </TableBody>
         </Table>
       </div>

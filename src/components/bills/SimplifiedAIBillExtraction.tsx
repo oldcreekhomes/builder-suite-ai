@@ -27,9 +27,15 @@ interface SimplifiedAIBillExtractionProps {
   onDataExtracted: (data: any) => void;
   onSwitchToManual: () => void;
   onProcessingChange?: (uploads: PendingUpload[]) => void;
+  suppressIndividualToasts?: boolean;
 }
 
-export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchToManual, onProcessingChange }: SimplifiedAIBillExtractionProps) {
+export default function SimplifiedAIBillExtraction({ 
+  onDataExtracted, 
+  onSwitchToManual, 
+  onProcessingChange,
+  suppressIndividualToasts = false
+}: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
 
@@ -76,10 +82,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
           if (newStatus === 'extracted') {
             console.log('[Realtime] Extraction complete for', uploadId);
-            toast({
-              title: "Extraction complete",
-              description: "Bill data has been extracted successfully.",
-            });
+            if (!suppressIndividualToasts) {
+              toast({
+                title: "Extraction complete",
+                description: "Bill data has been extracted successfully.",
+              });
+            }
             setPendingUploads(prev => {
               const updated = prev.filter(u => u.id !== uploadId);
               // Immediately notify parent
@@ -88,11 +96,13 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
             });
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
-            toast({
-              title: "Extraction failed",
-              description: payload.new.error_message || "Failed to extract bill data.",
-              variant: "destructive",
-            });
+            if (!suppressIndividualToasts) {
+              toast({
+                title: "Extraction failed",
+                description: payload.new.error_message || "Failed to extract bill data.",
+                variant: "destructive",
+              });
+            }
             setPendingUploads(prev => {
               const updated = prev.filter(u => u.id !== uploadId);
               // Immediately notify parent
@@ -447,10 +457,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
 
   const handleExtract = async (upload: PendingUpload) => {
     if (upload.status === 'processing') {
-      toast({
-        title: "Already processing",
-        description: "This bill is currently being extracted.",
-      });
+      if (!suppressIndividualToasts) {
+        toast({
+          title: "Already processing",
+          description: "This bill is currently being extracted.",
+        });
+      }
       return;
     }
 
@@ -562,11 +574,13 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
           throw aiError;
         }
       }
-
-      toast({
-        title: "Extraction started",
-        description: "Processing your bill...",
-      });
+      
+      if (!suppressIndividualToasts) {
+        toast({
+          title: "Extraction started",
+          description: "Processing your bill...",
+        });
+      }
 
 
       // Extraction started - let usePendingBills hook handle polling and status updates
@@ -601,11 +615,13 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
         prev.map(u => u.id === upload.id ? { ...u, status: 'error' as const, error_message: errorMessage } : u)
       );
       
-      toast({
-        title: "Extraction failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      if (!suppressIndividualToasts) {
+        toast({
+          title: "Extraction failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -664,10 +680,12 @@ export default function SimplifiedAIBillExtraction({ onDataExtracted, onSwitchTo
     if (upload.extracted_data) {
       onDataExtracted(upload.extracted_data);
       onSwitchToManual();
-      toast({
-        title: "Data loaded",
-        description: "Bill data has been populated. Review and edit as needed."
-      });
+      if (!suppressIndividualToasts) {
+        toast({
+          title: "Data loaded",
+          description: "Bill data has been populated. Review and edit as needed."
+        });
+      }
     }
   };
 
