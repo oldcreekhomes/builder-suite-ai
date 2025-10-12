@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { formatDistanceToNow } from "date-fns";
 import { WeatherForecast } from "@/components/WeatherForecast";
+import { useAppLoading } from "@/contexts/AppLoadingContext";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -30,9 +31,21 @@ export default function ProjectDashboard() {
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   const { openFloatingChat } = useFloatingChat();
+  const { setIsLoading, setLoadingPhase } = useAppLoading();
   
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
+  
+  // Track project loading in global state
+  useEffect(() => {
+    if (projectsLoading) {
+      setLoadingPhase('Loading project data...');
+      setIsLoading(true);
+    } else {
+      // Project data fully loaded - turn off global loading
+      setIsLoading(false);
+    }
+  }, [projectsLoading, setIsLoading, setLoadingPhase]);
   
   // Debug logging
   console.log('ProjectDashboard Debug:', {
@@ -65,15 +78,7 @@ export default function ProjectDashboard() {
     );
   }
 
-  if (projectsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading project...</p>
-      </div>
-    );
-  }
-
-  if (!currentProject) {
+  if (!currentProject && !projectsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Project not found</p>

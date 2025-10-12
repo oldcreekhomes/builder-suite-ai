@@ -50,12 +50,15 @@ import FileRedirect from "./pages/FileRedirect";
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
 import { useBrowserTitle } from "@/hooks/useBrowserTitle";
+import { AppLoadingProvider, useAppLoading } from "@/contexts/AppLoadingContext";
+import { AppLoadingScreen } from "@/components/AppLoadingScreen";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
+  const { setIsLoading, setLoadingPhase } = useAppLoading();
   
   // Initialize browser title with unread counts (must be after QueryClientProvider)
   console.log('🔄 Browser title hook initialized inside QueryClientProvider');
@@ -68,6 +71,7 @@ const AppContent = () => {
   useEffect(() => {
     const registerSyncfusionLicense = async () => {
       try {
+        setLoadingPhase('Initializing application...');
         console.log('Registering Syncfusion license...');
         
         // Simple timeout without AbortController
@@ -89,28 +93,17 @@ const AppContent = () => {
         }
       } catch (error) {
         console.error('Failed to register Syncfusion license:', error);
+      } finally {
+        setSyncfusionLicenseRegistered(true);
+        // Don't set loading to false here - let auth/project loading continue
       }
     };
 
-    // Allow app to load immediately, register license in background
-    setSyncfusionLicenseRegistered(true);
     registerSyncfusionLicense();
-  }, []);
+  }, [setLoadingPhase]);
 
   // Note: Global chat notifications are now handled by FloatingChatManager using the master hook
   // to prevent duplicate Supabase subscriptions
-
-  // Show loading while license is being registered
-  if (!syncfusionLicenseRegistered) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing application...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <BrowserRouter>
@@ -233,12 +226,25 @@ const AppContent = () => {
   );
 };
 
+// Wrapper component to handle global loading screen
+const AppLoadingWrapper = () => {
+  const { isLoading, loadingPhase } = useAppLoading();
+
+  if (isLoading) {
+    return <AppLoadingScreen message={loadingPhase} />;
+  }
+
+  return <AppContent />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <AppLoadingProvider>
+        <AppLoadingWrapper />
+      </AppLoadingProvider>
       <Toaster />
       <Sonner />
-      <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
 );
