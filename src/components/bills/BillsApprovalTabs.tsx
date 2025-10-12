@@ -18,13 +18,14 @@ import { normalizeToYMD } from "@/utils/dateOnly";
 interface BillsApprovalTabsProps {
   projectId?: string;
   projectIds?: string[];
+  reviewOnly?: boolean;
 }
 
-export function BillsApprovalTabs({ projectId, projectIds }: BillsApprovalTabsProps) {
+export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
   const { projectId: paramsProjectId } = useParams();
   const effectiveProjectId = projectId || paramsProjectId;
   
-  const [activeTab, setActiveTab] = useState("enter-manually");
+  const [activeTab, setActiveTab] = useState(reviewOnly ? "pending" : "enter-manually");
   const { data: counts, isLoading } = useBillCounts(effectiveProjectId, projectIds);
   
   const { pendingBills, isLoading: loadingPendingBills, batchApproveBills, deletePendingUpload } = usePendingBills();
@@ -507,13 +508,17 @@ export function BillsApprovalTabs({ projectId, projectIds }: BillsApprovalTabsPr
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-6">
-        <TabsTrigger value="enter-manually">
-          {getTabLabel('enter-manually', undefined)}
-        </TabsTrigger>
-        <TabsTrigger value="enter-ai">
-          {getTabLabel('enter-ai', counts?.aiExtractCount)}
-        </TabsTrigger>
+      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-3' : 'grid-cols-6'}`}>
+        {!reviewOnly && (
+          <>
+            <TabsTrigger value="enter-manually">
+              {getTabLabel('enter-manually', undefined)}
+            </TabsTrigger>
+            <TabsTrigger value="enter-ai">
+              {getTabLabel('enter-ai', counts?.aiExtractCount)}
+            </TabsTrigger>
+          </>
+        )}
         <TabsTrigger value="pending">
           {getTabLabel('pending', counts?.pendingCount)}
         </TabsTrigger>
@@ -523,61 +528,67 @@ export function BillsApprovalTabs({ projectId, projectIds }: BillsApprovalTabsPr
         <TabsTrigger value="approved">
           {getTabLabel('approved', counts?.approvedCount)}
         </TabsTrigger>
-        <TabsTrigger value="pay-bills">
-          {getTabLabel('pay-bills', counts?.payBillsCount)}
-        </TabsTrigger>
+        {!reviewOnly && (
+          <TabsTrigger value="pay-bills">
+            {getTabLabel('pay-bills', counts?.payBillsCount)}
+          </TabsTrigger>
+        )}
       </TabsList>
       
-      <TabsContent value="enter-manually" className="mt-6">
-        <ManualBillEntry />
-      </TabsContent>
+      {!reviewOnly && (
+        <TabsContent value="enter-manually" className="mt-6">
+          <ManualBillEntry />
+        </TabsContent>
+      )}
       
-      <TabsContent value="enter-ai" className="mt-6 space-y-6">
-        <SimplifiedAIBillExtraction 
-          onDataExtracted={() => {}}
-          onSwitchToManual={() => setActiveTab("enter-manually")}
-          onProcessingChange={(uploads) => {
-            setProcessingUploads(uploads.filter(u => u.status === 'pending' || u.status === 'processing'));
-          }}
-        />
+      {!reviewOnly && (
+        <TabsContent value="enter-ai" className="mt-6 space-y-6">
+          <SimplifiedAIBillExtraction 
+            onDataExtracted={() => {}}
+            onSwitchToManual={() => setActiveTab("enter-manually")}
+            onProcessingChange={(uploads) => {
+              setProcessingUploads(uploads.filter(u => u.status === 'pending' || u.status === 'processing'));
+            }}
+          />
 
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Extracted Bills</CardTitle>
-                <CardDescription>
-                  {batchBills.length > 0 
-                    ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
-                    : 'Upload PDF files above to extract bill data automatically'
-                  }
-                </CardDescription>
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Extracted Bills</CardTitle>
+                  <CardDescription>
+                    {batchBills.length > 0 
+                      ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
+                      : 'Upload PDF files above to extract bill data automatically'
+                    }
+                  </CardDescription>
+                </div>
+                {batchBills.length > 0 && (
+                  <Button
+                    onClick={handleSubmitAllBills}
+                    disabled={isSubmitting || selectedBillIds.size === 0}
+                    size="lg"
+                  >
+                    {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                  </Button>
+                )}
               </div>
-              {batchBills.length > 0 && (
-                <Button
-                  onClick={handleSubmitAllBills}
-                  disabled={isSubmitting || selectedBillIds.size === 0}
-                  size="lg"
-                >
-                  {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <BatchBillReviewTable
-              bills={batchBills}
-              processingUploads={processingUploads}
-              onBillUpdate={handleBillUpdate}
-              onBillDelete={handleBillDelete}
-              onLinesUpdate={handleLinesUpdate}
-              selectedBillIds={selectedBillIds}
-              onBillSelect={handleBillSelect}
-              onSelectAll={handleSelectAll}
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
+            </CardHeader>
+            <CardContent>
+              <BatchBillReviewTable
+                bills={batchBills}
+                processingUploads={processingUploads}
+                onBillUpdate={handleBillUpdate}
+                onBillDelete={handleBillDelete}
+                onLinesUpdate={handleLinesUpdate}
+                selectedBillIds={selectedBillIds}
+                onBillSelect={handleBillSelect}
+                onSelectAll={handleSelectAll}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      )}
       
       <TabsContent value="pending" className="mt-6">
         <BillsApprovalTable status="draft" projectId={effectiveProjectId} projectIds={projectIds} />
@@ -591,9 +602,11 @@ export function BillsApprovalTabs({ projectId, projectIds }: BillsApprovalTabsPr
         <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} projectIds={projectIds} />
       </TabsContent>
       
-      <TabsContent value="pay-bills" className="mt-6">
-        <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} />
-      </TabsContent>
+      {!reviewOnly && (
+        <TabsContent value="pay-bills" className="mt-6">
+          <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} />
+        </TabsContent>
+      )}
     </Tabs>
   );
 }
