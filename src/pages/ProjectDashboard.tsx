@@ -65,10 +65,11 @@ export default function ProjectDashboard() {
     );
   }
 
-  if (!currentProject && !projectsLoading) {
+  // Show loading while projects are being fetched
+  if (projectsLoading || !currentProject) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Project not found</p>
+        <p>Loading project...</p>
       </div>
     );
   }
