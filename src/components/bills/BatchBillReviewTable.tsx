@@ -85,7 +85,7 @@ interface BatchBillReviewTableProps {
   selectedBillIds: Set<string>;
   onBillSelect: (billId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
-  extractingBills: ExtractionProgress[];
+  processingCount: number;
 }
 
 export function BatchBillReviewTable({ 
@@ -96,7 +96,7 @@ export function BatchBillReviewTable({
   selectedBillIds,
   onBillSelect,
   onSelectAll,
-  extractingBills
+  processingCount
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -442,36 +442,12 @@ export function BatchBillReviewTable({
 
   return (
     <div className="space-y-4">
-      {extractingBills.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Extracting Bills</h3>
-              {extractingBills.map((bill) => (
-                <div key={bill.uploadId} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{bill.fileName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {bill.status === 'processing' && (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                          <span className="text-muted-foreground">{bill.progress}%</span>
-                        </>
-                      )}
-                      {bill.status === 'complete' && (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      )}
-                      {bill.status === 'error' && (
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      )}
-                    </div>
-                  </div>
-                  <Progress value={bill.progress} className="h-2" />
-                </div>
-              ))}
+      {processingCount > 0 && (
+        <Card className="mb-4">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <p>Extracting {processingCount} bill{processingCount !== 1 ? 's' : ''}...</p>
             </div>
           </CardContent>
         </Card>
