@@ -116,6 +116,12 @@ export default function SimplifiedAIBillExtraction({
           if (newStatus === 'extracted') {
             console.log('[Realtime] Extraction complete for', uploadId);
             
+            // Stop indicator if we were tracking this upload
+            if (trackedIdsRef.current.has(uploadId)) {
+              trackedIdsRef.current.delete(uploadId);
+              stopIndicator();
+            }
+            
             if (!suppressIndividualToasts) {
               toast({
                 title: "Extraction complete",
@@ -126,6 +132,12 @@ export default function SimplifiedAIBillExtraction({
             setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
+            
+            // Stop indicator if we were tracking this upload
+            if (trackedIdsRef.current.has(uploadId)) {
+              trackedIdsRef.current.delete(uploadId);
+              stopIndicator();
+            }
             
             if (!suppressIndividualToasts) {
               toast({
@@ -245,7 +257,13 @@ export default function SimplifiedAIBillExtraction({
         setPendingUploads(prev => prev.map(u => u.id === optimisticId ? (uploadData as PendingUpload) : u));
         
         console.log('[Upload] DB record created:', uploadData.id);
-        if (uploadData) uploadedIds.push(uploadData.id);
+        
+        // Track this upload and start indicator
+        if (uploadData) {
+          trackedIdsRef.current.add(uploadData.id);
+          startIndicator();
+          uploadedIds.push(uploadData.id);
+        }
       }
 
       await loadPendingUploads();
