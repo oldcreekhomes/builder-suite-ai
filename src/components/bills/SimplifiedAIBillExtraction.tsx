@@ -34,12 +34,14 @@ interface SimplifiedAIBillExtractionProps {
   onDataExtracted: (data: any) => void;
   onSwitchToManual: () => void;
   suppressIndividualToasts?: boolean;
+  onPendingUploadsChange?: (uploads: PendingUpload[]) => void;
 }
 
 export default function SimplifiedAIBillExtraction({ 
   onDataExtracted, 
   onSwitchToManual, 
-  suppressIndividualToasts = false
+  suppressIndividualToasts = false,
+  onPendingUploadsChange
 }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
@@ -88,6 +90,11 @@ export default function SimplifiedAIBillExtraction({
     const uploads = (data || []) as PendingUpload[];
     setPendingUploads(uploads);
   };
+
+  // Notify parent whenever pendingUploads changes
+  useEffect(() => {
+    onPendingUploadsChange?.(pendingUploads);
+  }, [pendingUploads, onPendingUploadsChange]);
 
   useEffect(() => {
     loadPendingUploads();

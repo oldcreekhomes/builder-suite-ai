@@ -32,23 +32,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [inProgress, setInProgress] = useState<Array<{ id: string; file_name: string; file_path: string; status: string }>>([]);
-  
-
-  // Poll for in-progress uploads
-  useEffect(() => {
-    let cancelled = false;
-    const fetchInProgress = async () => {
-      const { data } = await supabase
-        .from('pending_bill_uploads')
-        .select('id,file_name,file_path,status')
-        .in('status', ['pending', 'processing'])
-        .order('created_at', { ascending: false });
-      if (!cancelled) setInProgress((data as any[]) || []);
-    };
-    fetchInProgress();
-    const interval = setInterval(fetchInProgress, 2000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
 
   // Update batch bills when pending bills or in-progress change
   useEffect(() => {
@@ -586,6 +569,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                   onDataExtracted={() => {}}
                   onSwitchToManual={() => setActiveTab("enter-manually")}
                   suppressIndividualToasts
+                  onPendingUploadsChange={(uploads) => setInProgress(uploads)}
                 />
 
           <Card>
