@@ -37,12 +37,12 @@ export function EditBiddingSpecificationsModal({
   const markdownToHtml = (markdown: string) => {
     let html = markdown;
     
-    // Group consecutive bullet points into single <ul>
-    html = html.replace(/(^•\s+.+$\n?)+/gm, (match) => {
+    // Group consecutive bullet points (•, -, *) into single <ul>
+    html = html.replace(/(^[•\-\*]\s+.+$\n?)+/gm, (match) => {
       const items = match
         .split('\n')
         .filter(line => line.trim())
-        .map(line => line.replace(/^•\s+/, ''))
+        .map(line => line.replace(/^[•\-\*]\s+/, ''))
         .map(item => `<li>${item}</li>`)
         .join('');
       return `<ul>${items}</ul>`;
@@ -116,7 +116,7 @@ export function EditBiddingSpecificationsModal({
         ],
       } as const;
 
-  const formats = ['bold', 'italic', 'underline', 'list', 'indent', 'clean'] as const;
+  const formats = ['bold', 'italic', 'underline', 'list', 'indent'] as const;
 
   const handleSave = async () => {
     if (isReadOnly) return onOpenChange(false);

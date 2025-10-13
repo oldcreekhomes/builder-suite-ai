@@ -69,18 +69,77 @@ const formatDate = (dateString: string | undefined) => {
 const formatSpecifications = (specifications: string | undefined) => {
   if (!specifications) return 'See attached specifications';
   
-  // Split by line breaks and process bullet points and numbered lists
-  const lines = specifications.split(/\r?\n/);
-  const formattedLines = lines.map((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed) return '';
-    
-    // Use consistent margin for all lines, remove top margin from first line to align properly
-    const marginTop = index === 0 ? '0' : '5px';
-    return `<div style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: ${marginTop} 0 5px 0;">${trimmed}</div>`;
-  });
+  const escapeHtml = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  };
   
-  return formattedLines.filter(line => line).join('');
+  const lines = specifications.split(/\r?\n/);
+  const result: string[] = [];
+  let i = 0;
+  
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+    
+    // Check for bullet points: •, -, or *
+    const bulletMatch = trimmed.match(/^(•|-|\*)\s+(.+)$/);
+    if (bulletMatch) {
+      const items: string[] = [];
+      // Collect consecutive bullet items
+      while (i < lines.length) {
+        const currentLine = lines[i].trim();
+        const currentBulletMatch = currentLine.match(/^(•|-|\*)\s+(.+)$/);
+        if (currentBulletMatch) {
+          items.push(`<li style="margin: 4px 0;">${escapeHtml(currentBulletMatch[2])}</li>`);
+          i++;
+        } else if (!currentLine) {
+          i++;
+          break;
+        } else {
+          break;
+        }
+      }
+      result.push(`<ul style="padding-left: 20px; margin: 6px 0; list-style-type: disc;">${items.join('')}</ul>`);
+      continue;
+    }
+    
+    // Check for numbered lists: 1., 2., etc or 1), 2), etc
+    const numberMatch = trimmed.match(/^\d+[\.\)]\s+(.+)$/);
+    if (numberMatch) {
+      const items: string[] = [];
+      // Collect consecutive numbered items
+      while (i < lines.length) {
+        const currentLine = lines[i].trim();
+        const currentNumberMatch = currentLine.match(/^\d+[\.\)]\s+(.+)$/);
+        if (currentNumberMatch) {
+          items.push(`<li style="margin: 4px 0;">${escapeHtml(currentNumberMatch[1])}</li>`);
+          i++;
+        } else if (!currentLine) {
+          i++;
+          break;
+        } else {
+          break;
+        }
+      }
+      result.push(`<ol style="padding-left: 20px; margin: 6px 0;">${items.join('')}</ol>`);
+      continue;
+    }
+    
+    // Regular line
+    result.push(`<div style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; margin: 5px 0;">${escapeHtml(trimmed)}</div>`);
+    i++;
+  }
+  
+  return result.join('');
 };
 
 const generateFileDownloadLinks = (files: string[]) => {
