@@ -50,6 +50,8 @@ export default function SimplifiedAIBillExtraction({
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const trackedIdsRef = useRef<Set<string>>(new Set());
+  const pollIntervalRef = useRef<number | null>(null);
+  const hardTimeoutRef = useRef<number | null>(null);
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -77,13 +79,16 @@ export default function SimplifiedAIBillExtraction({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'pending_bill_uploads'
         },
         (payload) => {
-          const newStatus = payload.new.status;
-          const uploadId = payload.new.id;
+          const newRecord = payload.new as any;
+          const newStatus = newRecord?.status;
+          const uploadId = newRecord?.id;
+
+          if (!newStatus || !uploadId) return;
 
           console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
 
@@ -114,7 +119,7 @@ export default function SimplifiedAIBillExtraction({
             if (!suppressIndividualToasts) {
               toast({
                 title: "Extraction failed",
-                description: payload.new.error_message || "Failed to extract bill data.",
+                description: newRecord.error_message || "Failed to extract bill data.",
                 variant: "destructive",
               });
             }
@@ -124,8 +129,8 @@ export default function SimplifiedAIBillExtraction({
             setPendingUploads(prev => {
               const exists = prev.find(u => u.id === uploadId);
               return exists
-                ? prev.map(u => u.id === uploadId ? (payload.new as PendingUpload) : u)
-                : [...prev, payload.new as PendingUpload];
+                ? prev.map(u => u.id === uploadId ? (newRecord as PendingUpload) : u)
+                : [...prev, newRecord as PendingUpload];
             });
           }
         }
@@ -134,6 +139,9 @@ export default function SimplifiedAIBillExtraction({
 
     return () => {
       supabase.removeChannel(channel);
+      // Clean up watchdog timers
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
     };
   }, []);
 
@@ -236,6 +244,51 @@ export default function SimplifiedAIBillExtraction({
       // Notify parent that extraction started
       if (uploadedIds.length > 0) {
         onExtractionStart?.(uploadedIds.length);
+        
+        // Start watchdog: poll for status updates every 1.5s
+        const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
+        
+        pollIntervalRef.current = window.setInterval(async () => {
+          const currentIds = Array.from(trackedIdsRef.current);
+          if (currentIds.length === 0) {
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
+            return;
+          }
+          
+          const { data } = await supabase
+            .from('pending_bill_uploads')
+            .select('id, status')
+            .in('id', currentIds);
+          
+          if (data) {
+            data.forEach((row) => {
+              if (terminalStatuses.includes(row.status) && trackedIdsRef.current.has(row.id)) {
+                trackedIdsRef.current.delete(row.id);
+                onExtractionProgress?.(trackedIdsRef.current.size);
+              }
+            });
+            
+            if (trackedIdsRef.current.size === 0) {
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
+              onExtractionComplete?.();
+            }
+          }
+        }, 1500);
+        
+        // Hard timeout failsafe after 120 seconds
+        hardTimeoutRef.current = window.setTimeout(() => {
+          console.warn('[Watchdog] Hard timeout reached after 120s');
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          trackedIdsRef.current.clear();
+          onExtractionComplete?.();
+          toast({
+            title: "Extraction taking longer than expected",
+            description: "We'll show results as soon as they're ready.",
+            variant: "default"
+          });
+        }, 120000);
       }
 
       // Auto-trigger extraction for each uploaded file
