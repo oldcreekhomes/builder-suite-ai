@@ -625,7 +625,8 @@ const handler = async (req: Request): Promise<Response> => {
       files: finalFiles, // Use the already calculated final files
       projectId: projectDetails?.id,
       customMessage,
-      contractFiles: [] // Clear contract files since we're using proposal files as approved files
+      contractFiles: [], // Clear contract files since we're using proposal files as approved files
+      poNumber: requestData.poNumber // Pass the PO number from the request
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
