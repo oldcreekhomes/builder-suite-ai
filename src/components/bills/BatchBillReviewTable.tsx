@@ -469,6 +469,34 @@ export function BatchBillReviewTable({
           </TableHeader>
           <TableBody>
             {bills.map((bill) => {
+              // Show spinner row for pending/processing bills
+              if (bill.status === 'pending' || bill.status === 'processing') {
+                return (
+                  <TableRow key={bill.id} className="h-10">
+                    <TableCell className="px-2 py-1">
+                      <Checkbox disabled aria-label="Bill extracting" />
+                    </TableCell>
+                    <TableCell className="px-3 py-1" colSpan={9}>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Extracting: {bill.file_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-3 py-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => onBillDelete(bill.id)}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+              
               const issues = validateBill(bill);
               
               // Get total from extracted data or calculate from line amounts

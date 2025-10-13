@@ -31,9 +31,26 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  const [inProgress, setInProgress] = useState<Array<{ id: string; file_name: string; file_path: string; status: string }>>([]);
   
 
-  // Update batch bills when pending bills change
+  // Poll for in-progress uploads
+  useEffect(() => {
+    let cancelled = false;
+    const fetchInProgress = async () => {
+      const { data } = await supabase
+        .from('pending_bill_uploads')
+        .select('id,file_name,file_path,status')
+        .in('status', ['pending', 'processing'])
+        .order('created_at', { ascending: false });
+      if (!cancelled) setInProgress((data as any[]) || []);
+    };
+    fetchInProgress();
+    const interval = setInterval(fetchInProgress, 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  // Update batch bills when pending bills or in-progress change
   useEffect(() => {
     const fetchBillsWithLines = async () => {
       if (!pendingBills || pendingBills.length === 0) {
@@ -197,7 +214,21 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         })
       );
       
-      setBatchBills(billsWithLines);
+      // Combine in-progress with completed bills
+      const inProgressMapped = inProgress.map(b => ({
+        id: b.id,
+        file_name: b.file_name,
+        file_path: b.file_path,
+        status: b.status,
+        lines: [],
+      }));
+      const completedIds = new Set(billsWithLines.map(b => b.id));
+      const combined = [
+        ...inProgressMapped.filter(b => !completedIds.has(b.id)),
+        ...billsWithLines,
+      ];
+      
+      setBatchBills(combined);
       } catch (error) {
         console.error('Error fetching bill lines:', error);
         toast({
@@ -209,7 +240,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     };
 
     fetchBillsWithLines();
-  }, [pendingBills]);
+  }, [pendingBills, inProgress]);
 
 
   const handleBillUpdate = async (billId: string, updates: any) => {
