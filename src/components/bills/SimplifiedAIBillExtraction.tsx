@@ -35,16 +35,23 @@ interface SimplifiedAIBillExtractionProps {
   onSwitchToManual: () => void;
   suppressIndividualToasts?: boolean;
   onPendingUploadsChange?: (uploads: PendingUpload[]) => void;
+  onExtractionStart?: (total: number) => void;
+  onExtractionProgress?: (remaining: number) => void;
+  onExtractionComplete?: () => void;
 }
 
 export default function SimplifiedAIBillExtraction({ 
   onDataExtracted, 
   onSwitchToManual, 
   suppressIndividualToasts = false,
-  onPendingUploadsChange
+  onPendingUploadsChange,
+  onExtractionStart,
+  onExtractionProgress,
+  onExtractionComplete
 }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const trackedIdsRef = useRef<Set<string>>(new Set());
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -85,6 +92,15 @@ export default function SimplifiedAIBillExtraction({
           const uploadId = payload.new.id;
 
           console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
+
+          // Track extraction progress for this session's uploads
+          if (trackedIdsRef.current.has(uploadId) && (newStatus === 'extracted' || newStatus === 'error')) {
+            trackedIdsRef.current.delete(uploadId);
+            onExtractionProgress?.(trackedIdsRef.current.size);
+            if (trackedIdsRef.current.size === 0) {
+              onExtractionComplete?.();
+            }
+          }
 
           if (newStatus === 'extracted') {
             console.log('[Realtime] Extraction complete for', uploadId);
@@ -215,11 +231,17 @@ export default function SimplifiedAIBillExtraction({
         console.log('[Upload] DB record created:', uploadData.id);
         
         if (uploadData) {
+          trackedIdsRef.current.add(uploadData.id);
           uploadedIds.push(uploadData.id);
         }
       }
 
       await loadPendingUploads();
+
+      // Notify parent that extraction started
+      if (uploadedIds.length > 0) {
+        onExtractionStart?.(uploadedIds.length);
+      }
 
       // Auto-trigger extraction for each uploaded file
       for (const uploadId of uploadedIds) {

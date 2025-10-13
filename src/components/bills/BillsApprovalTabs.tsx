@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
 import { normalizeToYMD } from "@/utils/dateOnly";
+import { Loader2 } from "lucide-react";
 
 interface BillsApprovalTabsProps {
   projectId?: string;
@@ -31,9 +32,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
-  const [inProgress, setInProgress] = useState<Array<{ id: string; file_name: string; file_path: string; status: string }>>([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [remaining, setRemaining] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const minVisibleRef = useRef<number | null>(null);
 
-  // Update batch bills when pending bills or in-progress change
+  // Update batch bills when pending bills change
   useEffect(() => {
     const fetchBillsWithLines = async () => {
       if (!pendingBills || pendingBills.length === 0) {
@@ -197,21 +201,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         })
       );
       
-      // Combine in-progress with completed bills
-      const inProgressMapped = inProgress.map(b => ({
-        id: b.id,
-        file_name: b.file_name,
-        file_path: b.file_path,
-        status: b.status,
-        lines: [],
-      }));
-      const completedIds = new Set(billsWithLines.map(b => b.id));
-      const combined = [
-        ...inProgressMapped.filter(b => !completedIds.has(b.id)),
-        ...billsWithLines,
-      ];
-      
-      setBatchBills(combined);
+      setBatchBills(billsWithLines);
       } catch (error) {
         console.error('Error fetching bill lines:', error);
         toast({
@@ -223,7 +213,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     };
 
     fetchBillsWithLines();
-  }, [pendingBills, inProgress]);
+  }, [pendingBills, refreshKey]);
 
 
   const handleBillUpdate = async (billId: string, updates: any) => {
@@ -565,12 +555,34 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
-                <SimplifiedAIBillExtraction
-                  onDataExtracted={() => {}}
-                  onSwitchToManual={() => setActiveTab("enter-manually")}
-                  suppressIndividualToasts
-                  onPendingUploadsChange={(uploads) => setInProgress(uploads)}
-                />
+          <SimplifiedAIBillExtraction
+            onDataExtracted={() => {}}
+            onSwitchToManual={() => setActiveTab("enter-manually")}
+            suppressIndividualToasts
+            onExtractionStart={(total) => {
+              setRemaining(total);
+              setIsExtracting(true);
+              minVisibleRef.current = Date.now();
+            }}
+            onExtractionProgress={(rem) => setRemaining(rem)}
+            onExtractionComplete={() => {
+              const elapsed = Date.now() - (minVisibleRef.current || Date.now());
+              const delay = elapsed < 600 ? 600 - elapsed : 0;
+              setTimeout(() => {
+                setIsExtracting(false);
+                setRemaining(0);
+                minVisibleRef.current = null;
+                setRefreshKey(k => k + 1);
+              }, delay);
+            }}
+          />
+
+          {isExtracting && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
+            </div>
+          )}
 
           <Card>
             <CardHeader>
