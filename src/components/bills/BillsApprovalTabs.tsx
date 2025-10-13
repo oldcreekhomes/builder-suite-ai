@@ -368,18 +368,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     setIsExtracting(true);
     minVisibleRef.current = Date.now();
     
-    // Safety fuse: if extraction doesn't complete in 45s, force reset
+    // Safety fuse: if extraction doesn't complete in 60s, show non-destructive warning
     if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
     safetyFuseRef.current = window.setTimeout(() => {
-      console.warn('[Safety Fuse] Forcing extraction complete after 45s');
-      setIsExtracting(false);
-      setRemaining(0);
-      setRefreshKey(prev => prev + 1);
+      console.warn('[Safety Fuse] Still finalizing after 60s');
       toast({
-        title: "Auto-refreshed",
-        description: "Extraction may still be processing. The table has been refreshed.",
+        title: "Still finalizing...",
+        description: "Your uploads are still being processed. The spinner will clear when complete.",
       });
-    }, 45000);
+    }, 60000);
   };
 
   const handleExtractionProgress = (remaining: number) => {

@@ -95,15 +95,8 @@ export default function SimplifiedAIBillExtraction({
 
           console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
 
-          // Track extraction progress for this session's uploads
-          const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
-          if (trackedIdsRef.current.has(uploadId) && terminalStatuses.includes(newStatus)) {
-            trackedIdsRef.current.delete(uploadId);
-            onExtractionProgress?.(trackedIdsRef.current.size);
-            if (trackedIdsRef.current.size === 0) {
-              onExtractionComplete?.();
-            }
-          }
+          // Track extraction progress - DO NOT complete here, let watchdog verify lines
+          // Realtime just updates pendingUploads state
 
           if (newStatus === 'extracted' || newStatus === 'completed' || newStatus === 'reviewing') {
             console.log('[Realtime] Extraction complete for', uploadId);
@@ -260,8 +253,6 @@ export default function SimplifiedAIBillExtraction({
 
       // Start watchdog: poll for status updates every 1.5s
       if (uploadedIds.length > 0) {
-        const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
-        
         pollIntervalRef.current = window.setInterval(async () => {
           const currentIds = Array.from(trackedIdsRef.current);
           console.log('[Watchdog] Tracking IDs:', currentIds);
@@ -280,26 +271,56 @@ export default function SimplifiedAIBillExtraction({
           console.log('[Watchdog] Statuses:', data);
           
           if (data) {
-            data.forEach((row) => {
-              if (terminalStatuses.includes(row.status) && trackedIdsRef.current.has(row.id)) {
-                trackedIdsRef.current.delete(row.id);
-                const remaining = trackedIdsRef.current.size;
-                setRemainingLocal(remaining);
-                onExtractionProgress?.(remaining);
-                
-                // Update toast
-                if (toastRef.current && remaining > 0) {
-                  toastRef.current.update({
-                    title: "Extracting...",
-                    description: `Extracting ${remaining} file${remaining !== 1 ? 's' : ''}...`,
-                    duration: Infinity,
-                  });
-                }
+            // Build arrays of extracted and error IDs
+            const errorIds = data.filter(row => row.status === 'error').map(row => row.id);
+            const extractedIds = data.filter(row => row.status === 'extracted').map(row => row.id);
+            
+            // Mark errors as complete immediately
+            errorIds.forEach((id) => {
+              if (trackedIdsRef.current.has(id)) {
+                trackedIdsRef.current.delete(id);
               }
             });
             
+            // For extracted IDs, check if lines exist
+            if (extractedIds.length > 0) {
+              const { data: linesData } = await supabase
+                .from('pending_bill_lines')
+                .select('id, pending_upload_id')
+                .in('pending_upload_id', extractedIds);
+              
+              // Build count map
+              const counts: Record<string, number> = {};
+              (linesData || []).forEach((line: any) => {
+                counts[line.pending_upload_id] = (counts[line.pending_upload_id] || 0) + 1;
+              });
+              
+              // Mark extracted IDs complete only if lines exist
+              extractedIds.forEach((id) => {
+                if (trackedIdsRef.current.has(id) && counts[id] > 0) {
+                  trackedIdsRef.current.delete(id);
+                }
+              });
+            }
+            
+            const remaining = trackedIdsRef.current.size;
+            setRemainingLocal(remaining);
+            onExtractionProgress?.(remaining);
+            
+            // Update toast with appropriate message
+            if (toastRef.current && remaining > 0) {
+              const stillWaitingForLines = extractedIds.some(id => trackedIdsRef.current.has(id));
+              toastRef.current.update({
+                title: "Extracting...",
+                description: stillWaitingForLines 
+                  ? `Finalizing ${remaining} file${remaining !== 1 ? 's' : ''}...`
+                  : `Extracting ${remaining} file${remaining !== 1 ? 's' : ''}...`,
+                duration: Infinity,
+              });
+            }
+            
             if (trackedIdsRef.current.size === 0) {
-              console.log('[Watchdog] All files processed');
+              console.log('[Watchdog] All files processed and lines ready');
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
               setIsExtractingLocal(false);
@@ -317,23 +338,16 @@ export default function SimplifiedAIBillExtraction({
           }
         }, 1500);
         
-        // Hard timeout failsafe after 120 seconds
+        // Hard timeout after 120 seconds - just warn, don't clear
         hardTimeoutRef.current = window.setTimeout(() => {
-          console.warn('[Watchdog] Hard timeout reached after 120s');
-          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-          trackedIdsRef.current.clear();
-          setIsExtractingLocal(false);
-          setRemainingLocal(0);
+          console.warn('[Watchdog] Hard timeout reached after 120s - continuing to poll');
           if (toastRef.current) {
-            toastRef.current.dismiss();
-            toastRef.current = null;
+            toastRef.current.update({
+              title: "Still processing...",
+              description: "Taking longer than expected, still finalizing...",
+              duration: Infinity,
+            });
           }
-          toast({
-            title: "Extraction taking longer than expected",
-            description: "We'll show results as soon as they're ready.",
-            variant: "default"
-          });
-          onExtractionComplete?.();
         }, 120000);
       }
 
