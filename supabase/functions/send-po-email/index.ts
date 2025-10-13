@@ -138,7 +138,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${poNumberDisplay}</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Purchase Order</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
                         </td>
                     </tr>
