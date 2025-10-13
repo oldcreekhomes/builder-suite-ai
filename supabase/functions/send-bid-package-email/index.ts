@@ -69,6 +69,16 @@ const formatDate = (dateString: string | undefined) => {
 const formatSpecifications = (specifications: string | undefined) => {
   if (!specifications) return 'See attached specifications';
   
+  // If it's already HTML, add inline styles for email compatibility
+  if (/<[a-z][\s\S]*>/i.test(specifications)) {
+    return specifications
+      .replace(/<ul>/g, '<ul style="padding-left: 20px; margin: 6px 0; list-style-type: disc;">')
+      .replace(/<ol>/g, '<ol style="padding-left: 20px; margin: 6px 0;">')
+      .replace(/<li>/g, '<li style="margin: 4px 0;">')
+      .replace(/<p>/g, '<p style="line-height: 20px; color: #000000; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Arial, sans-serif; font-size: 14px; margin: 5px 0;">');
+  }
+  
+  // Otherwise, convert plain text to HTML
   const escapeHtml = (text: string) => {
     return text
       .replace(/&/g, '&amp;')
@@ -81,6 +91,10 @@ const formatSpecifications = (specifications: string | undefined) => {
   const result: string[] = [];
   let i = 0;
   
+  // Relaxed regex: allow optional space after bullet/number
+  const bulletRe = /^(•|-|\*)\s*(.+)$/;
+  const numberRe = /^\d+[\.\)]\s*(.+)$/;
+  
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
@@ -90,14 +104,13 @@ const formatSpecifications = (specifications: string | undefined) => {
       continue;
     }
     
-    // Check for bullet points: •, -, or *
-    const bulletMatch = trimmed.match(/^(•|-|\*)\s+(.+)$/);
+    // Check for bullet points
+    const bulletMatch = trimmed.match(bulletRe);
     if (bulletMatch) {
       const items: string[] = [];
-      // Collect consecutive bullet items
       while (i < lines.length) {
         const currentLine = lines[i].trim();
-        const currentBulletMatch = currentLine.match(/^(•|-|\*)\s+(.+)$/);
+        const currentBulletMatch = currentLine.match(bulletRe);
         if (currentBulletMatch) {
           items.push(`<li style="margin: 4px 0;">${escapeHtml(currentBulletMatch[2])}</li>`);
           i++;
@@ -112,14 +125,13 @@ const formatSpecifications = (specifications: string | undefined) => {
       continue;
     }
     
-    // Check for numbered lists: 1., 2., etc or 1), 2), etc
-    const numberMatch = trimmed.match(/^\d+[\.\)]\s+(.+)$/);
+    // Check for numbered lists
+    const numberMatch = trimmed.match(numberRe);
     if (numberMatch) {
       const items: string[] = [];
-      // Collect consecutive numbered items
       while (i < lines.length) {
         const currentLine = lines[i].trim();
-        const currentNumberMatch = currentLine.match(/^\d+[\.\)]\s+(.+)$/);
+        const currentNumberMatch = currentLine.match(numberRe);
         if (currentNumberMatch) {
           items.push(`<li style="margin: 4px 0;">${escapeHtml(currentNumberMatch[1])}</li>`);
           i++;

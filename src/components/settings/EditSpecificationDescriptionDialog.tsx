@@ -33,82 +33,80 @@ export function EditSpecificationDescriptionDialog({
   onOpenChange,
   onUpdateDescription,
 }: EditSpecificationDescriptionDialogProps) {
-  // We keep HTML in state for true WYSIWYG editing
   const [html, setHtml] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Convert simple markdown stored in DB to HTML for editing
-  const markdownToHtml = (markdown: string) => {
-    let html = markdown;
+  // Convert plain text or legacy markdown to HTML for display (backward compatibility)
+  const normalizeToHtml = (content: string) => {
+    if (!content) return '';
     
-    // Group consecutive bullet points (•, -, *) into single <ul>
-    html = html.replace(/(^[•\-\*]\s+.+$\n?)+/gm, (match) => {
-      const items = match
-        .split('\n')
-        .filter(line => line.trim())
-        .map(line => line.replace(/^[•\-\*]\s+/, ''))
-        .map(item => `<li>${item}</li>`)
-        .join('');
-      return `<ul>${items}</ul>`;
-    });
+    // If already HTML, return as-is
+    if (/<[a-z][\s\S]*>/i.test(content)) {
+      return content;
+    }
     
-    // Group consecutive numbered items into single <ol>
-    html = html.replace(/(^\d+\.\s+.+$\n?)+/gm, (match) => {
-      const items = match
-        .split('\n')
-        .filter(line => line.trim())
-        .map(line => line.replace(/^\d+\.\s+/, ''))
-        .map(item => `<li>${item}</li>`)
-        .join('');
-      return `<ol>${items}</ol>`;
-    });
-    
-    // Apply other formatting
-    html = html
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/__(.*?)__/g, '<u>$1</u>')
-      .replace(/^\s{4}(.+)$/gm, '<div style="margin-left: 20px;">$1</div>')
-      .replace(/\n/g, '<br />');
-    
-    return html;
-  };
+    // Convert plain text/markdown to HTML
+    const text = content.replace(/\r\n?/g, '\n');
+    const lines = text.split('\n');
+    const htmlParts: string[] = [];
+    let i = 0;
 
-  // Convert edited HTML back to markdown for storage (to remain backward compatible)
-  const htmlToMarkdown = (value: string) => {
-    let text = value;
-    
-    // Handle unordered lists (bullet points) - process entire <ul> blocks
-    text = text.replace(/<ul>(.*?)<\/ul>/gs, (match, content) => {
-      return content
-        .replace(/<li>(.*?)<\/li>/gs, (_, item) => `• ${item.trim()}\n`)
-        .trim();
-    });
-    
-    // Handle ordered lists (numbered lists) - process entire <ol> blocks
-    text = text.replace(/<ol>(.*?)<\/ol>/gs, (match, content) => {
-      let counter = 1;
-      return content
-        .replace(/<li>(.*?)<\/li>/gs, (_, item) => `${counter++}. ${item.trim()}\n`)
-        .trim();
-    });
-    
-    // Handle other formatting
-    text = text
-      .replace(/<strong>(.*?)<\/strong>/gs, '**$1**')
-      .replace(/<em>(.*?)<\/em>/gs, '*$1*')
-      .replace(/<u>(.*?)<\/u>/gs, '__$1__')
-      .replace(/<div style="margin-left: 20px;">(.*?)<\/div>/gs, '    $1')
-      .replace(/<p>(.*?)<\/p>/gs, '$1\n')
-      .replace(/<br\s*\/?>/g, '\n')
-      .replace(/<[^>]+>/g, '');
-    
-    return text.trim();
+    const bulletRe = /^\s*(•|-|\*)\s*(.+)$/;
+    const numberRe = /^\s*\d+[\.\)]\s*(.+)$/;
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+
+      if (!line) { 
+        i++; 
+        continue; 
+      }
+
+      // Bulleted list
+      if (bulletRe.test(line)) {
+        const items: string[] = [];
+        while (i < lines.length) {
+          const m = lines[i].trim().match(bulletRe);
+          if (m) { 
+            items.push(`<li>${m[2]}</li>`); 
+            i++; 
+          } else if (!lines[i].trim()) { 
+            i++; 
+            break; 
+          } else break;
+        }
+        htmlParts.push(`<ul>${items.join('')}</ul>`);
+        continue;
+      }
+
+      // Numbered list
+      if (numberRe.test(line)) {
+        const items: string[] = [];
+        while (i < lines.length) {
+          const m = lines[i].trim().match(numberRe);
+          if (m) { 
+            items.push(`<li>${m[1]}</li>`); 
+            i++; 
+          } else if (!lines[i].trim()) { 
+            i++; 
+            break; 
+          } else break;
+        }
+        htmlParts.push(`<ol>${items.join('')}</ol>`);
+        continue;
+      }
+
+      // Plain paragraph
+      htmlParts.push(`<p>${line}</p>`);
+      i++;
+    }
+
+    return htmlParts.join('');
   };
 
   useEffect(() => {
     if (specification) {
-      setHtml(markdownToHtml(specification.description || ''));
+      setHtml(normalizeToHtml(specification.description || ''));
     } else {
       setHtml('');
     }
@@ -129,8 +127,8 @@ export function EditSpecificationDescriptionDialog({
     if (!specification) return;
     setIsLoading(true);
     try {
-      const markdown = htmlToMarkdown(html);
-      await onUpdateDescription(specification.id, markdown);
+      // Store HTML directly - no more conversion
+      await onUpdateDescription(specification.id, html);
       onOpenChange(false);
     } catch (e) {
       console.error('Error updating description:', e);

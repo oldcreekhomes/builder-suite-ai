@@ -332,26 +332,10 @@ export function SendTestEmailModal({
                     <h4 className="font-medium text-sm">Specifications</h4>
                   </div>
                   {bidPackage.specifications ? (
-                    <div className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto">
-                      <div className="text-xs space-y-1">
-                        {bidPackage.specifications.split('\n').map((line: string, index: number) => {
-                          const trimmedLine = line.trim();
-                          if (!trimmedLine) return <br key={index} />;
-                          
-                          // Handle bullet points (•, -, *, or numbered)
-                          if (trimmedLine.match(/^[•\-\*]\s+/) || trimmedLine.match(/^\d+\.\s+/)) {
-                            return (
-                              <div key={index} className="flex items-start gap-1">
-                                <span className="text-muted-foreground mt-0.5">•</span>
-                                <span>{trimmedLine.replace(/^[•\-\*]\s+/, '').replace(/^\d+\.\s+/, '')}</span>
-                              </div>
-                            );
-                          }
-                          
-                          return <div key={index}>{trimmedLine}</div>;
-                        })}
-                      </div>
-                    </div>
+                    <div 
+                      className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto text-xs prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: bidPackage.specifications }}
+                    />
                   ) : (
                     <div className="bg-muted p-3 rounded-lg text-center">
                       <p className="text-xs text-muted-foreground">No specifications</p>
