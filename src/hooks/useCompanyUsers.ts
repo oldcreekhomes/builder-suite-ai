@@ -56,7 +56,6 @@ export const useCompanyUsers = () => {
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUser.user.id)
-          .eq('role', 'employee')
           .eq('confirmed', true);
         
         // Include the owner (current user) and all employees
