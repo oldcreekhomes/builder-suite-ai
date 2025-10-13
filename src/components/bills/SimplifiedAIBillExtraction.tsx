@@ -116,12 +116,6 @@ export default function SimplifiedAIBillExtraction({
           if (newStatus === 'extracted') {
             console.log('[Realtime] Extraction complete for', uploadId);
             
-            // Stop indicator if we were tracking this upload
-            if (trackedIdsRef.current.has(uploadId)) {
-              trackedIdsRef.current.delete(uploadId);
-              stopIndicator();
-            }
-            
             if (!suppressIndividualToasts) {
               toast({
                 title: "Extraction complete",
@@ -132,12 +126,6 @@ export default function SimplifiedAIBillExtraction({
             setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
-            
-            // Stop indicator if we were tracking this upload
-            if (trackedIdsRef.current.has(uploadId)) {
-              trackedIdsRef.current.delete(uploadId);
-              stopIndicator();
-            }
             
             if (!suppressIndividualToasts) {
               toast({
@@ -613,14 +601,6 @@ export default function SimplifiedAIBillExtraction({
           throw aiError;
         }
       }
-      
-      if (!suppressIndividualToasts) {
-        toast({
-          title: "Extraction started",
-          description: "Processing your bill...",
-        });
-      }
-
 
       // Extraction started - let usePendingBills hook handle polling and status updates
       console.log('Extraction process initiated for upload:', upload.id);
@@ -660,6 +640,12 @@ export default function SimplifiedAIBillExtraction({
           description: errorMessage,
           variant: "destructive"
         });
+      }
+    } finally {
+      // Always stop the indicator when extraction completes (success or error)
+      if (trackedIdsRef.current.has(upload.id)) {
+        trackedIdsRef.current.delete(upload.id);
+        stopIndicator();
       }
     }
   };
