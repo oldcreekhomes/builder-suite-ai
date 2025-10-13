@@ -130,11 +130,17 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Initialize cost codes only once when data loads
   useEffect(() => {
-    if (initializationDone.current) {
-      console.log('Setting cost codes:', companyCostCodes);
-      setSelectedCostCodes([...companyCostCodes]);
+    if (initializationDone.current && companyCostCodes.length > 0) {
+      // Only update if the arrays are actually different
+      const isDifferent = companyCostCodes.length !== selectedCostCodes.length ||
+        companyCostCodes.some((id, idx) => id !== selectedCostCodes[idx]);
+      
+      if (isDifferent) {
+        console.log('Setting cost codes:', companyCostCodes);
+        setSelectedCostCodes([...companyCostCodes]);
+      }
     }
-  }, [companyCostCodes]);
+  }, [companyCostCodes, selectedCostCodes]);
 
   // Reset state when dialog closes
   useEffect(() => {
