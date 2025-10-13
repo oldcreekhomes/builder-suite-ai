@@ -46,7 +46,7 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell className="py-1">
-        <div className="text-sm font-mono font-semibold">
+        <div className="text-sm font-medium">
           {item.po_number || 'Generating...'}
         </div>
       </TableCell>
