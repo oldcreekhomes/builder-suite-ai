@@ -41,6 +41,11 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
     return new Set<string>(allBiddingData.map(item => item.cost_code_id).filter(Boolean));
   }, [allBiddingData]);
   
+  // Memoize the array conversion to prevent infinite re-renders
+  const existingCostCodeIdsArray = React.useMemo(() => {
+    return Array.from(allExistingCostCodeIds);
+  }, [allExistingCostCodeIds]);
+  
   const {
     expandedGroups,
     selectedItems,
@@ -324,7 +329,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
             projectId={projectId}
             open={showAddBiddingModal}
             onOpenChange={setShowAddBiddingModal}
-            existingCostCodeIds={Array.from(allExistingCostCodeIds)}
+            existingCostCodeIds={existingCostCodeIdsArray}
           />
           <GlobalBiddingSettingsModal
             projectId={projectId}
