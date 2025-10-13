@@ -49,9 +49,12 @@ export default function SimplifiedAIBillExtraction({
 }: SimplifiedAIBillExtractionProps) {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
+  const [isExtractingLocal, setIsExtractingLocal] = useState(false);
+  const [remainingLocal, setRemainingLocal] = useState(0);
   const trackedIdsRef = useRef<Set<string>>(new Set());
   const pollIntervalRef = useRef<number | null>(null);
   const hardTimeoutRef = useRef<number | null>(null);
+  const toastRef = useRef<{ id: string; dismiss: () => void; update: (props: any) => void } | null>(null);
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -154,6 +157,20 @@ export default function SimplifiedAIBillExtraction({
       return;
     }
 
+    const totalFiles = files.length;
+    
+    // IMMEDIATE feedback - before any async work
+    onExtractionStart?.(totalFiles);
+    setIsExtractingLocal(true);
+    setRemainingLocal(totalFiles);
+    
+    // Show persistent toast
+    toastRef.current = toast({
+      title: "Extracting...",
+      description: `Extracting ${totalFiles} file${totalFiles !== 1 ? 's' : ''}...`,
+      duration: Infinity,
+    });
+
     setUploading(true);
 
     try {
@@ -241,15 +258,14 @@ export default function SimplifiedAIBillExtraction({
 
       await loadPendingUploads();
 
-      // Notify parent that extraction started
+      // Start watchdog: poll for status updates every 1.5s
       if (uploadedIds.length > 0) {
-        onExtractionStart?.(uploadedIds.length);
-        
-        // Start watchdog: poll for status updates every 1.5s
         const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
         
         pollIntervalRef.current = window.setInterval(async () => {
           const currentIds = Array.from(trackedIdsRef.current);
+          console.log('[Watchdog] Tracking IDs:', currentIds);
+          
           if (currentIds.length === 0) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
             if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
@@ -261,17 +277,41 @@ export default function SimplifiedAIBillExtraction({
             .select('id, status')
             .in('id', currentIds);
           
+          console.log('[Watchdog] Statuses:', data);
+          
           if (data) {
             data.forEach((row) => {
               if (terminalStatuses.includes(row.status) && trackedIdsRef.current.has(row.id)) {
                 trackedIdsRef.current.delete(row.id);
-                onExtractionProgress?.(trackedIdsRef.current.size);
+                const remaining = trackedIdsRef.current.size;
+                setRemainingLocal(remaining);
+                onExtractionProgress?.(remaining);
+                
+                // Update toast
+                if (toastRef.current && remaining > 0) {
+                  toastRef.current.update({
+                    title: "Extracting...",
+                    description: `Extracting ${remaining} file${remaining !== 1 ? 's' : ''}...`,
+                    duration: Infinity,
+                  });
+                }
               }
             });
             
             if (trackedIdsRef.current.size === 0) {
+              console.log('[Watchdog] All files processed');
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
+              setIsExtractingLocal(false);
+              setRemainingLocal(0);
+              if (toastRef.current) {
+                toastRef.current.dismiss();
+                toastRef.current = null;
+              }
+              toast({
+                title: "Extraction complete",
+                description: "Bills are ready for review",
+              });
               onExtractionComplete?.();
             }
           }
@@ -282,12 +322,18 @@ export default function SimplifiedAIBillExtraction({
           console.warn('[Watchdog] Hard timeout reached after 120s');
           if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
           trackedIdsRef.current.clear();
-          onExtractionComplete?.();
+          setIsExtractingLocal(false);
+          setRemainingLocal(0);
+          if (toastRef.current) {
+            toastRef.current.dismiss();
+            toastRef.current = null;
+          }
           toast({
             title: "Extraction taking longer than expected",
             description: "We'll show results as soon as they're ready.",
             variant: "default"
           });
+          onExtractionComplete?.();
         }, 120000);
       }
 
@@ -306,6 +352,12 @@ export default function SimplifiedAIBillExtraction({
 
     } catch (error) {
       console.error('Upload error:', error);
+      setIsExtractingLocal(false);
+      setRemainingLocal(0);
+      if (toastRef.current) {
+        toastRef.current.dismiss();
+        toastRef.current = null;
+      }
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -745,7 +797,7 @@ export default function SimplifiedAIBillExtraction({
 
 
   return (
-    <div>
+    <div className="space-y-2">
       <input
         type="file"
         id="pdf-upload"
@@ -768,6 +820,13 @@ export default function SimplifiedAIBillExtraction({
           </span>
         </Button>
       </label>
+      
+      {isExtractingLocal && remainingLocal > 0 && (
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Extracting {remainingLocal} file{remainingLocal !== 1 ? 's' : ''}...
+        </p>
+      )}
     </div>
   );
 }

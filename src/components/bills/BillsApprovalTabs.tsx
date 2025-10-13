@@ -36,6 +36,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [remaining, setRemaining] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const minVisibleRef = useRef<number | null>(null);
+  const safetyFuseRef = useRef<number | null>(null);
 
   // Update batch bills when pending bills change
   useEffect(() => {
@@ -362,6 +363,52 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     return issues;
   };
 
+  const handleExtractionStart = (total: number) => {
+    setRemaining(total);
+    setIsExtracting(true);
+    minVisibleRef.current = Date.now();
+    
+    // Safety fuse: if extraction doesn't complete in 45s, force reset
+    if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
+    safetyFuseRef.current = window.setTimeout(() => {
+      console.warn('[Safety Fuse] Forcing extraction complete after 45s');
+      setIsExtracting(false);
+      setRemaining(0);
+      setRefreshKey(prev => prev + 1);
+      toast({
+        title: "Auto-refreshed",
+        description: "Extraction may still be processing. The table has been refreshed.",
+      });
+    }, 45000);
+  };
+
+  const handleExtractionProgress = (remaining: number) => {
+    setRemaining(remaining);
+  };
+
+  const handleExtractionComplete = () => {
+    // Clear safety fuse
+    if (safetyFuseRef.current) {
+      clearTimeout(safetyFuseRef.current);
+      safetyFuseRef.current = null;
+    }
+    
+    const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
+    const minVisible = 600;
+
+    if (elapsed < minVisible) {
+      setTimeout(() => {
+        setIsExtracting(false);
+        setRemaining(0);
+        setRefreshKey(prev => prev + 1);
+      }, minVisible - elapsed);
+    } else {
+      setIsExtracting(false);
+      setRemaining(0);
+      setRefreshKey(prev => prev + 1);
+    }
+  };
+
   const handleSubmitAllBills = async () => {
     if (loadingPendingBills) {
       toast({
@@ -559,22 +606,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("enter-manually")}
             suppressIndividualToasts
-            onExtractionStart={(total) => {
-              setRemaining(total);
-              setIsExtracting(true);
-              minVisibleRef.current = Date.now();
-            }}
-            onExtractionProgress={(rem) => setRemaining(rem)}
-            onExtractionComplete={() => {
-              const elapsed = Date.now() - (minVisibleRef.current || Date.now());
-              const delay = elapsed < 600 ? 600 - elapsed : 0;
-              setTimeout(() => {
-                setIsExtracting(false);
-                setRemaining(0);
-                minVisibleRef.current = null;
-                setRefreshKey(k => k + 1);
-              }, delay);
-            }}
+            onExtractionStart={handleExtractionStart}
+            onExtractionProgress={handleExtractionProgress}
+            onExtractionComplete={handleExtractionComplete}
           />
 
           {isExtracting ? (
