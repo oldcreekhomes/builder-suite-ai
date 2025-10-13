@@ -34,7 +34,6 @@ interface SimplifiedAIBillExtractionProps {
   onDataExtracted: (data: any) => void;
   onSwitchToManual: () => void;
   suppressIndividualToasts?: boolean;
-  onPendingUploadsChange?: (uploads: PendingUpload[]) => void;
   onExtractionStart?: (total: number) => void;
   onExtractionProgress?: (remaining: number) => void;
   onExtractionComplete?: () => void;
@@ -44,7 +43,6 @@ export default function SimplifiedAIBillExtraction({
   onDataExtracted, 
   onSwitchToManual, 
   suppressIndividualToasts = false,
-  onPendingUploadsChange,
   onExtractionStart,
   onExtractionProgress,
   onExtractionComplete
@@ -69,10 +67,6 @@ export default function SimplifiedAIBillExtraction({
     setPendingUploads(uploads);
   };
 
-  // Notify parent whenever pendingUploads changes
-  useEffect(() => {
-    onPendingUploadsChange?.(pendingUploads);
-  }, [pendingUploads, onPendingUploadsChange]);
 
   useEffect(() => {
     loadPendingUploads();
@@ -94,7 +88,8 @@ export default function SimplifiedAIBillExtraction({
           console.log('[Realtime] Bill status update:', uploadId, 'status:', newStatus);
 
           // Track extraction progress for this session's uploads
-          if (trackedIdsRef.current.has(uploadId) && (newStatus === 'extracted' || newStatus === 'error')) {
+          const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
+          if (trackedIdsRef.current.has(uploadId) && terminalStatuses.includes(newStatus)) {
             trackedIdsRef.current.delete(uploadId);
             onExtractionProgress?.(trackedIdsRef.current.size);
             if (trackedIdsRef.current.size === 0) {
@@ -102,7 +97,7 @@ export default function SimplifiedAIBillExtraction({
             }
           }
 
-          if (newStatus === 'extracted') {
+          if (newStatus === 'extracted' || newStatus === 'completed' || newStatus === 'reviewing') {
             console.log('[Realtime] Extraction complete for', uploadId);
             
             if (!suppressIndividualToasts) {

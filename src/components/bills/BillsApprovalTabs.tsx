@@ -577,49 +577,51 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             }}
           />
 
-          {isExtracting && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
-            </div>
-          )}
-
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Extracted Bills</CardTitle>
-                  <CardDescription>
-                    {batchBills.length > 0 
-                      ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
-                      : 'Upload PDF files above to extract bill data automatically'
-                    }
-                  </CardDescription>
-                </div>
-                {batchBills.length > 0 && (
-                  <Button
-                    onClick={handleSubmitAllBills}
-                    disabled={isSubmitting || selectedBillIds.size === 0}
-                    size="lg"
-                  >
-                    {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                  </Button>
-                )}
+          {isExtracting ? (
+            <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <BatchBillReviewTable
-                bills={batchBills}
-                onBillUpdate={handleBillUpdate}
-                onBillDelete={handleBillDelete}
-                onLinesUpdate={handleLinesUpdate}
-                selectedBillIds={selectedBillIds}
-                onBillSelect={handleBillSelect}
-                onSelectAll={handleSelectAll}
-                
-              />
-            </CardContent>
-          </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Extracted Bills</CardTitle>
+                    <CardDescription>
+                      {batchBills.length > 0 
+                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
+                        : 'Upload PDF files above to extract bill data automatically'
+                      }
+                    </CardDescription>
+                  </div>
+                  {batchBills.length > 0 && (
+                    <Button
+                      onClick={handleSubmitAllBills}
+                      disabled={isSubmitting || selectedBillIds.size === 0}
+                      size="lg"
+                    >
+                      {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <BatchBillReviewTable
+                  bills={batchBills}
+                  onBillUpdate={handleBillUpdate}
+                  onBillDelete={handleBillDelete}
+                  onLinesUpdate={handleLinesUpdate}
+                  selectedBillIds={selectedBillIds}
+                  onBillSelect={handleBillSelect}
+                  onSelectAll={handleSelectAll}
+                  
+                />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       )}
       
