@@ -265,29 +265,32 @@ export default function SimplifiedAIBillExtraction({
           
           const { data } = await supabase
             .from('pending_bill_uploads')
-            .select('id, status')
+            .select('id, status, extracted_data')
             .in('id', currentIds);
           
-          console.log('[Watchdog] Statuses:', data);
+          console.log('[Watchdog] Statuses:', data?.map(d => ({ id: d.id, status: d.status })));
           
           if (data) {
-            // Build arrays of extracted and error IDs
+            const terminalStatuses = ['extracted', 'completed', 'reviewing', 'error'];
             const errorIds = data.filter(row => row.status === 'error').map(row => row.id);
-            const extractedIds = data.filter(row => row.status === 'extracted').map(row => row.id);
+            const otherTerminalIds = data.filter(row => 
+              terminalStatuses.includes(row.status) && row.status !== 'error'
+            ).map(row => row.id);
             
             // Mark errors as complete immediately
             errorIds.forEach((id) => {
               if (trackedIdsRef.current.has(id)) {
+                console.log('[Watchdog] Marking error complete:', id);
                 trackedIdsRef.current.delete(id);
               }
             });
             
-            // For extracted IDs, check if lines exist
-            if (extractedIds.length > 0) {
+            // For other terminal statuses, check if lines exist
+            if (otherTerminalIds.length > 0) {
               const { data: linesData } = await supabase
                 .from('pending_bill_lines')
                 .select('id, pending_upload_id')
-                .in('pending_upload_id', extractedIds);
+                .in('pending_upload_id', otherTerminalIds);
               
               // Build count map
               const counts: Record<string, number> = {};
@@ -295,9 +298,12 @@ export default function SimplifiedAIBillExtraction({
                 counts[line.pending_upload_id] = (counts[line.pending_upload_id] || 0) + 1;
               });
               
-              // Mark extracted IDs complete only if lines exist
-              extractedIds.forEach((id) => {
+              console.log('[Watchdog] Lines counts:', counts);
+              
+              // Mark terminal IDs complete only if lines exist
+              otherTerminalIds.forEach((id) => {
                 if (trackedIdsRef.current.has(id) && counts[id] > 0) {
+                  console.log('[Watchdog] Marking complete with lines:', id, 'count:', counts[id]);
                   trackedIdsRef.current.delete(id);
                 }
               });
@@ -309,7 +315,7 @@ export default function SimplifiedAIBillExtraction({
             
             // Update toast with appropriate message
             if (toastRef.current && remaining > 0) {
-              const stillWaitingForLines = extractedIds.some(id => trackedIdsRef.current.has(id));
+              const stillWaitingForLines = otherTerminalIds.some(id => trackedIdsRef.current.has(id));
               toastRef.current.update({
                 title: "Extracting...",
                 description: stillWaitingForLines 

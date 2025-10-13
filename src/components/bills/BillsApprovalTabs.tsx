@@ -62,7 +62,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             .order('line_number');
           
           let finalLines = lines || [];
-          if ((!lines || lines.length === 0) && extractedData.lineItems && Array.isArray(extractedData.lineItems) && extractedData.lineItems.length > 0) {
+          
+          // Handle both snake_case and camelCase from extracted_data
+          const snakeLines = Array.isArray(extractedData.line_items) ? extractedData.line_items : [];
+          const camelLines = Array.isArray(extractedData.lineItems) ? extractedData.lineItems : [];
+          const unified = snakeLines.length > 0 ? snakeLines : camelLines;
+          
+          if ((!lines || lines.length === 0) && unified.length > 0) {
             const { data: userData } = await supabase.auth.getUser();
             const ownerId = userData.user?.id;
 
@@ -77,9 +83,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               .eq('owner_id', ownerId);
 
             const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
-            const isSingleLine = extractedData.lineItems.length === 1;
+            const isSingleLine = unified.length === 1;
 
-            const linesToInsert = extractedData.lineItems.map((item: any, index: number) => {
+            const linesToInsert = unified.map((item: any, index: number) => {
               const accountId = item.account_name 
                 ? accounts?.find((a: any) => a.name === item.account_name)?.id 
                 : null;
@@ -87,10 +93,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id 
                 : null;
               
-              const lineType = costCodeId ? 'job_cost' : 'expense';
+              const lineType = costCodeId || item.cost_code_id || item.cost_code_name ? 'job_cost' : 'expense';
               
               const qty = Number(item.quantity) || 1;
-              const unitPrice = Number(item.unit_price || item.unitPrice) || 0;
+              const unitPrice = Number(
+                item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0
+              );
               
               let parsedAmount = typeof item.amount === 'string'
                 ? Number(item.amount.replace(/[^0-9.-]/g, ''))
