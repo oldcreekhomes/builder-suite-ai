@@ -46,6 +46,12 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell className="py-1">
+        <div className="text-sm font-mono font-semibold">
+          {item.po_number || 'Generating...'}
+        </div>
+      </TableCell>
+      
+      <TableCell className="py-1">
         <div className={`text-sm ${costCode?.parent_group ? 'ml-4' : ''}`}>
           <div className="font-medium">
             {costCode?.code}: {costCode?.name}

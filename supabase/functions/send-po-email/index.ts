@@ -27,6 +27,7 @@ interface POEmailRequest {
   purchaseOrderId?: string;
   companyId?: string;
   biddingCompanyId?: string; // Keep for backward compatibility
+  poNumber?: string;
   projectAddress: string;
   companyName: string;
   proposals?: string[];
@@ -115,13 +116,15 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
     return filename;
   };
 
+  const poNumberDisplay = data.poNumber || 'Purchase Order';
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Purchase Order - ${projectAddress}</title>
+    <title>${poNumberDisplay} - ${projectAddress}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -135,7 +138,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Purchase Order</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${poNumberDisplay}</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
                         </td>
                     </tr>

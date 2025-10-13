@@ -1683,6 +1683,35 @@ export type Database = {
           },
         ]
       }
+      project_po_counters: {
+        Row: {
+          created_at: string | null
+          current_number: number
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_number?: number
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_number?: number
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_po_counters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_purchase_orders: {
         Row: {
           bid_package_id: string | null
@@ -1694,6 +1723,7 @@ export type Database = {
           files: Json | null
           id: string
           notes: string | null
+          po_number: string | null
           project_id: string
           status: string
           total_amount: number | null
@@ -1709,6 +1739,7 @@ export type Database = {
           files?: Json | null
           id?: string
           notes?: string | null
+          po_number?: string | null
           project_id: string
           status?: string
           total_amount?: number | null
@@ -1724,6 +1755,7 @@ export type Database = {
           files?: Json | null
           id?: string
           notes?: string | null
+          po_number?: string | null
           project_id?: string
           status?: string
           total_amount?: number | null
@@ -2125,6 +2157,14 @@ export type Database = {
       delete_project_task: {
         Args: { task_id_param: string }
         Returns: boolean
+      }
+      extract_address_code: {
+        Args: { address_text: string }
+        Returns: string
+      }
+      generate_po_number: {
+        Args: { p_project_id: string }
+        Returns: string
       }
       get_conversation_unread_count: {
         Args: { other_user_id_param: string }

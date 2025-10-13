@@ -12,6 +12,7 @@ export interface PurchaseOrder {
   total_amount: number | null;
   status: string;
   notes: string | null;
+  po_number?: string;
   files: any;
   created_at: string;
   created_by: string;
@@ -49,7 +50,7 @@ export const usePurchaseOrders = (projectId: string) => {
       // Fetch purchase orders
       const { data: pos, error: posError } = await supabase
         .from('project_purchase_orders')
-        .select('*')
+        .select('*, po_number')
         .eq('project_id', projectId)
         .order('updated_at', { ascending: false });
 

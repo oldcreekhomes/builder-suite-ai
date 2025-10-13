@@ -56,6 +56,7 @@ export function SendPOEmailModal({
         body: {
           purchaseOrderId: purchaseOrder.id,
           companyId: purchaseOrder.company_id,
+          poNumber: purchaseOrder.po_number,
           projectAddress: projectAddress || 'N/A',
           companyName: purchaseOrder.companies?.company_name || 'N/A',
           customMessage: customMessage.trim() || undefined,

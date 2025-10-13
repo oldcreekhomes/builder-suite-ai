@@ -218,7 +218,7 @@ export const CreatePurchaseOrderDialog = ({
             files: JSON.parse(JSON.stringify(uploadedFiles)),
             status: 'pending',
           }])
-          .select()
+          .select('*, po_number')
           .single();
 
         if (error) throw error;

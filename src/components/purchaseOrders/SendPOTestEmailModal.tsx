@@ -48,6 +48,7 @@ export function SendPOTestEmailModal({
         body: {
           purchaseOrderId: purchaseOrder.id,
           companyId: purchaseOrder.company_id,
+          poNumber: purchaseOrder.po_number,
           projectAddress: projectAddress || 'N/A',
           companyName: purchaseOrder.companies?.company_name || 'N/A',
           totalAmount: purchaseOrder.total_amount,
