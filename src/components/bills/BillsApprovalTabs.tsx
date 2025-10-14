@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
 import { normalizeToYMD } from "@/utils/dateOnly";
 import { useQueryClient } from "@tanstack/react-query";
+import { Progress } from "@/components/ui/progress";
 
 
 interface BillsApprovalTabsProps {
@@ -36,6 +37,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+
+  const [batchActive, setBatchActive] = useState(false);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [batchDone, setBatchDone] = useState(0);
 
   // Build batch bills from completed pending uploads
   const fetchBillsWithLines = useCallback(async () => {
@@ -506,52 +511,85 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
-          <BackgroundBillUpload />
+          <BackgroundBillUpload
+            onBatchStart={(total) => {
+              setBatchActive(true);
+              setBatchTotal(total);
+              setBatchDone(0);
+            }}
+            onBatchProgress={(done, total) => {
+              setBatchDone(done);
+              setBatchTotal(total);
+            }}
+            onBatchComplete={async () => {
+              setBatchActive(false);
+              await handleRefresh();
+            }}
+          />
 
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Extracted Bills</CardTitle>
-                  <CardDescription>
-                    {batchBills.length > 0 
-                      ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
-                      : 'Upload PDF files above to extract bill data automatically'
-                    }
-                  </CardDescription>
+          {batchActive ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Processing bills...</CardTitle>
+                    <CardDescription>
+                      {batchDone}/{batchTotal} ({Math.floor((batchDone / Math.max(batchTotal, 1)) * 100)}%)
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleRefresh}
-                    variant="outline"
-                  >
-                    Refresh results
-                  </Button>
-                  {batchBills.length > 0 && (
+              </CardHeader>
+              <CardContent>
+                <Progress value={Math.round((batchDone / Math.max(batchTotal, 1)) * 100)} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Extracted Bills</CardTitle>
+                    <CardDescription>
+                      {batchBills.length > 0 
+                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
+                        : 'Upload PDF files above to extract bill data automatically'
+                      }
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
                     <Button
-                      onClick={handleSubmitAllBills}
-                      disabled={isSubmitting || selectedBillIds.size === 0}
-                      size="lg"
+                      onClick={handleRefresh}
+                      variant="outline"
+                      disabled={batchActive}
                     >
-                      {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                      Refresh results
                     </Button>
-                  )}
+                    {batchBills.length > 0 && (
+                      <Button
+                        onClick={handleSubmitAllBills}
+                        disabled={isSubmitting || selectedBillIds.size === 0}
+                        size="lg"
+                      >
+                        {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <BatchBillReviewTable
-                bills={batchBills}
-                onBillUpdate={handleBillUpdate}
-                onBillDelete={handleBillDelete}
-                onLinesUpdate={handleLinesUpdate}
-                selectedBillIds={selectedBillIds}
-                onBillSelect={handleBillSelect}
-                onSelectAll={handleSelectAll}
-                showProjectColumn={!effectiveProjectId}
-              />
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <BatchBillReviewTable
+                  bills={batchBills}
+                  onBillUpdate={handleBillUpdate}
+                  onBillDelete={handleBillDelete}
+                  onLinesUpdate={handleLinesUpdate}
+                  selectedBillIds={selectedBillIds}
+                  onBillSelect={handleBillSelect}
+                  onSelectAll={handleSelectAll}
+                  showProjectColumn={!effectiveProjectId}
+                />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       )}
       

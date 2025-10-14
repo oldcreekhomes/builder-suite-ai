@@ -1,11 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
-export default function BackgroundBillUpload() {
+interface BackgroundBillUploadProps {
+  onBatchStart?: (total: number) => void;
+  onBatchProgress?: (done: number, total: number) => void;
+  onBatchComplete?: () => void;
+}
+
+export default function BackgroundBillUpload({ onBatchStart, onBatchProgress, onBatchComplete }: BackgroundBillUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [started, setStarted] = useState(false);
+  const pollingRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, []);
+
+  const startPolling = (ids: string[]) => {
+    if (!ids.length) return;
+
+    const inProgress = new Set(["pending", "processing", "extracting"]);
+    const total = ids.length;
+    onBatchStart?.(total);
+
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    const startedAt = Date.now();
+    const MAX_MS = 10 * 60 * 1000; // safety timeout 10min
+
+    pollingRef.current = window.setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("pending_bill_uploads")
+          .select("id,status")
+          .in("id", ids);
+        if (error) {
+          console.error("Polling error", error);
+          return;
+        }
+        const rows = data || [];
+        const done = rows.filter(r => !inProgress.has((r as any).status)).length;
+        onBatchProgress?.(done, total);
+        if (done >= total || Date.now() - startedAt > MAX_MS) {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          onBatchComplete?.();
+        }
+      } catch (err) {
+        console.error("Polling exception", err);
+      }
+    }, 2000);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -18,6 +75,8 @@ export default function BackgroundBillUpload() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      const uploadedIds: string[] = [];
 
       for (const file of Array.from(files)) {
         const filePath = `pending/${user.id}/${crypto.randomUUID()}-${file.name}`;
@@ -50,6 +109,8 @@ export default function BackgroundBillUpload() {
           continue;
         }
 
+        uploadedIds.push(uploadRow.id);
+
         // Kick off server-side extraction (background only)
         const { error: textractError } = await supabase.functions.invoke("extract-bill-with-textract", {
           body: { pendingUploadId: uploadRow.id },
@@ -66,7 +127,10 @@ export default function BackgroundBillUpload() {
         }
       }
 
-      setStarted(true);
+      if (uploadedIds.length > 0) {
+        startPolling(uploadedIds);
+        setStarted(true);
+      }
     } catch (err) {
       console.error("Upload error", err);
     } finally {
