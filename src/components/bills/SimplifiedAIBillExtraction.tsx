@@ -100,14 +100,7 @@ export default function SimplifiedAIBillExtraction({
 
           if (newStatus === 'extracted' || newStatus === 'completed' || newStatus === 'reviewing') {
             console.log('[Realtime] Extraction complete for', uploadId);
-            
-            if (!suppressIndividualToasts) {
-              toast({
-                title: "Extraction complete",
-                description: "Bill data has been extracted successfully.",
-              });
-            }
-            
+            // No toast here - let watchdog handle final notification
             setPendingUploads(prev => prev.filter(u => u.id !== uploadId));
           } else if (newStatus === 'error') {
             console.error('[Realtime] Extraction error for', uploadId);
@@ -841,12 +834,6 @@ export default function SimplifiedAIBillExtraction({
         </Button>
       </label>
       
-      {isExtractingLocal && remainingLocal > 0 && (
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          Extracting {remainingLocal} file{remainingLocal !== 1 ? 's' : ''}...
-        </p>
-      )}
     </div>
   );
 }
