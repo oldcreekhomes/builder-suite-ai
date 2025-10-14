@@ -47,7 +47,7 @@ export function SpecificationsTab({
   onDeleteAllFiles
 }: SpecificationsTabProps) {
   // Use ALL cost codes for grouping so we can find parent codes like "4000"
-  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes);
+  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes, true);
   
   // Convert grouped cost codes back to specifications format
   const groupedSpecifications = Object.entries(groupedCostCodes).reduce((acc, [key, costCodes]) => {

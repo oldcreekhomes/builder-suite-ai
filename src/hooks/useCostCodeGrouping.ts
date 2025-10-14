@@ -4,7 +4,7 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
 
-export const useCostCodeGrouping = (costCodes: CostCode[]) => {
+export const useCostCodeGrouping = (costCodes: CostCode[], includeParentCodesAsItems: boolean = false) => {
   // Find all parent codes - these are codes that:
   // 1. Other codes reference as parent_group, OR
   // 2. Have has_subcategories set to true
@@ -35,7 +35,8 @@ export const useCostCodeGrouping = (costCodes: CostCode[]) => {
         groupKey = costCode.code;
       }
       // If this is a parent code WITH a parent, skip it as a child item - it will only appear as a group header
-      else if (parentCodes.has(costCode.code) && costCode.parent_group && costCode.parent_group.trim() !== '') {
+      // UNLESS includeParentCodesAsItems is true (needed for Specifications tab)
+      else if (!includeParentCodesAsItems && parentCodes.has(costCode.code) && costCode.parent_group && costCode.parent_group.trim() !== '') {
         // Don't add this to any group as a child item
         return;
       }
@@ -66,7 +67,7 @@ export const useCostCodeGrouping = (costCodes: CostCode[]) => {
     });
     
     return groups;
-  }, [costCodes, parentCodes]);
+  }, [costCodes, parentCodes, includeParentCodesAsItems]);
 
   // Get parent cost code details for group headers
   const getParentCostCode = useCallback((parentGroupCode: string) => {
