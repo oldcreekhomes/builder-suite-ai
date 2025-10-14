@@ -49,7 +49,6 @@ export function ActualGroupHeader({
   const variance = calculateVariance(groupBudgetTotal, groupCommittedTotal);
 
   return (
-    <>
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
@@ -95,6 +94,5 @@ export function ActualGroupHeader({
           </div>
         </TableCell>
       </TableRow>
-    </>
   );
 }
