@@ -51,8 +51,13 @@ export function ActualGroupHeader({
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
-            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
-            onCheckedChange={(value) => onCheckboxChange(group, value === true)}
+            checked={isSelected}
+            ref={(el) => {
+              if (el && 'indeterminate' in el) {
+                (el as any).indeterminate = isPartiallySelected && !isSelected;
+              }
+            }}
+            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
             className="h-3 w-3"
           />
         </TableCell>
